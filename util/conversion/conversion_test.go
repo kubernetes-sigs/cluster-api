@@ -154,3 +154,94 @@ func TestUnmarshalData(t *testing.T) {
 		g.Expect(src.GetAnnotations()).To(HaveLen(1))
 	})
 }
+
+func TestGetContractVersionForVersion(t *testing.T) {
+	testCases := []struct {
+		name                    string
+		crdLabels               map[string]string
+		version                 string
+		expectedContractVersion string
+		expectError             bool
+	}{
+		{
+			name:                    "no contract labels",
+			crdLabels:               nil,
+			expectedContractVersion: "",
+			version:                 "v1alpha3",
+			expectError:             true,
+		},
+		{
+			name: "pick v1beta1",
+			crdLabels: map[string]string{
+				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
+				"cluster.x-k8s.io/v1beta2": "v1alpha3_v1alpha4",
+			},
+			version:                 "v1alpha1",
+			expectedContractVersion: "v1beta1",
+			expectError:             false,
+		},
+		{
+			name: "pick v1beta1",
+			crdLabels: map[string]string{
+				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
+				"cluster.x-k8s.io/v1beta2": "v1alpha3_v1alpha4",
+			},
+			version:                 "v1alpha2",
+			expectedContractVersion: "v1beta1",
+			expectError:             false,
+		},
+		{
+			name: "pick v1beta2",
+			crdLabels: map[string]string{
+				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
+				"cluster.x-k8s.io/v1beta2": "v1alpha3_v1alpha4",
+			},
+			version:                 "v1alpha3",
+			expectedContractVersion: "v1beta2",
+			expectError:             false,
+		},
+		{
+			name: "pick v1beta2",
+			crdLabels: map[string]string{
+				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
+				"cluster.x-k8s.io/v1beta2": "v1alpha3_v1alpha4",
+			},
+			version:                 "v1alpha4",
+			expectedContractVersion: "v1beta2",
+			expectError:             false,
+		},
+		{
+			name: "error",
+			crdLabels: map[string]string{
+				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
+				"cluster.x-k8s.io/v1beta2": "v1alpha3_v1alpha4",
+			},
+			version:     "v1alpha5",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			gvk := clusterv1.GroupVersionBootstrap.WithKind("TestBootstrapConfig")
+
+			u := &unstructured.Unstructured{}
+			u.SetName(contract.CalculateCRDName(gvk.Group, gvk.Kind))
+			u.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
+			u.SetLabels(tt.crdLabels)
+
+			fakeClient := fake.NewClientBuilder().WithObjects(u).Build()
+
+			contractVersion, err := GetContractVersionForVersion(ctx, fakeClient, gvk, tt.version)
+
+			if tt.expectError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(contractVersion).To(Equal(tt.expectedContractVersion))
+		})
+	}
+}

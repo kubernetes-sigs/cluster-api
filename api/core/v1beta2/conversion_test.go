@@ -17,39 +17,27 @@ limitations under the License.
 package v1beta2
 
 import (
+	"math"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
-func TestConvertArgs(t *testing.T) {
+func TestConvertSeconds(t *testing.T) {
 	g := NewWithT(t)
 
-	argList := []Arg{
-		{
-			Name:  "foo",
-			Value: "1",
-		},
-		{
-			Name:  "bar",
-			Value: "1",
-		},
-		{
-			Name:  "foo",
-			Value: "2",
-		},
-	}
-	argMap := ConvertFromArgs(argList)
+	seconds := ptr.To[int32](100)
+	duration := ConvertFromSeconds(seconds)
+	g.Expect(ConvertToSeconds(duration)).To(Equal(seconds))
 
-	argList = ConvertToArgs(argMap)
-	g.Expect(argList).To(HaveLen(2))
-	g.Expect(argList).To(ConsistOf(
-		Arg{
-			Name:  "bar",
-			Value: "1"},
-		Arg{
-			Name:  "foo",
-			Value: "2",
-		},
-	))
+	seconds = nil
+	duration = ConvertFromSeconds(seconds)
+	g.Expect(ConvertToSeconds(duration)).To(Equal(seconds))
+
+	// Durations longer than MaxInt32 are capped.
+	duration = ptr.To(metav1.Duration{Duration: (math.MaxInt32 + 1) * time.Second})
+	g.Expect(ConvertToSeconds(duration)).To(Equal(ptr.To[int32](math.MaxInt32)))
 }

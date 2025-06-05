@@ -19,7 +19,6 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,18 +34,18 @@ import (
 
 var (
 	// Minimum time allowed for a node to start up.
-	minNodeStartupTimeout = metav1.Duration{Duration: 30 * time.Second}
+	minNodeStartupTimeoutSeconds = int32(30)
 	// We allow users to disable the nodeStartupTimeout by setting the duration to 0.
-	disabledNodeStartupTimeout = clusterv1.ZeroDuration
+	disabledNodeStartupTimeoutSeconds = int32(0)
 )
 
-// SetMinNodeStartupTimeout allows users to optionally set a custom timeout
+// SetMinNodeStartupTimeoutSeconds allows users to optionally set a custom timeout
 // for the validation webhook.
 //
 // This function is mostly used within envtest (integration tests), and should
 // never be used in a production environment.
-func SetMinNodeStartupTimeout(d metav1.Duration) {
-	minNodeStartupTimeout = d
+func SetMinNodeStartupTimeoutSeconds(d int32) {
+	minNodeStartupTimeoutSeconds = d
 }
 
 func (webhook *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -83,8 +82,8 @@ func (webhook *MachineHealthCheck) Default(_ context.Context, obj runtime.Object
 		m.Spec.MaxUnhealthy = &defaultMaxUnhealthy
 	}
 
-	if m.Spec.NodeStartupTimeout == nil {
-		m.Spec.NodeStartupTimeout = &clusterv1.DefaultNodeStartupTimeout
+	if m.Spec.NodeStartupTimeoutSeconds == nil {
+		m.Spec.NodeStartupTimeoutSeconds = &clusterv1.DefaultNodeStartupTimeoutSeconds
 	}
 
 	if m.Spec.RemediationTemplate != nil && m.Spec.RemediationTemplate.Namespace == "" {
@@ -165,17 +164,17 @@ func (webhook *MachineHealthCheck) validate(oldMHC, newMHC *clusterv1.MachineHea
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachineHealthCheck").GroupKind(), newMHC.Name, allErrs)
 }
 
-// ValidateCommonFields validates NodeStartupTimeout, MaxUnhealthy, and RemediationTemplate of the MHC.
+// ValidateCommonFields validates NodeStartupTimeoutSeconds, MaxUnhealthy, and RemediationTemplate of the MHC.
 // These are the fields in common with other types which define MachineHealthChecks such as MachineHealthCheckClass and MachineHealthCheckTopology.
 func (webhook *MachineHealthCheck) validateCommonFields(m *clusterv1.MachineHealthCheck, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if m.Spec.NodeStartupTimeout != nil &&
-		m.Spec.NodeStartupTimeout.Seconds() != disabledNodeStartupTimeout.Seconds() &&
-		m.Spec.NodeStartupTimeout.Seconds() < minNodeStartupTimeout.Seconds() {
+	if m.Spec.NodeStartupTimeoutSeconds != nil &&
+		*m.Spec.NodeStartupTimeoutSeconds != disabledNodeStartupTimeoutSeconds &&
+		*m.Spec.NodeStartupTimeoutSeconds < minNodeStartupTimeoutSeconds {
 		allErrs = append(
 			allErrs,
-			field.Invalid(fldPath.Child("nodeStartupTimeout"), m.Spec.NodeStartupTimeout.String(), "must be at least 30s"),
+			field.Invalid(fldPath.Child("nodeStartupTimeoutSeconds"), *m.Spec.NodeStartupTimeoutSeconds, "must be at least 30s"),
 		)
 	}
 	if m.Spec.MaxUnhealthy != nil {

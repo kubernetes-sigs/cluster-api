@@ -401,29 +401,44 @@ type FooControlPlaneMachineTemplate struct {
     // offered by an infrastructure provider.
     InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
     
-    // nodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
+    // nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a controlplane node
     // The default value is 0, meaning that the node can be drained without any time limitations.
     // +optional
-    NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeDrainTimeoutSeconds *int32 `json:"nodeDrainTimeoutSeconds,omitempty"`
     
-    // nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
     // to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
     // +optional
-    NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
     
-    // nodeDeletionTimeout defines how long the machine controller will attempt to delete the Node that the Machine
+	// nodeDeletionTimeoutSeconds defines how long the machine controller will attempt to delete the Node that the Machine
     // hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
     // If no value is provided, the default value for this property of the Machine resource will be used.
     // +optional
-    NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
   
     // Other fields SHOULD be added based on the needs of your provider.
 }
 ```
 
-Please note that some of the above fields (`metadata`, `nodeDrainTimeout`, `nodeVolumeDetachTimeout`, `nodeDeletionTimeout`)
+Please note that some of the above fields (`metadata`, `nodeDrainTimeoutSeconds`, `nodeVolumeDetachTimeoutSeconds`, `nodeDeletionTimeoutSeconds`)
 must be propagated to machines without triggering rollouts.
 See [In place propagation of changes affecting Kubernetes objects only] as well as [Metadata propagation] for more details.
+
+<aside class="note warning">
+
+<h1>Compatibility with the deprecated v1beta1 contract</h1>
+
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+
+For reference. The v1beta1 contract had `nodeDrainTimeout`, `nodeVolumeDetachTimeout`, `nodeDeletionTimeout` fields
+of type `*metav1.Duration` instead of the new fields with `Seconds` suffix of type `*int32`.
+
+</aside>
 
 In case you are developing a control plane provider that allows definition of machine readiness gates, you SHOULD also implement
 the following `machineTemplate` field.

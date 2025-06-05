@@ -22,11 +22,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -350,7 +352,7 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Verify that the fields from Cluster topology are set on the control plane.
-		assertControlPlaneTopologyFields(g, controlPlane, controlPlaneTopology)
+		assertControlPlaneTopologyFields(g, contractVersion, controlPlane, controlPlaneTopology)
 
 		// Verify that ModifyControlPlaneFields have been set.
 		for fieldPath, expectedValue := range input.ModifyControlPlaneFields {
@@ -378,7 +380,7 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 // assertControlPlaneTopologyFields asserts that all fields set in the ControlPlaneTopology have been set on the ControlPlane.
 // Note: We intentionally focus on the fields set in the ControlPlaneTopology and ignore the ones set through ClusterClass or
 // ControlPlane template as we want to validate that the fields of the ControlPlaneTopology have been propagated correctly.
-func assertControlPlaneTopologyFields(g Gomega, controlPlane *unstructured.Unstructured, controlPlaneTopology clusterv1.ControlPlaneTopology) {
+func assertControlPlaneTopologyFields(g Gomega, contractVersion string, controlPlane *unstructured.Unstructured, controlPlaneTopology clusterv1.ControlPlaneTopology) {
 	metadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
 	for k, v := range controlPlaneTopology.Metadata.Labels {
@@ -388,22 +390,40 @@ func assertControlPlaneTopologyFields(g Gomega, controlPlane *unstructured.Unstr
 		g.Expect(metadata.Annotations).To(HaveKeyWithValue(k, v))
 	}
 
-	if controlPlaneTopology.NodeDrainTimeout != nil {
-		nodeDrainTimeout, err := contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Get(controlPlane)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(nodeDrainTimeout).To(Equal(controlPlaneTopology.NodeDrainTimeout))
+	if controlPlaneTopology.NodeDrainTimeoutSeconds != nil {
+		if contractVersion == "v1beta1" {
+			nodeDrainTimeout, err := contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Get(controlPlane)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(*nodeDrainTimeout).To(Equal(metav1.Duration{Duration: time.Duration(*controlPlaneTopology.NodeDrainTimeoutSeconds) * time.Second}))
+		} else {
+			nodeDrainTimeout, err := contract.ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Get(controlPlane)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(*nodeDrainTimeout).To(Equal(*controlPlaneTopology.NodeDrainTimeoutSeconds))
+		}
 	}
 
-	if controlPlaneTopology.NodeDeletionTimeout != nil {
-		nodeDeletionTimeout, err := contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Get(controlPlane)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(nodeDeletionTimeout).To(Equal(controlPlaneTopology.NodeDeletionTimeout))
+	if controlPlaneTopology.NodeDeletionTimeoutSeconds != nil {
+		if contractVersion == "v1beta1" {
+			nodeDeletionTimeout, err := contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Get(controlPlane)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(*nodeDeletionTimeout).To(Equal(metav1.Duration{Duration: time.Duration(*controlPlaneTopology.NodeDeletionTimeoutSeconds) * time.Second}))
+		} else {
+			nodeDeletionTimeout, err := contract.ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Get(controlPlane)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(*nodeDeletionTimeout).To(Equal(*controlPlaneTopology.NodeDeletionTimeoutSeconds))
+		}
 	}
 
-	if controlPlaneTopology.NodeVolumeDetachTimeout != nil {
-		nodeVolumeDetachTimeout, err := contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Get(controlPlane)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(nodeVolumeDetachTimeout).To(Equal(controlPlaneTopology.NodeVolumeDetachTimeout))
+	if controlPlaneTopology.NodeVolumeDetachTimeoutSeconds != nil {
+		if contractVersion == "v1beta1" {
+			nodeVolumeDetachTimeout, err := contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Get(controlPlane)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(*nodeVolumeDetachTimeout).To(Equal(metav1.Duration{Duration: time.Duration(*controlPlaneTopology.NodeVolumeDetachTimeoutSeconds) * time.Second}))
+		} else {
+			nodeVolumeDetachTimeout, err := contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Get(controlPlane)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(*nodeVolumeDetachTimeout).To(Equal(*controlPlaneTopology.NodeVolumeDetachTimeoutSeconds))
+		}
 	}
 }
 
@@ -669,16 +689,16 @@ func assertMachineDeploymentTopologyFields(g Gomega, md clusterv1.MachineDeploym
 		g.Expect(md.Annotations).To(HaveKeyWithValue(k, v))
 	}
 
-	if mdTopology.NodeDrainTimeout != nil {
-		g.Expect(md.Spec.Template.Spec.NodeDrainTimeout).To(Equal(mdTopology.NodeDrainTimeout))
+	if mdTopology.NodeDrainTimeoutSeconds != nil {
+		g.Expect(md.Spec.Template.Spec.NodeDrainTimeoutSeconds).To(Equal(mdTopology.NodeDrainTimeoutSeconds))
 	}
 
-	if mdTopology.NodeDeletionTimeout != nil {
-		g.Expect(md.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(mdTopology.NodeDeletionTimeout))
+	if mdTopology.NodeDeletionTimeoutSeconds != nil {
+		g.Expect(md.Spec.Template.Spec.NodeDeletionTimeoutSeconds).To(Equal(mdTopology.NodeDeletionTimeoutSeconds))
 	}
 
-	if mdTopology.NodeVolumeDetachTimeout != nil {
-		g.Expect(md.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(mdTopology.NodeVolumeDetachTimeout))
+	if mdTopology.NodeVolumeDetachTimeoutSeconds != nil {
+		g.Expect(md.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds).To(Equal(mdTopology.NodeVolumeDetachTimeoutSeconds))
 	}
 
 	if mdTopology.MinReadySeconds != nil {
@@ -707,16 +727,16 @@ func assertMachinePoolTopologyFields(g Gomega, mp clusterv1.MachinePool, mpTopol
 		g.Expect(mp.Annotations).To(HaveKeyWithValue(k, v))
 	}
 
-	if mpTopology.NodeDrainTimeout != nil {
-		g.Expect(mp.Spec.Template.Spec.NodeDrainTimeout).To(Equal(mpTopology.NodeDrainTimeout))
+	if mpTopology.NodeDrainTimeoutSeconds != nil {
+		g.Expect(mp.Spec.Template.Spec.NodeDrainTimeoutSeconds).To(Equal(mpTopology.NodeDrainTimeoutSeconds))
 	}
 
-	if mpTopology.NodeDeletionTimeout != nil {
-		g.Expect(mp.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(mpTopology.NodeDeletionTimeout))
+	if mpTopology.NodeDeletionTimeoutSeconds != nil {
+		g.Expect(mp.Spec.Template.Spec.NodeDeletionTimeoutSeconds).To(Equal(mpTopology.NodeDeletionTimeoutSeconds))
 	}
 
-	if mpTopology.NodeVolumeDetachTimeout != nil {
-		g.Expect(mp.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(mpTopology.NodeVolumeDetachTimeout))
+	if mpTopology.NodeVolumeDetachTimeoutSeconds != nil {
+		g.Expect(mp.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds).To(Equal(mpTopology.NodeVolumeDetachTimeoutSeconds))
 	}
 
 	if mpTopology.MinReadySeconds != nil {

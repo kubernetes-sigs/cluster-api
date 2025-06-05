@@ -1485,10 +1485,10 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-					NodeDrainTimeout:  &metav1.Duration{Duration: time.Second * 60},
+					ClusterName:             "test-cluster",
+					InfrastructureRef:       corev1.ObjectReference{},
+					Bootstrap:               clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					NodeDrainTimeoutSeconds: ptr.To(int32(60)),
 				},
 
 				Status: clusterv1.MachineStatus{
@@ -1508,10 +1508,10 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-					NodeDrainTimeout:  &metav1.Duration{Duration: time.Second * 60},
+					ClusterName:             "test-cluster",
+					InfrastructureRef:       corev1.ObjectReference{},
+					Bootstrap:               clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					NodeDrainTimeoutSeconds: ptr.To(int32(60)),
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
@@ -1522,7 +1522,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "NodeDrainTimeout option is set to its default value 0",
+			name: "NodeDrainTimeoutSeconds option is set to its default value 0",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "test-machine",
@@ -2046,10 +2046,10 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:             "test-cluster",
-					InfrastructureRef:       corev1.ObjectReference{},
-					Bootstrap:               clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-					NodeVolumeDetachTimeout: &metav1.Duration{Duration: time.Second * 30},
+					ClusterName:                    "test-cluster",
+					InfrastructureRef:              corev1.ObjectReference{},
+					Bootstrap:                      clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					NodeVolumeDetachTimeoutSeconds: ptr.To(int32(30)),
 				},
 
 				Status: clusterv1.MachineStatus{
@@ -2069,10 +2069,10 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:             "test-cluster",
-					InfrastructureRef:       corev1.ObjectReference{},
-					Bootstrap:               clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-					NodeVolumeDetachTimeout: &metav1.Duration{Duration: time.Second * 60},
+					ClusterName:                    "test-cluster",
+					InfrastructureRef:              corev1.ObjectReference{},
+					Bootstrap:                      clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					NodeVolumeDetachTimeoutSeconds: ptr.To(int32(60)),
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
@@ -3366,20 +3366,20 @@ func TestNodeDeletion(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                 string
-		deletionTimeout      *metav1.Duration
-		resultErr            bool
-		clusterDeleted       bool
-		expectNodeDeletion   bool
-		expectDeletingReason string
-		createFakeClient     func(...client.Object) client.Client
+		name                   string
+		deletionTimeoutSeconds *int32
+		resultErr              bool
+		clusterDeleted         bool
+		expectNodeDeletion     bool
+		expectDeletingReason   string
+		createFakeClient       func(...client.Object) client.Client
 	}{
 		{
-			name:                 "should return no error when deletion is successful",
-			deletionTimeout:      &metav1.Duration{Duration: time.Second},
-			resultErr:            false,
-			expectNodeDeletion:   true,
-			expectDeletingReason: clusterv1.MachineDeletingDeletionCompletedReason,
+			name:                   "should return no error when deletion is successful",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              false,
+			expectNodeDeletion:     true,
+			expectDeletingReason:   clusterv1.MachineDeletingDeletionCompletedReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				return fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -3388,11 +3388,11 @@ func TestNodeDeletion(t *testing.T) {
 			},
 		},
 		{
-			name:                 "should return an error when timeout is not expired and node deletion fails",
-			deletionTimeout:      &metav1.Duration{Duration: time.Hour},
-			resultErr:            true,
-			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.MachineDeletingDeletingNodeReason,
+			name:                   "should return an error when timeout is not expired and node deletion fails",
+			deletionTimeoutSeconds: ptr.To(int32(60 * 60)),
+			resultErr:              true,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.MachineDeletingDeletingNodeReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -3402,11 +3402,11 @@ func TestNodeDeletion(t *testing.T) {
 			},
 		},
 		{
-			name:                 "should return an error when timeout is infinite and node deletion fails",
-			deletionTimeout:      &metav1.Duration{Duration: 0}, // should lead to infinite timeout
-			resultErr:            true,
-			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.MachineDeletingDeletingNodeReason,
+			name:                   "should return an error when timeout is infinite and node deletion fails",
+			deletionTimeoutSeconds: ptr.To(int32(0)), // should lead to infinite timeout
+			resultErr:              true,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.MachineDeletingDeletingNodeReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -3416,11 +3416,11 @@ func TestNodeDeletion(t *testing.T) {
 			},
 		},
 		{
-			name:                 "should not return an error when timeout is expired and node deletion fails",
-			deletionTimeout:      &metav1.Duration{Duration: time.Millisecond},
-			resultErr:            false,
-			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.DeletionCompletedReason,
+			name:                   "should not return an error when timeout is expired and node deletion fails",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              false,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.DeletionCompletedReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -3430,12 +3430,12 @@ func TestNodeDeletion(t *testing.T) {
 			},
 		},
 		{
-			name:                 "should not delete the node or return an error when the cluster is marked for deletion",
-			deletionTimeout:      nil, // should lead to infinite timeout
-			resultErr:            false,
-			clusterDeleted:       true,
-			expectNodeDeletion:   false,
-			expectDeletingReason: clusterv1.DeletionCompletedReason,
+			name:                   "should not delete the node or return an error when the cluster is marked for deletion",
+			deletionTimeoutSeconds: nil, // should lead to infinite timeout
+			resultErr:              false,
+			clusterDeleted:         true,
+			expectNodeDeletion:     false,
+			expectDeletingReason:   clusterv1.DeletionCompletedReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -3451,7 +3451,7 @@ func TestNodeDeletion(t *testing.T) {
 			g := NewWithT(t)
 
 			m := testMachine.DeepCopy()
-			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
+			m.Spec.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
 
@@ -3559,19 +3559,19 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                 string
-		deletionTimeout      *metav1.Duration
-		resultErr            bool
-		expectNodeDeletion   bool
-		expectDeletingReason string
-		createFakeClient     func(...client.Object) client.Client
+		name                   string
+		deletionTimeoutSeconds *int32
+		resultErr              bool
+		expectNodeDeletion     bool
+		expectDeletingReason   string
+		createFakeClient       func(...client.Object) client.Client
 	}{
 		{
-			name:                 "should return no error when the node exists and matches the provider id",
-			deletionTimeout:      &metav1.Duration{Duration: time.Second},
-			resultErr:            false,
-			expectNodeDeletion:   true,
-			expectDeletingReason: clusterv1.MachineDeletingDeletionCompletedReason,
+			name:                   "should return no error when the node exists and matches the provider id",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              false,
+			expectNodeDeletion:     true,
+			expectDeletingReason:   clusterv1.MachineDeletingDeletionCompletedReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				return fake.NewClientBuilder().
 					WithObjects(initObjs...).
@@ -3585,7 +3585,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			m := testMachine.DeepCopy()
-			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
+			m.Spec.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
 

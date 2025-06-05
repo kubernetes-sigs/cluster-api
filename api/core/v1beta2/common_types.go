@@ -19,7 +19,6 @@ package v1beta2
 import (
 	corev1 "k8s.io/api/core/v1"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
@@ -273,11 +272,6 @@ var NodeUninitializedTaint = corev1.Taint{
 const (
 	// TemplateSuffix is the object kind suffix used by template types.
 	TemplateSuffix = "Template"
-)
-
-var (
-	// ZeroDuration is a zero value of the metav1.Duration type.
-	ZeroDuration = metav1.Duration{}
 )
 
 // MachineAddressType describes a valid MachineAddress type.

@@ -449,22 +449,25 @@ type MachineSpec struct {
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
-	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
-	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
 	// +optional
-	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeDrainTimeoutSeconds *int32 `json:"nodeDrainTimeoutSeconds,omitempty"`
 
-	// nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
 	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
 	// +optional
-	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
-	// nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
 	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// +optional
-	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
 }
 
 // MachineReadinessGate contains the type of a Machine condition to be used as a readiness gate.
@@ -642,13 +645,13 @@ type MachineV1Beta1DeprecatedStatus struct {
 // MachineDeletionStatus is the deletion state of the Machine.
 type MachineDeletionStatus struct {
 	// nodeDrainStartTime is the time when the drain of the node started and is used to determine
-	// if the NodeDrainTimeout is exceeded.
+	// if the nodeDrainTimeoutSeconds is exceeded.
 	// Only present when the Machine has a deletionTimestamp and draining the node had been started.
 	// +optional
 	NodeDrainStartTime *metav1.Time `json:"nodeDrainStartTime,omitempty"`
 
 	// waitForNodeVolumeDetachStartTime is the time when waiting for volume detachment started
-	// and is used to determine if the NodeVolumeDetachTimeout is exceeded.
+	// and is used to determine if the nodeVolumeDetachTimeoutSeconds is exceeded.
 	// Detaching volumes from nodes is usually done by CSI implementations and the current state
 	// is observed from the node's `.Status.VolumesAttached` field.
 	// Only present when the Machine has a deletionTimestamp and waiting for volume detachments had been started.

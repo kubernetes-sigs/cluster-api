@@ -775,9 +775,9 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 			}
 
 			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
-			m.Spec.NodeDrainTimeout = controlPlane.KCP.Spec.MachineTemplate.NodeDrainTimeout
-			m.Spec.NodeDeletionTimeout = controlPlane.KCP.Spec.MachineTemplate.NodeDeletionTimeout
-			m.Spec.NodeVolumeDetachTimeout = controlPlane.KCP.Spec.MachineTemplate.NodeVolumeDetachTimeout
+			m.Spec.NodeDrainTimeoutSeconds = controlPlane.KCP.Spec.MachineTemplate.NodeDrainTimeoutSeconds
+			m.Spec.NodeDeletionTimeoutSeconds = controlPlane.KCP.Spec.MachineTemplate.NodeDeletionTimeoutSeconds
+			m.Spec.NodeVolumeDetachTimeoutSeconds = controlPlane.KCP.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds
 
 			// Note: We intentionally don't set "minReadySeconds" on Machines because we consider it enough to have machine availability driven by readiness of control plane components.
 			if err := patchHelper.Patch(ctx, m); err != nil {

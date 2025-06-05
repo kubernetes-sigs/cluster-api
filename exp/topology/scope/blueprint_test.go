@@ -18,7 +18,6 @@ package scope
 
 import (
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -114,9 +113,9 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
-									Type:    corev1.NodeReady,
-									Status:  corev1.ConditionUnknown,
-									Timeout: metav1.Duration{Duration: 5 * time.Minute},
+									Type:           corev1.NodeReady,
+									Status:         corev1.ConditionUnknown,
+									TimeoutSeconds: 5 * 60,
 								},
 							},
 						},
@@ -138,9 +137,9 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
-									Type:    corev1.NodeReady,
-									Status:  corev1.ConditionUnknown,
-									Timeout: metav1.Duration{Duration: 5 * time.Minute},
+									Type:           corev1.NodeReady,
+									Status:         corev1.ConditionUnknown,
+									TimeoutSeconds: 5 * 60,
 								},
 							},
 						},
@@ -162,9 +161,9 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
-									Type:    corev1.NodeReady,
-									Status:  corev1.ConditionUnknown,
-									Timeout: metav1.Duration{Duration: 5 * time.Minute},
+									Type:           corev1.NodeReady,
+									Status:         corev1.ConditionUnknown,
+									TimeoutSeconds: 5 * 60,
 								},
 							},
 						},
@@ -187,9 +186,9 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 	mhcInClusterClass := &clusterv1.MachineHealthCheckClass{
 		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
-				Type:    corev1.NodeReady,
-				Status:  corev1.ConditionFalse,
-				Timeout: metav1.Duration{Duration: 10 * time.Minute},
+				Type:           corev1.NodeReady,
+				Status:         corev1.ConditionFalse,
+				TimeoutSeconds: 10 * 60,
 			},
 		},
 	}
@@ -198,9 +197,9 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 	mhcInClusterTopology := &clusterv1.MachineHealthCheckClass{
 		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
-				Type:    corev1.NodeReady,
-				Status:  corev1.ConditionFalse,
-				Timeout: metav1.Duration{Duration: 20 * time.Minute},
+				Type:           corev1.NodeReady,
+				Status:         corev1.ConditionFalse,
+				TimeoutSeconds: 20 * 60,
 			},
 		},
 		MaxUnhealthy: &percent50,
@@ -327,9 +326,9 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 					MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 							{
-								Type:    corev1.NodeReady,
-								Status:  corev1.ConditionUnknown,
-								Timeout: metav1.Duration{Duration: 5 * time.Minute},
+								Type:           corev1.NodeReady,
+								Status:         corev1.ConditionUnknown,
+								TimeoutSeconds: 5 * 60,
 							},
 						},
 					},
@@ -351,9 +350,9 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 					MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 							{
-								Type:    corev1.NodeReady,
-								Status:  corev1.ConditionUnknown,
-								Timeout: metav1.Duration{Duration: 5 * time.Minute},
+								Type:           corev1.NodeReady,
+								Status:         corev1.ConditionUnknown,
+								TimeoutSeconds: 5 * 60,
 							},
 						},
 					},
@@ -375,9 +374,9 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 					MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 							{
-								Type:    corev1.NodeReady,
-								Status:  corev1.ConditionUnknown,
-								Timeout: metav1.Duration{Duration: 5 * time.Minute},
+								Type:           corev1.NodeReady,
+								Status:         corev1.ConditionUnknown,
+								TimeoutSeconds: 5 * 60,
 							},
 						},
 					},
@@ -399,9 +398,9 @@ func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
 	mhcInClusterClass := &clusterv1.MachineHealthCheckClass{
 		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
-				Type:    corev1.NodeReady,
-				Status:  corev1.ConditionFalse,
-				Timeout: metav1.Duration{Duration: 10 * time.Minute},
+				Type:           corev1.NodeReady,
+				Status:         corev1.ConditionFalse,
+				TimeoutSeconds: 10 * 60,
 			},
 		},
 	}
@@ -410,9 +409,9 @@ func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
 	mhcInClusterTopology := &clusterv1.MachineHealthCheckClass{
 		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
-				Type:    corev1.NodeReady,
-				Status:  corev1.ConditionFalse,
-				Timeout: metav1.Duration{Duration: 20 * time.Minute},
+				Type:           corev1.NodeReady,
+				Status:         corev1.ConditionFalse,
+				TimeoutSeconds: 20 * 60,
 			},
 		},
 		MaxUnhealthy: &percent50,

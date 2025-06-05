@@ -18,11 +18,11 @@ package cluster
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
@@ -63,9 +63,7 @@ func TestGetBlueprint(t *testing.T) {
 	workerBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "workerbootstraptemplate1").
 		Build()
 	machineHealthCheck := &clusterv1.MachineHealthCheckClass{
-		NodeStartupTimeout: &metav1.Duration{
-			Duration: time.Duration(1),
-		},
+		NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 	}
 
 	machineDeployment := builder.MachineDeploymentClass("workerclass1").

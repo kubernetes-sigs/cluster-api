@@ -299,11 +299,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*MachineSpec)(nil), (*v1beta2.MachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_MachineSpec_To_v1beta2_MachineSpec(a.(*MachineSpec), b.(*v1beta2.MachineSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*MachineTemplateSpec)(nil), (*v1beta2.MachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(a.(*MachineTemplateSpec), b.(*v1beta2.MachineTemplateSpec), scope)
 	}); err != nil {
@@ -396,6 +391,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*MachineSetStatus)(nil), (*v1beta2.MachineSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_MachineSetStatus_To_v1beta2_MachineSetStatus(a.(*MachineSetStatus), b.(*v1beta2.MachineSetStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*MachineSpec)(nil), (*v1beta2.MachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_MachineSpec_To_v1beta2_MachineSpec(a.(*MachineSpec), b.(*v1beta2.MachineSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -910,9 +910,9 @@ func autoConvert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *v1b
 	out.MachineInfrastructure = (*LocalObjectTemplate)(unsafe.Pointer(in.MachineInfrastructure))
 	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -936,9 +936,9 @@ func autoConvert_v1beta2_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(i
 	}
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.Variables requires manual conversion: does not exist in peer-type
 	return nil
@@ -1071,9 +1071,9 @@ func autoConvert_v1beta2_MachineDeploymentClass_To_v1alpha4_MachineDeploymentCla
 	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.Strategy requires manual conversion: does not exist in peer-type
@@ -1303,9 +1303,9 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1alpha4_MachineDeployment
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.Strategy requires manual conversion: does not exist in peer-type
@@ -1393,7 +1393,7 @@ func autoConvert_v1alpha4_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSp
 	// WARNING: in.UnhealthyConditions requires manual conversion: does not exist in peer-type
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
-	out.NodeStartupTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))
+	// WARNING: in.NodeStartupTimeout requires manual conversion: does not exist in peer-type
 	out.RemediationTemplate = (*corev1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
 	return nil
 }
@@ -1404,7 +1404,7 @@ func autoConvert_v1beta2_MachineHealthCheckSpec_To_v1alpha4_MachineHealthCheckSp
 	// WARNING: in.UnhealthyNodeConditions requires manual conversion: does not exist in peer-type
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
-	out.NodeStartupTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))
+	// WARNING: in.NodeStartupTimeoutSeconds requires manual conversion: does not exist in peer-type
 	out.RemediationTemplate = (*corev1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
 	return nil
 }
@@ -1849,13 +1849,8 @@ func autoConvert_v1alpha4_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, ou
 	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
+	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1alpha4_MachineSpec_To_v1beta2_MachineSpec is an autogenerated conversion function.
-func Convert_v1alpha4_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, out *v1beta2.MachineSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha4_MachineSpec_To_v1beta2_MachineSpec(in, out, s)
 }
 
 func autoConvert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in *v1beta2.MachineSpec, out *MachineSpec, s conversion.Scope) error {
@@ -1869,9 +1864,9 @@ func autoConvert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in *v1beta2.Machine
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
 	return nil
 }
 

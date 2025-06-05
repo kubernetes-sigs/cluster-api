@@ -1768,6 +1768,7 @@ spec:
                   - address
                   - type
                   type: object
+                maxItems: 32
                 type: array
               certificatesExpiryDate:
                 description: |-

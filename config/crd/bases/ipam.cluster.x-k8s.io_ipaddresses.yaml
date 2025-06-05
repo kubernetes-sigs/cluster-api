@@ -312,6 +312,7 @@ spec:
                 x-kubernetes-map-type: atomic
               prefix:
                 description: prefix is the prefix of the address.
+                format: int32
                 type: integer
             required:
             - address

@@ -230,7 +230,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			configClient, _ := config.New(context.Background(), "", config.InjectReader(tt.fields.reader))
+			configClient, _ := config.New(t.Context(), "", config.InjectReader(tt.fields.reader))
 
 			u := &providerUpgrader{
 				configClient: configClient,
@@ -238,7 +238,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repo))
 				},
 			}
-			got, err := u.getUpgradeInfo(context.Background(), tt.args.provider)
+			got, err := u.getUpgradeInfo(t.Context(), tt.args.provider)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

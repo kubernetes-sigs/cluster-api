@@ -17,7 +17,6 @@ limitations under the License.
 package repository
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -162,7 +161,7 @@ func Test_ClusterClassClient_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			f := newClusterClassClient(
 				ClusterClassClientInput{

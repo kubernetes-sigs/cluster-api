@@ -17,7 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -85,7 +84,7 @@ users:
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			wc := newWorkloadCluster(tt.proxy)
 			data, err := wc.GetKubeconfig(ctx, "test1", "test")

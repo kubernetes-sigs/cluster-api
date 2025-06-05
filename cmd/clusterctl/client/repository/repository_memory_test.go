@@ -17,7 +17,6 @@ limitations under the License.
 package repository
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -125,7 +124,7 @@ releaseSeries:
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			r := tt.repo
 			g.Expect(r.RootPath()).To(Equal(""))

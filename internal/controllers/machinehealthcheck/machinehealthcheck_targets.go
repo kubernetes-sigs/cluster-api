@@ -50,7 +50,7 @@ const (
 
 var (
 	// We allow users to disable the nodeStartupTimeout by setting the duration to 0.
-	disabledNodeStartupTimeout = clusterv1.ZeroDuration
+	disabledNodeStartupTimeout = metav1.Duration{Duration: time.Duration(0)}
 )
 
 // healthCheckTarget contains the information required to perform a health check
@@ -192,21 +192,23 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 		// If the condition has been in the unhealthy state for longer than the
 		// timeout, return true with no requeue time.
-		if nodeCondition.LastTransitionTime.Add(c.Timeout.Duration).Before(now) {
-			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyNodeConditionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Condition %s on node is reporting status %s for more than %s", c.Type, c.Status, c.Timeout.Duration.String())
-			logger.V(3).Info("Target is unhealthy: condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", c.Timeout.Duration.String())
+		timeoutSecondsDuration := time.Duration(c.TimeoutSeconds) * time.Second
+
+		if nodeCondition.LastTransitionTime.Add(timeoutSecondsDuration).Before(now) {
+			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyNodeConditionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Condition %s on node is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String())
+			logger.V(3).Info("Target is unhealthy: condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", timeoutSecondsDuration.String())
 
 			conditions.Set(t.Machine, metav1.Condition{
 				Type:    clusterv1.MachineHealthCheckSucceededCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineHealthCheckUnhealthyNodeReason,
-				Message: fmt.Sprintf("Health check failed: Condition %s on Node is reporting status %s for more than %s", c.Type, c.Status, c.Timeout.Duration.String()),
+				Message: fmt.Sprintf("Health check failed: Condition %s on Node is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String()),
 			})
 			return true, time.Duration(0)
 		}
 
 		durationUnhealthy := now.Sub(nodeCondition.LastTransitionTime.Time)
-		nextCheck := c.Timeout.Duration - durationUnhealthy + time.Second
+		nextCheck := timeoutSecondsDuration - durationUnhealthy + time.Second
 		if nextCheck > 0 {
 			nextCheckTimes = append(nextCheckTimes, nextCheck)
 		}

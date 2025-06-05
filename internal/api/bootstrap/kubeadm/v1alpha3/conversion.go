@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -153,7 +154,7 @@ func (src *KubeadmConfigSpec) ConvertTo(dst *bootstrapv1.KubeadmConfigSpec) {
 		if dst.InitConfiguration.Timeouts == nil {
 			dst.InitConfiguration.Timeouts = &bootstrapv1.Timeouts{}
 		}
-		dst.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = bootstrapv1.ConvertToSeconds(src.ClusterConfiguration.APIServer.TimeoutForControlPlane)
+		dst.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = clusterv1.ConvertToSeconds(src.ClusterConfiguration.APIServer.TimeoutForControlPlane)
 		initControlPlaneComponentHealthCheckSeconds = dst.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
 	}
 	if (src.JoinConfiguration != nil && src.JoinConfiguration.Discovery.Timeout != nil) || initControlPlaneComponentHealthCheckSeconds != nil {
@@ -165,7 +166,7 @@ func (src *KubeadmConfigSpec) ConvertTo(dst *bootstrapv1.KubeadmConfigSpec) {
 		}
 		dst.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
 		if src.JoinConfiguration != nil && src.JoinConfiguration.Discovery.Timeout != nil {
-			dst.JoinConfiguration.Timeouts.TLSBootstrapSeconds = bootstrapv1.ConvertToSeconds(src.JoinConfiguration.Discovery.Timeout)
+			dst.JoinConfiguration.Timeouts.TLSBootstrapSeconds = clusterv1.ConvertToSeconds(src.JoinConfiguration.Discovery.Timeout)
 		}
 	}
 
@@ -214,7 +215,7 @@ func (dst *KubeadmConfigSpec) ConvertFrom(src *bootstrapv1.KubeadmConfigSpec) {
 		if dst.ClusterConfiguration == nil {
 			dst.ClusterConfiguration = &ClusterConfiguration{}
 		}
-		dst.ClusterConfiguration.APIServer.TimeoutForControlPlane = bootstrapv1.ConvertFromSeconds(src.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
+		dst.ClusterConfiguration.APIServer.TimeoutForControlPlane = clusterv1.ConvertFromSeconds(src.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
 	}
 	if reflect.DeepEqual(dst.InitConfiguration, &InitConfiguration{}) {
 		dst.InitConfiguration = nil
@@ -223,7 +224,7 @@ func (dst *KubeadmConfigSpec) ConvertFrom(src *bootstrapv1.KubeadmConfigSpec) {
 		if dst.JoinConfiguration == nil {
 			dst.JoinConfiguration = &JoinConfiguration{}
 		}
-		dst.JoinConfiguration.Discovery.Timeout = bootstrapv1.ConvertFromSeconds(src.JoinConfiguration.Timeouts.TLSBootstrapSeconds)
+		dst.JoinConfiguration.Discovery.Timeout = clusterv1.ConvertFromSeconds(src.JoinConfiguration.Timeouts.TLSBootstrapSeconds)
 	}
 	if reflect.DeepEqual(dst.JoinConfiguration, &JoinConfiguration{}) {
 		dst.JoinConfiguration = nil
@@ -277,6 +278,14 @@ func Convert_v1alpha3_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *Kub
 	return autoConvert_v1alpha3_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in, out, s)
 }
 
+func Convert_v1alpha3_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToken, out *bootstrapv1.BootstrapToken, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha3_BootstrapToken_To_v1beta2_BootstrapToken(in, out, s); err != nil {
+		return err
+	}
+	out.TTLSeconds = clusterv1.ConvertToSeconds(in.TTL)
+	return nil
+}
+
 func Convert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *KubeadmConfigSpec, s apimachineryconversion.Scope) error {
 	// KubeadmConfigSpec.Ignition does not exist in kubeadm v1alpha3 API.
 	return autoConvert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in, out, s)
@@ -300,6 +309,14 @@ func Convert_v1beta2_KubeadmConfigTemplateResource_To_v1alpha3_KubeadmConfigTemp
 func Convert_v1beta2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, out *KubeadmConfigStatus, s apimachineryconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in, out, s)
+}
+
+func Convert_v1beta2_BootstrapToken_To_v1alpha3_BootstrapToken(in *bootstrapv1.BootstrapToken, out *BootstrapToken, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_BootstrapToken_To_v1alpha3_BootstrapToken(in, out, s); err != nil {
+		return err
+	}
+	out.TTL = clusterv1.ConvertFromSeconds(in.TTLSeconds)
+	return nil
 }
 
 // Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)

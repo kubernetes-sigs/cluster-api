@@ -398,7 +398,7 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "error with Timeout of over 30 seconds",
+			name: "error with TimeoutSeconds of over 30 seconds",
 			discovery: &runtimehooksv1.DiscoveryResponse{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "DiscoveryResponse",
@@ -416,7 +416,7 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "error with Timeout of less than 0",
+			name: "error with TimeoutSeconds of less than 0",
 			discovery: &runtimehooksv1.DiscoveryResponse{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "DiscoveryResponse",

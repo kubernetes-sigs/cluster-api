@@ -63,6 +63,7 @@ func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeClusterConfiguration,
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
+		spokeBootstrapToken,
 		hubKubeadmConfigSpec,
 	}
 }
@@ -75,6 +76,7 @@ func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interfac
 		spokeClusterConfiguration,
 		spokeBootstrapTokenString,
 		hubBootstrapTokenString,
+		spokeBootstrapToken,
 		hubKubeadmConfigSpec,
 	}
 }
@@ -150,6 +152,14 @@ func spokeAPIServer(in *APIServer, c randfill.Continue) {
 
 	if in.TimeoutForControlPlane != nil {
 		in.TimeoutForControlPlane = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TTL != nil {
+		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 

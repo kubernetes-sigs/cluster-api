@@ -747,19 +747,19 @@ func (in *ControlPlaneClass) DeepCopyInto(out *ControlPlaneClass) {
 		*out = new(ControlPlaneClassNamingStrategy)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.NodeDrainTimeout != nil {
-		in, out := &in.NodeDrainTimeout, &out.NodeDrainTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDrainTimeoutSeconds != nil {
+		in, out := &in.NodeDrainTimeoutSeconds, &out.NodeDrainTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeVolumeDetachTimeout != nil {
-		in, out := &in.NodeVolumeDetachTimeout, &out.NodeVolumeDetachTimeout
-		*out = new(metav1.Duration)
+	if in.NodeVolumeDetachTimeoutSeconds != nil {
+		in, out := &in.NodeVolumeDetachTimeoutSeconds, &out.NodeVolumeDetachTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeDeletionTimeout != nil {
-		in, out := &in.NodeDeletionTimeout, &out.NodeDeletionTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDeletionTimeoutSeconds != nil {
+		in, out := &in.NodeDeletionTimeoutSeconds, &out.NodeDeletionTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
 	if in.ReadinessGates != nil {
@@ -813,19 +813,19 @@ func (in *ControlPlaneTopology) DeepCopyInto(out *ControlPlaneTopology) {
 		*out = new(MachineHealthCheckTopology)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.NodeDrainTimeout != nil {
-		in, out := &in.NodeDrainTimeout, &out.NodeDrainTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDrainTimeoutSeconds != nil {
+		in, out := &in.NodeDrainTimeoutSeconds, &out.NodeDrainTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeVolumeDetachTimeout != nil {
-		in, out := &in.NodeVolumeDetachTimeout, &out.NodeVolumeDetachTimeout
-		*out = new(metav1.Duration)
+	if in.NodeVolumeDetachTimeoutSeconds != nil {
+		in, out := &in.NodeVolumeDetachTimeoutSeconds, &out.NodeVolumeDetachTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeDeletionTimeout != nil {
-		in, out := &in.NodeDeletionTimeout, &out.NodeDeletionTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDeletionTimeoutSeconds != nil {
+		in, out := &in.NodeDeletionTimeoutSeconds, &out.NodeDeletionTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
 	if in.ReadinessGates != nil {
@@ -1323,19 +1323,19 @@ func (in *MachineDeploymentClass) DeepCopyInto(out *MachineDeploymentClass) {
 		*out = new(MachineDeploymentClassNamingStrategy)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.NodeDrainTimeout != nil {
-		in, out := &in.NodeDrainTimeout, &out.NodeDrainTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDrainTimeoutSeconds != nil {
+		in, out := &in.NodeDrainTimeoutSeconds, &out.NodeDrainTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeVolumeDetachTimeout != nil {
-		in, out := &in.NodeVolumeDetachTimeout, &out.NodeVolumeDetachTimeout
-		*out = new(metav1.Duration)
+	if in.NodeVolumeDetachTimeoutSeconds != nil {
+		in, out := &in.NodeVolumeDetachTimeoutSeconds, &out.NodeVolumeDetachTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeDeletionTimeout != nil {
-		in, out := &in.NodeDeletionTimeout, &out.NodeDeletionTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDeletionTimeoutSeconds != nil {
+		in, out := &in.NodeDeletionTimeoutSeconds, &out.NodeDeletionTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
 	if in.MinReadySeconds != nil {
@@ -1582,19 +1582,19 @@ func (in *MachineDeploymentTopology) DeepCopyInto(out *MachineDeploymentTopology
 		*out = new(MachineHealthCheckTopology)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.NodeDrainTimeout != nil {
-		in, out := &in.NodeDrainTimeout, &out.NodeDrainTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDrainTimeoutSeconds != nil {
+		in, out := &in.NodeDrainTimeoutSeconds, &out.NodeDrainTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeVolumeDetachTimeout != nil {
-		in, out := &in.NodeVolumeDetachTimeout, &out.NodeVolumeDetachTimeout
-		*out = new(metav1.Duration)
+	if in.NodeVolumeDetachTimeoutSeconds != nil {
+		in, out := &in.NodeVolumeDetachTimeoutSeconds, &out.NodeVolumeDetachTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeDeletionTimeout != nil {
-		in, out := &in.NodeDeletionTimeout, &out.NodeDeletionTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDeletionTimeoutSeconds != nil {
+		in, out := &in.NodeDeletionTimeoutSeconds, &out.NodeDeletionTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
 	if in.MinReadySeconds != nil {
@@ -1896,9 +1896,9 @@ func (in *MachineHealthCheckClass) DeepCopyInto(out *MachineHealthCheckClass) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.NodeStartupTimeout != nil {
-		in, out := &in.NodeStartupTimeout, &out.NodeStartupTimeout
-		*out = new(metav1.Duration)
+	if in.NodeStartupTimeoutSeconds != nil {
+		in, out := &in.NodeStartupTimeoutSeconds, &out.NodeStartupTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
 	if in.RemediationTemplate != nil {
@@ -1989,9 +1989,9 @@ func (in *MachineHealthCheckSpec) DeepCopyInto(out *MachineHealthCheckSpec) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.NodeStartupTimeout != nil {
-		in, out := &in.NodeStartupTimeout, &out.NodeStartupTimeout
-		*out = new(metav1.Duration)
+	if in.NodeStartupTimeoutSeconds != nil {
+		in, out := &in.NodeStartupTimeoutSeconds, &out.NodeStartupTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
 	if in.RemediationTemplate != nil {
@@ -2189,19 +2189,19 @@ func (in *MachinePoolClass) DeepCopyInto(out *MachinePoolClass) {
 		*out = new(MachinePoolClassNamingStrategy)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.NodeDrainTimeout != nil {
-		in, out := &in.NodeDrainTimeout, &out.NodeDrainTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDrainTimeoutSeconds != nil {
+		in, out := &in.NodeDrainTimeoutSeconds, &out.NodeDrainTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeVolumeDetachTimeout != nil {
-		in, out := &in.NodeVolumeDetachTimeout, &out.NodeVolumeDetachTimeout
-		*out = new(metav1.Duration)
+	if in.NodeVolumeDetachTimeoutSeconds != nil {
+		in, out := &in.NodeVolumeDetachTimeoutSeconds, &out.NodeVolumeDetachTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeDeletionTimeout != nil {
-		in, out := &in.NodeDeletionTimeout, &out.NodeDeletionTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDeletionTimeoutSeconds != nil {
+		in, out := &in.NodeDeletionTimeoutSeconds, &out.NodeDeletionTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
 	if in.MinReadySeconds != nil {
@@ -2423,19 +2423,19 @@ func (in *MachinePoolTopology) DeepCopyInto(out *MachinePoolTopology) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.NodeDrainTimeout != nil {
-		in, out := &in.NodeDrainTimeout, &out.NodeDrainTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDrainTimeoutSeconds != nil {
+		in, out := &in.NodeDrainTimeoutSeconds, &out.NodeDrainTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeVolumeDetachTimeout != nil {
-		in, out := &in.NodeVolumeDetachTimeout, &out.NodeVolumeDetachTimeout
-		*out = new(metav1.Duration)
+	if in.NodeVolumeDetachTimeoutSeconds != nil {
+		in, out := &in.NodeVolumeDetachTimeoutSeconds, &out.NodeVolumeDetachTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeDeletionTimeout != nil {
-		in, out := &in.NodeDeletionTimeout, &out.NodeDeletionTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDeletionTimeoutSeconds != nil {
+		in, out := &in.NodeDeletionTimeoutSeconds, &out.NodeDeletionTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
 	if in.MinReadySeconds != nil {
@@ -2779,19 +2779,19 @@ func (in *MachineSpec) DeepCopyInto(out *MachineSpec) {
 		*out = make([]MachineReadinessGate, len(*in))
 		copy(*out, *in)
 	}
-	if in.NodeDrainTimeout != nil {
-		in, out := &in.NodeDrainTimeout, &out.NodeDrainTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDrainTimeoutSeconds != nil {
+		in, out := &in.NodeDrainTimeoutSeconds, &out.NodeDrainTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeVolumeDetachTimeout != nil {
-		in, out := &in.NodeVolumeDetachTimeout, &out.NodeVolumeDetachTimeout
-		*out = new(metav1.Duration)
+	if in.NodeVolumeDetachTimeoutSeconds != nil {
+		in, out := &in.NodeVolumeDetachTimeoutSeconds, &out.NodeVolumeDetachTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeDeletionTimeout != nil {
-		in, out := &in.NodeDeletionTimeout, &out.NodeDeletionTimeout
-		*out = new(metav1.Duration)
+	if in.NodeDeletionTimeoutSeconds != nil {
+		in, out := &in.NodeDeletionTimeoutSeconds, &out.NodeDeletionTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
 }
@@ -3120,7 +3120,6 @@ func (in *Topology) DeepCopy() *Topology {
 // DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
 func (in *UnhealthyNodeCondition) DeepCopyInto(out *UnhealthyNodeCondition) {
 	*out = *in
-	out.Timeout = in.Timeout
 }
 
 // DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new UnhealthyNodeCondition.

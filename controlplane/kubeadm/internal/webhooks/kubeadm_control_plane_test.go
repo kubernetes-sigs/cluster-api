@@ -316,9 +316,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 					Namespace:  "foo",
 					Name:       "infraTemplate",
 				},
-				NodeDrainTimeout:        &metav1.Duration{Duration: time.Second},
-				NodeVolumeDetachTimeout: &metav1.Duration{Duration: time.Second},
-				NodeDeletionTimeout:     &metav1.Duration{Duration: time.Second},
+				NodeDrainTimeoutSeconds:        ptr.To(int32(1)),
+				NodeVolumeDetachTimeoutSeconds: ptr.To(int32(1)),
+				NodeDeletionTimeoutSeconds:     ptr.To(int32(1)),
 			},
 			Replicas: ptr.To[int32](1),
 			RolloutStrategy: &controlplanev1.RolloutStrategy{
@@ -445,9 +445,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	}
 	validUpdate.Spec.MachineTemplate.InfrastructureRef.APIVersion = "test/v1alpha2"
 	validUpdate.Spec.MachineTemplate.InfrastructureRef.Name = "orange"
-	validUpdate.Spec.MachineTemplate.NodeDrainTimeout = &metav1.Duration{Duration: 10 * time.Second}
-	validUpdate.Spec.MachineTemplate.NodeVolumeDetachTimeout = &metav1.Duration{Duration: 10 * time.Second}
-	validUpdate.Spec.MachineTemplate.NodeDeletionTimeout = &metav1.Duration{Duration: 10 * time.Second}
+	validUpdate.Spec.MachineTemplate.NodeDrainTimeoutSeconds = ptr.To(int32(10))
+	validUpdate.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(10))
+	validUpdate.Spec.MachineTemplate.NodeDeletionTimeoutSeconds = ptr.To(int32(10))
 	validUpdate.Spec.Replicas = ptr.To[int32](5)
 	now := metav1.NewTime(time.Now())
 	validUpdate.Spec.RolloutAfter = &now
@@ -455,9 +455,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		CertificatesExpiryDays: ptr.To[int32](14),
 	}
 	validUpdate.Spec.RemediationStrategy = &controlplanev1.RemediationStrategy{
-		MaxRetry:         ptr.To[int32](50),
-		MinHealthyPeriod: &metav1.Duration{Duration: 10 * time.Hour},
-		RetryPeriod:      metav1.Duration{Duration: 10 * time.Minute},
+		MaxRetry:                ptr.To[int32](50),
+		MinHealthyPeriodSeconds: ptr.To(int32(10 * 60 * 60)),
+		RetryPeriodSeconds:      10 * 60,
 	}
 	validUpdate.Spec.KubeadmConfigSpec.Format = bootstrapv1.CloudConfig
 

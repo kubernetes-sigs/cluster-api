@@ -924,7 +924,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		assertMachinesOwnerRemediated(g, mhc, 0)
 	})
 
-	t.Run("when a Machine has no Node ref for less than the NodeStartupTimeout", func(t *testing.T) {
+	t.Run("when a Machine has no Node ref for less than the NodeStartupTimeoutSeconds", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 
@@ -937,7 +937,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: 5 * time.Hour}
+		mhc.Spec.NodeStartupTimeoutSeconds = ptr.To(int32(5 * 60 * 60))
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -1004,12 +1004,12 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		assertMachinesOwnerRemediated(g, mhc, 0)
 	})
 
-	t.Run("when a Machine has no Node ref for longer than the NodeStartupTimeout", func(t *testing.T) {
+	t.Run("when a Machine has no Node ref for longer than the NodeStartupTimeoutSeconds", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: 10 * time.Second}
+		mhc.Spec.NodeStartupTimeoutSeconds = ptr.To(int32(10))
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -1084,7 +1084,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: 10 * time.Second}
+		mhc.Spec.NodeStartupTimeoutSeconds = ptr.To(int32(10))
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -1406,7 +1406,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}, timeout, 100*time.Millisecond).Should(Equal(1))
 
 		// Create the MachineHealthCheck instance.
-		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: time.Second}
+		mhc.Spec.NodeStartupTimeoutSeconds = ptr.To(int32(1))
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		// defer cleanup for all the objects that have been created
@@ -2340,8 +2340,8 @@ func TestIsAllowedRemediation(t *testing.T) {
 
 			mhc := &clusterv1.MachineHealthCheck{
 				Spec: clusterv1.MachineHealthCheckSpec{
-					MaxUnhealthy:       tc.maxUnhealthy,
-					NodeStartupTimeout: &metav1.Duration{Duration: 1 * time.Millisecond},
+					MaxUnhealthy:              tc.maxUnhealthy,
+					NodeStartupTimeoutSeconds: ptr.To(int32(0)),
 				},
 				Status: clusterv1.MachineHealthCheckStatus{
 					ExpectedMachines:   tc.expectedMachines,
@@ -2750,13 +2750,13 @@ func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHeal
 					"selector": string(uuid.NewUUID()),
 				},
 			},
-			MaxUnhealthy:       &maxUnhealthy,
-			NodeStartupTimeout: &metav1.Duration{Duration: 1 * time.Millisecond},
+			MaxUnhealthy:              &maxUnhealthy,
+			NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
-					Type:    corev1.NodeReady,
-					Status:  corev1.ConditionUnknown,
-					Timeout: metav1.Duration{Duration: 5 * time.Minute},
+					Type:           corev1.NodeReady,
+					Status:         corev1.ConditionUnknown,
+					TimeoutSeconds: 5 * 60,
 				},
 			},
 		},

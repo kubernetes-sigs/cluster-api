@@ -68,8 +68,8 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	}
 	if ok {
 		dst.Spec.MachineTemplate.ReadinessGates = restored.Spec.MachineTemplate.ReadinessGates
-		dst.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.MachineTemplate.NodeDeletionTimeout
-		dst.Spec.MachineTemplate.NodeVolumeDetachTimeout = restored.Spec.MachineTemplate.NodeVolumeDetachTimeout
+		dst.Spec.MachineTemplate.NodeDeletionTimeoutSeconds = restored.Spec.MachineTemplate.NodeDeletionTimeoutSeconds
+		dst.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds = restored.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds
 		dst.Spec.RolloutBefore = restored.Spec.RolloutBefore
 
 		if restored.Spec.RemediationStrategy != nil {
@@ -160,8 +160,8 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		if dst.Spec.Template.Spec.MachineTemplate == nil {
 			dst.Spec.Template.Spec.MachineTemplate = restored.Spec.Template.Spec.MachineTemplate
 		} else if restored.Spec.Template.Spec.MachineTemplate != nil {
-			dst.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeout
-			dst.Spec.Template.Spec.MachineTemplate.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.MachineTemplate.NodeVolumeDetachTimeout
+			dst.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeoutSeconds
+			dst.Spec.Template.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds
 		}
 
 		dst.Spec.Template.Spec.RolloutBefore = restored.Spec.Template.Spec.RolloutBefore
@@ -197,7 +197,7 @@ func (dst *KubeadmControlPlaneTemplate) ConvertFrom(srcRaw conversion.Hub) error
 
 func Convert_v1alpha4_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneTemplateResourceSpec(in *KubeadmControlPlaneSpec, out *controlplanev1.KubeadmControlPlaneTemplateResourceSpec, s apimachineryconversion.Scope) error {
 	out.MachineTemplate = &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
-		NodeDrainTimeout: in.MachineTemplate.NodeDrainTimeout,
+		NodeDrainTimeoutSeconds: clusterv1.ConvertToSeconds(in.MachineTemplate.NodeDrainTimeout),
 	}
 
 	if err := bootstrapv1alpha4.Convert_v1alpha4_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
@@ -225,7 +225,7 @@ func Convert_v1alpha4_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneTemp
 
 func Convert_v1beta2_KubeadmControlPlaneTemplateResourceSpec_To_v1alpha4_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneTemplateResourceSpec, out *KubeadmControlPlaneSpec, s apimachineryconversion.Scope) error {
 	if in.MachineTemplate != nil {
-		out.MachineTemplate.NodeDrainTimeout = in.MachineTemplate.NodeDrainTimeout
+		out.MachineTemplate.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.MachineTemplate.NodeDrainTimeoutSeconds)
 	}
 
 	if err := bootstrapv1alpha4.Convert_v1beta2_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
@@ -253,7 +253,11 @@ func Convert_v1beta2_KubeadmControlPlaneTemplateResourceSpec_To_v1alpha4_Kubeadm
 
 func Convert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmControlPlaneMachineTemplate(in *controlplanev1.KubeadmControlPlaneMachineTemplate, out *KubeadmControlPlaneMachineTemplate, s apimachineryconversion.Scope) error {
 	// .NodeDrainTimeout was added in v1beta1.
-	return autoConvert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmControlPlaneMachineTemplate(in, out, s)
+	if err := autoConvert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmControlPlaneMachineTemplate(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
+	return nil
 }
 
 func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, scope apimachineryconversion.Scope) error {
@@ -271,6 +275,14 @@ func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1alpha4_KubeadmControlPlaneSt
 func Convert_v1beta2_KubeadmControlPlaneTemplateResource_To_v1alpha4_KubeadmControlPlaneTemplateResource(in *controlplanev1.KubeadmControlPlaneTemplateResource, out *KubeadmControlPlaneTemplateResource, scope apimachineryconversion.Scope) error {
 	// .metadata and .spec.machineTemplate.metadata was added in v1beta1.
 	return autoConvert_v1beta2_KubeadmControlPlaneTemplateResource_To_v1alpha4_KubeadmControlPlaneTemplateResource(in, out, scope)
+}
+
+func Convert_v1alpha4_KubeadmControlPlaneMachineTemplate_To_v1beta2_KubeadmControlPlaneMachineTemplate(in *KubeadmControlPlaneMachineTemplate, out *controlplanev1.KubeadmControlPlaneMachineTemplate, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha4_KubeadmControlPlaneMachineTemplate_To_v1beta2_KubeadmControlPlaneMachineTemplate(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	return nil
 }
 
 func Convert_v1alpha4_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, out *controlplanev1.KubeadmControlPlaneStatus, scope apimachineryconversion.Scope) error {

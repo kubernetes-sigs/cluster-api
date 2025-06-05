@@ -131,19 +131,19 @@ func (in *KubeadmControlPlaneMachineTemplate) DeepCopyInto(out *KubeadmControlPl
 		*out = make([]corev1beta2.MachineReadinessGate, len(*in))
 		copy(*out, *in)
 	}
-	if in.NodeDrainTimeout != nil {
-		in, out := &in.NodeDrainTimeout, &out.NodeDrainTimeout
-		*out = new(v1.Duration)
+	if in.NodeDrainTimeoutSeconds != nil {
+		in, out := &in.NodeDrainTimeoutSeconds, &out.NodeDrainTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeVolumeDetachTimeout != nil {
-		in, out := &in.NodeVolumeDetachTimeout, &out.NodeVolumeDetachTimeout
-		*out = new(v1.Duration)
+	if in.NodeVolumeDetachTimeoutSeconds != nil {
+		in, out := &in.NodeVolumeDetachTimeoutSeconds, &out.NodeVolumeDetachTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeDeletionTimeout != nil {
-		in, out := &in.NodeDeletionTimeout, &out.NodeDeletionTimeout
-		*out = new(v1.Duration)
+	if in.NodeDeletionTimeoutSeconds != nil {
+		in, out := &in.NodeDeletionTimeoutSeconds, &out.NodeDeletionTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
 }
@@ -328,19 +328,19 @@ func (in *KubeadmControlPlaneTemplateList) DeepCopyObject() runtime.Object {
 func (in *KubeadmControlPlaneTemplateMachineTemplate) DeepCopyInto(out *KubeadmControlPlaneTemplateMachineTemplate) {
 	*out = *in
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	if in.NodeDrainTimeout != nil {
-		in, out := &in.NodeDrainTimeout, &out.NodeDrainTimeout
-		*out = new(v1.Duration)
+	if in.NodeDrainTimeoutSeconds != nil {
+		in, out := &in.NodeDrainTimeoutSeconds, &out.NodeDrainTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeVolumeDetachTimeout != nil {
-		in, out := &in.NodeVolumeDetachTimeout, &out.NodeVolumeDetachTimeout
-		*out = new(v1.Duration)
+	if in.NodeVolumeDetachTimeoutSeconds != nil {
+		in, out := &in.NodeVolumeDetachTimeoutSeconds, &out.NodeVolumeDetachTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
-	if in.NodeDeletionTimeout != nil {
-		in, out := &in.NodeDeletionTimeout, &out.NodeDeletionTimeout
-		*out = new(v1.Duration)
+	if in.NodeDeletionTimeoutSeconds != nil {
+		in, out := &in.NodeDeletionTimeoutSeconds, &out.NodeDeletionTimeoutSeconds
+		*out = new(int32)
 		**out = **in
 	}
 }
@@ -499,10 +499,9 @@ func (in *RemediationStrategy) DeepCopyInto(out *RemediationStrategy) {
 		*out = new(int32)
 		**out = **in
 	}
-	out.RetryPeriod = in.RetryPeriod
-	if in.MinHealthyPeriod != nil {
-		in, out := &in.MinHealthyPeriod, &out.MinHealthyPeriod
-		*out = new(v1.Duration)
+	if in.MinHealthyPeriodSeconds != nil {
+		in, out := &in.MinHealthyPeriodSeconds, &out.MinHealthyPeriodSeconds
+		*out = new(int32)
 		**out = **in
 	}
 }

@@ -362,6 +362,27 @@ func (c *ControlPlaneMachineTemplate) NodeDeletionTimeout() *Duration {
 	}
 }
 
+// NodeDrainTimeoutSeconds provides access to the nodeDrainTimeout of a MachineTemplate.
+func (c *ControlPlaneMachineTemplate) NodeDrainTimeoutSeconds() *Int32 {
+	return &Int32{
+		path: Path{"spec", "machineTemplate", "nodeDrainTimeoutSeconds"},
+	}
+}
+
+// NodeVolumeDetachTimeoutSeconds provides access to the nodeVolumeDetachTimeout of a MachineTemplate.
+func (c *ControlPlaneMachineTemplate) NodeVolumeDetachTimeoutSeconds() *Int32 {
+	return &Int32{
+		path: Path{"spec", "machineTemplate", "nodeVolumeDetachTimeoutSeconds"},
+	}
+}
+
+// NodeDeletionTimeoutSeconds provides access to the nodeDeletionTimeout of a MachineTemplate.
+func (c *ControlPlaneMachineTemplate) NodeDeletionTimeoutSeconds() *Int32 {
+	return &Int32{
+		path: Path{"spec", "machineTemplate", "nodeDeletionTimeoutSeconds"},
+	}
+}
+
 // ReadinessGates provides access to control plane's ReadinessGates.
 func (c *ControlPlaneMachineTemplate) ReadinessGates() *ReadinessGates {
 	return &ReadinessGates{}

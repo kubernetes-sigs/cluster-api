@@ -22,9 +22,11 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
@@ -79,6 +81,11 @@ func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeClusterTopology,
 		spokeClusterStatus,
 		spokeClusterVariable,
+		spokeControlPlaneTopology,
+		spokeMachineDeploymentTopology,
+		spokeMachinePoolTopology,
+		spokeMachineHealthCheckClass,
+		spokeUnhealthyCondition,
 	}
 }
 
@@ -129,6 +136,11 @@ func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubJSONSchemaProps,
 		spokeClusterClassStatus,
 		spokeJSONSchemaProps,
+		spokeControlPlaneClass,
+		spokeMachineDeploymentClass,
+		spokeMachinePoolClass,
+		spokeMachineHealthCheckClass,
+		spokeUnhealthyCondition,
 	}
 }
 
@@ -241,6 +253,7 @@ func spokeJSONSchemaProps(in *JSONSchemaProps, c randfill.Continue) {
 func MachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachineStatus,
+		spokeMachineSpec,
 		spokeMachineStatus,
 	}
 }
@@ -262,6 +275,20 @@ func hubMachineStatus(in *clusterv1.MachineStatus, c randfill.Continue) {
 	}
 }
 
+func spokeMachineSpec(in *MachineSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeVolumeDetachTimeout != nil {
+		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeDeletionTimeout != nil {
+		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
 func spokeMachineStatus(in *MachineStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
@@ -276,6 +303,7 @@ func MachineSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachineSetStatus,
 		spokeMachineSetStatus,
+		spokeMachineSpec,
 	}
 }
 
@@ -310,6 +338,7 @@ func MachineDeploymentFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} 
 		hubMachineDeploymentStatus,
 		spokeMachineDeploymentSpec,
 		spokeMachineDeploymentStatus,
+		spokeMachineSpec,
 	}
 }
 
@@ -353,6 +382,8 @@ func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{}
 	return []interface{}{
 		hubMachineHealthCheckStatus,
 		spokeMachineHealthCheckStatus,
+		spokeMachineHealthCheckSpec,
+		spokeUnhealthyCondition,
 	}
 }
 
@@ -380,6 +411,7 @@ func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachinePoolStatus,
 		spokeMachinePoolStatus,
+		spokeMachineSpec,
 	}
 }
 
@@ -415,4 +447,110 @@ func spokeMachinePoolStatus(in *MachinePoolStatus, c randfill.Continue) {
 			in.V1Beta2 = nil
 		}
 	}
+}
+
+func spokeControlPlaneTopology(in *ControlPlaneTopology, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeVolumeDetachTimeout != nil {
+		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeDeletionTimeout != nil {
+		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeMachineDeploymentTopology(in *MachineDeploymentTopology, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeVolumeDetachTimeout != nil {
+		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeDeletionTimeout != nil {
+		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeMachinePoolTopology(in *MachinePoolTopology, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeVolumeDetachTimeout != nil {
+		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeDeletionTimeout != nil {
+		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeMachineHealthCheckClass(in *MachineHealthCheckClass, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeStartupTimeout != nil {
+		in.NodeStartupTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeControlPlaneClass(in *ControlPlaneClass, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeVolumeDetachTimeout != nil {
+		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeDeletionTimeout != nil {
+		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeMachineDeploymentClass(in *MachineDeploymentClass, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeVolumeDetachTimeout != nil {
+		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeDeletionTimeout != nil {
+		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeMachinePoolClass(in *MachinePoolClass, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeVolumeDetachTimeout != nil {
+		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeDeletionTimeout != nil {
+		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeMachineHealthCheckSpec(in *MachineHealthCheckSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeStartupTimeout != nil {
+		in.NodeStartupTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeUnhealthyCondition(in *UnhealthyCondition, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.Timeout = metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second}
 }

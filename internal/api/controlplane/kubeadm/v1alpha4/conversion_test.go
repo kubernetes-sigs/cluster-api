@@ -63,6 +63,7 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 		hubKubeadmControlPlaneStatus,
 		spokeKubeadmControlPlaneStatus,
 		spokeKubeadmControlPlaneTemplateResource,
+		spokeKubeadmControlPlaneMachineTemplate,
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
 		spokeKubeadmConfigSpec,
@@ -70,12 +71,14 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 		spokeAPIServer,
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
+		spokeBootstrapToken,
 	}
 }
 
 func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeKubeadmControlPlaneTemplateResource,
+		spokeKubeadmControlPlaneMachineTemplate,
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
 		spokeKubeadmConfigSpec,
@@ -83,6 +86,7 @@ func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []in
 		spokeAPIServer,
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
+		spokeBootstrapToken,
 	}
 }
 
@@ -156,6 +160,14 @@ func spokeKubeadmControlPlaneTemplateResource(in *KubeadmControlPlaneTemplateRes
 	in.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{}
 }
 
+func spokeKubeadmControlPlaneMachineTemplate(in *KubeadmControlPlaneMachineTemplate, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
 func spokeKubeadmConfigSpec(in *bootstrapv1alpha4.KubeadmConfigSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
@@ -180,6 +192,14 @@ func spokeAPIServer(in *bootstrapv1alpha4.APIServer, c randfill.Continue) {
 
 	if in.TimeoutForControlPlane != nil {
 		in.TimeoutForControlPlane = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeBootstrapToken(in *bootstrapv1alpha4.BootstrapToken, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TTL != nil {
+		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 

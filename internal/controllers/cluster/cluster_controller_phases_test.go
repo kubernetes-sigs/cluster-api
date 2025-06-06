@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -687,8 +688,9 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 		},
 	}
 
-	newFailureDomain := clusterv1.FailureDomains{
-		"newdomain": clusterv1.FailureDomainSpec{
+	newFailureDomain := []clusterv1.FailureDomain{
+		{
+			Name:         "newdomain",
 			ControlPlane: false,
 			Attributes: map[string]string{
 				"attribute1": "value1",
@@ -696,8 +698,9 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 		},
 	}
 
-	newFailureDomainUpdated := clusterv1.FailureDomains{
-		"newdomain": clusterv1.FailureDomainSpec{
+	newFailureDomainUpdated := []clusterv1.FailureDomain{
+		{
+			Name:         "newdomain",
 			ControlPlane: false,
 			Attributes: map[string]string{
 				"attribute2": "value2",
@@ -708,8 +711,9 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 	clusterWithNewFailureDomainUpdated := cluster.DeepCopy()
 	clusterWithNewFailureDomainUpdated.Status.FailureDomains = newFailureDomainUpdated
 
-	oldFailureDomain := clusterv1.FailureDomains{
-		"olddomain": clusterv1.FailureDomainSpec{
+	oldFailureDomain := []clusterv1.FailureDomain{
+		{
+			Name:         "olddomain",
 			ControlPlane: false,
 			Attributes: map[string]string{
 				"attribute1": "value1",
@@ -724,7 +728,9 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 		name                 string
 		cluster              *clusterv1.Cluster
 		infraRef             map[string]interface{}
-		expectFailureDomains clusterv1.FailureDomains
+		contract             string
+		expectFailureDomains []clusterv1.FailureDomain
+		expectErr            bool
 	}{
 		{
 			name:    "expect no failure domain if infrastructure ref is nil",
@@ -733,32 +739,72 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 		{
 			name:                 "expect no failure domain if infra config does not have failure domain",
 			cluster:              cluster.DeepCopy(),
-			infraRef:             generateInfraRef(false),
-			expectFailureDomains: clusterv1.FailureDomains{},
+			infraRef:             generateInfraCluster(false),
+			contract:             "v1beta2",
+			expectFailureDomains: []clusterv1.FailureDomain{},
 		},
 		{
 			name:                 "expect cluster failure domain to be reset to empty if infra config does not have failure domain",
 			cluster:              clusterWithOldFailureDomain.DeepCopy(),
-			infraRef:             generateInfraRef(false),
-			expectFailureDomains: clusterv1.FailureDomains{},
+			infraRef:             generateInfraCluster(false),
+			contract:             "v1beta2",
+			expectFailureDomains: []clusterv1.FailureDomain{},
 		},
 		{
 			name:                 "expect failure domain to remain same if infra config have same failure domain",
 			cluster:              cluster.DeepCopy(),
-			infraRef:             generateInfraRef(true),
+			infraRef:             generateInfraCluster(true),
+			contract:             "v1beta2",
 			expectFailureDomains: newFailureDomain,
 		},
 		{
 			name:                 "expect failure domain to be updated if infra config has updates to failure domain",
 			cluster:              clusterWithNewFailureDomainUpdated.DeepCopy(),
-			infraRef:             generateInfraRef(true),
+			infraRef:             generateInfraCluster(true),
+			contract:             "v1beta2",
 			expectFailureDomains: newFailureDomain,
 		},
 		{
 			name:                 "expect failure domain to be reset if infra config have different failure domain",
 			cluster:              clusterWithOldFailureDomain.DeepCopy(),
-			infraRef:             generateInfraRef(true),
+			infraRef:             generateInfraCluster(true),
+			contract:             "v1beta2",
 			expectFailureDomains: newFailureDomain,
+		},
+		{
+			name:                 "expect failure domain to remain same if infra config have same failure domain (v1beta1)",
+			cluster:              cluster.DeepCopy(),
+			infraRef:             generateInfraClusterV1Beta1(true),
+			contract:             "v1beta1",
+			expectFailureDomains: newFailureDomain,
+		},
+		{
+			name:                 "expect failure domain to be updated if infra config has updates to failure domain (v1beta1)",
+			cluster:              clusterWithNewFailureDomainUpdated.DeepCopy(),
+			infraRef:             generateInfraClusterV1Beta1(true),
+			contract:             "v1beta1",
+			expectFailureDomains: newFailureDomain,
+		},
+		{
+			name:                 "expect failure domain to be reset if infra config have different failure domain (v1beta1)",
+			cluster:              clusterWithOldFailureDomain.DeepCopy(),
+			infraRef:             generateInfraClusterV1Beta1(true),
+			contract:             "v1beta1",
+			expectFailureDomains: newFailureDomain,
+		},
+		{
+			name:      "expect error because InfraCluster uses v1beta2 but contract is v1beta1",
+			cluster:   clusterWithOldFailureDomain.DeepCopy(),
+			infraRef:  generateInfraCluster(true),
+			contract:  "v1beta1",
+			expectErr: true,
+		},
+		{
+			name:      "expect error because InfraCluster uses v1beta1 but contract is v1beta2",
+			cluster:   clusterWithOldFailureDomain.DeepCopy(),
+			infraRef:  generateInfraClusterV1Beta1(true),
+			contract:  "v1beta2",
+			expectErr: true,
 		},
 	}
 
@@ -766,7 +812,13 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			objs := []client.Object{builder.GenericInfrastructureClusterCRD.DeepCopy(), tt.cluster}
+			crd := builder.GenericInfrastructureClusterCRD.DeepCopy()
+			crd.Labels = map[string]string{
+				// Set contract label for tt.contract.
+				fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, tt.contract): clusterv1.GroupVersionInfrastructure.Version,
+			}
+
+			objs := []client.Object{crd, tt.cluster}
 			if tt.infraRef != nil {
 				objs = append(objs, &unstructured.Unstructured{Object: tt.infraRef})
 			}
@@ -787,13 +839,49 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 				cluster: tt.cluster,
 			}
 			_, err := r.reconcileInfrastructure(ctx, s)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(tt.cluster.Status.FailureDomains).To(BeEquivalentTo(tt.expectFailureDomains))
 		})
 	}
 }
 
-func generateInfraRef(withFailureDomain bool) map[string]interface{} {
+func generateInfraCluster(withFailureDomain bool) map[string]interface{} {
+	infraRef := map[string]interface{}{
+		"kind":       "GenericInfrastructureCluster",
+		"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
+		"metadata": map[string]interface{}{
+			"name":              "test",
+			"namespace":         "test-namespace",
+			"deletionTimestamp": "sometime",
+		},
+		"status": map[string]interface{}{
+			"ready": true,
+		},
+	}
+
+	if withFailureDomain {
+		infraRef["status"] = map[string]interface{}{
+			"failureDomains": []interface{}{
+				map[string]interface{}{
+					"name":         "newdomain",
+					"controlPlane": false,
+					"attributes": map[string]interface{}{
+						"attribute1": "value1",
+					},
+				},
+			},
+			"ready": true,
+		}
+	}
+
+	return infraRef
+}
+
+func generateInfraClusterV1Beta1(withFailureDomain bool) map[string]interface{} {
 	infraRef := map[string]interface{}{
 		"kind":       "GenericInfrastructureCluster",
 		"apiVersion": clusterv1.GroupVersionInfrastructure.String(),

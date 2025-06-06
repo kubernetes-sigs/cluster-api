@@ -399,9 +399,9 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 	mc3 := collections.FromMachines(m1, m2, m3, m4, m5)
 	mc6 := collections.FromMachines(m6, m7, m8)
 	mc9 := collections.FromMachines(m9, m10, m11)
-	fd := clusterv1.FailureDomains{
-		"one": failureDomain(true),
-		"two": failureDomain(true),
+	fd := []clusterv1.FailureDomain{
+		failureDomain("one", true),
+		failureDomain("two", true),
 	}
 
 	needsUpgradeControlPlane := &internal.ControlPlane{
@@ -779,8 +779,9 @@ func TestPreflightCheckCondition(t *testing.T) {
 	}
 }
 
-func failureDomain(controlPlane bool) clusterv1.FailureDomainSpec {
-	return clusterv1.FailureDomainSpec{
+func failureDomain(name string, controlPlane bool) clusterv1.FailureDomain {
+	return clusterv1.FailureDomain{
+		Name:         name,
 		ControlPlane: controlPlane,
 	}
 }

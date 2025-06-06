@@ -18,33 +18,21 @@ limitations under the License.
 package conversion
 
 import (
-	"context"
-	"fmt"
 	"math/rand"
-	"sort"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/onsi/gomega"
-	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metafuzzer "k8s.io/apimachinery/pkg/apis/meta/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/randfill"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/util"
 )
 
 const (
@@ -52,77 +40,6 @@ const (
 	// use to retain the data in case of down-conversion from the hub.
 	DataAnnotation = "cluster.x-k8s.io/conversion-data"
 )
-
-// UpdateReferenceAPIContract takes a client and object reference, queries the API Server for
-// the Custom Resource Definition and looks which one is the stored version available.
-//
-// The object passed as input is modified in place if an updated compatible version is found.
-// NOTE: This version depends on CRDs being named correctly as defined by contract.CalculateCRDName.
-func UpdateReferenceAPIContract(ctx context.Context, c client.Client, ref *corev1.ObjectReference) error {
-	gvk := ref.GroupVersionKind()
-
-	metadata, err := util.GetGVKMetadata(ctx, c, gvk)
-	if err != nil {
-		return errors.Wrapf(err, "failed to update apiVersion in ref")
-	}
-
-	_, chosen, err := getLatestAPIVersionFromContract(metadata, contract.Version)
-	if err != nil {
-		return errors.Wrapf(err, "failed to update apiVersion in ref")
-	}
-
-	// Modify the GroupVersionKind with the new version.
-	if gvk.Version != chosen {
-		gvk.Version = chosen
-		ref.SetGroupVersionKind(gvk)
-	}
-
-	return nil
-}
-
-// GetContractVersion get the latest compatible contract from a CRD based on currentContractVersion.
-func GetContractVersion(ctx context.Context, c client.Client, gvk schema.GroupVersionKind) (string, error) {
-	crdMetadata, err := util.GetGVKMetadata(ctx, c, gvk)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to get contract version")
-	}
-
-	contractVersion, _, err := getLatestAPIVersionFromContract(crdMetadata, contract.Version)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to get contract version")
-	}
-
-	return contractVersion, nil
-}
-
-// getLatestAPIVersionFromContract returns the latest apiVersion and the latest compatible contract version from labels.
-func getLatestAPIVersionFromContract(metadata metav1.Object, currentContractVersion string) (string, string, error) {
-	if currentContractVersion == "" {
-		return "", "", errors.Errorf("current contract version cannot be empty")
-	}
-
-	labels := metadata.GetLabels()
-
-	sortedCompatibleContractVersions := util.KubeAwareAPIVersions(contract.GetCompatibleVersions(currentContractVersion).UnsortedList())
-	sort.Sort(sort.Reverse(sortedCompatibleContractVersions))
-
-	for _, contractVersion := range sortedCompatibleContractVersions {
-		contractGroupVersion := fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, contractVersion)
-
-		// If there is no label, return early without changing the reference.
-		supportedVersions, ok := labels[contractGroupVersion]
-		if !ok || supportedVersions == "" {
-			continue
-		}
-
-		// Pick the latest version in the slice and validate it.
-		kubeVersions := util.KubeAwareAPIVersions(strings.Split(supportedVersions, "_"))
-		sort.Sort(kubeVersions)
-		return contractVersion, kubeVersions[len(kubeVersions)-1], nil
-	}
-
-	return "", "", errors.Errorf("cannot find any versions matching contract versions %q for CRD %v as contract version label(s) are either missing or empty (see https://cluster-api.sigs.k8s.io/developer/providers/contracts.html#api-version-labels)", sortedCompatibleContractVersions, metadata.GetName())
-}
 
 // MarshalData stores the source object as json data in the destination object annotations map.
 // It ignores the metadata of the source object.

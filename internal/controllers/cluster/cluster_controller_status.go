@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
@@ -49,7 +48,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	controlPlaneContractVersion := ""
 	if s.controlPlane != nil {
 		var err error
-		controlPlaneContractVersion, err = utilconversion.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind())
+		controlPlaneContractVersion, err = contract.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind())
 		if err != nil {
 			return err
 		}

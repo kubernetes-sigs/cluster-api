@@ -418,7 +418,7 @@ type MachineSpec struct {
 	ProviderID *string `json:"providerID,omitempty"`
 
 	// failureDomain is the failure domain the machine will be created in.
-	// Must match a key in the FailureDomains map stored on the cluster object.
+	// Must match the name of a FailureDomain from the Cluster status.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256

@@ -321,6 +321,17 @@ func Convert_v1beta2_ClusterStatus_To_v1beta1_ClusterStatus(in *clusterv1.Cluste
 		out.InfrastructureReady = in.Initialization.InfrastructureProvisioned
 	}
 
+	// Move FailureDomains
+	if in.FailureDomains != nil {
+		out.FailureDomains = FailureDomains{}
+		for _, fd := range in.FailureDomains {
+			out.FailureDomains[fd.Name] = FailureDomainSpec{
+				ControlPlane: fd.ControlPlane,
+				Attributes:   fd.Attributes,
+			}
+		}
+	}
+
 	// Move new conditions (v1beta2), controlPlane and workers counters to the v1beta2 field.
 	if in.Conditions == nil && in.ControlPlane == nil && in.Workers == nil {
 		return nil
@@ -397,6 +408,18 @@ func Convert_v1beta1_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, o
 		}
 		out.Initialization.ControlPlaneInitialized = in.ControlPlaneReady
 		out.Initialization.InfrastructureProvisioned = in.InfrastructureReady
+	}
+
+	// Move FailureDomains
+	if in.FailureDomains != nil {
+		out.FailureDomains = []clusterv1.FailureDomain{}
+		for name, fd := range in.FailureDomains {
+			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
+				Name:         name,
+				ControlPlane: fd.ControlPlane,
+				Attributes:   fd.Attributes,
+			})
+		}
 	}
 
 	// Move legacy conditions (v1beta1), FailureReason and FailureMessage to the deprecated field.

@@ -126,7 +126,7 @@ func (r *CRDMigrator) SetupWithManager(ctx context.Context, mgr ctrl.Manager, co
 			// This controller uses a PartialObjectMetadata watch/informer to avoid an informer for CRDs
 			// to reduce memory usage.
 			// Core CAPI also already has an informer on PartialObjectMetadata for CRDs because it uses
-			// conversion.UpdateReferenceAPIContract.
+			// contract.UpdateReferenceAPIContract.
 			builder.OnlyMetadata,
 			builder.WithPredicates(
 				// We filter out all re-sync events. CRDMigrator only has to reconcile a CRD

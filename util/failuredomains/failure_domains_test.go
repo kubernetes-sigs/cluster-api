@@ -37,9 +37,9 @@ func TestNewFailureDomainPicker(t *testing.T) {
 	a := ptr.To("us-west-1a")
 	b := ptr.To("us-west-1b")
 
-	fds := clusterv1.FailureDomains{
-		*a: clusterv1.FailureDomainSpec{},
-		*b: clusterv1.FailureDomainSpec{},
+	fds := []clusterv1.FailureDomain{
+		{Name: *a},
+		{Name: *b},
 	}
 	machinea := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: a}}
 	machineb := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: b}}
@@ -47,7 +47,7 @@ func TestNewFailureDomainPicker(t *testing.T) {
 
 	testcases := []struct {
 		name     string
-		fds      clusterv1.FailureDomains
+		fds      []clusterv1.FailureDomain
 		machines collections.Machines
 		expected []*string
 	}{
@@ -57,8 +57,10 @@ func TestNewFailureDomainPicker(t *testing.T) {
 		},
 		{
 			name: "no machines",
-			fds: clusterv1.FailureDomains{
-				*a: clusterv1.FailureDomainSpec{},
+			fds: []clusterv1.FailureDomain{
+				{
+					Name: *a,
+				},
 			},
 			expected: []*string{a},
 		},
@@ -70,16 +72,20 @@ func TestNewFailureDomainPicker(t *testing.T) {
 		},
 		{
 			name: "no failure domain specified on machine",
-			fds: clusterv1.FailureDomains{
-				*a: clusterv1.FailureDomainSpec{},
+			fds: []clusterv1.FailureDomain{
+				{
+					Name: *a,
+				},
 			},
 			machines: collections.FromMachines(machinenil.DeepCopy()),
 			expected: []*string{a},
 		},
 		{
 			name: "mismatched failure domain on machine",
-			fds: clusterv1.FailureDomains{
-				*a: clusterv1.FailureDomainSpec{},
+			fds: []clusterv1.FailureDomain{
+				{
+					Name: *a,
+				},
 			},
 			machines: collections.FromMachines(machineb.DeepCopy()),
 			expected: []*string{a},
@@ -108,9 +114,15 @@ func TestPickMost(t *testing.T) {
 	a := ptr.To("us-west-1a")
 	b := ptr.To("us-west-1b")
 
-	fds := clusterv1.FailureDomains{
-		*a: clusterv1.FailureDomainSpec{ControlPlane: true},
-		*b: clusterv1.FailureDomainSpec{ControlPlane: true},
+	fds := []clusterv1.FailureDomain{
+		{
+			Name:         *a,
+			ControlPlane: true,
+		},
+		{
+			Name:         *b,
+			ControlPlane: true,
+		},
 	}
 	machinea := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: a}}
 	machineb := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: b}}
@@ -118,7 +130,7 @@ func TestPickMost(t *testing.T) {
 
 	testcases := []struct {
 		name             string
-		fds              clusterv1.FailureDomains
+		fds              []clusterv1.FailureDomain
 		allMachines      collections.Machines
 		eligibleMachines collections.Machines
 		expected         *string
@@ -129,8 +141,10 @@ func TestPickMost(t *testing.T) {
 		},
 		{
 			name: "no machines should return nil",
-			fds: clusterv1.FailureDomains{
-				*a: clusterv1.FailureDomainSpec{},
+			fds: []clusterv1.FailureDomain{
+				{
+					Name: *a,
+				},
 			},
 			expected: nil,
 		},
@@ -143,8 +157,11 @@ func TestPickMost(t *testing.T) {
 		},
 		{
 			name: "no failure domain specified on machine",
-			fds: clusterv1.FailureDomains{
-				*a: clusterv1.FailureDomainSpec{ControlPlane: true},
+			fds: []clusterv1.FailureDomain{
+				{
+					Name:         *a,
+					ControlPlane: true,
+				},
 			},
 			allMachines:      collections.FromMachines(machinenil.DeepCopy()),
 			eligibleMachines: collections.FromMachines(machinenil.DeepCopy()),
@@ -152,8 +169,11 @@ func TestPickMost(t *testing.T) {
 		},
 		{
 			name: "mismatched failure domain on machine should return nil",
-			fds: clusterv1.FailureDomains{
-				*a: clusterv1.FailureDomainSpec{ControlPlane: true},
+			fds: []clusterv1.FailureDomain{
+				{
+					Name:         *a,
+					ControlPlane: true,
+				},
 			},
 			allMachines:      collections.FromMachines(machineb.DeepCopy()),
 			eligibleMachines: collections.FromMachines(machineb.DeepCopy()),
@@ -194,18 +214,18 @@ func TestPickFewestNew(t *testing.T) {
 	b := "us-west-1b"
 	c := "us-west-1c"
 
-	fds3 := clusterv1.FailureDomains{
-		a: clusterv1.FailureDomainSpec{ControlPlane: true},
-		b: clusterv1.FailureDomainSpec{ControlPlane: true},
-		c: clusterv1.FailureDomainSpec{ControlPlane: true},
+	fds3 := []clusterv1.FailureDomain{
+		{Name: a, ControlPlane: true},
+		{Name: b, ControlPlane: true},
+		{Name: c, ControlPlane: true},
 	}
 
-	fds2 := clusterv1.FailureDomains{
-		a: clusterv1.FailureDomainSpec{ControlPlane: true},
-		b: clusterv1.FailureDomainSpec{ControlPlane: true},
+	fds2 := []clusterv1.FailureDomain{
+		{Name: a, ControlPlane: true},
+		{Name: b, ControlPlane: true},
 	}
 
-	fds0 := clusterv1.FailureDomains{}
+	fds0 := []clusterv1.FailureDomain{}
 
 	machineA1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a1"}, Spec: clusterv1.MachineSpec{FailureDomain: ptr.To(a)}}
 	machineA2 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a2"}, Spec: clusterv1.MachineSpec{FailureDomain: ptr.To(a)}}
@@ -223,7 +243,7 @@ func TestPickFewestNew(t *testing.T) {
 
 	testcases := []struct {
 		name             string
-		fds              clusterv1.FailureDomains
+		fds              []clusterv1.FailureDomain
 		allMachines      collections.Machines
 		upToDateMachines collections.Machines
 		expected         []string
@@ -484,18 +504,18 @@ func TestPickMostNew(t *testing.T) {
 	b := "us-west-1b"
 	c := "us-west-1c"
 
-	fds3 := clusterv1.FailureDomains{
-		a: clusterv1.FailureDomainSpec{ControlPlane: true},
-		b: clusterv1.FailureDomainSpec{ControlPlane: true},
-		c: clusterv1.FailureDomainSpec{ControlPlane: true},
+	fds3 := []clusterv1.FailureDomain{
+		{Name: a, ControlPlane: true},
+		{Name: b, ControlPlane: true},
+		{Name: c, ControlPlane: true},
 	}
 
-	fds2 := clusterv1.FailureDomains{
-		a: clusterv1.FailureDomainSpec{ControlPlane: true},
-		b: clusterv1.FailureDomainSpec{ControlPlane: true},
+	fds2 := []clusterv1.FailureDomain{
+		{Name: a, ControlPlane: true},
+		{Name: b, ControlPlane: true},
 	}
 
-	fds0 := clusterv1.FailureDomains{}
+	fds0 := []clusterv1.FailureDomain{}
 
 	machineA1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a1"}, Spec: clusterv1.MachineSpec{FailureDomain: ptr.To(a)}}
 	machineA2 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a2"}, Spec: clusterv1.MachineSpec{FailureDomain: ptr.To(a)}}
@@ -515,7 +535,7 @@ func TestPickMostNew(t *testing.T) {
 
 	testcases := []struct {
 		name             string
-		fds              clusterv1.FailureDomains
+		fds              []clusterv1.FailureDomain
 		allMachines      collections.Machines
 		eligibleMachines collections.Machines
 		expected         []string
@@ -826,9 +846,9 @@ func TestCountByFailureDomain(t *testing.T) {
 	a := "us-west-1a"
 	b := "us-west-1b"
 
-	fds := clusterv1.FailureDomains{
-		a: clusterv1.FailureDomainSpec{ControlPlane: true},
-		b: clusterv1.FailureDomainSpec{ControlPlane: true},
+	fds := []clusterv1.FailureDomain{
+		{Name: a, ControlPlane: true},
+		{Name: b, ControlPlane: true},
 	}
 	machinea1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a1"}, Spec: clusterv1.MachineSpec{FailureDomain: ptr.To(a)}}
 	machinea2 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a2"}, Spec: clusterv1.MachineSpec{FailureDomain: ptr.To(a)}}

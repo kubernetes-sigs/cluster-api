@@ -59,7 +59,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopology":                      schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables":                     schema_cluster_api_api_core_v1beta2_ControlPlaneVariables(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ExternalPatchDefinition":                   schema_cluster_api_api_core_v1beta2_ExternalPatchDefinition(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomainSpec":                         schema_cluster_api_api_core_v1beta2_FailureDomainSpec(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain":                             schema_cluster_api_api_core_v1beta2_FailureDomain(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClass":                       schema_cluster_api_api_core_v1beta2_InfrastructureClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClassNamingStrategy":         schema_cluster_api_api_core_v1beta2_InfrastructureClassNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.JSONPatch":                                 schema_cluster_api_api_core_v1beta2_JSONPatch(ref),
@@ -1163,15 +1163,22 @@ func schema_cluster_api_api_core_v1beta2_ClusterStatus(ref common.ReferenceCallb
 						},
 					},
 					"failureDomains": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"name",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "failureDomains is a slice of failure domain objects synced from the infrastructure provider.",
-							Type:        []string{"object"},
-							AdditionalProperties: &spec.SchemaOrBool{
-								Allows: true,
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomainSpec"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain"),
 									},
 								},
 							},
@@ -1201,7 +1208,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterStatus(ref common.ReferenceCallb
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterControlPlaneStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterDeprecatedStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterInitializationStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomainSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersStatus"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterControlPlaneStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterDeprecatedStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterInitializationStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain", "sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersStatus"},
 	}
 }
 
@@ -1612,13 +1619,21 @@ func schema_cluster_api_api_core_v1beta2_ExternalPatchDefinition(ref common.Refe
 	}
 }
 
-func schema_cluster_api_api_core_v1beta2_FailureDomainSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_cluster_api_api_core_v1beta2_FailureDomain(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "FailureDomainSpec is the Schema for Cluster API failure domains. It allows controllers to understand how many failure domains a cluster can optionally span across.",
+				Description: "FailureDomain is the Schema for Cluster API failure domains. It allows controllers to understand how many failure domains a cluster can optionally span across.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the name of the failure domain.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"controlPlane": {
 						SchemaProps: spec.SchemaProps{
 							Description: "controlPlane determines if this failure domain is suitable for use by control plane machines.",
@@ -1643,6 +1658,7 @@ func schema_cluster_api_api_core_v1beta2_FailureDomainSpec(ref common.ReferenceC
 						},
 					},
 				},
+				Required: []string{"name"},
 			},
 		},
 	}
@@ -2253,7 +2269,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 					},
 					"failureDomain": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failureDomain is the failure domain the machines will be created in. Must match a key in the FailureDomains map stored on the cluster object. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
+							Description: "failureDomain is the failure domain the machines will be created in. Must match the name of a FailureDomain from the Cluster status. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -4743,7 +4759,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSpec(ref common.ReferenceCallbac
 					},
 					"failureDomain": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failureDomain is the failure domain the machine will be created in. Must match a key in the FailureDomains map stored on the cluster object.",
+							Description: "failureDomain is the failure domain the machine will be created in. Must match the name of a FailureDomain from the Cluster status.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

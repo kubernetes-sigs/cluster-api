@@ -38,11 +38,11 @@ func TestControlPlane(t *testing.T) {
 			KCP: &controlplanev1.KubeadmControlPlane{},
 			Cluster: &clusterv1.Cluster{
 				Status: clusterv1.ClusterStatus{
-					FailureDomains: clusterv1.FailureDomains{
-						"one":   failureDomain(true),
-						"two":   failureDomain(true),
-						"three": failureDomain(true),
-						"four":  failureDomain(false),
+					FailureDomains: []clusterv1.FailureDomain{
+						failureDomain("one", true),
+						failureDomain("two", true),
+						failureDomain("three", true),
+						failureDomain("four", false),
 					},
 				},
 			},
@@ -69,10 +69,10 @@ func TestControlPlane(t *testing.T) {
 		g := NewWithT(t)
 		cluster := &clusterv1.Cluster{
 			Status: clusterv1.ClusterStatus{
-				FailureDomains: clusterv1.FailureDomains{
-					"one":   failureDomain(true),
-					"two":   failureDomain(true),
-					"three": failureDomain(true),
+				FailureDomains: []clusterv1.FailureDomain{
+					failureDomain("one", true),
+					failureDomain("two", true),
+					failureDomain("three", true),
 				},
 			},
 		}
@@ -359,8 +359,9 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 
 type machineOpt func(*clusterv1.Machine)
 
-func failureDomain(controlPlane bool) clusterv1.FailureDomainSpec {
-	return clusterv1.FailureDomainSpec{
+func failureDomain(name string, controlPlane bool) clusterv1.FailureDomain {
+	return clusterv1.FailureDomain{
+		Name:         name,
 		ControlPlane: controlPlane,
 	}
 }

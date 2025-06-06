@@ -19,9 +19,12 @@ package upstreamv1beta3
 import (
 	"github.com/pkg/errors"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
 )
 
 func (src *ClusterConfiguration) ConvertTo(dstRaw conversion.Hub) error {
@@ -56,6 +59,10 @@ func (dst *JoinConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 
 // Custom conversion from this API, kubeadm v1beta3, to the hub version, CABPK v1beta1.
 
+func Convert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
+	return autoConvert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s)
+}
+
 func Convert_upstreamv1beta3_InitConfiguration_To_v1beta2_InitConfiguration(in *InitConfiguration, out *bootstrapv1.InitConfiguration, s apimachineryconversion.Scope) error {
 	// InitConfiguration.CertificateKey does not exist in CABPK, because Cluster API does not use automatic copy certs.
 	return autoConvert_upstreamv1beta3_InitConfiguration_To_v1beta2_InitConfiguration(in, out, s)
@@ -69,7 +76,7 @@ func Convert_upstreamv1beta3_JoinConfiguration_To_v1beta2_JoinConfiguration(in *
 		if out.Timeouts == nil {
 			out.Timeouts = &bootstrapv1.Timeouts{}
 		}
-		out.Timeouts.TLSBootstrapSeconds = bootstrapv1.ConvertToSeconds(in.Discovery.Timeout)
+		out.Timeouts.TLSBootstrapSeconds = clusterv1.ConvertToSeconds(in.Discovery.Timeout)
 	}
 	return nil
 }
@@ -104,6 +111,14 @@ func Convert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistration
 	return autoConvert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
 }
 
+func Convert_upstreamv1beta3_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToken, out *bootstrapv1.BootstrapToken, s apimachineryconversion.Scope) error {
+	if err := autoConvert_upstreamv1beta3_BootstrapToken_To_v1beta2_BootstrapToken(in, out, s); err != nil {
+		return err
+	}
+	out.TTLSeconds = clusterv1.ConvertToSeconds(in.TTL)
+	return nil
+}
+
 // Custom conversion from the hub version, CABPK v1beta1, to this API, kubeadm v1beta3.
 
 func Convert_v1beta2_InitConfiguration_To_upstreamv1beta3_InitConfiguration(in *bootstrapv1.InitConfiguration, out *InitConfiguration, s apimachineryconversion.Scope) error {
@@ -118,7 +133,7 @@ func Convert_v1beta2_JoinConfiguration_To_upstreamv1beta3_JoinConfiguration(in *
 	}
 
 	if in.Timeouts != nil {
-		out.Discovery.Timeout = bootstrapv1.ConvertFromSeconds(in.Timeouts.TLSBootstrapSeconds)
+		out.Discovery.Timeout = clusterv1.ConvertFromSeconds(in.Timeouts.TLSBootstrapSeconds)
 	}
 	return nil
 }
@@ -155,6 +170,14 @@ func Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistration
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(in, out, s)
 }
 
+func Convert_v1beta2_BootstrapToken_To_upstreamv1beta3_BootstrapToken(in *bootstrapv1.BootstrapToken, out *BootstrapToken, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_BootstrapToken_To_upstreamv1beta3_BootstrapToken(in, out, s); err != nil {
+		return err
+	}
+	out.TTL = clusterv1.ConvertFromSeconds(in.TTLSeconds)
+	return nil
+}
+
 // Custom conversions to handle fields migrated from ClusterConfiguration to Init and JoinConfiguration in the kubeadm v1beta4 API version.
 
 func (dst *ClusterConfiguration) ConvertFromInitConfiguration(initConfiguration *bootstrapv1.InitConfiguration) error {
@@ -162,7 +185,7 @@ func (dst *ClusterConfiguration) ConvertFromInitConfiguration(initConfiguration 
 		return nil
 	}
 
-	dst.APIServer.TimeoutForControlPlane = bootstrapv1.ConvertFromSeconds(initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
+	dst.APIServer.TimeoutForControlPlane = clusterv1.ConvertFromSeconds(initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
 	return nil
 }
 
@@ -177,6 +200,58 @@ func (src *ClusterConfiguration) ConvertToInitConfiguration(initConfiguration *b
 	if initConfiguration.Timeouts == nil {
 		initConfiguration.Timeouts = &bootstrapv1.Timeouts{}
 	}
-	initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = bootstrapv1.ConvertToSeconds(src.APIServer.TimeoutForControlPlane)
+	initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = clusterv1.ConvertToSeconds(src.APIServer.TimeoutForControlPlane)
 	return nil
+}
+
+// Func to allow handling fields that only exist in upstream types.
+
+var _ upstream.DataSetter = &ClusterConfiguration{}
+
+func (src *ClusterConfiguration) SetUpstreamData(data upstream.Data) {
+	if data.KubernetesVersion != nil {
+		src.KubernetesVersion = *data.KubernetesVersion
+	}
+	if data.ClusterName != nil {
+		src.ClusterName = *data.ClusterName
+	}
+	if data.ControlPlaneEndpoint != nil {
+		src.ControlPlaneEndpoint = *data.ControlPlaneEndpoint
+	}
+	if data.DNSDomain != nil {
+		src.Networking.DNSDomain = *data.DNSDomain
+	}
+	if data.ServiceSubnet != nil {
+		src.Networking.ServiceSubnet = *data.ServiceSubnet
+	}
+	if data.PodSubnet != nil {
+		src.Networking.PodSubnet = *data.PodSubnet
+	}
+}
+
+var _ upstream.DataGetter = &ClusterConfiguration{}
+
+func (src *ClusterConfiguration) GetUpstreamData() upstream.Data {
+	var data upstream.Data
+
+	if src.KubernetesVersion != "" {
+		data.KubernetesVersion = ptr.To(src.KubernetesVersion)
+	}
+	if src.ClusterName != "" {
+		data.ClusterName = ptr.To(src.ClusterName)
+	}
+	if src.ControlPlaneEndpoint != "" {
+		data.ControlPlaneEndpoint = ptr.To(src.ControlPlaneEndpoint)
+	}
+	if src.Networking.DNSDomain != "" {
+		data.DNSDomain = ptr.To(src.Networking.DNSDomain)
+	}
+	if src.Networking.ServiceSubnet != "" {
+		data.ServiceSubnet = ptr.To(src.Networking.ServiceSubnet)
+	}
+	if src.Networking.PodSubnet != "" {
+		data.PodSubnet = ptr.To(src.Networking.PodSubnet)
+	}
+
+	return data
 }

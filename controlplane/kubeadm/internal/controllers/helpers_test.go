@@ -19,7 +19,6 @@ package controllers
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	gomegatypes "github.com/onsi/gomega/types"
@@ -486,8 +485,8 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 	}
-	duration5s := &metav1.Duration{Duration: 5 * time.Second}
-	duration10s := &metav1.Duration{Duration: 10 * time.Second}
+	duration5s := ptr.To(int32(5))
+	duration10s := ptr.To(int32(10))
 	kcpMachineTemplateObjectMeta := clusterv1.ObjectMeta{
 		Labels: map[string]string{
 			"machineTemplateLabel": "machineTemplateLabelValue",
@@ -534,13 +533,13 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						ReadinessGates: []clusterv1.MachineReadinessGate{
 							{ConditionType: "Foo"},
 						},
-						NodeDrainTimeout:        duration5s,
-						NodeDeletionTimeout:     duration5s,
-						NodeVolumeDetachTimeout: duration5s,
+						NodeDrainTimeoutSeconds:        duration5s,
+						NodeDeletionTimeoutSeconds:     duration5s,
+						NodeVolumeDetachTimeoutSeconds: duration5s,
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-							ClusterName: clusterName,
+							CertificatesDir: "foo",
 						},
 					},
 					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
@@ -553,7 +552,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				HavePrefix(kcpName + namingTemplateKey),
 				Not(HaveSuffix("00000")),
 			},
-			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}",
 			wantErr:                            false,
 		},
 		{
@@ -566,14 +565,14 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-						ObjectMeta:              kcpMachineTemplateObjectMeta,
-						NodeDrainTimeout:        duration5s,
-						NodeDeletionTimeout:     duration5s,
-						NodeVolumeDetachTimeout: duration5s,
+						ObjectMeta:                     kcpMachineTemplateObjectMeta,
+						NodeDrainTimeoutSeconds:        duration5s,
+						NodeDeletionTimeoutSeconds:     duration5s,
+						NodeVolumeDetachTimeoutSeconds: duration5s,
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-							ClusterName: clusterName,
+							CertificatesDir: "foo",
 						},
 					},
 					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
@@ -594,14 +593,14 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-						ObjectMeta:              kcpMachineTemplateObjectMeta,
-						NodeDrainTimeout:        duration5s,
-						NodeDeletionTimeout:     duration5s,
-						NodeVolumeDetachTimeout: duration5s,
+						ObjectMeta:                     kcpMachineTemplateObjectMeta,
+						NodeDrainTimeoutSeconds:        duration5s,
+						NodeDeletionTimeoutSeconds:     duration5s,
+						NodeVolumeDetachTimeoutSeconds: duration5s,
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-							ClusterName: clusterName,
+							CertificatesDir: "foo",
 						},
 					},
 					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
@@ -614,7 +613,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				ContainSubstring(fmt.Sprintf("%053d", 0)),
 				Not(HaveSuffix("00000")),
 			},
-			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}",
 			wantErr:                            false,
 		},
 		{
@@ -627,14 +626,14 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-						ObjectMeta:              kcpMachineTemplateObjectMeta,
-						NodeDrainTimeout:        duration5s,
-						NodeDeletionTimeout:     duration5s,
-						NodeVolumeDetachTimeout: duration5s,
+						ObjectMeta:                     kcpMachineTemplateObjectMeta,
+						NodeDrainTimeoutSeconds:        duration5s,
+						NodeDeletionTimeoutSeconds:     duration5s,
+						NodeVolumeDetachTimeoutSeconds: duration5s,
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-							ClusterName: clusterName,
+							CertificatesDir: "foo",
 						},
 					},
 					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
@@ -655,14 +654,14 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-						ObjectMeta:              kcpMachineTemplateObjectMeta,
-						NodeDrainTimeout:        duration5s,
-						NodeDeletionTimeout:     duration5s,
-						NodeVolumeDetachTimeout: duration5s,
+						ObjectMeta:                     kcpMachineTemplateObjectMeta,
+						NodeDrainTimeoutSeconds:        duration5s,
+						NodeDeletionTimeoutSeconds:     duration5s,
+						NodeVolumeDetachTimeoutSeconds: duration5s,
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-							ClusterName: clusterName,
+							CertificatesDir: "foo",
 						},
 					},
 				},
@@ -673,7 +672,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				HavePrefix(kcpName),
 				Not(HaveSuffix("00000")),
 			},
-			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}",
 		},
 		{
 			name: "should return the correct Machine object when creating a new Machine with additional kcp readinessGates",
@@ -685,21 +684,21 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-						ObjectMeta:              kcpMachineTemplateObjectMeta,
-						ReadinessGates:          []clusterv1.MachineReadinessGate{{ConditionType: "Bar"}},
-						NodeDrainTimeout:        duration5s,
-						NodeDeletionTimeout:     duration5s,
-						NodeVolumeDetachTimeout: duration5s,
+						ObjectMeta:                     kcpMachineTemplateObjectMeta,
+						ReadinessGates:                 []clusterv1.MachineReadinessGate{{ConditionType: "Bar"}},
+						NodeDrainTimeoutSeconds:        duration5s,
+						NodeDeletionTimeoutSeconds:     duration5s,
+						NodeVolumeDetachTimeoutSeconds: duration5s,
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-							ClusterName: clusterName,
+							CertificatesDir: "foo",
 						},
 					},
 				},
 			},
 			isUpdatingExistingMachine:          false,
-			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}",
 			wantErr:                            false,
 		},
 		{
@@ -712,17 +711,17 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-						ObjectMeta:              kcpMachineTemplateObjectMeta,
-						NodeDrainTimeout:        duration5s,
-						NodeDeletionTimeout:     duration5s,
-						NodeVolumeDetachTimeout: duration5s,
+						ObjectMeta:                     kcpMachineTemplateObjectMeta,
+						NodeDrainTimeoutSeconds:        duration5s,
+						NodeDeletionTimeoutSeconds:     duration5s,
+						NodeVolumeDetachTimeoutSeconds: duration5s,
 						ReadinessGates: []clusterv1.MachineReadinessGate{
 							{ConditionType: "Foo"},
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-							ClusterName: clusterName,
+							CertificatesDir: "foo",
 						},
 					},
 					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
@@ -745,17 +744,17 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-						ObjectMeta:              kcpMachineTemplateObjectMeta,
-						NodeDrainTimeout:        duration5s,
-						NodeDeletionTimeout:     duration5s,
-						NodeVolumeDetachTimeout: duration5s,
+						ObjectMeta:                     kcpMachineTemplateObjectMeta,
+						NodeDrainTimeoutSeconds:        duration5s,
+						NodeDeletionTimeoutSeconds:     duration5s,
+						NodeVolumeDetachTimeoutSeconds: duration5s,
 						ReadinessGates: []clusterv1.MachineReadinessGate{
 							{ConditionType: "Foo"},
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-							ClusterName: clusterName,
+							CertificatesDir: "foo",
 						},
 					},
 					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
@@ -765,8 +764,8 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 			},
 			isUpdatingExistingMachine: true,
 
-			existingClusterConfigurationAnnotation: "{\"etcd\":{},\"networking\":{},\"apiServer\":{\"extraArgs\":{\"foo\":\"bar\"}},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
-			wantClusterConfigurationAnnotation:     "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			existingClusterConfigurationAnnotation: "{\"etcd\":{},\"apiServer\":{\"extraArgs\":{\"foo\":\"bar\"}},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}",
+			wantClusterConfigurationAnnotation:     "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}",
 			wantErr:                                false,
 		},
 		{
@@ -779,17 +778,17 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-						ObjectMeta:              kcpMachineTemplateObjectMeta,
-						NodeDrainTimeout:        duration5s,
-						NodeDeletionTimeout:     duration5s,
-						NodeVolumeDetachTimeout: duration5s,
+						ObjectMeta:                     kcpMachineTemplateObjectMeta,
+						NodeDrainTimeoutSeconds:        duration5s,
+						NodeDeletionTimeoutSeconds:     duration5s,
+						NodeVolumeDetachTimeoutSeconds: duration5s,
 						ReadinessGates: []clusterv1.MachineReadinessGate{
 							{ConditionType: "Foo"},
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-							ClusterName: clusterName,
+							CertificatesDir: "foo",
 						},
 					},
 					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
@@ -798,8 +797,8 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				},
 			},
 			isUpdatingExistingMachine:              true,
-			existingClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
-			wantClusterConfigurationAnnotation:     "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"clusterName\":\"testCluster\"}",
+			existingClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}",
+			wantClusterConfigurationAnnotation:     "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}",
 			wantErr:                                false,
 		},
 	}
@@ -829,11 +828,11 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						},
 					},
 					Spec: clusterv1.MachineSpec{
-						Version:                 machineVersion,
-						FailureDomain:           failureDomain,
-						NodeDrainTimeout:        duration10s,
-						NodeDeletionTimeout:     duration10s,
-						NodeVolumeDetachTimeout: duration10s,
+						Version:                        machineVersion,
+						FailureDomain:                  failureDomain,
+						NodeDrainTimeoutSeconds:        duration10s,
+						NodeDeletionTimeoutSeconds:     duration10s,
+						NodeVolumeDetachTimeoutSeconds: duration10s,
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: bootstrapRef,
 						},
@@ -860,12 +859,12 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: bootstrapRef,
 					},
-					InfrastructureRef:       *infraRef,
-					FailureDomain:           failureDomain,
-					NodeDrainTimeout:        tt.kcp.Spec.MachineTemplate.NodeDrainTimeout,
-					NodeDeletionTimeout:     tt.kcp.Spec.MachineTemplate.NodeDeletionTimeout,
-					NodeVolumeDetachTimeout: tt.kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout,
-					ReadinessGates:          append(append(mandatoryMachineReadinessGates, etcdMandatoryMachineReadinessGates...), tt.kcp.Spec.MachineTemplate.ReadinessGates...),
+					InfrastructureRef:              *infraRef,
+					FailureDomain:                  failureDomain,
+					NodeDrainTimeoutSeconds:        tt.kcp.Spec.MachineTemplate.NodeDrainTimeoutSeconds,
+					NodeDeletionTimeoutSeconds:     tt.kcp.Spec.MachineTemplate.NodeDeletionTimeoutSeconds,
+					NodeVolumeDetachTimeoutSeconds: tt.kcp.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds,
+					ReadinessGates:                 append(append(mandatoryMachineReadinessGates, etcdMandatoryMachineReadinessGates...), tt.kcp.Spec.MachineTemplate.ReadinessGates...),
 				}
 
 				// Verify the Name and UID of the Machine remain unchanged
@@ -895,13 +894,13 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 
 				expectedMachineSpec = clusterv1.MachineSpec{
-					ClusterName:             cluster.Name,
-					Version:                 ptr.To(tt.kcp.Spec.Version),
-					FailureDomain:           failureDomain,
-					NodeDrainTimeout:        tt.kcp.Spec.MachineTemplate.NodeDrainTimeout,
-					NodeDeletionTimeout:     tt.kcp.Spec.MachineTemplate.NodeDeletionTimeout,
-					NodeVolumeDetachTimeout: tt.kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout,
-					ReadinessGates:          append(append(mandatoryMachineReadinessGates, etcdMandatoryMachineReadinessGates...), tt.kcp.Spec.MachineTemplate.ReadinessGates...),
+					ClusterName:                    cluster.Name,
+					Version:                        ptr.To(tt.kcp.Spec.Version),
+					FailureDomain:                  failureDomain,
+					NodeDrainTimeoutSeconds:        tt.kcp.Spec.MachineTemplate.NodeDrainTimeoutSeconds,
+					NodeDeletionTimeoutSeconds:     tt.kcp.Spec.MachineTemplate.NodeDeletionTimeoutSeconds,
+					NodeVolumeDetachTimeoutSeconds: tt.kcp.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds,
+					ReadinessGates:                 append(append(mandatoryMachineReadinessGates, etcdMandatoryMachineReadinessGates...), tt.kcp.Spec.MachineTemplate.ReadinessGates...),
 				}
 				// Verify Name.
 				for _, matcher := range tt.want {

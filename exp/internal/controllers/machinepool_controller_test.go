@@ -389,7 +389,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "Successfully reconcile MachinePool with deletionTimestamp & NodeDeletionTimeout not passed when Nodes can be deleted (MP should go away)",
+			name: "Successfully reconcile MachinePool with deletionTimestamp & NodeDeletionTimeoutSeconds not passed when Nodes can be deleted (MP should go away)",
 			machinePool: clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "deleted",
@@ -412,8 +412,8 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Name:       "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 								Namespace:  metav1.NamespaceDefault,
 							},
-							Bootstrap:           clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-							NodeDeletionTimeout: &metav1.Duration{Duration: 10 * time.Minute},
+							Bootstrap:                  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
 						},
 					},
 					ProviderIDList: []string{"aws:///us-test-2a/i-013ab00756982217f"},
@@ -452,7 +452,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "Fail reconcile MachinePool with deletionTimestamp & NodeDeletionTimeout not passed when Nodes cannot be deleted (MP should stay around)",
+			name: "Fail reconcile MachinePool with deletionTimestamp & NodeDeletionTimeoutSeconds not passed when Nodes cannot be deleted (MP should stay around)",
 			machinePool: clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "deleted",
@@ -475,8 +475,8 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Name:       "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 								Namespace:  metav1.NamespaceDefault,
 							},
-							Bootstrap:           clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-							NodeDeletionTimeout: &metav1.Duration{Duration: 10 * time.Minute},
+							Bootstrap:                  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
 						},
 					},
 					ProviderIDList: []string{"aws:///us-test-2a/i-013ab00756982217f"},
@@ -515,7 +515,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "Successfully reconcile MachinePool with deletionTimestamp & NodeDeletionTimeout passed when Nodes cannot be deleted (MP should go away)",
+			name: "Successfully reconcile MachinePool with deletionTimestamp & NodeDeletionTimeoutSeconds passed when Nodes cannot be deleted (MP should go away)",
 			machinePool: clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "deleted",
@@ -538,8 +538,8 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Name:       "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 								Namespace:  metav1.NamespaceDefault,
 							},
-							Bootstrap:           clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-							NodeDeletionTimeout: &metav1.Duration{Duration: 10 * time.Second}, // timeout passed
+							Bootstrap:                  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							NodeDeletionTimeoutSeconds: ptr.To(int32(10)), // timeout passed
 						},
 					},
 					ProviderIDList: []string{"aws:///us-test-2a/i-013ab00756982217f"},
@@ -654,7 +654,7 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "false if deletionTimestamp set to now and NodeDeletionTimeout not set",
+			name: "false if deletionTimestamp set to now and NodeDeletionTimeoutSeconds not set",
 			machinePool: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "machinepool",
@@ -665,25 +665,7 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "false if deletionTimestamp set to now and NodeDeletionTimeout set to 0",
-			machinePool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machinepool",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &timeNow,
-				},
-				Spec: clusterv1.MachinePoolSpec{
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							NodeDeletionTimeout: &metav1.Duration{Duration: 0 * time.Second},
-						},
-					},
-				},
-			},
-			want: false,
-		},
-		{
-			name: "false if deletionTimestamp set to now and NodeDeletionTimeout set to 1m",
+			name: "false if deletionTimestamp set to now and NodeDeletionTimeoutSeconds set to 0",
 			machinePool: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "machinepool",
@@ -693,7 +675,7 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							NodeDeletionTimeout: &metav1.Duration{Duration: 1 * time.Minute},
+							NodeDeletionTimeoutSeconds: ptr.To(int32(0)),
 						},
 					},
 				},
@@ -701,7 +683,25 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "true if deletionTimestamp set to now-1m and NodeDeletionTimeout set to 10s",
+			name: "false if deletionTimestamp set to now and NodeDeletionTimeoutSeconds set to 1m",
+			machinePool: &clusterv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "machinepool",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &timeNow,
+				},
+				Spec: clusterv1.MachinePoolSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							NodeDeletionTimeoutSeconds: ptr.To(int32(60)),
+						},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "true if deletionTimestamp set to now-1m and NodeDeletionTimeoutSeconds set to 10s",
 			machinePool: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "machinepool",
@@ -711,7 +711,7 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							NodeDeletionTimeout: &metav1.Duration{Duration: 10 * time.Second},
+							NodeDeletionTimeoutSeconds: ptr.To(int32(10)),
 						},
 					},
 				},

@@ -32,7 +32,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	bootstrapv1alpha3 "sigs.k8s.io/cluster-api/internal/api/bootstrap/kubeadm/v1alpha3"
-	bootstrapv1alpha4 "sigs.k8s.io/cluster-api/internal/api/bootstrap/kubeadm/v1alpha4"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -54,15 +53,16 @@ func TestFuzzyConversion(t *testing.T) {
 func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubKubeadmControlPlaneStatus,
+		spokeKubeadmControlPlaneSpec,
 		spokeKubeadmControlPlaneStatus,
 		spokeDNS,
 		spokeKubeadmClusterConfiguration,
 		hubBootstrapTokenString,
-		spokeBootstrapTokenString,
 		spokeKubeadmConfigSpec,
 		spokeAPIServer,
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
+		spokeBootstrapToken,
 	}
 }
 
@@ -109,6 +109,14 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 	}
 }
 
+func spokeKubeadmControlPlaneSpec(in *KubeadmControlPlaneSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
 func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 
@@ -117,11 +125,6 @@ func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c randfill.Co
 }
 
 func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
-	in.ID = fakeID
-	in.Secret = fakeSecret
-}
-
-func spokeBootstrapTokenString(in *bootstrapv1alpha4.BootstrapTokenString, _ randfill.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
 }
@@ -138,6 +141,14 @@ func spokeKubeadmClusterConfiguration(obj *bootstrapv1alpha3.ClusterConfiguratio
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.UseHyperKubeImage = false
+
+	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
+	obj.Networking.ServiceSubnet = ""
+	obj.Networking.PodSubnet = ""
+	obj.Networking.DNSDomain = ""
+	obj.KubernetesVersion = ""
+	obj.ControlPlaneEndpoint = ""
+	obj.ClusterName = ""
 }
 
 func spokeKubeadmConfigSpec(in *bootstrapv1alpha3.KubeadmConfigSpec, c randfill.Continue) {
@@ -152,6 +163,14 @@ func spokeAPIServer(in *bootstrapv1alpha3.APIServer, c randfill.Continue) {
 
 	if in.TimeoutForControlPlane != nil {
 		in.TimeoutForControlPlane = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeBootstrapToken(in *bootstrapv1alpha3.BootstrapToken, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TTL != nil {
+		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 

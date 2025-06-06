@@ -491,18 +491,18 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 		return remediationInProgressData, true, nil
 	}
 
-	// Gets MinHealthyPeriod and RetryPeriod from the remediation strategy, or use defaults.
-	minHealthyPeriod := controlplanev1.DefaultMinHealthyPeriod
-	if controlPlane.KCP.Spec.RemediationStrategy != nil && controlPlane.KCP.Spec.RemediationStrategy.MinHealthyPeriod != nil {
-		minHealthyPeriod = controlPlane.KCP.Spec.RemediationStrategy.MinHealthyPeriod.Duration
+	// Gets MinHealthyPeriodSeconds and RetryPeriodSeconds from the remediation strategy, or use defaults.
+	minHealthyPeriod := time.Duration(controlplanev1.DefaultMinHealthyPeriodSeconds) * time.Second
+	if controlPlane.KCP.Spec.RemediationStrategy != nil && controlPlane.KCP.Spec.RemediationStrategy.MinHealthyPeriodSeconds != nil {
+		minHealthyPeriod = time.Duration(*controlPlane.KCP.Spec.RemediationStrategy.MinHealthyPeriodSeconds) * time.Second
 	}
 	retryPeriod := time.Duration(0)
 	if controlPlane.KCP.Spec.RemediationStrategy != nil {
-		retryPeriod = controlPlane.KCP.Spec.RemediationStrategy.RetryPeriod.Duration
+		retryPeriod = time.Duration(controlPlane.KCP.Spec.RemediationStrategy.RetryPeriodSeconds) * time.Second
 	}
 
 	// Gets the timestamp of the last remediation; if missing, default to a value
-	// that ensures both MinHealthyPeriod and RetryPeriod are expired.
+	// that ensures both MinHealthyPeriodSeconds and RetryPeriodSeconds are expired.
 	// NOTE: this could potentially lead to executing more retries than expected or to executing retries before than
 	// expected, but this is considered acceptable when the system recovers from someone/something changes or deletes
 	// the RemediationForAnnotation on Machines.
@@ -533,13 +533,13 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	// Check if remediation can happen because retryPeriod is passed.
 	if lastRemediationTime.Add(retryPeriod).After(reconciliationTime) {
 		log.Info(fmt.Sprintf("A control plane machine needs remediation, but the operation already failed in the latest %s. Skipping remediation", retryPeriod))
-		v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed in the latest %s (RetryPeriod)", retryPeriod)
+		v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed in the latest %s (RetryPeriodSeconds)", retryPeriod)
 
 		conditions.Set(machineToBeRemediated, metav1.Condition{
 			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationDeferredReason,
-			Message: fmt.Sprintf("KubeadmControlPlane can't remediate this machine because the operation already failed in the latest %s (RetryPeriod)", retryPeriod),
+			Message: fmt.Sprintf("KubeadmControlPlane can't remediate this machine because the operation already failed in the latest %s (RetryPeriodSeconds)", retryPeriod),
 		})
 		return remediationInProgressData, false, nil
 	}

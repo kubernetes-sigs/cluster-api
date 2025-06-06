@@ -60,8 +60,10 @@ func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeDiscovery,
 		spokeKubeadmConfigSpec,
 		spokeKubeadmConfigStatus,
+		spokeClusterConfiguration,
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
+		spokeBootstrapToken,
 		hubKubeadmConfigSpec,
 	}
 }
@@ -71,8 +73,10 @@ func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interfac
 		spokeAPIServer,
 		spokeDiscovery,
 		spokeKubeadmConfigSpec,
+		spokeClusterConfiguration,
 		spokeBootstrapTokenString,
 		hubBootstrapTokenString,
+		spokeBootstrapToken,
 		hubKubeadmConfigSpec,
 	}
 }
@@ -131,11 +135,31 @@ func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c randfill.Continue) {
 	in.UseExperimentalRetryJoin = false
 }
 
+func spokeClusterConfiguration(in *ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
+	in.Networking.ServiceSubnet = ""
+	in.Networking.PodSubnet = ""
+	in.Networking.DNSDomain = ""
+	in.KubernetesVersion = ""
+	in.ControlPlaneEndpoint = ""
+	in.ClusterName = ""
+}
+
 func spokeAPIServer(in *APIServer, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.TimeoutForControlPlane != nil {
 		in.TimeoutForControlPlane = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TTL != nil {
+		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 

@@ -1646,23 +1646,29 @@ spec:
                   Defaults to 0 (Machine will be considered available as soon as the Machine is ready)
                 format: int32
                 type: integer
-              nodeDeletionTimeout:
+              nodeDeletionTimeoutSeconds:
                 description: |-
-                  nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+                  nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
                   hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
                   Defaults to 10 seconds.
-                type: string
-              nodeDrainTimeout:
+                format: int32
+                minimum: 0
+                type: integer
+              nodeDrainTimeoutSeconds:
                 description: |-
-                  nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                  nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
                   The default value is 0, meaning that the node can be drained without any time limitations.
-                  NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
-                type: string
-              nodeVolumeDetachTimeout:
+                  NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
+                format: int32
+                minimum: 0
+                type: integer
+              nodeVolumeDetachTimeoutSeconds:
                 description: |-
-                  nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+                  nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
                   to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
-                type: string
+                format: int32
+                minimum: 0
+                type: integer
               providerID:
                 description: |-
                   providerID is the identification ID of the machine provided by the provider.
@@ -1851,14 +1857,14 @@ spec:
                   nodeDrainStartTime:
                     description: |-
                       nodeDrainStartTime is the time when the drain of the node started and is used to determine
-                      if the NodeDrainTimeout is exceeded.
+                      if the nodeDrainTimeoutSeconds is exceeded.
                       Only present when the Machine has a deletionTimestamp and draining the node had been started.
                     format: date-time
                     type: string
                   waitForNodeVolumeDetachStartTime:
                     description: |-
                       waitForNodeVolumeDetachStartTime is the time when waiting for volume detachment started
-                      and is used to determine if the NodeVolumeDetachTimeout is exceeded.
+                      and is used to determine if the nodeVolumeDetachTimeoutSeconds is exceeded.
                       Detaching volumes from nodes is usually done by CSI implementations and the current state
                       is observed from the node's `.Status.VolumesAttached` field.
                       Only present when the Machine has a deletionTimestamp and waiting for volume detachments had been started.

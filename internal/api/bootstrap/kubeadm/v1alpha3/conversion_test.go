@@ -65,6 +65,7 @@ func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeAPIServer,
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
+		spokeBootstrapToken,
 	}
 }
 
@@ -79,6 +80,7 @@ func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interfac
 		spokeAPIServer,
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
+		spokeBootstrapToken,
 	}
 }
 
@@ -145,6 +147,14 @@ func spokeClusterConfiguration(obj *ClusterConfiguration, c randfill.Continue) {
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1beta1 --> <hub> --> v1beta1 round trip errors.
 	obj.UseHyperKubeImage = false
+
+	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
+	obj.Networking.ServiceSubnet = ""
+	obj.Networking.PodSubnet = ""
+	obj.Networking.DNSDomain = ""
+	obj.KubernetesVersion = ""
+	obj.ControlPlaneEndpoint = ""
+	obj.ClusterName = ""
 }
 
 func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
@@ -162,6 +172,14 @@ func spokeAPIServer(in *APIServer, c randfill.Continue) {
 
 	if in.TimeoutForControlPlane != nil {
 		in.TimeoutForControlPlane = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TTL != nil {
+		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 

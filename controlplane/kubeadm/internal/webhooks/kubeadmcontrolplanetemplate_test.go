@@ -19,11 +19,11 @@ package webhooks
 import (
 	"strings"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -45,14 +45,14 @@ func TestKubeadmControlPlaneTemplateDefault(t *testing.T) {
 			Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 				Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
 					MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
-						NodeDrainTimeout: &metav1.Duration{Duration: 10 * time.Second},
+						NodeDrainTimeoutSeconds: ptr.To(int32(10)),
 					},
 				},
 			},
 		},
 	}
 	updateDefaultingValidationKCPTemplate := kcpTemplate.DeepCopy()
-	updateDefaultingValidationKCPTemplate.Spec.Template.Spec.MachineTemplate.NodeDrainTimeout = &metav1.Duration{Duration: 20 * time.Second}
+	updateDefaultingValidationKCPTemplate.Spec.Template.Spec.MachineTemplate.NodeDrainTimeoutSeconds = ptr.To(int32(20))
 	webhook := &KubeadmControlPlaneTemplate{}
 	t.Run("for KubeadmControlPlaneTemplate", util.CustomDefaultValidateTest(ctx, updateDefaultingValidationKCPTemplate, webhook))
 	g.Expect(webhook.Default(ctx, kcpTemplate)).To(Succeed())
@@ -77,7 +77,7 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
 				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
 						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
-							NodeDrainTimeout: &metav1.Duration{Duration: time.Second},
+							NodeDrainTimeoutSeconds: ptr.To(int32(1)),
 						},
 					},
 				},
@@ -104,7 +104,7 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateDisabled(t *testing.T) 
 				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
 						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
-							NodeDrainTimeout: &metav1.Duration{Duration: time.Second},
+							NodeDrainTimeoutSeconds: ptr.To(int32(1)),
 						},
 					},
 				},
@@ -165,7 +165,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
 						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
-							NodeDrainTimeout: &metav1.Duration{Duration: time.Duration(10) * time.Minute},
+							NodeDrainTimeoutSeconds: ptr.To(int32(10 * 60)),
 						},
 					},
 				},
@@ -180,7 +180,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 							Format: bootstrapv1.CloudConfig,
 						},
 						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
-							NodeDrainTimeout: &metav1.Duration{Duration: time.Duration(10) * time.Minute},
+							NodeDrainTimeoutSeconds: ptr.To(int32(10 * 60)),
 						},
 					},
 				},
@@ -198,7 +198,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
 						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
-							NodeDrainTimeout: &metav1.Duration{Duration: time.Duration(10) * time.Minute},
+							NodeDrainTimeoutSeconds: ptr.To(int32(10 * 60)),
 						},
 					},
 				},
@@ -217,7 +217,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 							},
 						},
 						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
-							NodeDrainTimeout: &metav1.Duration{Duration: time.Duration(10) * time.Minute},
+							NodeDrainTimeoutSeconds: ptr.To(int32(10 * 60)),
 						},
 					},
 				},

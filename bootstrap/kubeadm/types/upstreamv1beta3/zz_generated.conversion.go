@@ -53,16 +53,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*BootstrapToken)(nil), (*v1beta2.BootstrapToken)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_upstreamv1beta3_BootstrapToken_To_v1beta2_BootstrapToken(a.(*BootstrapToken), b.(*v1beta2.BootstrapToken), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.BootstrapToken)(nil), (*BootstrapToken)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_BootstrapToken_To_upstreamv1beta3_BootstrapToken(a.(*v1beta2.BootstrapToken), b.(*BootstrapToken), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*BootstrapTokenDiscovery)(nil), (*v1beta2.BootstrapTokenDiscovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_upstreamv1beta3_BootstrapTokenDiscovery_To_v1beta2_BootstrapTokenDiscovery(a.(*BootstrapTokenDiscovery), b.(*v1beta2.BootstrapTokenDiscovery), scope)
 	}); err != nil {
@@ -80,11 +70,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.BootstrapTokenString)(nil), (*BootstrapTokenString)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_BootstrapTokenString_To_upstreamv1beta3_BootstrapTokenString(a.(*v1beta2.BootstrapTokenString), b.(*BootstrapTokenString), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ClusterConfiguration)(nil), (*v1beta2.ClusterConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration(a.(*ClusterConfiguration), b.(*v1beta2.ClusterConfiguration), scope)
 	}); err != nil {
 		return err
 	}
@@ -158,16 +143,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*Networking)(nil), (*v1beta2.Networking)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_upstreamv1beta3_Networking_To_v1beta2_Networking(a.(*Networking), b.(*v1beta2.Networking), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.Networking)(nil), (*Networking)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Networking_To_upstreamv1beta3_Networking(a.(*v1beta2.Networking), b.(*Networking), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Patches)(nil), (*v1beta2.Patches)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_upstreamv1beta3_Patches_To_v1beta2_Patches(a.(*Patches), b.(*v1beta2.Patches), scope)
 	}); err != nil {
@@ -180,6 +155,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*APIServer)(nil), (*v1beta2.APIServer)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_upstreamv1beta3_APIServer_To_v1beta2_APIServer(a.(*APIServer), b.(*v1beta2.APIServer), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*BootstrapToken)(nil), (*v1beta2.BootstrapToken)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_upstreamv1beta3_BootstrapToken_To_v1beta2_BootstrapToken(a.(*BootstrapToken), b.(*v1beta2.BootstrapToken), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*ClusterConfiguration)(nil), (*v1beta2.ClusterConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration(a.(*ClusterConfiguration), b.(*v1beta2.ClusterConfiguration), scope)
 	}); err != nil {
 		return err
 	}
@@ -215,6 +200,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*NodeRegistrationOptions)(nil), (*v1beta2.NodeRegistrationOptions)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(a.(*NodeRegistrationOptions), b.(*v1beta2.NodeRegistrationOptions), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.BootstrapToken)(nil), (*BootstrapToken)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_BootstrapToken_To_upstreamv1beta3_BootstrapToken(a.(*v1beta2.BootstrapToken), b.(*BootstrapToken), scope)
 	}); err != nil {
 		return err
 	}
@@ -298,31 +288,21 @@ func Convert_v1beta2_APIServer_To_upstreamv1beta3_APIServer(in *v1beta2.APIServe
 func autoConvert_upstreamv1beta3_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToken, out *v1beta2.BootstrapToken, s conversion.Scope) error {
 	out.Token = (*v1beta2.BootstrapTokenString)(unsafe.Pointer(in.Token))
 	out.Description = in.Description
-	out.TTL = (*v1.Duration)(unsafe.Pointer(in.TTL))
+	// WARNING: in.TTL requires manual conversion: does not exist in peer-type
 	out.Expires = (*v1.Time)(unsafe.Pointer(in.Expires))
 	out.Usages = *(*[]string)(unsafe.Pointer(&in.Usages))
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
 	return nil
-}
-
-// Convert_upstreamv1beta3_BootstrapToken_To_v1beta2_BootstrapToken is an autogenerated conversion function.
-func Convert_upstreamv1beta3_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToken, out *v1beta2.BootstrapToken, s conversion.Scope) error {
-	return autoConvert_upstreamv1beta3_BootstrapToken_To_v1beta2_BootstrapToken(in, out, s)
 }
 
 func autoConvert_v1beta2_BootstrapToken_To_upstreamv1beta3_BootstrapToken(in *v1beta2.BootstrapToken, out *BootstrapToken, s conversion.Scope) error {
 	out.Token = (*BootstrapTokenString)(unsafe.Pointer(in.Token))
 	out.Description = in.Description
-	out.TTL = (*v1.Duration)(unsafe.Pointer(in.TTL))
+	// WARNING: in.TTLSeconds requires manual conversion: does not exist in peer-type
 	out.Expires = (*v1.Time)(unsafe.Pointer(in.Expires))
 	out.Usages = *(*[]string)(unsafe.Pointer(&in.Usages))
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
 	return nil
-}
-
-// Convert_v1beta2_BootstrapToken_To_upstreamv1beta3_BootstrapToken is an autogenerated conversion function.
-func Convert_v1beta2_BootstrapToken_To_upstreamv1beta3_BootstrapToken(in *v1beta2.BootstrapToken, out *BootstrapToken, s conversion.Scope) error {
-	return autoConvert_v1beta2_BootstrapToken_To_upstreamv1beta3_BootstrapToken(in, out, s)
 }
 
 func autoConvert_upstreamv1beta3_BootstrapTokenDiscovery_To_v1beta2_BootstrapTokenDiscovery(in *BootstrapTokenDiscovery, out *v1beta2.BootstrapTokenDiscovery, s conversion.Scope) error {
@@ -377,11 +357,9 @@ func autoConvert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfigur
 	if err := Convert_upstreamv1beta3_Etcd_To_v1beta2_Etcd(&in.Etcd, &out.Etcd, s); err != nil {
 		return err
 	}
-	if err := Convert_upstreamv1beta3_Networking_To_v1beta2_Networking(&in.Networking, &out.Networking, s); err != nil {
-		return err
-	}
-	out.KubernetesVersion = in.KubernetesVersion
-	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
+	// WARNING: in.Networking requires manual conversion: does not exist in peer-type
+	// WARNING: in.KubernetesVersion requires manual conversion: does not exist in peer-type
+	// WARNING: in.ControlPlaneEndpoint requires manual conversion: does not exist in peer-type
 	if err := Convert_upstreamv1beta3_APIServer_To_v1beta2_APIServer(&in.APIServer, &out.APIServer, s); err != nil {
 		return err
 	}
@@ -397,24 +375,14 @@ func autoConvert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfigur
 	out.CertificatesDir = in.CertificatesDir
 	out.ImageRepository = in.ImageRepository
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
-	out.ClusterName = in.ClusterName
+	// WARNING: in.ClusterName requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration is an autogenerated conversion function.
-func Convert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *v1beta2.ClusterConfiguration, s conversion.Scope) error {
-	return autoConvert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s)
 }
 
 func autoConvert_v1beta2_ClusterConfiguration_To_upstreamv1beta3_ClusterConfiguration(in *v1beta2.ClusterConfiguration, out *ClusterConfiguration, s conversion.Scope) error {
 	if err := Convert_v1beta2_Etcd_To_upstreamv1beta3_Etcd(&in.Etcd, &out.Etcd, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta2_Networking_To_upstreamv1beta3_Networking(&in.Networking, &out.Networking, s); err != nil {
-		return err
-	}
-	out.KubernetesVersion = in.KubernetesVersion
-	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 	if err := Convert_v1beta2_APIServer_To_upstreamv1beta3_APIServer(&in.APIServer, &out.APIServer, s); err != nil {
 		return err
 	}
@@ -430,7 +398,6 @@ func autoConvert_v1beta2_ClusterConfiguration_To_upstreamv1beta3_ClusterConfigur
 	out.CertificatesDir = in.CertificatesDir
 	out.ImageRepository = in.ImageRepository
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
-	out.ClusterName = in.ClusterName
 	return nil
 }
 
@@ -643,7 +610,17 @@ func Convert_v1beta2_ImageMeta_To_upstreamv1beta3_ImageMeta(in *v1beta2.ImageMet
 }
 
 func autoConvert_upstreamv1beta3_InitConfiguration_To_v1beta2_InitConfiguration(in *InitConfiguration, out *v1beta2.InitConfiguration, s conversion.Scope) error {
-	out.BootstrapTokens = *(*[]v1beta2.BootstrapToken)(unsafe.Pointer(&in.BootstrapTokens))
+	if in.BootstrapTokens != nil {
+		in, out := &in.BootstrapTokens, &out.BootstrapTokens
+		*out = make([]v1beta2.BootstrapToken, len(*in))
+		for i := range *in {
+			if err := Convert_upstreamv1beta3_BootstrapToken_To_v1beta2_BootstrapToken(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.BootstrapTokens = nil
+	}
 	if err := Convert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(&in.NodeRegistration, &out.NodeRegistration, s); err != nil {
 		return err
 	}
@@ -657,7 +634,17 @@ func autoConvert_upstreamv1beta3_InitConfiguration_To_v1beta2_InitConfiguration(
 }
 
 func autoConvert_v1beta2_InitConfiguration_To_upstreamv1beta3_InitConfiguration(in *v1beta2.InitConfiguration, out *InitConfiguration, s conversion.Scope) error {
-	out.BootstrapTokens = *(*[]BootstrapToken)(unsafe.Pointer(&in.BootstrapTokens))
+	if in.BootstrapTokens != nil {
+		in, out := &in.BootstrapTokens, &out.BootstrapTokens
+		*out = make([]BootstrapToken, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_BootstrapToken_To_upstreamv1beta3_BootstrapToken(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.BootstrapTokens = nil
+	}
 	if err := Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(&in.NodeRegistration, &out.NodeRegistration, s); err != nil {
 		return err
 	}
@@ -756,30 +743,6 @@ func autoConvert_v1beta2_LocalEtcd_To_upstreamv1beta3_LocalEtcd(in *v1beta2.Loca
 	out.ServerCertSANs = *(*[]string)(unsafe.Pointer(&in.ServerCertSANs))
 	out.PeerCertSANs = *(*[]string)(unsafe.Pointer(&in.PeerCertSANs))
 	return nil
-}
-
-func autoConvert_upstreamv1beta3_Networking_To_v1beta2_Networking(in *Networking, out *v1beta2.Networking, s conversion.Scope) error {
-	out.ServiceSubnet = in.ServiceSubnet
-	out.PodSubnet = in.PodSubnet
-	out.DNSDomain = in.DNSDomain
-	return nil
-}
-
-// Convert_upstreamv1beta3_Networking_To_v1beta2_Networking is an autogenerated conversion function.
-func Convert_upstreamv1beta3_Networking_To_v1beta2_Networking(in *Networking, out *v1beta2.Networking, s conversion.Scope) error {
-	return autoConvert_upstreamv1beta3_Networking_To_v1beta2_Networking(in, out, s)
-}
-
-func autoConvert_v1beta2_Networking_To_upstreamv1beta3_Networking(in *v1beta2.Networking, out *Networking, s conversion.Scope) error {
-	out.ServiceSubnet = in.ServiceSubnet
-	out.PodSubnet = in.PodSubnet
-	out.DNSDomain = in.DNSDomain
-	return nil
-}
-
-// Convert_v1beta2_Networking_To_upstreamv1beta3_Networking is an autogenerated conversion function.
-func Convert_v1beta2_Networking_To_upstreamv1beta3_Networking(in *v1beta2.Networking, out *Networking, s conversion.Scope) error {
-	return autoConvert_v1beta2_Networking_To_upstreamv1beta3_Networking(in, out, s)
 }
 
 func autoConvert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *v1beta2.NodeRegistrationOptions, s conversion.Scope) error {

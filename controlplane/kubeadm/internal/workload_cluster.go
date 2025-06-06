@@ -38,12 +38,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/utils/ptr"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 	"sigs.k8s.io/cluster-api/util"
@@ -86,7 +89,6 @@ type WorkloadCluster interface {
 	GetAPIServerCertificateExpiry(ctx context.Context, kubeadmConfig *bootstrapv1.KubeadmConfig, nodeName string) (*time.Time, error)
 
 	// Upgrade related tasks.
-	UpdateKubernetesVersionInKubeadmConfigMap(version semver.Version) func(*bootstrapv1.ClusterConfiguration)
 	UpdateImageRepositoryInKubeadmConfigMap(imageRepository string) func(*bootstrapv1.ClusterConfiguration)
 	UpdateFeatureGatesInKubeadmConfigMap(kubeadmConfigSpec bootstrapv1.KubeadmConfigSpec, kubernetesVersion semver.Version) func(*bootstrapv1.ClusterConfiguration)
 	UpdateEtcdLocalInKubeadmConfigMap(localEtcd *bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration)
@@ -198,13 +200,6 @@ func DefaultFeatureGates(kubeadmConfigSpec *bootstrapv1.KubeadmConfigSpec, kuber
 	}
 }
 
-// UpdateKubernetesVersionInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
-func (w *Workload) UpdateKubernetesVersionInKubeadmConfigMap(version semver.Version) func(*bootstrapv1.ClusterConfiguration) {
-	return func(c *bootstrapv1.ClusterConfiguration) {
-		c.KubernetesVersion = fmt.Sprintf("v%s", version.String())
-	}
-}
-
 // UpdateAPIServerInKubeadmConfigMap updates api server configuration in kubeadm config map.
 func (w *Workload) UpdateAPIServerInKubeadmConfigMap(apiServer bootstrapv1.APIServer) func(*bootstrapv1.ClusterConfiguration) {
 	return func(c *bootstrapv1.ClusterConfiguration) {
@@ -244,7 +239,7 @@ func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semve
 		}
 
 		initConfiguration := &bootstrapv1.InitConfiguration{}
-		currentObj, err := kubeadmtypes.UnmarshalClusterConfiguration(currentData, initConfiguration)
+		currentObj, upstreamData, err := kubeadmtypes.UnmarshalClusterConfiguration(currentData, initConfiguration)
 		if err != nil {
 			return errors.Wrapf(err, "unable to decode %q in the kubeadm-config ConfigMap's from YAML", clusterConfigurationKey)
 		}
@@ -254,8 +249,17 @@ func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semve
 			mutators[i](updatedObj)
 		}
 
-		if !reflect.DeepEqual(currentObj, updatedObj) {
-			updatedData, err := kubeadmtypes.MarshalClusterConfigurationForVersion(initConfiguration, updatedObj, version)
+		currentKubernetesVersion := ptr.Deref(upstreamData.KubernetesVersion, "")
+		desiredKubernetesVersion := fmt.Sprintf("v%s", version.String())
+
+		if currentKubernetesVersion != desiredKubernetesVersion || !reflect.DeepEqual(currentObj, updatedObj) {
+			setKubernetesVersion := func(convertible conversion.Convertible) {
+				if upstreamDataSetter, ok := convertible.(upstream.DataSetter); ok {
+					upstreamData.KubernetesVersion = ptr.To(desiredKubernetesVersion)
+					upstreamDataSetter.SetUpstreamData(upstreamData)
+				}
+			}
+			updatedData, err := kubeadmtypes.MarshalClusterConfigurationForVersion(initConfiguration, updatedObj, version, setKubernetesVersion)
 			if err != nil {
 				return errors.Wrapf(err, "unable to encode %q kubeadm-config ConfigMap's to YAML", clusterConfigurationKey)
 			}

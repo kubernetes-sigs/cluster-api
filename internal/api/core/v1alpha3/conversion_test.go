@@ -21,9 +21,11 @@ package v1alpha3
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -77,6 +79,7 @@ func TestFuzzyConversion(t *testing.T) {
 func MachineFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachineStatus,
+		spokeMachineSpec,
 		spokeMachineStatus,
 		spokeBootstrap,
 	}
@@ -99,6 +102,14 @@ func hubMachineStatus(in *clusterv1.MachineStatus, c randfill.Continue) {
 	}
 }
 
+func spokeMachineSpec(in *MachineSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
 func spokeMachineStatus(in *MachineStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 
@@ -112,6 +123,7 @@ func MachineSetFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 		hubMachineSetStatus,
 		spokeObjectMeta,
 		spokeBootstrap,
+		spokeMachineSpec,
 	}
 }
 
@@ -137,6 +149,7 @@ func MachineDeploymentFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeMachineDeploymentSpec,
 		spokeObjectMeta,
 		spokeBootstrap,
+		spokeMachineSpec,
 	}
 }
 
@@ -240,6 +253,8 @@ func hubClusterVariable(in *clusterv1.ClusterVariable, c randfill.Continue) {
 func MachineHealthCheckFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachineHealthCheckStatus,
+		spokeMachineHealthCheckSpec,
+		spokeUnhealthyCondition,
 	}
 }
 
@@ -259,6 +274,7 @@ func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeObjectMeta,
 		spokeMachinePoolSpec,
 		hubMachinePoolStatus,
+		spokeMachineSpec,
 	}
 }
 
@@ -292,4 +308,18 @@ func spokeMachinePoolSpec(in *MachinePoolSpec, c randfill.Continue) {
 	// These fields have been removed in v1beta1
 	// data is going to be lost, so we're forcing zero values here.
 	in.Strategy = nil
+}
+
+func spokeMachineHealthCheckSpec(in *MachineHealthCheckSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeStartupTimeout != nil {
+		in.NodeStartupTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeUnhealthyCondition(in *UnhealthyCondition, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.Timeout = metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second}
 }

@@ -439,9 +439,9 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 	// Drop node timeout values
 	templateCopy.Spec.MinReadySeconds = nil
 	templateCopy.Spec.ReadinessGates = nil
-	templateCopy.Spec.NodeDrainTimeout = nil
-	templateCopy.Spec.NodeDeletionTimeout = nil
-	templateCopy.Spec.NodeVolumeDetachTimeout = nil
+	templateCopy.Spec.NodeDrainTimeoutSeconds = nil
+	templateCopy.Spec.NodeDeletionTimeoutSeconds = nil
+	templateCopy.Spec.NodeVolumeDetachTimeoutSeconds = nil
 
 	// Remove the version part from the references APIVersion field,
 	// for more details see issue #2183 and #2140.

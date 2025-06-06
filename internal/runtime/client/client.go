@@ -600,7 +600,7 @@ func defaultAndValidateDiscoveryResponse(cat *runtimecatalog.Catalog, discovery 
 			errs = append(errs, errors.Errorf("handler name %s is not valid: %s", handler.Name, errStrings))
 		}
 
-		// Timeout should be a positive integer not greater than 30.
+		// TimeoutSeconds should be a positive integer not greater than 30.
 		if *handler.TimeoutSeconds < 0 || *handler.TimeoutSeconds > 30 {
 			errs = append(errs, errors.Errorf("handler %s timeoutSeconds %d must be between 0 and 30", handler.Name, *handler.TimeoutSeconds))
 		}

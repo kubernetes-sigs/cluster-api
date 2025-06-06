@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	"time"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -40,11 +38,11 @@ const (
 )
 
 var (
-	// DefaultNodeStartupTimeout is the time allowed for a node to start up.
+	// DefaultNodeStartupTimeoutSeconds is the time allowed for a node to start up.
 	// Can be made longer as part of spec if required for particular provider.
 	// 10 minutes should allow the instance to start and the node to join the
 	// cluster on most providers.
-	DefaultNodeStartupTimeout = metav1.Duration{Duration: 10 * time.Minute}
+	DefaultNodeStartupTimeoutSeconds = int32(600)
 )
 
 // ANCHOR: MachineHealthCheckSpec
@@ -93,7 +91,7 @@ type MachineHealthCheckSpec struct {
 	// +kubebuilder:validation:MaxLength=32
 	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
 
-	// nodeStartupTimeout allows to set the maximum time for MachineHealthCheck
+	// nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
 	// to consider a Machine unhealthy if a corresponding Node isn't associated
 	// through a `Spec.ProviderID` field.
 	//
@@ -106,7 +104,8 @@ type MachineHealthCheckSpec struct {
 	// Defaults to 10 minutes.
 	// If you wish to disable this feature, set the value explicitly to 0.
 	// +optional
-	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeStartupTimeoutSeconds *int32 `json:"nodeStartupTimeoutSeconds,omitempty"`
 
 	// remediationTemplate is a reference to a remediation template
 	// provided by an infrastructure provider.
@@ -138,12 +137,13 @@ type UnhealthyNodeCondition struct {
 	// +required
 	Status corev1.ConditionStatus `json:"status"`
 
-	// timeout is the duration that a node must be in a given status for,
+	// timeoutSeconds is the duration that a node must be in a given status for,
 	// after which the node is considered unhealthy.
 	// For example, with a value of "1h", the node must match the status
 	// for at least 1 hour before being considered unhealthy.
 	// +required
-	Timeout metav1.Duration `json:"timeout"`
+	// +kubebuilder:validation:Minimum=0
+	TimeoutSeconds int32 `json:"timeoutSeconds"`
 }
 
 // ANCHOR_END: UnhealthyNodeCondition

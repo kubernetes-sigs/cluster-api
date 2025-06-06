@@ -17,6 +17,7 @@ limitations under the License.
 package utils
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/blang/semver/v4"
@@ -24,8 +25,10 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta4"
 )
@@ -139,11 +142,17 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 			},
 			want: "apiServer: {}\n" +
 				"apiVersion: kubeadm.k8s.io/v1beta3\n" +
+				"clusterName: mycluster\n" +
+				"controlPlaneEndpoint: myControlPlaneEndpoint:6443\n" +
 				"controllerManager: {}\n" +
 				"dns: {}\n" +
 				"etcd: {}\n" +
 				"kind: ClusterConfiguration\n" +
-				"networking: {}\n" +
+				"kubernetesVersion: v1.22.0\n" +
+				"networking:\n" +
+				"  dnsDomain: myDNSDomain\n" +
+				"  podSubnet: myPodSubnet\n" +
+				"  serviceSubnet: myServiceSubnet\n" +
 				"scheduler: {}\n",
 			wantErr: false,
 		},
@@ -161,11 +170,17 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 			want: "apiServer:\n" +
 				"  timeoutForControlPlane: 30s\n" +
 				"apiVersion: kubeadm.k8s.io/v1beta3\n" +
+				"clusterName: mycluster\n" +
+				"controlPlaneEndpoint: myControlPlaneEndpoint:6443\n" +
 				"controllerManager: {}\n" +
 				"dns: {}\n" +
 				"etcd: {}\n" +
 				"kind: ClusterConfiguration\n" +
-				"networking: {}\n" +
+				"kubernetesVersion: v1.22.0\n" +
+				"networking:\n" +
+				"  dnsDomain: myDNSDomain\n" +
+				"  podSubnet: myPodSubnet\n" +
+				"  serviceSubnet: myServiceSubnet\n" +
 				"scheduler: {}\n",
 			wantErr: false,
 		},
@@ -177,11 +192,17 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 			},
 			want: "apiServer: {}\n" +
 				"apiVersion: kubeadm.k8s.io/v1beta4\n" +
+				"clusterName: mycluster\n" +
+				"controlPlaneEndpoint: myControlPlaneEndpoint:6443\n" +
 				"controllerManager: {}\n" +
 				"dns: {}\n" +
 				"etcd: {}\n" +
 				"kind: ClusterConfiguration\n" +
-				"networking: {}\n" +
+				"kubernetesVersion: v1.31.0\n" +
+				"networking:\n" +
+				"  dnsDomain: myDNSDomain\n" +
+				"  podSubnet: myPodSubnet\n" +
+				"  serviceSubnet: myServiceSubnet\n" +
 				"proxy: {}\n" +
 				"scheduler: {}\n",
 			wantErr: false,
@@ -191,7 +212,18 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := MarshalClusterConfigurationForVersion(tt.args.initConfiguration, tt.args.capiObj, tt.args.version)
+			got, err := MarshalClusterConfigurationForVersion(tt.args.initConfiguration, tt.args.capiObj, tt.args.version, func(convertible conversion.Convertible) {
+				if upstreamDataSetter, ok := convertible.(upstream.DataSetter); ok {
+					upstreamDataSetter.SetUpstreamData(upstream.Data{
+						KubernetesVersion:    ptr.To(fmt.Sprintf("v%s", tt.args.version.String())),
+						ClusterName:          ptr.To("mycluster"),
+						ControlPlaneEndpoint: ptr.To("myControlPlaneEndpoint:6443"),
+						DNSDomain:            ptr.To("myDNSDomain"),
+						ServiceSubnet:        ptr.To("myServiceSubnet"),
+						PodSubnet:            ptr.To("myPodSubnet"),
+					})
+				}
+			})
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -351,23 +383,38 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 		args                  args
 		want                  *bootstrapv1.ClusterConfiguration
 		wantInitConfiguration *bootstrapv1.InitConfiguration
+		wantUpstreamData      upstream.Data
 		wantErr               bool
 	}{
 		{
 			name: "Parses a v1beta3 kubeadm configuration",
 			args: args{
 				yaml: "apiServer: {}\n" +
-					"apiVersion: kubeadm.k8s.io/v1beta3\n" + "" +
+					"apiVersion: kubeadm.k8s.io/v1beta3\n" +
+					"clusterName: mycluster\n" +
+					"controlPlaneEndpoint: myControlPlaneEndpoint:6443\n" +
 					"controllerManager: {}\n" +
 					"dns: {}\n" +
 					"etcd: {}\n" +
 					"kind: ClusterConfiguration\n" +
-					"networking: {}\n" +
+					"kubernetesVersion: v1.23.1\n" +
+					"networking:\n" +
+					"  dnsDomain: myDNSDomain\n" +
+					"  podSubnet: myPodSubnet\n" +
+					"  serviceSubnet: myServiceSubnet\n" +
 					"scheduler: {}\n",
 			},
 			want:                  &bootstrapv1.ClusterConfiguration{},
 			wantInitConfiguration: &bootstrapv1.InitConfiguration{},
-			wantErr:               false,
+			wantUpstreamData: upstream.Data{
+				KubernetesVersion:    ptr.To("v1.23.1"),
+				ClusterName:          ptr.To("mycluster"),
+				ControlPlaneEndpoint: ptr.To("myControlPlaneEndpoint:6443"),
+				DNSDomain:            ptr.To("myDNSDomain"),
+				ServiceSubnet:        ptr.To("myServiceSubnet"),
+				PodSubnet:            ptr.To("myPodSubnet"),
+			},
+			wantErr: false,
 		},
 		{
 			name: "Parses a v1beta3 kubeadm configuration with data to init configuration",
@@ -376,11 +423,17 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 					"  timeoutForControlPlane: 50s\n" +
 					"}\n" +
 					"apiVersion: kubeadm.k8s.io/v1beta3\n" + "" +
+					"clusterName: mycluster\n" +
+					"controlPlaneEndpoint: myControlPlaneEndpoint:6443\n" +
 					"controllerManager: {}\n" +
 					"dns: {}\n" +
 					"etcd: {}\n" +
 					"kind: ClusterConfiguration\n" +
-					"networking: {}\n" +
+					"kubernetesVersion: v1.23.1\n" +
+					"networking:\n" +
+					"  dnsDomain: myDNSDomain\n" +
+					"  podSubnet: myPodSubnet\n" +
+					"  serviceSubnet: myServiceSubnet\n" +
 					"scheduler: {}\n",
 			},
 			want: &bootstrapv1.ClusterConfiguration{},
@@ -389,6 +442,14 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 					ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](50),
 				},
 			},
+			wantUpstreamData: upstream.Data{
+				KubernetesVersion:    ptr.To("v1.23.1"),
+				ClusterName:          ptr.To("mycluster"),
+				ControlPlaneEndpoint: ptr.To("myControlPlaneEndpoint:6443"),
+				DNSDomain:            ptr.To("myDNSDomain"),
+				ServiceSubnet:        ptr.To("myServiceSubnet"),
+				PodSubnet:            ptr.To("myPodSubnet"),
+			},
 			wantErr: false,
 		},
 		{
@@ -396,17 +457,31 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 			args: args{
 				yaml: "apiServer: {}\n" +
 					"apiVersion: kubeadm.k8s.io/v1beta4\n" + "" +
+					"clusterName: mycluster\n" +
+					"controlPlaneEndpoint: myControlPlaneEndpoint:6443\n" +
 					"controllerManager: {}\n" +
 					"dns: {}\n" +
 					"etcd: {}\n" +
 					"kind: ClusterConfiguration\n" +
-					"networking: {}\n" +
+					"kubernetesVersion: v1.31.1\n" +
+					"networking:\n" +
+					"  dnsDomain: myDNSDomain\n" +
+					"  podSubnet: myPodSubnet\n" +
+					"  serviceSubnet: myServiceSubnet\n" +
 					"proxy: {}\n" +
 					"scheduler: {}\n",
 			},
 			want:                  &bootstrapv1.ClusterConfiguration{},
 			wantInitConfiguration: &bootstrapv1.InitConfiguration{},
-			wantErr:               false,
+			wantUpstreamData: upstream.Data{
+				KubernetesVersion:    ptr.To("v1.31.1"),
+				ClusterName:          ptr.To("mycluster"),
+				ControlPlaneEndpoint: ptr.To("myControlPlaneEndpoint:6443"),
+				DNSDomain:            ptr.To("myDNSDomain"),
+				ServiceSubnet:        ptr.To("myServiceSubnet"),
+				PodSubnet:            ptr.To("myPodSubnet"),
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -414,7 +489,7 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 			g := NewWithT(t)
 
 			gotInitConfiguration := &bootstrapv1.InitConfiguration{}
-			got, err := UnmarshalClusterConfiguration(tt.args.yaml, gotInitConfiguration)
+			got, upstreamData, err := UnmarshalClusterConfiguration(tt.args.yaml, gotInitConfiguration)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -422,6 +497,7 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(BeComparableTo(tt.want), cmp.Diff(tt.want, got))
 			g.Expect(gotInitConfiguration).To(BeComparableTo(tt.wantInitConfiguration), cmp.Diff(tt.wantInitConfiguration, gotInitConfiguration))
+			g.Expect(upstreamData).To(Equal(tt.wantUpstreamData))
 		})
 	}
 }

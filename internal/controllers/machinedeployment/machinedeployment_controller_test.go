@@ -19,7 +19,6 @@ package machinedeployment
 import (
 	"context"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -342,40 +341,40 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			g.Expect(machineSets.Items[1].Spec.Template.Labels).ShouldNot(HaveKeyWithValue("updated", "true"))
 		}, timeout).Should(Succeed())
 
-		// Update the NodeDrainTimout, NodeDeletionTimeout, NodeVolumeDetachTimeout of the MachineDeployment,
+		// Update the NodeDrainTimout, NodeDeletionTimeoutSeconds, NodeVolumeDetachTimeoutSeconds of the MachineDeployment,
 		// expect the Reconcile to be called and the MachineSet to be updated in-place.
-		t.Log("Setting NodeDrainTimout, NodeDeletionTimeout, NodeVolumeDetachTimeout on the MachineDeployment")
-		duration10s := metav1.Duration{Duration: 10 * time.Second}
+		t.Log("Setting NodeDrainTimout, NodeDeletionTimeoutSeconds, NodeVolumeDetachTimeoutSeconds on the MachineDeployment")
+		duration10s := int32(10)
 		modifyFunc = func(d *clusterv1.MachineDeployment) {
-			d.Spec.Template.Spec.NodeDrainTimeout = &duration10s
-			d.Spec.Template.Spec.NodeDeletionTimeout = &duration10s
-			d.Spec.Template.Spec.NodeVolumeDetachTimeout = &duration10s
+			d.Spec.Template.Spec.NodeDrainTimeoutSeconds = &duration10s
+			d.Spec.Template.Spec.NodeDeletionTimeoutSeconds = &duration10s
+			d.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = &duration10s
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func(g Gomega) {
 			g.Expect(env.List(ctx, machineSets, msListOpts...)).Should(Succeed())
 			// Verify we still only have 2 MachineSets.
 			g.Expect(machineSets.Items).To(HaveLen(2))
-			// Verify the NodeDrainTimeout value is updated
-			g.Expect(machineSets.Items[0].Spec.Template.Spec.NodeDrainTimeout).Should(And(
+			// Verify the NodeDrainTimeoutSeconds value is updated
+			g.Expect(machineSets.Items[0].Spec.Template.Spec.NodeDrainTimeoutSeconds).Should(And(
 				Not(BeNil()),
 				HaveValue(Equal(duration10s)),
 			), "NodeDrainTimout value does not match expected")
-			// Verify the NodeDeletionTimeout value is updated
-			g.Expect(machineSets.Items[0].Spec.Template.Spec.NodeDeletionTimeout).Should(And(
+			// Verify the NodeDeletionTimeoutSeconds value is updated
+			g.Expect(machineSets.Items[0].Spec.Template.Spec.NodeDeletionTimeoutSeconds).Should(And(
 				Not(BeNil()),
 				HaveValue(Equal(duration10s)),
-			), "NodeDeletionTimeout value does not match expected")
-			// Verify the NodeVolumeDetachTimeout value is updated
-			g.Expect(machineSets.Items[0].Spec.Template.Spec.NodeVolumeDetachTimeout).Should(And(
+			), "NodeDeletionTimeoutSeconds value does not match expected")
+			// Verify the NodeVolumeDetachTimeoutSeconds value is updated
+			g.Expect(machineSets.Items[0].Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds).Should(And(
 				Not(BeNil()),
 				HaveValue(Equal(duration10s)),
-			), "NodeVolumeDetachTimeout value does not match expected")
+			), "NodeVolumeDetachTimeoutSeconds value does not match expected")
 
 			// Verify that the old machine set keeps the old values.
-			g.Expect(machineSets.Items[1].Spec.Template.Spec.NodeDrainTimeout).Should(BeNil())
-			g.Expect(machineSets.Items[1].Spec.Template.Spec.NodeDeletionTimeout).Should(BeNil())
-			g.Expect(machineSets.Items[1].Spec.Template.Spec.NodeVolumeDetachTimeout).Should(BeNil())
+			g.Expect(machineSets.Items[1].Spec.Template.Spec.NodeDrainTimeoutSeconds).Should(BeNil())
+			g.Expect(machineSets.Items[1].Spec.Template.Spec.NodeDeletionTimeoutSeconds).Should(BeNil())
+			g.Expect(machineSets.Items[1].Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds).Should(BeNil())
 		}).Should(Succeed())
 
 		// Update the DeletePolicy of the MachineDeployment,

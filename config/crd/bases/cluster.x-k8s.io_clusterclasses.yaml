@@ -2906,9 +2906,9 @@ spec:
                           Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
                           "selector" are not healthy.
                         x-kubernetes-int-or-string: true
-                      nodeStartupTimeout:
+                      nodeStartupTimeoutSeconds:
                         description: |-
-                          nodeStartupTimeout allows to set the maximum time for MachineHealthCheck
+                          nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
                           to consider a Machine unhealthy if a corresponding Node isn't associated
                           through a `Spec.ProviderID` field.
 
@@ -2920,7 +2920,9 @@ spec:
 
                           Defaults to 10 minutes.
                           If you wish to disable this feature, set the value explicitly to 0.
-                        type: string
+                        format: int32
+                        minimum: 0
+                        type: integer
                       remediationTemplate:
                         description: |-
                           remediationTemplate is a reference to a remediation template
@@ -2986,20 +2988,22 @@ spec:
                                 Unknown.
                               minLength: 1
                               type: string
-                            timeout:
+                            timeoutSeconds:
                               description: |-
-                                timeout is the duration that a node must be in a given status for,
+                                timeoutSeconds is the duration that a node must be in a given status for,
                                 after which the node is considered unhealthy.
                                 For example, with a value of "1h", the node must match the status
                                 for at least 1 hour before being considered unhealthy.
-                              type: string
+                              format: int32
+                              minimum: 0
+                              type: integer
                             type:
                               description: type of Node condition
                               minLength: 1
                               type: string
                           required:
                           - status
-                          - timeout
+                          - timeoutSeconds
                           - type
                           type: object
                         maxItems: 100
@@ -3119,26 +3123,32 @@ spec:
                         minLength: 1
                         type: string
                     type: object
-                  nodeDeletionTimeout:
+                  nodeDeletionTimeoutSeconds:
                     description: |-
-                      nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+                      nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
                       hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
                       Defaults to 10 seconds.
                       NOTE: This value can be overridden while defining a Cluster.Topology.
-                    type: string
-                  nodeDrainTimeout:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  nodeDrainTimeoutSeconds:
                     description: |-
-                      nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                      nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
                       The default value is 0, meaning that the node can be drained without any time limitations.
-                      NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+                      NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
                       NOTE: This value can be overridden while defining a Cluster.Topology.
-                    type: string
-                  nodeVolumeDetachTimeout:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  nodeVolumeDetachTimeoutSeconds:
                     description: |-
-                      nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+                      nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
                       to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
                       NOTE: This value can be overridden while defining a Cluster.Topology.
-                    type: string
+                    format: int32
+                    minimum: 0
+                    type: integer
                   readinessGates:
                     description: |-
                       readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
@@ -3968,9 +3978,9 @@ spec:
                                 Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
                                 "selector" are not healthy.
                               x-kubernetes-int-or-string: true
-                            nodeStartupTimeout:
+                            nodeStartupTimeoutSeconds:
                               description: |-
-                                nodeStartupTimeout allows to set the maximum time for MachineHealthCheck
+                                nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
                                 to consider a Machine unhealthy if a corresponding Node isn't associated
                                 through a `Spec.ProviderID` field.
 
@@ -3982,7 +3992,9 @@ spec:
 
                                 Defaults to 10 minutes.
                                 If you wish to disable this feature, set the value explicitly to 0.
-                              type: string
+                              format: int32
+                              minimum: 0
+                              type: integer
                             remediationTemplate:
                               description: |-
                                 remediationTemplate is a reference to a remediation template
@@ -4048,20 +4060,22 @@ spec:
                                       False, Unknown.
                                     minLength: 1
                                     type: string
-                                  timeout:
+                                  timeoutSeconds:
                                     description: |-
-                                      timeout is the duration that a node must be in a given status for,
+                                      timeoutSeconds is the duration that a node must be in a given status for,
                                       after which the node is considered unhealthy.
                                       For example, with a value of "1h", the node must match the status
                                       for at least 1 hour before being considered unhealthy.
-                                    type: string
+                                    format: int32
+                                    minimum: 0
+                                    type: integer
                                   type:
                                     description: type of Node condition
                                     minLength: 1
                                     type: string
                                 required:
                                 - status
-                                - timeout
+                                - timeoutSeconds
                                 - type
                                 type: object
                               maxItems: 100
@@ -4106,26 +4120,32 @@ spec:
                               minLength: 1
                               type: string
                           type: object
-                        nodeDeletionTimeout:
+                        nodeDeletionTimeoutSeconds:
                           description: |-
-                            nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+                            nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
                             hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
                             Defaults to 10 seconds.
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
-                          type: string
-                        nodeDrainTimeout:
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        nodeDrainTimeoutSeconds:
                           description: |-
-                            nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                            nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
                             The default value is 0, meaning that the node can be drained without any time limitations.
-                            NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+                            NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
-                          type: string
-                        nodeVolumeDetachTimeout:
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        nodeVolumeDetachTimeoutSeconds:
                           description: |-
-                            nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+                            nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
                             to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
-                          type: string
+                          format: int32
+                          minimum: 0
+                          type: integer
                         readinessGates:
                           description: |-
                             readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
@@ -4465,26 +4485,32 @@ spec:
                               minLength: 1
                               type: string
                           type: object
-                        nodeDeletionTimeout:
+                        nodeDeletionTimeoutSeconds:
                           description: |-
-                            nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+                            nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
                             hosts after the Machine Pool is marked for deletion. A duration of 0 will retry deletion indefinitely.
                             Defaults to 10 seconds.
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
-                          type: string
-                        nodeDrainTimeout:
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        nodeDrainTimeoutSeconds:
                           description: |-
-                            nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                            nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
                             The default value is 0, meaning that the node can be drained without any time limitations.
-                            NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+                            NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
-                          type: string
-                        nodeVolumeDetachTimeout:
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        nodeVolumeDetachTimeoutSeconds:
                           description: |-
-                            nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+                            nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
                             to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
-                          type: string
+                          format: int32
+                          minimum: 0
+                          type: integer
                         template:
                           description: |-
                             template is a local struct containing a collection of templates for creation of

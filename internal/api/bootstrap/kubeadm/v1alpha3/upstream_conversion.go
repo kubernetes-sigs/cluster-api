@@ -20,6 +20,7 @@ import (
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // Custom conversion from this API, kubeadm v1beta1, to the hub version, CABPK v1beta2.
@@ -37,7 +38,7 @@ func Convert_v1alpha3_JoinConfiguration_To_v1beta2_JoinConfiguration(in *JoinCon
 		if out.Timeouts == nil {
 			out.Timeouts = &bootstrapv1.Timeouts{}
 		}
-		out.Timeouts.TLSBootstrapSeconds = bootstrapv1.ConvertToSeconds(in.Discovery.Timeout)
+		out.Timeouts.TLSBootstrapSeconds = clusterv1.ConvertToSeconds(in.Discovery.Timeout)
 	}
 	return nil
 }
@@ -104,7 +105,7 @@ func Convert_v1beta2_JoinConfiguration_To_v1alpha3_JoinConfiguration(in *bootstr
 	}
 
 	if in.Timeouts != nil {
-		out.Discovery.Timeout = bootstrapv1.ConvertFromSeconds(in.Timeouts.TLSBootstrapSeconds)
+		out.Discovery.Timeout = clusterv1.ConvertFromSeconds(in.Timeouts.TLSBootstrapSeconds)
 	}
 	return nil
 }

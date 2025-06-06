@@ -144,17 +144,17 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 	}
 	if in.controlPlaneNodeDrainTimeout != nil {
 		in, out := &in.controlPlaneNodeDrainTimeout, &out.controlPlaneNodeDrainTimeout
-		*out = new(v1.Duration)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.controlPlaneNodeVolumeDetachTimeout != nil {
 		in, out := &in.controlPlaneNodeVolumeDetachTimeout, &out.controlPlaneNodeVolumeDetachTimeout
-		*out = new(v1.Duration)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.controlPlaneNodeDeletionTimeout != nil {
 		in, out := &in.controlPlaneNodeDeletionTimeout, &out.controlPlaneNodeDeletionTimeout
-		*out = new(v1.Duration)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.controlPlaneNamingStrategy != nil {
@@ -533,17 +533,17 @@ func (in *MachineDeploymentClassBuilder) DeepCopyInto(out *MachineDeploymentClas
 	}
 	if in.nodeDrainTimeout != nil {
 		in, out := &in.nodeDrainTimeout, &out.nodeDrainTimeout
-		*out = new(v1.Duration)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.nodeVolumeDetachTimeout != nil {
 		in, out := &in.nodeVolumeDetachTimeout, &out.nodeVolumeDetachTimeout
-		*out = new(v1.Duration)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.nodeDeletionTimeout != nil {
 		in, out := &in.nodeDeletionTimeout, &out.nodeDeletionTimeout
-		*out = new(v1.Duration)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.minReadySeconds != nil {
@@ -734,17 +734,17 @@ func (in *MachinePoolClassBuilder) DeepCopyInto(out *MachinePoolClassBuilder) {
 	}
 	if in.nodeDrainTimeout != nil {
 		in, out := &in.nodeDrainTimeout, &out.nodeDrainTimeout
-		*out = new(v1.Duration)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.nodeVolumeDetachTimeout != nil {
 		in, out := &in.nodeVolumeDetachTimeout, &out.nodeVolumeDetachTimeout
-		*out = new(v1.Duration)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.nodeDeletionTimeout != nil {
 		in, out := &in.nodeDeletionTimeout, &out.nodeDeletionTimeout
-		*out = new(v1.Duration)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.minReadySeconds != nil {

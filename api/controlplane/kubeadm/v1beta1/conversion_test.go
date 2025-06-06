@@ -60,22 +60,30 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 		hubKubeadmControlPlaneStatus,
 		spokeKubeadmControlPlaneStatus,
 		spokeKubeadmConfigSpec,
+		spokeClusterConfiguration,
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
 		spokeAPIServer,
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
+		spokeRemediationStrategy,
+		spokeKubeadmControlPlaneMachineTemplate,
+		spokeBootstrapToken,
 	}
 }
 
 func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeKubeadmConfigSpec,
+		spokeClusterConfiguration,
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
 		spokeAPIServer,
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
+		spokeRemediationStrategy,
+		spokeKubeadmControlPlaneTemplateMachineTemplate,
+		spokeBootstrapToken,
 	}
 }
 
@@ -166,4 +174,61 @@ func spokeKubeadmConfigSpec(in *bootstrapv1beta1.KubeadmConfigSpec, c randfill.C
 
 	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
 	in.UseExperimentalRetryJoin = false
+}
+
+func spokeClusterConfiguration(in *bootstrapv1beta1.ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
+	in.Networking.ServiceSubnet = ""
+	in.Networking.PodSubnet = ""
+	in.Networking.DNSDomain = ""
+	in.KubernetesVersion = ""
+	in.ControlPlaneEndpoint = ""
+	in.ClusterName = ""
+}
+
+func spokeRemediationStrategy(in *RemediationStrategy, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.MinHealthyPeriod != nil {
+		in.MinHealthyPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	in.RetryPeriod = metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second}
+}
+
+func spokeKubeadmControlPlaneMachineTemplate(in *KubeadmControlPlaneMachineTemplate, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeVolumeDetachTimeout != nil {
+		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeDeletionTimeout != nil {
+		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeKubeadmControlPlaneTemplateMachineTemplate(in *KubeadmControlPlaneTemplateMachineTemplate, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeVolumeDetachTimeout != nil {
+		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.NodeDeletionTimeout != nil {
+		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeBootstrapToken(in *bootstrapv1beta1.BootstrapToken, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TTL != nil {
+		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
 }

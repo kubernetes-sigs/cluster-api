@@ -64,9 +64,9 @@ func TestGetTargetsFromMHC(t *testing.T) {
 			},
 			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
-					Type:    corev1.NodeReady,
-					Status:  corev1.ConditionUnknown,
-					Timeout: metav1.Duration{Duration: 5 * time.Minute},
+					Type:           corev1.NodeReady,
+					Status:         corev1.ConditionUnknown,
+					TimeoutSeconds: 5 * 60,
 				},
 			},
 		},
@@ -199,7 +199,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	conditions.Set(cluster, metav1.Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue})
 
 	// Ensure the control plane was initialized earlier to prevent it interfering with
-	// NodeStartupTimeout testing.
+	// NodeStartupTimeoutSeconds testing.
 	conds := []metav1.Condition{}
 	for _, condition := range cluster.GetConditions() {
 		condition.LastTransitionTime = metav1.NewTime(condition.LastTransitionTime.Add(-1 * time.Hour))
@@ -211,7 +211,7 @@ func TestHealthCheckTargets(t *testing.T) {
 
 	timeoutForMachineToHaveNode := 10 * time.Minute
 	disabledTimeoutForMachineToHaveNode := time.Duration(0)
-	timeoutForUnhealthyNodeConditions := 5 * time.Minute
+	timeoutForUnhealthyNodeConditions := int32(5 * 60)
 
 	// Create a test MHC
 	testMHC := &clusterv1.MachineHealthCheck{
@@ -226,14 +226,14 @@ func TestHealthCheckTargets(t *testing.T) {
 			ClusterName: clusterName,
 			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
-					Type:    corev1.NodeReady,
-					Status:  corev1.ConditionUnknown,
-					Timeout: metav1.Duration{Duration: timeoutForUnhealthyNodeConditions},
+					Type:           corev1.NodeReady,
+					Status:         corev1.ConditionUnknown,
+					TimeoutSeconds: timeoutForUnhealthyNodeConditions,
 				},
 				{
-					Type:    corev1.NodeReady,
-					Status:  corev1.ConditionFalse,
-					Timeout: metav1.Duration{Duration: timeoutForUnhealthyNodeConditions},
+					Type:           corev1.NodeReady,
+					Status:         corev1.ConditionFalse,
+					TimeoutSeconds: timeoutForUnhealthyNodeConditions,
 				},
 			},
 		},
@@ -364,8 +364,8 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node:        testNodeUnknown400,
 		nodeMissing: false,
 	}
-	nodeUnknown400Condition := newFailedHealthCheckV1Beta1Condition(clusterv1.UnhealthyNodeConditionV1Beta1Reason, "Condition Ready on node is reporting status Unknown for more than %s", timeoutForUnhealthyNodeConditions)
-	nodeUnknown400V1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckUnhealthyNodeReason, "Health check failed: Condition Ready on Node is reporting status Unknown for more than %s", timeoutForUnhealthyNodeConditions)
+	nodeUnknown400Condition := newFailedHealthCheckV1Beta1Condition(clusterv1.UnhealthyNodeConditionV1Beta1Reason, "Condition Ready on node is reporting status Unknown for more than %s", (time.Duration(timeoutForUnhealthyNodeConditions) * time.Second).String())
+	nodeUnknown400V1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckUnhealthyNodeReason, "Health check failed: Condition Ready on Node is reporting status Unknown for more than %s", (time.Duration(timeoutForUnhealthyNodeConditions) * time.Second).String())
 
 	// Target for when a node is healthy
 	testNodeHealthy := newTestNode("node1")

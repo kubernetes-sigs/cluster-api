@@ -18,7 +18,6 @@ package webhooks
 
 import (
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -55,8 +54,8 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 
 	g.Expect(mhc.Labels[clusterv1.ClusterNameLabel]).To(Equal(mhc.Spec.ClusterName))
 	g.Expect(mhc.Spec.MaxUnhealthy.String()).To(Equal("100%"))
-	g.Expect(mhc.Spec.NodeStartupTimeout).ToNot(BeNil())
-	g.Expect(*mhc.Spec.NodeStartupTimeout).To(BeComparableTo(metav1.Duration{Duration: 10 * time.Minute}))
+	g.Expect(mhc.Spec.NodeStartupTimeoutSeconds).ToNot(BeNil())
+	g.Expect(*mhc.Spec.NodeStartupTimeoutSeconds).To(Equal(int32(10 * 60)))
 	g.Expect(mhc.Spec.RemediationTemplate.Namespace).To(Equal(mhc.Namespace))
 }
 
@@ -247,15 +246,15 @@ func TestMachineHealthCheckUnhealthyNodeConditions(t *testing.T) {
 }
 
 func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
-	zero := metav1.Duration{Duration: 0}
-	twentyNineSeconds := metav1.Duration{Duration: 29 * time.Second}
-	thirtySeconds := metav1.Duration{Duration: 30 * time.Second}
-	oneMinute := metav1.Duration{Duration: 1 * time.Minute}
-	minusOneMinute := metav1.Duration{Duration: -1 * time.Minute}
+	zero := int32(0)
+	twentyNineSeconds := int32(29)
+	thirtySeconds := int32(30)
+	oneMinute := int32(60)
+	minusOneMinute := int32(-60)
 
 	tests := []struct {
 		name      string
-		timeout   *metav1.Duration
+		timeout   *int32
 		expectErr bool
 	}{
 		{
@@ -295,7 +294,7 @@ func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
 
 		mhc := &clusterv1.MachineHealthCheck{
 			Spec: clusterv1.MachineHealthCheckSpec{
-				NodeStartupTimeout: tt.timeout,
+				NodeStartupTimeoutSeconds: tt.timeout,
 				Selector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"test": "test",

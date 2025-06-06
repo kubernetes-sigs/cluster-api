@@ -63,24 +63,30 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 		hubKubeadmControlPlaneStatus,
 		spokeKubeadmControlPlaneStatus,
 		spokeKubeadmControlPlaneTemplateResource,
+		spokeKubeadmControlPlaneMachineTemplate,
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
 		spokeKubeadmConfigSpec,
+		spokeClusterConfiguration,
 		spokeAPIServer,
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
+		spokeBootstrapToken,
 	}
 }
 
 func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeKubeadmControlPlaneTemplateResource,
+		spokeKubeadmControlPlaneMachineTemplate,
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
 		spokeKubeadmConfigSpec,
+		spokeClusterConfiguration,
 		spokeAPIServer,
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
+		spokeBootstrapToken,
 	}
 }
 
@@ -154,6 +160,14 @@ func spokeKubeadmControlPlaneTemplateResource(in *KubeadmControlPlaneTemplateRes
 	in.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{}
 }
 
+func spokeKubeadmControlPlaneMachineTemplate(in *KubeadmControlPlaneMachineTemplate, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
 func spokeKubeadmConfigSpec(in *bootstrapv1alpha4.KubeadmConfigSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
@@ -161,11 +175,31 @@ func spokeKubeadmConfigSpec(in *bootstrapv1alpha4.KubeadmConfigSpec, c randfill.
 	in.UseExperimentalRetryJoin = false
 }
 
+func spokeClusterConfiguration(in *bootstrapv1alpha4.ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
+	in.Networking.ServiceSubnet = ""
+	in.Networking.PodSubnet = ""
+	in.Networking.DNSDomain = ""
+	in.KubernetesVersion = ""
+	in.ControlPlaneEndpoint = ""
+	in.ClusterName = ""
+}
+
 func spokeAPIServer(in *bootstrapv1alpha4.APIServer, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.TimeoutForControlPlane != nil {
 		in.TimeoutForControlPlane = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeBootstrapToken(in *bootstrapv1alpha4.BootstrapToken, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TTL != nil {
+		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 

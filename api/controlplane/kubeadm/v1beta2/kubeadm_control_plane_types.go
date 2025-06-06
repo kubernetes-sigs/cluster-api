@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	"time"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -72,9 +70,9 @@ const (
 	// ensure it runs last (thus ensuring that kubelet is still working while other pre-terminate hooks run).
 	PreTerminateHookCleanupAnnotation = clusterv1.PreTerminateDeleteHookAnnotationPrefix + "/kcp-cleanup"
 
-	// DefaultMinHealthyPeriod defines the default minimum period before we consider a remediation on a
+	// DefaultMinHealthyPeriodSeconds defines the default minimum period before we consider a remediation on a
 	// machine unrelated from the previous remediation.
-	DefaultMinHealthyPeriod = 1 * time.Hour
+	DefaultMinHealthyPeriodSeconds = int32(60 * 60)
 )
 
 // KubeadmControlPlane's Available condition and corresponding reasons.
@@ -505,22 +503,25 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []clusterv1.MachineReadinessGate `json:"readinessGates,omitempty"`
 
-	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
+	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a controlplane node
 	// The default value is 0, meaning that the node can be drained without any time limitations.
-	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
 	// +optional
-	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeDrainTimeoutSeconds *int32 `json:"nodeDrainTimeoutSeconds,omitempty"`
 
-	// nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
 	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
 	// +optional
-	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
-	// nodeDeletionTimeout defines how long the machine controller will attempt to delete the Node that the Machine
+	// nodeDeletionTimeoutSeconds defines how long the machine controller will attempt to delete the Node that the Machine
 	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
 	// If no value is provided, the default value for this property of the Machine resource will be used.
 	// +optional
-	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
 }
 
 // RolloutBefore describes when a rollout should be performed on the KCP machines.
@@ -569,37 +570,39 @@ type RemediationStrategy struct {
 	//	remediated; such operation is considered a retry, remediation-retry #1.
 	//	If M1-2 (replacement of M1-1) becomes unhealthy, remediation-retry #2 will happen, etc.
 	//
-	// A retry could happen only after RetryPeriod from the previous retry.
-	// If a machine is marked as unhealthy after MinHealthyPeriod from the previous remediation expired,
+	// A retry could happen only after retryPeriodSeconds from the previous retry.
+	// If a machine is marked as unhealthy after minHealthyPeriodSeconds from the previous remediation expired,
 	// this is not considered a retry anymore because the new issue is assumed unrelated from the previous one.
 	//
 	// If not set, the remedation will be retried infinitely.
 	// +optional
 	MaxRetry *int32 `json:"maxRetry,omitempty"`
 
-	// retryPeriod is the duration that KCP should wait before remediating a machine being created as a replacement
+	// retryPeriodSeconds is the duration that KCP should wait before remediating a machine being created as a replacement
 	// for an unhealthy machine (a retry).
 	//
 	// If not set, a retry will happen immediately.
 	// +optional
-	RetryPeriod metav1.Duration `json:"retryPeriod,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	RetryPeriodSeconds int32 `json:"retryPeriodSeconds,omitempty"`
 
-	// minHealthyPeriod defines the duration after which KCP will consider any failure to a machine unrelated
+	// minHealthyPeriodSeconds defines the duration after which KCP will consider any failure to a machine unrelated
 	// from the previous one. In this case the remediation is not considered a retry anymore, and thus the retry
-	// counter restarts from 0. For example, assuming MinHealthyPeriod is set to 1h (default)
+	// counter restarts from 0. For example, assuming minHealthyPeriodSeconds is set to 1h (default)
 	//
 	//	M1 become unhealthy; remediation happens, and M1-1 is created as a replacement.
 	//	If M1-1 (replacement of M1) has problems within the 1hr after the creation, also
 	//	this machine will be remediated and this operation is considered a retry - a problem related
 	//	to the original issue happened to M1 -.
 	//
-	//	If instead the problem on M1-1 is happening after MinHealthyPeriod expired, e.g. four days after
+	//	If instead the problem on M1-1 is happening after minHealthyPeriodSeconds expired, e.g. four days after
 	//	m1-1 has been created as a remediation of M1, the problem on M1-1 is considered unrelated to
 	//	the original issue happened to M1.
 	//
 	// If not set, this value is defaulted to 1h.
 	// +optional
-	MinHealthyPeriod *metav1.Duration `json:"minHealthyPeriod,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	MinHealthyPeriodSeconds *int32 `json:"minHealthyPeriodSeconds,omitempty"`
 }
 
 // MachineNamingStrategy allows changing the naming pattern used when creating Machines.

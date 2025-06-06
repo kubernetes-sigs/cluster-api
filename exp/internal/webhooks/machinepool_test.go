@@ -60,7 +60,7 @@ func TestMachinePoolDefault(t *testing.T) {
 	g.Expect(mp.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(mp.Namespace))
 	g.Expect(mp.Spec.Template.Spec.InfrastructureRef.Namespace).To(Equal(mp.Namespace))
 	g.Expect(mp.Spec.Template.Spec.Version).To(Equal(ptr.To("v1.20.0")))
-	g.Expect(mp.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(&metav1.Duration{Duration: defaultNodeDeletionTimeout}))
+	g.Expect(*mp.Spec.Template.Spec.NodeDeletionTimeoutSeconds).To(Equal(defaultNodeDeletionTimeoutSeconds))
 }
 
 func TestCalculateMachinePoolReplicas(t *testing.T) {

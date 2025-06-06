@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"testing"
@@ -98,8 +99,23 @@ func TestHandler(t *testing.T) {
 	err = clusterClassReconciler.SetupWithManager(ctx, mgr, controller.Options{})
 	g.Expect(err).ToNot(HaveOccurred())
 
+	// computeControlPlane has to get the contract version to set timeout fields correctly
+	scheme := runtime.NewScheme()
+	_ = apiextensionsv1.AddToScheme(scheme)
+	crd := &apiextensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "kubeadmcontrolplanes.controlplane.cluster.x-k8s.io",
+			Labels: map[string]string{
+				// Set contract label for tt.contract.
+				fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta1"): "v1beta1",
+				fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta2"): "v1beta2",
+			},
+		},
+	}
+	clientWithV1Beta2ContractCRD := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd).Build()
+
 	// Create a desired state generator.
-	desiredStateGenerator := desiredstate.NewGenerator(nil, nil, runtimeClient)
+	desiredStateGenerator := desiredstate.NewGenerator(clientWithV1Beta2ContractCRD, nil, runtimeClient)
 
 	// Note: as of today we don't have to set any fields and also don't have to call
 	// SetupWebhookWithManager because DefaultAndValidateVariables doesn't need any of that.

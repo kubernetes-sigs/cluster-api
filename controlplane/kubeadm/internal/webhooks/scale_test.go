@@ -19,7 +19,6 @@ package webhooks
 import (
 	"context"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -60,7 +59,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 					Namespace:  "foo",
 					Name:       "infraTemplate",
 				},
-				NodeDrainTimeout: &metav1.Duration{Duration: time.Second},
+				NodeDrainTimeoutSeconds: ptr.To(int32(1)),
 			},
 			Replicas: ptr.To[int32](1),
 			RolloutStrategy: &controlplanev1.RolloutStrategy{
@@ -82,7 +81,6 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 					},
 				},
 				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-					ClusterName: "kcp-managed-etcd",
 					DNS: bootstrapv1.DNS{
 						ImageMeta: bootstrapv1.ImageMeta{
 							ImageRepository: "registry.k8s.io/coredns",

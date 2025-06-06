@@ -147,7 +147,7 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	invalidVersion2.Spec.Version = "1.16.6"
 
 	invalidCoreDNSVersion := valid.DeepCopy()
-	invalidCoreDNSVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag = "v1.7" // not a valid semantic version
+	invalidCoreDNSVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag = "1-7" // not a valid semantic version
 
 	invalidRolloutBeforeCertificateExpiryDays := valid.DeepCopy()
 	invalidRolloutBeforeCertificateExpiryDays.Spec.RolloutBefore = &controlplanev1.RolloutBefore{
@@ -1207,15 +1207,6 @@ func TestValidateVersion(t *testing.T) {
 			newVersion: "invalid-version",
 			expectErr:  true,
 		},
-		// Validation that we block upgrade to v1.19.0.
-		// Note: Upgrading to v1.19.0 is not supported, because of issues in v1.19.0,
-		// see: https://github.com/kubernetes-sigs/cluster-api/issues/3564
-		{
-			name:       "error when upgrading to v1.19.0",
-			oldVersion: "v1.18.8",
-			newVersion: "v1.19.0",
-			expectErr:  true,
-		},
 		{
 			name:       "pass when both versions are v1.19.0",
 			oldVersion: "v1.19.0",
@@ -1233,77 +1224,6 @@ func TestValidateVersion(t *testing.T) {
 			name:       "pass when upgrading one minor version",
 			oldVersion: "v1.20.1",
 			newVersion: "v1.21.18",
-			expectErr:  false,
-		},
-		// Validation for usage of the old registry.
-		// Notes:
-		// * kubeadm versions < v1.22 are always using the old registry.
-		// * kubeadm versions >= v1.25.0 are always using the new registry.
-		// * kubeadm versions in between are using the new registry
-		//   starting with certain patch versions.
-		// This test validates that we don't block upgrades for < v1.22.0 and >= v1.25.0
-		// and block upgrades to kubeadm versions in between with the old registry.
-		{
-			name: "pass when imageRepository is set",
-			clusterConfiguration: &bootstrapv1.ClusterConfiguration{
-				ImageRepository: "k8s.gcr.io",
-			},
-			oldVersion: "v1.21.1",
-			newVersion: "v1.22.16",
-			expectErr:  false,
-		},
-		{
-			name:       "pass when version didn't change",
-			oldVersion: "v1.22.16",
-			newVersion: "v1.22.16",
-			expectErr:  false,
-		},
-		{
-			name:       "pass when new version is < v1.22.0",
-			oldVersion: "v1.20.10",
-			newVersion: "v1.21.5",
-			expectErr:  false,
-		},
-		{
-			name:       "error when new version is using old registry (v1.22.0 <= version <= v1.22.16)",
-			oldVersion: "v1.21.1",
-			newVersion: "v1.22.16", // last patch release using old registry
-			expectErr:  true,
-		},
-		{
-			name:       "pass when new version is using new registry (>= v1.22.17)",
-			oldVersion: "v1.21.1",
-			newVersion: "v1.22.17", // first patch release using new registry
-			expectErr:  false,
-		},
-		{
-			name:       "error when new version is using old registry (v1.23.0 <= version <= v1.23.14)",
-			oldVersion: "v1.22.17",
-			newVersion: "v1.23.14", // last patch release using old registry
-			expectErr:  true,
-		},
-		{
-			name:       "pass when new version is using new registry (>= v1.23.15)",
-			oldVersion: "v1.22.17",
-			newVersion: "v1.23.15", // first patch release using new registry
-			expectErr:  false,
-		},
-		{
-			name:       "error when new version is using old registry (v1.24.0 <= version <= v1.24.8)",
-			oldVersion: "v1.23.1",
-			newVersion: "v1.24.8", // last patch release using old registry
-			expectErr:  true,
-		},
-		{
-			name:       "pass when new version is using new registry (>= v1.24.9)",
-			oldVersion: "v1.23.1",
-			newVersion: "v1.24.9", // first patch release using new registry
-			expectErr:  false,
-		},
-		{
-			name:       "pass when new version is using new registry (>= v1.25.0)",
-			oldVersion: "v1.24.8",
-			newVersion: "v1.25.0", // uses new registry
 			expectErr:  false,
 		},
 	}

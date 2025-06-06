@@ -33,9 +33,20 @@ var (
 	KubeSemverTolerant = regexp.MustCompile(`^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-0-9a-zA-Z_\.+]*)?$`)
 )
 
+// MajorMinorPatch returns a version that only has Major / Minor / Patch fields set.
+func MajorMinorPatch(version semver.Version) semver.Version {
+	return semver.Version{
+		Major: version.Major,
+		Minor: version.Minor,
+		Patch: version.Patch,
+	}
+}
+
 // ParseMajorMinorPatch returns a semver.Version from the string provided
 // by looking only at major.minor.patch and stripping everything else out.
 // It requires the version to have a "v" prefix.
+//
+// Deprecated: This function is deprecated and will be removed in an upcoming release of Cluster API. Please use semver.Parse instead.
 func ParseMajorMinorPatch(version string) (semver.Version, error) {
 	return parseMajorMinorPatch(version, false)
 }
@@ -43,8 +54,16 @@ func ParseMajorMinorPatch(version string) (semver.Version, error) {
 // ParseMajorMinorPatchTolerant returns a semver.Version from the string provided
 // by looking only at major.minor.patch and stripping everything else out.
 // It does not require the version to have a "v" prefix.
+//
+// Deprecated: This function is deprecated and will be removed in an upcoming release of Cluster API. Please use semver.ParseTolerant instead.
 func ParseMajorMinorPatchTolerant(version string) (semver.Version, error) {
 	return parseMajorMinorPatch(version, true)
+}
+
+// ParseTolerantImageTag replaces all _ with + in version and then parses the version with semver.ParseTolerant.
+// This allows to parse image tags which cannot contain +, so they use _ instead of +.
+func ParseTolerantImageTag(version string) (semver.Version, error) {
+	return semver.ParseTolerant(strings.ReplaceAll(version, "_", "+"))
 }
 
 // parseMajorMinorPatch returns a semver.Version from the string provided

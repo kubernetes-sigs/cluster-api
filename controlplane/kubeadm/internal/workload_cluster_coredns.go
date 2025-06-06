@@ -19,7 +19,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/blang/semver/v4"
@@ -27,53 +26,25 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/util/retry"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
-	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
 const (
-	corefileKey            = "Corefile"
-	corefileBackupKey      = "Corefile-backup"
-	coreDNSKey             = "coredns"
-	coreDNSVolumeKey       = "config-volume"
-	coreDNSClusterRoleName = "system:coredns"
+	corefileKey       = "Corefile"
+	corefileBackupKey = "Corefile-backup"
+	coreDNSKey        = "coredns"
+	coreDNSVolumeKey  = "config-volume"
 
 	oldCoreDNSImageName = "coredns"
 	coreDNSImageName    = "coredns/coredns"
-
-	oldControlPlaneTaint = "node-role.kubernetes.io/master" // Deprecated: https://github.com/kubernetes/kubeadm/issues/2200
-	controlPlaneTaint    = "node-role.kubernetes.io/control-plane"
-)
-
-var (
-	// Source: https://github.com/kubernetes/kubernetes/blob/v1.22.0-beta.1/cmd/kubeadm/app/phases/addons/dns/manifests.go#L178-L207
-	coreDNS181PolicyRules = []rbacv1.PolicyRule{
-		{
-			Verbs:     []string{"list", "watch"},
-			APIGroups: []string{""},
-			Resources: []string{"endpoints", "services", "pods", "namespaces"},
-		},
-		{
-			Verbs:     []string{"get"},
-			APIGroups: []string{""},
-			Resources: []string{"nodes"},
-		},
-		{
-			Verbs:     []string{"list", "watch"},
-			APIGroups: []string{"discovery.k8s.io"},
-			Resources: []string{"endpointslices"},
-		},
-	}
 )
 
 type coreDNSMigrator interface {
@@ -104,7 +75,7 @@ type coreDNSInfo struct {
 
 // UpdateCoreDNS updates the kubeadm configmap, coredns corefile and coredns
 // deployment.
-func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, version semver.Version) error {
+func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error {
 	// Return early if we've been asked to skip CoreDNS upgrades entirely.
 	if _, ok := kcp.Annotations[controlplanev1.SkipCoreDNSAnnotation]; ok {
 		return nil
@@ -118,19 +89,13 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 	clusterConfig := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
 
 	// Get the CoreDNS info needed for the upgrade.
-	info, err := w.getCoreDNSInfo(ctx, clusterConfig, version)
+	info, err := w.getCoreDNSInfo(ctx, clusterConfig)
 	if err != nil {
 		// Return early if we get a not found error, this can happen if any of the CoreDNS components
 		// cannot be found, e.g. configmap, deployment.
 		if apierrors.IsNotFound(errors.Cause(err)) {
 			return nil
 		}
-		return err
-	}
-
-	// Update the cluster role independent of image change. Kubernetes may get updated
-	// to v1.22 which requires updating the cluster role without image changes.
-	if err := w.updateCoreDNSClusterRole(ctx, version, info); err != nil {
 		return err
 	}
 
@@ -144,23 +109,28 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 		return errors.Wrapf(err, "failed to validate CoreDNS")
 	}
 
+	parsedVersion, err := semver.ParseTolerant(kcp.Spec.Version)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse Kubernetes version %q", kcp.Spec.Version)
+	}
+
 	// Perform the upgrade.
-	if err := w.UpdateClusterConfiguration(ctx, version, w.updateCoreDNSImageInfoInKubeadmConfigMap(&clusterConfig.DNS)); err != nil {
+	if err := w.UpdateClusterConfiguration(ctx, parsedVersion, w.updateCoreDNSImageInfoInKubeadmConfigMap(&clusterConfig.DNS)); err != nil {
 		return err
 	}
 	if err := w.updateCoreDNSCorefile(ctx, info); err != nil {
 		return err
 	}
 
-	if err := w.updateCoreDNSDeployment(ctx, info, version); err != nil {
+	if err := w.updateCoreDNSDeployment(ctx, info); err != nil {
 		return errors.Wrap(err, "unable to update coredns deployment")
 	}
 	return nil
 }
 
 // getCoreDNSInfo returns all necessary coredns based information.
-func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv1.ClusterConfiguration, version semver.Version) (*coreDNSInfo, error) {
-	// Get the coredns configmap and corefile.
+func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv1.ClusterConfiguration) (*coreDNSInfo, error) {
+	// Get the CoreDNS configmap and corefile.
 	key := ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}
 	cm, err := w.getConfigMap(ctx, key)
 	if err != nil {
@@ -176,7 +146,6 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 	if err := w.Client.Get(ctx, key, deployment); err != nil {
 		return nil, errors.Wrapf(err, "unable to get %v deployment from target cluster", key)
 	}
-
 	var container *corev1.Container
 	for _, c := range deployment.Spec.Template.Spec.Containers {
 		if c.Name == coreDNSKey {
@@ -197,16 +166,8 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 	// Handle imageRepository.
 	toImageRepository := parsedImage.Repository
 	// Overwrite the image repository if a value was explicitly set or an upgrade is required.
-	if imageRegistryRepository := ImageRepositoryFromClusterConfig(clusterConfig, version); imageRegistryRepository != "" {
-		if imageRegistryRepository == kubeadm.DefaultImageRepository {
-			// Only patch to DefaultImageRepository if OldDefaultImageRepository is set as prefix.
-			if strings.HasPrefix(toImageRepository, kubeadm.OldDefaultImageRepository) {
-				// Ensure to keep the repository subpaths when patching from OldDefaultImageRepository to new DefaultImageRepository.
-				toImageRepository = strings.TrimSuffix(imageRegistryRepository+strings.TrimPrefix(toImageRepository, kubeadm.OldDefaultImageRepository), "/")
-			}
-		} else {
-			toImageRepository = strings.TrimSuffix(imageRegistryRepository, "/")
-		}
+	if imageRegistryRepository := ImageRepositoryFromClusterConfig(clusterConfig); imageRegistryRepository != "" {
+		toImageRepository = strings.TrimSuffix(imageRegistryRepository, "/")
 	}
 	if clusterConfig.DNS.ImageRepository != "" {
 		toImageRepository = strings.TrimSuffix(clusterConfig.DNS.ImageRepository, "/")
@@ -216,33 +177,33 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 	if parsedImage.Tag == "" {
 		return nil, errors.Errorf("failed to update coredns deployment: does not have a valid image tag: %q", container.Image)
 	}
-	currentMajorMinorPatch, err := extractImageVersion(parsedImage.Tag)
+	currentVersion, err := version.ParseTolerantImageTag(parsedImage.Tag)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error parsing semver from %q", parsedImage.Tag)
 	}
 	toImageTag := parsedImage.Tag
 	if clusterConfig.DNS.ImageTag != "" {
 		toImageTag = clusterConfig.DNS.ImageTag
 	}
-	targetMajorMinorPatch, err := extractImageVersion(toImageTag)
+	targetVersion, err := version.ParseTolerantImageTag(toImageTag)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error parsing semver from %q", toImageTag)
 	}
 
 	// Handle the renaming of the upstream image from:
 	// * "registry.k8s.io/coredns" to "registry.k8s.io/coredns/coredns" or
 	// * "k8s.gcr.io/coredns" to "k8s.gcr.io/coredns/coredns"
 	toImageName := parsedImage.Name
-	if (toImageRepository == kubeadm.OldDefaultImageRepository || toImageRepository == kubeadm.DefaultImageRepository) &&
-		toImageName == oldCoreDNSImageName && targetMajorMinorPatch.GTE(semver.MustParse("1.8.0")) {
+	if (toImageRepository == "k8s.gcr.io" || toImageRepository == "registry.k8s.io") &&
+		toImageName == oldCoreDNSImageName && version.Compare(targetVersion, semver.MustParse("1.8.0"), version.WithoutPreReleases()) >= 0 {
 		toImageName = coreDNSImageName
 	}
 
 	return &coreDNSInfo{
 		Corefile:               corefile,
 		Deployment:             deployment,
-		CurrentMajorMinorPatch: currentMajorMinorPatch.String(),
-		TargetMajorMinorPatch:  targetMajorMinorPatch.String(),
+		CurrentMajorMinorPatch: version.MajorMinorPatch(currentVersion).String(),
+		TargetMajorMinorPatch:  version.MajorMinorPatch(targetVersion).String(),
 		FromImageTag:           parsedImage.Tag,
 		ToImageTag:             toImageTag,
 		FromImage:              container.Image,
@@ -253,7 +214,7 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 // updateCoreDNSDeployment will patch the deployment image to the
 // imageRepo:imageTag in the KCP dns. It will also ensure the volume of the
 // deployment uses the Corefile key of the coredns configmap.
-func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInfo, kubernetesVersion semver.Version) error {
+func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInfo) error {
 	helper, err := patch.NewHelper(info.Deployment, w.Client)
 	if err != nil {
 		return err
@@ -264,8 +225,6 @@ func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInf
 	// Flip the deployment volume back to Corefile (from the backup key).
 	patchCoreDNSDeploymentVolume(info.Deployment, corefileBackupKey, corefileKey)
 
-	// Patch the tolerations according to the Kubernetes Version.
-	patchCoreDNSDeploymentTolerations(info.Deployment, kubernetesVersion)
 	return helper.Patch(ctx, info.Deployment)
 }
 
@@ -275,84 +234,6 @@ func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(dns *bootstrapv1.DNS
 		c.DNS.ImageRepository = dns.ImageRepository
 		c.DNS.ImageTag = dns.ImageTag
 	}
-}
-
-// updateCoreDNSClusterRole updates the CoreDNS ClusterRole when necessary.
-// CoreDNS >= 1.8.1 uses EndpointSlices. kubeadm < 1.22 doesn't include the EndpointSlice rule in the CoreDNS ClusterRole.
-// To support Kubernetes clusters >= 1.22 (which have been initialized with kubeadm < 1.22) with CoreDNS versions >= 1.8.1
-// we have to update the ClusterRole accordingly.
-func (w *Workload) updateCoreDNSClusterRole(ctx context.Context, kubernetesVersion semver.Version, info *coreDNSInfo) error {
-	// Do nothing for Kubernetes < 1.22.
-	if version.Compare(kubernetesVersion, semver.Version{Major: 1, Minor: 22, Patch: 0}, version.WithoutPreReleases()) < 0 {
-		return nil
-	}
-
-	// Do nothing for CoreDNS < 1.8.1.
-	targetCoreDNSVersion, err := extractImageVersion(info.ToImageTag)
-	if err != nil {
-		return err
-	}
-	if targetCoreDNSVersion.LT(semver.Version{Major: 1, Minor: 8, Patch: 1}) {
-		return nil
-	}
-
-	sourceCoreDNSVersion, err := extractImageVersion(info.FromImageTag)
-	if err != nil {
-		return err
-	}
-	// Do nothing for Kubernetes > 1.22 and sourceCoreDNSVersion >= 1.8.1.
-	// With those versions we know that the ClusterRole has already been updated,
-	// as there must have been a previous upgrade to Kubernetes 1.22
-	// (Kubernetes minor versions cannot be skipped) and to CoreDNS >= v1.8.1.
-	if kubernetesVersion.GTE(semver.Version{Major: 1, Minor: 23, Patch: 0}) &&
-		sourceCoreDNSVersion.GTE(semver.Version{Major: 1, Minor: 8, Patch: 1}) {
-		return nil
-	}
-
-	key := ctrlclient.ObjectKey{Name: coreDNSClusterRoleName, Namespace: metav1.NamespaceSystem}
-	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		currentClusterRole := &rbacv1.ClusterRole{}
-		if err := w.Client.Get(ctx, key, currentClusterRole); err != nil {
-			return fmt.Errorf("failed to get ClusterRole %q", coreDNSClusterRoleName)
-		}
-
-		if !semanticDeepEqualPolicyRules(currentClusterRole.Rules, coreDNS181PolicyRules) {
-			currentClusterRole.Rules = coreDNS181PolicyRules
-			if err := w.Client.Update(ctx, currentClusterRole); err != nil {
-				return errors.Wrapf(err, "failed to update ClusterRole %q", coreDNSClusterRoleName)
-			}
-		}
-		return nil
-	})
-}
-
-func semanticDeepEqualPolicyRules(r1, r2 []rbacv1.PolicyRule) bool {
-	return reflect.DeepEqual(generateClusterRolePolicies(r1), generateClusterRolePolicies(r2))
-}
-
-// generateClusterRolePolicies generates a nested map with the full data of an array of PolicyRules so it can
-// be compared with reflect.DeepEqual. If we would use reflect.DeepEqual directly on the PolicyRule array,
-// differences in the order of the array elements would lead to the arrays not being considered equal.
-func generateClusterRolePolicies(policyRules []rbacv1.PolicyRule) map[string]map[string]map[string]struct{} {
-	policies := map[string]map[string]map[string]struct{}{}
-	for _, policyRule := range policyRules {
-		for _, apiGroup := range policyRule.APIGroups {
-			if _, ok := policies[apiGroup]; !ok {
-				policies[apiGroup] = map[string]map[string]struct{}{}
-			}
-
-			for _, resource := range policyRule.Resources {
-				if _, ok := policies[apiGroup][resource]; !ok {
-					policies[apiGroup][resource] = map[string]struct{}{}
-				}
-
-				for _, verb := range policyRule.Verbs {
-					policies[apiGroup][resource][verb] = struct{}{}
-				}
-			}
-		}
-	}
-	return policies
 }
 
 // updateCoreDNSCorefile migrates the coredns corefile if there is an increase
@@ -428,76 +309,20 @@ func patchCoreDNSDeploymentImage(deployment *appsv1.Deployment, image string) {
 	}
 }
 
-// patchCoreDNSDeploymentTolerations patches the CoreDNS Deployment to make sure
-// it has the right control plane tolerations.
-// Kubernetes nodes created with kubeadm have the following taints depending on version:
-// * -v1.23: only old taint is set
-// * v1.24: both taints are set
-// * v1.25+: only new taint is set
-// To be absolutely safe this func will ensure that both tolerations are present
-// for Kubernetes < v1.26.0. Starting with v1.26.0 we will only set the new toleration.
-func patchCoreDNSDeploymentTolerations(deployment *appsv1.Deployment, kubernetesVersion semver.Version) {
-	// We always add the toleration for the new control plane taint.
-	tolerations := []corev1.Toleration{
-		{
-			Key:    controlPlaneTaint,
-			Effect: corev1.TaintEffectNoSchedule,
-		},
-	}
-
-	// We add the toleration for the old control plane taint for Kubernetes < v1.26.0.
-	if kubernetesVersion.LT(semver.Version{Major: 1, Minor: 26, Patch: 0}) {
-		tolerations = append(tolerations, corev1.Toleration{
-			Key:    oldControlPlaneTaint,
-			Effect: corev1.TaintEffectNoSchedule,
-		})
-	}
-
-	// Add all other already existing tolerations.
-	for _, currentToleration := range deployment.Spec.Template.Spec.Tolerations {
-		// Skip the old control plane toleration as it has been already added above,
-		// for Kubernetes < v1.26.0.
-		if currentToleration.Key == oldControlPlaneTaint &&
-			currentToleration.Effect == corev1.TaintEffectNoSchedule &&
-			currentToleration.Value == "" {
-			continue
-		}
-
-		// Skip the new control plane toleration as it has been already added above.
-		if currentToleration.Key == controlPlaneTaint &&
-			currentToleration.Effect == corev1.TaintEffectNoSchedule &&
-			currentToleration.Value == "" {
-			continue
-		}
-
-		tolerations = append(tolerations, currentToleration)
-	}
-
-	deployment.Spec.Template.Spec.Tolerations = tolerations
-}
-
-func extractImageVersion(tag string) (semver.Version, error) {
-	ver, err := version.ParseMajorMinorPatchTolerant(tag)
-	if err != nil {
-		return semver.Version{}, errors.Wrapf(err, "error parsing semver from %q", tag)
-	}
-	return ver, nil
-}
-
 // validateCoreDNSImageTag returns error if the versions don't meet requirements.
 // Some of the checks come from
 // https://github.com/coredns/corefile-migration/blob/v1.0.6/migration/migrate.go#L414
 func validateCoreDNSImageTag(fromTag, toTag string) error {
-	from, err := version.ParseMajorMinorPatchTolerant(fromTag)
+	from, err := version.ParseTolerantImageTag(fromTag)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse CoreDNS current version %q", fromTag)
 	}
-	to, err := version.ParseMajorMinorPatchTolerant(toTag)
+	to, err := version.ParseTolerantImageTag(toTag)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse CoreDNS target version %q", toTag)
 	}
 	// make sure that the version we're upgrading to is greater or equal to the current one,
-	if x := from.Compare(to); x > 0 {
+	if version.Compare(from, to, version.WithoutPreReleases()) > 0 {
 		return fmt.Errorf("toVersion %q must be greater than or equal to fromVersion %q", toTag, fromTag)
 	}
 	// check if the from version is even in the list of coredns versions

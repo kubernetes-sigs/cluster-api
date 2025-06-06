@@ -27,33 +27,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta4"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
 var (
-	v1beta2KubeadmVersion = semver.MustParse("1.15.0")
 	v1beta3KubeadmVersion = semver.MustParse("1.22.0")
 	v1beta4KubeadmVersion = semver.MustParse("1.31.0")
 
 	clusterConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
 		upstreamv1beta4.GroupVersion: &upstreamv1beta4.ClusterConfiguration{},
 		upstreamv1beta3.GroupVersion: &upstreamv1beta3.ClusterConfiguration{},
-		upstreamv1beta2.GroupVersion: &upstreamv1beta2.ClusterConfiguration{},
 	}
 
 	initConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
 		upstreamv1beta4.GroupVersion: &upstreamv1beta4.InitConfiguration{},
 		upstreamv1beta3.GroupVersion: &upstreamv1beta3.InitConfiguration{},
-		upstreamv1beta2.GroupVersion: &upstreamv1beta2.InitConfiguration{},
 	}
 
 	joinConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
 		upstreamv1beta4.GroupVersion: &upstreamv1beta4.JoinConfiguration{},
 		upstreamv1beta3.GroupVersion: &upstreamv1beta3.JoinConfiguration{},
-		upstreamv1beta2.GroupVersion: &upstreamv1beta2.JoinConfiguration{},
 	}
 )
 
@@ -72,11 +67,8 @@ type ConvertibleToInitConfiguration interface {
 // KubeVersionToKubeadmAPIGroupVersion maps a Kubernetes version to the correct Kubeadm API Group supported.
 func KubeVersionToKubeadmAPIGroupVersion(v semver.Version) (schema.GroupVersion, error) {
 	switch {
-	case version.Compare(v, v1beta2KubeadmVersion, version.WithoutPreReleases()) < 0:
-		return schema.GroupVersion{}, errors.New("the bootstrap provider for kubeadm doesn't support Kubernetes version lower than v1.15.0")
 	case version.Compare(v, v1beta3KubeadmVersion, version.WithoutPreReleases()) < 0:
-		// NOTE: All the Kubernetes version >= v1.15 and < v1.22 should use the kubeadm API version v1beta2
-		return upstreamv1beta2.GroupVersion, nil
+		return schema.GroupVersion{}, errors.New("the bootstrap provider for kubeadm doesn't support Kubernetes version lower than v1.22.0")
 	case version.Compare(v, v1beta4KubeadmVersion, version.WithoutPreReleases()) < 0:
 		// NOTE: All the Kubernetes version >= v1.22 and < v1.31 should use the kubeadm API version v1beta3
 		return upstreamv1beta3.GroupVersion, nil

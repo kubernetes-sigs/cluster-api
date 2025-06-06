@@ -31,7 +31,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"

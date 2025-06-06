@@ -33,8 +33,8 @@ import (
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
+	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infraexpv1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 )
 
 var (
@@ -42,8 +42,8 @@ var (
 )
 
 func init() {
-	_ = infrav1.AddToScheme(testScheme)
-	_ = infraexpv1.AddToScheme(testScheme)
+	_ = infrav1beta1.AddToScheme(testScheme)
+	_ = infraexpv1beta1.AddToScheme(testScheme)
 	_ = controlplanev1beta1.AddToScheme(testScheme)
 	_ = bootstrapv1beta1.AddToScheme(testScheme)
 }
@@ -53,29 +53,29 @@ func Test_patchDockerClusterTemplate(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		template         *infrav1.DockerClusterTemplate
+		template         *infrav1beta1.DockerClusterTemplate
 		variables        map[string]apiextensionsv1.JSON
-		expectedTemplate *infrav1.DockerClusterTemplate
+		expectedTemplate *infrav1beta1.DockerClusterTemplate
 		expectedErr      bool
 	}{
 		{
 			name:             "no op if imageRepository is not set",
-			template:         &infrav1.DockerClusterTemplate{},
+			template:         &infrav1beta1.DockerClusterTemplate{},
 			variables:        nil,
-			expectedTemplate: &infrav1.DockerClusterTemplate{},
+			expectedTemplate: &infrav1beta1.DockerClusterTemplate{},
 		},
 		{
 			name:     "set LoadBalancer.ImageRepository if imageRepository is set",
-			template: &infrav1.DockerClusterTemplate{},
+			template: &infrav1beta1.DockerClusterTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				"imageRepository": {Raw: toJSON("testImage")},
 			},
-			expectedTemplate: &infrav1.DockerClusterTemplate{
-				Spec: infrav1.DockerClusterTemplateSpec{
-					Template: infrav1.DockerClusterTemplateResource{
-						Spec: infrav1.DockerClusterSpec{
-							LoadBalancer: infrav1.DockerLoadBalancer{
-								ImageMeta: infrav1.ImageMeta{
+			expectedTemplate: &infrav1beta1.DockerClusterTemplate{
+				Spec: infrav1beta1.DockerClusterTemplateSpec{
+					Template: infrav1beta1.DockerClusterTemplateResource{
+						Spec: infrav1beta1.DockerClusterSpec{
+							LoadBalancer: infrav1beta1.DockerLoadBalancer{
+								ImageMeta: infrav1beta1.ImageMeta{
 									ImageRepository: "testImage",
 								},
 							},
@@ -150,21 +150,21 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		template         *infrav1.DockerMachineTemplate
+		template         *infrav1beta1.DockerMachineTemplate
 		variables        map[string]apiextensionsv1.JSON
-		expectedTemplate *infrav1.DockerMachineTemplate
+		expectedTemplate *infrav1beta1.DockerMachineTemplate
 		expectedErr      bool
 	}{
 		{
 			name:             "fails if builtin.controlPlane.version nor builtin.machineDeployment.version is not set",
-			template:         &infrav1.DockerMachineTemplate{},
+			template:         &infrav1beta1.DockerMachineTemplate{},
 			variables:        nil,
-			expectedTemplate: &infrav1.DockerMachineTemplate{},
+			expectedTemplate: &infrav1beta1.DockerMachineTemplate{},
 			expectedErr:      true,
 		},
 		{
 			name:     "sets customImage for templates linked to ControlPlane",
-			template: &infrav1.DockerMachineTemplate{},
+			template: &infrav1beta1.DockerMachineTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
@@ -172,10 +172,10 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &infrav1.DockerMachineTemplate{
-				Spec: infrav1.DockerMachineTemplateSpec{
-					Template: infrav1.DockerMachineTemplateResource{
-						Spec: infrav1.DockerMachineSpec{
+			expectedTemplate: &infrav1beta1.DockerMachineTemplate{
+				Spec: infrav1beta1.DockerMachineTemplateSpec{
+					Template: infrav1beta1.DockerMachineTemplateResource{
+						Spec: infrav1beta1.DockerMachineSpec{
 							CustomImage: "kindest/node:v1.23.0",
 						},
 					},
@@ -184,7 +184,7 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 		},
 		{
 			name:     "sets customImage for templates linked to ControlPlane for pre versions",
-			template: &infrav1.DockerMachineTemplate{},
+			template: &infrav1beta1.DockerMachineTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
@@ -192,10 +192,10 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &infrav1.DockerMachineTemplate{
-				Spec: infrav1.DockerMachineTemplateSpec{
-					Template: infrav1.DockerMachineTemplateResource{
-						Spec: infrav1.DockerMachineSpec{
+			expectedTemplate: &infrav1beta1.DockerMachineTemplate{
+				Spec: infrav1beta1.DockerMachineTemplateSpec{
+					Template: infrav1beta1.DockerMachineTemplateResource{
+						Spec: infrav1beta1.DockerMachineSpec{
 							CustomImage: "kindest/node:v1.23.0-rc.0",
 						},
 					},
@@ -221,21 +221,21 @@ func Test_patchDockerMachinePoolTemplate(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		template         *infraexpv1.DockerMachinePoolTemplate
+		template         *infraexpv1beta1.DockerMachinePoolTemplate
 		variables        map[string]apiextensionsv1.JSON
-		expectedTemplate *infraexpv1.DockerMachinePoolTemplate
+		expectedTemplate *infraexpv1beta1.DockerMachinePoolTemplate
 		expectedErr      bool
 	}{
 		{
 			name:             "fails if builtin.controlPlane.version nor builtin.machinePool.version is not set",
-			template:         &infraexpv1.DockerMachinePoolTemplate{},
+			template:         &infraexpv1beta1.DockerMachinePoolTemplate{},
 			variables:        nil,
-			expectedTemplate: &infraexpv1.DockerMachinePoolTemplate{},
+			expectedTemplate: &infraexpv1beta1.DockerMachinePoolTemplate{},
 			expectedErr:      true,
 		},
 		{
 			name:     "sets customImage for templates linked to ControlPlane",
-			template: &infraexpv1.DockerMachinePoolTemplate{},
+			template: &infraexpv1beta1.DockerMachinePoolTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
@@ -247,11 +247,11 @@ func Test_patchDockerMachinePoolTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &infraexpv1.DockerMachinePoolTemplate{
-				Spec: infraexpv1.DockerMachinePoolTemplateSpec{
-					Template: infraexpv1.DockerMachinePoolTemplateResource{
-						Spec: infraexpv1.DockerMachinePoolSpec{
-							Template: infraexpv1.DockerMachinePoolMachineTemplate{
+			expectedTemplate: &infraexpv1beta1.DockerMachinePoolTemplate{
+				Spec: infraexpv1beta1.DockerMachinePoolTemplateSpec{
+					Template: infraexpv1beta1.DockerMachinePoolTemplateResource{
+						Spec: infraexpv1beta1.DockerMachinePoolSpec{
+							Template: infraexpv1beta1.DockerMachinePoolMachineTemplate{
 								CustomImage: "kindest/node:v1.23.0",
 							},
 						},
@@ -311,22 +311,22 @@ func TestHandler_GeneratePatches(t *testing.T) {
 			APIVersion: controlplanev1beta1.GroupVersion.String(),
 		},
 	}
-	dockerMachineTemplate := infrav1.DockerMachineTemplate{
+	dockerMachineTemplate := infrav1beta1.DockerMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DockerMachineTemplate",
-			APIVersion: infrav1.GroupVersion.String(),
+			APIVersion: infrav1beta1.GroupVersion.String(),
 		},
 	}
-	dockerMachinePoolTemplate := infraexpv1.DockerMachinePoolTemplate{
+	dockerMachinePoolTemplate := infraexpv1beta1.DockerMachinePoolTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DockerMachinePoolTemplate",
-			APIVersion: infrav1.GroupVersion.String(),
+			APIVersion: infrav1beta1.GroupVersion.String(),
 		},
 	}
-	dockerClusterTemplate := infrav1.DockerClusterTemplate{
+	dockerClusterTemplate := infrav1beta1.DockerClusterTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DockerClusterTemplate",
-			APIVersion: infrav1.GroupVersion.String(),
+			APIVersion: infrav1beta1.GroupVersion.String(),
 		},
 	}
 	tests := []struct {

@@ -25,9 +25,9 @@ import (
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 )
 
 var ctx = ctrl.SetupSignalHandler()
@@ -110,7 +110,7 @@ func TestDockerClusterTemplateValidationMetadata(t *testing.T) {
 				},
 				Spec: infrav1.DockerClusterTemplateSpec{
 					Template: infrav1.DockerClusterTemplateResource{
-						ObjectMeta: clusterv1beta1.ObjectMeta{
+						ObjectMeta: clusterv1.ObjectMeta{
 							Labels: map[string]string{
 								"foo":          "$invalid-key",
 								"bar":          strings.Repeat("a", 64) + "too-long-value",

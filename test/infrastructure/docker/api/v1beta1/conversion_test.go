@@ -1,0 +1,70 @@
+//go:build !race
+
+/*
+Copyright 2025 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package v1beta1
+
+import (
+	"testing"
+
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+)
+
+// Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
+
+func TestFuzzyConversion(t *testing.T) {
+	t.Run("for DockerCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DockerCluster{},
+		Spoke: &DockerCluster{},
+	}))
+
+	t.Run("for DockerClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DockerClusterTemplate{},
+		Spoke: &DockerClusterTemplate{},
+	}))
+
+	t.Run("for DockerMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DockerMachine{},
+		Spoke: &DockerMachine{},
+	}))
+
+	t.Run("for DockerMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DockerMachineTemplate{},
+		Spoke: &DockerMachineTemplate{},
+	}))
+
+	t.Run("for DevCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DevCluster{},
+		Spoke: &DevCluster{},
+	}))
+
+	t.Run("for DevClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DevClusterTemplate{},
+		Spoke: &DevClusterTemplate{},
+	}))
+
+	t.Run("for DevMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DevMachine{},
+		Spoke: &DevMachine{},
+	}))
+
+	t.Run("for DevMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DevMachineTemplate{},
+		Spoke: &DevMachineTemplate{},
+	}))
+}

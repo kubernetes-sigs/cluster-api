@@ -49,7 +49,7 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 								},
 							},
 						},
-						KubernetesVersion: "v1.33.0",
+						CertificatesDir: "foo",
 					},
 				},
 			},
@@ -57,7 +57,7 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 
 		annotations, err := ClusterConfigurationToMachineAnnotationValue(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(annotations).To(Equal("{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"kubernetesVersion\":\"v1.33.0\",\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}"))
+		g.Expect(annotations).To(Equal("{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}"))
 	})
 	t.Run("ClusterConfigurationFromMachineIsOutdated", func(t *testing.T) {
 		g := NewWithT(t)
@@ -67,15 +67,15 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 		g.Expect(ClusterConfigurationAnnotationFromMachineIsOutdated(annotation)).To(BeTrue())
 
 		// v1beta1 annotation (without marshalVersion)
-		annotation = "{\"etcd\":{},\"networking\":{},\"kubernetesVersion\":\"v1.33.0\",\"apiServer\":{\"extraArgs\":{\"foo\":\"bar\"}},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}"
+		annotation = "{\"etcd\":{},\"apiServer\":{\"extraArgs\":{\"foo\":\"bar\"}},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}"
 		g.Expect(ClusterConfigurationAnnotationFromMachineIsOutdated(annotation)).To(BeTrue())
 
 		// up to date annotation (marshalVersion equal to current version)
-		annotation = fmt.Sprintf("{\"marshalVersion\":%q,\"etcd\":{},\"networking\":{},\"kubernetesVersion\":\"v1.33.0\",\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}", bootstrapv1.GroupVersion.Version)
+		annotation = fmt.Sprintf("{\"marshalVersion\":%q,\"etcd\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}", bootstrapv1.GroupVersion.Version)
 		g.Expect(ClusterConfigurationAnnotationFromMachineIsOutdated(annotation)).To(BeFalse())
 
 		// marshalVersion not equal to the current version (this should not happen because marshalVersion has been introduced with the v1beta2 API)
-		annotation = "{\"marshalVersion\":\"foo\",\"etcd\":{},\"networking\":{},\"kubernetesVersion\":\"v1.33.0\",\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}"
+		annotation = "{\"marshalVersion\":\"foo\",\"etcd\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}"
 		g.Expect(ClusterConfigurationAnnotationFromMachineIsOutdated(annotation)).To(BeTrue())
 	})
 	t.Run("ClusterConfigurationFromMachine", func(t *testing.T) {
@@ -88,7 +88,7 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 		g.Expect(clusterConfiguration).To(BeNil())
 
 		// v1beta1 annotation (without marshalVersion)
-		m1.SetAnnotations(map[string]string{controlplanev1.KubeadmClusterConfigurationAnnotation: "{\"etcd\":{},\"networking\":{},\"kubernetesVersion\":\"v1.33.0\",\"apiServer\":{\"extraArgs\":{\"foo\":\"bar\"}},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}"})
+		m1.SetAnnotations(map[string]string{controlplanev1.KubeadmClusterConfigurationAnnotation: "{\"etcd\":{},\"apiServer\":{\"extraArgs\":{\"foo\":\"bar\"}},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}"})
 		clusterConfiguration, err = ClusterConfigurationFromMachine(m1)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(clusterConfiguration).To(Equal(&bootstrapv1.ClusterConfiguration{
@@ -102,11 +102,11 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 					},
 				},
 			},
-			KubernetesVersion: "v1.33.0",
+			CertificatesDir: "foo",
 		}))
 
 		// up to date annotation (marshalVersion equal to current version)
-		m1.SetAnnotations(map[string]string{controlplanev1.KubeadmClusterConfigurationAnnotation: fmt.Sprintf("{\"marshalVersion\":%q,\"etcd\":{},\"networking\":{},\"kubernetesVersion\":\"v1.33.0\",\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{}}", bootstrapv1.GroupVersion.Version)})
+		m1.SetAnnotations(map[string]string{controlplanev1.KubeadmClusterConfigurationAnnotation: fmt.Sprintf("{\"marshalVersion\":%q,\"etcd\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}", bootstrapv1.GroupVersion.Version)})
 		clusterConfiguration, err = ClusterConfigurationFromMachine(m1)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(clusterConfiguration).To(Equal(&bootstrapv1.ClusterConfiguration{
@@ -120,7 +120,7 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 					},
 				},
 			},
-			KubernetesVersion: "v1.33.0",
+			CertificatesDir: "foo",
 		}))
 	})
 }
@@ -156,7 +156,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-						ClusterName: "foo",
+						CertificatesDir: "foo",
 					},
 				},
 			},
@@ -164,7 +164,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		m := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					controlplanev1.KubeadmClusterConfigurationAnnotation: "{\n  \"clusterName\": \"foo\"\n}",
+					controlplanev1.KubeadmClusterConfigurationAnnotation: "{\n  \"certificatesDir\": \"foo\"\n}",
 				},
 			},
 		}
@@ -179,7 +179,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-						ClusterName: "foo",
+						CertificatesDir: "foo",
 					},
 				},
 			},
@@ -187,7 +187,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		m := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					controlplanev1.KubeadmClusterConfigurationAnnotation: "{\n  \"clusterName\": \"bar\"\n}",
+					controlplanev1.KubeadmClusterConfigurationAnnotation: "{\n  \"certificatesDir\": \"bar\"\n}",
 				},
 			},
 		}
@@ -195,11 +195,13 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
 		g.Expect(diff).To(BeComparableTo(`&v1beta2.ClusterConfiguration{
-    ... // 10 identical fields
+    ... // 4 identical fields
+    Scheduler:       {},
+    DNS:             {},
+-   CertificatesDir: "bar",
++   CertificatesDir: "foo",
     ImageRepository: "",
     FeatureGates:    nil,
--   ClusterName:     "bar",
-+   ClusterName:     "foo",
   }`))
 	})
 	t.Run("Return true if cluster configuration is nil (special case)", func(t *testing.T) {
@@ -295,7 +297,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		// This is a point in time snapshot of how a serialized ClusterConfiguration looks like;
 		// we are hardcoding this in the test so we can detect if a change in the API impacts serialization.
 		// NOTE: changes in the json representation do not always trigger a rollout in KCP, but they are an heads up that should be investigated.
-		annotationsCheckPoint := "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"networking\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"scheduler\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"dns\":{\"imageRepository\":\"gcr.io/capi-test\",\"imageTag\":\"v1.10.1\"}}"
+		annotationsCheckPoint := "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"scheduler\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"dns\":{\"imageRepository\":\"gcr.io/capi-test\",\"imageTag\":\"v1.10.1\"}}"
 
 		// compute how a serialized ClusterConfiguration looks like now
 		annotations, err := ClusterConfigurationToMachineAnnotationValue(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
@@ -856,7 +858,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-						ClusterName: "foo",
+						CertificatesDir: "foo",
 					},
 				},
 			},
@@ -864,7 +866,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		m := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					controlplanev1.KubeadmClusterConfigurationAnnotation: "{\n  \"clusterName\": \"foo\"\n}",
+					controlplanev1.KubeadmClusterConfigurationAnnotation: "{\n  \"certificatesDir\": \"foo\"\n}",
 				},
 			},
 		}
@@ -882,7 +884,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-						ClusterName: "foo",
+						CertificatesDir: "foo",
 					},
 				},
 			},
@@ -890,7 +892,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		m := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					controlplanev1.KubeadmClusterConfigurationAnnotation: "{\n  \"clusterName\": \"bar\"\n}",
+					controlplanev1.KubeadmClusterConfigurationAnnotation: "{\n  \"certificatesDir\": \"bar\"\n}",
 				},
 			},
 		}
@@ -901,11 +903,13 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
 		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{
-    ... // 10 identical fields
+    ... // 4 identical fields
+    Scheduler:       {},
+    DNS:             {},
+-   CertificatesDir: "bar",
++   CertificatesDir: "foo",
     ImageRepository: "",
     FeatureGates:    nil,
--   ClusterName:     "bar",
-+   ClusterName:     "foo",
   }`))
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
@@ -1543,7 +1547,7 @@ func TestUpToDate(t *testing.T) {
 			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-					ClusterName: "foo",
+					CertificatesDir: "foo",
 				},
 			},
 			RolloutBefore: &controlplanev1.RolloutBefore{
@@ -1556,7 +1560,7 @@ func TestUpToDate(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-2 * 24 * time.Hour)}, // two days ago.
 			Annotations: map[string]string{
-				controlplanev1.KubeadmClusterConfigurationAnnotation: "{\n  \"clusterName\": \"foo\"\n}",
+				controlplanev1.KubeadmClusterConfigurationAnnotation: "{\n  \"certificatesDir\": \"foo\"\n}",
 			},
 		},
 		Spec: clusterv1.MachineSpec{
@@ -1661,14 +1665,14 @@ func TestUpToDate(t *testing.T) {
 			name: "KubeadmConfig is not up-to-date",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
-				kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ClusterName = "bar"
+				kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificatesDir = "bar"
 				return kcp
 			}(),
 			machine:                 defaultMachine, // was created with cluster name "foo"
 			infraConfigs:            defaultInfraConfigs,
 			machineConfigs:          defaultMachineConfigs,
 			expectUptoDate:          false,
-			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 10 identical fields\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n-   ClusterName:     \"foo\",\n+   ClusterName:     \"bar\",\n  }"},
+			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 4 identical fields\n    Scheduler:       {},\n    DNS:             {},\n-   CertificatesDir: \"foo\",\n+   CertificatesDir: \"bar\",\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n  }"},
 			expectConditionMessages: []string{"KubeadmConfig is not up-to-date"},
 		},
 		{

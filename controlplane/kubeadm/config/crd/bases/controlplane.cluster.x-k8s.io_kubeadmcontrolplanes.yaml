@@ -5281,28 +5281,6 @@ spec:
                         maxLength: 512
                         minLength: 1
                         type: string
-                      clusterName:
-                        description: clusterName is the cluster name
-                        maxLength: 63
-                        minLength: 1
-                        type: string
-                      controlPlaneEndpoint:
-                        description: |-
-                          controlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
-                          can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
-                          In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
-                          are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
-                          the BindPort is used.
-                          Possible usages are:
-                          e.g. In a cluster with more than one control plane instances, this field should be
-                          assigned the address of the external load balancer in front of the
-                          control plane instances.
-                          e.g.  in environments with enforced node recycling, the ControlPlaneEndpoint
-                          could be used for assigning a stable DNS to the control plane.
-                          NB: This value defaults to the first value in the Cluster object status.apiEndpoints array.
-                        maxLength: 512
-                        minLength: 1
-                        type: string
                       controllerManager:
                         description: controllerManager contains extra settings for
                           the controller manager control plane component
@@ -5807,41 +5785,6 @@ spec:
                           In CamelCase.
                           More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
                         type: string
-                      kubernetesVersion:
-                        description: |-
-                          kubernetesVersion is the target version of the control plane.
-                          NB: This value defaults to the Machine object spec.version
-                        maxLength: 256
-                        minLength: 1
-                        type: string
-                      networking:
-                        description: |-
-                          networking holds configuration for the networking topology of the cluster.
-                          NB: This value defaults to the Cluster object spec.clusterNetwork.
-                        properties:
-                          dnsDomain:
-                            description: dnsDomain is the dns domain used by k8s services.
-                              Defaults to "cluster.local".
-                            maxLength: 253
-                            minLength: 1
-                            type: string
-                          podSubnet:
-                            description: |-
-                              podSubnet is the subnet used by pods.
-                              If unset, the API server will not allocate CIDR ranges for every node.
-                              Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.services.cidrBlocks if that is set
-                            maxLength: 1024
-                            minLength: 1
-                            type: string
-                          serviceSubnet:
-                            description: |-
-                              serviceSubnet is the subnet used by k8s services.
-                              Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.pods.cidrBlocks, or
-                              to "10.96.0.0/12" if that's unset.
-                            maxLength: 1024
-                            minLength: 1
-                            type: string
-                        type: object
                       scheduler:
                         description: scheduler contains extra settings for the scheduler
                           control plane component

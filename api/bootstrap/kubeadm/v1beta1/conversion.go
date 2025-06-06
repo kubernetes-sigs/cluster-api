@@ -240,6 +240,10 @@ func Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *KubeadmC
 	return autoConvert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in, out, s)
 }
 
+func Convert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s)
+}
+
 func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *bootstrapv1.ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
 	return autoConvert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, out, s)

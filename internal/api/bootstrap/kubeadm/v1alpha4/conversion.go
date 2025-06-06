@@ -276,6 +276,10 @@ func Convert_v1beta2_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in *bootstr
 	return autoConvert_v1beta2_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in, out, s)
 }
 
+func Convert_v1alpha4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
+	return autoConvert_v1alpha4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s)
+}
+
 func Convert_v1beta2_InitConfiguration_To_v1alpha4_InitConfiguration(in *bootstrapv1.InitConfiguration, out *InitConfiguration, s apimachineryconversion.Scope) error {
 	// InitConfiguration.Patches does not exist in kubeadm v1alpha4 API.
 	return autoConvert_v1beta2_InitConfiguration_To_v1alpha4_InitConfiguration(in, out, s)

@@ -48,7 +48,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Spoke:  &ClusterConfiguration{},
 		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
 		SkipSpokeAnnotationCleanup: true,
-		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs},
+		FuzzerFuncs:                []fuzzer.FuzzerFuncs{fuzzFuncs, clusterConfigurationFuzzFuncs},
 	}))
 	t.Run("for InitConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
@@ -83,9 +83,27 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
+func clusterConfigurationFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeClusterConfigurationFuzzer,
+	}
+}
+
 // Custom fuzzers for kubeadm v1beta3 types.
 // NOTES:
 // - When fields do not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
+
+func spokeClusterConfigurationFuzzer(in *ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
+	in.Networking.ServiceSubnet = ""
+	in.Networking.PodSubnet = ""
+	in.Networking.DNSDomain = ""
+	in.KubernetesVersion = ""
+	in.ControlPlaneEndpoint = ""
+	in.ClusterName = ""
+}
 
 func spokeInitConfigurationFuzzer(obj *InitConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)

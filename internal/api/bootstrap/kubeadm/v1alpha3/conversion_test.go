@@ -145,6 +145,14 @@ func spokeClusterConfiguration(obj *ClusterConfiguration, c randfill.Continue) {
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1beta1 --> <hub> --> v1beta1 round trip errors.
 	obj.UseHyperKubeImage = false
+
+	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
+	obj.Networking.ServiceSubnet = ""
+	obj.Networking.PodSubnet = ""
+	obj.Networking.DNSDomain = ""
+	obj.KubernetesVersion = ""
+	obj.ControlPlaneEndpoint = ""
+	obj.ClusterName = ""
 }
 
 func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {

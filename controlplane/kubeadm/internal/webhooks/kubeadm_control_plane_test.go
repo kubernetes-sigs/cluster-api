@@ -344,7 +344,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 					},
 				},
 				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-					ClusterName: "test",
 					DNS: bootstrapv1.DNS{
 						ImageMeta: bootstrapv1.ImageMeta{
 							ImageRepository: "registry.k8s.io/coredns",
@@ -403,7 +402,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdateKubeadmConfigInit.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration = bootstrapv1.NodeRegistrationOptions{}
 
 	invalidUpdateKubeadmConfigCluster := before.DeepCopy()
-	invalidUpdateKubeadmConfigCluster.Spec.KubeadmConfigSpec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
+	invalidUpdateKubeadmConfigCluster.Spec.KubeadmConfigSpec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{
+		CertificatesDir: "some-other-value",
+	}
 
 	validUpdateKubeadmConfigJoin := before.DeepCopy()
 	validUpdateKubeadmConfigJoin.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration = bootstrapv1.NodeRegistrationOptions{}
@@ -497,15 +498,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 
 	unsetEtcdLocal := etcdLocalImageTag.DeepCopy()
 	unsetEtcdLocal.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = nil
-
-	networking := before.DeepCopy()
-	networking.Spec.KubeadmConfigSpec.ClusterConfiguration.Networking.DNSDomain = "some dns domain"
-
-	kubernetesVersion := before.DeepCopy()
-	kubernetesVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.KubernetesVersion = "some kubernetes version"
-
-	controlPlaneEndpoint := before.DeepCopy()
-	controlPlaneEndpoint.Spec.KubeadmConfigSpec.ClusterConfiguration.ControlPlaneEndpoint = "some control plane endpoint"
 
 	apiServer := before.DeepCopy()
 	apiServer.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer = bootstrapv1.APIServer{
@@ -683,11 +675,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	withoutClusterConfiguration := before.DeepCopy()
 	withoutClusterConfiguration.Spec.KubeadmConfigSpec.ClusterConfiguration = nil
 
-	afterEtcdLocalDirAddition := before.DeepCopy()
-	afterEtcdLocalDirAddition.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &bootstrapv1.LocalEtcd{
-		DataDir: "/data",
-	}
-
 	updateNTPServers := before.DeepCopy()
 	updateNTPServers.Spec.KubeadmConfigSpec.NTP.Servers = []string{"new-server"}
 
@@ -854,24 +841,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       etcdLocalImageInvalidTag,
 		},
 		{
-			name:      "should fail when making a change to the cluster config's networking struct",
-			expectErr: true,
-			before:    before,
-			kcp:       networking,
-		},
-		{
-			name:      "should fail when making a change to the cluster config's kubernetes version",
-			expectErr: true,
-			before:    before,
-			kcp:       kubernetesVersion,
-		},
-		{
-			name:      "should fail when making a change to the cluster config's controlPlaneEndpoint",
-			expectErr: true,
-			before:    before,
-			kcp:       controlPlaneEndpoint,
-		},
-		{
 			name:      "should allow changes to the cluster config's apiServer",
 			expectErr: false,
 			before:    before,
@@ -1030,12 +999,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    withoutClusterConfiguration,
 			kcp:       withoutClusterConfiguration,
-		},
-		{
-			name:      "should fail if etcd local dir is changed from missing ClusterConfiguration",
-			expectErr: true,
-			before:    withoutClusterConfiguration,
-			kcp:       afterEtcdLocalDirAddition,
 		},
 		{
 			name:      "should not return an error when maxSurge value is updated to 0",

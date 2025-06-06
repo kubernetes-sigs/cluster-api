@@ -40,6 +40,8 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	bootstrapbuilder "sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/builder"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta4"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
@@ -1832,7 +1834,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t 
 }
 
 // Set cluster configuration defaults based on dynamic values from the cluster object.
-func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguration(t *testing.T) {
+func TestKubeadmConfigReconciler_computeClusterConfigurationModifier(t *testing.T) {
 	k := &KubeadmConfigReconciler{}
 
 	testcases := []struct {
@@ -1842,47 +1844,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 		config  *bootstrapv1.KubeadmConfig
 	}{
 		{
-			name: "Config settings have precedence",
-			config: &bootstrapv1.KubeadmConfig{
-				Spec: bootstrapv1.KubeadmConfigSpec{
-					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-						ClusterName:       "mycluster",
-						KubernetesVersion: "myversion",
-						Networking: bootstrapv1.Networking{
-							PodSubnet:     "myPodSubnet",
-							ServiceSubnet: "myServiceSubnet",
-							DNSDomain:     "myDNSDomain",
-						},
-						ControlPlaneEndpoint: "myControlPlaneEndpoint:6443",
-					},
-				},
-			},
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "OtherName",
-				},
-				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: &clusterv1.ClusterNetwork{
-						Services:      &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherServicesCidr"}},
-						Pods:          &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherPodsCidr"}},
-						ServiceDomain: "otherServiceDomain",
-					},
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "otherVersion", Port: 0},
-				},
-			},
-			machine: &clusterv1.Machine{
-				Spec: clusterv1.MachineSpec{
-					Version: ptr.To("otherVersion"),
-				},
-			},
-		},
-		{
-			name: "Top level object settings are used in case config settings are missing",
-			config: &bootstrapv1.KubeadmConfig{
-				Spec: bootstrapv1.KubeadmConfigSpec{
-					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{},
-				},
-			},
+			name: "Propagate fields from Cluster & Machine",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mycluster",
@@ -1898,7 +1860,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 			},
 			machine: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					Version: ptr.To("myversion"),
+					Version: ptr.To("v1.23.0"),
 				},
 			},
 		},
@@ -1908,14 +1870,23 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			k.reconcileTopLevelObjectSettings(ctx, tc.cluster, tc.machine, tc.config)
+			clusterConfigurationV1beta3 := &upstreamv1beta3.ClusterConfiguration{}
+			k.computeClusterConfigurationModifier(tc.cluster, tc.machine)(clusterConfigurationV1beta3)
+			g.Expect(clusterConfigurationV1beta3.KubernetesVersion).To(Equal("v1.23.0"))
+			g.Expect(clusterConfigurationV1beta3.ControlPlaneEndpoint).To(Equal("myControlPlaneEndpoint:6443"))
+			g.Expect(clusterConfigurationV1beta3.ClusterName).To(Equal("mycluster"))
+			g.Expect(clusterConfigurationV1beta3.Networking.PodSubnet).To(Equal("myPodSubnet"))
+			g.Expect(clusterConfigurationV1beta3.Networking.ServiceSubnet).To(Equal("myServiceSubnet"))
+			g.Expect(clusterConfigurationV1beta3.Networking.DNSDomain).To(Equal("myDNSDomain"))
 
-			g.Expect(tc.config.Spec.ClusterConfiguration.ControlPlaneEndpoint).To(Equal("myControlPlaneEndpoint:6443"))
-			g.Expect(tc.config.Spec.ClusterConfiguration.ClusterName).To(Equal("mycluster"))
-			g.Expect(tc.config.Spec.ClusterConfiguration.Networking.PodSubnet).To(Equal("myPodSubnet"))
-			g.Expect(tc.config.Spec.ClusterConfiguration.Networking.ServiceSubnet).To(Equal("myServiceSubnet"))
-			g.Expect(tc.config.Spec.ClusterConfiguration.Networking.DNSDomain).To(Equal("myDNSDomain"))
-			g.Expect(tc.config.Spec.ClusterConfiguration.KubernetesVersion).To(Equal("myversion"))
+			clusterConfigurationV1beta4 := &upstreamv1beta4.ClusterConfiguration{}
+			k.computeClusterConfigurationModifier(tc.cluster, tc.machine)(clusterConfigurationV1beta4)
+			g.Expect(clusterConfigurationV1beta4.KubernetesVersion).To(Equal("v1.23.0"))
+			g.Expect(clusterConfigurationV1beta4.ControlPlaneEndpoint).To(Equal("myControlPlaneEndpoint:6443"))
+			g.Expect(clusterConfigurationV1beta4.ClusterName).To(Equal("mycluster"))
+			g.Expect(clusterConfigurationV1beta4.Networking.PodSubnet).To(Equal("myPodSubnet"))
+			g.Expect(clusterConfigurationV1beta4.Networking.ServiceSubnet).To(Equal("myServiceSubnet"))
+			g.Expect(clusterConfigurationV1beta4.Networking.DNSDomain).To(Equal("myDNSDomain"))
 		})
 	}
 }

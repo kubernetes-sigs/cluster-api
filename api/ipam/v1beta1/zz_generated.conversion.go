@@ -22,8 +22,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	unsafe "unsafe"
-
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -279,7 +277,17 @@ func autoConvert_v1beta2_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus(in
 
 func autoConvert_v1beta1_IPAddressList_To_v1beta2_IPAddressList(in *IPAddressList, out *v1beta2.IPAddressList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.IPAddress)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.IPAddress, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_IPAddress_To_v1beta2_IPAddress(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -290,7 +298,17 @@ func Convert_v1beta1_IPAddressList_To_v1beta2_IPAddressList(in *IPAddressList, o
 
 func autoConvert_v1beta2_IPAddressList_To_v1beta1_IPAddressList(in *v1beta2.IPAddressList, out *IPAddressList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]IPAddress)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]IPAddress, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_IPAddress_To_v1beta1_IPAddress(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -303,7 +321,7 @@ func autoConvert_v1beta1_IPAddressSpec_To_v1beta2_IPAddressSpec(in *IPAddressSpe
 	out.ClaimRef = in.ClaimRef
 	out.PoolRef = in.PoolRef
 	out.Address = in.Address
-	out.Prefix = in.Prefix
+	out.Prefix = int32(in.Prefix)
 	out.Gateway = in.Gateway
 	return nil
 }
@@ -317,7 +335,7 @@ func autoConvert_v1beta2_IPAddressSpec_To_v1beta1_IPAddressSpec(in *v1beta2.IPAd
 	out.ClaimRef = in.ClaimRef
 	out.PoolRef = in.PoolRef
 	out.Address = in.Address
-	out.Prefix = in.Prefix
+	out.Prefix = int(in.Prefix)
 	out.Gateway = in.Gateway
 	return nil
 }

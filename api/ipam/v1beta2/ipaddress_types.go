@@ -39,7 +39,7 @@ type IPAddressSpec struct {
 
 	// prefix is the prefix of the address.
 	// +required
-	Prefix int `json:"prefix"`
+	Prefix int32 `json:"prefix"`
 
 	// gateway is the network gateway of the network the address is from.
 	// +optional

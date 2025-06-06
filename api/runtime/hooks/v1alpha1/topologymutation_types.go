@@ -39,6 +39,7 @@ type GeneratePatchesRequest struct {
 	Variables []Variable `json:"variables,omitempty"`
 
 	// items is the list of templates to generate patches for.
+	// +required
 	Items []GeneratePatchesRequestItem `json:"items"`
 }
 

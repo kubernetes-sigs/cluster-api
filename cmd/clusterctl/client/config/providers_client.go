@@ -108,6 +108,7 @@ const (
 const (
 	HelmAddonProviderName  = "helm"
 	FleetAddonProviderName = "rancher-fleet"
+	Cdk8sAddonProviderName = "patricklaabs-cdk8s"
 )
 
 // Runtime extensions providers.
@@ -439,6 +440,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         HelmAddonProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/addon-components.yaml",
+			providerType: clusterctlv1.AddonProviderType,
+		},
+		&provider{
+			name:         Cdk8sAddonProviderName,
+			url:          "https://github.com/PatrickLaabs/cluster-api-addon-provider-cdk8s/releases/latest/addon-components.yaml",
 			providerType: clusterctlv1.AddonProviderType,
 		},
 

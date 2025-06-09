@@ -78,6 +78,7 @@ source of inspiration and ideas for others.
 ## Addon
 - [Fleet](https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/)
 - [Helm](https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/)
+- [Cdk8s](https://github.com/PatrickLaabs/cluster-api-addon-provider-cdk8s/)
 
 ## Runtime Extensions
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-runtime-extensions-nutanix/)

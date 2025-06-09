@@ -157,6 +157,7 @@ nutanix                 IPAMProvider               https://github.com/nutanix-cl
 nutanix                 RuntimeExtensionProvider   https://github.com/nutanix-cloud-native/cluster-api-runtime-extensions-nutanix/releases/latest/   runtime-extensions-components.yaml
 helm                    AddonProvider              https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/               addon-components.yaml
 rancher-fleet           AddonProvider              https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/releases/latest/              addon-components.yaml
+cdk8s                   AddonProvider              https://github.com/PatrickLaabs/cluster-api-addon-provider-cdk8s/releases/latest/                 addon-components.yaml
 `
 
 var expectedOutputYaml = `- File: core_components.yaml
@@ -391,4 +392,8 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: rancher-fleet
   ProviderType: AddonProvider
   URL: https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/releases/latest/
+- File: addon-components.yaml
+  Name: cdk8s
+  ProviderType: AddonProvider
+  URL: https://github.com/PatrickLaabs/cluster-api-addon-provider-cdk8s/releases/latest/
 `

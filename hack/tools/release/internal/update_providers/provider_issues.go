@@ -43,6 +43,7 @@ const (
 var (
 	repoList = []string{
 		"kubernetes-sigs/cluster-api-addon-provider-helm",
+		"patricklaabs/cluster-api-addon-provider-cdk8s",
 		"kubernetes-sigs/cluster-api-provider-aws",
 		"kubernetes-sigs/cluster-api-provider-azure",
 		"kubernetes-sigs/cluster-api-provider-cloudstack",

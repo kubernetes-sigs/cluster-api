@@ -111,7 +111,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.NutanixRuntimeExtensionsProviderName,
 				config.HelmAddonProviderName,
 				config.FleetAddonProviderName,
-				config.CdkAddonProviderName,
+				config.Cdk8sAddonProviderName,
 			},
 			wantErr: false,
 		},

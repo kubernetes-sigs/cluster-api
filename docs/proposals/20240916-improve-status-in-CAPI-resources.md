@@ -1279,7 +1279,7 @@ Following changes are planned for the contract for the InfrastructureCluster res
 - Disambiguate the usage of the ready term by renaming fields used for the initial provisioning workflow
   - Rename `status.ready` into `status.initialization.provisioned`.
 - Remove `failureReason` and `failureMessage`.
-- Change `.status.failureDomains` from a map to an array
+- Change `.status.failureDomains` from a map to an array. Also each failure domain has an additional `name` property which replaces the previous map key.
 
 | v1beta1 (CAPI 1.9)                                                    | v1beta2 (tentative Aug 2025)                                                                                     | v1beta2 after v1beta1 removal (tentative Aug 2026)                                         |
 |-----------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|

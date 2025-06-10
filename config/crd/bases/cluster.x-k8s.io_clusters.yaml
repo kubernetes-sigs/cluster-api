@@ -3498,6 +3498,7 @@ spec:
                   - name
                   type: object
                 maxItems: 100
+                minItems: 1
                 type: array
                 x-kubernetes-list-map-keys:
                 - name

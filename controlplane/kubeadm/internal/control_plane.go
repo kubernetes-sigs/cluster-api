@@ -152,7 +152,14 @@ func (c *ControlPlane) FailureDomains() []clusterv1.FailureDomain {
 	if c.Cluster.Status.FailureDomains == nil {
 		return nil
 	}
-	return c.Cluster.Status.FailureDomains
+
+	var res []clusterv1.FailureDomain
+	for _, spec := range c.Cluster.Status.FailureDomains {
+		if spec.ControlPlane {
+			res = append(res, spec)
+		}
+	}
+	return res
 }
 
 // MachineInFailureDomainWithMostMachines returns the first matching failure domain with machines that has the most control-plane machines on it.
@@ -180,7 +187,7 @@ func (c *ControlPlane) MachineWithDeleteAnnotation(machines collections.Machines
 func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, eligibleMachines collections.Machines) *string {
 	// See if there are any Machines that are not in currently defined failure domains first.
 	notInFailureDomains := eligibleMachines.Filter(
-		collections.Not(collections.InFailureDomains(getGetFailureDomainIDs(filterControlPlaneFailureDomains(c.FailureDomains()))...)),
+		collections.Not(collections.InFailureDomains(getGetFailureDomainIDs(c.FailureDomains())...)),
 	)
 	if len(notInFailureDomains) > 0 {
 		// return the failure domain for the oldest Machine not in the current list of failure domains
@@ -190,7 +197,7 @@ func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, eligib
 	}
 
 	// Pick the failure domain with most machines in it and at least one eligible machine in it.
-	return failuredomains.PickMost(ctx, filterControlPlaneFailureDomains(c.Cluster.Status.FailureDomains), c.Machines, eligibleMachines)
+	return failuredomains.PickMost(ctx, c.FailureDomains(), c.Machines, eligibleMachines)
 }
 
 // NextFailureDomainForScaleUp returns the failure domain with the fewest number of up-to-date, not deleted machines
@@ -199,20 +206,10 @@ func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, eligib
 // In case of tie (more failure domain with the same number of up-to-date, not deleted machines) the failure domain with the fewest number of
 // machine overall is picked to ensure a better spreading of machines while the rollout is performed.
 func (c *ControlPlane) NextFailureDomainForScaleUp(ctx context.Context) (*string, error) {
-	if len(filterControlPlaneFailureDomains(c.Cluster.Status.FailureDomains)) == 0 {
+	if len(c.FailureDomains()) == 0 {
 		return nil, nil
 	}
-	return failuredomains.PickFewest(ctx, filterControlPlaneFailureDomains(c.FailureDomains()), c.Machines, c.UpToDateMachines().Filter(collections.Not(collections.HasDeletionTimestamp))), nil
-}
-
-func filterControlPlaneFailureDomains(failureDomains []clusterv1.FailureDomain) []clusterv1.FailureDomain {
-	var res []clusterv1.FailureDomain
-	for _, spec := range failureDomains {
-		if spec.ControlPlane {
-			res = append(res, spec)
-		}
-	}
-	return res
+	return failuredomains.PickFewest(ctx, c.FailureDomains(), c.Machines, c.UpToDateMachines().Filter(collections.Not(collections.HasDeletionTimestamp))), nil
 }
 
 func getGetFailureDomainIDs(failureDomains []clusterv1.FailureDomain) []*string {

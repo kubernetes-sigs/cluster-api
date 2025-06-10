@@ -40,8 +40,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	bootstrapbuilder "sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/builder"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta4"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
@@ -1834,17 +1832,18 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t 
 }
 
 // Set cluster configuration defaults based on dynamic values from the cluster object.
-func TestKubeadmConfigReconciler_computeClusterConfigurationModifier(t *testing.T) {
+func TestKubeadmConfigReconciler_computeClusterConfigurationAdditionalData(t *testing.T) {
 	k := &KubeadmConfigReconciler{}
 
 	testcases := []struct {
-		name    string
-		cluster *clusterv1.Cluster
-		machine *clusterv1.Machine
-		config  *bootstrapv1.KubeadmConfig
+		name              string
+		cluster           *clusterv1.Cluster
+		machine           *clusterv1.Machine
+		config            *bootstrapv1.KubeadmConfig
+		initConfiguration *bootstrapv1.InitConfiguration
 	}{
 		{
-			name: "Propagate fields from Cluster & Machine",
+			name: "Propagate fields from Cluster & Machine & initConfiguration",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mycluster",
@@ -1863,6 +1862,11 @@ func TestKubeadmConfigReconciler_computeClusterConfigurationModifier(t *testing.
 					Version: ptr.To("v1.23.0"),
 				},
 			},
+			initConfiguration: &bootstrapv1.InitConfiguration{
+				Timeouts: &bootstrapv1.Timeouts{
+					ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10),
+				},
+			},
 		},
 	}
 
@@ -1870,23 +1874,14 @@ func TestKubeadmConfigReconciler_computeClusterConfigurationModifier(t *testing.
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			clusterConfigurationV1beta3 := &upstreamv1beta3.ClusterConfiguration{}
-			k.computeClusterConfigurationModifier(tc.cluster, tc.machine)(clusterConfigurationV1beta3)
-			g.Expect(clusterConfigurationV1beta3.KubernetesVersion).To(Equal("v1.23.0"))
-			g.Expect(clusterConfigurationV1beta3.ControlPlaneEndpoint).To(Equal("myControlPlaneEndpoint:6443"))
-			g.Expect(clusterConfigurationV1beta3.ClusterName).To(Equal("mycluster"))
-			g.Expect(clusterConfigurationV1beta3.Networking.PodSubnet).To(Equal("myPodSubnet"))
-			g.Expect(clusterConfigurationV1beta3.Networking.ServiceSubnet).To(Equal("myServiceSubnet"))
-			g.Expect(clusterConfigurationV1beta3.Networking.DNSDomain).To(Equal("myDNSDomain"))
-
-			clusterConfigurationV1beta4 := &upstreamv1beta4.ClusterConfiguration{}
-			k.computeClusterConfigurationModifier(tc.cluster, tc.machine)(clusterConfigurationV1beta4)
-			g.Expect(clusterConfigurationV1beta4.KubernetesVersion).To(Equal("v1.23.0"))
-			g.Expect(clusterConfigurationV1beta4.ControlPlaneEndpoint).To(Equal("myControlPlaneEndpoint:6443"))
-			g.Expect(clusterConfigurationV1beta4.ClusterName).To(Equal("mycluster"))
-			g.Expect(clusterConfigurationV1beta4.Networking.PodSubnet).To(Equal("myPodSubnet"))
-			g.Expect(clusterConfigurationV1beta4.Networking.ServiceSubnet).To(Equal("myServiceSubnet"))
-			g.Expect(clusterConfigurationV1beta4.Networking.DNSDomain).To(Equal("myDNSDomain"))
+			gotData := k.computeClusterConfigurationAdditionalData(tc.cluster, tc.machine, tc.initConfiguration)
+			g.Expect(gotData.KubernetesVersion).To(Equal(ptr.To("v1.23.0")))
+			g.Expect(gotData.ControlPlaneEndpoint).To(Equal(ptr.To("myControlPlaneEndpoint:6443")))
+			g.Expect(gotData.ClusterName).To(Equal(ptr.To("mycluster")))
+			g.Expect(gotData.PodSubnet).To(Equal(ptr.To("myPodSubnet")))
+			g.Expect(gotData.ServiceSubnet).To(Equal(ptr.To("myServiceSubnet")))
+			g.Expect(gotData.DNSDomain).To(Equal(ptr.To("myDNSDomain")))
+			g.Expect(gotData.ControlPlaneComponentHealthCheckSeconds).To(Equal(ptr.To[int32](10)))
 		})
 	}
 }

@@ -40,13 +40,11 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/ptr"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 	"sigs.k8s.io/cluster-api/util"
@@ -238,8 +236,7 @@ func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semve
 			return errors.Errorf("unable to find %q in the kubeadm-config ConfigMap", clusterConfigurationKey)
 		}
 
-		initConfiguration := &bootstrapv1.InitConfiguration{}
-		currentObj, upstreamData, err := kubeadmtypes.UnmarshalClusterConfiguration(currentData, initConfiguration)
+		currentObj, currentUpstreamData, err := kubeadmtypes.UnmarshalClusterConfiguration(currentData)
 		if err != nil {
 			return errors.Wrapf(err, "unable to decode %q in the kubeadm-config ConfigMap's from YAML", clusterConfigurationKey)
 		}
@@ -249,17 +246,16 @@ func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semve
 			mutators[i](updatedObj)
 		}
 
-		currentKubernetesVersion := ptr.Deref(upstreamData.KubernetesVersion, "")
-		desiredKubernetesVersion := fmt.Sprintf("v%s", version.String())
+		updatedUpstreamData := currentUpstreamData.Clone()
 
-		if currentKubernetesVersion != desiredKubernetesVersion || !reflect.DeepEqual(currentObj, updatedObj) {
-			setKubernetesVersion := func(convertible conversion.Convertible) {
-				if upstreamDataSetter, ok := convertible.(upstream.DataSetter); ok {
-					upstreamData.KubernetesVersion = ptr.To(desiredKubernetesVersion)
-					upstreamDataSetter.SetUpstreamData(upstreamData)
-				}
-			}
-			updatedData, err := kubeadmtypes.MarshalClusterConfigurationForVersion(initConfiguration, updatedObj, version, setKubernetesVersion)
+		desiredKubernetesVersion := fmt.Sprintf("v%s", version.String())
+		currentKubernetesVersion := ptr.Deref(currentUpstreamData.KubernetesVersion, "")
+		if currentKubernetesVersion != desiredKubernetesVersion {
+			updatedUpstreamData.KubernetesVersion = ptr.To(desiredKubernetesVersion)
+		}
+
+		if !reflect.DeepEqual(currentObj, updatedObj) || !reflect.DeepEqual(currentUpstreamData, updatedUpstreamData) {
+			updatedData, err := kubeadmtypes.MarshalClusterConfigurationForVersion(updatedObj, version, updatedUpstreamData)
 			if err != nil {
 				return errors.Wrapf(err, "unable to encode %q kubeadm-config ConfigMap's to YAML", clusterConfigurationKey)
 			}

@@ -17,7 +17,6 @@ limitations under the License.
 package upstreamv1beta3
 
 import (
-	"github.com/pkg/errors"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -161,37 +160,15 @@ func Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistration
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(in, out, s)
 }
 
-// Custom conversions to handle fields migrated from ClusterConfiguration to Init and JoinConfiguration in the kubeadm v1beta4 API version.
-
-func (dst *ClusterConfiguration) ConvertFromInitConfiguration(initConfiguration *bootstrapv1.InitConfiguration) error {
-	if initConfiguration == nil || initConfiguration.Timeouts == nil || initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds == nil {
-		return nil
-	}
-
-	dst.APIServer.TimeoutForControlPlane = bootstrapv1.ConvertFromSeconds(initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
-	return nil
-}
-
-func (src *ClusterConfiguration) ConvertToInitConfiguration(initConfiguration *bootstrapv1.InitConfiguration) error {
-	if src.APIServer.TimeoutForControlPlane == nil {
-		return nil
-	}
-
-	if initConfiguration == nil {
-		return errors.New("cannot convert ClusterConfiguration to a nil InitConfiguration")
-	}
-	if initConfiguration.Timeouts == nil {
-		initConfiguration.Timeouts = &bootstrapv1.Timeouts{}
-	}
-	initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = bootstrapv1.ConvertToSeconds(src.APIServer.TimeoutForControlPlane)
-	return nil
-}
-
 // Func to allow handling fields that only exist in upstream types.
 
-var _ upstream.DataSetter = &ClusterConfiguration{}
+var _ upstream.AdditionalDataSetter = &ClusterConfiguration{}
 
-func (src *ClusterConfiguration) SetUpstreamData(data upstream.Data) {
+func (src *ClusterConfiguration) SetAdditionalData(data upstream.AdditionalData) {
+	if src == nil {
+		return
+	}
+
 	if data.KubernetesVersion != nil {
 		src.KubernetesVersion = *data.KubernetesVersion
 	}
@@ -210,12 +187,20 @@ func (src *ClusterConfiguration) SetUpstreamData(data upstream.Data) {
 	if data.PodSubnet != nil {
 		src.Networking.PodSubnet = *data.PodSubnet
 	}
+	if data.ControlPlaneComponentHealthCheckSeconds != nil {
+		src.APIServer.TimeoutForControlPlane = bootstrapv1.ConvertFromSeconds(data.ControlPlaneComponentHealthCheckSeconds)
+	}
 }
 
-var _ upstream.DataGetter = &ClusterConfiguration{}
+var _ upstream.AdditionalDataGetter = &ClusterConfiguration{}
 
-func (src *ClusterConfiguration) GetUpstreamData() upstream.Data {
-	var data upstream.Data
+func (src *ClusterConfiguration) GetAdditionalData(data *upstream.AdditionalData) {
+	if src == nil {
+		return
+	}
+	if data == nil {
+		return
+	}
 
 	if src.KubernetesVersion != "" {
 		data.KubernetesVersion = ptr.To(src.KubernetesVersion)
@@ -235,6 +220,7 @@ func (src *ClusterConfiguration) GetUpstreamData() upstream.Data {
 	if src.Networking.PodSubnet != "" {
 		data.PodSubnet = ptr.To(src.Networking.PodSubnet)
 	}
-
-	return data
+	if src.APIServer.TimeoutForControlPlane != nil {
+		data.ControlPlaneComponentHealthCheckSeconds = bootstrapv1.ConvertToSeconds(src.APIServer.TimeoutForControlPlane)
+	}
 }

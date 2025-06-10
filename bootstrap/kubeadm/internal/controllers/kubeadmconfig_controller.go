@@ -40,7 +40,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/yaml"
 
@@ -548,9 +547,6 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		}
 	}
 
-	// Injects fields into upstream ClusterConfiguration that don't exist in our public API.
-	modifier := r.computeClusterConfigurationModifier(scope.Cluster, machine)
-
 	if scope.Config.Spec.InitConfiguration == nil {
 		scope.Config.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{
 			TypeMeta: metav1.TypeMeta{
@@ -560,7 +556,9 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		}
 	}
 
-	clusterdata, err := kubeadmtypes.MarshalClusterConfigurationForVersion(scope.Config.Spec.InitConfiguration, scope.Config.Spec.ClusterConfiguration, parsedVersion, modifier)
+	additionalData := r.computeClusterConfigurationAdditionalData(scope.Cluster, machine, scope.Config.Spec.InitConfiguration)
+
+	clusterdata, err := kubeadmtypes.MarshalClusterConfigurationForVersion(scope.Config.Spec.ClusterConfiguration, parsedVersion, additionalData)
 	if err != nil {
 		scope.Error(err, "Failed to marshal cluster configuration")
 		return ctrl.Result{}, err
@@ -1325,10 +1323,10 @@ func (r *KubeadmConfigReconciler) reconcileDiscoveryFile(ctx context.Context, cl
 	return ctrl.Result{}, nil
 }
 
-// computeClusterConfigurationModifier injects into config.ClusterConfiguration values from top level objects like cluster and machine.
-// The implementation func respect user provided config values, but in case some of them are missing, values from top level objects are used.
-func (r *KubeadmConfigReconciler) computeClusterConfigurationModifier(cluster *clusterv1.Cluster, machine *clusterv1.Machine) func(convertible conversion.Convertible) {
-	var data upstream.Data
+// computeClusterConfigurationAdditionalData computes additional data that must go in kubeadm's ClusterConfiguration, but exists
+// in different Cluster API objects, like e.g. the Cluster object.
+func (r *KubeadmConfigReconciler) computeClusterConfigurationAdditionalData(cluster *clusterv1.Cluster, machine *clusterv1.Machine, initConfiguration *bootstrapv1.InitConfiguration) *upstream.AdditionalData {
+	data := &upstream.AdditionalData{}
 
 	// If there is a ControlPlaneEndpoint defined at Cluster level (e.g. the load balancer endpoint),
 	// then use Cluster's ControlPlaneEndpoint as a control plane endpoint for the Kubernetes cluster.
@@ -1359,11 +1357,14 @@ func (r *KubeadmConfigReconciler) computeClusterConfigurationModifier(cluster *c
 		data.KubernetesVersion = machine.Spec.Version
 	}
 
-	return func(convertible conversion.Convertible) {
-		if upstreamDataSetter, ok := convertible.(upstream.DataSetter); ok {
-			upstreamDataSetter.SetUpstreamData(data)
-		}
+	// Use ControlPlaneComponentHealthCheckSeconds from init configuration
+	// Note. initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds in v1beta3 kubeadm's API
+	// was part of ClusterConfiguration, so we have to bring it back as additional data.
+	if initConfiguration != nil && initConfiguration.Timeouts != nil && initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
+		data.ControlPlaneComponentHealthCheckSeconds = initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
 	}
+
+	return data
 }
 
 // storeBootstrapData creates a new secret with the data passed in as input,

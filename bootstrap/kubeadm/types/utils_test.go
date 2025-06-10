@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
@@ -123,10 +122,19 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 }
 
 func TestMarshalClusterConfigurationForVersion(t *testing.T) {
+	data := &upstream.AdditionalData{
+		// KubernetesVersion is going to be set on a test bases.
+		ClusterName:                             ptr.To("mycluster"),
+		ControlPlaneEndpoint:                    ptr.To("myControlPlaneEndpoint:6443"),
+		DNSDomain:                               ptr.To("myDNSDomain"),
+		ServiceSubnet:                           ptr.To("myServiceSubnet"),
+		PodSubnet:                               ptr.To("myPodSubnet"),
+		ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](30),
+	}
+
 	type args struct {
-		initConfiguration *bootstrapv1.InitConfiguration
-		capiObj           *bootstrapv1.ClusterConfiguration
-		version           semver.Version
+		capiObj *bootstrapv1.ClusterConfiguration
+		version semver.Version
 	}
 	tests := []struct {
 		name    string
@@ -137,33 +145,6 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 		{
 			name: "Generates a v1beta3 kubeadm configuration",
 			args: args{
-				capiObj: &bootstrapv1.ClusterConfiguration{},
-				version: semver.MustParse("1.22.0"),
-			},
-			want: "apiServer: {}\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta3\n" +
-				"clusterName: mycluster\n" +
-				"controlPlaneEndpoint: myControlPlaneEndpoint:6443\n" +
-				"controllerManager: {}\n" +
-				"dns: {}\n" +
-				"etcd: {}\n" +
-				"kind: ClusterConfiguration\n" +
-				"kubernetesVersion: v1.22.0\n" +
-				"networking:\n" +
-				"  dnsDomain: myDNSDomain\n" +
-				"  podSubnet: myPodSubnet\n" +
-				"  serviceSubnet: myServiceSubnet\n" +
-				"scheduler: {}\n",
-			wantErr: false,
-		},
-		{
-			name: "Generates a v1beta3 kubeadm configuration with data from init configuration",
-			args: args{
-				initConfiguration: &bootstrapv1.InitConfiguration{
-					Timeouts: &bootstrapv1.Timeouts{
-						ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](30),
-					},
-				},
 				capiObj: &bootstrapv1.ClusterConfiguration{},
 				version: semver.MustParse("1.22.0"),
 			},
@@ -212,18 +193,8 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := MarshalClusterConfigurationForVersion(tt.args.initConfiguration, tt.args.capiObj, tt.args.version, func(convertible conversion.Convertible) {
-				if upstreamDataSetter, ok := convertible.(upstream.DataSetter); ok {
-					upstreamDataSetter.SetUpstreamData(upstream.Data{
-						KubernetesVersion:    ptr.To(fmt.Sprintf("v%s", tt.args.version.String())),
-						ClusterName:          ptr.To("mycluster"),
-						ControlPlaneEndpoint: ptr.To("myControlPlaneEndpoint:6443"),
-						DNSDomain:            ptr.To("myDNSDomain"),
-						ServiceSubnet:        ptr.To("myServiceSubnet"),
-						PodSubnet:            ptr.To("myPodSubnet"),
-					})
-				}
-			})
+			data.KubernetesVersion = ptr.To(fmt.Sprintf("v%s", tt.args.version.String()))
+			got, err := MarshalClusterConfigurationForVersion(tt.args.capiObj, tt.args.version, data)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -379,12 +350,11 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 		yaml string
 	}
 	tests := []struct {
-		name                  string
-		args                  args
-		want                  *bootstrapv1.ClusterConfiguration
-		wantInitConfiguration *bootstrapv1.InitConfiguration
-		wantUpstreamData      upstream.Data
-		wantErr               bool
+		name             string
+		args             args
+		want             *bootstrapv1.ClusterConfiguration
+		wantUpstreamData *upstream.AdditionalData
+		wantErr          bool
 	}{
 		{
 			name: "Parses a v1beta3 kubeadm configuration",
@@ -404,9 +374,8 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 					"  serviceSubnet: myServiceSubnet\n" +
 					"scheduler: {}\n",
 			},
-			want:                  &bootstrapv1.ClusterConfiguration{},
-			wantInitConfiguration: &bootstrapv1.InitConfiguration{},
-			wantUpstreamData: upstream.Data{
+			want: &bootstrapv1.ClusterConfiguration{},
+			wantUpstreamData: &upstream.AdditionalData{
 				KubernetesVersion:    ptr.To("v1.23.1"),
 				ClusterName:          ptr.To("mycluster"),
 				ControlPlaneEndpoint: ptr.To("myControlPlaneEndpoint:6443"),
@@ -437,18 +406,14 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 					"scheduler: {}\n",
 			},
 			want: &bootstrapv1.ClusterConfiguration{},
-			wantInitConfiguration: &bootstrapv1.InitConfiguration{
-				Timeouts: &bootstrapv1.Timeouts{
-					ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](50),
-				},
-			},
-			wantUpstreamData: upstream.Data{
-				KubernetesVersion:    ptr.To("v1.23.1"),
-				ClusterName:          ptr.To("mycluster"),
-				ControlPlaneEndpoint: ptr.To("myControlPlaneEndpoint:6443"),
-				DNSDomain:            ptr.To("myDNSDomain"),
-				ServiceSubnet:        ptr.To("myServiceSubnet"),
-				PodSubnet:            ptr.To("myPodSubnet"),
+			wantUpstreamData: &upstream.AdditionalData{
+				KubernetesVersion:                       ptr.To("v1.23.1"),
+				ClusterName:                             ptr.To("mycluster"),
+				ControlPlaneEndpoint:                    ptr.To("myControlPlaneEndpoint:6443"),
+				DNSDomain:                               ptr.To("myDNSDomain"),
+				ServiceSubnet:                           ptr.To("myServiceSubnet"),
+				PodSubnet:                               ptr.To("myPodSubnet"),
+				ControlPlaneComponentHealthCheckSeconds: ptr.To(int32(50)),
 			},
 			wantErr: false,
 		},
@@ -471,9 +436,8 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 					"proxy: {}\n" +
 					"scheduler: {}\n",
 			},
-			want:                  &bootstrapv1.ClusterConfiguration{},
-			wantInitConfiguration: &bootstrapv1.InitConfiguration{},
-			wantUpstreamData: upstream.Data{
+			want: &bootstrapv1.ClusterConfiguration{},
+			wantUpstreamData: &upstream.AdditionalData{
 				KubernetesVersion:    ptr.To("v1.31.1"),
 				ClusterName:          ptr.To("mycluster"),
 				ControlPlaneEndpoint: ptr.To("myControlPlaneEndpoint:6443"),
@@ -488,15 +452,13 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gotInitConfiguration := &bootstrapv1.InitConfiguration{}
-			got, upstreamData, err := UnmarshalClusterConfiguration(tt.args.yaml, gotInitConfiguration)
+			got, upstreamData, err := UnmarshalClusterConfiguration(tt.args.yaml)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(BeComparableTo(tt.want), cmp.Diff(tt.want, got))
-			g.Expect(gotInitConfiguration).To(BeComparableTo(tt.wantInitConfiguration), cmp.Diff(tt.wantInitConfiguration, gotInitConfiguration))
 			g.Expect(upstreamData).To(Equal(tt.wantUpstreamData))
 		})
 	}

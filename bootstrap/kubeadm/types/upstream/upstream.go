@@ -14,27 +14,48 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package upstream contains types to handle additional data that only exists in upstream types.
+// Package upstream contains types to handle additional data during Marshal or UnMarshal of kubeadm's types.
+//
+// In this context "Additional data" refers to data existing in the kubeadm's types, but not included in the
+// corresponding Cluster API types, or migrated from one struct to another in one of the older versions
+// of the kubeadm's types.
 package upstream
 
-// DataSetter defines capabilities of a type to set additional data that only
-// exists in the upstream types.
-type DataSetter interface {
-	SetUpstreamData(data Data)
+// AdditionalDataSetter defines capabilities of a type to set additional data.
+type AdditionalDataSetter interface {
+	SetAdditionalData(data AdditionalData)
 }
 
-// DataGetter defines capabilities of a type to get additional data that only
-// exists in the upstream types.
-type DataGetter interface {
-	GetUpstreamData() Data
+// AdditionalDataGetter defines capabilities of a type to get additional data.
+type AdditionalDataGetter interface {
+	GetAdditionalData(*AdditionalData)
 }
 
-// Data is additional data that only exists in the upstream types.
-type Data struct {
+// AdditionalData is additional data that must go in kubeadm's ClusterConfiguration, but exists
+// in different Cluster API objects, like e.g. the Cluster object.
+type AdditionalData struct {
+	// Data from Cluster API's Cluster object.
 	KubernetesVersion    *string
 	ClusterName          *string
 	ControlPlaneEndpoint *string
 	DNSDomain            *string
 	ServiceSubnet        *string
 	PodSubnet            *string
+
+	// Data migrated from ClusterConfiguration to InitConfiguration in kubeadm's v1beta4 API version.
+	// Note: Corresponding Cluster API types are aligned with kubeadm's v1beta4 API version.
+	ControlPlaneComponentHealthCheckSeconds *int32
+}
+
+// Clone returns a clone of AdditionalData.
+func (a *AdditionalData) Clone() *AdditionalData {
+	return &AdditionalData{
+		KubernetesVersion:                       a.KubernetesVersion,
+		ClusterName:                             a.ClusterName,
+		ControlPlaneEndpoint:                    a.ControlPlaneEndpoint,
+		DNSDomain:                               a.DNSDomain,
+		ServiceSubnet:                           a.ServiceSubnet,
+		PodSubnet:                               a.PodSubnet,
+		ControlPlaneComponentHealthCheckSeconds: a.ControlPlaneComponentHealthCheckSeconds,
+	}
 }

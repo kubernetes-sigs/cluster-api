@@ -141,9 +141,13 @@ func Convert_v1beta2_Timeouts_To_upstreamv1beta4_Timeouts(in *bootstrapv1.Timeou
 
 // Func to allow handling fields that only exist in upstream types.
 
-var _ upstream.DataSetter = &ClusterConfiguration{}
+var _ upstream.AdditionalDataSetter = &ClusterConfiguration{}
 
-func (src *ClusterConfiguration) SetUpstreamData(data upstream.Data) {
+func (src *ClusterConfiguration) SetAdditionalData(data upstream.AdditionalData) {
+	if src == nil {
+		return
+	}
+
 	if data.KubernetesVersion != nil {
 		src.KubernetesVersion = *data.KubernetesVersion
 	}
@@ -162,12 +166,20 @@ func (src *ClusterConfiguration) SetUpstreamData(data upstream.Data) {
 	if data.PodSubnet != nil {
 		src.Networking.PodSubnet = *data.PodSubnet
 	}
+
+	// NOTE: for kubeadm v1beta4 types we are not setting APIServer.TimeoutForControlPlane because it doesn't exist
+	// (the timeout is configured in InitConfiguration / JoinConfiguration instead).
 }
 
-var _ upstream.DataGetter = &ClusterConfiguration{}
+var _ upstream.AdditionalDataGetter = &ClusterConfiguration{}
 
-func (src *ClusterConfiguration) GetUpstreamData() upstream.Data {
-	var data upstream.Data
+func (src *ClusterConfiguration) GetAdditionalData(data *upstream.AdditionalData) {
+	if src == nil {
+		return
+	}
+	if data == nil {
+		return
+	}
 
 	if src.KubernetesVersion != "" {
 		data.KubernetesVersion = ptr.To(src.KubernetesVersion)
@@ -188,5 +200,6 @@ func (src *ClusterConfiguration) GetUpstreamData() upstream.Data {
 		data.PodSubnet = ptr.To(src.Networking.PodSubnet)
 	}
 
-	return data
+	// NOTE: for kubeadm v1beta4 types we are not reading ControlPlaneComponentHealthCheckSeconds into additional data
+	// because Cluster API types are aligned with kubeadm's v1beta4 API version.
 }

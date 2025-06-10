@@ -6,11 +6,14 @@ As part of this effort, everyone is welcome to add to the list below both provid
 by SIG Cluster Lifecycle as well as providers from other open-source repositories.
 
 Each provider is the responsibility of the respective maintainers and we highly recommend
-everyone interested in a specific provider to engage with the corresponding team or at least
-to read corresponding documentation carefully.
+everyone interested in a specific provider to engage with the corresponding team to show support, share use cases,
+learn more about the other users of the same provider. 
+
+We also recommend to read provider's documentation carefully, test it, and perform a proper
+due diligence before deciding to use a provider in production, like you will do for any other open source project.
 
 We are deeply thankful to all the the providers in the list, because they are a concrete proof
-of the liveness of the ecosystem,  a relevant part of the history of this community, and a valuable
+of the liveness of the ecosystem, a relevant part of the history of this community, and a valuable
 source of inspiration and ideas for others.
 
 ## Bootstrap

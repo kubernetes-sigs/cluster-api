@@ -55,7 +55,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 
 </aside>
 
-## Rules (contract version v1beta1)
+## Rules (contract version v1beta2)
 
 | Rule                                                                 | Mandatory | Note                                                                                                                       |
 |----------------------------------------------------------------------|-----------|----------------------------------------------------------------------------------------------------------------------------|

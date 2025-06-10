@@ -1,4 +1,4 @@
-# clusterctl Provider Contract
+# clusterctl Provider Contract (contract version v1beta2)
 
 The `clusterctl` command is designed to work with all the providers compliant with the following rules.
 

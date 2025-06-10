@@ -72,6 +72,7 @@ func TestUpdateEtcdExternalInKubeadmConfigMap(t *testing.T) {
 				    - 1.2.3.4
 				    keyFile: /tmp/key_file.key
 				kind: ClusterConfiguration
+				kubernetesVersion: v1.23.1
 				networking: {}
 				scheduler: {}
 				`),
@@ -81,6 +82,7 @@ func TestUpdateEtcdExternalInKubeadmConfigMap(t *testing.T) {
 			clusterConfigurationData: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta3
 				kind: ClusterConfiguration
+				kubernetesVersion: v1.23.1
 				etcd:
 				  local: {}
 				`),
@@ -93,6 +95,7 @@ func TestUpdateEtcdExternalInKubeadmConfigMap(t *testing.T) {
 			wantClusterConfiguration: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta3
 				kind: ClusterConfiguration
+				kubernetesVersion: v1.23.1
 				etcd:
 				  local: {}
 				`),
@@ -171,6 +174,7 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 				    imageRepository: example.com/k8s
 				    imageTag: v1.6.0
 				kind: ClusterConfiguration
+				kubernetesVersion: v1.23.1
 				networking: {}
 				scheduler: {}
 				`),
@@ -181,6 +185,7 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 			clusterConfigurationData: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta3
 				kind: ClusterConfiguration
+				kubernetesVersion: v1.23.1
 				etcd:
 				  external: {}
 				`),
@@ -199,6 +204,7 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 			wantClusterConfiguration: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta3
 				kind: ClusterConfiguration
+				kubernetesVersion: v1.23.1
 				etcd:
 				  external: {}
 				`),
@@ -238,6 +244,7 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 				    imageRepository: example.com/k8s
 				    imageTag: v1.6.0
 				kind: ClusterConfiguration
+				kubernetesVersion: v1.31.1
 				networking: {}
 				proxy: {}
 				scheduler: {}
@@ -249,6 +256,7 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 			clusterConfigurationData: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta4
 				kind: ClusterConfiguration
+				kubernetesVersion: v1.31.1
 				etcd:
 				  external: {}
 				`),
@@ -267,6 +275,7 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 			wantClusterConfiguration: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta4
 				kind: ClusterConfiguration
+				kubernetesVersion: v1.31.1
 				etcd:
 				  external: {}
 				`),

@@ -60,7 +60,6 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	}
 
 	kubeadmCMMutators := make([]func(*bootstrapv1.ClusterConfiguration), 0)
-	kubeadmCMMutators = append(kubeadmCMMutators, workloadCluster.UpdateKubernetesVersionInKubeadmConfigMap(parsedVersion))
 
 	if controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
 		// Get the imageRepository or the correct value if nothing is set and a migration is necessary.

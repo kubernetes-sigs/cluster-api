@@ -130,35 +130,6 @@ type ClusterConfiguration struct {
 	// +optional
 	Etcd Etcd `json:"etcd,omitempty"`
 
-	// networking holds configuration for the networking topology of the cluster.
-	// NB: This value defaults to the Cluster object spec.clusterNetwork.
-	// +optional
-	Networking Networking `json:"networking,omitempty"`
-
-	// kubernetesVersion is the target version of the control plane.
-	// NB: This value defaults to the Machine object spec.version
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=256
-	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
-
-	// controlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
-	// can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
-	// In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
-	// are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
-	// the BindPort is used.
-	// Possible usages are:
-	// e.g. In a cluster with more than one control plane instances, this field should be
-	// assigned the address of the external load balancer in front of the
-	// control plane instances.
-	// e.g.  in environments with enforced node recycling, the ControlPlaneEndpoint
-	// could be used for assigning a stable DNS to the control plane.
-	// NB: This value defaults to the first value in the Cluster object status.apiEndpoints array.
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=512
-	ControlPlaneEndpoint string `json:"controlPlaneEndpoint,omitempty"`
-
 	// apiServer contains extra settings for the API server control plane component
 	// +optional
 	APIServer APIServer `json:"apiServer,omitempty"`
@@ -201,12 +172,6 @@ type ClusterConfiguration struct {
 	// featureGates enabled by the user.
 	// +optional
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
-
-	// clusterName is the cluster name
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=63
-	ClusterName string `json:"clusterName,omitempty"`
 }
 
 // ControlPlaneComponent holds settings common to control plane component of the cluster.
@@ -414,29 +379,6 @@ func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 		ImagePullPolicy:       n.ImagePullPolicy,
 		ImagePullSerial:       n.ImagePullSerial,
 	})
-}
-
-// Networking contains elements describing cluster's networking configuration.
-type Networking struct {
-	// serviceSubnet is the subnet used by k8s services.
-	// Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.pods.cidrBlocks, or
-	// to "10.96.0.0/12" if that's unset.
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=1024
-	ServiceSubnet string `json:"serviceSubnet,omitempty"`
-	// podSubnet is the subnet used by pods.
-	// If unset, the API server will not allocate CIDR ranges for every node.
-	// Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.services.cidrBlocks if that is set
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=1024
-	PodSubnet string `json:"podSubnet,omitempty"`
-	// dnsDomain is the dns domain used by k8s services. Defaults to "cluster.local".
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	DNSDomain string `json:"dnsDomain,omitempty"`
 }
 
 // BootstrapToken describes one bootstrap token, stored as a Secret in the cluster.

@@ -17,11 +17,12 @@ limitations under the License.
 package upstreamv1beta3
 
 import (
-	"github.com/pkg/errors"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
 )
 
 func (src *ClusterConfiguration) ConvertTo(dstRaw conversion.Hub) error {
@@ -55,6 +56,10 @@ func (dst *JoinConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 }
 
 // Custom conversion from this API, kubeadm v1beta3, to the hub version, CABPK v1beta1.
+
+func Convert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
+	return autoConvert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s)
+}
 
 func Convert_upstreamv1beta3_InitConfiguration_To_v1beta2_InitConfiguration(in *InitConfiguration, out *bootstrapv1.InitConfiguration, s apimachineryconversion.Scope) error {
 	// InitConfiguration.CertificateKey does not exist in CABPK, because Cluster API does not use automatic copy certs.
@@ -155,28 +160,67 @@ func Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistration
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(in, out, s)
 }
 
-// Custom conversions to handle fields migrated from ClusterConfiguration to Init and JoinConfiguration in the kubeadm v1beta4 API version.
+// Func to allow handling fields that only exist in upstream types.
 
-func (dst *ClusterConfiguration) ConvertFromInitConfiguration(initConfiguration *bootstrapv1.InitConfiguration) error {
-	if initConfiguration == nil || initConfiguration.Timeouts == nil || initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds == nil {
-		return nil
+var _ upstream.AdditionalDataSetter = &ClusterConfiguration{}
+
+func (src *ClusterConfiguration) SetAdditionalData(data upstream.AdditionalData) {
+	if src == nil {
+		return
 	}
 
-	dst.APIServer.TimeoutForControlPlane = bootstrapv1.ConvertFromSeconds(initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
-	return nil
+	if data.KubernetesVersion != nil {
+		src.KubernetesVersion = *data.KubernetesVersion
+	}
+	if data.ClusterName != nil {
+		src.ClusterName = *data.ClusterName
+	}
+	if data.ControlPlaneEndpoint != nil {
+		src.ControlPlaneEndpoint = *data.ControlPlaneEndpoint
+	}
+	if data.DNSDomain != nil {
+		src.Networking.DNSDomain = *data.DNSDomain
+	}
+	if data.ServiceSubnet != nil {
+		src.Networking.ServiceSubnet = *data.ServiceSubnet
+	}
+	if data.PodSubnet != nil {
+		src.Networking.PodSubnet = *data.PodSubnet
+	}
+	if data.ControlPlaneComponentHealthCheckSeconds != nil {
+		src.APIServer.TimeoutForControlPlane = bootstrapv1.ConvertFromSeconds(data.ControlPlaneComponentHealthCheckSeconds)
+	}
 }
 
-func (src *ClusterConfiguration) ConvertToInitConfiguration(initConfiguration *bootstrapv1.InitConfiguration) error {
-	if src.APIServer.TimeoutForControlPlane == nil {
-		return nil
+var _ upstream.AdditionalDataGetter = &ClusterConfiguration{}
+
+func (src *ClusterConfiguration) GetAdditionalData(data *upstream.AdditionalData) {
+	if src == nil {
+		return
+	}
+	if data == nil {
+		return
 	}
 
-	if initConfiguration == nil {
-		return errors.New("cannot convert ClusterConfiguration to a nil InitConfiguration")
+	if src.KubernetesVersion != "" {
+		data.KubernetesVersion = ptr.To(src.KubernetesVersion)
 	}
-	if initConfiguration.Timeouts == nil {
-		initConfiguration.Timeouts = &bootstrapv1.Timeouts{}
+	if src.ClusterName != "" {
+		data.ClusterName = ptr.To(src.ClusterName)
 	}
-	initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = bootstrapv1.ConvertToSeconds(src.APIServer.TimeoutForControlPlane)
-	return nil
+	if src.ControlPlaneEndpoint != "" {
+		data.ControlPlaneEndpoint = ptr.To(src.ControlPlaneEndpoint)
+	}
+	if src.Networking.DNSDomain != "" {
+		data.DNSDomain = ptr.To(src.Networking.DNSDomain)
+	}
+	if src.Networking.ServiceSubnet != "" {
+		data.ServiceSubnet = ptr.To(src.Networking.ServiceSubnet)
+	}
+	if src.Networking.PodSubnet != "" {
+		data.PodSubnet = ptr.To(src.Networking.PodSubnet)
+	}
+	if src.APIServer.TimeoutForControlPlane != nil {
+		data.ControlPlaneComponentHealthCheckSeconds = bootstrapv1.ConvertToSeconds(src.APIServer.TimeoutForControlPlane)
+	}
 }

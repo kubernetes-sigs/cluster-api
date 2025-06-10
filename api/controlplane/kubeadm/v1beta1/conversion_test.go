@@ -60,6 +60,7 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 		hubKubeadmControlPlaneStatus,
 		spokeKubeadmControlPlaneStatus,
 		spokeKubeadmConfigSpec,
+		spokeClusterConfiguration,
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
 		spokeAPIServer,
@@ -71,6 +72,7 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeKubeadmConfigSpec,
+		spokeClusterConfiguration,
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
 		spokeAPIServer,
@@ -166,4 +168,16 @@ func spokeKubeadmConfigSpec(in *bootstrapv1beta1.KubeadmConfigSpec, c randfill.C
 
 	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
 	in.UseExperimentalRetryJoin = false
+}
+
+func spokeClusterConfiguration(in *bootstrapv1beta1.ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
+	in.Networking.ServiceSubnet = ""
+	in.Networking.PodSubnet = ""
+	in.Networking.DNSDomain = ""
+	in.KubernetesVersion = ""
+	in.ControlPlaneEndpoint = ""
+	in.ClusterName = ""
 }

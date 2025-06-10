@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/ignition"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/locking"
 	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/feature"
@@ -546,9 +547,6 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		}
 	}
 
-	// injects into config.ClusterConfiguration values from top level object
-	r.reconcileTopLevelObjectSettings(ctx, scope.Cluster, machine, scope.Config)
-
 	if scope.Config.Spec.InitConfiguration == nil {
 		scope.Config.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{
 			TypeMeta: metav1.TypeMeta{
@@ -558,7 +556,9 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		}
 	}
 
-	clusterdata, err := kubeadmtypes.MarshalClusterConfigurationForVersion(scope.Config.Spec.InitConfiguration, scope.Config.Spec.ClusterConfiguration, parsedVersion)
+	additionalData := r.computeClusterConfigurationAdditionalData(scope.Cluster, machine, scope.Config.Spec.InitConfiguration)
+
+	clusterdata, err := kubeadmtypes.MarshalClusterConfigurationForVersion(scope.Config.Spec.ClusterConfiguration, parsedVersion, additionalData)
 	if err != nil {
 		scope.Error(err, "Failed to marshal cluster configuration")
 		return ctrl.Result{}, err
@@ -1323,50 +1323,48 @@ func (r *KubeadmConfigReconciler) reconcileDiscoveryFile(ctx context.Context, cl
 	return ctrl.Result{}, nil
 }
 
-// reconcileTopLevelObjectSettings injects into config.ClusterConfiguration values from top level objects like cluster and machine.
-// The implementation func respect user provided config values, but in case some of them are missing, values from top level objects are used.
-func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, config *bootstrapv1.KubeadmConfig) {
-	log := ctrl.LoggerFrom(ctx)
+// computeClusterConfigurationAdditionalData computes additional data that must go in kubeadm's ClusterConfiguration, but exists
+// in different Cluster API objects, like e.g. the Cluster object.
+func (r *KubeadmConfigReconciler) computeClusterConfigurationAdditionalData(cluster *clusterv1.Cluster, machine *clusterv1.Machine, initConfiguration *bootstrapv1.InitConfiguration) *upstream.AdditionalData {
+	data := &upstream.AdditionalData{}
 
-	// If there is no ControlPlaneEndpoint defined in ClusterConfiguration but
-	// there is a ControlPlaneEndpoint defined at Cluster level (e.g. the load balancer endpoint),
+	// If there is a ControlPlaneEndpoint defined at Cluster level (e.g. the load balancer endpoint),
 	// then use Cluster's ControlPlaneEndpoint as a control plane endpoint for the Kubernetes cluster.
-	if config.Spec.ClusterConfiguration.ControlPlaneEndpoint == "" && cluster.Spec.ControlPlaneEndpoint.IsValid() {
-		config.Spec.ClusterConfiguration.ControlPlaneEndpoint = cluster.Spec.ControlPlaneEndpoint.String()
-		log.V(3).Info("Altering ClusterConfiguration.ControlPlaneEndpoint", "controlPlaneEndpoint", config.Spec.ClusterConfiguration.ControlPlaneEndpoint)
+	if cluster.Spec.ControlPlaneEndpoint.IsValid() {
+		data.ControlPlaneEndpoint = ptr.To(cluster.Spec.ControlPlaneEndpoint.String())
 	}
 
-	// If there are no ClusterName defined in ClusterConfiguration, use Cluster.Name
-	if config.Spec.ClusterConfiguration.ClusterName == "" {
-		config.Spec.ClusterConfiguration.ClusterName = cluster.Name
-		log.V(3).Info("Altering ClusterConfiguration.ClusterName", "clusterName", config.Spec.ClusterConfiguration.ClusterName)
-	}
+	// Use Cluster.Name
+	data.ClusterName = ptr.To(cluster.Name)
 
-	// If there are no Network settings defined in ClusterConfiguration, use ClusterNetwork settings, if defined
+	// Use ClusterNetwork settings, if defined
 	if cluster.Spec.ClusterNetwork != nil {
-		if config.Spec.ClusterConfiguration.Networking.DNSDomain == "" && cluster.Spec.ClusterNetwork.ServiceDomain != "" {
-			config.Spec.ClusterConfiguration.Networking.DNSDomain = cluster.Spec.ClusterNetwork.ServiceDomain
-			log.V(3).Info("Altering ClusterConfiguration.Networking.DNSDomain", "dnsDomain", config.Spec.ClusterConfiguration.Networking.DNSDomain)
+		if cluster.Spec.ClusterNetwork.ServiceDomain != "" {
+			data.DNSDomain = ptr.To(cluster.Spec.ClusterNetwork.ServiceDomain)
 		}
-		if config.Spec.ClusterConfiguration.Networking.ServiceSubnet == "" &&
-			cluster.Spec.ClusterNetwork.Services != nil &&
+		if cluster.Spec.ClusterNetwork.Services != nil &&
 			len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
-			config.Spec.ClusterConfiguration.Networking.ServiceSubnet = cluster.Spec.ClusterNetwork.Services.String()
-			log.V(3).Info("Altering ClusterConfiguration.Networking.ServiceSubnet", "serviceSubnet", config.Spec.ClusterConfiguration.Networking.ServiceSubnet)
+			data.ServiceSubnet = ptr.To(cluster.Spec.ClusterNetwork.Services.String())
 		}
-		if config.Spec.ClusterConfiguration.Networking.PodSubnet == "" &&
-			cluster.Spec.ClusterNetwork.Pods != nil &&
+		if cluster.Spec.ClusterNetwork.Pods != nil &&
 			len(cluster.Spec.ClusterNetwork.Pods.CIDRBlocks) > 0 {
-			config.Spec.ClusterConfiguration.Networking.PodSubnet = cluster.Spec.ClusterNetwork.Pods.String()
-			log.V(3).Info("Altering ClusterConfiguration.Networking.PodSubnet", "podSubnet", config.Spec.ClusterConfiguration.Networking.PodSubnet)
+			data.PodSubnet = ptr.To(cluster.Spec.ClusterNetwork.Pods.String())
 		}
 	}
 
-	// If there are no KubernetesVersion settings defined in ClusterConfiguration, use Version from machine, if defined
-	if config.Spec.ClusterConfiguration.KubernetesVersion == "" && machine.Spec.Version != nil {
-		config.Spec.ClusterConfiguration.KubernetesVersion = *machine.Spec.Version
-		log.V(3).Info("Altering ClusterConfiguration.KubernetesVersion", "kubernetesVersion", config.Spec.ClusterConfiguration.KubernetesVersion)
+	// Use Version from machine, if defined
+	if machine.Spec.Version != nil {
+		data.KubernetesVersion = machine.Spec.Version
 	}
+
+	// Use ControlPlaneComponentHealthCheckSeconds from init configuration
+	// Note. initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds in v1beta3 kubeadm's API
+	// was part of ClusterConfiguration, so we have to bring it back as additional data.
+	if initConfiguration != nil && initConfiguration.Timeouts != nil && initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
+		data.ControlPlaneComponentHealthCheckSeconds = initConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
+	}
+
+	return data
 }
 
 // storeBootstrapData creates a new secret with the data passed in as input,

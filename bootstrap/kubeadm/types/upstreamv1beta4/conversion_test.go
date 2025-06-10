@@ -91,6 +91,14 @@ func spokeClusterConfigurationFuzzer(obj *ClusterConfiguration, c randfill.Conti
 	obj.EncryptionAlgorithm = ""
 	obj.CACertificateValidityPeriod = nil
 	obj.CertificateValidityPeriod = nil
+
+	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
+	obj.Networking.ServiceSubnet = ""
+	obj.Networking.PodSubnet = ""
+	obj.Networking.DNSDomain = ""
+	obj.KubernetesVersion = ""
+	obj.ControlPlaneEndpoint = ""
+	obj.ClusterName = ""
 }
 
 func spokeDNSFuzzer(obj *DNS, c randfill.Continue) {

@@ -1832,57 +1832,18 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t 
 }
 
 // Set cluster configuration defaults based on dynamic values from the cluster object.
-func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguration(t *testing.T) {
+func TestKubeadmConfigReconciler_computeClusterConfigurationAdditionalData(t *testing.T) {
 	k := &KubeadmConfigReconciler{}
 
 	testcases := []struct {
-		name    string
-		cluster *clusterv1.Cluster
-		machine *clusterv1.Machine
-		config  *bootstrapv1.KubeadmConfig
+		name              string
+		cluster           *clusterv1.Cluster
+		machine           *clusterv1.Machine
+		config            *bootstrapv1.KubeadmConfig
+		initConfiguration *bootstrapv1.InitConfiguration
 	}{
 		{
-			name: "Config settings have precedence",
-			config: &bootstrapv1.KubeadmConfig{
-				Spec: bootstrapv1.KubeadmConfigSpec{
-					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-						ClusterName:       "mycluster",
-						KubernetesVersion: "myversion",
-						Networking: bootstrapv1.Networking{
-							PodSubnet:     "myPodSubnet",
-							ServiceSubnet: "myServiceSubnet",
-							DNSDomain:     "myDNSDomain",
-						},
-						ControlPlaneEndpoint: "myControlPlaneEndpoint:6443",
-					},
-				},
-			},
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "OtherName",
-				},
-				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: &clusterv1.ClusterNetwork{
-						Services:      &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherServicesCidr"}},
-						Pods:          &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherPodsCidr"}},
-						ServiceDomain: "otherServiceDomain",
-					},
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "otherVersion", Port: 0},
-				},
-			},
-			machine: &clusterv1.Machine{
-				Spec: clusterv1.MachineSpec{
-					Version: ptr.To("otherVersion"),
-				},
-			},
-		},
-		{
-			name: "Top level object settings are used in case config settings are missing",
-			config: &bootstrapv1.KubeadmConfig{
-				Spec: bootstrapv1.KubeadmConfigSpec{
-					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{},
-				},
-			},
+			name: "Propagate fields from Cluster & Machine & initConfiguration",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mycluster",
@@ -1898,7 +1859,12 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 			},
 			machine: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					Version: ptr.To("myversion"),
+					Version: ptr.To("v1.23.0"),
+				},
+			},
+			initConfiguration: &bootstrapv1.InitConfiguration{
+				Timeouts: &bootstrapv1.Timeouts{
+					ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10),
 				},
 			},
 		},
@@ -1908,14 +1874,14 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			k.reconcileTopLevelObjectSettings(ctx, tc.cluster, tc.machine, tc.config)
-
-			g.Expect(tc.config.Spec.ClusterConfiguration.ControlPlaneEndpoint).To(Equal("myControlPlaneEndpoint:6443"))
-			g.Expect(tc.config.Spec.ClusterConfiguration.ClusterName).To(Equal("mycluster"))
-			g.Expect(tc.config.Spec.ClusterConfiguration.Networking.PodSubnet).To(Equal("myPodSubnet"))
-			g.Expect(tc.config.Spec.ClusterConfiguration.Networking.ServiceSubnet).To(Equal("myServiceSubnet"))
-			g.Expect(tc.config.Spec.ClusterConfiguration.Networking.DNSDomain).To(Equal("myDNSDomain"))
-			g.Expect(tc.config.Spec.ClusterConfiguration.KubernetesVersion).To(Equal("myversion"))
+			gotData := k.computeClusterConfigurationAdditionalData(tc.cluster, tc.machine, tc.initConfiguration)
+			g.Expect(gotData.KubernetesVersion).To(Equal(ptr.To("v1.23.0")))
+			g.Expect(gotData.ControlPlaneEndpoint).To(Equal(ptr.To("myControlPlaneEndpoint:6443")))
+			g.Expect(gotData.ClusterName).To(Equal(ptr.To("mycluster")))
+			g.Expect(gotData.PodSubnet).To(Equal(ptr.To("myPodSubnet")))
+			g.Expect(gotData.ServiceSubnet).To(Equal(ptr.To("myServiceSubnet")))
+			g.Expect(gotData.DNSDomain).To(Equal(ptr.To("myDNSDomain")))
+			g.Expect(gotData.ControlPlaneComponentHealthCheckSeconds).To(Equal(ptr.To[int32](10)))
 		})
 	}
 }

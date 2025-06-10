@@ -58,7 +58,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	clog "sigs.k8s.io/cluster-api/util/log"
@@ -1539,7 +1538,7 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 		return false, nil
 	}
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
+	if err := contract.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		return false, err
 	}
 

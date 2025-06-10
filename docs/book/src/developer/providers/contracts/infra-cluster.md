@@ -251,20 +251,40 @@ placed in, the list of available failure domains MUST surface on `status.failure
 ```go
 type FooClusterStatus struct {
     // failureDomains is a list of failure domain objects synced from the infrastructure provider.
-    FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+    // +optional
+    // +listType=map
+    // +listMapKey=name
+    // +kubebuilder:validation:MinItems=1
+    // +kubebuilder:validation:MaxItems=100
+    FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
     
     // See other rules for more details about mandatory/optional fields in InfraCluster status.
     // Other fields SHOULD be added based on the needs of your provider.
 }
 ```
 
-`clusterv1.FailureDomains` is a map, defined as `map[string]FailureDomainSpec`. A unique key must be used for each `FailureDomainSpec`.
-`FailureDomainSpec` is defined as:
+`FailureDomain` is defined as:
+- `name string`: the name of the failure domain (must be unique)
 - `controlPlane bool`: indicates if failure domain is appropriate for running control plane instances.
 - `attributes map[string]string`: arbitrary attributes for users to apply to a failure domain.
 
 Once `status.failureDomains` is set on the InfraCluster resource and the [InfraCluster initialization completed],
 the Cluster controller will surface this info in Cluster's `status.failureDomains`.
+
+<aside class="note warning">
+
+<h1>Compatibility with the deprecated v1beta1 contract</h1>
+
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+
+For reference, with the v1beta1 contract the field is of type `clusterv1beta1.FailureDomains`, which is a map defined as 
+`map[string]clusterv1beta1.FailureDomainSpec`. A unique key must be used for each `FailureDomainSpec`.
+`FailureDomainSpec` is defined as:
+- `controlPlane bool`: indicates if failure domain is appropriate for running control plane instances.
+- `attributes map[string]string`: arbitrary attributes for users to apply to a failure domain.
+
+</aside>
 
 ### InfraCluster: initialization completed
 

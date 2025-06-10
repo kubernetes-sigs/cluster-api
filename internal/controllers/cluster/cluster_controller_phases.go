@@ -40,7 +40,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -53,7 +52,7 @@ var externalReadyWait = 30 * time.Second
 func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
+	if err := contract.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		if apierrors.IsNotFound(err) {
 			// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found.
 			return nil, errors.New(err.Error())
@@ -180,7 +179,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	s.infraCluster = obj
 
 	// Determine contract version used by the InfrastructureCluster.
-	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.infraCluster.GroupVersionKind())
+	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.infraCluster.GroupVersionKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -233,14 +232,14 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// Get and parse Status.FailureDomains from the infrastructure provider.
-	if failureDomains, err := contract.InfrastructureCluster().FailureDomains().Get(obj); err == nil {
-		cluster.Status.FailureDomains = *failureDomains
+	if failureDomains, err := contract.InfrastructureCluster().FailureDomains(contractVersion).Get(obj); err == nil {
+		cluster.Status.FailureDomains = failureDomains
 	} else {
 		if !errors.Is(err, contract.ErrFieldNotFound) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve %s from infrastructure provider for Cluster %q in namespace %q",
-				strings.Join(contract.InfrastructureCluster().FailureDomains().Path(), "."), cluster.Name, cluster.Namespace)
+				strings.Join(contract.InfrastructureCluster().FailureDomains(contractVersion).Path(), "."), cluster.Name, cluster.Namespace)
 		}
-		cluster.Status.FailureDomains = clusterv1.FailureDomains{}
+		cluster.Status.FailureDomains = []clusterv1.FailureDomain{}
 	}
 
 	// Only record the event if the status has changed
@@ -287,7 +286,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	s.controlPlane = obj
 
 	// Determine contract version used by the ControlPlane.
-	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind())
+	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}

@@ -18,12 +18,16 @@ package contract
 
 import (
 	"encoding/json"
+	"maps"
+	"slices"
+	"sort"
 	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -86,9 +90,10 @@ func (c *InfrastructureClusterContract) FailureMessage() *String {
 }
 
 // FailureDomains provides access to the status.failureDomains field in an InfrastructureCluster object. Note that this field is optional.
-func (c *InfrastructureClusterContract) FailureDomains() *FailureDomains {
+func (c *InfrastructureClusterContract) FailureDomains(contractVersion string) *FailureDomains {
 	return &FailureDomains{
-		path: []string{"status", "failureDomains"},
+		contractVersion: contractVersion,
+		path:            []string{"status", "failureDomains"},
 	}
 }
 
@@ -121,7 +126,8 @@ func (c *InfrastructureClusterContract) IgnorePaths(infrastructureCluster *unstr
 
 // FailureDomains represents an accessor to a clusterv1.FailureDomains path value.
 type FailureDomains struct {
-	path Path
+	contractVersion string
+	path            Path
 }
 
 // Path returns the path to the clusterv1.FailureDomains value.
@@ -130,8 +136,44 @@ func (d *FailureDomains) Path() Path {
 }
 
 // Get gets the metav1.MachineAddressList value.
-func (d *FailureDomains) Get(obj *unstructured.Unstructured) (*clusterv1.FailureDomains, error) {
-	domainMap, ok, err := unstructured.NestedMap(obj.UnstructuredContent(), d.path...)
+func (d *FailureDomains) Get(obj *unstructured.Unstructured) ([]clusterv1.FailureDomain, error) {
+	if d.contractVersion == "v1beta1" {
+		domainMap, ok, err := unstructured.NestedMap(obj.UnstructuredContent(), d.path...)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(d.path, "."))
+		}
+		if !ok {
+			return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+strings.Join(d.path, "."))
+		}
+
+		domains := make(clusterv1beta1.FailureDomains, len(domainMap))
+		s, err := json.Marshal(domainMap)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to marshal field at %s to json", "."+strings.Join(d.path, "."))
+		}
+		if err := json.Unmarshal(s, &domains); err != nil {
+			return nil, errors.Wrapf(err, "failed to unmarshal field at %s to json", "."+strings.Join(d.path, "."))
+		}
+
+		// Sort the failureDomains to ensure deterministic order.
+		// Without this we would end up with infinite reconciles when writing `Cluster.status.failureDomains`
+		// after retrieving the failureDomains from an InfraCluster.
+		domainNames := slices.Collect(maps.Keys(domains))
+		sort.Strings(domainNames)
+		var domainsArray []clusterv1.FailureDomain
+		for _, name := range domainNames {
+			domain := domains[name]
+			domainsArray = append(domainsArray, clusterv1.FailureDomain{
+				Name:         name,
+				ControlPlane: domain.ControlPlane,
+				Attributes:   domain.Attributes,
+			})
+		}
+
+		return domainsArray, nil
+	}
+
+	domainArray, ok, err := unstructured.NestedSlice(obj.UnstructuredContent(), d.path...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(d.path, "."))
 	}
@@ -139,29 +181,27 @@ func (d *FailureDomains) Get(obj *unstructured.Unstructured) (*clusterv1.Failure
 		return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+strings.Join(d.path, "."))
 	}
 
-	domains := make(clusterv1.FailureDomains, len(domainMap))
-	s, err := json.Marshal(domainMap)
+	domains := make([]clusterv1.FailureDomain, len(domainArray))
+	s, err := json.Marshal(domainArray)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to marshall field at %s to json", "."+strings.Join(d.path, "."))
+		return nil, errors.Wrapf(err, "failed to marshal field at %s to json", "."+strings.Join(d.path, "."))
 	}
-	err = json.Unmarshal(s, &domains)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshall field at %s to json", "."+strings.Join(d.path, "."))
+	if err := json.Unmarshal(s, &domains); err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal field at %s to json", "."+strings.Join(d.path, "."))
 	}
 
-	return &domains, nil
+	return domains, nil
 }
 
-// Set sets the clusterv1.FailureDomains value in the path.
-func (d *FailureDomains) Set(obj *unstructured.Unstructured, values clusterv1.FailureDomains) error {
-	domains := make(map[string]interface{}, len(values))
+// Set sets the []clusterv1.FailureDomain value in the path.
+func (d *FailureDomains) Set(obj *unstructured.Unstructured, values []clusterv1.FailureDomain) error {
+	domains := make([]interface{}, len(values))
 	s, err := json.Marshal(values)
 	if err != nil {
-		return errors.Wrapf(err, "failed to marshall supplied values to json for path %s", "."+strings.Join(d.path, "."))
+		return errors.Wrapf(err, "failed to marshal supplied values to json for path %s", "."+strings.Join(d.path, "."))
 	}
-	err = json.Unmarshal(s, &domains)
-	if err != nil {
-		return errors.Wrapf(err, "failed to unmarshall supplied values to json for path %s", "."+strings.Join(d.path, "."))
+	if err := json.Unmarshal(s, &domains); err != nil {
+		return errors.Wrapf(err, "failed to unmarshal supplied values to json for path %s", "."+strings.Join(d.path, "."))
 	}
 
 	if err := unstructured.SetNestedField(obj.UnstructuredContent(), domains, d.path...); err != nil {
@@ -194,11 +234,10 @@ func (c *ControlPlaneEndpoint) Get(obj *unstructured.Unstructured) (*clusterv1.A
 	endpoint := &clusterv1.APIEndpoint{}
 	s, err := json.Marshal(controlPlaneEndpointMap)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to marshall field at %s to json", "."+strings.Join(c.path, "."))
+		return nil, errors.Wrapf(err, "failed to marshal field at %s to json", "."+strings.Join(c.path, "."))
 	}
-	err = json.Unmarshal(s, &endpoint)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshall field at %s to json", "."+strings.Join(c.path, "."))
+	if err := json.Unmarshal(s, &endpoint); err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal field at %s to json", "."+strings.Join(c.path, "."))
 	}
 
 	return endpoint, nil
@@ -209,11 +248,10 @@ func (c *ControlPlaneEndpoint) Set(obj *unstructured.Unstructured, value cluster
 	controlPlaneEndpointMap := make(map[string]interface{})
 	s, err := json.Marshal(value)
 	if err != nil {
-		return errors.Wrapf(err, "failed to marshall supplied values to json for path %s", "."+strings.Join(c.path, "."))
+		return errors.Wrapf(err, "failed to marshal supplied values to json for path %s", "."+strings.Join(c.path, "."))
 	}
-	err = json.Unmarshal(s, &controlPlaneEndpointMap)
-	if err != nil {
-		return errors.Wrapf(err, "failed to unmarshall supplied values to json for path %s", "."+strings.Join(c.path, "."))
+	if err := json.Unmarshal(s, &controlPlaneEndpointMap); err != nil {
+		return errors.Wrapf(err, "failed to unmarshal supplied values to json for path %s", "."+strings.Join(c.path, "."))
 	}
 
 	if err := unstructured.SetNestedField(obj.UnstructuredContent(), controlPlaneEndpointMap, c.path...); err != nil {

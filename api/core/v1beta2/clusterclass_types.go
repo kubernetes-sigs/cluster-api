@@ -280,7 +280,7 @@ type MachineDeploymentClass struct {
 	MachineHealthCheck *MachineHealthCheckClass `json:"machineHealthCheck,omitempty"`
 
 	// failureDomain is the failure domain the machines will be created in.
-	// Must match a key in the FailureDomains map stored on the cluster object.
+	// Must match the name of a FailureDomain from the Cluster status.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	// +optional
 	// +kubebuilder:validation:MinLength=1

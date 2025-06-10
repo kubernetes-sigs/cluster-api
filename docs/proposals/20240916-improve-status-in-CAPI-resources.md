@@ -1279,6 +1279,7 @@ Following changes are planned for the contract for the InfrastructureCluster res
 - Disambiguate the usage of the ready term by renaming fields used for the initial provisioning workflow
   - Rename `status.ready` into `status.initialization.provisioned`.
 - Remove `failureReason` and `failureMessage`.
+- Change `.status.failureDomains` from a map to an array. Also each failure domain has an additional `name` property which replaces the previous map key.
 
 | v1beta1 (CAPI 1.9)                                                    | v1beta2 (tentative Aug 2025)                                                                                     | v1beta2 after v1beta1 removal (tentative Aug 2026)                                         |
 |-----------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
@@ -1287,6 +1288,7 @@ Following changes are planned for the contract for the InfrastructureCluster res
 | `status.conditions[Ready]`, optional with fall back on `status.ready` | `status.conditions[Ready]`, optional with fall back on `status.ready` or `status.initialization.provisioned`     | `status.conditions[Ready]`, optional with fall back on `status.initialization.provisioned` |
 | `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                    | (removed)                                                                                  |
 | `status.failureMessage`, optional                                     | `status.failureMessage` (deprecated), optional                                                                   | (removed)                                                                                  |
+| `status.failureDomains` (map), optional                               | `status.failureDomains` (array), optional                                                                        | `status.failureDomains` (array), optional                                                  |
 | other fields/rules...                                                 | other fields/rules...                                                                                            |                                                                                            |
 
 Notes:
@@ -1296,6 +1298,8 @@ Notes:
 - InfrastructureCluster's `status.conditions[Ready]` will surface into Cluster's `status.conditions[InfrastructureReady]` condition.
 - InfrastructureCluster's `status.conditions[Ready]` must surface issues during the entire lifecycle of the InfrastructureCluster
   (both during initial InfrastructureCluster provisioning and after the initial provisioning is completed).
+- In v1beta1 `.status.failureDomains` was a map of `FailureDomainSpec` objects. In v1beta2 it is an array of `FailureDomain` objects.
+  The name of the failure domain was previously used as map key, it has been now added as an additional field to `FailureDomain`.
 
 ##### InfrastructureMachine
 

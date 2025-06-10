@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -147,11 +148,18 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, c
 }
 
 // FailureDomains returns a slice of failure domain objects synced from the infrastructure provider into Cluster.Status.
-func (c *ControlPlane) FailureDomains() clusterv1.FailureDomains {
+func (c *ControlPlane) FailureDomains() []clusterv1.FailureDomain {
 	if c.Cluster.Status.FailureDomains == nil {
-		return clusterv1.FailureDomains{}
+		return nil
 	}
-	return c.Cluster.Status.FailureDomains
+
+	var res []clusterv1.FailureDomain
+	for _, spec := range c.Cluster.Status.FailureDomains {
+		if spec.ControlPlane {
+			res = append(res, spec)
+		}
+	}
+	return res
 }
 
 // MachineInFailureDomainWithMostMachines returns the first matching failure domain with machines that has the most control-plane machines on it.
@@ -179,7 +187,7 @@ func (c *ControlPlane) MachineWithDeleteAnnotation(machines collections.Machines
 func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, eligibleMachines collections.Machines) *string {
 	// See if there are any Machines that are not in currently defined failure domains first.
 	notInFailureDomains := eligibleMachines.Filter(
-		collections.Not(collections.InFailureDomains(c.FailureDomains().FilterControlPlane().GetIDs()...)),
+		collections.Not(collections.InFailureDomains(getGetFailureDomainIDs(c.FailureDomains())...)),
 	)
 	if len(notInFailureDomains) > 0 {
 		// return the failure domain for the oldest Machine not in the current list of failure domains
@@ -189,7 +197,7 @@ func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, eligib
 	}
 
 	// Pick the failure domain with most machines in it and at least one eligible machine in it.
-	return failuredomains.PickMost(ctx, c.Cluster.Status.FailureDomains.FilterControlPlane(), c.Machines, eligibleMachines)
+	return failuredomains.PickMost(ctx, c.FailureDomains(), c.Machines, eligibleMachines)
 }
 
 // NextFailureDomainForScaleUp returns the failure domain with the fewest number of up-to-date, not deleted machines
@@ -198,10 +206,18 @@ func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, eligib
 // In case of tie (more failure domain with the same number of up-to-date, not deleted machines) the failure domain with the fewest number of
 // machine overall is picked to ensure a better spreading of machines while the rollout is performed.
 func (c *ControlPlane) NextFailureDomainForScaleUp(ctx context.Context) (*string, error) {
-	if len(c.Cluster.Status.FailureDomains.FilterControlPlane()) == 0 {
+	if len(c.FailureDomains()) == 0 {
 		return nil, nil
 	}
-	return failuredomains.PickFewest(ctx, c.FailureDomains().FilterControlPlane(), c.Machines, c.UpToDateMachines().Filter(collections.Not(collections.HasDeletionTimestamp))), nil
+	return failuredomains.PickFewest(ctx, c.FailureDomains(), c.Machines, c.UpToDateMachines().Filter(collections.Not(collections.HasDeletionTimestamp))), nil
+}
+
+func getGetFailureDomainIDs(failureDomains []clusterv1.FailureDomain) []*string {
+	ids := make([]*string, 0, len(failureDomains))
+	for _, fd := range failureDomains {
+		ids = append(ids, ptr.To(fd.Name))
+	}
+	return ids
 }
 
 // InitialControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for an initializing control plane.

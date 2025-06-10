@@ -26,7 +26,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
@@ -976,7 +975,11 @@ type ClusterStatus struct {
 
 	// failureDomains is a slice of failure domain objects synced from the infrastructure provider.
 	// +optional
-	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	FailureDomains []FailureDomain `json:"failureDomains,omitempty"`
 
 	// phase represents the current phase of cluster actuation.
 	// +optional
@@ -1235,33 +1238,15 @@ func init() {
 	objectTypes = append(objectTypes, &Cluster{}, &ClusterList{})
 }
 
-// FailureDomains is a slice of FailureDomains.
-type FailureDomains map[string]FailureDomainSpec
-
-// FilterControlPlane returns a FailureDomain slice containing only the domains suitable to be used
-// for control plane nodes.
-func (in FailureDomains) FilterControlPlane() FailureDomains {
-	res := make(FailureDomains)
-	for id, spec := range in {
-		if spec.ControlPlane {
-			res[id] = spec
-		}
-	}
-	return res
-}
-
-// GetIDs returns a slice containing the ids for failure domains.
-func (in FailureDomains) GetIDs() []*string {
-	ids := make([]*string, 0, len(in))
-	for id := range in {
-		ids = append(ids, ptr.To(id))
-	}
-	return ids
-}
-
-// FailureDomainSpec is the Schema for Cluster API failure domains.
+// FailureDomain is the Schema for Cluster API failure domains.
 // It allows controllers to understand how many failure domains a cluster can optionally span across.
-type FailureDomainSpec struct {
+type FailureDomain struct {
+	// name is the name of the failure domain.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Name string `json:"name"`
+
 	// controlPlane determines if this failure domain is suitable for use by control plane machines.
 	// +optional
 	ControlPlane bool `json:"controlPlane,omitempty"`

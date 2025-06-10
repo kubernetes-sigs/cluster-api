@@ -39,7 +39,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -48,7 +47,7 @@ var externalReadyWait = 30 * time.Second
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
+	if err := contract.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		if apierrors.IsNotFound(err) {
 			// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found.
 			return nil, errors.New(err.Error())
@@ -197,7 +196,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	}
 
 	// Determine contract version used by the BootstrapConfig.
-	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.bootstrapConfig.GroupVersionKind())
+	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.bootstrapConfig.GroupVersionKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -294,7 +293,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	s.infraMachine = obj
 
 	// Determine contract version used by the InfraMachine.
-	contractVersion, err := utilconversion.GetContractVersion(ctx, r.Client, s.infraMachine.GroupVersionKind())
+	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.infraMachine.GroupVersionKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}

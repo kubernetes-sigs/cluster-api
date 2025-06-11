@@ -72,6 +72,7 @@ func Convert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguratio
 		return err
 	}
 	out.CertificateValidityPeriodSeconds = clusterv1.ConvertToSeconds(in.CertificateValidityPeriod)
+	out.CACertificateValidityPeriodSeconds = clusterv1.ConvertToSeconds(in.CACertificateValidityPeriod)
 	return nil
 }
 
@@ -321,5 +322,6 @@ func Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfiguratio
 		return err
 	}
 	out.CertificateValidityPeriod = clusterv1.ConvertFromSeconds(in.CertificateValidityPeriodSeconds)
+	out.CACertificateValidityPeriod = clusterv1.ConvertFromSeconds(in.CACertificateValidityPeriodSeconds)
 	return nil
 }

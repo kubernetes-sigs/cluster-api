@@ -104,6 +104,7 @@ func spokeClusterConfigurationFuzzer(obj *ClusterConfiguration, c randfill.Conti
 
 	if obj.CertificateValidityPeriod != nil {
 		obj.CertificateValidityPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		obj.CACertificateValidityPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 
 	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.

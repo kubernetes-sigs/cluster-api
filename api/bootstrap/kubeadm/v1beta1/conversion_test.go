@@ -125,6 +125,7 @@ func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue
 	// Drop the field to avoid round trip errors as it exists only in v1beta2.
 	if in.ClusterConfiguration != nil {
 		in.ClusterConfiguration.CertificateValidityPeriodSeconds = nil
+		in.ClusterConfiguration.CACertificateValidityPeriodSeconds = nil
 	}
 }
 

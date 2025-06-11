@@ -41,29 +41,6 @@ const (
 	DataAnnotation = "cluster.x-k8s.io/conversion-data"
 )
 
-// GetContractVersionForVersion gets the contract version for a specific apiVersion.
-func GetContractVersionForVersion(ctx context.Context, c client.Client, gvk schema.GroupVersionKind, version string) (string, error) {
-	crdMetadata, err := util.GetGVKMetadata(ctx, c, gvk)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to get contract version")
-	}
-
-	contractPrefix := fmt.Sprintf("%s/", clusterv1.GroupVersion.Group)
-	for labelKey, labelValue := range crdMetadata.GetLabels() {
-		if !strings.HasPrefix(labelKey, contractPrefix) {
-			continue
-		}
-
-		for _, v := range strings.Split(labelValue, "_") {
-			if v == version {
-				return strings.TrimPrefix(labelKey, contractPrefix), nil
-			}
-		}
-	}
-
-	return "", errors.Errorf("cannot find any contract version matching version %q for CRD %v", version, crdMetadata.GetName())
-}
-
 // MarshalData stores the source object as json data in the destination object annotations map.
 // It ignores the metadata of the source object.
 func MarshalData(src metav1.Object, dst metav1.Object) error {

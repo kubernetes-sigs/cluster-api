@@ -121,3 +121,26 @@ func getLatestAPIVersionFromContract(metadata metav1.Object, currentContractVers
 
 	return "", "", errors.Errorf("cannot find any versions matching contract versions %q for CRD %v as contract version label(s) are either missing or empty (see https://cluster-api.sigs.k8s.io/developer/providers/contracts.html#api-version-labels)", sortedCompatibleContractVersions, metadata.GetName())
 }
+
+// GetContractVersionForVersion gets the contract version for a specific apiVersion.
+func GetContractVersionForVersion(ctx context.Context, c client.Client, gvk schema.GroupVersionKind, version string) (string, error) {
+	crdMetadata, err := util.GetGVKMetadata(ctx, c, gvk)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get contract version")
+	}
+
+	contractPrefix := fmt.Sprintf("%s/", clusterv1.GroupVersion.Group)
+	for labelKey, labelValue := range crdMetadata.GetLabels() {
+		if !strings.HasPrefix(labelKey, contractPrefix) {
+			continue
+		}
+
+		for _, v := range strings.Split(labelValue, "_") {
+			if v == version {
+				return strings.TrimPrefix(labelKey, contractPrefix), nil
+			}
+		}
+	}
+
+	return "", errors.Errorf("cannot find any contract version matching version %q for CRD %v", version, crdMetadata.GetName())
+}

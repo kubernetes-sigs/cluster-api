@@ -52,7 +52,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // Generator is a generator to generate the desired state.
@@ -374,7 +373,7 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	}
 
 	// Determine contract version used by the ControlPlane.
-	contractVersion, err := utilconversion.GetContractVersionForVersion(ctx, g.Client, controlPlane.GroupVersionKind(), controlPlane.GroupVersionKind().Version)
+	contractVersion, err := contract.GetContractVersionForVersion(ctx, g.Client, controlPlane.GroupVersionKind(), controlPlane.GroupVersionKind().Version)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get contract version for the ControlPlane object")
 	}

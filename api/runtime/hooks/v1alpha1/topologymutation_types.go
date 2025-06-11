@@ -101,18 +101,6 @@ type GeneratePatchesResponseItem struct {
 	Patch []byte `json:"patch"`
 }
 
-// PatchType defines the supported patch types.
-// +enum
-type PatchType string
-
-const (
-	// JSONPatchType identifies a https://datatracker.ietf.org/doc/html/rfc6902 JSON patch.
-	JSONPatchType PatchType = "JSONPatch"
-
-	// JSONMergePatchType identifies a https://datatracker.ietf.org/doc/html/rfc7386 JSON merge patch.
-	JSONMergePatchType PatchType = "JSONMergePatch"
-)
-
 // GeneratePatches generates patches during topology reconciliation for the entire Cluster topology.
 func GeneratePatches(*GeneratePatchesRequest, *GeneratePatchesResponse) {}
 

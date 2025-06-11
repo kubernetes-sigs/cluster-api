@@ -202,4 +202,5 @@ func hubClusterConfigurationFuzzer(obj *bootstrapv1.ClusterConfiguration, c rand
 	c.FillNoCustom(obj)
 
 	obj.CertificateValidityPeriodSeconds = nil
+	obj.CACertificateValidityPeriodSeconds = nil
 }

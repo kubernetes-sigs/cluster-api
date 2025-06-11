@@ -1186,6 +1186,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		name                     string
 		templateFromClusterClass *unstructured.Unstructured
 		currentRef               *corev1.ObjectReference
+		isCurrentTemplate        bool
 		want                     *corev1.ObjectReference
 		wantErr                  bool
 	}{
@@ -1193,7 +1194,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 			name: "Error for invalid apiVersion",
 			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"kind":       "DockerCluster",
+				"kind":       "DockerClusterTemplate",
 			}},
 			currentRef: &corev1.ObjectReference{
 				APIVersion: "invalid/api/version",
@@ -1201,24 +1202,47 @@ func TestAlignRefAPIVersion(t *testing.T) {
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
-			wantErr: true,
+			isCurrentTemplate: false,
+			wantErr:           true,
 		},
 		{
-			name: "Use apiVersion from ClusterClass: group and kind is the same",
+			name: "Use apiVersion from ClusterClass: group and kind is the same (+/- Template suffix)",
 			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"kind":       "DockerCluster",
+				"kind":       "DockerClusterTemplate",
 			}},
 			currentRef: &corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta2",
+				APIVersion: "infrastructure.cluster.x-k8s.io/different", // should be overwritten with version from CC
 				Kind:       "DockerCluster",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
+			isCurrentTemplate: false,
 			want: &corev1.ObjectReference{
-				// Group & kind is the same => apiVersion is taken from ClusterClass.
+				// Group & kind is the same (+/- Template suffix) => apiVersion is taken from ClusterClass.
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "DockerCluster",
+				Name:       "my-cluster-abc",
+				Namespace:  metav1.NamespaceDefault,
+			},
+		},
+		{
+			name: "Use apiVersion from ClusterClass: group and kind is the same",
+			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
+				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
+				"kind":       "KubeadmConfigTemplate",
+			}},
+			currentRef: &corev1.ObjectReference{
+				APIVersion: "bootstrap.cluster.x-k8s.io/different", // should be overwritten with version from CC
+				Kind:       "KubeadmConfigTemplate",
+				Name:       "my-cluster-abc",
+				Namespace:  metav1.NamespaceDefault,
+			},
+			isCurrentTemplate: true,
+			want: &corev1.ObjectReference{
+				// Group & kind is the same => apiVersion is taken from ClusterClass.
+				APIVersion: clusterv1.GroupVersionBootstrap.String(),
+				Kind:       "KubeadmConfigTemplate",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
@@ -1235,6 +1259,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
+			isCurrentTemplate: true,
 			want: &corev1.ObjectReference{
 				// kind is different => apiVersion is taken from currentRef.
 				APIVersion: clusterv1.GroupVersionBootstrap.String(),
@@ -1258,6 +1283,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
+			isCurrentTemplate: true,
 			want: &corev1.ObjectReference{
 				// group is different => apiVersion is taken from currentRef.
 				APIVersion: clusterv1.GroupVersionBootstrap.String(),
@@ -1271,7 +1297,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := alignRefAPIVersion(tt.templateFromClusterClass, tt.currentRef)
+			got, err := alignRefAPIVersion(tt.templateFromClusterClass, tt.currentRef, tt.isCurrentTemplate)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

@@ -1045,6 +1045,15 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal
 			})
 			continue
 		}
+		if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; ok { // Note: This should probably *also* use the Updating condition (but also already set condition to false if only this annotation is set)
+			conditions.Set(machine, metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineUpToDateUpdatingReason,
+			})
+			continue
+		}
+
 		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionTrue,

@@ -111,7 +111,11 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 			// the patchKubeadmConfigTemplate func shows how to implement patches only for KubeadmConfigTemplates
 			// linked to a specific MachineDeployment class; another option is to check the holderRef value and call
 			// this func or more specialized func conditionally.
-			patchKubeadmConfigTemplate(ctx, obj, variables)
+			err := patchKubeadmConfigTemplate(ctx, obj, variables)
+			if err != nil {
+				log.Error(err, "Error patching KubeadmConfigTemplate")
+				return errors.Wrapf(err, "error patching KubeadmConfigTemplate")
+			}
 		case *infrav1beta1.DockerMachineTemplate, *infrav1.DockerMachineTemplate:
 			// NOTE: DockerMachineTemplate could be linked to the ControlPlane or one or more of the existing MachineDeployment class;
 			// the patchDockerMachineTemplate func shows how to implement different patches for DockerMachineTemplate
@@ -214,40 +218,56 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 	// 2) Patch RolloutStrategy RollingUpdate MaxSurge with the value from the Cluster Topology variable.
 	//    If this is unset continue as this variable is not required.
 	kcpControlPlaneMaxSurge, err := topologymutation.GetStringVariable(templateVariables, "kubeadmControlPlaneMaxSurge")
-	if err != nil {
-		if topologymutation.IsNotFoundError(err) {
-			return nil
-		}
+	if err != nil && !topologymutation.IsNotFoundError(err) {
 		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate MaxSurge")
 	}
+	if kcpControlPlaneMaxSurge != "" {
+		// This has to be converted to IntOrString type.
+		kubeadmControlPlaneMaxSurgeIntOrString := intstrutil.Parse(kcpControlPlaneMaxSurge)
+		log.Info(fmt.Sprintf("Setting KubeadmControlPlaneMaxSurge to %q", kubeadmControlPlaneMaxSurgeIntOrString.String()))
 
-	// This has to be converted to IntOrString type.
-	kubeadmControlPlaneMaxSurgeIntOrString := intstrutil.Parse(kcpControlPlaneMaxSurge)
-	log.Info(fmt.Sprintf("Setting KubeadmControlPlaneMaxSurge to %q", kubeadmControlPlaneMaxSurgeIntOrString.String()))
+		kcpTemplateV1Beta1, ok := obj.(*controlplanev1beta1.KubeadmControlPlaneTemplate)
+		if ok {
+			if kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy == nil {
+				kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy = &controlplanev1beta1.RolloutStrategy{}
+			}
+			if kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy.RollingUpdate == nil {
+				kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy.RollingUpdate = &controlplanev1beta1.RollingUpdate{}
+			}
+			kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
+		}
 
-	kcpTemplateV1Beta1, ok := obj.(*controlplanev1beta1.KubeadmControlPlaneTemplate)
-	if ok {
-		if kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy == nil {
-			kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy = &controlplanev1beta1.RolloutStrategy{}
+		kcpTemplate, ok := obj.(*controlplanev1.KubeadmControlPlaneTemplate)
+		if ok {
+			kcpTemplate.Spec.Template.Spec.Rollout.Strategy.Type = controlplanev1.RollingUpdateStrategyType
+			kcpTemplate.Spec.Template.Spec.Rollout.Strategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
 		}
-		if kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy.RollingUpdate == nil {
-			kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy.RollingUpdate = &controlplanev1beta1.RollingUpdate{}
-		}
-		kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
-		return nil
 	}
 
-	kcpTemplate, ok := obj.(*controlplanev1.KubeadmControlPlaneTemplate)
-	if ok {
-		kcpTemplate.Spec.Template.Spec.Rollout.Strategy.Type = controlplanev1.RollingUpdateStrategyType
-		kcpTemplate.Spec.Template.Spec.Rollout.Strategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
+	// 3) Set files
+	files := []fileVariable{}
+	err = topologymutation.GetObjectVariableInto(templateVariables, "files", &files)
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate files")
+	}
+	if len(files) > 0 {
+		kcpTemplateV1Beta1, ok := obj.(*controlplanev1beta1.KubeadmControlPlaneTemplate)
+		if ok {
+			kcpTemplateV1Beta1.Spec.Template.Spec.KubeadmConfigSpec.Files = append(kcpTemplateV1Beta1.Spec.Template.Spec.KubeadmConfigSpec.Files,
+				convertToKubeadmConfigV1Beta1Files(files)...)
+		}
+		kcpTemplate, ok := obj.(*controlplanev1.KubeadmControlPlaneTemplate)
+		if ok {
+			kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.Files = append(kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.Files,
+				convertToKubeadmConfigFiles(files)...)
+		}
 	}
 
 	return nil
 }
 
 // patchKubeadmConfigTemplate patches the ControlPlaneTemplate.
-func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, _ map[string]apiextensionsv1.JSON) {
+func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	// 1) Set extraArgs
 	switch obj := obj.(type) {
 	case *bootstrapv1beta1.KubeadmConfigTemplate:
@@ -261,6 +281,61 @@ func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, _ map[str
 	case *bootstrapv1.KubeadmConfigTemplate:
 		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
 	}
+
+	files := []fileVariable{}
+	err := topologymutation.GetObjectVariableInto(templateVariables, "files", &files)
+	if err != nil && !topologymutation.IsNotFoundError(err) {
+		return errors.Wrap(err, "could not set KubeadmConfigTemplate files")
+	}
+	if len(files) > 0 {
+		kcpTemplateV1Beta1, ok := obj.(*bootstrapv1beta1.KubeadmConfigTemplate)
+		if ok {
+			kcpTemplateV1Beta1.Spec.Template.Spec.Files = append(kcpTemplateV1Beta1.Spec.Template.Spec.Files,
+				convertToKubeadmConfigV1Beta1Files(files)...)
+		}
+		kcpTemplate, ok := obj.(*bootstrapv1.KubeadmConfigTemplate)
+		if ok {
+			kcpTemplate.Spec.Template.Spec.Files = append(kcpTemplate.Spec.Template.Spec.Files,
+				convertToKubeadmConfigFiles(files)...)
+		}
+	}
+
+	return nil
+}
+
+type fileVariable struct {
+	Path    string `json:"path,omitempty"`
+	Content string `json:"content,omitempty"`
+}
+
+func convertToKubeadmConfigV1Beta1Files(files []fileVariable) []bootstrapv1beta1.File {
+	kubeadmConfigV1Beta1Files := []bootstrapv1beta1.File{}
+	for _, f := range files {
+		kubeadmConfigV1Beta1Files = append(kubeadmConfigV1Beta1Files,
+			bootstrapv1beta1.File{
+				Path:        f.Path,
+				Content:     f.Content,
+				Owner:       "root:root",
+				Permissions: "0600",
+			},
+		)
+	}
+	return kubeadmConfigV1Beta1Files
+}
+
+func convertToKubeadmConfigFiles(files []fileVariable) []bootstrapv1.File {
+	kubeadmConfigFiles := []bootstrapv1.File{}
+	for _, f := range files {
+		kubeadmConfigFiles = append(kubeadmConfigFiles,
+			bootstrapv1.File{
+				Path:        f.Path,
+				Content:     f.Content,
+				Owner:       "root:root",
+				Permissions: "0600",
+			},
+		)
+	}
+	return kubeadmConfigFiles
 }
 
 // patchDockerMachineTemplate patches the DockerMachineTemplate.
@@ -409,6 +484,26 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 						{
 							Rule:              "self == \"\" || self != \"\"",
 							MessageExpression: "'just a test expression, got %s'.format([self])",
+						},
+					},
+				},
+			},
+		},
+		{
+			Name:     "files",
+			Required: false,
+			Schema: clusterv1beta1.VariableSchema{
+				OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
+					Type: "array",
+					Items: &clusterv1beta1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1beta1.JSONSchemaProps{
+							"path": {
+								Type: "string",
+							},
+							"content": {
+								Type: "string",
+							},
 						},
 					},
 				},

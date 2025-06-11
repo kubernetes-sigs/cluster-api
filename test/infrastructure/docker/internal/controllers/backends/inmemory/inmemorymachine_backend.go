@@ -424,6 +424,7 @@ func (r *MachineBackendReconciler) reconcileNormalETCD(ctx context.Context, clus
 	// TODO (v1beta2): test for v1beta2 conditions
 	start := v1beta1conditions.Get(inMemoryMachine, infrav1.NodeProvisionedCondition).LastTransitionTime
 	now := time.Now()
+	klog.Infof("ETCD check: now=%v, start=%v, provisioningDuration=%v, until=%v", now, start, provisioningDuration, start.Add(provisioningDuration))
 	if now.Before(start.Add(provisioningDuration)) {
 		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.EtcdProvisionedCondition, infrav1.EtcdWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(inMemoryMachine, metav1.Condition{
@@ -668,6 +669,7 @@ func (r *MachineBackendReconciler) reconcileNormalAPIServer(ctx context.Context,
 	// TODO (v1beta2): test for v1beta2 conditions
 	start := v1beta1conditions.Get(inMemoryMachine, infrav1.NodeProvisionedCondition).LastTransitionTime
 	now := time.Now()
+	klog.Infof("APIServer check: now=%v, start=%v, provisioningDuration=%v, until=%v", now, start, provisioningDuration, start.Add(provisioningDuration))
 	if now.Before(start.Add(provisioningDuration)) {
 		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.APIServerProvisionedCondition, infrav1.APIServerWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(inMemoryMachine, metav1.Condition{

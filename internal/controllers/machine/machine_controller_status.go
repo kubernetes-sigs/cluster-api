@@ -69,7 +69,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	setReadyCondition(ctx, s.machine)
 	setAvailableCondition(ctx, s.machine)
 
-	setMachinePhaseAndLastUpdated(ctx, s.machine)
+	setMachinePhaseAndLastUpdated(ctx, s.machine, s.updatingReason)
 }
 
 func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, bootstrapConfig *unstructured.Unstructured, bootstrapConfigIsNotFound bool) {
@@ -814,7 +814,7 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 	})
 }
 
-func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {
+func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine, updatingReason string) {
 	originalPhase := m.Status.Phase
 
 	// Set the phase to "pending" if nil.
@@ -835,6 +835,10 @@ func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {
 	// Set the phase to "running" if there is a NodeRef field and infrastructure is ready.
 	if m.Status.NodeRef.IsDefined() && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false) {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseRunning)
+	}
+
+	if updatingReason != "" {
+		m.Status.SetTypedPhase(clusterv1.MachinePhaseUpdating)
 	}
 
 	// Set the phase to "deleting" if the deletion timestamp is set.

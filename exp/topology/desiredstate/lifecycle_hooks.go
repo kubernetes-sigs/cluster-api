@@ -174,7 +174,7 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 		s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, hookResponse)
 
 		if hookResponse.RetryAfterSeconds != 0 {
-			log.Info(fmt.Sprintf("Cluster Upgrade is blocked after control plane upgrade to version %s by %s hook", *currentVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)),
+			log.Info(fmt.Sprintf("Cluster upgrade is blocked after control plane upgrade to version %s by %s hook", *currentVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 				"WorkersUpgrades", hookRequest.WorkersUpgrades,
 			)

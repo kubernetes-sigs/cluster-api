@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -1187,14 +1188,15 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		name                     string
 		templateFromClusterClass *unstructured.Unstructured
 		currentRef               *corev1.ObjectReference
+		isCurrentTemplate        bool
 		want                     *corev1.ObjectReference
 		wantErr                  bool
 	}{
 		{
 			name: "Error for invalid apiVersion",
 			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
-				"kind":       "DockerCluster",
+				"apiVersion": schema.GroupVersion{Group: "infrastructure.cluster.x-k8s.io", Version: "v1beta1"}.String(),
+				"kind":       "DockerClusterTemplate",
 			}},
 			currentRef: &corev1.ObjectReference{
 				APIVersion: "invalid/api/version",
@@ -1202,24 +1204,47 @@ func TestAlignRefAPIVersion(t *testing.T) {
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
-			wantErr: true,
+			isCurrentTemplate: false,
+			wantErr:           true,
 		},
 		{
-			name: "Use apiVersion from ClusterClass: group and kind is the same",
+			name: "Use apiVersion from ClusterClass: group and kind is the same (+/- Template suffix)",
 			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
-				"kind":       "DockerCluster",
+				"apiVersion": schema.GroupVersion{Group: "infrastructure.cluster.x-k8s.io", Version: "v1beta1"}.String(),
+				"kind":       "DockerClusterTemplate",
 			}},
 			currentRef: &corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta2",
+				APIVersion: "infrastructure.cluster.x-k8s.io/different", // should be overwritten with version from CC
 				Kind:       "DockerCluster",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
+			isCurrentTemplate: false,
+			want: &corev1.ObjectReference{
+				// Group & kind is the same (+/- Template suffix) => apiVersion is taken from ClusterClass.
+				APIVersion: schema.GroupVersion{Group: "infrastructure.cluster.x-k8s.io", Version: "v1beta1"}.String(),
+				Kind:       "DockerCluster",
+				Name:       "my-cluster-abc",
+				Namespace:  metav1.NamespaceDefault,
+			},
+		},
+		{
+			name: "Use apiVersion from ClusterClass: group and kind is the same",
+			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
+				"apiVersion": schema.GroupVersion{Group: "bootstrap.cluster.x-k8s.io", Version: "v1beta1"}.String(),
+				"kind":       "KubeadmConfigTemplate",
+			}},
+			currentRef: &corev1.ObjectReference{
+				APIVersion: "bootstrap.cluster.x-k8s.io/different", // should be overwritten with version from CC
+				Kind:       "KubeadmConfigTemplate",
+				Name:       "my-cluster-abc",
+				Namespace:  metav1.NamespaceDefault,
+			},
+			isCurrentTemplate: true,
 			want: &corev1.ObjectReference{
 				// Group & kind is the same => apiVersion is taken from ClusterClass.
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-				Kind:       "DockerCluster",
+				APIVersion: schema.GroupVersion{Group: "bootstrap.cluster.x-k8s.io", Version: "v1beta1"}.String(),
+				Kind:       "KubeadmConfigTemplate",
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
@@ -1236,6 +1261,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
+			isCurrentTemplate: true,
 			want: &corev1.ObjectReference{
 				// kind is different => apiVersion is taken from currentRef.
 				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
@@ -1256,6 +1282,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
+			isCurrentTemplate: true,
 			want: &corev1.ObjectReference{
 				// group is different => apiVersion is taken from currentRef.
 				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
@@ -1269,7 +1296,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := alignRefAPIVersion(tt.templateFromClusterClass, tt.currentRef)
+			got, err := alignRefAPIVersion(tt.templateFromClusterClass, tt.currentRef, tt.isCurrentTemplate)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

@@ -479,10 +479,25 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		return result, err
 	}
 
+	if machines := controlPlane.MachineToCompleteTriggerInPlaceUpdate(controlPlane.Machines); len(machines) > 0 {
+		_, machinesUpToDateResults := controlPlane.NotUpToDateMachines()
+		for _, m := range machines {
+			if err := r.completeTriggerInPlaceUpdate(ctx, machinesUpToDateResults[m.Name]); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil // Note: Changes to Machines trigger another reconcile.
+		}
+	}
+
 	// Reconcile unhealthy machines by triggering deletion and requeue if it is considered safe to remediate,
 	// otherwise continue with the other KCP operations.
 	if result, err := r.reconcileUnhealthyMachines(ctx, controlPlane); err != nil || !result.IsZero() {
 		return result, err
+	}
+
+	if inPlaceUpdatingMachines := controlPlane.MachineWithPendingUpdateMachineHook(controlPlane.Machines); inPlaceUpdatingMachines.Len() > 0 { // Note: We have to wait here even if there are no more Machines that need rollout (in-place update in progress is not counted as needs rollout)
+		log.Info("Waiting for in-place update to complete", "machines", strings.Join(inPlaceUpdatingMachines.Names(), ", "))
+		return ctrl.Result{}, nil // Note: Changes to Machines trigger another reconcile.
 	}
 
 	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.
@@ -1023,6 +1038,15 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal
 			})
 			continue
 		}
+		if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; ok { // TODO(in-place): This should probably *also* use the Updating condition (but also already set condition to false if only this annotation is set)
+			conditions.Set(machine, metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineUpToDateUpdatingReason,
+			})
+			continue
+		}
+
 		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionTrue,

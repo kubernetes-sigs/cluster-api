@@ -72,9 +72,10 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 
 // MachineReconciler reconciles a Machine object.
 type MachineReconciler struct {
-	Client       client.Client
-	APIReader    client.Reader
-	ClusterCache clustercache.ClusterCache
+	Client        client.Client
+	APIReader     client.Reader
+	RuntimeClient runtimeclient.Client
+	ClusterCache  clustercache.ClusterCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -89,6 +90,7 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	return (&machinecontroller.Reconciler{
 		Client:                           r.Client,
 		APIReader:                        r.APIReader,
+		RuntimeClient:                    r.RuntimeClient,
 		ClusterCache:                     r.ClusterCache,
 		WatchFilterValue:                 r.WatchFilterValue,
 		RemoteConditionsGracePeriod:      r.RemoteConditionsGracePeriod,

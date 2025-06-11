@@ -309,6 +309,9 @@ func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp 
 
 	// takes the KubeadmConfigSpec from KCP and applies the transformations required
 	// to allow a comparison with the KubeadmConfig referenced from the machine.
+	if kcp.Spec.KubeadmConfigSpec.InitConfiguration == nil {
+		kcp.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}
+	}
 	kcpConfig := getAdjustedKcpConfig(kcp, machineConfig)
 
 	// Default both KubeadmConfigSpecs before comparison.

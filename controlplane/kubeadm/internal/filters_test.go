@@ -544,6 +544,57 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{},
+					InitConfiguration:    nil,
+					JoinConfiguration:    &bootstrapv1.JoinConfiguration{},
+				},
+			},
+		}
+		m := &clusterv1.Machine{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "KubeadmConfig",
+				APIVersion: clusterv1.GroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "test",
+			},
+			Spec: clusterv1.MachineSpec{
+				Bootstrap: clusterv1.Bootstrap{
+					ConfigRef: &corev1.ObjectReference{
+						Kind:       "KubeadmConfig",
+						Namespace:  "default",
+						Name:       "test",
+						APIVersion: bootstrapv1.GroupVersion.String(),
+					},
+				},
+			},
+		}
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: &bootstrapv1.InitConfiguration{},
+				},
+			},
+		}
+		match, diff, err := matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeTrue())
+		g.Expect(diff).To(BeEmpty())
+	})
+	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
+		g := NewWithT(t)
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{},
 					InitConfiguration:    &bootstrapv1.InitConfiguration{},
 					JoinConfiguration:    &bootstrapv1.JoinConfiguration{},
 				},

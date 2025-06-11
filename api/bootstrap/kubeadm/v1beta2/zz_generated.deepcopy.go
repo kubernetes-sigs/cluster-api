@@ -86,9 +86,9 @@ func (in *BootstrapToken) DeepCopyInto(out *BootstrapToken) {
 		*out = new(BootstrapTokenString)
 		**out = **in
 	}
-	if in.TTL != nil {
-		in, out := &in.TTL, &out.TTL
-		*out = new(metav1.Duration)
+	if in.TTLSeconds != nil {
+		in, out := &in.TTLSeconds, &out.TTLSeconds
+		*out = new(int32)
 		**out = **in
 	}
 	if in.Expires != nil {

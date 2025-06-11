@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -392,9 +391,9 @@ func UpgradeMachineDeploymentInPlaceMutableFieldsAndWait(ctx context.Context, in
 			deployment.Spec.Template.Annotations = map[string]string{}
 		}
 		deployment.Spec.Template.Annotations["new-annotation"] = "new-annotation-value"
-		deployment.Spec.Template.Spec.NodeDrainTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second}        //nolint:gosec
-		deployment.Spec.Template.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second}     //nolint:gosec
-		deployment.Spec.Template.Spec.NodeVolumeDetachTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second} //nolint:gosec
+		deployment.Spec.Template.Spec.NodeDrainTimeoutSeconds = ptr.To(rand.Int31n(20))        //nolint:gosec
+		deployment.Spec.Template.Spec.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
+		deployment.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, deployment)
 		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch in-place mutable fields of MachineDeployment %s", klog.KObj(deployment))
@@ -426,9 +425,9 @@ func UpgradeMachineDeploymentInPlaceMutableFieldsAndWait(ctx context.Context, in
 			g.Expect(machineSetAfterUpgrade.Spec.Template.Labels).To(HaveKeyWithValue("new-label", "new-label-value"))
 			g.Expect(machineSetAfterUpgrade.Spec.Template.Annotations).To(HaveKeyWithValue("new-annotation", "new-annotation-value"))
 			// Timeouts should be propagated.
-			g.Expect(machineSetAfterUpgrade.Spec.Template.Spec.NodeDrainTimeout).To(Equal(deployment.Spec.Template.Spec.NodeDrainTimeout))
-			g.Expect(machineSetAfterUpgrade.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(deployment.Spec.Template.Spec.NodeDeletionTimeout))
-			g.Expect(machineSetAfterUpgrade.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(deployment.Spec.Template.Spec.NodeVolumeDetachTimeout))
+			g.Expect(machineSetAfterUpgrade.Spec.Template.Spec.NodeDrainTimeoutSeconds).To(Equal(deployment.Spec.Template.Spec.NodeDrainTimeoutSeconds))
+			g.Expect(machineSetAfterUpgrade.Spec.Template.Spec.NodeDeletionTimeoutSeconds).To(Equal(deployment.Spec.Template.Spec.NodeDeletionTimeoutSeconds))
+			g.Expect(machineSetAfterUpgrade.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds).To(Equal(deployment.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds))
 
 			log.Logf("Verify fields have been propagated to Machines")
 			for _, m := range machinesAfterUpgrade {
@@ -436,9 +435,9 @@ func UpgradeMachineDeploymentInPlaceMutableFieldsAndWait(ctx context.Context, in
 				g.Expect(m.Labels).To(HaveKeyWithValue("new-label", "new-label-value"))
 				g.Expect(m.Annotations).To(HaveKeyWithValue("new-annotation", "new-annotation-value"))
 				// Timeouts should be propagated.
-				g.Expect(m.Spec.NodeDrainTimeout).To(Equal(deployment.Spec.Template.Spec.NodeDrainTimeout))
-				g.Expect(m.Spec.NodeDeletionTimeout).To(Equal(deployment.Spec.Template.Spec.NodeDeletionTimeout))
-				g.Expect(m.Spec.NodeVolumeDetachTimeout).To(Equal(deployment.Spec.Template.Spec.NodeVolumeDetachTimeout))
+				g.Expect(m.Spec.NodeDrainTimeoutSeconds).To(Equal(deployment.Spec.Template.Spec.NodeDrainTimeoutSeconds))
+				g.Expect(m.Spec.NodeDeletionTimeoutSeconds).To(Equal(deployment.Spec.Template.Spec.NodeDeletionTimeoutSeconds))
+				g.Expect(m.Spec.NodeVolumeDetachTimeoutSeconds).To(Equal(deployment.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds))
 			}
 		}, input.WaitForMachinesToBeUpgraded...).Should(Succeed())
 	}

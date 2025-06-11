@@ -314,9 +314,9 @@ func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluste
 
 // isMachinePoolDeleteTimeoutPassed check the machinePool node delete time out.
 func (r *MachinePoolReconciler) isMachinePoolNodeDeleteTimeoutPassed(machinePool *clusterv1.MachinePool) bool {
-	if !machinePool.DeletionTimestamp.IsZero() && machinePool.Spec.Template.Spec.NodeDeletionTimeout != nil {
-		if machinePool.Spec.Template.Spec.NodeDeletionTimeout.Nanoseconds() != 0 {
-			deleteTimePlusDuration := machinePool.DeletionTimestamp.Add(machinePool.Spec.Template.Spec.NodeDeletionTimeout.Duration)
+	if !machinePool.DeletionTimestamp.IsZero() && machinePool.Spec.Template.Spec.NodeDeletionTimeoutSeconds != nil {
+		if *machinePool.Spec.Template.Spec.NodeDeletionTimeoutSeconds != 0 {
+			deleteTimePlusDuration := machinePool.DeletionTimestamp.Add(time.Duration(*machinePool.Spec.Template.Spec.NodeDeletionTimeoutSeconds) * time.Second)
 			return deleteTimePlusDuration.Before(time.Now())
 		}
 	}

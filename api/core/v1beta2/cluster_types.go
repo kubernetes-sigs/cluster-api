@@ -611,22 +611,25 @@ type ControlPlaneTopology struct {
 	// +optional
 	MachineHealthCheck *MachineHealthCheckTopology `json:"machineHealthCheck,omitempty"`
 
-	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
-	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
 	// +optional
-	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeDrainTimeoutSeconds *int32 `json:"nodeDrainTimeoutSeconds,omitempty"`
 
-	// nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
 	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
 	// +optional
-	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
-	// nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
 	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// +optional
-	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
 
 	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
 	//
@@ -710,22 +713,25 @@ type MachineDeploymentTopology struct {
 	// +optional
 	MachineHealthCheck *MachineHealthCheckTopology `json:"machineHealthCheck,omitempty"`
 
-	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
-	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
 	// +optional
-	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeDrainTimeoutSeconds *int32 `json:"nodeDrainTimeoutSeconds,omitempty"`
 
-	// nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
 	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
 	// +optional
-	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
-	// nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
 	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// +optional
-	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
 
 	// minReadySeconds is the minimum number of seconds for which a newly created machine should
 	// be ready.
@@ -810,22 +816,25 @@ type MachinePoolTopology struct {
 	// +kubebuilder:validation:items:MaxLength=256
 	FailureDomains []string `json:"failureDomains,omitempty"`
 
-	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
-	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
 	// +optional
-	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeDrainTimeoutSeconds *int32 `json:"nodeDrainTimeoutSeconds,omitempty"`
 
-	// nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
 	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
 	// +optional
-	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
-	// nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the MachinePool
+	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the MachinePool
 	// hosts after the MachinePool is marked for deletion. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// +optional
-	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
 
 	// minReadySeconds is the minimum number of seconds for which a newly created machine pool should
 	// be ready.

@@ -345,7 +345,7 @@ func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string
 	}
 
 	// Set minNodeStartupTimeout for Test, so it does not need to be at least 30s
-	internalwebhooks.SetMinNodeStartupTimeout(metav1.Duration{Duration: 1 * time.Millisecond})
+	internalwebhooks.SetMinNodeStartupTimeoutSeconds(0)
 
 	if err := (&webhooks.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)

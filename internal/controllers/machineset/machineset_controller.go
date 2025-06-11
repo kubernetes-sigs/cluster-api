@@ -513,9 +513,9 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 
 			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
 			m.Spec.ReadinessGates = machineSet.Spec.Template.Spec.ReadinessGates
-			m.Spec.NodeDrainTimeout = machineSet.Spec.Template.Spec.NodeDrainTimeout
-			m.Spec.NodeDeletionTimeout = machineSet.Spec.Template.Spec.NodeDeletionTimeout
-			m.Spec.NodeVolumeDetachTimeout = machineSet.Spec.Template.Spec.NodeVolumeDetachTimeout
+			m.Spec.NodeDrainTimeoutSeconds = machineSet.Spec.Template.Spec.NodeDrainTimeoutSeconds
+			m.Spec.NodeDeletionTimeoutSeconds = machineSet.Spec.Template.Spec.NodeDeletionTimeoutSeconds
+			m.Spec.NodeVolumeDetachTimeoutSeconds = machineSet.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
 			m.Spec.MinReadySeconds = machineSet.Spec.Template.Spec.MinReadySeconds
 
 			// Set machine's up to date condition
@@ -927,9 +927,9 @@ func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, exi
 
 	// Set all other in-place mutable fields.
 	desiredMachine.Spec.ReadinessGates = machineSet.Spec.Template.Spec.ReadinessGates
-	desiredMachine.Spec.NodeDrainTimeout = machineSet.Spec.Template.Spec.NodeDrainTimeout
-	desiredMachine.Spec.NodeDeletionTimeout = machineSet.Spec.Template.Spec.NodeDeletionTimeout
-	desiredMachine.Spec.NodeVolumeDetachTimeout = machineSet.Spec.Template.Spec.NodeVolumeDetachTimeout
+	desiredMachine.Spec.NodeDrainTimeoutSeconds = machineSet.Spec.Template.Spec.NodeDrainTimeoutSeconds
+	desiredMachine.Spec.NodeDeletionTimeoutSeconds = machineSet.Spec.Template.Spec.NodeDeletionTimeoutSeconds
+	desiredMachine.Spec.NodeVolumeDetachTimeoutSeconds = machineSet.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
 	desiredMachine.Spec.MinReadySeconds = machineSet.Spec.Template.Spec.MinReadySeconds
 
 	return desiredMachine, nil

@@ -377,12 +377,13 @@ type BootstrapToken struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	Description string `json:"description,omitempty"`
-	// ttl defines the time to live for this token. Defaults to 24h.
-	// Expires and TTL are mutually exclusive.
+	// ttlSeconds defines the time to live for this token. Defaults to 24h.
+	// Expires and ttlSeconds are mutually exclusive.
 	// +optional
-	TTL *metav1.Duration `json:"ttl,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	TTLSeconds *int32 `json:"ttlSeconds,omitempty"`
 	// expires specifies the timestamp when this token expires. Defaults to being set
-	// dynamically at runtime based on the TTL. Expires and TTL are mutually exclusive.
+	// dynamically at runtime based on the ttlSeconds. Expires and ttlSeconds are mutually exclusive.
 	// +optional
 	Expires *metav1.Time `json:"expires,omitempty"`
 	// usages describes the ways in which this token can be used. Can by default be used

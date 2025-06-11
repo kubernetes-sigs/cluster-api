@@ -40,7 +40,7 @@ import (
 // Kubernetes version, infrastructure template, and KubeadmConfig field need to be equivalent.
 // Note: We don't need to compare the entire MachineSpec to determine if a Machine needs to be rolled out,
 // because all the fields in the MachineSpec, except for version, the infrastructureRef and bootstrap.ConfigRef, are either:
-// - mutated in-place (ex: NodeDrainTimeout)
+// - mutated in-place (ex: NodeDrainTimeoutSeconds)
 // - are not dictated by KCP (ex: ProviderID)
 // - are not relevant for the rollout decision (ex: failureDomain).
 func matchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (bool, []string, []string, error) {

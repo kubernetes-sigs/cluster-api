@@ -5284,7 +5284,7 @@ spec:
                         expires:
                           description: |-
                             expires specifies the timestamp when this token expires. Defaults to being set
-                            dynamically at runtime based on the TTL. Expires and TTL are mutually exclusive.
+                            dynamically at runtime based on the ttlSeconds. Expires and ttlSeconds are mutually exclusive.
                           format: date-time
                           type: string
                         groups:
@@ -5302,11 +5302,13 @@ spec:
                             token is used for establishing bidirectional trust between nodes and control-planes.
                             Used for joining nodes in the cluster.
                           type: string
-                        ttl:
+                        ttlSeconds:
                           description: |-
-                            ttl defines the time to live for this token. Defaults to 24h.
-                            Expires and TTL are mutually exclusive.
-                          type: string
+                            ttlSeconds defines the time to live for this token. Defaults to 24h.
+                            Expires and ttlSeconds are mutually exclusive.
+                          format: int32
+                          minimum: 0
+                          type: integer
                         usages:
                           description: |-
                             usages describes the ways in which this token can be used. Can by default be used

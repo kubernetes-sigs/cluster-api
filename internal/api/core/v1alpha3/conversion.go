@@ -165,8 +165,8 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.MinReadySeconds = restored.Spec.MinReadySeconds
 	dst.Spec.ReadinessGates = restored.Spec.ReadinessGates
-	dst.Spec.NodeDeletionTimeout = restored.Spec.NodeDeletionTimeout
-	dst.Spec.NodeVolumeDetachTimeout = restored.Spec.NodeVolumeDetachTimeout
+	dst.Spec.NodeDeletionTimeoutSeconds = restored.Spec.NodeDeletionTimeoutSeconds
+	dst.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.NodeVolumeDetachTimeoutSeconds
 	dst.Status.NodeInfo = restored.Status.NodeInfo
 	dst.Status.CertificatesExpiryDate = restored.Status.CertificatesExpiryDate
 	dst.Status.Deletion = restored.Status.Deletion
@@ -243,8 +243,8 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
-	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
-	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
+	dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
+	dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
 	if restored.Status.Deprecated != nil && restored.Status.Deprecated.V1Beta1 != nil {
 		dst.Status.Deprecated.V1Beta1.Conditions = restored.Status.Deprecated.V1Beta1.Conditions
 	}
@@ -336,8 +336,8 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
-	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
-	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
+	dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
+	dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
 	dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
 	if restored.Status.Deprecated != nil && restored.Status.Deprecated.V1Beta1 != nil {
 		dst.Status.Deprecated.V1Beta1.Conditions = restored.Status.Deprecated.V1Beta1.Conditions
@@ -483,8 +483,8 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
-	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
-	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
+	dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
+	dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
 	dst.Status.Conditions = restored.Status.Conditions
 	dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
 	dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
@@ -581,11 +581,12 @@ func Convert_v1alpha3_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(i
 
 	for _, c := range in.UnhealthyConditions {
 		out.UnhealthyNodeConditions = append(out.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
-			Type:    c.Type,
-			Status:  c.Status,
-			Timeout: c.Timeout,
+			Type:           c.Type,
+			Status:         c.Status,
+			TimeoutSeconds: ptr.Deref(clusterv1.ConvertToSeconds(&c.Timeout), 0),
 		})
 	}
+	out.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeStartupTimeout)
 
 	return nil
 }
@@ -599,9 +600,10 @@ func Convert_v1beta2_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(i
 		out.UnhealthyConditions = append(out.UnhealthyConditions, UnhealthyCondition{
 			Type:    c.Type,
 			Status:  c.Status,
-			Timeout: c.Timeout,
+			Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(&c.TimeoutSeconds), metav1.Duration{}),
 		})
 	}
+	out.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.NodeStartupTimeoutSeconds)
 
 	return nil
 }
@@ -643,7 +645,11 @@ func Convert_v1beta2_MachineStatus_To_v1alpha3_MachineStatus(in *clusterv1.Machi
 func Convert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apimachineryconversion.Scope) error {
 	// spec.nodeDeletionTimeout was added in v1beta1.
 	// ReadinessGates was added in v1beta1.
-	return autoConvert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in, out, s)
+	if err := autoConvert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
+	return nil
 }
 
 func Convert_v1beta2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in *clusterv1.MachineDeploymentSpec, out *MachineDeploymentSpec, s apimachineryconversion.Scope) error {
@@ -749,4 +755,12 @@ func Convert_v1beta2_MachinePoolStatus_To_v1alpha3_MachinePoolStatus(in *cluster
 
 func Convert_v1alpha3_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in *MachinePoolStatus, out *clusterv1.MachinePoolStatus, s apimachineryconversion.Scope) error {
 	return autoConvert_v1alpha3_MachinePoolStatus_To_v1beta2_MachinePoolStatus(in, out, s)
+}
+
+func Convert_v1alpha3_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, out *clusterv1.MachineSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha3_MachineSpec_To_v1beta2_MachineSpec(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	return nil
 }

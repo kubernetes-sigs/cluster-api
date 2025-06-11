@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
 )
 
@@ -97,12 +98,20 @@ func Convert_upstreamv1beta4_Timeouts_To_v1beta2_Timeouts(in *Timeouts, out *boo
 		return err
 	}
 
-	out.ControlPlaneComponentHealthCheckSeconds = bootstrapv1.ConvertToSeconds(in.ControlPlaneComponentHealthCheck)
-	out.KubeletHealthCheckSeconds = bootstrapv1.ConvertToSeconds(in.KubeletHealthCheck)
-	out.KubernetesAPICallSeconds = bootstrapv1.ConvertToSeconds(in.KubernetesAPICall)
-	out.DiscoverySeconds = bootstrapv1.ConvertToSeconds(in.Discovery)
-	out.EtcdAPICallSeconds = bootstrapv1.ConvertToSeconds(in.EtcdAPICall)
-	out.TLSBootstrapSeconds = bootstrapv1.ConvertToSeconds(in.TLSBootstrap)
+	out.ControlPlaneComponentHealthCheckSeconds = clusterv1.ConvertToSeconds(in.ControlPlaneComponentHealthCheck)
+	out.KubeletHealthCheckSeconds = clusterv1.ConvertToSeconds(in.KubeletHealthCheck)
+	out.KubernetesAPICallSeconds = clusterv1.ConvertToSeconds(in.KubernetesAPICall)
+	out.DiscoverySeconds = clusterv1.ConvertToSeconds(in.Discovery)
+	out.EtcdAPICallSeconds = clusterv1.ConvertToSeconds(in.EtcdAPICall)
+	out.TLSBootstrapSeconds = clusterv1.ConvertToSeconds(in.TLSBootstrap)
+	return nil
+}
+
+func Convert_upstreamv1beta4_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToken, out *bootstrapv1.BootstrapToken, s apimachineryconversion.Scope) error {
+	if err := autoConvert_upstreamv1beta4_BootstrapToken_To_v1beta2_BootstrapToken(in, out, s); err != nil {
+		return err
+	}
+	out.TTLSeconds = clusterv1.ConvertToSeconds(in.TTL)
 	return nil
 }
 
@@ -130,12 +139,20 @@ func Convert_v1beta2_Timeouts_To_upstreamv1beta4_Timeouts(in *bootstrapv1.Timeou
 		return err
 	}
 
-	out.ControlPlaneComponentHealthCheck = bootstrapv1.ConvertFromSeconds(in.ControlPlaneComponentHealthCheckSeconds)
-	out.KubeletHealthCheck = bootstrapv1.ConvertFromSeconds(in.KubeletHealthCheckSeconds)
-	out.KubernetesAPICall = bootstrapv1.ConvertFromSeconds(in.KubernetesAPICallSeconds)
-	out.EtcdAPICall = bootstrapv1.ConvertFromSeconds(in.EtcdAPICallSeconds)
-	out.TLSBootstrap = bootstrapv1.ConvertFromSeconds(in.TLSBootstrapSeconds)
-	out.Discovery = bootstrapv1.ConvertFromSeconds(in.DiscoverySeconds)
+	out.ControlPlaneComponentHealthCheck = clusterv1.ConvertFromSeconds(in.ControlPlaneComponentHealthCheckSeconds)
+	out.KubeletHealthCheck = clusterv1.ConvertFromSeconds(in.KubeletHealthCheckSeconds)
+	out.KubernetesAPICall = clusterv1.ConvertFromSeconds(in.KubernetesAPICallSeconds)
+	out.EtcdAPICall = clusterv1.ConvertFromSeconds(in.EtcdAPICallSeconds)
+	out.TLSBootstrap = clusterv1.ConvertFromSeconds(in.TLSBootstrapSeconds)
+	out.Discovery = clusterv1.ConvertFromSeconds(in.DiscoverySeconds)
+	return nil
+}
+
+func Convert_v1beta2_BootstrapToken_To_upstreamv1beta4_BootstrapToken(in *bootstrapv1.BootstrapToken, out *BootstrapToken, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_BootstrapToken_To_upstreamv1beta4_BootstrapToken(in, out, s); err != nil {
+		return err
+	}
+	out.TTL = clusterv1.ConvertFromSeconds(in.TTLSeconds)
 	return nil
 }
 

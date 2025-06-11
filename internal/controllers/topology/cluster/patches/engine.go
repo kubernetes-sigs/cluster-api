@@ -529,9 +529,14 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 		contract.ControlPlane().MachineTemplate().Metadata().Path(),
 		contract.ControlPlane().MachineTemplate().ReadinessGates().Path(),
 		contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(),
+		// Note: For simplicity we don't allow patching for the fields of both contracts to avoid
+		// requiring a client here to retrieve the contract version of the ControlPlane object.
 		contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path(),
 		contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path(),
 		contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path(),
+		contract.ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Path(),
+		contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Path(),
+		contract.ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Path(),
 		contract.ControlPlane().Replicas().Path(),
 		contract.ControlPlane().Version().Path(),
 	}); err != nil {

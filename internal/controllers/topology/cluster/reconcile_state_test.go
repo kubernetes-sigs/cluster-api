@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"regexp"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
@@ -1726,9 +1725,9 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 	mhcClass := &clusterv1.MachineHealthCheckClass{
 		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
-				Type:    corev1.NodeReady,
-				Status:  corev1.ConditionUnknown,
-				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+				Type:           corev1.NodeReady,
+				Status:         corev1.ConditionUnknown,
+				TimeoutSeconds: 5 * 60,
 			},
 		},
 	}
@@ -2657,7 +2656,7 @@ func TestReconcileMachinePools(t *testing.T) {
 						wantMachinePoolState.Object.Spec.Template.Spec.Bootstrap.ConfigRef.Name = gotMachinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Name
 					}
 					// expect default value for the node deletion timeout.
-					wantMachinePoolState.Object.Spec.Template.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: 10 * time.Second}
+					wantMachinePoolState.Object.Spec.Template.Spec.NodeDeletionTimeoutSeconds = ptr.To(int32(10))
 
 					// Compare MachinePool.
 					// Note: We're intentionally only comparing Spec as otherwise we would have to account for
@@ -3301,9 +3300,9 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 		WithSelector(*selectors.ForMachineDeploymentMHC(md)).
 		WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 			{
-				Type:    corev1.NodeReady,
-				Status:  corev1.ConditionUnknown,
-				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+				Type:           corev1.NodeReady,
+				Status:         corev1.ConditionUnknown,
+				TimeoutSeconds: 5 * 60,
 			},
 		}).
 		WithClusterName("cluster1")
@@ -3705,9 +3704,9 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 		WithSelector(*selectors.ForControlPlaneMHC()).
 		WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 			{
-				Type:    corev1.NodeReady,
-				Status:  corev1.ConditionUnknown,
-				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+				Type:           corev1.NodeReady,
+				Status:         corev1.ConditionUnknown,
+				TimeoutSeconds: 5 * 60,
 			},
 		}).
 		WithClusterName("cluster1")
@@ -3730,16 +3729,16 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 			// update the unhealthy conditions in the MachineHealthCheck
 			desired: mhcBuilder.DeepCopy().WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 				{
-					Type:    corev1.NodeReady,
-					Status:  corev1.ConditionUnknown,
-					Timeout: metav1.Duration{Duration: 1000 * time.Minute},
+					Type:           corev1.NodeReady,
+					Status:         corev1.ConditionUnknown,
+					TimeoutSeconds: 1000 * 60,
 				},
 			}).Build(),
 			want: mhcBuilder.DeepCopy().WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 				{
-					Type:    corev1.NodeReady,
-					Status:  corev1.ConditionUnknown,
-					Timeout: metav1.Duration{Duration: 1000 * time.Minute},
+					Type:           corev1.NodeReady,
+					Status:         corev1.ConditionUnknown,
+					TimeoutSeconds: 1000 * 60,
 				},
 			}).Build(),
 		},

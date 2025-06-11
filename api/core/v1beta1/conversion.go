@@ -208,11 +208,12 @@ func Convert_v1beta1_MachineHealthCheckClass_To_v1beta2_MachineHealthCheckClass(
 
 	for _, c := range in.UnhealthyConditions {
 		out.UnhealthyNodeConditions = append(out.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
-			Type:    c.Type,
-			Status:  c.Status,
-			Timeout: c.Timeout,
+			Type:           c.Type,
+			Status:         c.Status,
+			TimeoutSeconds: ptr.Deref(clusterv1.ConvertToSeconds(&c.Timeout), 0),
 		})
 	}
+	out.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeStartupTimeout)
 
 	return nil
 }
@@ -226,9 +227,10 @@ func Convert_v1beta2_MachineHealthCheckClass_To_v1beta1_MachineHealthCheckClass(
 		out.UnhealthyConditions = append(out.UnhealthyConditions, UnhealthyCondition{
 			Type:    c.Type,
 			Status:  c.Status,
-			Timeout: c.Timeout,
+			Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(&c.TimeoutSeconds), metav1.Duration{}),
 		})
 	}
+	out.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.NodeStartupTimeoutSeconds)
 
 	return nil
 }
@@ -239,6 +241,136 @@ func Convert_v1beta1_LocalObjectTemplate_To_v1beta2_InfrastructureClass(in *Loca
 	}
 
 	return autoConvert_v1beta1_LocalObjectTemplate_To_v1beta2_LocalObjectTemplate(in, &out.LocalObjectTemplate, s)
+}
+
+func Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *ControlPlaneClass, out *clusterv1.ControlPlaneClass, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	return nil
+}
+
+func Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *clusterv1.ControlPlaneClass, out *ControlPlaneClass, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	return nil
+}
+
+func Convert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in *ControlPlaneTopology, out *clusterv1.ControlPlaneTopology, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	return nil
+}
+
+func Convert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in *clusterv1.ControlPlaneTopology, out *ControlPlaneTopology, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	return nil
+}
+
+func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in *MachineDeploymentClass, out *clusterv1.MachineDeploymentClass, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	return nil
+}
+
+func Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in *clusterv1.MachineDeploymentClass, out *MachineDeploymentClass, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	return nil
+}
+
+func Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopology(in *MachineDeploymentTopology, out *clusterv1.MachineDeploymentTopology, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopology(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	return nil
+}
+
+func Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopology(in *clusterv1.MachineDeploymentTopology, out *MachineDeploymentTopology, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopology(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	return nil
+}
+
+func Convert_v1beta1_MachinePoolClass_To_v1beta2_MachinePoolClass(in *MachinePoolClass, out *clusterv1.MachinePoolClass, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_MachinePoolClass_To_v1beta2_MachinePoolClass(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	return nil
+}
+
+func Convert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(in *clusterv1.MachinePoolClass, out *MachinePoolClass, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	return nil
+}
+
+func Convert_v1beta1_MachinePoolTopology_To_v1beta2_MachinePoolTopology(in *MachinePoolTopology, out *clusterv1.MachinePoolTopology, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_MachinePoolTopology_To_v1beta2_MachinePoolTopology(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	return nil
+}
+
+func Convert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(in *clusterv1.MachinePoolTopology, out *MachinePoolTopology, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	return nil
+}
+
+func Convert_v1beta1_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, out *clusterv1.MachineSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_MachineSpec_To_v1beta2_MachineSpec(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	return nil
 }
 
 func Convert_v1beta2_ClusterClassStatus_To_v1beta1_ClusterClassStatus(in *clusterv1.ClusterClassStatus, out *ClusterClassStatus, s apimachineryconversion.Scope) error {
@@ -539,11 +671,12 @@ func Convert_v1beta1_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(in
 
 	for _, c := range in.UnhealthyConditions {
 		out.UnhealthyNodeConditions = append(out.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
-			Type:    c.Type,
-			Status:  c.Status,
-			Timeout: c.Timeout,
+			Type:           c.Type,
+			Status:         c.Status,
+			TimeoutSeconds: ptr.Deref(clusterv1.ConvertToSeconds(&c.Timeout), 0),
 		})
 	}
+	out.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeStartupTimeout)
 
 	return nil
 }
@@ -557,9 +690,10 @@ func Convert_v1beta2_MachineHealthCheckSpec_To_v1beta1_MachineHealthCheckSpec(in
 		out.UnhealthyConditions = append(out.UnhealthyConditions, UnhealthyCondition{
 			Type:    c.Type,
 			Status:  c.Status,
-			Timeout: c.Timeout,
+			Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(&c.TimeoutSeconds), metav1.Duration{}),
 		})
 	}
+	out.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.NodeStartupTimeoutSeconds)
 
 	return nil
 }
@@ -808,7 +942,13 @@ func Convert_v1beta1_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSetSpec
 }
 
 func Convert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apimachineryconversion.Scope) error {
-	return autoConvert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in, out, s)
+	if err := autoConvert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in, out, s); err != nil {
+		return err
+	}
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	return nil
 }
 
 func Convert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus(in *clusterv1.MachinePoolStatus, out *MachinePoolStatus, s apimachineryconversion.Scope) error {

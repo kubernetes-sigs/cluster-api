@@ -20,7 +20,6 @@ import (
 	"maps"
 	"slices"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
@@ -137,14 +136,14 @@ func TestGetCurrentState(t *testing.T) {
 		WithSelector(*selectors.ForMachineDeploymentMHC(machineDeployment)).
 		WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 			{
-				Type:    corev1.NodeReady,
-				Status:  corev1.ConditionUnknown,
-				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+				Type:           corev1.NodeReady,
+				Status:         corev1.ConditionUnknown,
+				TimeoutSeconds: 5 * 60,
 			},
 			{
-				Type:    corev1.NodeReady,
-				Status:  corev1.ConditionFalse,
-				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+				Type:           corev1.NodeReady,
+				Status:         corev1.ConditionFalse,
+				TimeoutSeconds: 5 * 60,
 			},
 		}).
 		WithClusterName("cluster1").
@@ -154,14 +153,14 @@ func TestGetCurrentState(t *testing.T) {
 		WithSelector(*selectors.ForControlPlaneMHC()).
 		WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 			{
-				Type:    corev1.NodeReady,
-				Status:  corev1.ConditionUnknown,
-				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+				Type:           corev1.NodeReady,
+				Status:         corev1.ConditionUnknown,
+				TimeoutSeconds: 5 * 60,
 			},
 			{
-				Type:    corev1.NodeReady,
-				Status:  corev1.ConditionFalse,
-				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+				Type:           corev1.NodeReady,
+				Status:         corev1.ConditionFalse,
+				TimeoutSeconds: 5 * 60,
 			},
 		}).
 		WithClusterName("cluster1").

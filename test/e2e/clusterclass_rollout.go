@@ -172,9 +172,9 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.Metadata.Annotations = map[string]string{
 					"Cluster.topology.controlPlane.newAnnotation": "Cluster.topology.controlPlane.newAnnotationValue",
 				}
-				topology.NodeDrainTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second}        //nolint:gosec
-				topology.NodeDeletionTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second}     //nolint:gosec
-				topology.NodeVolumeDetachTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second} //nolint:gosec
+				topology.NodeDrainTimeoutSeconds = ptr.To(rand.Int31n(20))        //nolint:gosec
+				topology.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
+				topology.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
 			},
 			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 		})
@@ -190,10 +190,10 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.Metadata.Annotations = map[string]string{
 					"Cluster.topology.machineDeployment.newAnnotation": "Cluster.topology.machineDeployment.newAnnotationValue",
 				}
-				topology.NodeDrainTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second}        //nolint:gosec
-				topology.NodeDeletionTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second}     //nolint:gosec
-				topology.NodeVolumeDetachTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second} //nolint:gosec
-				topology.MinReadySeconds = ptr.To[int32](rand.Int31n(20))                                                 //nolint:gosec
+				topology.NodeDrainTimeoutSeconds = ptr.To(rand.Int31n(20))        //nolint:gosec
+				topology.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
+				topology.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
+				topology.MinReadySeconds = ptr.To[int32](rand.Int31n(20))         //nolint:gosec
 				topology.Strategy = &clusterv1.MachineDeploymentStrategy{
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
@@ -220,10 +220,10 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.Metadata.Annotations = map[string]string{
 					"Cluster.topology.machinePool.newAnnotation": "Cluster.topology.machinePool.newAnnotationValue",
 				}
-				topology.NodeDrainTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second}        //nolint:gosec
-				topology.NodeDeletionTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second}     //nolint:gosec
-				topology.NodeVolumeDetachTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second} //nolint:gosec
-				topology.MinReadySeconds = ptr.To[int32](rand.Int31n(20))                                                 //nolint:gosec
+				topology.NodeDrainTimeoutSeconds = ptr.To(rand.Int31n(20))        //nolint:gosec
+				topology.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
+				topology.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
+				topology.MinReadySeconds = ptr.To[int32](rand.Int31n(20))         //nolint:gosec
 			},
 			WaitForMachinePools: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		})
@@ -1270,8 +1270,11 @@ func modifyControlPlaneViaClusterAndWait(ctx context.Context, input modifyContro
 		controlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
 		g.Expect(err).ToNot(HaveOccurred())
 
+		contractVersion, err := contract.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind())
+		g.Expect(err).ToNot(HaveOccurred())
+
 		// Verify that the fields from Cluster topology are set on the control plane.
-		assertControlPlaneTopologyFields(g, controlPlane, controlPlaneTopology)
+		assertControlPlaneTopologyFields(g, contractVersion, controlPlane, controlPlaneTopology)
 	}, input.WaitForControlPlane...).Should(Succeed())
 }
 

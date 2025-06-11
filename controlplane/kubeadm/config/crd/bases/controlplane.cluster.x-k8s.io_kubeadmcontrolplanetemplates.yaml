@@ -4622,7 +4622,7 @@ spec:
                                     expires:
                                       description: |-
                                         expires specifies the timestamp when this token expires. Defaults to being set
-                                        dynamically at runtime based on the TTL. Expires and TTL are mutually exclusive.
+                                        dynamically at runtime based on the ttlSeconds. Expires and ttlSeconds are mutually exclusive.
                                       format: date-time
                                       type: string
                                     groups:
@@ -4640,11 +4640,13 @@ spec:
                                         token is used for establishing bidirectional trust between nodes and control-planes.
                                         Used for joining nodes in the cluster.
                                       type: string
-                                    ttl:
+                                    ttlSeconds:
                                       description: |-
-                                        ttl defines the time to live for this token. Defaults to 24h.
-                                        Expires and TTL are mutually exclusive.
-                                      type: string
+                                        ttlSeconds defines the time to live for this token. Defaults to 24h.
+                                        Expires and ttlSeconds are mutually exclusive.
+                                      format: int32
+                                      minimum: 0
+                                      type: integer
                                     usages:
                                       description: |-
                                         usages describes the ways in which this token can be used. Can by default be used
@@ -5592,23 +5594,29 @@ spec:
                                   More info: http://kubernetes.io/docs/user-guide/labels
                                 type: object
                             type: object
-                          nodeDeletionTimeout:
+                          nodeDeletionTimeoutSeconds:
                             description: |-
-                              nodeDeletionTimeout defines how long the machine controller will attempt to delete the Node that the Machine
+                              nodeDeletionTimeoutSeconds defines how long the machine controller will attempt to delete the Node that the Machine
                               hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
                               If no value is provided, the default value for this property of the Machine resource will be used.
-                            type: string
-                          nodeDrainTimeout:
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          nodeDrainTimeoutSeconds:
                             description: |-
-                              nodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
+                              nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a controlplane node
                               The default value is 0, meaning that the node can be drained without any time limitations.
-                              NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
-                            type: string
-                          nodeVolumeDetachTimeout:
+                              NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          nodeVolumeDetachTimeoutSeconds:
                             description: |-
-                              nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+                              nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
                               to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
-                            type: string
+                            format: int32
+                            minimum: 0
+                            type: integer
                         type: object
                       remediationStrategy:
                         description: remediationStrategy is the RemediationStrategy
@@ -5626,39 +5634,44 @@ spec:
                               and then be\n\tremediated; such operation is considered
                               a retry, remediation-retry #1.\n\tIf M1-2 (replacement
                               of M1-1) becomes unhealthy, remediation-retry #2 will
-                              happen, etc.\n\nA retry could happen only after RetryPeriod
+                              happen, etc.\n\nA retry could happen only after retryPeriodSeconds
                               from the previous retry.\nIf a machine is marked as
-                              unhealthy after MinHealthyPeriod from the previous remediation
-                              expired,\nthis is not considered a retry anymore because
-                              the new issue is assumed unrelated from the previous
-                              one.\n\nIf not set, the remedation will be retried infinitely."
+                              unhealthy after minHealthyPeriodSeconds from the previous
+                              remediation expired,\nthis is not considered a retry
+                              anymore because the new issue is assumed unrelated from
+                              the previous one.\n\nIf not set, the remedation will
+                              be retried infinitely."
                             format: int32
                             type: integer
-                          minHealthyPeriod:
-                            description: "minHealthyPeriod defines the duration after
-                              which KCP will consider any failure to a machine unrelated\nfrom
-                              the previous one. In this case the remediation is not
-                              considered a retry anymore, and thus the retry\ncounter
-                              restarts from 0. For example, assuming MinHealthyPeriod
+                          minHealthyPeriodSeconds:
+                            description: "minHealthyPeriodSeconds defines the duration
+                              after which KCP will consider any failure to a machine
+                              unrelated\nfrom the previous one. In this case the remediation
+                              is not considered a retry anymore, and thus the retry\ncounter
+                              restarts from 0. For example, assuming minHealthyPeriodSeconds
                               is set to 1h (default)\n\n\tM1 become unhealthy; remediation
                               happens, and M1-1 is created as a replacement.\n\tIf
                               M1-1 (replacement of M1) has problems within the 1hr
                               after the creation, also\n\tthis machine will be remediated
                               and this operation is considered a retry - a problem
                               related\n\tto the original issue happened to M1 -.\n\n\tIf
-                              instead the problem on M1-1 is happening after MinHealthyPeriod
+                              instead the problem on M1-1 is happening after minHealthyPeriodSeconds
                               expired, e.g. four days after\n\tm1-1 has been created
                               as a remediation of M1, the problem on M1-1 is considered
                               unrelated to\n\tthe original issue happened to M1.\n\nIf
                               not set, this value is defaulted to 1h."
-                            type: string
-                          retryPeriod:
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          retryPeriodSeconds:
                             description: |-
-                              retryPeriod is the duration that KCP should wait before remediating a machine being created as a replacement
+                              retryPeriodSeconds is the duration that KCP should wait before remediating a machine being created as a replacement
                               for an unhealthy machine (a retry).
 
                               If not set, a retry will happen immediately.
-                            type: string
+                            format: int32
+                            minimum: 0
+                            type: integer
                         type: object
                       rolloutAfter:
                         description: |-

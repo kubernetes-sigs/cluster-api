@@ -185,16 +185,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*ControlPlaneClass)(nil), (*v1beta2.ControlPlaneClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(a.(*ControlPlaneClass), b.(*v1beta2.ControlPlaneClass), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.ControlPlaneClass)(nil), (*ControlPlaneClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(a.(*v1beta2.ControlPlaneClass), b.(*ControlPlaneClass), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*ControlPlaneClassNamingStrategy)(nil), (*v1beta2.ControlPlaneClassNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ControlPlaneClassNamingStrategy_To_v1beta2_ControlPlaneClassNamingStrategy(a.(*ControlPlaneClassNamingStrategy), b.(*v1beta2.ControlPlaneClassNamingStrategy), scope)
 	}); err != nil {
@@ -202,16 +192,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.ControlPlaneClassNamingStrategy)(nil), (*ControlPlaneClassNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ControlPlaneClassNamingStrategy_To_v1beta1_ControlPlaneClassNamingStrategy(a.(*v1beta2.ControlPlaneClassNamingStrategy), b.(*ControlPlaneClassNamingStrategy), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ControlPlaneTopology)(nil), (*v1beta2.ControlPlaneTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(a.(*ControlPlaneTopology), b.(*v1beta2.ControlPlaneTopology), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.ControlPlaneTopology)(nil), (*ControlPlaneTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(a.(*v1beta2.ControlPlaneTopology), b.(*ControlPlaneTopology), scope)
 	}); err != nil {
 		return err
 	}
@@ -305,16 +285,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*MachineDeploymentClass)(nil), (*v1beta2.MachineDeploymentClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(a.(*MachineDeploymentClass), b.(*v1beta2.MachineDeploymentClass), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachineDeploymentClass)(nil), (*MachineDeploymentClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(a.(*v1beta2.MachineDeploymentClass), b.(*MachineDeploymentClass), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*MachineDeploymentClassNamingStrategy)(nil), (*v1beta2.MachineDeploymentClassNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachineDeploymentClassNamingStrategy_To_v1beta2_MachineDeploymentClassNamingStrategy(a.(*MachineDeploymentClassNamingStrategy), b.(*v1beta2.MachineDeploymentClassNamingStrategy), scope)
 	}); err != nil {
@@ -357,16 +327,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.MachineDeploymentStrategy)(nil), (*MachineDeploymentStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineDeploymentStrategy_To_v1beta1_MachineDeploymentStrategy(a.(*v1beta2.MachineDeploymentStrategy), b.(*MachineDeploymentStrategy), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*MachineDeploymentTopology)(nil), (*v1beta2.MachineDeploymentTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopology(a.(*MachineDeploymentTopology), b.(*v1beta2.MachineDeploymentTopology), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachineDeploymentTopology)(nil), (*MachineDeploymentTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopology(a.(*v1beta2.MachineDeploymentTopology), b.(*MachineDeploymentTopology), scope)
 	}); err != nil {
 		return err
 	}
@@ -500,16 +460,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*MachinePoolClass)(nil), (*v1beta2.MachinePoolClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachinePoolClass_To_v1beta2_MachinePoolClass(a.(*MachinePoolClass), b.(*v1beta2.MachinePoolClass), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachinePoolClass)(nil), (*MachinePoolClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(a.(*v1beta2.MachinePoolClass), b.(*MachinePoolClass), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*MachinePoolClassNamingStrategy)(nil), (*v1beta2.MachinePoolClassNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachinePoolClassNamingStrategy_To_v1beta2_MachinePoolClassNamingStrategy(a.(*MachinePoolClassNamingStrategy), b.(*v1beta2.MachinePoolClassNamingStrategy), scope)
 	}); err != nil {
@@ -542,16 +492,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.MachinePoolSpec)(nil), (*MachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachinePoolSpec_To_v1beta1_MachinePoolSpec(a.(*v1beta2.MachinePoolSpec), b.(*MachinePoolSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*MachinePoolTopology)(nil), (*v1beta2.MachinePoolTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachinePoolTopology_To_v1beta2_MachinePoolTopology(a.(*MachinePoolTopology), b.(*v1beta2.MachinePoolTopology), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachinePoolTopology)(nil), (*MachinePoolTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(a.(*v1beta2.MachinePoolTopology), b.(*MachinePoolTopology), scope)
 	}); err != nil {
 		return err
 	}
@@ -607,11 +547,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.MachineSetSpec)(nil), (*MachineSetSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineSetSpec_To_v1beta1_MachineSetSpec(a.(*v1beta2.MachineSetSpec), b.(*MachineSetSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*MachineSpec)(nil), (*v1beta2.MachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachineSpec_To_v1beta2_MachineSpec(a.(*MachineSpec), b.(*v1beta2.MachineSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -805,6 +740,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*ControlPlaneClass)(nil), (*v1beta2.ControlPlaneClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(a.(*ControlPlaneClass), b.(*v1beta2.ControlPlaneClass), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*ControlPlaneTopology)(nil), (*v1beta2.ControlPlaneTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(a.(*ControlPlaneTopology), b.(*v1beta2.ControlPlaneTopology), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*ExternalPatchDefinition)(nil), (*v1beta2.ExternalPatchDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ExternalPatchDefinition_To_v1beta2_ExternalPatchDefinition(a.(*ExternalPatchDefinition), b.(*v1beta2.ExternalPatchDefinition), scope)
 	}); err != nil {
@@ -815,6 +760,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*MachineDeploymentClass)(nil), (*v1beta2.MachineDeploymentClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(a.(*MachineDeploymentClass), b.(*v1beta2.MachineDeploymentClass), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*MachineDeploymentSpec)(nil), (*v1beta2.MachineDeploymentSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(a.(*MachineDeploymentSpec), b.(*v1beta2.MachineDeploymentSpec), scope)
 	}); err != nil {
@@ -822,6 +772,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*MachineDeploymentStatus)(nil), (*v1beta2.MachineDeploymentStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(a.(*MachineDeploymentStatus), b.(*v1beta2.MachineDeploymentStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*MachineDeploymentTopology)(nil), (*v1beta2.MachineDeploymentTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopology(a.(*MachineDeploymentTopology), b.(*v1beta2.MachineDeploymentTopology), scope)
 	}); err != nil {
 		return err
 	}
@@ -840,6 +795,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*MachinePoolClass)(nil), (*v1beta2.MachinePoolClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_MachinePoolClass_To_v1beta2_MachinePoolClass(a.(*MachinePoolClass), b.(*v1beta2.MachinePoolClass), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*MachinePoolSpec)(nil), (*v1beta2.MachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachinePoolSpec_To_v1beta2_MachinePoolSpec(a.(*MachinePoolSpec), b.(*v1beta2.MachinePoolSpec), scope)
 	}); err != nil {
@@ -850,6 +810,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*MachinePoolTopology)(nil), (*v1beta2.MachinePoolTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_MachinePoolTopology_To_v1beta2_MachinePoolTopology(a.(*MachinePoolTopology), b.(*v1beta2.MachinePoolTopology), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*MachineSetSpec)(nil), (*v1beta2.MachineSetSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachineSetSpec_To_v1beta2_MachineSetSpec(a.(*MachineSetSpec), b.(*v1beta2.MachineSetSpec), scope)
 	}); err != nil {
@@ -857,6 +822,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*MachineSetStatus)(nil), (*v1beta2.MachineSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachineSetStatus_To_v1beta2_MachineSetStatus(a.(*MachineSetStatus), b.(*v1beta2.MachineSetStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*MachineSpec)(nil), (*v1beta2.MachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_MachineSpec_To_v1beta2_MachineSpec(a.(*MachineSpec), b.(*v1beta2.MachineSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -895,6 +865,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.ControlPlaneClass)(nil), (*ControlPlaneClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(a.(*v1beta2.ControlPlaneClass), b.(*ControlPlaneClass), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.ControlPlaneTopology)(nil), (*ControlPlaneTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(a.(*v1beta2.ControlPlaneTopology), b.(*ControlPlaneTopology), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.ExternalPatchDefinition)(nil), (*ExternalPatchDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(a.(*v1beta2.ExternalPatchDefinition), b.(*ExternalPatchDefinition), scope)
 	}); err != nil {
@@ -905,8 +885,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentClass)(nil), (*MachineDeploymentClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(a.(*v1beta2.MachineDeploymentClass), b.(*MachineDeploymentClass), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentStatus)(nil), (*MachineDeploymentStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineDeploymentStatus_To_v1beta1_MachineDeploymentStatus(a.(*v1beta2.MachineDeploymentStatus), b.(*MachineDeploymentStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentTopology)(nil), (*MachineDeploymentTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopology(a.(*v1beta2.MachineDeploymentTopology), b.(*MachineDeploymentTopology), scope)
 	}); err != nil {
 		return err
 	}
@@ -925,8 +915,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.MachinePoolClass)(nil), (*MachinePoolClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(a.(*v1beta2.MachinePoolClass), b.(*MachinePoolClass), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.MachinePoolStatus)(nil), (*MachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachinePoolStatus_To_v1beta1_MachinePoolStatus(a.(*v1beta2.MachinePoolStatus), b.(*MachinePoolStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.MachinePoolTopology)(nil), (*MachinePoolTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(a.(*v1beta2.MachinePoolTopology), b.(*MachinePoolTopology), scope)
 	}); err != nil {
 		return err
 	}
@@ -1663,16 +1663,11 @@ func autoConvert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *Cont
 		out.MachineHealthCheck = nil
 	}
 	out.NamingStrategy = (*v1beta2.ControlPlaneClassNamingStrategy)(unsafe.Pointer(in.NamingStrategy))
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]v1beta2.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	return nil
-}
-
-// Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass is an autogenerated conversion function.
-func Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *ControlPlaneClass, out *v1beta2.ControlPlaneClass, s conversion.Scope) error {
-	return autoConvert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in, out, s)
 }
 
 func autoConvert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *v1beta2.ControlPlaneClass, out *ControlPlaneClass, s conversion.Scope) error {
@@ -1693,16 +1688,11 @@ func autoConvert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *v1be
 		out.MachineHealthCheck = nil
 	}
 	out.NamingStrategy = (*ControlPlaneClassNamingStrategy)(unsafe.Pointer(in.NamingStrategy))
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	return nil
-}
-
-// Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass is an autogenerated conversion function.
-func Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *v1beta2.ControlPlaneClass, out *ControlPlaneClass, s conversion.Scope) error {
-	return autoConvert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in, out, s)
 }
 
 func autoConvert_v1beta1_ControlPlaneClassNamingStrategy_To_v1beta2_ControlPlaneClassNamingStrategy(in *ControlPlaneClassNamingStrategy, out *v1beta2.ControlPlaneClassNamingStrategy, s conversion.Scope) error {
@@ -1739,9 +1729,9 @@ func autoConvert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in
 	} else {
 		out.MachineHealthCheck = nil
 	}
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]v1beta2.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	if in.Variables != nil {
 		in, out := &in.Variables, &out.Variables
@@ -1753,11 +1743,6 @@ func autoConvert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in
 		out.Variables = nil
 	}
 	return nil
-}
-
-// Convert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology is an autogenerated conversion function.
-func Convert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in *ControlPlaneTopology, out *v1beta2.ControlPlaneTopology, s conversion.Scope) error {
-	return autoConvert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in, out, s)
 }
 
 func autoConvert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in *v1beta2.ControlPlaneTopology, out *ControlPlaneTopology, s conversion.Scope) error {
@@ -1774,9 +1759,9 @@ func autoConvert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in
 	} else {
 		out.MachineHealthCheck = nil
 	}
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	if in.Variables != nil {
 		in, out := &in.Variables, &out.Variables
@@ -1788,11 +1773,6 @@ func autoConvert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in
 		out.Variables = nil
 	}
 	return nil
-}
-
-// Convert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology is an autogenerated conversion function.
-func Convert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in *v1beta2.ControlPlaneTopology, out *ControlPlaneTopology, s conversion.Scope) error {
-	return autoConvert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in, out, s)
 }
 
 func autoConvert_v1beta1_ControlPlaneVariables_To_v1beta2_ControlPlaneVariables(in *ControlPlaneVariables, out *v1beta2.ControlPlaneVariables, s conversion.Scope) error {
@@ -2121,18 +2101,13 @@ func autoConvert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClas
 	}
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.NamingStrategy = (*v1beta2.MachineDeploymentClassNamingStrategy)(unsafe.Pointer(in.NamingStrategy))
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ReadinessGates = *(*[]v1beta2.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	out.Strategy = (*v1beta2.MachineDeploymentStrategy)(unsafe.Pointer(in.Strategy))
 	return nil
-}
-
-// Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass is an autogenerated conversion function.
-func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in *MachineDeploymentClass, out *v1beta2.MachineDeploymentClass, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in, out, s)
 }
 
 func autoConvert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in *v1beta2.MachineDeploymentClass, out *MachineDeploymentClass, s conversion.Scope) error {
@@ -2151,18 +2126,13 @@ func autoConvert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClas
 	}
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.NamingStrategy = (*MachineDeploymentClassNamingStrategy)(unsafe.Pointer(in.NamingStrategy))
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	out.Strategy = (*MachineDeploymentStrategy)(unsafe.Pointer(in.Strategy))
 	return nil
-}
-
-// Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass is an autogenerated conversion function.
-func Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in *v1beta2.MachineDeploymentClass, out *MachineDeploymentClass, s conversion.Scope) error {
-	return autoConvert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in, out, s)
 }
 
 func autoConvert_v1beta1_MachineDeploymentClassNamingStrategy_To_v1beta2_MachineDeploymentClassNamingStrategy(in *MachineDeploymentClassNamingStrategy, out *v1beta2.MachineDeploymentClassNamingStrategy, s conversion.Scope) error {
@@ -2399,9 +2369,9 @@ func autoConvert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentT
 	} else {
 		out.MachineHealthCheck = nil
 	}
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ReadinessGates = *(*[]v1beta2.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	out.Strategy = (*v1beta2.MachineDeploymentStrategy)(unsafe.Pointer(in.Strategy))
@@ -2415,11 +2385,6 @@ func autoConvert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentT
 		out.Variables = nil
 	}
 	return nil
-}
-
-// Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopology is an autogenerated conversion function.
-func Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopology(in *MachineDeploymentTopology, out *v1beta2.MachineDeploymentTopology, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopology(in, out, s)
 }
 
 func autoConvert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopology(in *v1beta2.MachineDeploymentTopology, out *MachineDeploymentTopology, s conversion.Scope) error {
@@ -2439,9 +2404,9 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentT
 	} else {
 		out.MachineHealthCheck = nil
 	}
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	out.Strategy = (*MachineDeploymentStrategy)(unsafe.Pointer(in.Strategy))
@@ -2455,11 +2420,6 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentT
 		out.Variables = nil
 	}
 	return nil
-}
-
-// Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopology is an autogenerated conversion function.
-func Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopology(in *v1beta2.MachineDeploymentTopology, out *MachineDeploymentTopology, s conversion.Scope) error {
-	return autoConvert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopology(in, out, s)
 }
 
 func autoConvert_v1beta1_MachineDeploymentVariables_To_v1beta2_MachineDeploymentVariables(in *MachineDeploymentVariables, out *v1beta2.MachineDeploymentVariables, s conversion.Scope) error {
@@ -2680,7 +2640,7 @@ func autoConvert_v1beta1_MachineHealthCheckClass_To_v1beta2_MachineHealthCheckCl
 	// WARNING: in.UnhealthyConditions requires manual conversion: does not exist in peer-type
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
-	out.NodeStartupTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))
+	// WARNING: in.NodeStartupTimeout requires manual conversion: does not exist in peer-type
 	out.RemediationTemplate = (*corev1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
 	return nil
 }
@@ -2689,7 +2649,7 @@ func autoConvert_v1beta2_MachineHealthCheckClass_To_v1beta1_MachineHealthCheckCl
 	// WARNING: in.UnhealthyNodeConditions requires manual conversion: does not exist in peer-type
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
-	out.NodeStartupTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))
+	// WARNING: in.NodeStartupTimeoutSeconds requires manual conversion: does not exist in peer-type
 	out.RemediationTemplate = (*corev1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
 	return nil
 }
@@ -2742,7 +2702,7 @@ func autoConvert_v1beta1_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpe
 	// WARNING: in.UnhealthyConditions requires manual conversion: does not exist in peer-type
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
-	out.NodeStartupTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))
+	// WARNING: in.NodeStartupTimeout requires manual conversion: does not exist in peer-type
 	out.RemediationTemplate = (*corev1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
 	return nil
 }
@@ -2753,7 +2713,7 @@ func autoConvert_v1beta2_MachineHealthCheckSpec_To_v1beta1_MachineHealthCheckSpe
 	// WARNING: in.UnhealthyNodeConditions requires manual conversion: does not exist in peer-type
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
-	out.NodeStartupTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeStartupTimeout))
+	// WARNING: in.NodeStartupTimeoutSeconds requires manual conversion: does not exist in peer-type
 	out.RemediationTemplate = (*corev1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
 	return nil
 }
@@ -2927,16 +2887,11 @@ func autoConvert_v1beta1_MachinePoolClass_To_v1beta2_MachinePoolClass(in *Machin
 	}
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
 	out.NamingStrategy = (*v1beta2.MachinePoolClassNamingStrategy)(unsafe.Pointer(in.NamingStrategy))
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	return nil
-}
-
-// Convert_v1beta1_MachinePoolClass_To_v1beta2_MachinePoolClass is an autogenerated conversion function.
-func Convert_v1beta1_MachinePoolClass_To_v1beta2_MachinePoolClass(in *MachinePoolClass, out *v1beta2.MachinePoolClass, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachinePoolClass_To_v1beta2_MachinePoolClass(in, out, s)
 }
 
 func autoConvert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(in *v1beta2.MachinePoolClass, out *MachinePoolClass, s conversion.Scope) error {
@@ -2946,16 +2901,11 @@ func autoConvert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(in *v1beta
 	}
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
 	out.NamingStrategy = (*MachinePoolClassNamingStrategy)(unsafe.Pointer(in.NamingStrategy))
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	return nil
-}
-
-// Convert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass is an autogenerated conversion function.
-func Convert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(in *v1beta2.MachinePoolClass, out *MachinePoolClass, s conversion.Scope) error {
-	return autoConvert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(in, out, s)
 }
 
 func autoConvert_v1beta1_MachinePoolClassNamingStrategy_To_v1beta2_MachinePoolClassNamingStrategy(in *MachinePoolClassNamingStrategy, out *v1beta2.MachinePoolClassNamingStrategy, s conversion.Scope) error {
@@ -3154,9 +3104,9 @@ func autoConvert_v1beta1_MachinePoolTopology_To_v1beta2_MachinePoolTopology(in *
 	out.Class = in.Class
 	out.Name = in.Name
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	if in.Variables != nil {
@@ -3171,11 +3121,6 @@ func autoConvert_v1beta1_MachinePoolTopology_To_v1beta2_MachinePoolTopology(in *
 	return nil
 }
 
-// Convert_v1beta1_MachinePoolTopology_To_v1beta2_MachinePoolTopology is an autogenerated conversion function.
-func Convert_v1beta1_MachinePoolTopology_To_v1beta2_MachinePoolTopology(in *MachinePoolTopology, out *v1beta2.MachinePoolTopology, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachinePoolTopology_To_v1beta2_MachinePoolTopology(in, out, s)
-}
-
 func autoConvert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(in *v1beta2.MachinePoolTopology, out *MachinePoolTopology, s conversion.Scope) error {
 	if err := Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(&in.Metadata, &out.Metadata, s); err != nil {
 		return err
@@ -3183,9 +3128,9 @@ func autoConvert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(in *
 	out.Class = in.Class
 	out.Name = in.Name
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	if in.Variables != nil {
@@ -3198,11 +3143,6 @@ func autoConvert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(in *
 		out.Variables = nil
 	}
 	return nil
-}
-
-// Convert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology is an autogenerated conversion function.
-func Convert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(in *v1beta2.MachinePoolTopology, out *MachinePoolTopology, s conversion.Scope) error {
-	return autoConvert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(in, out, s)
 }
 
 func autoConvert_v1beta1_MachinePoolVariables_To_v1beta2_MachinePoolVariables(in *MachinePoolVariables, out *v1beta2.MachinePoolVariables, s conversion.Scope) error {
@@ -3463,15 +3403,10 @@ func autoConvert_v1beta1_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, out
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	out.ReadinessGates = *(*[]v1beta2.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_MachineSpec_To_v1beta2_MachineSpec is an autogenerated conversion function.
-func Convert_v1beta1_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, out *v1beta2.MachineSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachineSpec_To_v1beta2_MachineSpec(in, out, s)
 }
 
 func autoConvert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in *v1beta2.MachineSpec, out *MachineSpec, s conversion.Scope) error {
@@ -3485,9 +3420,9 @@ func autoConvert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in *v1beta2.MachineS
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
-	out.NodeDrainTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
-	out.NodeVolumeDetachTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeVolumeDetachTimeout))
-	out.NodeDeletionTimeout = (*v1.Duration)(unsafe.Pointer(in.NodeDeletionTimeout))
+	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -3902,7 +3837,17 @@ func autoConvert_v1beta1_WorkersClass_To_v1beta2_WorkersClass(in *WorkersClass, 
 	} else {
 		out.MachineDeployments = nil
 	}
-	out.MachinePools = *(*[]v1beta2.MachinePoolClass)(unsafe.Pointer(&in.MachinePools))
+	if in.MachinePools != nil {
+		in, out := &in.MachinePools, &out.MachinePools
+		*out = make([]v1beta2.MachinePoolClass, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_MachinePoolClass_To_v1beta2_MachinePoolClass(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.MachinePools = nil
+	}
 	return nil
 }
 
@@ -3923,7 +3868,17 @@ func autoConvert_v1beta2_WorkersClass_To_v1beta1_WorkersClass(in *v1beta2.Worker
 	} else {
 		out.MachineDeployments = nil
 	}
-	out.MachinePools = *(*[]MachinePoolClass)(unsafe.Pointer(&in.MachinePools))
+	if in.MachinePools != nil {
+		in, out := &in.MachinePools, &out.MachinePools
+		*out = make([]MachinePoolClass, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.MachinePools = nil
+	}
 	return nil
 }
 

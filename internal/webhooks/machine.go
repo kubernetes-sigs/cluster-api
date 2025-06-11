@@ -20,12 +20,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -35,7 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
-const defaultNodeDeletionTimeout = 10 * time.Second
+const defaultNodeDeletionTimeoutSeconds = int32(10)
 
 func (webhook *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -79,8 +78,8 @@ func (webhook *Machine) Default(_ context.Context, obj runtime.Object) error {
 		m.Spec.Version = &normalizedVersion
 	}
 
-	if m.Spec.NodeDeletionTimeout == nil {
-		m.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: defaultNodeDeletionTimeout}
+	if m.Spec.NodeDeletionTimeoutSeconds == nil {
+		m.Spec.NodeDeletionTimeoutSeconds = ptr.To(defaultNodeDeletionTimeoutSeconds)
 	}
 
 	return nil

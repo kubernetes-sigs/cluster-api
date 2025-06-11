@@ -1382,22 +1382,25 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy"),
 						},
 					},
-					"nodeDrainTimeout": {
+					"nodeDrainTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeout is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: NodeDrainTimeout is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeVolumeDetachTimeout": {
+					"nodeVolumeDetachTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. NOTE: This value can be overridden while defining a Cluster.Topology.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. NOTE: This value can be overridden while defining a Cluster.Topology.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeDeletionTimeout": {
+					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 					"readinessGates": {
@@ -1427,7 +1430,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.LocalObjectTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"k8s.io/api/core/v1.ObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.LocalObjectTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -1478,22 +1481,25 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref common.Referen
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckTopology"),
 						},
 					},
-					"nodeDrainTimeout": {
+					"nodeDrainTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeout is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeVolumeDetachTimeout": {
+					"nodeVolumeDetachTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeDeletionTimeout": {
+					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 					"readinessGates": {
@@ -1528,7 +1534,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref common.Referen
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -2171,13 +2177,13 @@ func schema_cluster_api_api_core_v1beta2_MachineDeletionStatus(ref common.Refere
 				Properties: map[string]spec.Schema{
 					"nodeDrainStartTime": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainStartTime is the time when the drain of the node started and is used to determine if the NodeDrainTimeout is exceeded. Only present when the Machine has a deletionTimestamp and draining the node had been started.",
+							Description: "nodeDrainStartTime is the time when the drain of the node started and is used to determine if the nodeDrainTimeoutSeconds is exceeded. Only present when the Machine has a deletionTimestamp and draining the node had been started.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
 					"waitForNodeVolumeDetachStartTime": {
 						SchemaProps: spec.SchemaProps{
-							Description: "waitForNodeVolumeDetachStartTime is the time when waiting for volume detachment started and is used to determine if the NodeVolumeDetachTimeout is exceeded. Detaching volumes from nodes is usually done by CSI implementations and the current state is observed from the node's `.Status.VolumesAttached` field. Only present when the Machine has a deletionTimestamp and waiting for volume detachments had been started.",
+							Description: "waitForNodeVolumeDetachStartTime is the time when waiting for volume detachment started and is used to determine if the nodeVolumeDetachTimeoutSeconds is exceeded. Detaching volumes from nodes is usually done by CSI implementations and the current state is observed from the node's `.Status.VolumesAttached` field. Only present when the Machine has a deletionTimestamp and waiting for volume detachments had been started.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
@@ -2280,22 +2286,25 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy"),
 						},
 					},
-					"nodeDrainTimeout": {
+					"nodeDrainTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeout is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: NodeDrainTimeout is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeVolumeDetachTimeout": {
+					"nodeVolumeDetachTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeDeletionTimeout": {
+					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 					"minReadySeconds": {
@@ -2338,7 +2347,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate"},
 	}
 }
 
@@ -2717,22 +2726,25 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckTopology"),
 						},
 					},
-					"nodeDrainTimeout": {
+					"nodeDrainTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeout is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeVolumeDetachTimeout": {
+					"nodeVolumeDetachTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeDeletionTimeout": {
+					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 					"minReadySeconds": {
@@ -2781,7 +2793,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -3227,10 +3239,11 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckClass(ref common.Refe
 							Format:      "",
 						},
 					},
-					"nodeStartupTimeout": {
+					"nodeStartupTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeStartupTimeout allows to set the maximum time for MachineHealthCheck to consider a Machine unhealthy if a corresponding Node isn't associated through a `Spec.ProviderID` field.\n\nThe duration set in this field is compared to the greatest of: - Cluster's infrastructure ready condition timestamp (if and when available) - Control Plane's initialized condition timestamp (if and when available) - Machine's infrastructure ready condition timestamp (if and when available) - Machine's metadata creation timestamp\n\nDefaults to 10 minutes. If you wish to disable this feature, set the value explicitly to 0.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck to consider a Machine unhealthy if a corresponding Node isn't associated through a `Spec.ProviderID` field.\n\nThe duration set in this field is compared to the greatest of: - Cluster's infrastructure ready condition timestamp (if and when available) - Control Plane's initialized condition timestamp (if and when available) - Machine's infrastructure ready condition timestamp (if and when available) - Machine's metadata creation timestamp\n\nDefaults to 10 minutes. If you wish to disable this feature, set the value explicitly to 0.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 					"remediationTemplate": {
@@ -3243,7 +3256,7 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckClass(ref common.Refe
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -3368,10 +3381,11 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckSpec(ref common.Refer
 							Format:      "",
 						},
 					},
-					"nodeStartupTimeout": {
+					"nodeStartupTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeStartupTimeout allows to set the maximum time for MachineHealthCheck to consider a Machine unhealthy if a corresponding Node isn't associated through a `Spec.ProviderID` field.\n\nThe duration set in this field is compared to the greatest of: - Cluster's infrastructure ready condition timestamp (if and when available) - Control Plane's initialized condition timestamp (if and when available) - Machine's infrastructure ready condition timestamp (if and when available) - Machine's metadata creation timestamp\n\nDefaults to 10 minutes. If you wish to disable this feature, set the value explicitly to 0.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck to consider a Machine unhealthy if a corresponding Node isn't associated through a `Spec.ProviderID` field.\n\nThe duration set in this field is compared to the greatest of: - Cluster's infrastructure ready condition timestamp (if and when available) - Control Plane's initialized condition timestamp (if and when available) - Machine's infrastructure ready condition timestamp (if and when available) - Machine's metadata creation timestamp\n\nDefaults to 10 minutes. If you wish to disable this feature, set the value explicitly to 0.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 					"remediationTemplate": {
@@ -3385,7 +3399,7 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckSpec(ref common.Refer
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -3519,10 +3533,11 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckTopology(ref common.R
 							Format:      "",
 						},
 					},
-					"nodeStartupTimeout": {
+					"nodeStartupTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeStartupTimeout allows to set the maximum time for MachineHealthCheck to consider a Machine unhealthy if a corresponding Node isn't associated through a `Spec.ProviderID` field.\n\nThe duration set in this field is compared to the greatest of: - Cluster's infrastructure ready condition timestamp (if and when available) - Control Plane's initialized condition timestamp (if and when available) - Machine's infrastructure ready condition timestamp (if and when available) - Machine's metadata creation timestamp\n\nDefaults to 10 minutes. If you wish to disable this feature, set the value explicitly to 0.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck to consider a Machine unhealthy if a corresponding Node isn't associated through a `Spec.ProviderID` field.\n\nThe duration set in this field is compared to the greatest of: - Cluster's infrastructure ready condition timestamp (if and when available) - Control Plane's initialized condition timestamp (if and when available) - Machine's infrastructure ready condition timestamp (if and when available) - Machine's metadata creation timestamp\n\nDefaults to 10 minutes. If you wish to disable this feature, set the value explicitly to 0.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 					"remediationTemplate": {
@@ -3535,7 +3550,7 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckTopology(ref common.R
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -3761,22 +3776,25 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCa
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy"),
 						},
 					},
-					"nodeDrainTimeout": {
+					"nodeDrainTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeout is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: NodeDrainTimeout is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeVolumeDetachTimeout": {
+					"nodeVolumeDetachTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeDeletionTimeout": {
+					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine Pool is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine Pool is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 					"minReadySeconds": {
@@ -3791,7 +3809,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassTemplate"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassTemplate"},
 	}
 }
 
@@ -4171,22 +4189,25 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref common.Referenc
 							},
 						},
 					},
-					"nodeDrainTimeout": {
+					"nodeDrainTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeout is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeVolumeDetachTimeout": {
+					"nodeVolumeDetachTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeDeletionTimeout": {
+					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the MachinePool hosts after the MachinePool is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the MachinePool hosts after the MachinePool is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 					"minReadySeconds": {
@@ -4214,7 +4235,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref common.Referenc
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -4793,22 +4814,25 @@ func schema_cluster_api_api_core_v1beta2_MachineSpec(ref common.ReferenceCallbac
 							},
 						},
 					},
-					"nodeDrainTimeout": {
+					"nodeDrainTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeout is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeVolumeDetachTimeout": {
+					"nodeVolumeDetachTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
-					"nodeDeletionTimeout": {
+					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 				},
@@ -4816,7 +4840,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSpec(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/core/v1beta2.Bootstrap", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate"},
+			"k8s.io/api/core/v1.ObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.Bootstrap", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate"},
 	}
 }
 
@@ -5356,18 +5380,18 @@ func schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref common.Refer
 							Format:      "",
 						},
 					},
-					"timeout": {
+					"timeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "timeout is the duration that a node must be in a given status for, after which the node is considered unhealthy. For example, with a value of \"1h\", the node must match the status for at least 1 hour before being considered unhealthy.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							Description: "timeoutSeconds is the duration that a node must be in a given status for, after which the node is considered unhealthy. For example, with a value of \"1h\", the node must match the status for at least 1 hour before being considered unhealthy.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 				},
-				Required: []string{"type", "status", "timeout"},
+				Required: []string{"type", "status", "timeoutSeconds"},
 			},
 		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
 	}
 }
 

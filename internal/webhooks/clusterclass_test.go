@@ -19,7 +19,6 @@ package webhooks
 import (
 	"strings"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -892,14 +891,12 @@ func TestClusterClassValidation(t *testing.T) {
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
 					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 						{
-							Type:    corev1.NodeReady,
-							Status:  corev1.ConditionUnknown,
-							Timeout: metav1.Duration{Duration: 5 * time.Minute},
+							Type:           corev1.NodeReady,
+							Status:         corev1.ConditionUnknown,
+							TimeoutSeconds: 5 * 60,
 						},
 					},
-					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(6000000000000),
-					},
+					NodeStartupTimeoutSeconds: ptr.To(int32(60)),
 				}).
 				Build(),
 		},
@@ -913,9 +910,7 @@ func TestClusterClassValidation(t *testing.T) {
 						Build()).
 				// No ControlPlaneMachineInfrastructure makes this an invalid creation request.
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
-					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(6000000000000),
-					},
+					NodeStartupTimeoutSeconds: ptr.To(int32(60)),
 				}).
 				Build(),
 			expectErr: true,
@@ -932,9 +927,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
 						Build()).
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
-					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(6000000000000),
-					},
+					NodeStartupTimeoutSeconds: ptr.To(int32(60)),
 				}).
 				Build(),
 			expectErr: false,
@@ -956,14 +949,12 @@ func TestClusterClassValidation(t *testing.T) {
 						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
 							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
-									Type:    corev1.NodeReady,
-									Status:  corev1.ConditionUnknown,
-									Timeout: metav1.Duration{Duration: 5 * time.Minute},
+									Type:           corev1.NodeReady,
+									Status:         corev1.ConditionUnknown,
+									TimeoutSeconds: 5 * 60,
 								},
 							},
-							NodeStartupTimeout: &metav1.Duration{
-								Duration: time.Duration(6000000000000),
-							},
+							NodeStartupTimeoutSeconds: ptr.To(int32(60)),
 						}).
 						Build()).
 				Build(),
@@ -985,15 +976,13 @@ func TestClusterClassValidation(t *testing.T) {
 						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
 							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
-									Type:    corev1.NodeReady,
-									Status:  corev1.ConditionUnknown,
-									Timeout: metav1.Duration{Duration: 5 * time.Minute},
+									Type:           corev1.NodeReady,
+									Status:         corev1.ConditionUnknown,
+									TimeoutSeconds: 5 * 60,
 								},
 							},
-							NodeStartupTimeout: &metav1.Duration{
-								// nodeStartupTimeout is too short here - 600ns.
-								Duration: time.Duration(600),
-							},
+							// nodeStartupTimeout is too short here.
+							NodeStartupTimeoutSeconds: ptr.To(int32(10)),
 						}).
 						Build()).
 				Build(),
@@ -1014,9 +1003,7 @@ func TestClusterClassValidation(t *testing.T) {
 						WithBootstrapTemplate(
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
 						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
-							NodeStartupTimeout: &metav1.Duration{
-								Duration: time.Duration(6000000000000),
-							},
+							NodeStartupTimeoutSeconds: ptr.To(int32(60)),
 						}).
 						Build()).
 				Build(),
@@ -2298,9 +2285,9 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
 					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 						{
-							Type:    corev1.NodeReady,
-							Status:  corev1.ConditionUnknown,
-							Timeout: metav1.Duration{Duration: 5 * time.Minute},
+							Type:           corev1.NodeReady,
+							Status:         corev1.ConditionUnknown,
+							TimeoutSeconds: 5 * 60,
 						},
 					},
 				}).
@@ -2351,9 +2338,9 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 							MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 									{
-										Type:    corev1.NodeReady,
-										Status:  corev1.ConditionUnknown,
-										Timeout: metav1.Duration{Duration: 5 * time.Minute},
+										Type:           corev1.NodeReady,
+										Status:         corev1.ConditionUnknown,
+										TimeoutSeconds: 5 * 60,
 									},
 								},
 							},
@@ -2484,9 +2471,9 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 								MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 									UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 										{
-											Type:    corev1.NodeReady,
-											Status:  corev1.ConditionUnknown,
-											Timeout: metav1.Duration{Duration: 5 * time.Minute},
+											Type:           corev1.NodeReady,
+											Status:         corev1.ConditionUnknown,
+											TimeoutSeconds: 5 * 60,
 										},
 									},
 								},

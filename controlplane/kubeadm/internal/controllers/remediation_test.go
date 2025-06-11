@@ -336,7 +336,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(MustMarshalRemediationData(&RemediationData{
 			Machine:    "m0",
-			Timestamp:  metav1.Time{Time: time.Now().Add(-controlplanev1.DefaultMinHealthyPeriod / 2).UTC()}, // minHealthy not expired yet.
+			Timestamp:  metav1.Time{Time: time.Now().Add(-time.Duration(controlplanev1.DefaultMinHealthyPeriodSeconds) * time.Second / 2).UTC()}, // minHealthy not expired yet.
 			RetryCount: 3,
 		})))
 		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember())
@@ -388,7 +388,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(MustMarshalRemediationData(&RemediationData{
 			Machine:    "m0",
-			Timestamp:  metav1.Time{Time: time.Now().Add(-2 * controlplanev1.DefaultMinHealthyPeriod).UTC()}, // minHealthyPeriod already expired.
+			Timestamp:  metav1.Time{Time: time.Now().Add(-2 * time.Duration(controlplanev1.DefaultMinHealthyPeriodSeconds) * time.Second).UTC()}, // minHealthyPeriod already expired.
 			RetryCount: 3,
 		})))
 		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember())
@@ -442,11 +442,11 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 	t.Run("Retry history is ignored if min healthy period is expired", func(t *testing.T) {
 		g := NewWithT(t)
 
-		minHealthyPeriod := 4 * controlplanev1.DefaultMinHealthyPeriod // big min healthy period, so we are user that we are not using DefaultMinHealthyPeriod.
+		minHealthyPeriod := 4 * controlplanev1.DefaultMinHealthyPeriodSeconds // big min healthy period, so we are user that we are not using DefaultMinHealthyPeriodSeconds.
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(MustMarshalRemediationData(&RemediationData{
 			Machine:    "m0",
-			Timestamp:  metav1.Time{Time: time.Now().Add(-2 * minHealthyPeriod).UTC()}, // minHealthyPeriod already expired.
+			Timestamp:  metav1.Time{Time: time.Now().Add(-2 * time.Duration(minHealthyPeriod) * time.Second).UTC()}, // minHealthyPeriod already expired.
 			RetryCount: 3,
 		})))
 		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember())
@@ -458,8 +458,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
 					RemediationStrategy: &controlplanev1.RemediationStrategy{
-						MaxRetry:         utilptr.To[int32](3),
-						MinHealthyPeriod: &metav1.Duration{Duration: minHealthyPeriod},
+						MaxRetry:                utilptr.To[int32](3),
+						MinHealthyPeriodSeconds: utilptr.To(minHealthyPeriod),
 					},
 				},
 			},
@@ -498,12 +498,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		removeFinalizer(g, m1)
 		g.Expect(env.Cleanup(ctx, m1, m2, m3)).To(Succeed())
 	})
-	t.Run("Remediation does not happen if RetryPeriod is not yet passed", func(t *testing.T) {
+	t.Run("Remediation does not happen if RetryPeriodSeconds is not yet passed", func(t *testing.T) {
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(MustMarshalRemediationData(&RemediationData{
 			Machine:    "m0",
-			Timestamp:  metav1.Time{Time: time.Now().Add(-controlplanev1.DefaultMinHealthyPeriod / 2).UTC()}, // minHealthyPeriod not yet expired.
+			Timestamp:  metav1.Time{Time: time.Now().Add(-time.Duration(controlplanev1.DefaultMinHealthyPeriodSeconds) * time.Second / 2).UTC()}, // minHealthyPeriod not yet expired.
 			RetryCount: 2,
 		})))
 		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyEtcdMember())
@@ -515,8 +515,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
 					RemediationStrategy: &controlplanev1.RemediationStrategy{
-						MaxRetry:    utilptr.To[int32](3),
-						RetryPeriod: metav1.Duration{Duration: controlplanev1.DefaultMinHealthyPeriod}, // RetryPeriod not yet expired.
+						MaxRetry:           utilptr.To[int32](3),
+						RetryPeriodSeconds: controlplanev1.DefaultMinHealthyPeriodSeconds, // RetryPeriodSeconds not yet expired.
 					},
 				},
 			},
@@ -541,8 +541,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed in the latest 1h0m0s (RetryPeriod)")
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationDeferredReason, "KubeadmControlPlane can't remediate this machine because the operation already failed in the latest 1h0m0s (RetryPeriod)")
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed in the latest 1h0m0s (RetryPeriodSeconds)")
+		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationDeferredReason, "KubeadmControlPlane can't remediate this machine because the operation already failed in the latest 1h0m0s (RetryPeriodSeconds)")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
 		g.Expect(err).ToNot(HaveOccurred())

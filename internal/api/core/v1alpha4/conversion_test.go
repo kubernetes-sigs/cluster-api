@@ -22,9 +22,11 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
@@ -76,6 +78,7 @@ func TestFuzzyConversion(t *testing.T) {
 func MachineFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachineStatus,
+		spokeMachineSpec,
 		spokeMachineStatus,
 	}
 }
@@ -94,6 +97,14 @@ func hubMachineStatus(in *clusterv1.MachineStatus, c randfill.Continue) {
 		if reflect.DeepEqual(in.Initialization, &clusterv1.MachineInitializationStatus{}) {
 			in.Initialization = nil
 		}
+	}
+}
+
+func spokeMachineSpec(in *MachineSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeDrainTimeout != nil {
+		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 
@@ -203,6 +214,7 @@ func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c randfill.Continue) {
 
 func MachineSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		spokeMachineSpec,
 		hubMachineSetStatus,
 	}
 }
@@ -227,6 +239,7 @@ func MachineDeploymentFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} 
 	return []interface{}{
 		hubMachineDeploymentStatus,
 		spokeMachineDeploymentSpec,
+		spokeMachineSpec,
 	}
 }
 
@@ -259,6 +272,8 @@ func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) 
 func MachineHealthCheckFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachineHealthCheckStatus,
+		spokeMachineHealthCheckSpec,
+		spokeUnhealthyCondition,
 	}
 }
 
@@ -275,6 +290,7 @@ func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c randf
 func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachinePoolStatus,
+		spokeMachineSpec,
 	}
 }
 
@@ -300,4 +316,18 @@ func hubMachinePoolStatus(in *clusterv1.MachinePoolStatus, c randfill.Continue) 
 	if in.Replicas == nil {
 		in.Replicas = ptr.To(int32(0))
 	}
+}
+
+func spokeMachineHealthCheckSpec(in *MachineHealthCheckSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.NodeStartupTimeout != nil {
+		in.NodeStartupTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func spokeUnhealthyCondition(in *UnhealthyCondition, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.Timeout = metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second}
 }

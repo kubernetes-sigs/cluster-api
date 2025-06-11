@@ -454,6 +454,7 @@ func autoConvert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfigur
 	out.ImageRepository = in.ImageRepository
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
 	// WARNING: in.CertificateValidityPeriodSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.CACertificateValidityPeriodSeconds requires manual conversion: does not exist in peer-type
 	return nil
 }
 

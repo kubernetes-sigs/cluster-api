@@ -560,6 +560,7 @@ func autoConvert_v1beta2_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(i
 	out.ImageRepository = in.ImageRepository
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
 	// WARNING: in.CertificateValidityPeriodSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.CACertificateValidityPeriodSeconds requires manual conversion: does not exist in peer-type
 	return nil
 }
 

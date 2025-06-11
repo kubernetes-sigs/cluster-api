@@ -74,6 +74,24 @@ var (
 	}
 )
 
+func updateNodeProvisionedTime(machine *infrav1.DevMachine) {
+	for i := range machine.Status.Conditions {
+		if machine.Status.Conditions[i].Type == string(infrav1.NodeProvisionedCondition) {
+			machine.Status.Conditions[i].LastTransitionTime = metav1.Now()
+			return
+		}
+	}
+
+	if machine.Status.Deprecated != nil && machine.Status.Deprecated.V1Beta1 != nil {
+		for i := range machine.Status.Deprecated.V1Beta1.Conditions {
+			if machine.Status.Deprecated.V1Beta1.Conditions[i].Type == infrav1.NodeProvisionedCondition {
+				machine.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime = metav1.Now()
+				return
+			}
+		}
+	}
+}
+
 func init() {
 	_ = metav1.AddMetaToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -375,6 +393,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
 		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
+		updateNodeProvisionedTime(inMemoryMachineWithNodeProvisioned1)
 		res, err := r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned1)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.IsZero()).To(BeFalse())
@@ -610,6 +629,7 @@ func TestReconcileNormalApiServer(t *testing.T) {
 		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
 		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
+		updateNodeProvisionedTime(inMemoryMachineWithNodeProvisioned)
 		res, err := r.reconcileNormalAPIServer(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.IsZero()).To(BeFalse())

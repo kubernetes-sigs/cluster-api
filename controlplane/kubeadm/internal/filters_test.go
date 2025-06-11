@@ -203,6 +203,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
     FeatureGates:    nil,
 =======
     ... // 3 identical fields
+<<<<<<< HEAD
     Scheduler:                        {},
     DNS:                              {},
 -   CertificatesDir:                  "bar",
@@ -211,6 +212,14 @@ func TestMatchClusterConfiguration(t *testing.T) {
     FeatureGates:                     nil,
     CertificateValidityPeriodSeconds: nil,
 >>>>>>> f7f9d4ad3 (Add CertificateValidityPeriod type to KubeadmConfig)
+=======
+    Scheduler:       {},
+    DNS:             {},
+-   CertificatesDir: "bar",
++   CertificatesDir: "foo",
+    ImageRepository: "",
+    FeatureGates:    nil,
+>>>>>>> 930fc1fd7 (Add CACertificateValidityPeriod to Kubeadmconfig)
   }`))
 	})
 	t.Run("Return true if only omittable fields are changed", func(t *testing.T) {
@@ -1010,7 +1019,11 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
 		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{
+<<<<<<< HEAD
     ... // 4 identical fields
+=======
+    ... // 3 identical fields
+>>>>>>> 930fc1fd7 (Add CACertificateValidityPeriod to Kubeadmconfig)
     Scheduler:       {},
     DNS:             {},
 -   CertificatesDir: "bar",

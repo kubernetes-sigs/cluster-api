@@ -718,7 +718,11 @@ verify-gen: generate  ## Verify go generated files are up to date
 
 .PHONY: verify-conversions
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
-	$(CONVERSION_VERIFIER)
+	$(CONVERSION_VERIFIER) \
+		./api/... \
+		./internal/api/... \
+		./test/infrastructure/docker/api/... \
+		./test/infrastructure/docker/exp/api/...
 
 .PHONY: verify-doctoc
 verify-doctoc: generate-doctoc

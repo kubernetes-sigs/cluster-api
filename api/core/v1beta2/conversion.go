@@ -31,6 +31,7 @@ func (*MachineSet) Hub()         {}
 func (*MachineDeployment) Hub()  {}
 func (*MachineHealthCheck) Hub() {}
 func (*MachinePool) Hub()        {}
+func (*MachineDrainRule) Hub()   {}
 
 // ConvertToSeconds takes *metav1.Duration and returns a *int32.
 // Durations longer than MaxInt32 are capped.

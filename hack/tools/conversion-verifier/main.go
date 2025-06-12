@@ -19,8 +19,8 @@ package main
 import (
 	"fmt"
 	"go/types"
+	"os"
 	"path"
-	"strings"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
@@ -88,10 +88,13 @@ func main() {
 	}
 
 	// Load all packages.
-	// TODO: Move the path parameter to a multi-string flag.
-	packages, err := loader.LoadRoots("./...")
-	if err != nil {
-		klog.Fatal(err)
+	var packages []*loader.Package
+	for _, pkgPath := range os.Args[1:] {
+		p, err := loader.LoadRoots(pkgPath)
+		if err != nil {
+			klog.Fatal(err)
+		}
+		packages = append(packages, p...)
 	}
 
 	// First loop through all the packages
@@ -128,33 +131,6 @@ func main() {
 			storageVersionTypes[path.Join(group, info.Name)] = &storageVersionType{
 				versionType: &versionType{
 					pkg: pkg,
-					typ: info,
-				},
-				otherDecls: make(map[string]*versionType),
-			}
-		}); err != nil {
-			klog.Fatal(err)
-		}
-	}
-
-	// Find and populate all <Kind>List types.
-	for _, pkg := range apiPackages {
-		if err := markers.EachType(col, pkg.Package, func(info *markers.TypeInfo) {
-			if !strings.HasSuffix(info.Name, "List") {
-				// We're only interested in List types in this iteration.
-				return
-			}
-			storage, ok := storageVersionTypes[path.Join(pkg.Group, strings.TrimSuffix(info.Name, "List"))]
-			if !ok || pkg.PkgPath != storage.pkg.PkgPath {
-				// Return early if the type isn't in the same storage package
-				// or if there is no storage version registered for this type.
-				return
-			}
-
-			// If we're here, we've found <Kind>List type that's also a storage version.
-			storageVersionTypes[path.Join(pkg.Group, info.Name)] = &storageVersionType{
-				versionType: &versionType{
-					pkg: pkg.Package,
 					typ: info,
 				},
 				otherDecls: make(map[string]*versionType),
@@ -215,6 +191,7 @@ func main() {
 		for _, err := range errs {
 			fmt.Printf("\t* %s\n", err)
 		}
+		os.Exit(1)
 	}
 }
 

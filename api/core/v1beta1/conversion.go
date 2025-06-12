@@ -167,6 +167,16 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
+func (src *MachineDrainRule) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.MachineDrainRule)
+	return Convert_v1beta1_MachineDrainRule_To_v1beta2_MachineDrainRule(src, dst, nil)
+}
+
+func (dst *MachineDrainRule) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.MachineDrainRule)
+	return Convert_v1beta2_MachineDrainRule_To_v1beta1_MachineDrainRule(src, dst, nil)
+}
+
 func Convert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in *clusterv1.ClusterClassSpec, out *ClusterClassSpec, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in, out, s); err != nil {
 		return err

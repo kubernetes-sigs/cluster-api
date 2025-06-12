@@ -256,9 +256,9 @@ EOL
 # the actual test run less sensible to the network speed.
 kind:prepullAdditionalImages () {
   # Pulling cert manager images so we can pre-load in kind nodes
-  kind::prepullImage "quay.io/jetstack/cert-manager-cainjector:v1.17.2"
-  kind::prepullImage "quay.io/jetstack/cert-manager-webhook:v1.17.2"
-  kind::prepullImage "quay.io/jetstack/cert-manager-controller:v1.17.2"
+  kind::prepullImage "quay.io/jetstack/cert-manager-cainjector:v1.18.0"
+  kind::prepullImage "quay.io/jetstack/cert-manager-webhook:v1.18.0"
+  kind::prepullImage "quay.io/jetstack/cert-manager-controller:v1.18.0"
 
   # Pull all images defined in DOCKER_PRELOAD_IMAGES.
   for IMAGE in $(grep DOCKER_PRELOAD_IMAGES: < "$E2E_CONF_FILE" | sed -E 's/.*\[(.*)\].*/\1/' | tr ',' ' '); do

@@ -80,6 +80,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubControlPlaneComponentFuzzer,
 		hubLocalEtcdFuzzer,
 		hubNodeRegistrationOptionsFuzzer,
+		hubClusterConfigurationFuzzer,
 	}
 }
 
@@ -194,4 +195,10 @@ func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
 	if in.TTL != nil {
 		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
+}
+
+func hubClusterConfigurationFuzzer(obj *bootstrapv1.ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	obj.CertificateValidityPeriodSeconds = nil
 }

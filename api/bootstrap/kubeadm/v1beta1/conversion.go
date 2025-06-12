@@ -329,3 +329,7 @@ func Convert_v1_Condition_To_v1beta1_Condition(in *metav1.Condition, out *cluste
 func Convert_v1beta1_Condition_To_v1_Condition(in *clusterv1beta1.Condition, out *metav1.Condition, s apimachineryconversion.Scope) error {
 	return clusterv1beta1.Convert_v1beta1_Condition_To_v1_Condition(in, out, s)
 }
+
+func Convert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in *bootstrapv1.ClusterConfiguration, out *ClusterConfiguration, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in, out, s)
+}

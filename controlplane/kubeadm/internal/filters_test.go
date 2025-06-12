@@ -196,12 +196,13 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		g.Expect(match).To(BeFalse())
 		g.Expect(diff).To(BeComparableTo(`&v1beta2.ClusterConfiguration{
     ... // 3 identical fields
-    Scheduler:       {},
-    DNS:             {},
--   CertificatesDir: "bar",
-+   CertificatesDir: "foo",
-    ImageRepository: "",
-    FeatureGates:    nil,
+    Scheduler:                        {},
+    DNS:                              {},
+-   CertificatesDir:                  "bar",
++   CertificatesDir:                  "foo",
+    ImageRepository:                  "",
+    FeatureGates:                     nil,
+    CertificateValidityPeriodSeconds: nil,
   }`))
 	})
 	t.Run("Return true if cluster configuration is nil (special case)", func(t *testing.T) {
@@ -915,12 +916,13 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		g.Expect(match).To(BeFalse())
 		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{
     ... // 3 identical fields
-    Scheduler:       {},
-    DNS:             {},
--   CertificatesDir: "bar",
-+   CertificatesDir: "foo",
-    ImageRepository: "",
-    FeatureGates:    nil,
+    Scheduler:                        {},
+    DNS:                              {},
+-   CertificatesDir:                  "bar",
++   CertificatesDir:                  "foo",
+    ImageRepository:                  "",
+    FeatureGates:                     nil,
+    CertificateValidityPeriodSeconds: nil,
   }`))
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
@@ -1681,7 +1683,7 @@ func TestUpToDate(t *testing.T) {
 			infraConfigs:            defaultInfraConfigs,
 			machineConfigs:          defaultMachineConfigs,
 			expectUptoDate:          false,
-			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 3 identical fields\n    Scheduler:       {},\n    DNS:             {},\n-   CertificatesDir: \"foo\",\n+   CertificatesDir: \"bar\",\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n  }"},
+			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 3 identical fields\n    Scheduler:                        {},\n    DNS:                              {},\n-   CertificatesDir:                  \"foo\",\n+   CertificatesDir:                  \"bar\",\n    ImageRepository:                  \"\",\n    FeatureGates:                     nil,\n    CertificateValidityPeriodSeconds: nil,\n  }"},
 			expectConditionMessages: []string{"KubeadmConfig is not up-to-date"},
 		},
 		{

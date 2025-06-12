@@ -336,6 +336,12 @@ func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp 
 func getAdjustedKcpConfig(kcp *controlplanev1.KubeadmControlPlane, machineConfig *bootstrapv1.KubeadmConfig) *bootstrapv1.KubeadmConfigSpec {
 	kcpConfig := kcp.Spec.KubeadmConfigSpec.DeepCopy()
 
+	// Init configuration is usually be set under normal circumstances, but with some test providers (e.g. CAPD in memory)
+	// it is left empty; In this case, we are initializing it so the comparison code can be simplified.
+	if kcpConfig.InitConfiguration == nil {
+		kcpConfig.InitConfiguration = &bootstrapv1.InitConfiguration{}
+	}
+
 	// Machine's join configuration is nil when it is the first machine in the control plane.
 	if machineConfig.Spec.JoinConfiguration == nil {
 		kcpConfig.JoinConfiguration = nil

@@ -201,6 +201,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 +   CertificatesDir: "foo",
     ImageRepository: "",
     FeatureGates:    nil,
+<<<<<<< HEAD
 =======
     ... // 3 identical fields
 <<<<<<< HEAD
@@ -220,6 +221,9 @@ func TestMatchClusterConfiguration(t *testing.T) {
     ImageRepository: "",
     FeatureGates:    nil,
 >>>>>>> 930fc1fd7 (Add CACertificateValidityPeriod to Kubeadmconfig)
+=======
+    ... // 2 identical fields
+>>>>>>> d9fdd9291 (Address reveiw comments)
   }`))
 	})
 	t.Run("Return true if only omittable fields are changed", func(t *testing.T) {
@@ -1030,6 +1034,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 +   CertificatesDir: "foo",
     ImageRepository: "",
     FeatureGates:    nil,
+    ... // 2 identical fields
   }`))
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
@@ -1855,7 +1860,6 @@ func TestUpToDate(t *testing.T) {
 
 			upToDate, logMessages, conditionMessages, err := UpToDate(tt.machine, tt.kcp, &reconciliationTime, tt.infraConfigs, tt.machineConfigs)
 			g.Expect(err).ToNot(HaveOccurred())
-
 			g.Expect(upToDate).To(Equal(tt.expectUptoDate))
 			g.Expect(logMessages).To(Equal(tt.expectLogMessages))
 			g.Expect(conditionMessages).To(Equal(tt.expectConditionMessages))

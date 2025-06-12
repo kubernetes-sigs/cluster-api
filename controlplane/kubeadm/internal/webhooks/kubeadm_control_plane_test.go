@@ -170,6 +170,18 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	validControlPlaneComponentHealthCheckSeconds.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{Timeouts: &bootstrapv1.Timeouts{ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10)}}
 	validControlPlaneComponentHealthCheckSeconds.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{Timeouts: &bootstrapv1.Timeouts{ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10)}}
 
+	invalidCertificateValidityPeriodDaysGreaterCA := valid.DeepCopy()
+	invalidCertificateValidityPeriodDaysGreaterCA.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays = 350
+	invalidCertificateValidityPeriodDaysGreaterCA.Spec.KubeadmConfigSpec.ClusterConfiguration.CACertificateValidityPeriodDays = 300
+
+	invalidCertificateValidityPeriodDaysGreaterDefault := valid.DeepCopy()
+	invalidCertificateValidityPeriodDaysGreaterDefault.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays = 3651
+	invalidCertificateValidityPeriodDaysGreaterDefault.Spec.KubeadmConfigSpec.ClusterConfiguration.CACertificateValidityPeriodDays = 0 // default is 3650
+
+	invalidRolloutBeforeCertificatesExpiryDays := valid.DeepCopy()
+	invalidRolloutBeforeCertificatesExpiryDays.Spec.Rollout.Before.CertificatesExpiryDays = 8
+	invalidRolloutBeforeCertificatesExpiryDays.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays = 7
+
 	tests := []struct {
 		name                  string
 		enableIgnitionFeature bool
@@ -258,6 +270,21 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			name: "should pass for valid Timeouts.ControlPlaneComponentHealthCheckSeconds",
 			kcp:  validControlPlaneComponentHealthCheckSeconds,
 		},
+		{
+			name:      "should return error when CertificateValidityPeriodDays greater than CACertificateValidityPeriodDays",
+			expectErr: true,
+			kcp:       invalidCertificateValidityPeriodDaysGreaterCA,
+		},
+		{
+			name:      "should return error when CertificateValidityPeriodDays greater than CACertificateValidityPeriodDays default",
+			expectErr: true,
+			kcp:       invalidCertificateValidityPeriodDaysGreaterDefault,
+		},
+		{
+			name:      "should return error when rolloutBefore CertificatesExpiryDays greater than cluster CertificateValidityPeriodDays",
+			expectErr: true,
+			kcp:       invalidRolloutBeforeCertificatesExpiryDays,
+		},
 	}
 
 	for _, tt := range tests {
@@ -326,6 +353,8 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 							ImageTag:        "1.6.5",
 						},
 					},
+					CertificateValidityPeriodDays:   100,
+					CACertificateValidityPeriodDays: 365,
 				},
 				JoinConfiguration: &bootstrapv1.JoinConfiguration{
 					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
@@ -732,8 +761,13 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	unsetTimeouts.Spec.KubeadmConfigSpec.InitConfiguration.Timeouts = nil
 	unsetTimeouts.Spec.KubeadmConfigSpec.JoinConfiguration.Timeouts = nil
 
-	certificateValidityPeriod := before.DeepCopy()
-	certificateValidityPeriod.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodSeconds = ptr.To(int32(23456789))
+	validUpdateCertificateValidityPeriod := before.DeepCopy()
+	validUpdateCertificateValidityPeriod.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays = 150
+
+	invalidUpdateCACertificateValidityPeriodDays := before.DeepCopy()
+	invalidUpdateCACertificateValidityPeriodDays.Spec.KubeadmConfigSpec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{
+		CACertificateValidityPeriodDays: 730,
+	}
 
 	tests := []struct {
 		name                  string
@@ -1090,7 +1124,13 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			name:      "should succeed when making a change to the cluster config's certificateValidityPeriod",
 			expectErr: false,
 			before:    before,
-			kcp:       certificateValidityPeriod,
+			kcp:       validUpdateCertificateValidityPeriod,
+		},
+		{
+			name:      "should return error when trying to mutate the cluster config's caCertificateValidityPeriodDays",
+			expectErr: true,
+			before:    before,
+			kcp:       invalidUpdateCACertificateValidityPeriodDays,
 		},
 	}
 

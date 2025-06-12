@@ -1025,6 +1025,65 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 	}
 }
 
+func TestUpdateCertificateValidityPeriodDaysInKubeadmConfigMap(t *testing.T) {
+	tests := []struct {
+		name                     string
+		clusterConfigurationData string
+		certificateValidityDays  int32
+		wantClusterConfiguration string
+	}{
+		{
+			name:                    "it should set the certificateValidityDays in config",
+			certificateValidityDays: int32(5),
+			clusterConfigurationData: utilyaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta3
+				kind: ClusterConfiguration
+				`),
+			wantClusterConfiguration: utilyaml.Raw(`
+				apiServer: {}
+				apiVersion: kubeadm.k8s.io/v1beta4
+				certificateValidityPeriod: 120h0m0s
+				controllerManager: {}
+				dns: {}
+				etcd: {}
+				kind: ClusterConfiguration
+				kubernetesVersion: v1.33.1
+				networking: {}
+				proxy: {}
+				scheduler: {}
+				`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      kubeadmConfigKey,
+					Namespace: metav1.NamespaceSystem,
+				},
+				Data: map[string]string{
+					clusterConfigurationKey: tt.clusterConfigurationData,
+				},
+			}).Build()
+
+			w := &Workload{
+				Client: fakeClient,
+			}
+			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.33.1"), w.UpdateCertificateValidityPeriodDays(tt.certificateValidityDays))
+			g.Expect(err).ToNot(HaveOccurred())
+
+			var actualConfig corev1.ConfigMap
+			g.Expect(w.Client.Get(
+				ctx,
+				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+				&actualConfig,
+			)).To(Succeed())
+			g.Expect(actualConfig.Data[clusterConfigurationKey]).Should(Equal(tt.wantClusterConfiguration), cmp.Diff(tt.wantClusterConfiguration, actualConfig.Data[clusterConfigurationKey]))
+		})
+	}
+}
+
 func TestDefaultFeatureGates(t *testing.T) {
 	tests := []struct {
 		name                  string

@@ -193,7 +193,6 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
 		g.Expect(diff).To(BeComparableTo(`&v1beta2.ClusterConfiguration{
-<<<<<<< HEAD
     ... // 4 identical fields
     Scheduler:       {},
     DNS:             {},
@@ -201,25 +200,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 +   CertificatesDir: "foo",
     ImageRepository: "",
     FeatureGates:    nil,
-=======
-    ... // 3 identical fields
-<<<<<<< HEAD
-    Scheduler:                        {},
-    DNS:                              {},
--   CertificatesDir:                  "bar",
-+   CertificatesDir:                  "foo",
-    ImageRepository:                  "",
-    FeatureGates:                     nil,
-    CertificateValidityPeriodSeconds: nil,
->>>>>>> f7f9d4ad3 (Add CertificateValidityPeriod type to KubeadmConfig)
-=======
-    Scheduler:       {},
-    DNS:             {},
--   CertificatesDir: "bar",
-+   CertificatesDir: "foo",
-    ImageRepository: "",
-    FeatureGates:    nil,
->>>>>>> 930fc1fd7 (Add CACertificateValidityPeriod to Kubeadmconfig)
+    ... // 2 identical fields
   }`))
 	})
 	t.Run("Return true if only omittable fields are changed", func(t *testing.T) {
@@ -1019,17 +1000,14 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
 		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{
-<<<<<<< HEAD
     ... // 4 identical fields
-=======
-    ... // 3 identical fields
->>>>>>> 930fc1fd7 (Add CACertificateValidityPeriod to Kubeadmconfig)
     Scheduler:       {},
     DNS:             {},
 -   CertificatesDir: "bar",
 +   CertificatesDir: "foo",
     ImageRepository: "",
     FeatureGates:    nil,
+    ... // 2 identical fields
   }`))
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
@@ -1840,7 +1818,7 @@ func TestUpToDate(t *testing.T) {
 			infraConfigs:            defaultInfraConfigs,
 			machineConfigs:          defaultMachineConfigs,
 			expectUptoDate:          false,
-			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 4 identical fields\n    Scheduler:       {},\n    DNS:             {},\n-   CertificatesDir: \"foo\",\n+   CertificatesDir: \"bar\",\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n  }"},
+			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 4 identical fields\n    Scheduler:       {},\n    DNS:             {},\n-   CertificatesDir: \"foo\",\n+   CertificatesDir: \"bar\",\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n    ... // 2 identical fields\n  }"},
 			expectConditionMessages: []string{"KubeadmConfig is not up-to-date"},
 		},
 		{
@@ -1865,7 +1843,6 @@ func TestUpToDate(t *testing.T) {
 
 			upToDate, logMessages, conditionMessages, err := UpToDate(tt.machine, tt.kcp, &reconciliationTime, tt.infraConfigs, tt.machineConfigs)
 			g.Expect(err).ToNot(HaveOccurred())
-
 			g.Expect(upToDate).To(Equal(tt.expectUptoDate))
 			g.Expect(logMessages).To(Equal(tt.expectLogMessages))
 			g.Expect(conditionMessages).To(Equal(tt.expectConditionMessages))

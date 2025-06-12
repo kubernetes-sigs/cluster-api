@@ -102,8 +102,8 @@ func RestoreKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored *boot
 		dst.ClusterConfiguration.APIServer.ExtraEnvs = restored.ClusterConfiguration.APIServer.ExtraEnvs
 		dst.ClusterConfiguration.ControllerManager.ExtraEnvs = restored.ClusterConfiguration.ControllerManager.ExtraEnvs
 		dst.ClusterConfiguration.Scheduler.ExtraEnvs = restored.ClusterConfiguration.Scheduler.ExtraEnvs
-		dst.ClusterConfiguration.CertificateValidityPeriodSeconds = restored.ClusterConfiguration.CertificateValidityPeriodSeconds
-		dst.ClusterConfiguration.CACertificateValidityPeriodSeconds = restored.ClusterConfiguration.CACertificateValidityPeriodSeconds
+		dst.ClusterConfiguration.CertificateValidityPeriodDays = restored.ClusterConfiguration.CertificateValidityPeriodDays
+		dst.ClusterConfiguration.CACertificateValidityPeriodDays = restored.ClusterConfiguration.CACertificateValidityPeriodDays
 
 		if restored.ClusterConfiguration.Etcd.Local != nil {
 			if dst.ClusterConfiguration.Etcd.Local == nil {

@@ -123,10 +123,6 @@ func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue
 		}
 		in.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
 	}
-	if in.ClusterConfiguration != nil {
-		in.ClusterConfiguration.CertificateValidityPeriodSeconds = nil
-		in.ClusterConfiguration.CACertificateValidityPeriodSeconds = nil
-	}
 }
 
 func hubNodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {

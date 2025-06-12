@@ -60,6 +60,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [Multi tenancy]                                                      | No        | Mandatory for clusterctl CLI support |
 | [Clusterctl support]                                                 | No        | Mandatory for clusterctl CLI support |
 | [InfraMachine: pausing]                                              | No        |                                      |
+| [InfraMachineTemplate: support cluster autoscaling from zero]        | No        |                                      |
 
 Note:
 - `All resources` refers to all the provider's resources "core" Cluster API interacts with;
@@ -491,6 +492,44 @@ Providers SHOULD implement the pause behaviour for every object with a reconcili
 
 If implementing the pause behavior, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
 
+### InfraMachineTemplate: support cluster autoscaling from zero
+
+As described in the enhancement [Opt-in Autoscaling from Zero][Opt-in Autoscaling from Zero], providers may implement a capacity field in machine templates to inform the cluster autoscaler about the resources available on that machine type.
+
+Building on the `FooMachineTemplate` example from above, this shows the addition of a status and capacity field:
+
+```
+import corev1 "k8s.io/api/core/v1"
+
+// FooMachineTemplate is the Schema for the foomachinetemplates API.
+type FooMachineTemplate struct {
+    metav1.TypeMeta   `json:",inline"`
+    metav1.ObjectMeta `json:"metadata,omitempty"`
+
+    Spec   FooMachineTemplateSpec `json:"spec,omitempty"`
+    Status FooMachineTemplateStatus `json:"status,omitempty"`
+}
+
+// FooMachineTemplateStatus defines the observed state of FooMachineTemplate.
+type FooMachineTemplateStatus struct {
+	// Capacity defines the resource capacity for this machine.
+	// This value is used for autoscaling from zero operations as defined in:
+	// https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
+	// +optional
+	Capacity corev1.ResourceList `json:"capacity,omitempty"`
+}
+```
+
+When rendered to a manifest, the machine template status capacity field representing an instance with 500 megabytes of RAM, 1 CPU core, and 1 NVidia GPU would look like this:
+
+```
+status:
+  capacity:
+    memory: 500mb
+    cpu: "1"
+    nvidia.com/gpu: "1"
+```
+
 ## Typical InfraMachine reconciliation workflow
 
 A machine infrastructure provider must respond to changes to its InfraMachine resources. This process is
@@ -556,5 +595,7 @@ is implemented in InfraMachine controllers:
 [infrastructure Provider Security Guidance]: ../security-guidelines.md
 [Server Side Apply]: https://kubernetes.io/docs/reference/using-api/server-side-apply/
 [the DockerMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/internal/webhooks/dockermachinetemplate_webhook.go
-[InfraMachine: pausing] #inframachine-pausing
 [Cluster API v1.11 migration notes]: ../migrations/v1.10-to-v1.11.md
+[Opt-in Autoscaling from Zero]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
+[InfraMachine: pausing]: #inframachine-pausing
+[InfraMachineTemplate: support cluster autoscaling from zero]: #inframachinetemplate-support-cluster-autoscaling-from-zero

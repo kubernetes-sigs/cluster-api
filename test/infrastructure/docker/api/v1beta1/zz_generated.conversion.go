@@ -735,7 +735,7 @@ func Convert_v1beta2_DevClusterSpec_To_v1beta1_DevClusterSpec(in *v1beta2.DevClu
 
 func autoConvert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevClusterStatus, out *v1beta2.DevClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.FailureDomains = *(*corev1beta2.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
 	out.V1Beta2 = (*v1beta2.DevClusterV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
 	return nil
@@ -1226,7 +1226,7 @@ func Convert_v1beta2_DockerCluster_To_v1beta1_DockerCluster(in *v1beta2.DockerCl
 }
 
 func autoConvert_v1beta1_DockerClusterBackendSpec_To_v1beta2_DockerClusterBackendSpec(in *DockerClusterBackendSpec, out *v1beta2.DockerClusterBackendSpec, s conversion.Scope) error {
-	out.FailureDomains = *(*corev1beta2.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	if err := Convert_v1beta1_DockerLoadBalancer_To_v1beta2_DockerLoadBalancer(&in.LoadBalancer, &out.LoadBalancer, s); err != nil {
 		return err
 	}
@@ -1277,7 +1277,7 @@ func autoConvert_v1beta1_DockerClusterSpec_To_v1beta2_DockerClusterSpec(in *Dock
 	if err := Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.FailureDomains = *(*corev1beta2.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	if err := Convert_v1beta1_DockerLoadBalancer_To_v1beta2_DockerLoadBalancer(&in.LoadBalancer, &out.LoadBalancer, s); err != nil {
 		return err
 	}
@@ -1307,7 +1307,7 @@ func Convert_v1beta2_DockerClusterSpec_To_v1beta1_DockerClusterSpec(in *v1beta2.
 
 func autoConvert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *DockerClusterStatus, out *v1beta2.DockerClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.FailureDomains = *(*corev1beta2.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
 	out.V1Beta2 = (*v1beta2.DockerClusterV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
 	return nil

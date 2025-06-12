@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/cluster-api/api/core/v1beta1"
 	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -164,7 +165,7 @@ func (in *DevClusterStatus) DeepCopyInto(out *DevClusterStatus) {
 	*out = *in
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(corev1beta2.FailureDomains, len(*in))
+		*out = make(v1beta1.FailureDomains, len(*in))
 		for key, val := range *in {
 			(*out)[key] = *val.DeepCopy()
 		}
@@ -613,7 +614,7 @@ func (in *DockerClusterBackendSpec) DeepCopyInto(out *DockerClusterBackendSpec) 
 	*out = *in
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(corev1beta2.FailureDomains, len(*in))
+		*out = make(v1beta1.FailureDomains, len(*in))
 		for key, val := range *in {
 			(*out)[key] = *val.DeepCopy()
 		}
@@ -669,7 +670,7 @@ func (in *DockerClusterSpec) DeepCopyInto(out *DockerClusterSpec) {
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(corev1beta2.FailureDomains, len(*in))
+		*out = make(v1beta1.FailureDomains, len(*in))
 		for key, val := range *in {
 			(*out)[key] = *val.DeepCopy()
 		}
@@ -692,7 +693,7 @@ func (in *DockerClusterStatus) DeepCopyInto(out *DockerClusterStatus) {
 	*out = *in
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(corev1beta2.FailureDomains, len(*in))
+		*out = make(v1beta1.FailureDomains, len(*in))
 		for key, val := range *in {
 			(*out)[key] = *val.DeepCopy()
 		}

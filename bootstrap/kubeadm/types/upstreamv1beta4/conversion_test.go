@@ -101,7 +101,10 @@ func spokeClusterConfigurationFuzzer(obj *ClusterConfiguration, c randfill.Conti
 	obj.Proxy = Proxy{}
 	obj.EncryptionAlgorithm = ""
 	obj.CACertificateValidityPeriod = nil
-	obj.CertificateValidityPeriod = nil
+
+	if obj.CertificateValidityPeriod != nil {
+		obj.CertificateValidityPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
 
 	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
 	obj.Networking.ServiceSubnet = ""

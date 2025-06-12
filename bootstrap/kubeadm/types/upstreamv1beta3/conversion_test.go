@@ -86,6 +86,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubNodeRegistrationOptionsFuzzer,
 		hubHostPathMountFuzzer,
 		hubBootstrapTokenDiscoveryFuzzer,
+		hubClusterConfigurationFuzzer,
 	}
 }
 
@@ -230,4 +231,10 @@ func hubBootstrapTokenDiscoveryFuzzer(obj *bootstrapv1.BootstrapTokenDiscovery, 
 	if obj.UnsafeSkipCAVerification == nil {
 		obj.UnsafeSkipCAVerification = ptr.To(false)
 	}
+}
+
+func hubClusterConfigurationFuzzer(obj *bootstrapv1.ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	obj.CertificateValidityPeriodSeconds = nil
 }

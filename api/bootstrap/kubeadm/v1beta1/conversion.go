@@ -570,6 +570,10 @@ func Convert_v1beta1_Condition_To_v1_Condition(in *clusterv1beta1.Condition, out
 	return clusterv1beta1.Convert_v1beta1_Condition_To_v1_Condition(in, out, s)
 }
 
+func Convert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in *bootstrapv1.ClusterConfiguration, out *ClusterConfiguration, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in, out, s)
+}
+
 func dropEmptyStringsKubeadmConfigSpec(dst *KubeadmConfigSpec) {
 	for i, u := range dst.Users {
 		dropEmptyString(&u.Gecos)

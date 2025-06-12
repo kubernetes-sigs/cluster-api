@@ -102,6 +102,7 @@ func RestoreKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored *boot
 		dst.ClusterConfiguration.APIServer.ExtraEnvs = restored.ClusterConfiguration.APIServer.ExtraEnvs
 		dst.ClusterConfiguration.ControllerManager.ExtraEnvs = restored.ClusterConfiguration.ControllerManager.ExtraEnvs
 		dst.ClusterConfiguration.Scheduler.ExtraEnvs = restored.ClusterConfiguration.Scheduler.ExtraEnvs
+		dst.ClusterConfiguration.CertificateValidityPeriodSeconds = restored.ClusterConfiguration.CertificateValidityPeriodSeconds
 
 		if restored.ClusterConfiguration.Etcd.Local != nil {
 			if dst.ClusterConfiguration.Etcd.Local == nil {
@@ -578,6 +579,10 @@ func Convert_v1_Condition_To_v1alpha4_Condition(in *metav1.Condition, out *clust
 
 func Convert_v1alpha4_Condition_To_v1_Condition(in *clusterv1alpha4.Condition, out *metav1.Condition, s apimachineryconversion.Scope) error {
 	return clusterv1alpha4.Convert_v1alpha4_Condition_To_v1_Condition(in, out, s)
+}
+
+func Convert_v1beta2_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in *bootstrapv1.ClusterConfiguration, out *ClusterConfiguration, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_ClusterConfiguration_To_v1alpha4_ClusterConfiguration(in, out, s)
 }
 
 func dropEmptyStringsKubeadmConfigSpec(dst *KubeadmConfigSpec) {

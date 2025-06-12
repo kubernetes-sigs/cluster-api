@@ -423,6 +423,9 @@ func TestFindNewMachineSet(t *testing.T) {
 	msCreatedAfterRolloutAfter := generateMS(deployment)
 	msCreatedAfterRolloutAfter.CreationTimestamp = oneAfterRolloutAfter
 
+	msCreatedExactlyInRolloutAfter := generateMS(deployment)
+	msCreatedExactlyInRolloutAfter.CreationTimestamp = rolloutAfter
+
 	tests := []struct {
 		Name               string
 		deployment         clusterv1.MachineDeployment
@@ -484,6 +487,14 @@ func TestFindNewMachineSet(t *testing.T) {
 			msList:             []*clusterv1.MachineSet{&msCreatedAfterRolloutAfter, &msCreatedTwoBeforeRolloutAfter},
 			reconciliationTime: &twoAfterRolloutAfter,
 			expected:           &msCreatedAfterRolloutAfter,
+		},
+		{
+			// https://github.com/kubernetes-sigs/cluster-api/issues/12260
+			Name:               "Get MachineSet created exactly in RolloutAfter if reconciliationTime > rolloutAfter",
+			deployment:         *deploymentWithRolloutAfter,
+			msList:             []*clusterv1.MachineSet{&msCreatedExactlyInRolloutAfter, &msCreatedTwoBeforeRolloutAfter},
+			reconciliationTime: &oneAfterRolloutAfter,
+			expected:           &msCreatedExactlyInRolloutAfter,
 		},
 		{
 			Name:               "Get MachineSet created after RolloutAfter if reconciliationTime is > rolloutAfter (inverse order in ms list)",

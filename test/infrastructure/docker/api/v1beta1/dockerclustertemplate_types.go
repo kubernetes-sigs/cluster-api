@@ -29,7 +29,7 @@ type DockerClusterTemplateSpec struct {
 
 // +kubebuilder:resource:path=dockerclustertemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerClusterTemplate"
 
 // DockerClusterTemplate is the Schema for the dockerclustertemplates API.

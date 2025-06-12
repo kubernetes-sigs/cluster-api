@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamhub"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -44,7 +45,7 @@ func TestFuzzyConversion(t *testing.T) {
 
 	t.Run("for ClusterConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub:    &bootstrapv1.ClusterConfiguration{},
+		Hub:    &upstreamhub.ClusterConfiguration{},
 		Spoke:  &ClusterConfiguration{},
 		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
 		SkipSpokeAnnotationCleanup: true,
@@ -52,7 +53,7 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 	t.Run("for InitConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub:    &bootstrapv1.InitConfiguration{},
+		Hub:    &upstreamhub.InitConfiguration{},
 		Spoke:  &InitConfiguration{},
 		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
 		SkipSpokeAnnotationCleanup: true,
@@ -60,7 +61,7 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 	t.Run("for JoinConfiguration", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub:    &bootstrapv1.JoinConfiguration{},
+		Hub:    &upstreamhub.JoinConfiguration{},
 		Spoke:  &JoinConfiguration{},
 		// NOTE: Kubeadm types does not have ObjectMeta, so we are required to skip data annotation cleanup in the spoke-hub-spoke round trip test.
 		SkipSpokeAnnotationCleanup: true,

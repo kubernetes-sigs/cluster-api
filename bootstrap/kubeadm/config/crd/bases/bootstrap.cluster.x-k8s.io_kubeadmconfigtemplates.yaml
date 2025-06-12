@@ -4217,13 +4217,6 @@ spec:
                                 maxItems: 100
                                 type: array
                             type: object
-                          apiVersion:
-                            description: |-
-                              APIVersion defines the versioned schema of this representation of an object.
-                              Servers should convert recognized schemas to the latest internal value, and
-                              may reject unrecognized values.
-                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-                            type: string
                           certificatesDir:
                             description: |-
                               certificatesDir specifies where to store or look for all required certificates.
@@ -4735,14 +4728,6 @@ spec:
                             maxLength: 512
                             minLength: 1
                             type: string
-                          kind:
-                            description: |-
-                              Kind is a string value representing the REST resource this object represents.
-                              Servers may infer this from the endpoint the client submits requests to.
-                              Cannot be updated.
-                              In CamelCase.
-                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                            type: string
                           scheduler:
                             description: scheduler contains extra settings for the
                               scheduler control plane component
@@ -5161,13 +5146,6 @@ spec:
                         description: initConfiguration along with ClusterConfiguration
                           are the configurations necessary for the init command
                         properties:
-                          apiVersion:
-                            description: |-
-                              APIVersion defines the versioned schema of this representation of an object.
-                              Servers should convert recognized schemas to the latest internal value, and
-                              may reject unrecognized values.
-                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-                            type: string
                           bootstrapTokens:
                             description: |-
                               bootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create.
@@ -5226,14 +5204,6 @@ spec:
                               type: object
                             maxItems: 100
                             type: array
-                          kind:
-                            description: |-
-                              Kind is a string value representing the REST resource this object represents.
-                              Servers may infer this from the endpoint the client submits requests to.
-                              Cannot be updated.
-                              In CamelCase.
-                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                            type: string
                           localAPIEndpoint:
                             description: |-
                               localAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
@@ -5465,13 +5435,6 @@ spec:
                         description: joinConfiguration is the kubeadm configuration
                           for the join command
                         properties:
-                          apiVersion:
-                            description: |-
-                              APIVersion defines the versioned schema of this representation of an object.
-                              Servers should convert recognized schemas to the latest internal value, and
-                              may reject unrecognized values.
-                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-                            type: string
                           caCertPath:
                             description: |-
                               caCertPath is the path to the SSL certificate authority used to
@@ -5732,14 +5695,6 @@ spec:
                                 minLength: 1
                                 type: string
                             type: object
-                          kind:
-                            description: |-
-                              Kind is a string value representing the REST resource this object represents.
-                              Servers may infer this from the endpoint the client submits requests to.
-                              Cannot be updated.
-                              In CamelCase.
-                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                            type: string
                           nodeRegistration:
                             description: |-
                               nodeRegistration holds fields that relate to registering the new control-plane node to the cluster.

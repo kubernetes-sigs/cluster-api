@@ -391,13 +391,4 @@ func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig
 		machineConfig.Spec.JoinConfiguration != nil {
 		machineConfig.Spec.JoinConfiguration.NodeRegistration = emptyNodeRegistration
 	}
-
-	// Clear up the TypeMeta information from the comparison.
-	// NOTE: KCP types don't carry this information.
-	if machineConfig.Spec.InitConfiguration != nil && kcpConfig.InitConfiguration != nil {
-		machineConfig.Spec.InitConfiguration.TypeMeta = kcpConfig.InitConfiguration.TypeMeta
-	}
-	if machineConfig.Spec.JoinConfiguration != nil && kcpConfig.JoinConfiguration != nil {
-		machineConfig.Spec.JoinConfiguration.TypeMeta = kcpConfig.JoinConfiguration.TypeMeta
-	}
 }

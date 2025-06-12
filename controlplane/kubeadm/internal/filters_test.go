@@ -195,7 +195,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
 		g.Expect(diff).To(BeComparableTo(`&v1beta2.ClusterConfiguration{
-    ... // 4 identical fields
+    ... // 3 identical fields
     Scheduler:       {},
     DNS:             {},
 -   CertificatesDir: "bar",
@@ -440,44 +440,6 @@ func TestCleanupConfigFields(t *testing.T) {
 		g.Expect(kcpConfig.JoinConfiguration).ToNot(BeNil())
 		g.Expect(machineConfig.Spec.JoinConfiguration.NodeRegistration).To(BeComparableTo(bootstrapv1.NodeRegistrationOptions{}))
 	})
-	t.Run("InitConfiguration.TypeMeta gets removed from MachineConfig", func(t *testing.T) {
-		g := NewWithT(t)
-		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
-			InitConfiguration: &bootstrapv1.InitConfiguration{},
-		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				InitConfiguration: &bootstrapv1.InitConfiguration{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "JoinConfiguration",
-						APIVersion: bootstrapv1.GroupVersion.String(),
-					},
-				},
-			},
-		}
-		cleanupConfigFields(kcpConfig, machineConfig)
-		g.Expect(kcpConfig.InitConfiguration).ToNot(BeNil())
-		g.Expect(machineConfig.Spec.InitConfiguration.TypeMeta).To(BeComparableTo(metav1.TypeMeta{}))
-	})
-	t.Run("JoinConfiguration.TypeMeta gets removed from MachineConfig", func(t *testing.T) {
-		g := NewWithT(t)
-		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
-			JoinConfiguration: &bootstrapv1.JoinConfiguration{},
-		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				JoinConfiguration: &bootstrapv1.JoinConfiguration{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "JoinConfiguration",
-						APIVersion: bootstrapv1.GroupVersion.String(),
-					},
-				},
-			},
-		}
-		cleanupConfigFields(kcpConfig, machineConfig)
-		g.Expect(kcpConfig.JoinConfiguration).ToNot(BeNil())
-		g.Expect(machineConfig.Spec.JoinConfiguration.TypeMeta).To(BeComparableTo(metav1.TypeMeta{}))
-	})
 }
 
 func TestMatchInitOrJoinConfiguration(t *testing.T) {
@@ -696,7 +658,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		g.Expect(diff).To(BeComparableTo(`&v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: nil,
     InitConfiguration: &v1beta2.InitConfiguration{
-      TypeMeta:        {},
       BootstrapTokens: nil,
       NodeRegistration: v1beta2.NodeRegistrationOptions{
 -       Name:      "",
@@ -822,7 +783,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
     ClusterConfiguration: nil,
     InitConfiguration:    nil,
     JoinConfiguration: &v1beta2.JoinConfiguration{
-      TypeMeta: {},
       NodeRegistration: v1beta2.NodeRegistrationOptions{
 -       Name:      "",
 +       Name:      "A new name",
@@ -954,7 +914,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
 		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{
-    ... // 4 identical fields
+    ... // 3 identical fields
     Scheduler:       {},
     DNS:             {},
 -   CertificatesDir: "bar",
@@ -1070,7 +1030,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig InitConfiguration or JoinConfiguration are outdated: diff: &v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: nil,
     InitConfiguration: &v1beta2.InitConfiguration{
-      TypeMeta:        {},
       BootstrapTokens: nil,
       NodeRegistration: v1beta2.NodeRegistrationOptions{
 -       Name:      "",
@@ -1196,7 +1155,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
     ClusterConfiguration: nil,
     InitConfiguration:    nil,
     JoinConfiguration: &v1beta2.JoinConfiguration{
-      TypeMeta: {},
       NodeRegistration: v1beta2.NodeRegistrationOptions{
 -       Name:      "",
 +       Name:      "foo",
@@ -1723,7 +1681,7 @@ func TestUpToDate(t *testing.T) {
 			infraConfigs:            defaultInfraConfigs,
 			machineConfigs:          defaultMachineConfigs,
 			expectUptoDate:          false,
-			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 4 identical fields\n    Scheduler:       {},\n    DNS:             {},\n-   CertificatesDir: \"foo\",\n+   CertificatesDir: \"bar\",\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n  }"},
+			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 3 identical fields\n    Scheduler:       {},\n    DNS:             {},\n-   CertificatesDir: \"foo\",\n+   CertificatesDir: \"bar\",\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n  }"},
 			expectConditionMessages: []string{"KubeadmConfig is not up-to-date"},
 		},
 		{

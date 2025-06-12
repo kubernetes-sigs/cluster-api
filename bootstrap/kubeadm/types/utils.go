@@ -28,6 +28,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamhub"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta4"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -73,21 +74,33 @@ func KubeVersionToKubeadmAPIGroupVersion(v semver.Version) (schema.GroupVersion,
 // for the given Kubernetes Version.
 // NOTE: This assumes Kubernetes Version equals to kubeadm version.
 func MarshalClusterConfigurationForVersion(clusterConfiguration *bootstrapv1.ClusterConfiguration, version semver.Version, data *upstream.AdditionalData) (string, error) {
-	return marshalForVersion(clusterConfiguration, version, clusterConfigurationVersionTypeMap, data)
+	hub := &upstreamhub.ClusterConfiguration{}
+	if clusterConfiguration != nil {
+		hub.ClusterConfiguration = *clusterConfiguration
+	}
+	return marshalForVersion(hub, version, clusterConfigurationVersionTypeMap, data)
 }
 
 // MarshalInitConfigurationForVersion converts a Cluster API InitConfiguration type to the kubeadm API type
 // for the given Kubernetes Version.
 // NOTE: This assumes Kubernetes Version equals to kubeadm version.
 func MarshalInitConfigurationForVersion(initConfiguration *bootstrapv1.InitConfiguration, version semver.Version) (string, error) {
-	return marshalForVersion(initConfiguration, version, initConfigurationVersionTypeMap, nil)
+	hub := &upstreamhub.InitConfiguration{}
+	if initConfiguration != nil {
+		hub.InitConfiguration = *initConfiguration
+	}
+	return marshalForVersion(hub, version, initConfigurationVersionTypeMap, nil)
 }
 
 // MarshalJoinConfigurationForVersion converts a Cluster API JoinConfiguration type to the kubeadm API type
 // for the given Kubernetes Version.
 // NOTE: This assumes Kubernetes Version equals to kubeadm version.
 func MarshalJoinConfigurationForVersion(joinConfiguration *bootstrapv1.JoinConfiguration, version semver.Version) (string, error) {
-	return marshalForVersion(joinConfiguration, version, joinConfigurationVersionTypeMap, nil)
+	hub := &upstreamhub.JoinConfiguration{}
+	if joinConfiguration != nil {
+		hub.JoinConfiguration = *joinConfiguration
+	}
+	return marshalForVersion(hub, version, joinConfigurationVersionTypeMap, nil)
 }
 
 func marshalForVersion(obj conversion.Hub, version semver.Version, kubeadmObjVersionTypeMap map[schema.GroupVersion]conversion.Convertible, data *upstream.AdditionalData) (string, error) {
@@ -145,32 +158,32 @@ func toYaml(obj runtime.Object, gv runtime.GroupVersioner, codecs serializer.Cod
 // UnmarshalClusterConfiguration tries to translate a Kubeadm API yaml back to the Cluster API ClusterConfiguration type.
 // NOTE: The yaml could be any of the known formats for the kubeadm ClusterConfiguration type.
 func UnmarshalClusterConfiguration(yaml string) (*bootstrapv1.ClusterConfiguration, *upstream.AdditionalData, error) {
-	obj := &bootstrapv1.ClusterConfiguration{}
+	obj := &upstreamhub.ClusterConfiguration{}
 	data := &upstream.AdditionalData{}
 	if err := unmarshalFromVersions(yaml, clusterConfigurationVersionTypeMap, obj, data); err != nil {
 		return nil, nil, err
 	}
-	return obj, data, nil
+	return &obj.ClusterConfiguration, data, nil
 }
 
 // UnmarshalInitConfiguration tries to translate a Kubeadm API yaml back to the InitConfiguration type.
 // NOTE: The yaml could be any of the known formats for the kubeadm InitConfiguration type.
 func UnmarshalInitConfiguration(yaml string) (*bootstrapv1.InitConfiguration, error) {
-	obj := &bootstrapv1.InitConfiguration{}
+	obj := &upstreamhub.InitConfiguration{}
 	if err := unmarshalFromVersions(yaml, initConfigurationVersionTypeMap, obj, nil); err != nil {
 		return nil, err
 	}
-	return obj, nil
+	return &obj.InitConfiguration, nil
 }
 
 // UnmarshalJoinConfiguration tries to translate a Kubeadm API yaml back to the JoinConfiguration type.
 // NOTE: The yaml could be any of the known formats for the kubeadm JoinConfiguration type.
 func UnmarshalJoinConfiguration(yaml string) (*bootstrapv1.JoinConfiguration, error) {
-	obj := &bootstrapv1.JoinConfiguration{}
+	obj := &upstreamhub.JoinConfiguration{}
 	if err := unmarshalFromVersions(yaml, joinConfigurationVersionTypeMap, obj, nil); err != nil {
 		return nil, err
 	}
-	return obj, nil
+	return &obj.JoinConfiguration, nil
 }
 
 func unmarshalFromVersions(yaml string, kubeadmAPIVersions map[schema.GroupVersion]conversion.Convertible, capiObj conversion.Hub, data *upstream.AdditionalData) error {

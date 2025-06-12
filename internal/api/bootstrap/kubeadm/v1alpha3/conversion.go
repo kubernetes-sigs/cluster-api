@@ -319,6 +319,11 @@ func Convert_v1beta2_BootstrapToken_To_v1alpha3_BootstrapToken(in *bootstrapv1.B
 	return nil
 }
 
+func Convert_v1alpha3_InitConfiguration_To_v1beta2_InitConfiguration(in *InitConfiguration, out *bootstrapv1.InitConfiguration, s apimachineryconversion.Scope) error {
+	// Type neta has been dropped in v1beta2
+	return autoConvert_v1alpha3_InitConfiguration_To_v1beta2_InitConfiguration(in, out, s)
+}
+
 // Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)
 
 func Convert_v1_Condition_To_v1alpha3_Condition(in *metav1.Condition, out *clusterv1alpha3.Condition, s apimachineryconversion.Scope) error {

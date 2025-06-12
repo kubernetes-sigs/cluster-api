@@ -905,10 +905,6 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				},
 			},
 			wantClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "kubeadm.k8s.io/v1beta3",
-					Kind:       "ClusterConfiguration",
-				},
 				FeatureGates: map[string]bool{
 					"EtcdLearnerMode": true,
 				},
@@ -927,10 +923,6 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				FeatureGates: nil,
 			},
 			wantClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "kubeadm.k8s.io/v1beta3",
-					Kind:       "ClusterConfiguration",
-				},
 				FeatureGates: nil,
 			},
 		},
@@ -944,10 +936,6 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				FeatureGates: nil,
 			},
 			wantClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "kubeadm.k8s.io/v1beta3",
-					Kind:       "ClusterConfiguration",
-				},
 				FeatureGates: nil,
 			},
 		},
@@ -961,10 +949,6 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				FeatureGates: nil,
 			},
 			wantClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "kubeadm.k8s.io/v1beta4",
-					Kind:       "ClusterConfiguration",
-				},
 				FeatureGates: map[string]bool{
 					ControlPlaneKubeletLocalMode: true,
 				},
@@ -982,10 +966,6 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				},
 			},
 			wantClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "kubeadm.k8s.io/v1beta4",
-					Kind:       "ClusterConfiguration",
-				},
 				FeatureGates: map[string]bool{
 					ControlPlaneKubeletLocalMode: true,
 					"EtcdLearnerMode":            true,
@@ -1005,10 +985,6 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				},
 			},
 			wantClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "kubeadm.k8s.io/v1beta4",
-					Kind:       "ClusterConfiguration",
-				},
 				FeatureGates: map[string]bool{
 					ControlPlaneKubeletLocalMode: false,
 					"EtcdLearnerMode":            true,

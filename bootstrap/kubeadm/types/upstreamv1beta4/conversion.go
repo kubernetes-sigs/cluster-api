@@ -24,36 +24,37 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstream"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamhub"
 )
 
 func (src *ClusterConfiguration) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*bootstrapv1.ClusterConfiguration)
-	return Convert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(src, dst, nil)
+	dst := dstRaw.(*upstreamhub.ClusterConfiguration)
+	return Convert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(src, &dst.ClusterConfiguration, nil)
 }
 
 func (dst *ClusterConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*bootstrapv1.ClusterConfiguration)
-	return Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfiguration(src, dst, nil)
+	src := srcRaw.(*upstreamhub.ClusterConfiguration)
+	return Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfiguration(&src.ClusterConfiguration, dst, nil)
 }
 
 func (src *InitConfiguration) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*bootstrapv1.InitConfiguration)
-	return Convert_upstreamv1beta4_InitConfiguration_To_v1beta2_InitConfiguration(src, dst, nil)
+	dst := dstRaw.(*upstreamhub.InitConfiguration)
+	return Convert_upstreamv1beta4_InitConfiguration_To_v1beta2_InitConfiguration(src, &dst.InitConfiguration, nil)
 }
 
 func (dst *InitConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*bootstrapv1.InitConfiguration)
-	return Convert_v1beta2_InitConfiguration_To_upstreamv1beta4_InitConfiguration(src, dst, nil)
+	src := srcRaw.(*upstreamhub.InitConfiguration)
+	return Convert_v1beta2_InitConfiguration_To_upstreamv1beta4_InitConfiguration(&src.InitConfiguration, dst, nil)
 }
 
 func (src *JoinConfiguration) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*bootstrapv1.JoinConfiguration)
-	return Convert_upstreamv1beta4_JoinConfiguration_To_v1beta2_JoinConfiguration(src, dst, nil)
+	dst := dstRaw.(*upstreamhub.JoinConfiguration)
+	return Convert_upstreamv1beta4_JoinConfiguration_To_v1beta2_JoinConfiguration(src, &dst.JoinConfiguration, nil)
 }
 
 func (dst *JoinConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*bootstrapv1.JoinConfiguration)
-	return Convert_v1beta2_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration(src, dst, nil)
+	src := srcRaw.(*upstreamhub.JoinConfiguration)
+	return Convert_v1beta2_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration(&src.JoinConfiguration, dst, nil)
 }
 
 // Custom conversion from this API, kubeadm v1beta4, to the hub version, CABPK v1beta1.

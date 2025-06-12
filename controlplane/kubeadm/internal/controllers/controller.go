@@ -87,6 +87,7 @@ type KubeadmControlPlaneReconciler struct {
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
+	EtcdLogLevel    zapcore.Level
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -112,7 +113,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "kubeadmcontrolplane")
-	etcdLogger, err := logutil.CreateDefaultZapLogger(0 - zapcore.Level(predicateLog.GetV()))
+	etcdLogger, err := logutil.CreateDefaultZapLogger(r.EtcdLogLevel)
 	if err != nil {
 		return errors.Wrap(err, "failed to create ETCD client zap logger")
 	}

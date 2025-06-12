@@ -27,6 +27,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+	"go.uber.org/zap/zapcore"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -100,6 +101,7 @@ var (
 	skipCRDMigrationPhases         []string
 	etcdDialTimeout                time.Duration
 	etcdCallTimeout                time.Duration
+	etcdLogLevel                   int8
 )
 
 func init() {
@@ -189,6 +191,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.DurationVar(&etcdCallTimeout, "etcd-call-timeout-duration", etcd.DefaultCallTimeout,
 		"Duration that the etcd client waits at most for read and write operations to etcd.")
+
+	fs.Int8Var(&etcdLogLevel, "etcd-client-log-level", int8(zapcore.InfoLevel),
+		"Logging level for etcd client.")
 
 	flags.AddManagerOptions(fs, &managerOptions)
 
@@ -425,6 +430,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		WatchFilterValue:            watchFilterValue,
 		EtcdDialTimeout:             etcdDialTimeout,
 		EtcdCallTimeout:             etcdCallTimeout,
+		EtcdLogLevel:                zapcore.Level(etcdLogLevel),
 		RemoteConditionsGracePeriod: remoteConditionsGracePeriod,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")

@@ -65,33 +65,43 @@ type Certificates []*Certificate
 
 // NewCertificatesForInitialControlPlane returns a list of certificates configured for a control plane node.
 func NewCertificatesForInitialControlPlane(config *bootstrapv1.ClusterConfiguration) Certificates {
+	var validityPeriodSeconds *int32
 	certificatesDir := DefaultCertificatesDir
-	if config != nil && config.CertificatesDir != "" {
-		certificatesDir = config.CertificatesDir
+	if config != nil {
+		if config.CertificatesDir != "" {
+			certificatesDir = config.CertificatesDir
+		}
+		if config.CertificateValidityPeriodSeconds != nil {
+			validityPeriodSeconds = config.CertificateValidityPeriodSeconds
+		}
 	}
 
 	certificates := Certificates{
 		&Certificate{
-			Purpose:  ClusterCA,
-			CertFile: path.Join(certificatesDir, "ca.crt"),
-			KeyFile:  path.Join(certificatesDir, "ca.key"),
+			Purpose:               ClusterCA,
+			CertFile:              path.Join(certificatesDir, "ca.crt"),
+			KeyFile:               path.Join(certificatesDir, "ca.key"),
+			ValidityPeriodSeconds: validityPeriodSeconds,
 		},
 		&Certificate{
-			Purpose:  ServiceAccount,
-			CertFile: path.Join(certificatesDir, "sa.pub"),
-			KeyFile:  path.Join(certificatesDir, "sa.key"),
+			Purpose:               ServiceAccount,
+			CertFile:              path.Join(certificatesDir, "sa.pub"),
+			KeyFile:               path.Join(certificatesDir, "sa.key"),
+			ValidityPeriodSeconds: validityPeriodSeconds,
 		},
 		&Certificate{
-			Purpose:  FrontProxyCA,
-			CertFile: path.Join(certificatesDir, "front-proxy-ca.crt"),
-			KeyFile:  path.Join(certificatesDir, "front-proxy-ca.key"),
+			Purpose:               FrontProxyCA,
+			CertFile:              path.Join(certificatesDir, "front-proxy-ca.crt"),
+			KeyFile:               path.Join(certificatesDir, "front-proxy-ca.key"),
+			ValidityPeriodSeconds: validityPeriodSeconds,
 		},
 	}
 
 	etcdCert := &Certificate{
-		Purpose:  EtcdCA,
-		CertFile: path.Join(certificatesDir, "etcd", "ca.crt"),
-		KeyFile:  path.Join(certificatesDir, "etcd", "ca.key"),
+		Purpose:               EtcdCA,
+		CertFile:              path.Join(certificatesDir, "etcd", "ca.crt"),
+		KeyFile:               path.Join(certificatesDir, "etcd", "ca.key"),
+		ValidityPeriodSeconds: validityPeriodSeconds,
 	}
 
 	// TODO make sure all the fields are actually defined and return an error if not
@@ -318,12 +328,13 @@ func (c Certificates) LookupOrGenerateCached(ctx context.Context, secretCachingC
 
 // Certificate represents a single certificate CA.
 type Certificate struct {
-	Generated         bool
-	External          bool
-	Purpose           Purpose
-	KeyPair           *certs.KeyPair
-	CertFile, KeyFile string
-	Secret            *corev1.Secret
+	Generated             bool
+	External              bool
+	Purpose               Purpose
+	KeyPair               *certs.KeyPair
+	CertFile, KeyFile     string
+	Secret                *corev1.Secret
+	ValidityPeriodSeconds *int32
 }
 
 // Hashes hashes all the certificates stored in a CA certificate.
@@ -406,7 +417,7 @@ func (c *Certificate) Generate() error {
 		generator = generateServiceAccountKeys
 	}
 
-	kp, err := generator()
+	kp, err := generator(c.ValidityPeriodSeconds)
 	if err != nil {
 		return err
 	}
@@ -459,8 +470,8 @@ func secretToKeyPair(s *corev1.Secret) (*certs.KeyPair, error) {
 	}, nil
 }
 
-func generateCACert() (*certs.KeyPair, error) {
-	x509Cert, privKey, err := newCertificateAuthority()
+func generateCACert(validityPeriod *int32) (*certs.KeyPair, error) {
+	x509Cert, privKey, err := newCertificateAuthority(validityPeriod)
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +481,7 @@ func generateCACert() (*certs.KeyPair, error) {
 	}, nil
 }
 
-func generateServiceAccountKeys() (*certs.KeyPair, error) {
+func generateServiceAccountKeys(_ *int32) (*certs.KeyPair, error) {
 	saCreds, err := certs.NewPrivateKey()
 	if err != nil {
 		return nil, err
@@ -486,13 +497,13 @@ func generateServiceAccountKeys() (*certs.KeyPair, error) {
 }
 
 // newCertificateAuthority creates new certificate and private key for the certificate authority.
-func newCertificateAuthority() (*x509.Certificate, *rsa.PrivateKey, error) {
+func newCertificateAuthority(validityPeriod *int32) (*x509.Certificate, *rsa.PrivateKey, error) {
 	key, err := certs.NewPrivateKey()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	c, err := newSelfSignedCACert(key)
+	c, err := newSelfSignedCACert(key, validityPeriod)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -501,12 +512,16 @@ func newCertificateAuthority() (*x509.Certificate, *rsa.PrivateKey, error) {
 }
 
 // newSelfSignedCACert creates a CA certificate.
-func newSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
+func newSelfSignedCACert(key *rsa.PrivateKey, validityPeriod *int32) (*x509.Certificate, error) {
 	cfg := certs.Config{
 		CommonName: "kubernetes",
 	}
 
 	now := time.Now().UTC()
+	certificateValidityPeriod := now.Add(time.Hour * 24 * 365 * 10) // 10 years
+	if validityPeriod != nil {
+		certificateValidityPeriod = now.Add(time.Duration(*validityPeriod) * time.Second)
+	}
 
 	tmpl := x509.Certificate{
 		SerialNumber: new(big.Int).SetInt64(0),
@@ -515,7 +530,7 @@ func newSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 			Organization: cfg.Organization,
 		},
 		NotBefore:             now.Add(time.Minute * -5),
-		NotAfter:              now.Add(time.Hour * 24 * 365 * 10), // 10 years
+		NotAfter:              certificateValidityPeriod,
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		MaxPathLenZero:        true,
 		BasicConstraintsValid: true,

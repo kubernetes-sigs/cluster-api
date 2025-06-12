@@ -63,6 +63,18 @@ func RestoreKubeadmConfigSpec(restored *bootstrapv1.KubeadmConfigSpec, dst *boot
 		}
 		dst.JoinConfiguration.Timeouts = restored.JoinConfiguration.Timeouts
 	}
+	if restored.ClusterConfiguration != nil &&
+		(restored.ClusterConfiguration.CertificateValidityPeriodDays != nil || restored.ClusterConfiguration.CACertificateValidityPeriodDays != nil) {
+		if dst.ClusterConfiguration == nil {
+			dst.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
+		}
+		if restored.ClusterConfiguration.CertificateValidityPeriodDays != nil {
+			dst.ClusterConfiguration.CertificateValidityPeriodDays = restored.ClusterConfiguration.CertificateValidityPeriodDays
+		}
+		if restored.ClusterConfiguration.CACertificateValidityPeriodDays != nil {
+			dst.ClusterConfiguration.CACertificateValidityPeriodDays = restored.ClusterConfiguration.CACertificateValidityPeriodDays
+		}
+	}
 }
 
 func (src *KubeadmConfigSpec) ConvertTo(dst *bootstrapv1.KubeadmConfigSpec) {

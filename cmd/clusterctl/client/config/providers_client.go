@@ -72,6 +72,7 @@ const (
 	IonosCloudProviderName     = "ionoscloud-ionoscloud"
 	VultrProviderName          = "vultr-vultr"
 	OpenNebulaProviderName     = "opennebula"
+	ScalewayProviderName       = "scaleway"
 )
 
 // Bootstrap providers.
@@ -331,6 +332,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         OpenNebulaProviderName,
 			url:          "https://github.com/OpenNebula/cluster-api-provider-opennebula/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         ScalewayProviderName,
+			url:          "https://github.com/scaleway/cluster-api-provider-scaleway/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

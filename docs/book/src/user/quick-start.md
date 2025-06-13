@@ -281,7 +281,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -780,6 +780,15 @@ project][Proxmox getting started guide].
 
 {{#/tab }}
 
+{{#tab Scaleway}}
+
+```bash
+# Initialize the management cluster
+clusterctl init --infrastructure scaleway
+```
+
+{{#/tab }}
+
 {{#tab VCD}}
 
 Please follow the Cluster API Provider for [Cloud Director Getting Started Guide](https://github.com/vmware/cluster-api-provider-cloud-director/blob/main/README.md)
@@ -902,7 +911,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenNebula,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenNebula,OpenStack,Outscale,Proxmox,Scaleway,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1388,6 +1397,23 @@ export ALLOWED_NODES="[pve1,pve2,pve3]"
 For more information about prerequisites and advanced setups for Proxmox, see the [Proxmox getting started guide].
 
 {{#/tab }}
+{{#tab Scaleway}}
+
+```bash
+# Scaleway credentials, project ID and region.
+export SCW_ACCESS_KEY="<ACCESS_KEY>"
+export SCW_SECRET_KEY="<SECRET_KEY>"
+export SCW_PROJECT_ID="<PROJECT_ID>"
+export SCW_REGION="fr-par"
+
+# Scaleway Instance image names that will be used to provision servers.
+export CONTROL_PLANE_MACHINE_IMAGE="<IMAGE_NAME>"
+export WORKER_MACHINE_IMAGE="<IMAGE_NAME>"
+```
+
+For more information about prerequisites and advanced setups for CAPS, see the [CAPS getting started guide].
+
+{{#/tab }}
 {{#tab Tinkerbell}}
 
 ```bash
@@ -1672,7 +1698,7 @@ Note: To use the default clusterctl method to retrieve kubeconfig for a workload
 
 The Kubernetes in-tree cloud provider implementations are being [removed](https://github.com/kubernetes/enhancements/tree/master/keps/sig-cloud-provider/2395-removing-in-tree-cloud-providers) in favor of external cloud providers (also referred to as "out-of-tree"). This requires deploying a new component called the cloud-controller-manager which is responsible for running all the cloud specific controllers that were previously run in the kube-controller-manager. To learn more, see [this blog post](https://kubernetes.io/blog/2019/04/17/the-future-of-cloud-providers-in-kubernetes/).
 
-{{#tabs name:"tab-install-cloud-provider" tabs:"Azure,OpenStack"}}
+{{#tabs name:"tab-install-cloud-provider" tabs:"Azure,OpenStack,Scaleway"}}
 {{#tab Azure}}
 
 Install the official cloud-provider-azure Helm chart on the workload cluster:
@@ -1717,6 +1743,45 @@ kubectl apply --kubeconfig=./capi-quickstart.kubeconfig -f https://raw.githubuse
 ```
 
 Alternatively, refer to the [helm chart](https://github.com/kubernetes/cloud-provider-openstack/tree/master/charts/openstack-cloud-controller-manager).
+
+{{#/tab }}
+{{#tab Scaleway}}
+
+Before deploying the Scaleway external cloud provider, you will need:
+
+- Your Scaleway credentials (access key and secret key)
+- Your Scaleway project ID
+- The Scaleway region where your workload cluster is deployed
+- The Private Network ID of your cluster (optional)
+
+First, create the Secret named `scaleway-secret` in your workload cluster:
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: scaleway-secret
+  namespace: kube-system
+type: Opaque
+stringData:
+  SCW_ACCESS_KEY: "xxxxxxxxxxxxxxxx"
+  SCW_SECRET_KEY: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  SCW_DEFAULT_PROJECT_ID: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxx"
+  SCW_DEFAULT_REGION: "fr-par"
+  SCW_DEFAULT_ZONE: "fr-par-1"
+  PN_ID: "" # If your have a private network on your cluster, you may set its ID here.
+EOF
+```
+
+Finally, you can deploy the `scaleway-cloud-controller-manager`:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/scaleway/scaleway-cloud-controller-manager/master/examples/k8s-scaleway-ccm-latest.yml
+```
+
+For more detailed information on configuring and using the Scaleway external cloud
+provider, see the [scaleway-cloud-controller-manager repository](https://github.com/scaleway/scaleway-cloud-controller-manager).
 
 {{#/tab }}
 {{#/tabs }}
@@ -1967,3 +2032,4 @@ kind delete cluster
 [Proxmox getting started guide]: https://github.com/ionos-cloud/cluster-api-provider-proxmox/blob/main/docs/Usage.md
 [Tinkerbell getting started guide]: https://github.com/tinkerbell/cluster-api-provider-tinkerbell/blob/main/docs/QUICK-START.md
 [CAPONE Wiki]: https://github.com/OpenNebula/cluster-api-provider-opennebula/wiki
+[CAPS getting started guide]: https://github.com/scaleway/cluster-api-provider-scaleway/blob/main/docs/getting-started.md

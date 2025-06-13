@@ -1007,7 +1007,7 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: "machineWithoutExpiryAnnotation",
 			},
 		},
@@ -1038,7 +1038,7 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: "machineWithExpiryAnnotation",
 			},
 		},
@@ -1073,7 +1073,7 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: "machineWithDeletionTimestamp",
 			},
 		},
@@ -1130,7 +1130,7 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: "machineWithoutKubeadmConfig",
 			},
 		},
@@ -3855,10 +3855,8 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
-				Kind:       "Node",
-				APIVersion: corev1.SchemeGroupVersion.String(),
-				Name:       name,
+			NodeRef: &clusterv1.MachineNodeReference{
+				Name: name,
 			},
 		},
 	}
@@ -3887,8 +3885,7 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 }
 
 func setMachineHealthy(m *clusterv1.Machine) {
-	m.Status.NodeRef = &corev1.ObjectReference{
-		Kind: "Node",
+	m.Status.NodeRef = &clusterv1.MachineNodeReference{
 		Name: "node-1",
 	}
 	conditions.Set(m, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue})

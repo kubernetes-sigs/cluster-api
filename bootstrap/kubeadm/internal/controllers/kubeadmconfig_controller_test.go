@@ -1213,19 +1213,15 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	patchHelper, err = patch.NewHelper(workerMachine, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	workerMachine.Status.NodeRef = &corev1.ObjectReference{
-		APIVersion: "v1",
-		Kind:       "Node",
-		Name:       "worker-node",
+	workerMachine.Status.NodeRef = &clusterv1.MachineNodeReference{
+		Name: "worker-node",
 	}
 	g.Expect(patchHelper.Patch(ctx, workerMachine)).To(Succeed())
 
 	patchHelper, err = patch.NewHelper(controlPlaneJoinMachine, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	controlPlaneJoinMachine.Status.NodeRef = &corev1.ObjectReference{
-		APIVersion: "v1",
-		Kind:       "Node",
-		Name:       "control-plane-node",
+	controlPlaneJoinMachine.Status.NodeRef = &clusterv1.MachineNodeReference{
+		Name: "control-plane-node",
 	}
 	g.Expect(patchHelper.Patch(ctx, controlPlaneJoinMachine)).To(Succeed())
 

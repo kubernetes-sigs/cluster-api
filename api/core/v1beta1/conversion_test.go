@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -295,6 +296,15 @@ func spokeMachineStatus(in *MachineStatus, c randfill.Continue) {
 	if in.V1Beta2 != nil {
 		if reflect.DeepEqual(in.V1Beta2, &MachineV1Beta2Status{}) {
 			in.V1Beta2 = nil
+		}
+	}
+
+	if in.NodeRef != nil {
+		// Drop everything except name
+		in.NodeRef = &corev1.ObjectReference{
+			Name:       in.NodeRef.Name,
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Node",
 		}
 	}
 }

@@ -20,6 +20,7 @@ import (
 	"context"
 	"time"
 
+	"go.uber.org/zap/zapcore"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -36,6 +37,7 @@ type KubeadmControlPlaneReconciler struct {
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
+	EtcdLogLevel    zapcore.Level
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -51,6 +53,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		ClusterCache:                r.ClusterCache,
 		EtcdDialTimeout:             r.EtcdDialTimeout,
 		EtcdCallTimeout:             r.EtcdCallTimeout,
+		EtcdLogLevel:                r.EtcdLogLevel,
 		WatchFilterValue:            r.WatchFilterValue,
 		RemoteConditionsGracePeriod: r.RemoteConditionsGracePeriod,
 	}).SetupWithManager(ctx, mgr, options)

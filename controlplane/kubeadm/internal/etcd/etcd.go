@@ -26,6 +26,7 @@ import (
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/client/pkg/v3/logutil"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -140,6 +141,11 @@ var (
 	// would create its own logger which leads to a lot of memory allocations.
 	etcdClientLogger, _ = logutil.CreateDefaultZapLogger(zapcore.InfoLevel)
 )
+
+// SetLogger allows to redefine ETCD client logger.
+func SetLogger(logger *zap.Logger) {
+	etcdClientLogger = logger
+}
 
 // NewClient creates a new etcd client with the given configuration.
 func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error) {

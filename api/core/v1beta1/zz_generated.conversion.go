@@ -705,6 +705,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*corev1.ObjectReference)(nil), (*v1beta2.ObjectReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_ObjectReference_To_v1beta2_ObjectReference(a.(*corev1.ObjectReference), b.(*v1beta2.ObjectReference), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*ClusterClassSpec)(nil), (*v1beta2.ClusterClassSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(a.(*ClusterClassSpec), b.(*v1beta2.ClusterClassSpec), scope)
 	}); err != nil {
@@ -942,6 +947,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.MachineStatus)(nil), (*MachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(a.(*v1beta2.MachineStatus), b.(*MachineStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.ObjectReference)(nil), (*corev1.ObjectReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ObjectReference_To_v1_ObjectReference(a.(*v1beta2.ObjectReference), b.(*corev1.ObjectReference), scope)
 	}); err != nil {
 		return err
 	}
@@ -1506,8 +1516,24 @@ func autoConvert_v1beta1_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, out
 	if err := Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.ControlPlaneRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ControlPlaneRef))
-	out.InfrastructureRef = (*corev1.ObjectReference)(unsafe.Pointer(in.InfrastructureRef))
+	if in.ControlPlaneRef != nil {
+		in, out := &in.ControlPlaneRef, &out.ControlPlaneRef
+		*out = new(v1beta2.ObjectReference)
+		if err := Convert_v1_ObjectReference_To_v1beta2_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ControlPlaneRef = nil
+	}
+	if in.InfrastructureRef != nil {
+		in, out := &in.InfrastructureRef, &out.InfrastructureRef
+		*out = new(v1beta2.ObjectReference)
+		if err := Convert_v1_ObjectReference_To_v1beta2_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.InfrastructureRef = nil
+	}
 	if in.Topology != nil {
 		in, out := &in.Topology, &out.Topology
 		*out = new(v1beta2.Topology)
@@ -1532,8 +1558,24 @@ func autoConvert_v1beta2_ClusterSpec_To_v1beta1_ClusterSpec(in *v1beta2.ClusterS
 	if err := Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.ControlPlaneRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ControlPlaneRef))
-	out.InfrastructureRef = (*corev1.ObjectReference)(unsafe.Pointer(in.InfrastructureRef))
+	if in.ControlPlaneRef != nil {
+		in, out := &in.ControlPlaneRef, &out.ControlPlaneRef
+		*out = new(corev1.ObjectReference)
+		if err := Convert_v1beta2_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ControlPlaneRef = nil
+	}
+	if in.InfrastructureRef != nil {
+		in, out := &in.InfrastructureRef, &out.InfrastructureRef
+		*out = new(corev1.ObjectReference)
+		if err := Convert_v1beta2_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.InfrastructureRef = nil
+	}
 	if in.Topology != nil {
 		in, out := &in.Topology, &out.Topology
 		*out = new(Topology)

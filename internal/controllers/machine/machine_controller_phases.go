@@ -196,7 +196,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	}
 
 	// Determine contract version used by the BootstrapConfig.
-	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.bootstrapConfig.GroupVersionKind())
+	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.bootstrapConfig.GroupVersionKind().GroupKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -293,7 +293,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	s.infraMachine = obj
 
 	// Determine contract version used by the InfraMachine.
-	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.infraMachine.GroupVersionKind())
+	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.infraMachine.GroupVersionKind().GroupKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -422,14 +422,14 @@ func (r *Reconciler) reconcileCertificateExpiry(_ context.Context, s *scope) (ct
 
 // removeOnCreateOwnerRefs will remove any MachineSet or control plane owner references from passed objects.
 func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj *unstructured.Unstructured) error {
-	cpGVK := getControlPlaneGVKForMachine(cluster, m)
+	cpGK := getControlPlaneGVKForMachine(cluster, m)
 	for _, owner := range obj.GetOwnerReferences() {
 		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
 		if err != nil {
 			return errors.Wrapf(err, "could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
 		}
 		if (ownerGV.Group == clusterv1.GroupVersion.Group && owner.Kind == "MachineSet") ||
-			(cpGVK != nil && ownerGV.Group == cpGVK.GroupVersion().Group && owner.Kind == cpGVK.Kind) {
+			(cpGK != nil && ownerGV.Group == cpGK.Group && owner.Kind == cpGK.Kind) {
 			ownerRefs := util.RemoveOwnerRef(obj.GetOwnerReferences(), owner)
 			obj.SetOwnerReferences(ownerRefs)
 		}
@@ -439,14 +439,14 @@ func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, o
 
 // hasOnCreateOwnerRefs will check if any MachineSet or control plane owner references from passed objects are set.
 func hasOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj *unstructured.Unstructured) (bool, error) {
-	cpGVK := getControlPlaneGVKForMachine(cluster, m)
+	cpGK := getControlPlaneGVKForMachine(cluster, m)
 	for _, owner := range obj.GetOwnerReferences() {
 		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
 		if err != nil {
 			return false, errors.Wrapf(err, "could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
 		}
 		if (ownerGV.Group == clusterv1.GroupVersion.Group && owner.Kind == "MachineSet") ||
-			(cpGVK != nil && ownerGV.Group == cpGVK.GroupVersion().Group && owner.Kind == cpGVK.Kind) {
+			(cpGK != nil && ownerGV.Group == cpGK.Group && owner.Kind == cpGK.Kind) {
 			return true, nil
 		}
 	}
@@ -456,11 +456,13 @@ func hasOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj 
 // getControlPlaneGVKForMachine returns the Kind of the control plane in the Cluster associated with the Machine.
 // This function checks that the Machine is managed by a control plane, and then retrieves the Kind from the Cluster's
 // .spec.controlPlaneRef.
-func getControlPlaneGVKForMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) *schema.GroupVersionKind {
+func getControlPlaneGVKForMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) *schema.GroupKind {
 	if _, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]; ok {
 		if cluster.Spec.ControlPlaneRef != nil {
-			gvk := cluster.Spec.ControlPlaneRef.GroupVersionKind()
-			return &gvk
+			return &schema.GroupKind{
+				Group: cluster.Spec.ControlPlaneRef.APIGroup,
+				Kind:  cluster.Spec.ControlPlaneRef.Kind,
+			}
 		}
 	}
 	return nil

@@ -2612,13 +2612,13 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2639,13 +2639,13 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2670,13 +2670,13 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel:         "test-cluster",
 						clusterv1.MachineControlPlaneLabel: "",
@@ -2703,13 +2703,13 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2734,7 +2734,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "test-cluster",
-					Namespace:         metav1.NamespaceDefault,
+					Namespace:         "test-cluster",
 					DeletionTimestamp: &deletionts,
 					Finalizers:        []string{clusterv1.ClusterFinalizer},
 				},
@@ -2748,21 +2748,20 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef: &corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionControlPlane.String(),
-						Kind:       "AWSManagedControlPlane",
-						Name:       "test-cluster",
-						Namespace:  "test-cluster",
+					ControlPlaneRef: &clusterv1.ObjectReference{
+						APIGroup: clusterv1.GroupVersionControlPlane.Group,
+						Kind:     builder.GenericControlPlaneKind,
+						Name:     "test-cluster",
 					},
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2787,21 +2786,20 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef: &corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionControlPlane.String(),
-						Kind:       "AWSManagedControlPlane",
-						Name:       "test-cluster-2",
-						Namespace:  "test-cluster",
+					ControlPlaneRef: &clusterv1.ObjectReference{
+						APIGroup: builder.ControlPlaneGroupVersion.Group,
+						Kind:     builder.GenericControlPlaneKind,
+						Name:     "test-cluster-2",
 					},
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2826,21 +2824,20 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef: &corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionControlPlane.String(),
-						Kind:       "AWSManagedControlPlane",
-						Name:       "test-cluster-3",
-						Namespace:  "test-cluster",
+					ControlPlaneRef: &clusterv1.ObjectReference{
+						APIGroup: clusterv1.GroupVersionControlPlane.Group,
+						Kind:     builder.GenericControlPlaneKind,
+						Name:     "test-cluster-3",
 					},
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2865,13 +2862,13 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2900,8 +2897,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			},
 		},
 	}
+
 	emp.SetAPIVersion(clusterv1.GroupVersionControlPlane.String())
-	emp.SetKind("AWSManagedControlPlane")
+	emp.SetKind(builder.GenericControlPlaneKind)
 	emp.SetName("test-cluster")
 	emp.SetNamespace("test-cluster")
 
@@ -2909,7 +2907,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		Object: map[string]interface{}{},
 	}
 	mcpBeingDeleted.SetAPIVersion(clusterv1.GroupVersionControlPlane.String())
-	mcpBeingDeleted.SetKind("AWSManagedControlPlane")
+	mcpBeingDeleted.SetKind(builder.GenericControlPlaneKind)
 	mcpBeingDeleted.SetName("test-cluster-2")
 	mcpBeingDeleted.SetNamespace("test-cluster")
 	mcpBeingDeleted.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
@@ -2923,7 +2921,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		},
 	}
 	empBeingDeleted.SetAPIVersion(clusterv1.GroupVersionControlPlane.String())
-	empBeingDeleted.SetKind("AWSManagedControlPlane")
+	empBeingDeleted.SetKind(builder.GenericControlPlaneKind)
 	empBeingDeleted.SetName("test-cluster-3")
 	empBeingDeleted.SetNamespace("test-cluster")
 	empBeingDeleted.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
@@ -2946,7 +2944,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			m1 := &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cp1",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2966,7 +2964,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			m2 := &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cp2",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2997,6 +2995,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				emp,
 				mcpBeingDeleted,
 				empBeingDeleted,
+				builder.GenericControlPlaneCRD,
 			).Build()
 			mr := &Reconciler{
 				Client:       c,

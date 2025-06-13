@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"testing"
@@ -27,6 +28,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
@@ -37,7 +39,45 @@ import (
 
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
 
+var testControlPlaneCRDs = []schema.GroupVersionKind{
+	{
+		Group:   "controlplane.cluster.x-k8s.io",
+		Version: "v1beta4",
+		Kind:    "KubeadmControlPlane",
+	},
+	{
+		Group:   "controlplane.cluster.x-k8s.io",
+		Version: "v1beta7",
+		Kind:    "AWSManagedControlPlane",
+	},
+}
+
+var testInfraClusterCRDs = []schema.GroupVersionKind{
+	{
+		Group:   "infrastructure.cluster.x-k8s.io",
+		Version: "v1beta3",
+		Kind:    "DockerCluster",
+	},
+	{
+		Group:   "infrastructure.cluster.x-k8s.io",
+		Version: "v1beta6",
+		Kind:    "AWSCluster",
+	},
+}
+
 func TestFuzzyConversion(t *testing.T) {
+	SetAPIVersionGetter(func(gk schema.GroupKind) (string, error) {
+		for _, gvk := range append(testControlPlaneCRDs, testInfraClusterCRDs...) {
+			if gvk.GroupKind() == gk {
+				return schema.GroupVersion{
+					Group:   gk.Group,
+					Version: gvk.Version,
+				}.String(), nil
+			}
+		}
+		return "", fmt.Errorf("failed to map GroupKind to version")
+	})
+
 	t.Run("for Cluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.Cluster{},
 		Spoke:       &Cluster{},
@@ -118,9 +158,27 @@ func spokeMachineStatus(in *MachineStatus, c randfill.Continue) {
 
 func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubClusterSpec,
 		hubClusterVariable,
 		hubClusterStatus,
+		spokeCluster,
 		spokeClusterTopology,
+	}
+}
+
+func hubClusterSpec(in *clusterv1.ClusterSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Ensure ref fields are always set to realistic values.
+	if in.InfrastructureRef != nil {
+		gvk := testInfraClusterCRDs[c.Int31n(2)]
+		in.InfrastructureRef.APIGroup = gvk.Group
+		in.InfrastructureRef.Kind = gvk.Kind
+	}
+	if in.ControlPlaneRef != nil {
+		gvk := testControlPlaneCRDs[c.Int31n(2)]
+		in.ControlPlaneRef.APIGroup = gvk.Group
+		in.ControlPlaneRef.Kind = gvk.Kind
 	}
 }
 
@@ -146,6 +204,30 @@ func hubClusterVariable(in *clusterv1.ClusterVariable, c randfill.Continue) {
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting a valid value.
 	in.Value = apiextensionsv1.JSON{Raw: []byte("\"test-string\"")}
+}
+
+func spokeCluster(in *Cluster, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Ensure ref fields are always set to realistic values.
+	if in.Spec.ControlPlaneRef != nil {
+		gvk := testControlPlaneCRDs[c.Int31n(2)]
+		in.Spec.ControlPlaneRef.APIVersion = gvk.GroupVersion().String()
+		in.Spec.ControlPlaneRef.Kind = gvk.Kind
+		in.Spec.ControlPlaneRef.Namespace = in.Namespace
+		in.Spec.ControlPlaneRef.UID = ""
+		in.Spec.ControlPlaneRef.ResourceVersion = ""
+		in.Spec.ControlPlaneRef.FieldPath = ""
+	}
+	if in.Spec.InfrastructureRef != nil {
+		gvk := testInfraClusterCRDs[c.Int31n(2)]
+		in.Spec.InfrastructureRef.APIVersion = gvk.GroupVersion().String()
+		in.Spec.InfrastructureRef.Kind = gvk.Kind
+		in.Spec.InfrastructureRef.Namespace = in.Namespace
+		in.Spec.InfrastructureRef.UID = ""
+		in.Spec.InfrastructureRef.ResourceVersion = ""
+		in.Spec.InfrastructureRef.FieldPath = ""
+	}
 }
 
 func spokeClusterTopology(in *Topology, c randfill.Continue) {

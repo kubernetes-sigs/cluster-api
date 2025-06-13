@@ -84,13 +84,13 @@ func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scop
 // getCurrentInfrastructureClusterState looks for the state of the InfrastructureCluster. If a reference is set but not
 // found, either from an error or the object not being found, an error is thrown.
 func (r *Reconciler) getCurrentInfrastructureClusterState(ctx context.Context, blueprintInfrastructureClusterTemplate *unstructured.Unstructured, cluster *clusterv1.Cluster) (*unstructured.Unstructured, error) {
-	ref, err := alignRefAPIVersion(blueprintInfrastructureClusterTemplate, cluster.Spec.InfrastructureRef, false)
+	ref, err := alignObjectRefAPIVersion(ctx, r.Client, blueprintInfrastructureClusterTemplate, cluster.Spec.InfrastructureRef, cluster.Namespace, false)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.InfrastructureRef.Kind, klog.KRef(cluster.Spec.InfrastructureRef.Namespace, cluster.Spec.InfrastructureRef.Name))
+		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.InfrastructureRef.Kind, klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
 	}
 	infra, err := r.getReference(ctx, ref)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.InfrastructureRef.Kind, klog.KRef(cluster.Spec.InfrastructureRef.Namespace, cluster.Spec.InfrastructureRef.Name))
+		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.InfrastructureRef.Kind, klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
 	}
 	// check that the referenced object has the ClusterTopologyOwnedLabel label.
 	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
@@ -109,13 +109,13 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, blueprintC
 	res := &scope.ControlPlaneState{}
 
 	// Get the control plane object.
-	ref, err := alignRefAPIVersion(blueprintControlPlane.Template, cluster.Spec.ControlPlaneRef, false)
+	ref, err := alignObjectRefAPIVersion(ctx, r.Client, blueprintControlPlane.Template, cluster.Spec.ControlPlaneRef, cluster.Namespace, false)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.ControlPlaneRef.Kind, klog.KRef(cluster.Spec.ControlPlaneRef.Namespace, cluster.Spec.ControlPlaneRef.Name))
+		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.ControlPlaneRef.Kind, klog.KRef(cluster.Namespace, cluster.Spec.ControlPlaneRef.Name))
 	}
 	res.Object, err = r.getReference(ctx, ref)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.ControlPlaneRef.Kind, klog.KRef(cluster.Spec.ControlPlaneRef.Namespace, cluster.Spec.ControlPlaneRef.Name))
+		return nil, errors.Wrapf(err, "failed to read %s %s", cluster.Spec.ControlPlaneRef.Kind, klog.KRef(cluster.Namespace, cluster.Spec.ControlPlaneRef.Name))
 	}
 	// check that the referenced object has the ClusterTopologyOwnedLabel label.
 	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
@@ -425,6 +425,46 @@ func alignRefAPIVersion(templateFromClusterClass *unstructured.Unstructured, cur
 		APIVersion: apiVersion,
 		Kind:       currentRef.Kind,
 		Namespace:  currentRef.Namespace,
+		Name:       currentRef.Name,
+	}, nil
+}
+
+// alignObjectRefAPIVersion returns an aligned copy of the currentRef so it matches the apiVersion in ClusterClass.
+// This is required so the topology controller can diff current and desired state objects of the same
+// version during reconcile.
+// If group or kind was changed in the ClusterClass, an exact copy of the currentRef is returned because
+// it will end up in a diff and a rollout anyway.
+// Only bootstrap template refs in a ClusterClass can change their group and kind.
+func alignObjectRefAPIVersion(ctx context.Context, c client.Reader, templateFromClusterClass *unstructured.Unstructured, currentRef *clusterv1.ObjectReference, namespace string, isCurrentTemplate bool) (*corev1.ObjectReference, error) {
+	apiVersion := ""
+	// Use apiVersion from ClusterClass if group and kind is the same.
+	if templateFromClusterClass.GroupVersionKind().Group == currentRef.APIGroup {
+		if isCurrentTemplate {
+			// If the current object is a template, kind has to be identical.
+			if templateFromClusterClass.GetKind() == currentRef.Kind {
+				apiVersion = templateFromClusterClass.GetAPIVersion()
+			}
+		} else {
+			// If the current object is not a template, currentRef.Kind should be the kind from CC without the Template suffix,
+			// e.g. KubeadmControlPlaneTemplate == KubeadmControlPlane
+			if strings.TrimSuffix(templateFromClusterClass.GetKind(), "Template") == currentRef.Kind {
+				apiVersion = templateFromClusterClass.GetAPIVersion()
+			}
+		}
+	}
+
+	if apiVersion == "" {
+		var err error
+		apiVersion, err = contract.GetAPIVersion(ctx, c, schema.GroupKind{Group: currentRef.APIGroup, Kind: currentRef.Kind})
+		if err != nil {
+			return nil, errors.Wrapf(err, "TODO")
+		}
+	}
+
+	return &corev1.ObjectReference{
+		APIVersion: apiVersion,
+		Kind:       currentRef.Kind,
+		Namespace:  namespace,
 		Name:       currentRef.Name,
 	}, nil
 }

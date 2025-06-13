@@ -24,11 +24,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 // Get uses the client and reference to get an external, unstructured object.
@@ -43,6 +46,33 @@ func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference) (*un
 	obj.SetNamespace(ref.Namespace)
 	if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve %s %s", obj.GetKind(), klog.KRef(ref.Namespace, ref.Name))
+	}
+	return obj, nil
+}
+
+// GetObjectFromRef uses the client and reference to get an external, unstructured object.
+func GetObjectFromRef(ctx context.Context, c client.Reader, ref *clusterv1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
+	if ref == nil {
+		return nil, errors.Errorf("cannot get object - object reference not set")
+	}
+
+	metadata, err := util.GetGVKMetadata(ctx, c, schema.GroupKind{Group: ref.APIGroup, Kind: ref.Kind})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get object from ref")
+	}
+
+	_, latestAPIVersion, err := contract.GetLatestAPIVersionFromContract(metadata, contract.Version)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get object from ref")
+	}
+
+	obj := new(unstructured.Unstructured)
+	obj.SetAPIVersion(schema.GroupVersion{Group: ref.APIGroup, Version: latestAPIVersion}.String())
+	obj.SetKind(ref.Kind)
+	obj.SetName(ref.Name)
+	obj.SetNamespace(namespace)
+	if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve %s %s", obj.GetKind(), klog.KRef(namespace, ref.Name))
 	}
 	return obj, nil
 }

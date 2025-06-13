@@ -749,7 +749,7 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(_ context.C
 
 	controlPlaneRef := c.Spec.ControlPlaneRef
 	if controlPlaneRef != nil && controlPlaneRef.Kind == kubeadmControlPlaneKind {
-		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: controlPlaneRef.Namespace, Name: controlPlaneRef.Name}}}
+		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: c.Namespace, Name: controlPlaneRef.Name}}}
 	}
 
 	return nil

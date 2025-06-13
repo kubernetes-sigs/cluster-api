@@ -201,7 +201,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, s *scope
 		}
 
 		// Determine contract version used by the BootstrapConfig.
-		contractVersion, err := contract.GetContractVersion(ctx, r.Client, bootstrapConfig.GroupVersionKind())
+		contractVersion, err := contract.GetContractVersion(ctx, r.Client, bootstrapConfig.GroupVersionKind().GroupKind())
 		if err != nil {
 			return ctrl.Result{}, err
 		}

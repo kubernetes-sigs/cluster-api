@@ -35,6 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -79,6 +80,7 @@ import (
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/internal/api/addons/v1alpha4"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha3"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha4"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
@@ -421,7 +423,7 @@ func main() {
 	setupChecks(mgr)
 	setupIndexes(ctx, mgr)
 	clusterCache := setupReconcilers(ctx, mgr, watchNamespaces, &syncPeriod)
-	setupWebhooks(mgr, clusterCache)
+	setupWebhooks(ctx, mgr, clusterCache)
 
 	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
@@ -751,7 +753,15 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	return clusterCache
 }
 
-func setupWebhooks(mgr ctrl.Manager, clusterCacheReader webhooks.ClusterCacheReader) {
+func setupWebhooks(ctx context.Context, mgr ctrl.Manager, clusterCacheReader webhooks.ClusterCacheReader) {
+	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
+	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
+	}
+	clusterv1alpha3.SetAPIVersionGetter(apiVersionGetter)
+	clusterv1alpha4.SetAPIVersionGetter(apiVersionGetter)
+	clusterv1beta1.SetAPIVersionGetter(apiVersionGetter)
+
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled.
 	if err := (&webhooks.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {

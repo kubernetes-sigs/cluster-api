@@ -335,8 +335,8 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef:   &corev1.ObjectReference{},
-					InfrastructureRef: &corev1.ObjectReference{},
+					ControlPlaneRef:   &clusterv1.ObjectReference{},
+					InfrastructureRef: &clusterv1.ObjectReference{},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -360,8 +360,8 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef:   &corev1.ObjectReference{},
-					InfrastructureRef: &corev1.ObjectReference{},
+					ControlPlaneRef:   &clusterv1.ObjectReference{},
+					InfrastructureRef: &clusterv1.ObjectReference{},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -385,8 +385,8 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef:   &corev1.ObjectReference{},
-					InfrastructureRef: &corev1.ObjectReference{},
+					ControlPlaneRef:   &clusterv1.ObjectReference{},
+					InfrastructureRef: &clusterv1.ObjectReference{},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -407,8 +407,8 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					Namespace: "test-ns",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef:   &corev1.ObjectReference{},
-					InfrastructureRef: &corev1.ObjectReference{},
+					ControlPlaneRef:   &clusterv1.ObjectReference{},
+					InfrastructureRef: &clusterv1.ObjectReference{},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -1162,8 +1162,8 @@ func TestReconcileCluster(t *testing.T) {
 			err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.want), got)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(got.Spec.InfrastructureRef).To(EqualObject(tt.want.Spec.InfrastructureRef))
-			g.Expect(got.Spec.ControlPlaneRef).To(EqualObject(tt.want.Spec.ControlPlaneRef))
+			g.Expect(got.Spec.InfrastructureRef).To(Equal(tt.want.Spec.InfrastructureRef))
+			g.Expect(got.Spec.ControlPlaneRef).To(Equal(tt.want.Spec.ControlPlaneRef))
 
 			if tt.current != nil {
 				g.Expect(env.CleanupAndWait(ctx, tt.current)).To(Succeed())
@@ -3946,12 +3946,6 @@ func prepareCluster(in *clusterv1.Cluster, namespace string) *clusterv1.Cluster 
 	c := in.DeepCopy()
 	if c.Namespace == metav1.NamespaceDefault {
 		c.SetNamespace(namespace)
-	}
-	if c.Spec.InfrastructureRef != nil && c.Spec.InfrastructureRef.Namespace == metav1.NamespaceDefault {
-		c.Spec.InfrastructureRef.Namespace = namespace
-	}
-	if c.Spec.ControlPlaneRef != nil && c.Spec.ControlPlaneRef.Namespace == metav1.NamespaceDefault {
-		c.Spec.ControlPlaneRef.Namespace = namespace
 	}
 	return c
 }

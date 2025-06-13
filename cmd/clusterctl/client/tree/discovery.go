@@ -87,7 +87,7 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 	tree := NewObjectTree(cluster, options.toObjectTreeOptions())
 
 	// Adds cluster infra
-	clusterInfra, err := external.Get(ctx, c, cluster.Spec.InfrastructureRef)
+	clusterInfra, err := external.GetObjectFromRef(ctx, c, cluster.Spec.InfrastructureRef, cluster.Namespace)
 	if err != nil {
 		return nil, errors.Wrap(err, "get InfraCluster reference from Cluster")
 	}
@@ -98,12 +98,12 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 	}
 
 	// Adds control plane
-	controlPlane, err := external.Get(ctx, c, cluster.Spec.ControlPlaneRef)
+	controlPlane, err := external.GetObjectFromRef(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 	if err == nil {
 		// Keep track that this objects abides to the Cluster API control plane contract,
 		// so the consumers of the ObjectTree will know which info are available on this unstructured object
 		// and how to extract them.
-		contractVersion, err := contract.GetContractVersion(ctx, c, controlPlane.GroupVersionKind())
+		contractVersion, err := contract.GetContractVersion(ctx, c, controlPlane.GroupVersionKind().GroupKind())
 		if err != nil {
 			return nil, err
 		}

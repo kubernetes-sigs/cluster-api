@@ -103,10 +103,10 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 		},
 	}
 	if c.infrastructureCluster != nil {
-		obj.Spec.InfrastructureRef = objToRef(c.infrastructureCluster)
+		obj.Spec.InfrastructureRef = objToObjectReference(c.infrastructureCluster)
 	}
 	if c.controlPlane != nil {
-		obj.Spec.ControlPlaneRef = objToRef(c.controlPlane)
+		obj.Spec.ControlPlaneRef = objToObjectReference(c.controlPlane)
 	}
 	return obj
 }
@@ -2003,6 +2003,18 @@ func objToRef(obj *unstructured.Unstructured) *corev1.ObjectReference {
 		APIVersion: gvk.GroupVersion().String(),
 		Namespace:  obj.GetNamespace(),
 		Name:       obj.GetName(),
+	}
+}
+
+// objToObjectReference returns a reference to the given object.
+// Note: This function only operates on Unstructured instead of client.Object
+// because it is only safe to assume for Unstructured that the GVK is set.
+func objToObjectReference(obj *unstructured.Unstructured) *clusterv1.ObjectReference {
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	return &clusterv1.ObjectReference{
+		APIGroup: gvk.Group,
+		Kind:     gvk.Kind,
+		Name:     obj.GetName(),
 	}
 }
 

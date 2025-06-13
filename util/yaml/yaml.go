@@ -44,7 +44,7 @@ func ExtractClusterReferences(out *ParseOutput, c *clusterv1.Cluster) (res []*un
 	if c.Spec.InfrastructureRef == nil {
 		return nil
 	}
-	if obj := out.FindUnstructuredReference(c.Spec.InfrastructureRef); obj != nil {
+	if obj := out.FindUnstructuredObjectReference(c.Spec.InfrastructureRef); obj != nil {
 		res = append(res, obj)
 	}
 	return
@@ -87,6 +87,18 @@ func (p *ParseOutput) FindUnstructuredReference(ref *corev1.ObjectReference) *un
 	for _, obj := range p.UnstructuredObjects {
 		if obj.GroupVersionKind() == ref.GroupVersionKind() &&
 			ref.Namespace == obj.GetNamespace() &&
+			ref.Name == obj.GetName() {
+			return obj
+		}
+	}
+	return nil
+}
+
+// FindUnstructuredObjectReference takes in an ObjectReference and tries to find an Unstructured object.
+func (p *ParseOutput) FindUnstructuredObjectReference(ref *clusterv1.ObjectReference) *unstructured.Unstructured {
+	for _, obj := range p.UnstructuredObjects {
+		if obj.GroupVersionKind().Group == ref.APIGroup &&
+			obj.GroupVersionKind().Kind == ref.Kind &&
 			ref.Name == obj.GetName() {
 			return obj
 		}

@@ -23,6 +23,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // Ref provide a helper struct for working with references in Unstructured objects.
@@ -96,5 +98,17 @@ func ObjToRef(obj *unstructured.Unstructured) *corev1.ObjectReference {
 		APIVersion: gvk.GroupVersion().String(),
 		Namespace:  obj.GetNamespace(),
 		Name:       obj.GetName(),
+	}
+}
+
+// ObjToObjectReference returns a reference to the given object.
+// Note: This function only operates on Unstructured instead of client.Object
+// because it is only safe to assume for Unstructured that the GVK is set.
+func ObjToObjectReference(obj *unstructured.Unstructured) *clusterv1.ObjectReference {
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	return &clusterv1.ObjectReference{
+		APIGroup: gvk.Group,
+		Kind:     gvk.Kind,
+		Name:     obj.GetName(),
 	}
 }

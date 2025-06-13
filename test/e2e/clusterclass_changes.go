@@ -345,10 +345,10 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 		// Get the ControlPlane.
 		controlPlaneRef := input.Cluster.Spec.ControlPlaneRef
 		controlPlaneTopology := input.Cluster.Spec.Topology.ControlPlane
-		controlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
+		controlPlane, err := external.GetObjectFromRef(ctx, mgmtClient, controlPlaneRef, input.Cluster.Namespace)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		contractVersion, err := contract.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind())
+		contractVersion, err := contract.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind().GroupKind())
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Verify that the fields from Cluster topology are set on the control plane.
@@ -814,7 +814,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 
 	// Get the current ControlPlane, we will later verify that it has not changed.
 	controlPlaneRef := input.Cluster.Spec.ControlPlaneRef
-	beforeControlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
+	beforeControlPlane, err := external.GetObjectFromRef(ctx, mgmtClient, controlPlaneRef, input.Cluster.Namespace)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Rebase the Cluster to the new ClusterClass.
@@ -860,12 +860,12 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 
 	if input.ControlPlaneChanged {
 		Eventually(func(g Gomega) {
-			controlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
+			controlPlane, err := external.GetObjectFromRef(ctx, mgmtClient, controlPlaneRef, input.Cluster.Namespace)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(controlPlane.GetGeneration()).ToNot(Equal(beforeControlPlane.GetGeneration()),
 				"ControlPlane generation should be incremented during the rebase because ControlPlane expected to be changed.")
 
-			contractVersion, err := contract.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind())
+			contractVersion, err := contract.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind().GroupKind())
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Ensure KCP recognized the change and finished scaling.
@@ -885,7 +885,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 			// Verify that the ControlPlane has not been changed.
 			// NOTE: MachineDeployments are rolled out before the ControlPlane. Thus, we know that the
 			// ControlPlane would have been updated by now, if there have been any changes.
-			afterControlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
+			afterControlPlane, err := external.GetObjectFromRef(ctx, mgmtClient, controlPlaneRef, input.Cluster.Namespace)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(afterControlPlane.GetGeneration()).To(Equal(beforeControlPlane.GetGeneration()),
 				"ControlPlane generation should not be incremented during the rebase because ControlPlane should not be affected.")

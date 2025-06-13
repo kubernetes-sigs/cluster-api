@@ -72,16 +72,16 @@ func TestGetContractVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gvk := clusterv1.GroupVersionBootstrap.WithKind("TestBootstrapConfig")
+			gk := clusterv1.GroupVersionBootstrap.WithKind("TestBootstrapConfig").GroupKind()
 
 			u := &unstructured.Unstructured{}
-			u.SetName(contract.CalculateCRDName(gvk.Group, gvk.Kind))
+			u.SetName(contract.CalculateCRDName(gk.Group, gk.Kind))
 			u.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
 			u.SetLabels(tt.crdLabels)
 
 			fakeClient := fake.NewClientBuilder().WithObjects(u).Build()
 
-			contractVersion, err := GetContractVersion(t.Context(), fakeClient, gvk)
+			contractVersion, err := GetContractVersion(t.Context(), fakeClient, gk)
 
 			if tt.expectError {
 				g.Expect(err).To(HaveOccurred())
@@ -181,7 +181,7 @@ func TestGetLatestAPIVersionFromContract(t *testing.T) {
 			u := &unstructured.Unstructured{}
 			u.SetLabels(tt.crdLabels)
 
-			contractVersion, apiVersion, err := getLatestAPIVersionFromContract(u, tt.currentContractVersion)
+			contractVersion, apiVersion, err := GetLatestAPIVersionFromContract(u, tt.currentContractVersion)
 
 			if tt.expectError {
 				g.Expect(err).To(HaveOccurred())
@@ -264,16 +264,16 @@ func TestGetContractVersionForVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gvk := clusterv1.GroupVersionBootstrap.WithKind("TestBootstrapConfig")
+			gk := clusterv1.GroupVersionBootstrap.WithKind("TestBootstrapConfig").GroupKind()
 
 			u := &unstructured.Unstructured{}
-			u.SetName(contract.CalculateCRDName(gvk.Group, gvk.Kind))
+			u.SetName(contract.CalculateCRDName(gk.Group, gk.Kind))
 			u.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
 			u.SetLabels(tt.crdLabels)
 
 			fakeClient := fake.NewClientBuilder().WithObjects(u).Build()
 
-			contractVersion, err := GetContractVersionForVersion(t.Context(), fakeClient, gvk, tt.version)
+			contractVersion, err := GetContractVersionForVersion(t.Context(), fakeClient, gk, tt.version)
 
 			if tt.expectError {
 				g.Expect(err).To(HaveOccurred())

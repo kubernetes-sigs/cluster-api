@@ -131,10 +131,10 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 					Name:      "test-1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{
-						APIVersion: "foo.cluster.x-k8s.io/vx",
-						Kind:       "TestCluster",
-						Name:       "infra-1",
+					InfrastructureRef: &clusterv1.ObjectReference{
+						APIGroup: "foo.cluster.x-k8s.io",
+						Kind:     "TestCluster",
+						Name:     "infra-1",
 					},
 				},
 			},
@@ -168,10 +168,10 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 					Name:      "test-1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{
-						APIVersion: "bar.cluster.x-k8s.io/vx",
-						Kind:       "TestCluster",
-						Name:       "bar-1",
+					InfrastructureRef: &clusterv1.ObjectReference{
+						APIGroup: "bar.cluster.x-k8s.io",
+						Kind:     "TestCluster",
+						Name:     "bar-1",
 					},
 				},
 			},
@@ -190,10 +190,10 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 					Name:      "test-1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{
-						APIVersion: "foo.cluster.x-k8s.io/vx",
-						Kind:       "TestCluster",
-						Name:       "infra-1",
+					InfrastructureRef: &clusterv1.ObjectReference{
+						APIGroup: "foo.cluster.x-k8s.io",
+						Kind:     "TestCluster",
+						Name:     "infra-1",
 					},
 				},
 			},
@@ -222,8 +222,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 			// Unstructured simplifies testing but should not be used in real usage, because it will
 			// likely result in a duplicate cache in an unstructured projection.
 			referenceObject := &unstructured.Unstructured{}
-			referenceObject.SetAPIVersion(tc.request.Spec.InfrastructureRef.APIVersion)
-			referenceObject.SetKind(tc.request.Spec.InfrastructureRef.Kind)
+			referenceObject.SetGroupVersionKind(tc.input)
 
 			fn := ClusterToInfrastructureMapFunc(context.Background(), tc.input, clientBuilder.Build(), referenceObject)
 			out := fn(ctx, tc.request)

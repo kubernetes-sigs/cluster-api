@@ -212,7 +212,7 @@ func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersion
 		}
 		gk := gvk.GroupKind()
 		// Return early if the GroupKind doesn't match what we expect.
-		infraGK := cluster.Spec.InfrastructureRef.GroupVersionKind().GroupKind()
+		infraGK := schema.GroupKind{Group: cluster.Spec.InfrastructureRef.APIGroup, Kind: cluster.Spec.InfrastructureRef.Kind}
 		if gk != infraGK {
 			return nil
 		}
@@ -459,9 +459,9 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 // GetGVKMetadata retrieves a CustomResourceDefinition metadata from the API server using partial object metadata.
 //
 // This function is greatly more efficient than GetCRDWithContract and should be preferred in most cases.
-func GetGVKMetadata(ctx context.Context, c client.Client, gvk schema.GroupVersionKind) (*metav1.PartialObjectMetadata, error) {
+func GetGVKMetadata(ctx context.Context, c client.Reader, gk schema.GroupKind) (*metav1.PartialObjectMetadata, error) {
 	meta := &metav1.PartialObjectMetadata{}
-	meta.SetName(contract.CalculateCRDName(gvk.Group, gvk.Kind))
+	meta.SetName(contract.CalculateCRDName(gk.Group, gk.Kind))
 	meta.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
 	if err := c.Get(ctx, client.ObjectKeyFromObject(meta), meta); err != nil {
 		return meta, errors.Wrap(err, "failed to get CustomResourceDefinition metadata")

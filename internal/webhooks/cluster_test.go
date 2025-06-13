@@ -46,27 +46,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
-func TestClusterDefaultNamespaces(t *testing.T) {
-	g := NewWithT(t)
-
-	c := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "fooboo",
-		},
-		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{},
-			ControlPlaneRef:   &corev1.ObjectReference{},
-		},
-	}
-	webhook := &Cluster{}
-	t.Run("for Cluster", util.CustomDefaultValidateTest(ctx, c, webhook))
-
-	g.Expect(webhook.Default(ctx, c)).To(Succeed())
-
-	g.Expect(c.Spec.InfrastructureRef.Namespace).To(Equal(c.Namespace))
-	g.Expect(c.Spec.ControlPlaneRef.Namespace).To(Equal(c.Namespace))
-}
-
 func TestClusterTopologyDefaultNamespaces(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
 	// Enabling the feature flag temporarily for this test.

@@ -64,9 +64,9 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 	}
 
 	// Get the control plane object.
-	controlPlane, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef)
+	controlPlane, err := external.GetObjectFromRef(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to get ControlPlane %s", action, klog.KRef(cluster.Spec.ControlPlaneRef.Namespace, cluster.Spec.ControlPlaneRef.Name))
+		return nil, errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to get ControlPlane %s", action, klog.KRef(cluster.Namespace, cluster.Spec.ControlPlaneRef.Name))
 	}
 	cpKlogRef := klog.KRef(controlPlane.GetNamespace(), controlPlane.GetName())
 

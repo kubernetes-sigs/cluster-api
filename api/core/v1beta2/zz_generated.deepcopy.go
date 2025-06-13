@@ -21,9 +21,9 @@ limitations under the License.
 package v1beta2
 
 import (
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/cluster-api/errors"
@@ -49,7 +49,7 @@ func (in *Bootstrap) DeepCopyInto(out *Bootstrap) {
 	*out = *in
 	if in.ConfigRef != nil {
 		in, out := &in.ConfigRef, &out.ConfigRef
-		*out = new(v1.ObjectReference)
+		*out = new(corev1.ObjectReference)
 		**out = **in
 	}
 	if in.DataSecretName != nil {
@@ -279,7 +279,7 @@ func (in *ClusterClassStatus) DeepCopyInto(out *ClusterClassStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -563,12 +563,12 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 	if in.ControlPlaneRef != nil {
 		in, out := &in.ControlPlaneRef, &out.ControlPlaneRef
-		*out = new(v1.ObjectReference)
+		*out = new(ObjectReference)
 		**out = **in
 	}
 	if in.InfrastructureRef != nil {
 		in, out := &in.InfrastructureRef, &out.InfrastructureRef
-		*out = new(v1.ObjectReference)
+		*out = new(ObjectReference)
 		**out = **in
 	}
 	if in.Topology != nil {
@@ -598,7 +598,7 @@ func (in *ClusterStatus) DeepCopyInto(out *ClusterStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1157,7 +1157,7 @@ func (in *LocalObjectTemplate) DeepCopyInto(out *LocalObjectTemplate) {
 	*out = *in
 	if in.Ref != nil {
 		in, out := &in.Ref, &out.Ref
-		*out = new(v1.ObjectReference)
+		*out = new(corev1.ObjectReference)
 		**out = **in
 	}
 }
@@ -1475,7 +1475,7 @@ func (in *MachineDeploymentStatus) DeepCopyInto(out *MachineDeploymentStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1755,12 +1755,12 @@ func (in *MachineDrainRuleMachineSelector) DeepCopyInto(out *MachineDrainRuleMac
 	*out = *in
 	if in.Selector != nil {
 		in, out := &in.Selector, &out.Selector
-		*out = new(metav1.LabelSelector)
+		*out = new(v1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.ClusterSelector != nil {
 		in, out := &in.ClusterSelector, &out.ClusterSelector
-		*out = new(metav1.LabelSelector)
+		*out = new(v1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -1780,12 +1780,12 @@ func (in *MachineDrainRulePodSelector) DeepCopyInto(out *MachineDrainRulePodSele
 	*out = *in
 	if in.Selector != nil {
 		in, out := &in.Selector, &out.Selector
-		*out = new(metav1.LabelSelector)
+		*out = new(v1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.NamespaceSelector != nil {
 		in, out := &in.NamespaceSelector, &out.NamespaceSelector
-		*out = new(metav1.LabelSelector)
+		*out = new(v1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -1882,7 +1882,7 @@ func (in *MachineHealthCheckClass) DeepCopyInto(out *MachineHealthCheckClass) {
 	}
 	if in.RemediationTemplate != nil {
 		in, out := &in.RemediationTemplate, &out.RemediationTemplate
-		*out = new(v1.ObjectReference)
+		*out = new(corev1.ObjectReference)
 		**out = **in
 	}
 }
@@ -1975,7 +1975,7 @@ func (in *MachineHealthCheckSpec) DeepCopyInto(out *MachineHealthCheckSpec) {
 	}
 	if in.RemediationTemplate != nil {
 		in, out := &in.RemediationTemplate, &out.RemediationTemplate
-		*out = new(v1.ObjectReference)
+		*out = new(corev1.ObjectReference)
 		**out = **in
 	}
 }
@@ -1995,7 +1995,7 @@ func (in *MachineHealthCheckStatus) DeepCopyInto(out *MachineHealthCheckStatus) 
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -2341,7 +2341,7 @@ func (in *MachinePoolStatus) DeepCopyInto(out *MachinePoolStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -2353,7 +2353,7 @@ func (in *MachinePoolStatus) DeepCopyInto(out *MachinePoolStatus) {
 	}
 	if in.NodeRefs != nil {
 		in, out := &in.NodeRefs, &out.NodeRefs
-		*out = make([]v1.ObjectReference, len(*in))
+		*out = make([]corev1.ObjectReference, len(*in))
 		copy(*out, *in)
 	}
 	if in.Replicas != nil {
@@ -2654,7 +2654,7 @@ func (in *MachineSetStatus) DeepCopyInto(out *MachineSetStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -2790,7 +2790,7 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -2802,12 +2802,12 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 	}
 	if in.NodeRef != nil {
 		in, out := &in.NodeRef, &out.NodeRef
-		*out = new(v1.ObjectReference)
+		*out = new(corev1.ObjectReference)
 		**out = **in
 	}
 	if in.NodeInfo != nil {
 		in, out := &in.NodeInfo, &out.NodeInfo
-		*out = new(v1.NodeSystemInfo)
+		*out = new(corev1.NodeSystemInfo)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.LastUpdated != nil {
@@ -2939,6 +2939,21 @@ func (in *ObjectMeta) DeepCopy() *ObjectMeta {
 		return nil
 	}
 	out := new(ObjectMeta)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ObjectReference) DeepCopyInto(out *ObjectReference) {
+	*out = *in
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ObjectReference.
+func (in *ObjectReference) DeepCopy() *ObjectReference {
+	if in == nil {
+		return nil
+	}
+	out := new(ObjectReference)
 	in.DeepCopyInto(out)
 	return out
 }

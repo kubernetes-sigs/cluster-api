@@ -29,6 +29,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
+	v1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -538,8 +539,24 @@ func autoConvert_v1alpha3_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, ou
 	if err := Convert_v1alpha3_APIEndpoint_To_v1beta2_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.ControlPlaneRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ControlPlaneRef))
-	out.InfrastructureRef = (*corev1.ObjectReference)(unsafe.Pointer(in.InfrastructureRef))
+	if in.ControlPlaneRef != nil {
+		in, out := &in.ControlPlaneRef, &out.ControlPlaneRef
+		*out = new(v1beta2.ObjectReference)
+		if err := v1beta1.Convert_v1_ObjectReference_To_v1beta2_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ControlPlaneRef = nil
+	}
+	if in.InfrastructureRef != nil {
+		in, out := &in.InfrastructureRef, &out.InfrastructureRef
+		*out = new(v1beta2.ObjectReference)
+		if err := v1beta1.Convert_v1_ObjectReference_To_v1beta2_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.InfrastructureRef = nil
+	}
 	return nil
 }
 
@@ -554,8 +571,24 @@ func autoConvert_v1beta2_ClusterSpec_To_v1alpha3_ClusterSpec(in *v1beta2.Cluster
 	if err := Convert_v1beta2_APIEndpoint_To_v1alpha3_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.ControlPlaneRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ControlPlaneRef))
-	out.InfrastructureRef = (*corev1.ObjectReference)(unsafe.Pointer(in.InfrastructureRef))
+	if in.ControlPlaneRef != nil {
+		in, out := &in.ControlPlaneRef, &out.ControlPlaneRef
+		*out = new(corev1.ObjectReference)
+		if err := v1beta1.Convert_v1beta2_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ControlPlaneRef = nil
+	}
+	if in.InfrastructureRef != nil {
+		in, out := &in.InfrastructureRef, &out.InfrastructureRef
+		*out = new(corev1.ObjectReference)
+		if err := v1beta1.Convert_v1beta2_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.InfrastructureRef = nil
+	}
 	// WARNING: in.Topology requires manual conversion: does not exist in peer-type
 	// WARNING: in.AvailabilityGates requires manual conversion: does not exist in peer-type
 	return nil

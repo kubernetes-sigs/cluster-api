@@ -1134,11 +1134,11 @@ func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.Clu
 	var err error
 
 	// InfrastructureCluster
-	res.InfrastructureCluster, err = external.Get(ctx, mgmtClient, cluster.Spec.InfrastructureRef)
+	res.InfrastructureCluster, err = external.GetObjectFromRef(ctx, mgmtClient, cluster.Spec.InfrastructureRef, cluster.Namespace)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// ControlPlane
-	res.ControlPlane, err = external.Get(ctx, mgmtClient, cluster.Spec.ControlPlaneRef)
+	res.ControlPlane, err = external.GetObjectFromRef(ctx, mgmtClient, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 	g.Expect(err).ToNot(HaveOccurred())
 	controlPlaneInfrastructureMachineTemplateRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(res.ControlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1267,10 +1267,10 @@ func modifyControlPlaneViaClusterAndWait(ctx context.Context, input modifyContro
 		// Get the ControlPlane.
 		controlPlaneRef := input.Cluster.Spec.ControlPlaneRef
 		controlPlaneTopology := input.Cluster.Spec.Topology.ControlPlane
-		controlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
+		controlPlane, err := external.GetObjectFromRef(ctx, mgmtClient, controlPlaneRef, input.Cluster.Namespace)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		contractVersion, err := contract.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind())
+		contractVersion, err := contract.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind().GroupKind())
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Verify that the fields from Cluster topology are set on the control plane.

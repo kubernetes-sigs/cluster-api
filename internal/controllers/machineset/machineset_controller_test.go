@@ -1520,7 +1520,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Namespace: "default",
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+				ControlPlaneRef: contract.ObjToObjectReference(controlPlaneStable),
 			},
 		}
 		machineSet := &clusterv1.MachineSet{}
@@ -1627,7 +1627,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Namespace: "default",
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: contract.ObjToRef(controlPlaneUpgrading),
+				ControlPlaneRef: contract.ObjToObjectReference(controlPlaneUpgrading),
 			},
 		}
 		machineSet := &clusterv1.MachineSet{}
@@ -1678,7 +1678,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		}
 
 		machines := []*clusterv1.Machine{unhealthyMachine, healthyMachine}
-		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, unhealthyMachine, healthyMachine).WithStatusSubresource(&clusterv1.Machine{}).Build()
+		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, builder.GenericControlPlaneCRD, unhealthyMachine, healthyMachine).WithStatusSubresource(&clusterv1.Machine{}).Build()
 		r := &Reconciler{
 			Client:          fakeClient,
 			PreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(clusterv1.MachineSetPreflightCheckAll),
@@ -2214,7 +2214,7 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 				Namespace: "default",
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: contract.ObjToRef(controlPlaneUpgrading),
+				ControlPlaneRef: contract.ObjToObjectReference(controlPlaneUpgrading),
 			},
 		}
 		machineSet := &clusterv1.MachineSet{
@@ -2227,7 +2227,7 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 			},
 		}
 
-		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, machineSet).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
+		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, builder.GenericControlPlaneCRD, machineSet).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 		r := &Reconciler{
 			Client:          fakeClient,
 			PreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(clusterv1.MachineSetPreflightCheckAll),

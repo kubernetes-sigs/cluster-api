@@ -353,3 +353,29 @@ func (metadata *ObjectMeta) Validate(parent *field.Path) field.ErrorList {
 	)...)
 	return allErrs
 }
+
+// ObjectReference is a reference to an object.
+type ObjectReference struct {
+	// apiGroup is the group for the resource being referenced.
+	// If apiGroup is not specified, the specified kind must be in the core API group.
+	// For any other third-party types, apiGroup is required.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	APIGroup string `json:"apiGroup"`
+
+	// kind of the referent.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Kind string `json:"kind"`
+
+	// name of the referent.
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name"`
+}

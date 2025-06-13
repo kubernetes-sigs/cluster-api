@@ -36,6 +36,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
@@ -945,23 +946,23 @@ func assertClusterReconcile(cluster *clusterv1.Cluster) error {
 	}
 
 	// Check if InfrastructureRef exists and is of the expected Kind and APIVersion.
-	if err := referenceExistsWithCorrectKindAndAPIVersion(cluster.Spec.InfrastructureRef,
+	if err := referenceExistsWithCorrectKindAndAPIGroup(cluster.Spec.InfrastructureRef,
 		builder.TestInfrastructureClusterKind,
-		builder.InfrastructureGroupVersion); err != nil {
+		builder.InfrastructureGroupVersion.Group); err != nil {
 		return err
 	}
 
 	// Check if ControlPlaneRef exists is of the expected Kind and APIVersion.
-	return referenceExistsWithCorrectKindAndAPIVersion(cluster.Spec.ControlPlaneRef,
+	return referenceExistsWithCorrectKindAndAPIGroup(cluster.Spec.ControlPlaneRef,
 		builder.TestControlPlaneKind,
-		builder.ControlPlaneGroupVersion)
+		builder.ControlPlaneGroupVersion.Group)
 }
 
 // assertInfrastructureClusterReconcile checks if the infrastructureCluster object:
 // 1) Is created.
 // 2) Has the correct labels and annotations.
 func assertInfrastructureClusterReconcile(cluster *clusterv1.Cluster) error {
-	_, err := getAndAssertLabelsAndAnnotations(*cluster.Spec.InfrastructureRef, cluster.Name)
+	_, err := getAndAssertLabelsAndAnnotationsFromObjectRef(cluster.Spec.InfrastructureRef, cluster.Name, cluster.Namespace)
 	return err
 }
 
@@ -972,7 +973,7 @@ func assertInfrastructureClusterReconcile(cluster *clusterv1.Cluster) error {
 //     i) That the infrastructureMachineTemplate is created correctly.
 //     ii) That the infrastructureMachineTemplate has the correct labels and annotations
 func assertControlPlaneReconcile(cluster *clusterv1.Cluster) error {
-	cp, err := getAndAssertLabelsAndAnnotations(*cluster.Spec.ControlPlaneRef, cluster.Name)
+	cp, err := getAndAssertLabelsAndAnnotationsFromObjectRef(cluster.Spec.ControlPlaneRef, cluster.Name, cluster.Namespace)
 	if err != nil {
 		return err
 	}
@@ -1013,7 +1014,7 @@ func assertControlPlaneReconcile(cluster *clusterv1.Cluster) error {
 			builder.InfrastructureGroupVersion); err != nil {
 			return err
 		}
-		if _, err := getAndAssertLabelsAndAnnotations(*cpInfra, cluster.Name); err != nil {
+		if err := getAndAssertLabelsAndAnnotations(*cpInfra, cluster.Name); err != nil {
 			return err
 		}
 	}
@@ -1086,7 +1087,7 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 			}
 
 			// Check if the InfrastructureReference has the expected labels and annotations.
-			if _, err := getAndAssertLabelsAndAnnotations(md.Spec.Template.Spec.InfrastructureRef, cluster.Name); err != nil {
+			if err := getAndAssertLabelsAndAnnotations(md.Spec.Template.Spec.InfrastructureRef, cluster.Name); err != nil {
 				return err
 			}
 
@@ -1098,7 +1099,7 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 			}
 
 			// Check if the Bootstrap reference has the expected labels and annotations.
-			if _, err := getAndAssertLabelsAndAnnotations(*md.Spec.Template.Spec.Bootstrap.ConfigRef, cluster.Name); err != nil {
+			if err := getAndAssertLabelsAndAnnotations(*md.Spec.Template.Spec.Bootstrap.ConfigRef, cluster.Name); err != nil {
 				return err
 			}
 		}
@@ -1172,7 +1173,7 @@ func assertMachinePoolsReconcile(cluster *clusterv1.Cluster) error {
 			}
 
 			// Check if the InfrastructureReference has the expected labels and annotations.
-			if _, err := getAndAssertLabelsAndAnnotations(mp.Spec.Template.Spec.InfrastructureRef, cluster.Name); err != nil {
+			if err := getAndAssertLabelsAndAnnotations(mp.Spec.Template.Spec.InfrastructureRef, cluster.Name); err != nil {
 				return err
 			}
 
@@ -1184,7 +1185,7 @@ func assertMachinePoolsReconcile(cluster *clusterv1.Cluster) error {
 			}
 
 			// Check if the Bootstrap reference has the expected labels and annotations.
-			if _, err := getAndAssertLabelsAndAnnotations(*mp.Spec.Template.Spec.Bootstrap.ConfigRef, cluster.Name); err != nil {
+			if err := getAndAssertLabelsAndAnnotations(*mp.Spec.Template.Spec.Bootstrap.ConfigRef, cluster.Name); err != nil {
 				return err
 			}
 		}
@@ -1197,12 +1198,26 @@ func assertMachinePoolsReconcile(cluster *clusterv1.Cluster) error {
 // 2) The correct ClusterNameLabel.
 // 3) The annotation stating where the template was cloned from.
 // The function returns the unstructured object and a bool indicating if it passed all tests.
-func getAndAssertLabelsAndAnnotations(template corev1.ObjectReference, clusterName string) (*unstructured.Unstructured, error) {
+func getAndAssertLabelsAndAnnotations(template corev1.ObjectReference, clusterName string) error {
 	got := &unstructured.Unstructured{}
 	got.SetKind(template.Kind)
 	got.SetAPIVersion(template.APIVersion)
 
 	if err := env.Get(ctx, client.ObjectKey{Name: template.Name, Namespace: template.Namespace}, got); err != nil {
+		return err
+	}
+
+	return assertLabelsAndAnnotations(got, clusterName)
+}
+
+// getAndAssertLabelsAndAnnotationsFromObjectRef pulls the template referenced in the ObjectReference from the API server, checks for:
+// 1) The ClusterTopologyOwnedLabel.
+// 2) The correct ClusterNameLabel.
+// 3) The annotation stating where the template was cloned from.
+// The function returns the unstructured object and a bool indicating if it passed all tests.
+func getAndAssertLabelsAndAnnotationsFromObjectRef(templateRef *clusterv1.ObjectReference, clusterName, namespace string) (*unstructured.Unstructured, error) {
+	got, err := external.GetObjectFromRef(ctx, env.Client, templateRef, namespace)
+	if err != nil {
 		return nil, err
 	}
 
@@ -1265,6 +1280,20 @@ func referenceExistsWithCorrectKindAndAPIVersion(reference *corev1.ObjectReferen
 	}
 	if reference.APIVersion != apiVersion.String() {
 		return fmt.Errorf("apiVersion %v does not match expected %v", reference.APIVersion, apiVersion.String())
+	}
+	return nil
+}
+
+// referenceExistsWithCorrectKindAndAPIGroup asserts that the passed ObjectReference is not nil and that it has the correct kind and apiGroup.
+func referenceExistsWithCorrectKindAndAPIGroup(reference *clusterv1.ObjectReference, kind string, apiGroup string) error {
+	if reference == nil {
+		return fmt.Errorf("object reference passed was nil")
+	}
+	if reference.Kind != kind {
+		return fmt.Errorf("object reference kind %v does not match expected %v", reference.Kind, kind)
+	}
+	if reference.APIGroup != apiGroup {
+		return fmt.Errorf("object reference apiGroup %v does not match expected %v", reference.APIGroup, apiGroup)
 	}
 	return nil
 }

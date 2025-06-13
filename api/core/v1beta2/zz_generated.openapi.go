@@ -125,6 +125,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineV1Beta1DeprecatedStatus":            schema_cluster_api_api_core_v1beta2_MachineV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.NetworkRanges":                             schema_cluster_api_api_core_v1beta2_NetworkRanges(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta":                                schema_cluster_api_api_core_v1beta2_ObjectMeta(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectReference":                           schema_cluster_api_api_core_v1beta2_ObjectReference(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchDefinition":                           schema_cluster_api_api_core_v1beta2_PatchDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelector":                             schema_cluster_api_api_core_v1beta2_PatchSelector(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatch":                        schema_cluster_api_api_core_v1beta2_PatchSelectorMatch(ref),
@@ -1070,13 +1071,13 @@ func schema_cluster_api_api_core_v1beta2_ClusterSpec(ref common.ReferenceCallbac
 					"controlPlaneRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "controlPlaneRef is an optional reference to a provider-specific resource that holds the details for provisioning the Control Plane for a Cluster.",
-							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectReference"),
 						},
 					},
 					"infrastructureRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "infrastructureRef is a reference to a provider-specific resource that holds the details for provisioning infrastructure for a cluster in said provider.",
-							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectReference"),
 						},
 					},
 					"topology": {
@@ -1111,7 +1112,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterSpec(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.APIEndpoint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterAvailabilityGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterNetwork", "sigs.k8s.io/cluster-api/api/core/v1beta2.Topology"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.APIEndpoint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterAvailabilityGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterNetwork", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.Topology"},
 	}
 }
 
@@ -5092,6 +5093,44 @@ func schema_cluster_api_api_core_v1beta2_ObjectMeta(ref common.ReferenceCallback
 						},
 					},
 				},
+			},
+		},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ObjectReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ObjectReference is a reference to an object.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"apiGroup": {
+						SchemaProps: spec.SchemaProps{
+							Description: "apiGroup is the group for the resource being referenced. If apiGroup is not specified, the specified kind must be in the core API group. For any other third-party types, apiGroup is required.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"apiGroup", "kind", "name"},
 			},
 		},
 	}

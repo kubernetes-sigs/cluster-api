@@ -56,15 +56,15 @@ func GetCompatibleVersions(contract string) sets.Set[string] {
 //
 // The object passed as input is modified in place if an updated compatible version is found.
 // NOTE: This version depends on CRDs being named correctly as defined by contract.CalculateCRDName.
-func UpdateReferenceAPIContract(ctx context.Context, c client.Client, ref *corev1.ObjectReference) error {
+func UpdateReferenceAPIContract(ctx context.Context, c client.Reader, ref *corev1.ObjectReference) error {
 	gvk := ref.GroupVersionKind()
 
-	metadata, err := util.GetGVKMetadata(ctx, c, gvk)
+	metadata, err := util.GetGVKMetadata(ctx, c, gvk.GroupKind())
 	if err != nil {
 		return errors.Wrapf(err, "failed to update apiVersion in ref")
 	}
 
-	_, chosen, err := getLatestAPIVersionFromContract(metadata, Version)
+	_, chosen, err := GetLatestAPIVersionFromContract(metadata, Version)
 	if err != nil {
 		return errors.Wrapf(err, "failed to update apiVersion in ref")
 	}
@@ -79,13 +79,13 @@ func UpdateReferenceAPIContract(ctx context.Context, c client.Client, ref *corev
 }
 
 // GetContractVersion get the latest compatible contract from a CRD based on currentContractVersion.
-func GetContractVersion(ctx context.Context, c client.Client, gvk schema.GroupVersionKind) (string, error) {
-	crdMetadata, err := util.GetGVKMetadata(ctx, c, gvk)
+func GetContractVersion(ctx context.Context, c client.Reader, gk schema.GroupKind) (string, error) {
+	crdMetadata, err := util.GetGVKMetadata(ctx, c, gk)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get contract version")
 	}
 
-	contractVersion, _, err := getLatestAPIVersionFromContract(crdMetadata, Version)
+	contractVersion, _, err := GetLatestAPIVersionFromContract(crdMetadata, Version)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get contract version")
 	}
@@ -93,8 +93,26 @@ func GetContractVersion(ctx context.Context, c client.Client, gvk schema.GroupVe
 	return contractVersion, nil
 }
 
-// getLatestAPIVersionFromContract returns the latest apiVersion and the latest compatible contract version from labels.
-func getLatestAPIVersionFromContract(metadata metav1.Object, currentContractVersion string) (string, string, error) {
+// GetAPIVersion get the latest compatible apiVersion from a CRD based on currentContractVersion.
+func GetAPIVersion(ctx context.Context, c client.Reader, gk schema.GroupKind) (string, error) {
+	crdMetadata, err := util.GetGVKMetadata(ctx, c, gk)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get apiVersion for kind %s", gk.Kind)
+	}
+
+	_, version, err := GetLatestAPIVersionFromContract(crdMetadata, Version)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get apiVersion for kind %s", gk.Kind)
+	}
+
+	return schema.GroupVersion{
+		Group:   gk.Group,
+		Version: version,
+	}.String(), nil
+}
+
+// GetLatestAPIVersionFromContract returns the latest apiVersion and the latest compatible contract version from labels.
+func GetLatestAPIVersionFromContract(metadata metav1.Object, currentContractVersion string) (string, string, error) {
 	if currentContractVersion == "" {
 		return "", "", errors.Errorf("current contract version cannot be empty")
 	}
@@ -123,8 +141,8 @@ func getLatestAPIVersionFromContract(metadata metav1.Object, currentContractVers
 }
 
 // GetContractVersionForVersion gets the contract version for a specific apiVersion.
-func GetContractVersionForVersion(ctx context.Context, c client.Client, gvk schema.GroupVersionKind, version string) (string, error) {
-	crdMetadata, err := util.GetGVKMetadata(ctx, c, gvk)
+func GetContractVersionForVersion(ctx context.Context, c client.Reader, gk schema.GroupKind, version string) (string, error) {
+	crdMetadata, err := util.GetGVKMetadata(ctx, c, gk)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get contract version")
 	}

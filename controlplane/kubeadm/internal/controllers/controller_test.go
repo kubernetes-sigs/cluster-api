@@ -74,18 +74,17 @@ func TestClusterToKubeadmControlPlane(t *testing.T) {
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
 	cluster.Spec = clusterv1.ClusterSpec{
-		ControlPlaneRef: &corev1.ObjectReference{
-			Kind:       "KubeadmControlPlane",
-			Namespace:  metav1.NamespaceDefault,
-			Name:       "kcp-foo",
-			APIVersion: controlplanev1.GroupVersion.String(),
+		ControlPlaneRef: &clusterv1.ObjectReference{
+			APIGroup: controlplanev1.GroupVersion.Group,
+			Kind:     "KubeadmControlPlane",
+			Name:     "kcp-foo",
 		},
 	}
 
 	expectedResult := []ctrl.Request{
 		{
 			NamespacedName: client.ObjectKey{
-				Namespace: cluster.Spec.ControlPlaneRef.Namespace,
+				Namespace: cluster.Namespace,
 				Name:      cluster.Spec.ControlPlaneRef.Name,
 			},
 		},
@@ -123,11 +122,10 @@ func TestClusterToKubeadmControlPlaneOtherControlPlane(t *testing.T) {
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
 	cluster.Spec = clusterv1.ClusterSpec{
-		ControlPlaneRef: &corev1.ObjectReference{
-			Kind:       "OtherControlPlane",
-			Namespace:  metav1.NamespaceDefault,
-			Name:       "other-foo",
-			APIVersion: controlplanev1.GroupVersion.String(),
+		ControlPlaneRef: &clusterv1.ObjectReference{
+			APIGroup: controlplanev1.GroupVersion.Group,
+			Kind:     "OtherControlPlane",
+			Name:     "other-foo",
 		},
 	}
 
@@ -3758,11 +3756,10 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 
 	cluster := newCluster(&types.NamespacedName{Name: kcpName, Namespace: namespace})
 	cluster.Spec = clusterv1.ClusterSpec{
-		ControlPlaneRef: &corev1.ObjectReference{
-			Kind:       "KubeadmControlPlane",
-			Namespace:  namespace,
-			Name:       kcpName,
-			APIVersion: controlplanev1.GroupVersion.String(),
+		ControlPlaneRef: &clusterv1.ObjectReference{
+			APIGroup: controlplanev1.GroupVersion.Group,
+			Kind:     "KubeadmControlPlane",
+			Name:     kcpName,
 		},
 	}
 

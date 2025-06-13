@@ -405,6 +405,7 @@ func Convert_v1beta2_BootstrapTokenString_To_upstreamv1beta4_BootstrapTokenStrin
 }
 
 func autoConvert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *v1beta2.ClusterConfiguration, s conversion.Scope) error {
+	// WARNING: in.TypeMeta requires manual conversion: does not exist in peer-type
 	if err := Convert_upstreamv1beta4_Etcd_To_v1beta2_Etcd(&in.Etcd, &out.Etcd, s); err != nil {
 		return err
 	}
@@ -675,6 +676,7 @@ func Convert_v1beta2_ImageMeta_To_upstreamv1beta4_ImageMeta(in *v1beta2.ImageMet
 }
 
 func autoConvert_upstreamv1beta4_InitConfiguration_To_v1beta2_InitConfiguration(in *InitConfiguration, out *v1beta2.InitConfiguration, s conversion.Scope) error {
+	// WARNING: in.TypeMeta requires manual conversion: does not exist in peer-type
 	if in.BootstrapTokens != nil {
 		in, out := &in.BootstrapTokens, &out.BootstrapTokens
 		*out = make([]v1beta2.BootstrapToken, len(*in))
@@ -746,6 +748,7 @@ func Convert_v1beta2_InitConfiguration_To_upstreamv1beta4_InitConfiguration(in *
 }
 
 func autoConvert_upstreamv1beta4_JoinConfiguration_To_v1beta2_JoinConfiguration(in *JoinConfiguration, out *v1beta2.JoinConfiguration, s conversion.Scope) error {
+	// WARNING: in.TypeMeta requires manual conversion: does not exist in peer-type
 	// WARNING: in.DryRun requires manual conversion: does not exist in peer-type
 	if err := Convert_upstreamv1beta4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(&in.NodeRegistration, &out.NodeRegistration, s); err != nil {
 		return err

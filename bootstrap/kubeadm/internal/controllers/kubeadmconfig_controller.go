@@ -539,21 +539,11 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	}
 
 	if scope.Config.Spec.ClusterConfiguration == nil {
-		scope.Config.Spec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "kubeadm.k8s.io/v1beta4",
-				Kind:       "ClusterConfiguration",
-			},
-		}
+		scope.Config.Spec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
 	}
 
 	if scope.Config.Spec.InitConfiguration == nil {
-		scope.Config.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "kubeadm.k8s.io/v1beta4",
-				Kind:       "InitConfiguration",
-			},
-		}
+		scope.Config.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
 	}
 
 	additionalData := r.computeClusterConfigurationAdditionalData(scope.Cluster, machine, scope.Config.Spec.InitConfiguration)

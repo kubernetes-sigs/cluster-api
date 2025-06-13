@@ -72,13 +72,9 @@ const (
 	KubeadmConfigDataSecretNotAvailableReason = clusterv1.NotAvailableReason
 )
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // InitConfiguration contains a list of elements that is specific "kubeadm init"-only runtime
 // information.
 type InitConfiguration struct {
-	metav1.TypeMeta `json:",inline"`
-
 	// bootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create.
 	// This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
 	// +optional
@@ -119,12 +115,8 @@ type InitConfiguration struct {
 	Timeouts *Timeouts `json:"timeouts,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // ClusterConfiguration contains cluster-wide configuration for a kubeadm cluster.
 type ClusterConfiguration struct {
-	metav1.TypeMeta `json:",inline"`
-
 	// etcd holds configuration for etcd.
 	// NB: This value defaults to a Local (stacked) etcd
 	// +optional
@@ -494,12 +486,8 @@ type ExternalEtcd struct {
 	KeyFile string `json:"keyFile"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // JoinConfiguration contains elements describing a particular node.
 type JoinConfiguration struct {
-	metav1.TypeMeta `json:",inline"`
-
 	// nodeRegistration holds fields that relate to registering the new control-plane node to the cluster.
 	// When used in the context of control plane nodes, NodeRegistration should remain consistent
 	// across both InitConfiguration and JoinConfiguration

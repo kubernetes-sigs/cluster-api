@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
@@ -183,6 +184,23 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 					},
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Version: "v1.16.3",
+				}},
+		},
+		{
+			name:        "does not update image repository when DNS is disabled from spec",
+			ds:          newKubeProxyDSWithImage(""), // Using the same image name that would otherwise lead to an error
+			expectErr:   false,
+			expectImage: "",
+			KCP: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							DNS: bootstrapv1.DNS{
+								Disabled: ptr.To(true),
+							},
+						},
+					},
 					Version: "v1.16.3",
 				}},
 		},

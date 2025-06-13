@@ -2456,6 +2456,10 @@ spec:
                     description: dns defines the options for the DNS add-on installed
                       in the cluster.
                     properties:
+                      disabled:
+                        description: disabled specifies whether to disable this addon
+                          in the cluster
+                        type: boolean
                       imageRepository:
                         description: |-
                           imageRepository sets the container registry to pull images from.
@@ -2757,6 +2761,15 @@ spec:
                         maxLength: 1024
                         minLength: 1
                         type: string
+                    type: object
+                  proxy:
+                    description: proxy defines the options for the proxy add-on installed
+                      in the cluster.
+                    properties:
+                      disabled:
+                        description: disabled specifies whether to disable this addon
+                          in the cluster
+                        type: boolean
                     type: object
                   scheduler:
                     description: scheduler contains extra settings for the scheduler
@@ -4555,6 +4568,10 @@ spec:
                     description: dns defines the options for the DNS add-on installed
                       in the cluster.
                     properties:
+                      disabled:
+                        description: disabled specifies whether to disable this addon
+                          in the cluster
+                        type: boolean
                       imageRepository:
                         description: |-
                           imageRepository sets the container registry to pull images from.
@@ -4840,6 +4857,15 @@ spec:
                     maxLength: 512
                     minLength: 1
                     type: string
+                  proxy:
+                    description: proxy defines the options for the proxy add-on installed
+                      in the cluster.
+                    properties:
+                      disabled:
+                        description: disabled specifies whether to disable this addon
+                          in the cluster
+                        type: boolean
+                    type: object
                   scheduler:
                     description: scheduler contains extra settings for the scheduler
                       control plane component

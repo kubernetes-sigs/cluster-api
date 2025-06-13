@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -639,6 +640,11 @@ func (webhook *KubeadmControlPlane) validateCoreDNSVersion(oldK, newK *controlpl
 
 	// Skip validating if the skip CoreDNS annotation is set. If set, KCP doesn't use the migration library.
 	if _, ok := newK.Annotations[controlplanev1.SkipCoreDNSAnnotation]; ok {
+		return allErrs
+	}
+
+	// Skip validating if DNS is disabled.
+	if ptr.Deref(newK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.Disabled, false) {
 		return allErrs
 	}
 

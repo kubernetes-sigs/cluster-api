@@ -424,6 +424,13 @@ func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlpla
 		return nil
 	}
 
+	// Return early if Proxy is disabled
+	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil &&
+		kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Proxy != nil &&
+		ptr.Deref(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Proxy.Disabled, false) {
+		return nil
+	}
+
 	ds := &appsv1.DaemonSet{}
 
 	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: kubeProxyKey, Namespace: metav1.NamespaceSystem}, ds); err != nil {

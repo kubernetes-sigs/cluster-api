@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -185,50 +184,37 @@ func TestObjectsAreStrictlyCompatible(t *testing.T) {
 	}
 }
 
-func TestLocalObjectTemplatesAreCompatible(t *testing.T) {
-	template := clusterv1.LocalObjectTemplate{
-		Ref: &corev1.ObjectReference{
-			Namespace:  "default",
+func TestClusterClassTemplateAreCompatible(t *testing.T) {
+	template := clusterv1.ClusterClassTemplate{
+		Ref: &clusterv1.ClusterClassTemplateReference{
 			Name:       "foo",
 			Kind:       "bar",
 			APIVersion: "test.group.io/versionone",
 		},
 	}
-	compatibleNameChangeTemplate := clusterv1.LocalObjectTemplate{
-		Ref: &corev1.ObjectReference{
-			Namespace:  "default",
+	compatibleNameChangeTemplate := clusterv1.ClusterClassTemplate{
+		Ref: &clusterv1.ClusterClassTemplateReference{
 			Name:       "newFoo",
 			Kind:       "bar",
 			APIVersion: "test.group.io/versionone",
 		},
 	}
-	compatibleAPIVersionChangeTemplate := clusterv1.LocalObjectTemplate{
-		Ref: &corev1.ObjectReference{
-			Namespace:  "default",
+	compatibleAPIVersionChangeTemplate := clusterv1.ClusterClassTemplate{
+		Ref: &clusterv1.ClusterClassTemplateReference{
 			Name:       "foo",
 			Kind:       "bar",
 			APIVersion: "test.group.io/versiontwo",
 		},
 	}
-	compatibleNamespaceChangeTemplate := clusterv1.LocalObjectTemplate{
-		Ref: &corev1.ObjectReference{
-			Namespace:  "different",
-			Name:       "foo",
-			Kind:       "bar",
-			APIVersion: "test.group.io/versionone",
-		},
-	}
-	incompatibleAPIGroupChangeTemplate := clusterv1.LocalObjectTemplate{
-		Ref: &corev1.ObjectReference{
-			Namespace:  "default",
+	incompatibleAPIGroupChangeTemplate := clusterv1.ClusterClassTemplate{
+		Ref: &clusterv1.ClusterClassTemplateReference{
 			Name:       "foo",
 			Kind:       "bar",
 			APIVersion: "production.group.io/versionone",
 		},
 	}
-	incompatibleAPIKindChangeTemplate := clusterv1.LocalObjectTemplate{
-		Ref: &corev1.ObjectReference{
-			Namespace:  "default",
+	incompatibleAPIKindChangeTemplate := clusterv1.ClusterClassTemplate{
+		Ref: &clusterv1.ClusterClassTemplateReference{
 			Name:       "foo",
 			Kind:       "notabar",
 			APIVersion: "test.group.io/versionone",
@@ -236,8 +222,8 @@ func TestLocalObjectTemplatesAreCompatible(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		current clusterv1.LocalObjectTemplate
-		desired clusterv1.LocalObjectTemplate
+		current clusterv1.ClusterClassTemplate
+		desired clusterv1.ClusterClassTemplate
 		wantErr bool
 	}{
 		{
@@ -250,12 +236,6 @@ func TestLocalObjectTemplatesAreCompatible(t *testing.T) {
 			name:    "Allow change to template APIVersion",
 			current: template,
 			desired: compatibleAPIVersionChangeTemplate,
-			wantErr: false,
-		},
-		{
-			name:    "Allow change to template namespace",
-			current: template,
-			desired: compatibleNamespaceChangeTemplate,
 			wantErr: false,
 		},
 		{
@@ -274,7 +254,7 @@ func TestLocalObjectTemplatesAreCompatible(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			allErrs := LocalObjectTemplatesAreCompatible(tt.current, tt.desired, field.NewPath("spec"))
+			allErrs := ClusterClassTemplateAreCompatible(tt.current, tt.desired, field.NewPath("spec"))
 			if tt.wantErr {
 				g.Expect(allErrs).ToNot(BeEmpty())
 				return
@@ -285,56 +265,42 @@ func TestLocalObjectTemplatesAreCompatible(t *testing.T) {
 }
 
 func TestLocalObjectTemplateIsValid(t *testing.T) {
-	namespace := metav1.NamespaceDefault
 	pathPrefix := field.NewPath("this", "is", "a", "prefix")
 
-	validTemplate := &clusterv1.LocalObjectTemplate{
-		Ref: &corev1.ObjectReference{
-			Namespace:  "default",
+	validTemplate := &clusterv1.ClusterClassTemplate{
+		Ref: &clusterv1.ClusterClassTemplateReference{
 			Name:       "valid",
 			Kind:       "barTemplate",
 			APIVersion: "test.group.io/versionone",
 		},
 	}
 
-	nilTemplate := &clusterv1.LocalObjectTemplate{
+	nilTemplate := &clusterv1.ClusterClassTemplate{
 		Ref: nil,
 	}
-	emptyNameTemplate := &clusterv1.LocalObjectTemplate{
-		Ref: &corev1.ObjectReference{
-			Namespace:  "default",
+	emptyNameTemplate := &clusterv1.ClusterClassTemplate{
+		Ref: &clusterv1.ClusterClassTemplateReference{
 			Name:       "",
 			Kind:       "barTemplate",
 			APIVersion: "test.group.io/versionone",
 		},
 	}
-	wrongNamespaceTemplate := &clusterv1.LocalObjectTemplate{
-		Ref: &corev1.ObjectReference{
-			Namespace:  "wrongNamespace",
-			Name:       "foo",
-			Kind:       "barTemplate",
-			APIVersion: "test.group.io/versiontwo",
-		},
-	}
-	notTemplateKindTemplate := &clusterv1.LocalObjectTemplate{
-		Ref: &corev1.ObjectReference{
-			Namespace:  "default",
+	notTemplateKindTemplate := &clusterv1.ClusterClassTemplate{
+		Ref: &clusterv1.ClusterClassTemplateReference{
 			Name:       "foo",
 			Kind:       "bar",
 			APIVersion: "test.group.io/versionone",
 		},
 	}
-	invalidAPIVersionTemplate := &clusterv1.LocalObjectTemplate{
-		Ref: &corev1.ObjectReference{
-			Namespace:  "default",
+	invalidAPIVersionTemplate := &clusterv1.ClusterClassTemplate{
+		Ref: &clusterv1.ClusterClassTemplateReference{
 			Name:       "foo",
 			Kind:       "barTemplate",
 			APIVersion: "this/has/too/many/slashes",
 		},
 	}
-	emptyAPIVersionTemplate := &clusterv1.LocalObjectTemplate{
-		Ref: &corev1.ObjectReference{
-			Namespace:  "default",
+	emptyAPIVersionTemplate := &clusterv1.ClusterClassTemplate{
+		Ref: &clusterv1.ClusterClassTemplateReference{
 			Name:       "foo",
 			Kind:       "barTemplate",
 			APIVersion: "",
@@ -342,7 +308,7 @@ func TestLocalObjectTemplateIsValid(t *testing.T) {
 	}
 
 	tests := []struct {
-		template *clusterv1.LocalObjectTemplate
+		template *clusterv1.ClusterClassTemplate
 		name     string
 		wantErr  bool
 	}{
@@ -360,11 +326,6 @@ func TestLocalObjectTemplateIsValid(t *testing.T) {
 		{
 			name:     "Invalid if name is empty",
 			template: emptyNameTemplate,
-			wantErr:  true,
-		},
-		{
-			name:     "Invalid if namespace doesn't match",
-			template: wrongNamespaceTemplate,
 			wantErr:  true,
 		},
 		{
@@ -386,7 +347,7 @@ func TestLocalObjectTemplateIsValid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			allErrs := LocalObjectTemplateIsValid(tt.template, namespace, pathPrefix)
+			allErrs := ClusterClassTemplateIsValid(tt.template, pathPrefix)
 			if tt.wantErr {
 				g.Expect(allErrs).ToNot(BeEmpty())
 				return
@@ -397,23 +358,20 @@ func TestLocalObjectTemplateIsValid(t *testing.T) {
 }
 
 func TestClusterClassesAreCompatible(t *testing.T) {
-	ref := &corev1.ObjectReference{
+	ref := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
-	incompatibleRef := &corev1.ObjectReference{
+	incompatibleRef := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "another-barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
-	compatibleRefOther := &corev1.ObjectReference{
+	compatibleRefOther := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/another-foo",
 		Kind:       "barTemplate",
 		Name:       "another-baz",
-		Namespace:  "other",
 	}
 
 	tests := []struct {
@@ -702,23 +660,20 @@ func TestClusterClassesAreCompatible(t *testing.T) {
 }
 
 func TestMachineDeploymentClassesAreCompatible(t *testing.T) {
-	ref := &corev1.ObjectReference{
+	ref := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
-	compatibleRef := &corev1.ObjectReference{
+	compatibleRef := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/another-foo",
 		Kind:       "barTemplate",
 		Name:       "another-baz",
-		Namespace:  "default",
 	}
-	incompatibleRef := &corev1.ObjectReference{
+	incompatibleRef := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "another-barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
 
 	tests := []struct {
@@ -848,23 +803,20 @@ func TestMachineDeploymentClassesAreCompatible(t *testing.T) {
 }
 
 func TestMachinePoolClassesAreCompatible(t *testing.T) {
-	ref := &corev1.ObjectReference{
+	ref := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
-	compatibleRef := &corev1.ObjectReference{
+	compatibleRef := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/another-foo",
 		Kind:       "barTemplate",
 		Name:       "another-baz",
-		Namespace:  "default",
 	}
-	incompatibleRef := &corev1.ObjectReference{
+	incompatibleRef := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "another-barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
 
 	tests := []struct {
@@ -1623,18 +1575,16 @@ func TestMachinePoolTopologiesAreUniqueAndDefinedInClusterClass(t *testing.T) {
 	}
 }
 
-func TestClusterClassReferencesAreValid(t *testing.T) {
-	ref := &corev1.ObjectReference{
+func TestClusterClassTemplatesAreValid(t *testing.T) {
+	ref := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
-	invalidRef := &corev1.ObjectReference{
+	invalidRef := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "another-barTemplate",
-		Name:       "baz",
-		Namespace:  "",
+		Name:       "",
 	}
 
 	tests := []struct {
@@ -1760,7 +1710,7 @@ func TestClusterClassReferencesAreValid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			allErrs := ClusterClassReferencesAreValid(tt.clusterClass)
+			allErrs := ClusterClassTemplatesAreValid(tt.clusterClass)
 			if tt.wantErr {
 				g.Expect(allErrs).ToNot(BeEmpty())
 				return
@@ -1770,12 +1720,11 @@ func TestClusterClassReferencesAreValid(t *testing.T) {
 	}
 }
 
-func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
-	gvk := ref.GetObjectKind().GroupVersionKind()
+func refToUnstructured(ref *clusterv1.ClusterClassTemplateReference) *unstructured.Unstructured {
+	gvk := ref.GroupVersionKind()
 	output := &unstructured.Unstructured{}
 	output.SetKind(gvk.Kind)
 	output.SetAPIVersion(gvk.GroupVersion().String())
 	output.SetName(ref.Name)
-	output.SetNamespace(ref.Namespace)
 	return output
 }

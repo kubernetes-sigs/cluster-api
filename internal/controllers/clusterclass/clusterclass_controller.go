@@ -213,7 +213,7 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, s *scope) 
 	clusterClass := s.clusterClass
 
 	// Collect all the reference from the ClusterClass to templates.
-	refs := []*corev1.ObjectReference{}
+	refs := []*clusterv1.ClusterClassTemplateReference{}
 
 	if clusterClass.Spec.Infrastructure.Ref != nil {
 		refs = append(refs, clusterClass.Spec.Infrastructure.Ref)
@@ -253,7 +253,7 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, s *scope) 
 	reconciledRefs := sets.Set[string]{}
 	outdatedRefs := []outdatedRef{}
 	for i := range refs {
-		ref := refs[i]
+		ref := refs[i].ToObjectReference(s.clusterClass.Namespace)
 		uniqueKey := uniqueObjectRefKey(ref)
 
 		// Continue as we only have to reconcile every referenced object once.

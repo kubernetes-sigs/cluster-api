@@ -2502,35 +2502,30 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 				Build()).
 		Build()
 
-	ref := &corev1.ObjectReference{
+	ref := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
-	compatibleNameChangeRef := &corev1.ObjectReference{
+	compatibleNameChangeRef := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
 		Name:       "differentbaz",
-		Namespace:  "default",
 	}
-	compatibleAPIVersionChangeRef := &corev1.ObjectReference{
+	compatibleAPIVersionChangeRef := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo2",
 		Kind:       "barTemplate",
 		Name:       "differentbaz",
-		Namespace:  "default",
 	}
-	incompatibleKindRef := &corev1.ObjectReference{
+	incompatibleKindRef := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "another-barTemplate",
 		Name:       "another-baz",
-		Namespace:  "default",
 	}
-	incompatibleAPIGroupRef := &corev1.ObjectReference{
+	incompatibleAPIGroupRef := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.nottest.io/foo",
 		Kind:       "barTemplate",
 		Name:       "another-baz",
-		Namespace:  "default",
 	}
 
 	tests := []struct {
@@ -3032,11 +3027,10 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 // TestMovingBetweenManagedAndUnmanaged cluster tests cases where a clusterClass is added or removed during a cluster update.
 func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-	ref := &corev1.ObjectReference{
+	ref := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
 
 	g := NewWithT(t)
@@ -3161,11 +3155,10 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 func TestClusterClassPollingErrors(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
-	ref := &corev1.ObjectReference{
+	ref := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
 
 	topology := builder.ClusterTopology().WithClass("class1").WithVersion("v1.24.3").Build()
@@ -3826,13 +3819,12 @@ func TestValidateAutoscalerAnnotationsForCluster(t *testing.T) {
 	}
 }
 
-func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
-	gvk := ref.GetObjectKind().GroupVersionKind()
+func refToUnstructured(ref *clusterv1.ClusterClassTemplateReference) *unstructured.Unstructured {
+	gvk := ref.GroupVersionKind()
 	output := &unstructured.Unstructured{}
 	output.SetKind(gvk.Kind)
 	output.SetAPIVersion(gvk.GroupVersion().String())
 	output.SetName(ref.Name)
-	output.SetNamespace(ref.Namespace)
 	return output
 }
 

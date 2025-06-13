@@ -19,6 +19,7 @@ package v1alpha4
 import (
 	"unsafe"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
@@ -624,12 +625,20 @@ func Convert_v1beta2_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in *clusterv1
 	return autoConvert_v1beta2_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in, out, s)
 }
 
+func Convert_v1alpha4_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *ControlPlaneClass, out *clusterv1.ControlPlaneClass, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha4_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in, out, s); err != nil {
+		return err
+	}
+
+	return Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(&in.LocalObjectTemplate, &out.ClusterClassTemplate, s)
+}
+
 func Convert_v1beta2_InfrastructureClass_To_v1alpha4_LocalObjectTemplate(in *clusterv1.InfrastructureClass, out *LocalObjectTemplate, s apimachineryconversion.Scope) error {
 	if in == nil {
 		return nil
 	}
 
-	return autoConvert_v1beta2_LocalObjectTemplate_To_v1alpha4_LocalObjectTemplate(&in.LocalObjectTemplate, out, s)
+	return Convert_v1beta2_ClusterClassTemplate_To_v1alpha4_LocalObjectTemplate(&in.ClusterClassTemplate, out, s)
 }
 
 func Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_InfrastructureClass(in *LocalObjectTemplate, out *clusterv1.InfrastructureClass, s apimachineryconversion.Scope) error {
@@ -637,7 +646,7 @@ func Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_InfrastructureClass(in *Loc
 		return nil
 	}
 
-	return autoConvert_v1alpha4_LocalObjectTemplate_To_v1beta2_LocalObjectTemplate(in, &out.LocalObjectTemplate, s)
+	return Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(in, &out.ClusterClassTemplate, s)
 }
 
 func Convert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apimachineryconversion.Scope) error {
@@ -701,8 +710,11 @@ func Convert_v1beta2_MachineDeploymentClass_To_v1alpha4_MachineDeploymentClass(i
 }
 
 func Convert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *clusterv1.ControlPlaneClass, out *ControlPlaneClass, s apimachineryconversion.Scope) error {
-	// controlPlaneClass.machineHealthCheck has been added with v1beta1.
-	return autoConvert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in, out, s)
+	if err := autoConvert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in, out, s); err != nil {
+		return err
+	}
+
+	return Convert_v1beta2_ClusterClassTemplate_To_v1alpha4_LocalObjectTemplate(&in.ClusterClassTemplate, &out.LocalObjectTemplate, s)
 }
 
 func Convert_v1alpha4_Topology_To_v1beta2_Topology(in *Topology, out *clusterv1.Topology, s apimachineryconversion.Scope) error {
@@ -726,8 +738,28 @@ func Convert_v1beta2_MachineStatus_To_v1alpha4_MachineStatus(in *clusterv1.Machi
 }
 
 func Convert_v1beta2_ClusterClass_To_v1alpha4_ClusterClass(in *clusterv1.ClusterClass, out *ClusterClass, s apimachineryconversion.Scope) error {
-	// ClusterClass.Status has been added in v1beta1.
-	return autoConvert_v1beta2_ClusterClass_To_v1alpha4_ClusterClass(in, out, s)
+	if err := autoConvert_v1beta2_ClusterClass_To_v1alpha4_ClusterClass(in, out, s); err != nil {
+		return err
+	}
+
+	if out.Spec.Infrastructure.Ref != nil {
+		out.Spec.Infrastructure.Ref.Namespace = in.Namespace
+	}
+	if out.Spec.ControlPlane.Ref != nil {
+		out.Spec.ControlPlane.Ref.Namespace = in.Namespace
+	}
+	if out.Spec.ControlPlane.MachineInfrastructure != nil && out.Spec.ControlPlane.MachineInfrastructure.Ref != nil {
+		out.Spec.ControlPlane.MachineInfrastructure.Ref.Namespace = in.Namespace
+	}
+	for _, md := range out.Spec.Workers.MachineDeployments {
+		if md.Template.Bootstrap.Ref != nil {
+			md.Template.Bootstrap.Ref.Namespace = in.Namespace
+		}
+		if md.Template.Infrastructure.Ref != nil {
+			md.Template.Infrastructure.Ref.Namespace = in.Namespace
+		}
+	}
+	return nil
 }
 
 func Convert_v1beta2_WorkersClass_To_v1alpha4_WorkersClass(in *clusterv1.WorkersClass, out *WorkersClass, s apimachineryconversion.Scope) error {
@@ -872,6 +904,32 @@ func Convert_v1alpha4_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, out *c
 		return err
 	}
 	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	return nil
+}
+
+func Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(in *LocalObjectTemplate, out *clusterv1.ClusterClassTemplate, _ apimachineryconversion.Scope) error {
+	if in.Ref == nil {
+		return nil
+	}
+
+	out.Ref = &clusterv1.ClusterClassTemplateReference{
+		Kind:       in.Ref.Kind,
+		Name:       in.Ref.Name,
+		APIVersion: in.Ref.APIVersion,
+	}
+	return nil
+}
+
+func Convert_v1beta2_ClusterClassTemplate_To_v1alpha4_LocalObjectTemplate(in *clusterv1.ClusterClassTemplate, out *LocalObjectTemplate, _ apimachineryconversion.Scope) error {
+	if in.Ref == nil {
+		return nil
+	}
+
+	out.Ref = &corev1.ObjectReference{
+		Kind:       in.Ref.Kind,
+		Name:       in.Ref.Name,
+		APIVersion: in.Ref.APIVersion,
+	}
 	return nil
 }
 

@@ -35,7 +35,6 @@ import (
 	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
-	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -46,72 +45,6 @@ var (
 
 func init() {
 	_ = clusterv1.AddToScheme(fakeScheme)
-}
-
-func TestClusterClassDefaultNamespaces(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
-	// Enabling the feature flag temporarily for this test.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
-	namespace := "default"
-
-	in := builder.ClusterClass(namespace, "class1").
-		WithInfrastructureClusterTemplate(
-			builder.InfrastructureClusterTemplate("", "infra1").Build()).
-		WithControlPlaneTemplate(
-			builder.ControlPlaneTemplate("", "cp1").
-				Build()).
-		WithControlPlaneInfrastructureMachineTemplate(
-			builder.InfrastructureMachineTemplate("", "cpInfra1").
-				Build()).
-		WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
-			RemediationTemplate: &corev1.ObjectReference{},
-		}).
-		WithWorkerMachineDeploymentClasses(
-			*builder.MachineDeploymentClass("aa").
-				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate("", "infra1").Build()).
-				WithBootstrapTemplate(
-					builder.BootstrapTemplate("", "bootstrap1").Build()).
-				WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
-					RemediationTemplate: &corev1.ObjectReference{},
-				}).
-				Build()).
-		WithWorkerMachinePoolClasses(
-			*builder.MachinePoolClass("aa").
-				WithInfrastructureTemplate(
-					builder.InfrastructureMachinePoolTemplate("", "infra1").Build()).
-				WithBootstrapTemplate(
-					builder.BootstrapTemplate("", "bootstrap1").Build()).
-				Build()).
-		Build()
-
-	fakeClient := fake.NewClientBuilder().
-		WithScheme(fakeScheme).
-		WithIndex(&clusterv1.Cluster{}, index.ClusterClassRefPath, index.ClusterByClusterClassRef).
-		Build()
-
-	// Create the webhook and add the fakeClient as its client.
-	webhook := &ClusterClass{Client: fakeClient}
-	t.Run("for ClusterClass", util.CustomDefaultValidateTest(ctx, in, webhook))
-
-	g := NewWithT(t)
-	g.Expect(webhook.Default(ctx, in)).To(Succeed())
-
-	// Namespace defaulted on references
-	g.Expect(in.Spec.Infrastructure.Ref.Namespace).To(Equal(namespace))
-	g.Expect(in.Spec.ControlPlane.Ref.Namespace).To(Equal(namespace))
-	g.Expect(in.Spec.ControlPlane.MachineInfrastructure.Ref.Namespace).To(Equal(namespace))
-	g.Expect(in.Spec.ControlPlane.MachineHealthCheck.RemediationTemplate.Namespace).To(Equal(namespace))
-	for i := range in.Spec.Workers.MachineDeployments {
-		g.Expect(in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref.Namespace).To(Equal(namespace))
-		g.Expect(in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref.Namespace).To(Equal(namespace))
-		g.Expect(in.Spec.Workers.MachineDeployments[i].MachineHealthCheck.RemediationTemplate.Namespace).To(Equal(namespace))
-	}
-	for i := range in.Spec.Workers.MachinePools {
-		g.Expect(in.Spec.Workers.MachinePools[i].Template.Bootstrap.Ref.Namespace).To(Equal(namespace))
-		g.Expect(in.Spec.Workers.MachinePools[i].Template.Infrastructure.Ref.Namespace).To(Equal(namespace))
-	}
 }
 
 func TestClusterClassValidationFeatureGated(t *testing.T) {
@@ -224,35 +157,30 @@ func TestClusterClassValidation(t *testing.T) {
 	// Enabling the feature flag temporarily for this test.
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
-	ref := &corev1.ObjectReference{
+	ref := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
-	refBadTemplate := &corev1.ObjectReference{
+	refBadTemplate := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "bar",
 		Name:       "baz",
-		Namespace:  "default",
 	}
-	refBadAPIVersion := &corev1.ObjectReference{
+	refBadAPIVersion := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group/test.io/v1/foo",
 		Kind:       "barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
-	incompatibleRef := &corev1.ObjectReference{
+	incompatibleRef := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "another-barTemplate",
 		Name:       "baz",
-		Namespace:  "default",
 	}
-	compatibleRef := &corev1.ObjectReference{
+	compatibleRef := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/another-foo",
 		Kind:       "barTemplate",
 		Name:       "another-baz",
-		Namespace:  "default",
 	}
 
 	tests := []struct {
@@ -423,134 +351,6 @@ func TestClusterClassValidation(t *testing.T) {
 							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "").Build()).
 						WithBootstrapTemplate(
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap").Build()).
-						Build()).
-				Build(),
-			expectErr: true,
-		},
-
-		// inconsistent namespace in ref tests
-		{
-			name: "create fail if InfrastructureCluster has inconsistent namespace",
-			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithInfrastructureClusterTemplate(
-					builder.InfrastructureClusterTemplate("WrongNamespace", "infra1").Build()).
-				WithControlPlaneTemplate(
-					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
-						Build()).
-				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
-						Build()).
-				Build(),
-			expectErr: true,
-		},
-		{
-			name: "create fail if controlPlane has inconsistent namespace",
-			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithInfrastructureClusterTemplate(
-					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithControlPlaneTemplate(
-					builder.ControlPlaneTemplate("WrongNamespace", "cp1").
-						Build()).
-				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
-						Build()).
-				Build(),
-			expectErr: true,
-		},
-		{
-			name: "create fail if controlPlane machineInfrastructure has inconsistent namespace",
-			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithInfrastructureClusterTemplate(
-					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithControlPlaneTemplate(
-					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
-						Build()).
-				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate("WrongNamespace", "cpInfra1").
-						Build()).
-				Build(),
-			expectErr: true,
-		},
-		{
-			name: "create fail if machineDeployment / bootstrap has inconsistent namespace",
-			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithInfrastructureClusterTemplate(
-					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithControlPlaneTemplate(
-					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
-						Build()).
-				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
-						Build()).
-				WithWorkerMachineDeploymentClasses(
-					*builder.MachineDeploymentClass("aa").
-						WithInfrastructureTemplate(
-							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
-						WithBootstrapTemplate(
-							builder.BootstrapTemplate("WrongNamespace", "bootstrap1").Build()).
-						Build()).
-				Build(),
-			expectErr: true,
-		},
-		{
-			name: "create fail if machineDeployment / infrastructure has inconsistent namespace",
-			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithInfrastructureClusterTemplate(
-					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithControlPlaneTemplate(
-					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
-						Build()).
-				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
-						Build()).
-				WithWorkerMachineDeploymentClasses(
-					*builder.MachineDeploymentClass("aa").
-						WithInfrastructureTemplate(
-							builder.InfrastructureMachineTemplate("WrongNamespace", "infra1").Build()).
-						WithBootstrapTemplate(
-							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
-						Build()).
-				Build(),
-			expectErr: true,
-		},
-		{
-			name: "create fail if machinePool / bootstrap has inconsistent namespace",
-			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithInfrastructureClusterTemplate(
-					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithControlPlaneTemplate(
-					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
-						Build()).
-				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
-						Build()).
-				WithWorkerMachinePoolClasses(
-					*builder.MachinePoolClass("aa").
-						WithInfrastructureTemplate(
-							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
-						WithBootstrapTemplate(
-							builder.BootstrapTemplate("WrongNamespace", "bootstrap1").Build()).
-						Build()).
-				Build(),
-			expectErr: true,
-		},
-		{
-			name: "create fail if machinePool / infrastructure has inconsistent namespace",
-			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithInfrastructureClusterTemplate(
-					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
-				WithControlPlaneTemplate(
-					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
-						Build()).
-				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
-						Build()).
-				WithWorkerMachinePoolClasses(
-					*builder.MachinePoolClass("aa").
-						WithInfrastructureTemplate(
-							builder.InfrastructureMachinePoolTemplate("WrongNamespace", "infra1").Build()).
-						WithBootstrapTemplate(
-							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
 						Build()).
 				Build(),
 			expectErr: true,

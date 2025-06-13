@@ -326,7 +326,7 @@ func (r *MachinePoolReconciler) isMachinePoolNodeDeleteTimeoutPassed(machinePool
 // reconcileDeleteExternal tries to delete external references, returning true if it cannot find any.
 func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, machinePool *clusterv1.MachinePool) (bool, error) {
 	objects := []*unstructured.Unstructured{}
-	references := []*corev1.ObjectReference{
+	references := []*clusterv1.ContractVersionedObjectReference{
 		machinePool.Spec.Template.Spec.Bootstrap.ConfigRef,
 		&machinePool.Spec.Template.Spec.InfrastructureRef,
 	}
@@ -337,10 +337,10 @@ func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, mac
 			continue
 		}
 
-		obj, err := external.Get(ctx, r.Client, ref)
+		obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, machinePool.Namespace)
 		if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
-			return false, errors.Wrapf(err, "failed to get %s %q for MachinePool %q in namespace %q",
-				ref.GroupVersionKind(), ref.Name, machinePool.Name, ref.Namespace)
+			return false, errors.Wrapf(err, "failed to get %s %s for MachinePool %s",
+				ref.Kind, klog.KRef(machinePool.Namespace, ref.Name), klog.KObj(machinePool))
 		}
 		if obj != nil {
 			objects = append(objects, obj)

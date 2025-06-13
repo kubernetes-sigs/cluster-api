@@ -22,7 +22,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
@@ -471,11 +470,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -522,11 +520,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -573,11 +570,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -628,11 +624,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -697,11 +692,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -752,11 +746,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -822,11 +815,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -945,11 +937,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -1000,11 +991,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -1069,11 +1059,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -1124,11 +1113,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -1194,11 +1182,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -1263,11 +1250,10 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						Kind:       "KubeadmConfig",
-						Namespace:  "default",
-						Name:       "test",
-						APIVersion: bootstrapv1.GroupVersion.String(),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
 					},
 				},
 			},
@@ -1343,11 +1329,10 @@ func TestMatchesTemplateClonedFrom(t *testing.T) {
 		kcp := &controlplanev1.KubeadmControlPlane{}
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				InfrastructureRef: corev1.ObjectReference{
-					Kind:       "KubeadmConfig",
-					Namespace:  "default",
-					Name:       "test",
-					APIVersion: bootstrapv1.GroupVersion.String(),
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "KubeadmConfig",
+					Name:     "test",
+					APIGroup: bootstrapv1.GroupVersion.Group,
 				},
 			},
 		}
@@ -1371,22 +1356,20 @@ func TestMatchesTemplateClonedFrom(t *testing.T) {
 							"test": "labels",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
-						Kind:       "GenericMachineTemplate",
-						Namespace:  "default",
-						Name:       "infra-foo",
-						APIVersion: "generic.io/v1",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "GenericMachineTemplate",
+						Name:     "infra-foo",
+						APIGroup: "generic.io",
 					},
 				},
 			},
 		}
 		m := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				InfrastructureRef: corev1.ObjectReference{
-					Kind:       "GenericMachine",
-					Namespace:  "default",
-					Name:       "infra-foo",
-					APIVersion: "generic.io/v1",
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "GenericMachine",
+					Name:     "infra-foo",
+					APIGroup: "generic.io",
 				},
 			},
 		}
@@ -1463,22 +1446,20 @@ func TestMatchesTemplateClonedFrom_WithClonedFromAnnotations(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					Kind:       "GenericMachineTemplate",
-					Namespace:  "default",
-					Name:       "infra-foo",
-					APIVersion: "generic.io/v1",
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "GenericMachineTemplate",
+					Name:     "infra-foo",
+					APIGroup: "generic.io",
 				},
 			},
 		},
 	}
 	machine := &clusterv1.Machine{
 		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "InfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  "default",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "InfrastructureMachine",
+				Name:     "infra-config1",
 			},
 		},
 	}
@@ -1552,7 +1533,7 @@ func TestUpToDate(t *testing.T) {
 			Replicas: nil,
 			Version:  "v1.31.0",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{APIVersion: clusterv1.GroupVersionInfrastructure.String(), Kind: "AWSMachineTemplate", Name: "template1"},
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{APIGroup: clusterv1.GroupVersionInfrastructure.Group, Kind: "AWSMachineTemplate", Name: "template1"},
 			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
@@ -1574,7 +1555,7 @@ func TestUpToDate(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Version:           ptr.To("v1.31.0"),
-			InfrastructureRef: corev1.ObjectReference{APIVersion: clusterv1.GroupVersionInfrastructure.String(), Kind: "AWSMachine", Name: "infra-machine1"},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{APIGroup: clusterv1.GroupVersionInfrastructure.Group, Kind: "AWSMachine", Name: "infra-machine1"},
 		},
 		Status: clusterv1.MachineStatus{
 			CertificatesExpiryDate: &metav1.Time{Time: reconciliationTime.Add(100 * 24 * time.Hour)}, // certificates will expire in 100 days from now.
@@ -1688,7 +1669,7 @@ func TestUpToDate(t *testing.T) {
 			name: "AWSMachine is not up-to-date",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
-				kcp.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{APIVersion: clusterv1.GroupVersionInfrastructure.String(), Kind: "AWSMachineTemplate", Name: "template2"} // kcp moving to template 2
+				kcp.Spec.MachineTemplate.InfrastructureRef = clusterv1.ContractVersionedObjectReference{APIGroup: clusterv1.GroupVersionInfrastructure.Group, Kind: "AWSMachineTemplate", Name: "template2"} // kcp moving to template 2
 				return kcp
 			}(),
 			machine:                 defaultMachine,

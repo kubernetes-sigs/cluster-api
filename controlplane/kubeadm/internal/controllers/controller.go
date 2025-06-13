@@ -749,7 +749,7 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(_ context.C
 
 	controlPlaneRef := c.Spec.ControlPlaneRef
 	if controlPlaneRef != nil && controlPlaneRef.Kind == kubeadmControlPlaneKind {
-		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: controlPlaneRef.Namespace, Name: controlPlaneRef.Name}}}
+		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: c.Namespace, Name: controlPlaneRef.Name}}}
 	}
 
 	return nil
@@ -846,7 +846,7 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 		// This could happen e.g. if the cache is not up-to-date yet.
 		if kubeadmConfigFound {
 			// Note: Set the GroupVersionKind because updateExternalObject depends on it.
-			kubeadmConfig.SetGroupVersionKind(m.Spec.Bootstrap.ConfigRef.GroupVersionKind())
+			kubeadmConfig.SetGroupVersionKind(bootstrapv1.GroupVersion.WithKind("KubeadmConfig"))
 			// Cleanup managed fields of all KubeadmConfigs to drop ownership of labels and annotations
 			// from "manager". We do this so that KubeadmConfigs that are created using the Create method
 			// can also work with SSA. Otherwise, labels and annotations would be co-owned by our "old" "manager"
@@ -1309,11 +1309,6 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 		// TODO instead of returning error here, we should instead Event and add a watch on potentially adoptable Machines
 		if ref == nil || ref.Kind != "KubeadmConfig" {
 			return errors.Errorf("unable to adopt Machine %v/%v: expected a ConfigRef of kind KubeadmConfig but instead found %v", m.Namespace, m.Name, ref)
-		}
-
-		// TODO instead of returning error here, we should instead Event and add a watch on potentially adoptable Machines
-		if ref.Namespace != "" && ref.Namespace != kcp.Namespace {
-			return errors.Errorf("could not adopt resources from KubeadmConfig %v/%v: cannot adopt across namespaces", ref.Namespace, ref.Name)
 		}
 
 		if m.Spec.Version == nil {

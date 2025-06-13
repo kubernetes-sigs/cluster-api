@@ -21,7 +21,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
@@ -345,16 +344,14 @@ func Test_setScalingUpCondition(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							Kind:      "KubeadmBootstrapTemplate",
-							Namespace: "some-namespace",
-							Name:      "some-name",
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							Kind: "KubeadmBootstrapTemplate",
+							Name: "some-name",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
-						Kind:      "DockerMachineTemplate",
-						Namespace: "some-namespace",
-						Name:      "some-name",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind: "DockerMachineTemplate",
+						Name: "some-name",
 					},
 				},
 			},

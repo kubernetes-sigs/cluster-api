@@ -65,14 +65,6 @@ func (webhook *Machine) Default(_ context.Context, obj runtime.Object) error {
 	}
 	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
-	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.Namespace == "" {
-		m.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
-	}
-
-	if m.Spec.InfrastructureRef.Namespace == "" {
-		m.Spec.InfrastructureRef.Namespace = m.Namespace
-	}
-
 	if m.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Version, "v") {
 		normalizedVersion := "v" + *m.Spec.Version
 		m.Spec.Version = &normalizedVersion
@@ -129,28 +121,6 @@ func (webhook *Machine) validate(oldM, newM *clusterv1.Machine) error {
 				),
 			)
 		}
-	}
-
-	if newM.Spec.Bootstrap.ConfigRef != nil && newM.Spec.Bootstrap.ConfigRef.Namespace != newM.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				specPath.Child("bootstrap", "configRef", "namespace"),
-				newM.Spec.Bootstrap.ConfigRef.Namespace,
-				"must match metadata.namespace",
-			),
-		)
-	}
-
-	if newM.Spec.InfrastructureRef.Namespace != newM.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				specPath.Child("infrastructureRef", "namespace"),
-				newM.Spec.InfrastructureRef.Namespace,
-				"must match metadata.namespace",
-			),
-		)
 	}
 
 	if oldM != nil && oldM.Spec.ClusterName != newM.Spec.ClusterName {

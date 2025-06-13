@@ -19,12 +19,14 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
@@ -43,6 +45,18 @@ const (
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
 
 func TestFuzzyConversion(t *testing.T) {
+	SetAPIVersionGetter(func(gk schema.GroupKind) (string, error) {
+		for _, gvk := range testGVKs {
+			if gvk.GroupKind() == gk {
+				return schema.GroupVersion{
+					Group:   gk.Group,
+					Version: gvk.Version,
+				}.String(), nil
+			}
+		}
+		return "", fmt.Errorf("failed to map GroupKind %s to version", gk.String())
+	})
+
 	t.Run("for KubeadmControlPlane", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &controlplanev1.KubeadmControlPlane{},
 		Spoke:       &KubeadmControlPlane{},
@@ -57,7 +71,9 @@ func TestFuzzyConversion(t *testing.T) {
 
 func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubMachineTemplateSpec,
 		hubKubeadmControlPlaneStatus,
+		spokeKubeadmControlPlane,
 		spokeKubeadmControlPlaneStatus,
 		spokeKubeadmConfigSpec,
 		spokeClusterConfiguration,
@@ -114,6 +130,28 @@ func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Co
 func spokeBootstrapTokenString(in *bootstrapv1beta1.BootstrapTokenString, _ randfill.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
+}
+
+func hubMachineTemplateSpec(in *controlplanev1.KubeadmControlPlaneMachineTemplate, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Ensure ref field is always set to realistic values.
+	gvk := testGVKs[c.Int31n(4)]
+	in.InfrastructureRef.APIGroup = gvk.Group
+	in.InfrastructureRef.Kind = gvk.Kind
+}
+
+func spokeKubeadmControlPlane(in *KubeadmControlPlane, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Ensure ref fields are always set to realistic values.
+	gvk := testGVKs[c.Int31n(4)]
+	in.Spec.MachineTemplate.InfrastructureRef.APIVersion = gvk.GroupVersion().String()
+	in.Spec.MachineTemplate.InfrastructureRef.Kind = gvk.Kind
+	in.Spec.MachineTemplate.InfrastructureRef.Namespace = in.Namespace
+	in.Spec.MachineTemplate.InfrastructureRef.UID = ""
+	in.Spec.MachineTemplate.InfrastructureRef.ResourceVersion = ""
+	in.Spec.MachineTemplate.InfrastructureRef.FieldPath = ""
 }
 
 func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c randfill.Continue) {
@@ -231,4 +269,27 @@ func spokeBootstrapToken(in *bootstrapv1beta1.BootstrapToken, c randfill.Continu
 	if in.TTL != nil {
 		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
+}
+
+var testGVKs = []schema.GroupVersionKind{
+	{
+		Group:   "controlplane.cluster.x-k8s.io",
+		Version: "v1beta4",
+		Kind:    "KubeadmControlPlane",
+	},
+	{
+		Group:   "controlplane.cluster.x-k8s.io",
+		Version: "v1beta7",
+		Kind:    "AWSManagedControlPlane",
+	},
+	{
+		Group:   "infrastructure.cluster.x-k8s.io",
+		Version: "v1beta3",
+		Kind:    "DockerCluster",
+	},
+	{
+		Group:   "infrastructure.cluster.x-k8s.io",
+		Version: "v1beta6",
+		Kind:    "AWSCluster",
+	},
 }

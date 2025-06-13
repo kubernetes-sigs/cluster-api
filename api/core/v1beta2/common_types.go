@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
@@ -352,4 +353,41 @@ func (metadata *ObjectMeta) Validate(parent *field.Path) field.ErrorList {
 		parent.Child("annotations"),
 	)...)
 	return allErrs
+}
+
+// ContractVersionedObjectReference is a reference to an object.
+type ContractVersionedObjectReference struct {
+	// kind of the referent.
+	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
+	Kind string `json:"kind"`
+
+	// name of the referent.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name"`
+
+	// apiGroup is the group for the resource being referenced.
+	// apiGroup must be fully qualified domain name.
+	// The corresponding version for this reference will be looked up from the contract
+	// labels of the corresponding CRD of the referenced object.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	APIGroup string `json:"apiGroup"`
+}
+
+// GroupKind returns the GroupKind of the reference.
+func (r *ContractVersionedObjectReference) GroupKind() schema.GroupKind {
+	return schema.GroupKind{
+		Group: r.APIGroup,
+		Kind:  r.Kind,
+	}
 }

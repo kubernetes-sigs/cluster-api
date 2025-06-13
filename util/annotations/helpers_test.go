@@ -388,22 +388,20 @@ func TestGetManagedAnnotations(t *testing.T) {
 	}
 }
 
-func newFakeMachineSpec(namespace, clusterName string) clusterv1.MachineSpec {
+func newFakeMachineSpec(clusterName string) clusterv1.MachineSpec {
 	return clusterv1.MachineSpec{
 		ClusterName: clusterName,
 		Bootstrap: clusterv1.Bootstrap{
-			ConfigRef: &corev1.ObjectReference{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
-				Kind:       "KubeadmConfigTemplate",
-				Name:       fmt.Sprintf("%s-md-0", clusterName),
-				Namespace:  namespace,
+			ConfigRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: "bootstrap.cluster.x-k8s.io",
+				Kind:     "KubeadmConfigTemplate",
+				Name:     fmt.Sprintf("%s-md-0", clusterName),
 			},
 		},
-		InfrastructureRef: corev1.ObjectReference{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-			Kind:       "FakeMachineTemplate",
-			Name:       fmt.Sprintf("%s-md-0", clusterName),
-			Namespace:  namespace,
+		InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+			APIGroup: "infrastructure.cluster.x-k8s.io",
+			Kind:     "FakeMachineTemplate",
+			Name:     fmt.Sprintf("%s-md-0", clusterName),
 		},
 	}
 }
@@ -414,6 +412,6 @@ func newFakeMachine(namespace, clusterName string) *clusterv1.Machine {
 			Name:      "ma-annotationtest",
 			Namespace: namespace,
 		},
-		Spec: newFakeMachineSpec(namespace, clusterName),
+		Spec: newFakeMachineSpec(clusterName),
 	}
 }

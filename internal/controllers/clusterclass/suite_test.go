@@ -112,7 +112,7 @@ func ownerReferenceTo(obj client.Object, gvk schema.GroupVersionKind) *metav1.Ow
 	}
 }
 
-// referenceExistsWithCorrectKindAndAPIVersion asserts that the passed ObjectReference is not nil and that it has the correct kind and apiVersion.
+// referenceExistsWithCorrectKindAndAPIVersion asserts that the passed ClusterClassTemplateReference is not nil and that it has the correct kind and apiVersion.
 func referenceExistsWithCorrectKindAndAPIVersion(reference *clusterv1.ClusterClassTemplateReference, kind string, apiVersion schema.GroupVersion) error {
 	if reference == nil {
 		return fmt.Errorf("object reference passed was nil")

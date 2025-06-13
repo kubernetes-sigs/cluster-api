@@ -470,7 +470,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 			// We are watching it, will try again when it is deleted.
 			ref := cluster.Spec.ControlPlaneRef
-			log.Info("Cluster still has descendants - waiting for control plane deletion", ref.Kind, klog.KRef(ref.Namespace, ref.Name))
+			log.Info("Cluster still has descendants - waiting for control plane deletion", ref.Kind, klog.KRef(cluster.Namespace, ref.Name))
 			return ctrl.Result{}, nil
 		}
 	}
@@ -510,7 +510,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 			// We are watching it, will try again when it is deleted.
 			ref := cluster.Spec.InfrastructureRef
-			log.Info("Cluster still has descendants - waiting for infrastructure cluster deletion", ref.Kind, klog.KRef(ref.Namespace, ref.Name))
+			log.Info("Cluster still has descendants - waiting for infrastructure cluster deletion", ref.Kind, klog.KRef(cluster.Namespace, ref.Name))
 			return ctrl.Result{}, nil
 		}
 	}

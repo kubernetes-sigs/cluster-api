@@ -73,6 +73,12 @@ var (
 		APIVersion: "refAPIVersion1",
 	}
 
+	fakeContractVersionedRef1 = &clusterv1.ContractVersionedObjectReference{
+		APIGroup: "refAPIGroup1",
+		Kind:     "refKind1",
+		Name:     "refName1",
+	}
+
 	fakeRef2 = &corev1.ObjectReference{
 		Kind:       "refKind2",
 		Namespace:  "refNamespace2",
@@ -115,13 +121,13 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
-			templateRef: blueprint.ClusterClass.Spec.Infrastructure.Ref,
-			template:    blueprint.InfrastructureClusterTemplate,
-			labels:      nil,
-			annotations: nil,
-			currentRef:  nil,
-			obj:         obj,
+			cluster:           scope.Current.Cluster,
+			templateRef:       blueprint.ClusterClass.Spec.Infrastructure.Ref,
+			template:          blueprint.InfrastructureClusterTemplate,
+			labels:            nil,
+			annotations:       nil,
+			currentObjectName: "",
+			obj:               obj,
 		})
 
 		// Ensure no ownership is added to generated InfrastructureCluster.
@@ -132,7 +138,7 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 
 		// current cluster objects for the test scenario
 		clusterWithInfrastructureRef := cluster.DeepCopy()
-		clusterWithInfrastructureRef.Spec.InfrastructureRef = fakeRef1
+		clusterWithInfrastructureRef.Spec.InfrastructureRef = fakeContractVersionedRef1
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
 		scope := scope.New(clusterWithInfrastructureRef)
@@ -143,13 +149,13 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
-			templateRef: blueprint.ClusterClass.Spec.Infrastructure.Ref,
-			template:    blueprint.InfrastructureClusterTemplate,
-			labels:      nil,
-			annotations: nil,
-			currentRef:  scope.Current.Cluster.Spec.InfrastructureRef,
-			obj:         obj,
+			cluster:           scope.Current.Cluster,
+			templateRef:       blueprint.ClusterClass.Spec.Infrastructure.Ref,
+			template:          blueprint.InfrastructureClusterTemplate,
+			labels:            nil,
+			annotations:       nil,
+			currentObjectName: scope.Current.Cluster.Spec.InfrastructureRef.Name,
+			obj:               obj,
 		})
 	})
 	t.Run("Carry over the owner reference to ClusterShim, if any", func(t *testing.T) {
@@ -158,7 +164,7 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 
 		// current cluster objects for the test scenario
 		clusterWithInfrastructureRef := cluster.DeepCopy()
-		clusterWithInfrastructureRef.Spec.InfrastructureRef = fakeRef1
+		clusterWithInfrastructureRef.Spec.InfrastructureRef = fakeContractVersionedRef1
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
 		scope := scope.New(clusterWithInfrastructureRef)
@@ -218,16 +224,16 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		obj, err := computeControlPlaneInfrastructureMachineTemplate(ctx, scope)
+		obj, err := (&generator{Client: fake.NewClientBuilder().WithObjects().Build()}).computeControlPlaneInfrastructureMachineTemplate(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToTemplate(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
-			templateRef: blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
-			template:    blueprint.ControlPlane.InfrastructureMachineTemplate,
-			currentRef:  nil,
-			obj:         obj,
+			cluster:           scope.Current.Cluster,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
+			template:          blueprint.ControlPlane.InfrastructureMachineTemplate,
+			currentObjectName: "",
+			obj:               obj,
 		})
 
 		// Ensure Cluster ownership is added to generated InfrastructureCluster.
@@ -244,16 +250,16 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		obj, err := computeControlPlaneInfrastructureMachineTemplate(ctx, scope)
+		obj, err := (&generator{Client: fake.NewClientBuilder().WithObjects().Build()}).computeControlPlaneInfrastructureMachineTemplate(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToTemplate(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
-			templateRef: blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
-			template:    blueprint.ControlPlane.InfrastructureMachineTemplate,
-			currentRef:  nil,
-			obj:         obj,
+			cluster:           scope.Current.Cluster,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
+			template:          blueprint.ControlPlane.InfrastructureMachineTemplate,
+			currentObjectName: "",
+			obj:               obj,
 		})
 
 		// Ensure Cluster ownership is added to generated InfrastructureCluster.
@@ -262,14 +268,14 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		g.Expect(obj.GetOwnerReferences()[0].Name).To(Equal(cluster.Name))
 	})
 
-	t.Run("If there is already a reference to the infrastructureMachineTemplate, it preserves the reference name", func(t *testing.T) {
+	t.Run("If there is already a reference to the infrastructureMachineTemplate, it preserves the reference name (v1beta1 contract)", func(t *testing.T) {
 		g := NewWithT(t)
 
 		// current cluster objects for the test scenario
 		currentInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cluster1-template1").Build()
 
-		controlPlane := &unstructured.Unstructured{Object: map[string]interface{}{}}
-		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(controlPlane, currentInfrastructureMachineTemplate)
+		controlPlane := builder.ControlPlane(metav1.NamespaceDefault, "controlplane").Build()
+		err := contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Set(controlPlane, contract.ObjToRef(currentInfrastructureMachineTemplate))
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
@@ -280,16 +286,66 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		}
 		s.Blueprint = blueprint
 
-		obj, err := computeControlPlaneInfrastructureMachineTemplate(ctx, s)
+		scheme := runtime.NewScheme()
+		g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+		crd := builder.GenericControlPlaneCRD.DeepCopy()
+		crd.Labels = map[string]string{
+			// Set contract label for v1beta1 contract.
+			fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta1"): clusterv1.GroupVersionControlPlane.Version,
+		}
+		client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd).Build()
+
+		obj, err := (&generator{Client: client}).computeControlPlaneInfrastructureMachineTemplate(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToTemplate(g, assertTemplateInput{
-			cluster:     s.Current.Cluster,
-			templateRef: blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
-			template:    blueprint.ControlPlane.InfrastructureMachineTemplate,
-			currentRef:  contract.ObjToRef(currentInfrastructureMachineTemplate),
-			obj:         obj,
+			cluster:           s.Current.Cluster,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
+			template:          blueprint.ControlPlane.InfrastructureMachineTemplate,
+			currentObjectName: contract.ObjToRef(currentInfrastructureMachineTemplate).Name,
+			obj:               obj,
+		})
+	})
+
+	t.Run("If there is already a reference to the infrastructureMachineTemplate, it preserves the reference name (v1beta2 contract)", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// current cluster objects for the test scenario
+		currentInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cluster1-template1").Build()
+
+		controlPlane := builder.ControlPlane(metav1.NamespaceDefault, "controlplane").Build()
+		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(controlPlane, contract.ObjToContractVersionedObjectReference(currentInfrastructureMachineTemplate))
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		s := scope.New(cluster)
+		s.Current.ControlPlane = &scope.ControlPlaneState{
+			Object:                        controlPlane,
+			InfrastructureMachineTemplate: currentInfrastructureMachineTemplate,
+		}
+		s.Blueprint = blueprint
+
+		scheme := runtime.NewScheme()
+		g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+		crd := builder.GenericControlPlaneCRD.DeepCopy()
+		crd.Labels = map[string]string{
+			// Set contract label for v1beta1 contract.
+			// Note: This is the same as on GenericControlPlaneCRD, but being explicit here for clarity.
+			fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta2"): clusterv1.GroupVersionControlPlane.Version,
+		}
+		client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd).Build()
+
+		obj, err := (&generator{Client: client}).computeControlPlaneInfrastructureMachineTemplate(ctx, s)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(obj).ToNot(BeNil())
+
+		assertTemplateToTemplate(g, assertTemplateInput{
+			cluster:           s.Current.Cluster,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
+			template:          blueprint.ControlPlane.InfrastructureMachineTemplate,
+			currentObjectName: contract.ObjToRef(currentInfrastructureMachineTemplate).Name,
+			obj:               obj,
 		})
 	})
 }
@@ -375,13 +431,13 @@ func TestComputeControlPlane(t *testing.T) {
 	crd := builder.GenericControlPlaneCRD.DeepCopy()
 	crd.Labels = map[string]string{
 		// Set contract label for tt.contract.
-		fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta1"): clusterv1.GroupVersionInfrastructure.Version,
+		fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta1"): clusterv1.GroupVersionControlPlane.Version,
 	}
 	clientWithV1Beta1ContractCRD := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd).Build()
 	crd = builder.GenericControlPlaneCRD.DeepCopy()
 	crd.Labels = map[string]string{
 		// Set contract label for tt.contract.
-		fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta2"): clusterv1.GroupVersionInfrastructure.Version,
+		fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta2"): clusterv1.GroupVersionControlPlane.Version,
 	}
 	clientWithV1Beta2ContractCRD := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd).Build()
 
@@ -405,13 +461,13 @@ func TestComputeControlPlane(t *testing.T) {
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
-			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
-			template:    blueprint.ControlPlane.Template,
-			currentRef:  nil,
-			obj:         obj,
-			labels:      util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			cluster:           scope.Current.Cluster,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			template:          blueprint.ControlPlane.Template,
+			currentObjectName: "",
+			obj:               obj,
+			labels:            util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations:       util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
@@ -420,7 +476,7 @@ func TestComputeControlPlane(t *testing.T) {
 		assertNestedField(g, obj, (time.Duration(topologyDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
 		assertNestedField(g, obj, (time.Duration(topologyDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
 		assertNestedField(g, obj, (time.Duration(topologyDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path()...)
-		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().InfrastructureRef().Path()...)
+		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Path()...)
 
 		// Ensure no ownership is added to generated ControlPlane.
 		g.Expect(obj.GetOwnerReferences()).To(BeEmpty())
@@ -445,13 +501,13 @@ func TestComputeControlPlane(t *testing.T) {
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
-			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
-			template:    blueprint.ControlPlane.Template,
-			currentRef:  nil,
-			obj:         obj,
-			labels:      util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			cluster:           scope.Current.Cluster,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			template:          blueprint.ControlPlane.Template,
+			currentObjectName: "",
+			obj:               obj,
+			labels:            util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations:       util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
@@ -579,13 +635,13 @@ func TestComputeControlPlane(t *testing.T) {
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
-			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
-			template:    blueprint.ControlPlane.Template,
-			currentRef:  nil,
-			obj:         obj,
-			labels:      util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			cluster:           scope.Current.Cluster,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			template:          blueprint.ControlPlane.Template,
+			currentObjectName: "",
+			obj:               obj,
+			labels:            util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations:       util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
@@ -619,7 +675,91 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().ReadinessGates().Path()...)
 	})
-	t.Run("Generates the ControlPlane from the template and adds the infrastructure machine template if required", func(t *testing.T) {
+	t.Run("Generates the ControlPlane from the template and adds the infrastructure machine template if required (v1beta1 contract)", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// templates and ClusterClass
+		infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "template1").Build()
+		clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
+			WithControlPlaneMetadata(labels, annotations).
+			WithControlPlaneTemplate(controlPlaneTemplateWithMachineTemplate).
+			WithControlPlaneInfrastructureMachineTemplate(infrastructureMachineTemplate).Build()
+
+		// aggregating templates and cluster class into a blueprint (simulating getBlueprint)
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     cluster.Spec.Topology,
+			ClusterClass: clusterClass,
+			ControlPlane: &scope.ControlPlaneBlueprint{
+				Template:                      controlPlaneTemplateWithMachineTemplate,
+				InfrastructureMachineTemplate: infrastructureMachineTemplate,
+			},
+		}
+
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		s := scope.New(cluster)
+		s.Blueprint = blueprint
+		s.Current.ControlPlane = &scope.ControlPlaneState{}
+
+		obj, err := (&generator{Client: clientWithV1Beta1ContractCRD}).computeControlPlane(ctx, s, infrastructureMachineTemplate)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(obj).ToNot(BeNil())
+
+		// machineTemplate is removed from the template for assertion as we can't
+		// simply compare the machineTemplate in template with the one in object as
+		// computeControlPlane() adds additional fields like the timeouts to machineTemplate.
+		// Note: machineTemplate ia asserted further down below instead.
+		controlPlaneTemplateWithoutMachineTemplate := blueprint.ControlPlane.Template.DeepCopy()
+		unstructured.RemoveNestedField(controlPlaneTemplateWithoutMachineTemplate.Object, "spec", "template", "spec", "machineTemplate")
+
+		assertTemplateToObject(g, assertTemplateInput{
+			cluster:           s.Current.Cluster,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			template:          controlPlaneTemplateWithoutMachineTemplate,
+			currentObjectName: "",
+			obj:               obj,
+			labels:            util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations:       util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+		})
+		gotMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		expectedLabels := util.MergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels, controlPlaneMachineTemplateLabels)
+		expectedLabels[clusterv1.ClusterNameLabel] = cluster.Name
+		expectedLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
+		g.Expect(gotMetadata).To(BeComparableTo(&clusterv1.ObjectMeta{
+			Labels:      expectedLabels,
+			Annotations: util.MergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations, controlPlaneMachineTemplateAnnotations),
+		}))
+
+		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
+		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
+		assertNestedField(g, obj, map[string]interface{}{
+			"kind":       infrastructureMachineTemplate.GetKind(),
+			"namespace":  infrastructureMachineTemplate.GetNamespace(),
+			"name":       infrastructureMachineTemplate.GetName(),
+			"apiVersion": infrastructureMachineTemplate.GetAPIVersion(),
+		}, contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Path()...)
+
+		// Ensure version is preserved if CP provider bumped the version.
+		// Note: This is only necessary with the v1beta1 contract, as the ref in v1beta2 contract has apiGroup instead of apiVersion.
+
+		// Simulate version bump by CP provider
+		cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		cpInfraRef.APIVersion = cpInfraRef.GroupVersionKind().Group + "/v99"
+		g.Expect(contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Set(obj, cpInfraRef)).To(Succeed())
+		s.Current.ControlPlane = &scope.ControlPlaneState{Object: obj}
+
+		obj, err = (&generator{Client: clientWithV1Beta1ContractCRD}).computeControlPlane(ctx, s, infrastructureMachineTemplate)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(obj).ToNot(BeNil())
+
+		// Verify bumped version was preserved
+		cpInfraRef, err = contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Get(s.Current.ControlPlane.Object)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(cpInfraRef.GroupVersionKind().Version).To(Equal("v99"))
+	})
+	t.Run("Generates the ControlPlane from the template and adds the infrastructure machine template if required (v1beta2 contract)", func(t *testing.T) {
 		g := NewWithT(t)
 
 		// templates and ClusterClass
@@ -656,13 +796,13 @@ func TestComputeControlPlane(t *testing.T) {
 		unstructured.RemoveNestedField(controlPlaneTemplateWithoutMachineTemplate.Object, "spec", "template", "spec", "machineTemplate")
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     s.Current.Cluster,
-			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
-			template:    controlPlaneTemplateWithoutMachineTemplate,
-			currentRef:  nil,
-			obj:         obj,
-			labels:      util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			cluster:           s.Current.Cluster,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			template:          controlPlaneTemplateWithoutMachineTemplate,
+			currentObjectName: "",
+			obj:               obj,
+			labels:            util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations:       util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 		gotMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -678,10 +818,9 @@ func TestComputeControlPlane(t *testing.T) {
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
 		assertNestedField(g, obj, map[string]interface{}{
-			"kind":       infrastructureMachineTemplate.GetKind(),
-			"namespace":  infrastructureMachineTemplate.GetNamespace(),
-			"name":       infrastructureMachineTemplate.GetName(),
-			"apiVersion": infrastructureMachineTemplate.GetAPIVersion(),
+			"kind":     infrastructureMachineTemplate.GetKind(),
+			"name":     infrastructureMachineTemplate.GetName(),
+			"apiGroup": infrastructureMachineTemplate.GroupVersionKind().Group,
 		}, contract.ControlPlane().MachineTemplate().InfrastructureRef().Path()...)
 	})
 	t.Run("If there is already a reference to the ControlPlane, it preserves the reference name", func(t *testing.T) {
@@ -689,7 +828,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		// current cluster objects for the test scenario
 		clusterWithControlPlaneRef := cluster.DeepCopy()
-		clusterWithControlPlaneRef.Spec.ControlPlaneRef = fakeRef1
+		clusterWithControlPlaneRef.Spec.ControlPlaneRef = fakeContractVersionedRef1
 
 		blueprint := &scope.ClusterBlueprint{
 			Topology:     clusterWithControlPlaneRef.Spec.Topology,
@@ -708,13 +847,13 @@ func TestComputeControlPlane(t *testing.T) {
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
-			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
-			template:    blueprint.ControlPlane.Template,
-			currentRef:  scope.Current.Cluster.Spec.ControlPlaneRef,
-			obj:         obj,
-			labels:      util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			cluster:           scope.Current.Cluster,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			template:          blueprint.ControlPlane.Template,
+			currentObjectName: scope.Current.Cluster.Spec.ControlPlaneRef.Name,
+			obj:               obj,
+			labels:            util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations:       util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 	})
 	t.Run("Should choose the correct version for control plane", func(t *testing.T) {
@@ -753,7 +892,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 				// Current cluster objects for the test scenario.
 				clusterWithControlPlaneRef := cluster.DeepCopy()
-				clusterWithControlPlaneRef.Spec.ControlPlaneRef = fakeRef1
+				clusterWithControlPlaneRef.Spec.ControlPlaneRef = fakeContractVersionedRef1
 				clusterWithControlPlaneRef.Spec.Topology.Version = tt.topologyVersion
 
 				blueprint := &scope.ClusterBlueprint{
@@ -1492,8 +1631,7 @@ func TestComputeCluster(t *testing.T) {
 	// aggregating current cluster objects into ClusterState (simulating getCurrentState)
 	scope := scope.New(cluster)
 
-	obj, err := computeCluster(ctx, scope, infrastructureCluster, controlPlane)
-	g.Expect(err).ToNot(HaveOccurred())
+	obj := computeCluster(ctx, scope, infrastructureCluster, controlPlane)
 	g.Expect(obj).ToNot(BeNil())
 
 	// TypeMeta
@@ -1507,8 +1645,8 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyOwnedLabel, ""))
 
 	// Spec
-	g.Expect(obj.Spec.InfrastructureRef).To(BeComparableTo(contract.ObjToRef(infrastructureCluster)))
-	g.Expect(obj.Spec.ControlPlaneRef).To(BeComparableTo(contract.ObjToRef(controlPlane)))
+	g.Expect(obj.Spec.InfrastructureRef).To(BeComparableTo(contract.ObjToContractVersionedObjectReference(infrastructureCluster)))
+	g.Expect(obj.Spec.ControlPlaneRef).To(BeComparableTo(contract.ObjToContractVersionedObjectReference(controlPlane)))
 }
 
 func TestComputeMachineDeployment(t *testing.T) {
@@ -1796,9 +1934,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						Version: ptr.To(version),
 						Bootstrap: clusterv1.Bootstrap{
-							ConfigRef: contract.ObjToRef(workerBootstrapTemplate),
+							ConfigRef: contract.ObjToContractVersionedObjectReference(workerBootstrapTemplate),
 						},
-						InfrastructureRef: *contract.ObjToRef(workerInfrastructureMachineTemplate),
+						InfrastructureRef: *contract.ObjToContractVersionedObjectReference(workerInfrastructureMachineTemplate),
 					},
 				},
 			},
@@ -2200,9 +2338,9 @@ func TestComputeMachinePool(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						Version: ptr.To(version),
 						Bootstrap: clusterv1.Bootstrap{
-							ConfigRef: contract.ObjToRef(workerBootstrapConfig),
+							ConfigRef: contract.ObjToContractVersionedObjectReference(workerBootstrapConfig),
 						},
-						InfrastructureRef: *contract.ObjToRef(workerInfrastructureMachinePool),
+						InfrastructureRef: *contract.ObjToContractVersionedObjectReference(workerInfrastructureMachinePool),
 					},
 				},
 			},
@@ -2909,7 +3047,7 @@ func TestTemplateToObject(t *testing.T) {
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
 			nameGenerator:         topologynames.SimpleNameGenerator(cluster.Name),
-			currentObjectRef:      nil,
+			currentObjectName:     "",
 		})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
@@ -2921,9 +3059,9 @@ func TestTemplateToObject(t *testing.T) {
 				Name:       fakeRef1.Name,
 				APIVersion: fakeRef1.APIVersion,
 			},
-			template:   template,
-			currentRef: nil,
-			obj:        obj,
+			template:          template,
+			currentObjectName: "",
+			obj:               obj,
 		})
 	})
 	t.Run("Overrides the generated name if there is already a reference", func(t *testing.T) {
@@ -2933,7 +3071,7 @@ func TestTemplateToObject(t *testing.T) {
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
 			nameGenerator:         topologynames.SimpleNameGenerator(cluster.Name),
-			currentObjectRef:      fakeRef2,
+			currentObjectName:     fakeRef2.Name,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
@@ -2946,9 +3084,9 @@ func TestTemplateToObject(t *testing.T) {
 				Name:       fakeRef1.Name,
 				APIVersion: fakeRef1.APIVersion,
 			},
-			template:   template,
-			currentRef: fakeRef2,
-			obj:        obj,
+			template:          template,
+			currentObjectName: fakeRef2.Name,
+			obj:               obj,
 		})
 	})
 }
@@ -2978,7 +3116,7 @@ func TestTemplateToTemplate(t *testing.T) {
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
 			nameGenerator:         topologynames.SimpleNameGenerator(cluster.Name),
-			currentObjectRef:      nil,
+			currentObjectName:     "",
 		})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
@@ -2989,9 +3127,9 @@ func TestTemplateToTemplate(t *testing.T) {
 				Name:       fakeRef1.Name,
 				APIVersion: fakeRef1.APIVersion,
 			},
-			template:   template,
-			currentRef: nil,
-			obj:        obj,
+			template:          template,
+			currentObjectName: "",
+			obj:               obj,
 		})
 	})
 	t.Run("Overrides the generated name if there is already a reference", func(t *testing.T) {
@@ -3001,7 +3139,7 @@ func TestTemplateToTemplate(t *testing.T) {
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
 			nameGenerator:         topologynames.SimpleNameGenerator(cluster.Name),
-			currentObjectRef:      fakeRef2,
+			currentObjectName:     fakeRef2.Name,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
@@ -3012,9 +3150,9 @@ func TestTemplateToTemplate(t *testing.T) {
 				Name:       fakeRef1.Name,
 				APIVersion: fakeRef1.APIVersion,
 			},
-			template:   template,
-			currentRef: fakeRef2,
-			obj:        obj,
+			template:          template,
+			currentObjectName: fakeRef2.Name,
+			obj:               obj,
 		})
 	})
 }
@@ -3024,7 +3162,7 @@ type assertTemplateInput struct {
 	templateRef         *clusterv1.ClusterClassTemplateReference
 	template            *unstructured.Unstructured
 	labels, annotations map[string]string
-	currentRef          *corev1.ObjectReference
+	currentObjectName   string
 	obj                 *unstructured.Unstructured
 }
 
@@ -3034,8 +3172,8 @@ func assertTemplateToObject(g *WithT, in assertTemplateInput) {
 	g.Expect(in.obj.GetKind()).To(Equal(strings.TrimSuffix(in.template.GetKind(), "Template")))
 
 	// ObjectMeta
-	if in.currentRef != nil {
-		g.Expect(in.obj.GetName()).To(Equal(in.currentRef.Name))
+	if in.currentObjectName != "" {
+		g.Expect(in.obj.GetName()).To(Equal(in.currentObjectName))
 	} else {
 		g.Expect(in.obj.GetName()).To(HavePrefix(in.cluster.Name))
 	}
@@ -3059,6 +3197,11 @@ func assertTemplateToObject(g *WithT, in assertTemplateInput) {
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ok).To(BeTrue())
 	for k, v := range expectedSpec {
+		if k == "machineTemplate" {
+			// We don't expect machineTemplate to be the same as in the template (as the template does not contain the infrastructureRef).
+			g.Expect(cloneSpec).To(HaveKey(k))
+			continue
+		}
 		g.Expect(cloneSpec).To(HaveKeyWithValue(k, v))
 	}
 }
@@ -3069,8 +3212,8 @@ func assertTemplateToTemplate(g *WithT, in assertTemplateInput) {
 	g.Expect(in.obj.GetKind()).To(Equal(in.template.GetKind()))
 
 	// ObjectMeta
-	if in.currentRef != nil {
-		g.Expect(in.obj.GetName()).To(Equal(in.currentRef.Name))
+	if in.currentObjectName != "" {
+		g.Expect(in.obj.GetName()).To(Equal(in.currentObjectName))
 	} else {
 		g.Expect(in.obj.GetName()).To(HavePrefix(in.cluster.Name))
 	}

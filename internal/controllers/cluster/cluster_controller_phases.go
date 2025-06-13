@@ -49,18 +49,10 @@ import (
 var externalReadyWait = 30 * time.Second
 
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
-func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *clusterv1.ContractVersionedObjectReference) (*unstructured.Unstructured, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if err := contract.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
-		if apierrors.IsNotFound(err) {
-			// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found.
-			return nil, errors.New(err.Error())
-		}
-		return nil, err
-	}
-
-	obj, err := external.Get(ctx, r.Client, ref)
+	obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, cluster.Namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +171,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	s.infraCluster = obj
 
 	// Determine contract version used by the InfrastructureCluster.
-	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.infraCluster.GroupVersionKind())
+	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.infraCluster.GroupVersionKind().GroupKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -286,7 +278,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	s.controlPlane = obj
 
 	// Determine contract version used by the ControlPlane.
-	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind())
+	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind().GroupKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}

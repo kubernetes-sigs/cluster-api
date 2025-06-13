@@ -213,12 +213,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, ms *clusterv1.MachineS
 
 	// Delete unused templates.
 	ref := ms.Spec.Template.Spec.Bootstrap.ConfigRef
-	if err := DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return errors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name), klog.KObj(ms))
+	if err := DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, ms.Namespace); err != nil {
+		return errors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(ms.Namespace, ref.Name), klog.KObj(ms))
 	}
 	ref = &ms.Spec.Template.Spec.InfrastructureRef
-	if err := DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return errors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name), klog.KObj(ms))
+	if err := DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, ms.Namespace); err != nil {
+		return errors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(ms.Namespace, ref.Name), klog.KObj(ms))
 	}
 
 	// Remove the finalizer so the MachineSet can be garbage collected by Kubernetes.

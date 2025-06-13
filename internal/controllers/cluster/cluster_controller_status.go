@@ -48,7 +48,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	controlPlaneContractVersion := ""
 	if s.controlPlane != nil {
 		var err error
-		controlPlaneContractVersion, err = contract.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind())
+		controlPlaneContractVersion, err = contract.GetContractVersion(ctx, r.Client, s.controlPlane.GroupVersionKind().GroupKind())
 		if err != nil {
 			return err
 		}

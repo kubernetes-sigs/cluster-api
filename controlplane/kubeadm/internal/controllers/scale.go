@@ -64,8 +64,8 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 	logger.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
 		Info("Machine created (scale up)",
 			"Machine", klog.KObj(newMachine),
-			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Spec.InfrastructureRef.Namespace, newMachine.Spec.InfrastructureRef.Name),
-			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Spec.Bootstrap.ConfigRef.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
+			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
+			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
 
 	// Requeue the control plane, in case there are additional operations to perform
 	return ctrl.Result{Requeue: true}, nil
@@ -103,8 +103,8 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 	logger.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
 		Info("Machine created (scale up)",
 			"Machine", klog.KObj(newMachine),
-			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Spec.InfrastructureRef.Namespace, newMachine.Spec.InfrastructureRef.Name),
-			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Spec.Bootstrap.ConfigRef.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
+			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
+			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
 
 	// Requeue the control plane, in case there are other operations to perform
 	return ctrl.Result{Requeue: true}, nil

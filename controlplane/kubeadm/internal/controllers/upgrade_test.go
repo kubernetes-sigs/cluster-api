@@ -209,10 +209,10 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						APIVersion: bootstrapv1.GroupVersion.String(),
-						Kind:       "KubeadmConfig",
-						Name:       name,
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: bootstrapv1.GroupVersion.Group,
+						Kind:     "KubeadmConfig",
+						Name:     name,
 					},
 				},
 				Version: &version,

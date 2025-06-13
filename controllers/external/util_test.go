@@ -22,14 +22,17 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 var (
@@ -84,6 +87,79 @@ func TestGetResourceNotFound(t *testing.T) {
 	g.Expect(apierrors.IsNotFound(errors.Cause(err))).To(BeTrue())
 }
 
+func TestGetObjectFromContractVersionedRef(t *testing.T) {
+	testCases := []struct {
+		name                string
+		ref                 *clusterv1.ContractVersionedObjectReference
+		objs                []client.Object
+		expectError         bool
+		expectNotFoundError bool
+	}{
+		{
+			name: "object found",
+			ref: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.BootstrapGroupVersion.Group,
+				Kind:     builder.TestBootstrapConfigKind,
+				Name:     "bootstrap-config",
+			},
+			objs: []client.Object{
+				builder.TestBootstrapConfig(metav1.NamespaceDefault, "bootstrap-config").Build(),
+				builder.TestBootstrapConfigCRD,
+			},
+			expectError:         false,
+			expectNotFoundError: false,
+		},
+		{
+			name: "object not found, because CRD is missing",
+			ref: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.BootstrapGroupVersion.Group,
+				Kind:     builder.TestBootstrapConfigKind,
+				Name:     "bootstrap-config",
+			},
+			objs: []client.Object{
+				builder.TestBootstrapConfig(metav1.NamespaceDefault, "bootstrap-config").Build(),
+				// corresponding CRD is missing
+			},
+			expectError:         true,
+			expectNotFoundError: false,
+		},
+		{
+			name: "object not found, because object is missing",
+			ref: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.BootstrapGroupVersion.Group,
+				Kind:     builder.TestBootstrapConfigKind,
+				Name:     "bootstrap-config",
+			},
+			objs: []client.Object{
+				// object is missing
+				builder.TestBootstrapConfigCRD,
+			},
+			expectError:         true,
+			expectNotFoundError: true,
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			scheme := runtime.NewScheme()
+			g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+			c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build()
+
+			object, err := GetObjectFromContractVersionedRef(t.Context(), c, tt.ref, metav1.NamespaceDefault)
+
+			if tt.expectError {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(apierrors.IsNotFound(err)).To(Equal(tt.expectNotFoundError))
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(object.GetAPIVersion()).To(Equal(builder.BootstrapGroupVersion.String()))
+			}
+		})
+	}
+}
+
 func TestCloneTemplateResourceNotFound(t *testing.T) {
 	g := NewWithT(t)
 
@@ -97,7 +173,7 @@ func TestCloneTemplateResourceNotFound(t *testing.T) {
 	}
 
 	fakeClient := fake.NewClientBuilder().Build()
-	_, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
+	_, _, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: testResourceReference,
 		Namespace:   metav1.NamespaceDefault,
@@ -156,7 +232,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 	}
 
 	expectedKind := "Purple"
-	expectedAPIVersion := templateAPIVersion
+	expectedAPIGroup := "purple.io" // group from templateAPIVersion
 	expectedMetadata, ok, err := unstructured.NestedMap(template.UnstructuredContent(), "spec", "template", "metadata")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ok).To(BeTrue())
@@ -169,7 +245,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithObjects(template.DeepCopy()).Build()
 
-	ref, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
+	_, ref, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: templateRef.DeepCopy(),
 		Namespace:   metav1.NamespaceDefault,
@@ -187,15 +263,14 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ref).NotTo(BeNil())
 	g.Expect(ref.Kind).To(Equal(expectedKind))
-	g.Expect(ref.APIVersion).To(Equal(expectedAPIVersion))
-	g.Expect(ref.Namespace).To(Equal(metav1.NamespaceDefault))
+	g.Expect(ref.APIGroup).To(Equal(expectedAPIGroup))
 	g.Expect(ref.Name).To(HavePrefix(templateRef.Name))
 
 	clone := &unstructured.Unstructured{}
 	clone.SetKind(expectedKind)
-	clone.SetAPIVersion(expectedAPIVersion)
+	clone.SetAPIVersion(templateAPIVersion)
 
-	key := client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}
+	key := client.ObjectKey{Name: ref.Name, Namespace: metav1.NamespaceDefault}
 	g.Expect(fakeClient.Get(ctx, key, clone)).To(Succeed())
 	g.Expect(clone.GetOwnerReferences()).To(HaveLen(1))
 	g.Expect(clone.GetOwnerReferences()).To(ContainElement(owner))
@@ -251,7 +326,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 	}
 
 	expectedKind := "Yellow"
-	expectedAPIVersion := templateAPIVersion
+	expectedAPIGroup := "yellow.io" // group from templateAPIVersion
 	expectedLabels := map[string]string{clusterv1.ClusterNameLabel: testClusterName}
 
 	expectedSpec, ok, err := unstructured.NestedMap(template.UnstructuredContent(), "spec", "template", "spec")
@@ -261,7 +336,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithObjects(template.DeepCopy()).Build()
 
-	ref, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
+	_, ref, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: templateRef,
 		Namespace:   metav1.NamespaceDefault,
@@ -271,14 +346,13 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ref).NotTo(BeNil())
 	g.Expect(ref.Kind).To(Equal(expectedKind))
-	g.Expect(ref.APIVersion).To(Equal(expectedAPIVersion))
-	g.Expect(ref.Namespace).To(Equal(metav1.NamespaceDefault))
+	g.Expect(ref.APIGroup).To(Equal(expectedAPIGroup))
 	g.Expect(ref.Name).To(Equal("object-name"))
 
 	clone := &unstructured.Unstructured{}
 	clone.SetKind(expectedKind)
-	clone.SetAPIVersion(expectedAPIVersion)
-	key := client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}
+	clone.SetAPIVersion(templateAPIVersion)
+	key := client.ObjectKey{Name: ref.Name, Namespace: metav1.NamespaceDefault}
 	g.Expect(fakeClient.Get(ctx, key, clone)).To(Succeed())
 	g.Expect(clone.GetLabels()).To(Equal(expectedLabels))
 	g.Expect(clone.GetOwnerReferences()).To(BeEmpty())
@@ -316,7 +390,7 @@ func TestCloneTemplateMissingSpecTemplate(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithObjects(template.DeepCopy()).Build()
 
-	_, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
+	_, _, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: templateRef,
 		Namespace:   metav1.NamespaceDefault,

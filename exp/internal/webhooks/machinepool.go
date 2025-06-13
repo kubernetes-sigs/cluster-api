@@ -97,14 +97,6 @@ func (webhook *MachinePool) Default(ctx context.Context, obj runtime.Object) err
 
 	m.Spec.Replicas = ptr.To[int32](replicas)
 
-	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace == "" {
-		m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
-	}
-
-	if m.Spec.Template.Spec.InfrastructureRef.Namespace == "" {
-		m.Spec.Template.Spec.InfrastructureRef.Namespace = m.Namespace
-	}
-
 	// Set the default value for the node deletion timeout.
 	if m.Spec.Template.Spec.NodeDeletionTimeoutSeconds == nil {
 		m.Spec.Template.Spec.NodeDeletionTimeoutSeconds = ptr.To(defaultNodeDeletionTimeoutSeconds)
@@ -169,28 +161,6 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 			field.Required(
 				specPath.Child("template", "spec", "bootstrap", "data"),
 				"expected either spec.bootstrap.dataSecretName or spec.bootstrap.configRef to be populated",
-			),
-		)
-	}
-
-	if newObj.Spec.Template.Spec.Bootstrap.ConfigRef != nil && newObj.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace != newObj.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				specPath.Child("template", "spec", "bootstrap", "configRef", "namespace"),
-				newObj.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace,
-				"must match metadata.namespace",
-			),
-		)
-	}
-
-	if newObj.Spec.Template.Spec.InfrastructureRef.Namespace != newObj.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				specPath.Child("infrastructureRef", "namespace"),
-				newObj.Spec.Template.Spec.InfrastructureRef.Namespace,
-				"must match metadata.namespace",
 			),
 		)
 	}

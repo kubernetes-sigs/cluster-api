@@ -56,6 +56,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterV1Beta1DeprecatedStatus":                 schema_cluster_api_api_core_v1beta2_ClusterV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterVariable":                                schema_cluster_api_api_core_v1beta2_ClusterVariable(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.Condition":                                      schema_cluster_api_api_core_v1beta2_Condition(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference":               schema_cluster_api_api_core_v1beta2_ContractVersionedObjectReference(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClass":                              schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy":                schema_cluster_api_api_core_v1beta2_ControlPlaneClassNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopology":                           schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref),
@@ -185,7 +186,7 @@ func schema_cluster_api_api_core_v1beta2_Bootstrap(ref common.ReferenceCallback)
 					"configRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "configRef is a reference to a bootstrap provider-specific resource that holds configuration details. The reference is optional to allow users/operators to specify Bootstrap.DataSecretName without the need of a controller.",
-							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference"),
 						},
 					},
 					"dataSecretName": {
@@ -199,7 +200,7 @@ func schema_cluster_api_api_core_v1beta2_Bootstrap(ref common.ReferenceCallback)
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference"},
 	}
 }
 
@@ -1133,13 +1134,13 @@ func schema_cluster_api_api_core_v1beta2_ClusterSpec(ref common.ReferenceCallbac
 					"controlPlaneRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "controlPlaneRef is an optional reference to a provider-specific resource that holds the details for provisioning the Control Plane for a Cluster.",
-							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference"),
 						},
 					},
 					"infrastructureRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "infrastructureRef is a reference to a provider-specific resource that holds the details for provisioning infrastructure for a cluster in said provider.",
-							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference"),
 						},
 					},
 					"topology": {
@@ -1174,7 +1175,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterSpec(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.APIEndpoint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterAvailabilityGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterNetwork", "sigs.k8s.io/cluster-api/api/core/v1beta2.Topology"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.APIEndpoint", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterAvailabilityGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterNetwork", "sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.Topology"},
 	}
 }
 
@@ -1404,6 +1405,44 @@ func schema_cluster_api_api_core_v1beta2_Condition(ref common.ReferenceCallback)
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ContractVersionedObjectReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ContractVersionedObjectReference is a reference to an object.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "kind of the referent. kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name of the referent. name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiGroup": {
+						SchemaProps: spec.SchemaProps{
+							Description: "apiGroup is the group for the resource being referenced. apiGroup must be fully qualified domain name. The corresponding version for this reference will be looked up from the contract labels of the corresponding CRD of the referenced object.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"kind", "name", "apiGroup"},
+			},
+		},
 	}
 }
 
@@ -4862,7 +4901,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSpec(ref common.ReferenceCallbac
 						SchemaProps: spec.SchemaProps{
 							Description: "infrastructureRef is a required reference to a custom resource offered by an infrastructure provider.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference"),
 						},
 					},
 					"version": {
@@ -4941,7 +4980,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSpec(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.Bootstrap", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.Bootstrap", "sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate"},
 	}
 }
 

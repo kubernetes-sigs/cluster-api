@@ -317,9 +317,28 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 		log := ctrl.LoggerFrom(ctx).WithValues(s.Desired.ControlPlane.InfrastructureMachineTemplate.GetKind(), klog.KObj(s.Desired.ControlPlane.InfrastructureMachineTemplate))
 		ctx := ctrl.LoggerInto(ctx, log)
 
-		cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(s.Desired.ControlPlane.Object)
+		// Determine contract version used by the ControlPlane.
+		contractVersion, err := contract.GetContractVersionForVersion(ctx, r.Client, s.Desired.ControlPlane.Object.GroupVersionKind().GroupKind(), s.Desired.ControlPlane.Object.GroupVersionKind().Version)
 		if err != nil {
-			return false, errors.Wrapf(err, "failed to reconcile %s %s", s.Desired.ControlPlane.InfrastructureMachineTemplate.GetKind(), klog.KObj(s.Desired.ControlPlane.InfrastructureMachineTemplate))
+			return false, errors.Wrapf(err, "failed to get contract version for the ControlPlane object")
+		}
+		var cpInfraRef *clusterv1.ContractVersionedObjectReference
+		var cpInfraV1Beta1Ref *corev1.ObjectReference
+		if contractVersion == "v1beta1" {
+			cpInfraV1Beta1Ref, err = contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Get(s.Desired.ControlPlane.Object)
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to reconcile %s %s", s.Desired.ControlPlane.InfrastructureMachineTemplate.GetKind(), klog.KObj(s.Desired.ControlPlane.InfrastructureMachineTemplate))
+			}
+			cpInfraRef = &clusterv1.ContractVersionedObjectReference{
+				APIGroup: cpInfraV1Beta1Ref.GroupVersionKind().Group,
+				Kind:     cpInfraV1Beta1Ref.Kind,
+				Name:     cpInfraV1Beta1Ref.Name,
+			}
+		} else {
+			cpInfraRef, err = contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(s.Desired.ControlPlane.Object)
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to reconcile %s %s", s.Desired.ControlPlane.InfrastructureMachineTemplate.GetKind(), klog.KObj(s.Desired.ControlPlane.InfrastructureMachineTemplate))
+			}
 		}
 
 		// Create or update the MachineInfrastructureTemplate of the control plane.
@@ -346,7 +365,13 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 		}
 
 		// The controlPlaneObject.Spec.machineTemplate.infrastructureRef has to be updated in the desired object
-		err = contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(s.Desired.ControlPlane.Object, refToUnstructured(cpInfraRef))
+		if contractVersion == "v1beta1" {
+			// Update the name in case reconcileReferencedTemplate rotated the template.
+			cpInfraV1Beta1Ref.Name = cpInfraRef.Name
+			err = contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Set(s.Desired.ControlPlane.Object, cpInfraV1Beta1Ref)
+		} else {
+			err = contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(s.Desired.ControlPlane.Object, cpInfraRef)
+		}
 		if err != nil {
 			// Best effort cleanup of the InfrastructureMachineTemplate (only on creation).
 			infrastructureMachineCleanupFunc()
@@ -543,9 +568,8 @@ func (r *Reconciler) reconcileMachineDeployments(ctx context.Context, s *scope.S
 
 // getCurrentMachineDeployments gets the current list of MachineDeployments via the APIReader.
 func (r *Reconciler) getCurrentMachineDeployments(ctx context.Context, s *scope.Scope) (sets.Set[string], error) {
-	// TODO: We should consider using PartialObjectMetadataList here. Currently this doesn't work as our
-	// implementation for topology dryrun doesn't support PartialObjectMetadataList.
-	mdList := &clusterv1.MachineDeploymentList{}
+	mdList := &metav1.PartialObjectMetadataList{}
+	mdList.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineDeployment"))
 	err := r.APIReader.List(ctx, mdList,
 		client.MatchingLabels{
 			clusterv1.ClusterNameLabel:          s.Current.Cluster.Name,
@@ -887,9 +911,8 @@ func (r *Reconciler) reconcileMachinePools(ctx context.Context, s *scope.Scope) 
 
 // getCurrentMachinePools gets the current list of MachinePools via the APIReader.
 func (r *Reconciler) getCurrentMachinePools(ctx context.Context, s *scope.Scope) (sets.Set[string], error) {
-	// TODO: We should consider using PartialObjectMetadataList here. Currently this doesn't work as our
-	// implementation for topology dryrun doesn't support PartialObjectMetadataList.
-	mpList := &clusterv1.MachinePoolList{}
+	mpList := &metav1.PartialObjectMetadataList{}
+	mpList.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachinePool"))
 	err := r.APIReader.List(ctx, mpList,
 		client.MatchingLabels{
 			clusterv1.ClusterNameLabel:          s.Current.Cluster.Name,
@@ -1241,7 +1264,7 @@ func logUnstructuredVersionChange(current, desired *unstructured.Unstructured, v
 
 type reconcileReferencedTemplateInput struct {
 	cluster              *clusterv1.Cluster
-	ref                  *corev1.ObjectReference
+	ref                  *clusterv1.ContractVersionedObjectReference
 	current              *unstructured.Unstructured
 	desired              *unstructured.Unstructured
 	templateNamePrefix   string

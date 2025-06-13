@@ -128,7 +128,7 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(fakeScheme).
-			WithObjects(md, mdBT, mdIMT).
+			WithObjects(md, mdBT, mdIMT, builder.GenericBootstrapConfigTemplateCRD, builder.GenericInfrastructureMachineTemplateCRD).
 			Build()
 
 		r := &Reconciler{
@@ -155,7 +155,7 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(fakeScheme).
-			WithObjects(mdWithoutBootstrapTemplate, mdWithoutBootstrapTemplateIMT).
+			WithObjects(mdWithoutBootstrapTemplate, mdWithoutBootstrapTemplateIMT, builder.GenericBootstrapConfigTemplateCRD, builder.GenericInfrastructureMachineTemplateCRD).
 			Build()
 
 		r := &Reconciler{
@@ -207,7 +207,7 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(fakeScheme).
-			WithObjects(md, mhc).
+			WithObjects(md, mhc, builder.GenericBootstrapConfigTemplateCRD, builder.GenericInfrastructureMachineTemplateCRD).
 			Build()
 
 		r := &Reconciler{

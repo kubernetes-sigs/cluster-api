@@ -153,10 +153,10 @@ func intOrStrPtr(i int32) *intstr.IntOrString {
 	return &res
 }
 
-func fakeInfrastructureRefProvisioned(ref corev1.ObjectReference, base map[string]interface{}, g *WithT) string {
+func fakeInfrastructureRefProvisioned(ref clusterv1.ContractVersionedObjectReference, namespace string, base map[string]interface{}, g *WithT) string {
 	iref := (&unstructured.Unstructured{Object: base}).DeepCopy()
 	g.Eventually(func() error {
-		return env.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}, iref)
+		return env.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: namespace}, iref)
 	}).Should(Succeed())
 
 	irefPatch := client.MergeFrom(iref.DeepCopy())

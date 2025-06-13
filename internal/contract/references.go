@@ -23,30 +23,34 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
-// Ref provide a helper struct for working with references in Unstructured objects.
-type Ref struct {
+// V1Beta1Ref provide a helper struct for working with references in Unstructured objects.
+//
+// Deprecated: Will be removed when v1beta1 will be removed.
+type V1Beta1Ref struct {
 	path Path
 }
 
 // Path returns the path of the reference.
-func (r *Ref) Path() Path {
+func (r *V1Beta1Ref) Path() Path {
 	return r.path
 }
 
 // Get gets the reference value from the Unstructured object.
-func (r *Ref) Get(obj *unstructured.Unstructured) (*corev1.ObjectReference, error) {
-	return GetNestedRef(obj, r.path...)
+func (r *V1Beta1Ref) Get(obj *unstructured.Unstructured) (*corev1.ObjectReference, error) {
+	return getNestedV1Beta1Ref(obj, r.path...)
 }
 
 // Set sets the reference value in the Unstructured object.
-func (r *Ref) Set(obj, refObj *unstructured.Unstructured) error {
-	return SetNestedRef(obj, refObj, r.path...)
+func (r *V1Beta1Ref) Set(obj *unstructured.Unstructured, ref *corev1.ObjectReference) error {
+	return setNestedV1Beta1Ref(obj, ref, r.path...)
 }
 
-// GetNestedRef returns the ref value from a nested field in an Unstructured object.
-func GetNestedRef(obj *unstructured.Unstructured, fields ...string) (*corev1.ObjectReference, error) {
+// getNestedV1Beta1Ref returns the ref value from a nested field in an Unstructured object.
+func getNestedV1Beta1Ref(obj *unstructured.Unstructured, fields ...string) (*corev1.ObjectReference, error) {
 	ref := &corev1.ObjectReference{}
 	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "apiVersion")...); ok && err == nil {
 		ref.APIVersion = v
@@ -71,15 +75,15 @@ func GetNestedRef(obj *unstructured.Unstructured, fields ...string) (*corev1.Obj
 	return ref, nil
 }
 
-// SetNestedRef sets the value of a nested field in an Unstructured to a reference to the refObj provided.
-func SetNestedRef(obj, refObj *unstructured.Unstructured, fields ...string) error {
-	ref := map[string]interface{}{
-		"kind":       refObj.GetKind(),
-		"namespace":  refObj.GetNamespace(),
-		"name":       refObj.GetName(),
-		"apiVersion": refObj.GetAPIVersion(),
+// setNestedV1Beta1Ref sets the value of a nested field in an Unstructured to a reference to the refObj provided.
+func setNestedV1Beta1Ref(obj *unstructured.Unstructured, ref *corev1.ObjectReference, fields ...string) error {
+	r := map[string]interface{}{
+		"kind":       ref.Kind,
+		"namespace":  ref.Namespace,
+		"name":       ref.Name,
+		"apiVersion": ref.APIVersion,
 	}
-	if err := unstructured.SetNestedField(obj.UnstructuredContent(), ref, fields...); err != nil {
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), r, fields...); err != nil {
 		return errors.Wrapf(err, "failed to set object reference on object %v %s",
 			obj.GroupVersionKind(), klog.KObj(obj))
 	}
@@ -96,5 +100,17 @@ func ObjToRef(obj *unstructured.Unstructured) *corev1.ObjectReference {
 		APIVersion: gvk.GroupVersion().String(),
 		Namespace:  obj.GetNamespace(),
 		Name:       obj.GetName(),
+	}
+}
+
+// ObjToContractVersionedObjectReference returns a reference to the given object.
+// Note: This function only operates on Unstructured instead of client.Object
+// because it is only safe to assume for Unstructured that the GVK is set.
+func ObjToContractVersionedObjectReference(obj *unstructured.Unstructured) *clusterv1.ContractVersionedObjectReference {
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	return &clusterv1.ContractVersionedObjectReference{
+		APIGroup: gvk.Group,
+		Kind:     gvk.Kind,
+		Name:     obj.GetName(),
 	}
 }

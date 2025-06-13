@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
@@ -36,7 +35,7 @@ func TestMachineDefault(t *testing.T) {
 			Namespace: "foobar",
 		},
 		Spec: clusterv1.MachineSpec{
-			Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+			Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
 			Version:   ptr.To("1.17.5"),
 		},
 	}
@@ -47,8 +46,6 @@ func TestMachineDefault(t *testing.T) {
 	g.Expect(webhook.Default(ctx, m)).To(Succeed())
 
 	g.Expect(m.Labels[clusterv1.ClusterNameLabel]).To(Equal(m.Spec.ClusterName))
-	g.Expect(m.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(m.Namespace))
-	g.Expect(m.Spec.InfrastructureRef.Namespace).To(Equal(m.Namespace))
 	g.Expect(*m.Spec.Version).To(Equal("v1.17.5"))
 	g.Expect(*m.Spec.NodeDeletionTimeoutSeconds).To(Equal(defaultNodeDeletionTimeoutSeconds))
 }
@@ -76,7 +73,7 @@ func TestMachineBootstrapValidation(t *testing.T) {
 		},
 		{
 			name:      "should not return error if config ref is set",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}, DataSecretName: nil},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}, DataSecretName: nil},
 			expectErr: false,
 		},
 	}
@@ -86,73 +83,6 @@ func TestMachineBootstrapValidation(t *testing.T) {
 			g := NewWithT(t)
 			m := &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{Bootstrap: tt.bootstrap},
-			}
-			webhook := &Machine{}
-
-			if tt.expectErr {
-				warnings, err := webhook.ValidateCreate(ctx, m)
-				g.Expect(err).To(HaveOccurred())
-				g.Expect(warnings).To(BeEmpty())
-				warnings, err = webhook.ValidateUpdate(ctx, m, m)
-				g.Expect(err).To(HaveOccurred())
-				g.Expect(warnings).To(BeEmpty())
-			} else {
-				warnings, err := webhook.ValidateCreate(ctx, m)
-				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(warnings).To(BeEmpty())
-				warnings, err = webhook.ValidateUpdate(ctx, m, m)
-				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(warnings).To(BeEmpty())
-			}
-		})
-	}
-}
-
-func TestMachineNamespaceValidation(t *testing.T) {
-	tests := []struct {
-		name      string
-		expectErr bool
-		bootstrap clusterv1.Bootstrap
-		infraRef  corev1.ObjectReference
-		namespace string
-	}{
-		{
-			name:      "should succeed if all namespaces match",
-			expectErr: false,
-			namespace: "foobar",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar"}},
-			infraRef:  corev1.ObjectReference{Namespace: "foobar"},
-		},
-		{
-			name:      "should return error if namespace and bootstrap namespace don't match",
-			expectErr: true,
-			namespace: "foobar",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar123"}},
-			infraRef:  corev1.ObjectReference{Namespace: "foobar"},
-		},
-		{
-			name:      "should return error if namespace and infrastructure ref namespace don't match",
-			expectErr: true,
-			namespace: "foobar",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar"}},
-			infraRef:  corev1.ObjectReference{Namespace: "foobar123"},
-		},
-		{
-			name:      "should return error if no namespaces match",
-			expectErr: true,
-			namespace: "foobar1",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar2"}},
-			infraRef:  corev1.ObjectReference{Namespace: "foobar3"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			m := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Namespace: tt.namespace},
-				Spec:       clusterv1.MachineSpec{Bootstrap: tt.bootstrap, InfrastructureRef: tt.infraRef},
 			}
 			webhook := &Machine{}
 
@@ -203,13 +133,13 @@ func TestMachineClusterNameImmutable(t *testing.T) {
 			newMachine := &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
 					ClusterName: tt.newClusterName,
-					Bootstrap:   clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+					Bootstrap:   clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
 				},
 			}
 			oldMachine := &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
 					ClusterName: tt.oldClusterName,
-					Bootstrap:   clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+					Bootstrap:   clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
 				},
 			}
 

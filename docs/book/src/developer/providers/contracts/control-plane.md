@@ -399,26 +399,27 @@ type FooControlPlaneMachineTemplate struct {
     
     // infrastructureRef is a required reference to a custom infra machine template resource
     // offered by an infrastructure provider.
-    InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
+    // +required
+    InfrastructureRef clusterv1.ContractVersionedObjectReference `json:"infrastructureRef"`
     
     // nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a controlplane node
     // The default value is 0, meaning that the node can be drained without any time limitations.
     // +optional
-	// +kubebuilder:validation:Minimum=0
-	NodeDrainTimeoutSeconds *int32 `json:"nodeDrainTimeoutSeconds,omitempty"`
+    // +kubebuilder:validation:Minimum=0
+    NodeDrainTimeoutSeconds *int32 `json:"nodeDrainTimeoutSeconds,omitempty"`
     
-	// nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
+    // nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
     // to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
     // +optional
-	// +kubebuilder:validation:Minimum=0
-	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
+    // +kubebuilder:validation:Minimum=0
+    NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
     
-	// nodeDeletionTimeoutSeconds defines how long the machine controller will attempt to delete the Node that the Machine
+    // nodeDeletionTimeoutSeconds defines how long the machine controller will attempt to delete the Node that the Machine
     // hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
     // If no value is provided, the default value for this property of the Machine resource will be used.
     // +optional
-	// +kubebuilder:validation:Minimum=0
-	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
+    // +kubebuilder:validation:Minimum=0
+    NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
   
     // Other fields SHOULD be added based on the needs of your provider.
 }
@@ -437,6 +438,7 @@ preserves compatibility with the deprecated v1beta1 contract; compatibility will
 
 For reference. The v1beta1 contract had `nodeDrainTimeout`, `nodeVolumeDetachTimeout`, `nodeDeletionTimeout` fields
 of type `*metav1.Duration` instead of the new fields with `Seconds` suffix of type `*int32`.
+`infrastructureRef` was of type `corev1.ObjectReference`, the new field has the type  `clusterv1.ContractVersionedObjectReference`.
 
 </aside>
 
@@ -514,12 +516,12 @@ type FooControlPlaneStatus struct {
 
 // FooControlPlaneInitializationStatus provides observations of the FooControlPlane initialization process.
 type FooControlPlaneInitializationStatus struct {
-	// controlPlaneInitialized is true when the control plane provider reports that the Kubernetes control plane is initialized; 
-	// usually a control plane is considered initialized when it can accept requests, no matter if this happens before 
-	// the control plane is fully provisioned or not.
-	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
-	// +optional
-	ControlPlaneInitialized bool `json:"controlPlaneInitialized,omitempty"`
+    // controlPlaneInitialized is true when the control plane provider reports that the Kubernetes control plane is initialized; 
+    // usually a control plane is considered initialized when it can accept requests, no matter if this happens before 
+    // the control plane is fully provisioned or not.
+    // NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
+    // +optional
+    ControlPlaneInitialized bool `json:"controlPlaneInitialized,omitempty"`
 }
 ```
 

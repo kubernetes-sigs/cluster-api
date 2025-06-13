@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 	gomegatypes "github.com/onsi/gomega/types"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -118,18 +119,16 @@ func TestMachineSetReconciler(t *testing.T) {
 				ClusterName: testCluster.Name,
 				Version:     &version,
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionBootstrap.String(),
-						Kind:       "GenericBootstrapConfigTemplate",
-						Name:       "ms-template",
-						Namespace:  namespace.Name,
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionBootstrap.Group,
+						Kind:     "GenericBootstrapConfigTemplate",
+						Name:     "ms-template",
 					},
 				},
-				InfrastructureRef: corev1.ObjectReference{
-					APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-					Kind:       "GenericInfrastructureMachineTemplate",
-					Name:       "ms-template",
-					Namespace:  namespace.Name,
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+					Kind:     "GenericInfrastructureMachineTemplate",
+					Name:     "ms-template",
 				},
 				NodeDrainTimeoutSeconds:        duration10m,
 				NodeDeletionTimeoutSeconds:     duration10m,
@@ -243,7 +242,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		t.Log("Verifying the linked bootstrap template has a cluster owner reference")
 		g.Eventually(func() bool {
-			obj, err := external.Get(ctx, env, instance.Spec.Template.Spec.Bootstrap.ConfigRef)
+			obj, err := external.GetObjectFromContractVersionedRef(ctx, env, instance.Spec.Template.Spec.Bootstrap.ConfigRef, instance.Namespace)
 			if err != nil {
 				return false
 			}
@@ -258,7 +257,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		t.Log("Verifying the linked infrastructure template has a cluster owner reference")
 		g.Eventually(func() bool {
-			obj, err := external.Get(ctx, env, &instance.Spec.Template.Spec.InfrastructureRef)
+			obj, err := external.GetObjectFromContractVersionedRef(ctx, env, &instance.Spec.Template.Spec.InfrastructureRef, instance.Namespace)
 			if err != nil {
 				return false
 			}
@@ -349,8 +348,8 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Set the infrastructure reference as ready.
 		for _, m := range machines.Items {
-			fakeBootstrapRefDataSecretCreated(*m.Spec.Bootstrap.ConfigRef, bootstrapResource, g)
-			fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, infraResource, g)
+			fakeBootstrapRefDataSecretCreated(*m.Spec.Bootstrap.ConfigRef, m.Namespace, bootstrapResource, g)
+			fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, m.Namespace, infraResource, g)
 		}
 
 		// Verify that in-place mutable fields propagate from MachineSet to Machines.
@@ -415,8 +414,8 @@ func TestMachineSetReconciler(t *testing.T) {
 
 			g.Expect(m.Spec.Version).ToNot(BeNil())
 			g.Expect(*m.Spec.Version).To(BeEquivalentTo("v1.14.2"))
-			fakeBootstrapRefDataSecretCreated(*m.Spec.Bootstrap.ConfigRef, bootstrapResource, g)
-			providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, infraResource, g)
+			fakeBootstrapRefDataSecretCreated(*m.Spec.Bootstrap.ConfigRef, m.Namespace, bootstrapResource, g)
+			providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, m.Namespace, infraResource, g)
 			fakeMachineNodeRef(&m, providerID, g)
 		}
 
@@ -962,12 +961,11 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 					},
 				},
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
-						Kind:       builder.GenericInfrastructureMachineTemplateCRD.Kind,
-						APIVersion: builder.GenericInfrastructureMachineTemplateCRD.APIVersion,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     builder.GenericInfrastructureMachineTemplateKind,
+						APIGroup: builder.InfrastructureGroupVersion.Group,
 						// Try to break Infra Cloning
-						Name:      "something_invalid",
-						Namespace: cluster.Namespace,
+						Name: "something_invalid",
 					},
 					Version: &version,
 				},
@@ -1144,16 +1142,16 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 					ClusterName: testCluster.Name,
 					Version:     &version,
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: clusterv1.GroupVersionBootstrap.String(),
-							Kind:       "GenericBootstrapConfigTemplate",
-							Name:       "ms-template",
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionBootstrap.Group,
+							Kind:     "GenericBootstrapConfigTemplate",
+							Name:     "ms-template",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachineTemplate",
-						Name:       "ms-template",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachineTemplate",
+						Name:     "ms-template",
 					},
 				},
 			},
@@ -1234,20 +1232,16 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testClusterName,
-			InfrastructureRef: corev1.ObjectReference{
-				Namespace:  infraMachine.GetNamespace(),
-				Name:       infraMachine.GetName(),
-				UID:        infraMachine.GetUID(),
-				APIVersion: infraMachine.GetAPIVersion(),
-				Kind:       infraMachine.GetKind(),
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Name:     infraMachine.GetName(),
+				APIGroup: infraMachine.GroupVersionKind().Group,
+				Kind:     infraMachine.GetKind(),
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					Namespace:  bootstrapConfig.GetNamespace(),
-					Name:       bootstrapConfig.GetName(),
-					UID:        bootstrapConfig.GetUID(),
-					APIVersion: bootstrapConfig.GetAPIVersion(),
-					Kind:       bootstrapConfig.GetKind(),
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					Name:     bootstrapConfig.GetName(),
+					APIGroup: bootstrapConfig.GroupVersionKind().Group,
+					Kind:     bootstrapConfig.GetKind(),
 				},
 			},
 		},
@@ -1269,8 +1263,10 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testClusterName,
-			InfrastructureRef: corev1.ObjectReference{
-				Namespace: namespace.Name,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.TestInfrastructureMachineKind,
+				Name:     "inframachine",
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: ptr.To("machine-bootstrap-secret"),
@@ -1520,7 +1516,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Namespace: "default",
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+				ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 			},
 		}
 		machineSet := &clusterv1.MachineSet{}
@@ -1627,7 +1623,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				Namespace: "default",
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: contract.ObjToRef(controlPlaneUpgrading),
+				ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 			},
 		}
 		machineSet := &clusterv1.MachineSet{}
@@ -1678,7 +1674,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		}
 
 		machines := []*clusterv1.Machine{unhealthyMachine, healthyMachine}
-		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, unhealthyMachine, healthyMachine).WithStatusSubresource(&clusterv1.Machine{}).Build()
+		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, builder.GenericControlPlaneCRD, unhealthyMachine, healthyMachine).WithStatusSubresource(&clusterv1.Machine{}).Build()
 		r := &Reconciler{
 			Client:          fakeClient,
 			PreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(clusterv1.MachineSetPreflightCheckAll),
@@ -2214,7 +2210,7 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 				Namespace: "default",
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: contract.ObjToRef(controlPlaneUpgrading),
+				ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 			},
 		}
 		machineSet := &clusterv1.MachineSet{
@@ -2227,7 +2223,7 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 			},
 		}
 
-		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, machineSet).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
+		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, builder.GenericControlPlaneCRD, machineSet).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 		r := &Reconciler{
 			Client:          fakeClient,
 			PreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(clusterv1.MachineSetPreflightCheckAll),
@@ -2263,9 +2259,10 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 	t.Run("should hold off on sync replicas when create Infrastructure of machine failed ", func(t *testing.T) {
 		g := NewWithT(t)
 		scheme := runtime.NewScheme()
+		g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
 		g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
-		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects().WithInterceptorFuncs(interceptor.Funcs{
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(builder.GenericBootstrapConfigTemplateCRD, builder.GenericInfrastructureMachineTemplateCRD).WithInterceptorFuncs(interceptor.Funcs{
 			Create: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
 				// simulate scenarios where infra object creation fails
 				if obj.GetObjectKind().GroupVersionKind().Kind == "GenericInfrastructureMachine" {
@@ -2300,18 +2297,16 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 						ClusterName: testCluster.Name,
 						Version:     ptr.To("v1.14.2"),
 						Bootstrap: clusterv1.Bootstrap{
-							ConfigRef: &corev1.ObjectReference{
-								APIVersion: clusterv1.GroupVersionBootstrap.String(),
-								Kind:       "GenericBootstrapConfigTemplate",
-								Name:       "ms-template",
-								Namespace:  metav1.NamespaceDefault,
+							ConfigRef: &clusterv1.ContractVersionedObjectReference{
+								APIGroup: clusterv1.GroupVersionBootstrap.Group,
+								Kind:     builder.GenericBootstrapConfigTemplateKind,
+								Name:     "ms-template",
 							},
 						},
-						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-							Kind:       "GenericInfrastructureMachineTemplate",
-							Name:       "ms-template",
-							Namespace:  metav1.NamespaceDefault,
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+							Kind:     builder.GenericInfrastructureMachineTemplateKind,
+							Name:     "ms-template",
 						},
 						NodeDrainTimeoutSeconds:        duration10m,
 						NodeDeletionTimeoutSeconds:     duration10m,
@@ -2380,6 +2375,7 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 		}
 		_, err := r.syncReplicas(ctx, s)
 		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("inject error for create machineInfrastructure"))
 
 		// Verify the proper condition is set on the MachineSet.
 		condition := clusterv1.MachinesCreatedV1Beta1Condition
@@ -2440,15 +2436,15 @@ func TestComputeDesiredMachine(t *testing.T) {
 		},
 	}
 
-	infraRef := corev1.ObjectReference{
-		Kind:       "GenericInfrastructureMachineTemplate",
-		Name:       "infra-template-1",
-		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+	infraRef := clusterv1.ContractVersionedObjectReference{
+		Kind:     "GenericInfrastructureMachineTemplate",
+		Name:     "infra-template-1",
+		APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 	}
-	bootstrapRef := corev1.ObjectReference{
-		Kind:       "GenericBootstrapConfigTemplate",
-		Name:       "bootstrap-template-1",
-		APIVersion: clusterv1.GroupVersionBootstrap.String(),
+	bootstrapRef := clusterv1.ContractVersionedObjectReference{
+		Kind:     "GenericBootstrapConfigTemplate",
+		Name:     "bootstrap-template-1",
+		APIGroup: clusterv1.GroupVersionBootstrap.Group,
 	}
 
 	machineTemplateSpec := clusterv1.MachineTemplateSpec{
@@ -2502,15 +2498,15 @@ func TestComputeDesiredMachine(t *testing.T) {
 	existingMachine.Annotations = nil
 	// Pre-existing finalizer should be preserved.
 	existingMachine.Finalizers = []string{"pre-existing-finalizer"}
-	existingMachine.Spec.InfrastructureRef = corev1.ObjectReference{
-		Kind:       "GenericInfrastructureMachine",
-		Name:       "infra-machine-1",
-		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+	existingMachine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+		Kind:     "GenericInfrastructureMachine",
+		Name:     "infra-machine-1",
+		APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 	}
-	existingMachine.Spec.Bootstrap.ConfigRef = &corev1.ObjectReference{
-		Kind:       "GenericBootstrapConfig",
-		Name:       "bootstrap-config-1",
-		APIVersion: clusterv1.GroupVersionBootstrap.String(),
+	existingMachine.Spec.Bootstrap.ConfigRef = &clusterv1.ContractVersionedObjectReference{
+		Kind:     "GenericBootstrapConfig",
+		Name:     "bootstrap-config-1",
+		APIGroup: clusterv1.GroupVersionBootstrap.Group,
 	}
 	existingMachine.Spec.NodeDrainTimeoutSeconds = duration5s
 	existingMachine.Spec.NodeDeletionTimeoutSeconds = duration5s

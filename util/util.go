@@ -30,7 +30,6 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +37,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	k8sversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,7 +46,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/contract"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 )
 
@@ -212,7 +209,7 @@ func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersion
 		}
 		gk := gvk.GroupKind()
 		// Return early if the GroupKind doesn't match what we expect.
-		infraGK := cluster.Spec.InfrastructureRef.GroupVersionKind().GroupKind()
+		infraGK := cluster.Spec.InfrastructureRef.GroupKind()
 		if gk != infraGK {
 			return nil
 		}
@@ -275,7 +272,7 @@ func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.MapFunc
 
 		gk := gvk.GroupKind()
 		// Return early if the GroupKind doesn't match what we expect.
-		infraGK := m.Spec.InfrastructureRef.GroupVersionKind().GroupKind()
+		infraGK := m.Spec.InfrastructureRef.GroupKind()
 		if gk != infraGK {
 			return nil
 		}
@@ -454,33 +451,6 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 	}
 
 	return false
-}
-
-// GetGVKMetadata retrieves a CustomResourceDefinition metadata from the API server using partial object metadata.
-//
-// This function is greatly more efficient than GetCRDWithContract and should be preferred in most cases.
-func GetGVKMetadata(ctx context.Context, c client.Client, gvk schema.GroupVersionKind) (*metav1.PartialObjectMetadata, error) {
-	meta := &metav1.PartialObjectMetadata{}
-	meta.SetName(contract.CalculateCRDName(gvk.Group, gvk.Kind))
-	meta.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
-	if err := c.Get(ctx, client.ObjectKeyFromObject(meta), meta); err != nil {
-		return meta, errors.Wrap(err, "failed to get CustomResourceDefinition metadata")
-	}
-	return meta, nil
-}
-
-// KubeAwareAPIVersions is a sortable slice of kube-like version strings.
-//
-// Kube-like version strings are starting with a v, followed by a major version,
-// optional "alpha" or "beta" strings followed by a minor version (e.g. v1, v2beta1).
-// Versions will be sorted based on GA/alpha/beta first and then major and minor
-// versions. e.g. v2, v1, v1beta2, v1beta1, v1alpha1.
-type KubeAwareAPIVersions []string
-
-func (k KubeAwareAPIVersions) Len() int      { return len(k) }
-func (k KubeAwareAPIVersions) Swap(i, j int) { k[i], k[j] = k[j], k[i] }
-func (k KubeAwareAPIVersions) Less(i, j int) bool {
-	return k8sversion.CompareKubeAwareVersionStrings(k[i], k[j]) < 0
 }
 
 // ClusterToTypedObjectsMapper returns a mapper function that gets a cluster and lists all objects for the object passed in

@@ -140,10 +140,10 @@ func matchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructure
 
 	// Check if the machine's infrastructure reference has been created from the current KCP infrastructure template.
 	if clonedFromName != kcp.Spec.MachineTemplate.InfrastructureRef.Name ||
-		clonedFromGroupKind != kcp.Spec.MachineTemplate.InfrastructureRef.GroupVersionKind().GroupKind().String() {
+		clonedFromGroupKind != kcp.Spec.MachineTemplate.InfrastructureRef.GroupKind().String() {
 		return fmt.Sprintf("Infrastructure template on KCP rotated from %s %s to %s %s",
 			clonedFromGroupKind, clonedFromName,
-			kcp.Spec.MachineTemplate.InfrastructureRef.GroupVersionKind().GroupKind().String(), kcp.Spec.MachineTemplate.InfrastructureRef.Name), false
+			kcp.Spec.MachineTemplate.InfrastructureRef.GroupKind().String(), kcp.Spec.MachineTemplate.InfrastructureRef.Name), false
 	}
 
 	return "", true

@@ -23,7 +23,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -95,7 +94,7 @@ func TestMachineDeploymentReferenceDefault(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Version: ptr.To("1.19.10"),
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{},
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{},
 					},
 				},
 			},
@@ -117,9 +116,6 @@ func TestMachineDeploymentReferenceDefault(t *testing.T) {
 	t.Run("for MachineDeployment", util.CustomDefaultValidateTest(reqCtx, md, webhook))
 
 	g.Expect(webhook.Default(reqCtx, md)).To(Succeed())
-
-	g.Expect(md.Spec.Template.Spec.InfrastructureRef.Namespace).To(Equal(md.Namespace))
-	g.Expect(md.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(md.Namespace))
 }
 
 func TestCalculateMachineDeploymentReplicas(t *testing.T) {

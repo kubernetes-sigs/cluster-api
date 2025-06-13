@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/contract"
 )
 
 // ClusterBuilder holds the variables and objects required to build a clusterv1.Cluster.
@@ -813,6 +814,41 @@ func (m *MachinePoolClassBuilder) Build() *clusterv1.MachinePoolClass {
 	return obj
 }
 
+// InfrastructureMachineBuilder holds the variables and objects needed to build an InfrastructureMachine.
+type InfrastructureMachineBuilder struct {
+	obj *unstructured.Unstructured
+}
+
+// InfrastructureMachine creates an InfrastructureMachineBuilder with the given name and namespace.
+func InfrastructureMachine(namespace, name string) *InfrastructureMachineBuilder {
+	obj := &unstructured.Unstructured{}
+	obj.SetName(name)
+	obj.SetNamespace(namespace)
+	obj.SetAPIVersion(InfrastructureGroupVersion.String())
+	obj.SetKind(GenericInfrastructureMachineKind)
+	return &InfrastructureMachineBuilder{
+		obj,
+	}
+}
+
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."
+//
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
+func (i *InfrastructureMachineBuilder) WithSpecFields(fields map[string]interface{}) *InfrastructureMachineBuilder {
+	setSpecFields(i.obj, fields)
+	return i
+}
+
+// Build takes the objects and variables in the  InfrastructureMachineTemplateBuilder and generates an unstructured object.
+func (i *InfrastructureMachineBuilder) Build() *unstructured.Unstructured {
+	return i.obj
+}
+
 // InfrastructureMachineTemplateBuilder holds the variables and objects needed to build an InfrastructureMachineTemplate.
 type InfrastructureMachineTemplateBuilder struct {
 	obj *unstructured.Unstructured
@@ -1266,14 +1302,6 @@ func (c *ControlPlaneTemplateBuilder) WithSpecFields(fields map[string]interface
 	return c
 }
 
-// WithInfrastructureMachineTemplate adds the given Unstructured object to the ControlPlaneTemplateBuilder as its InfrastructureMachineTemplate.
-func (c *ControlPlaneTemplateBuilder) WithInfrastructureMachineTemplate(t *unstructured.Unstructured) *ControlPlaneTemplateBuilder {
-	if err := setNestedRef(c.obj, t, "spec", "template", "spec", "machineTemplate", "infrastructureRef"); err != nil {
-		panic(err)
-	}
-	return c
-}
-
 // Build creates an Unstructured object from the variables passed to the ControlPlaneTemplateBuilder.
 func (c *ControlPlaneTemplateBuilder) Build() *unstructured.Unstructured {
 	return c.obj
@@ -1310,14 +1338,6 @@ func TestControlPlaneTemplate(namespace, name string) *TestControlPlaneTemplateB
 //	}.
 func (c *TestControlPlaneTemplateBuilder) WithSpecFields(fields map[string]interface{}) *TestControlPlaneTemplateBuilder {
 	setSpecFields(c.obj, fields)
-	return c
-}
-
-// WithInfrastructureMachineTemplate adds the given Unstructured object to the ControlPlaneTemplateBuilder as its InfrastructureMachineTemplate.
-func (c *TestControlPlaneTemplateBuilder) WithInfrastructureMachineTemplate(t *unstructured.Unstructured) *TestControlPlaneTemplateBuilder {
-	if err := setNestedRef(c.obj, t, "spec", "template", "spec", "machineTemplate", "infrastructureRef"); err != nil {
-		panic(err)
-	}
 	return c
 }
 
@@ -1412,10 +1432,22 @@ func ControlPlane(namespace, name string) *ControlPlaneBuilder {
 }
 
 // WithInfrastructureMachineTemplate adds the given unstructured object to the ControlPlaneBuilder as its InfrastructureMachineTemplate.
-func (c *ControlPlaneBuilder) WithInfrastructureMachineTemplate(t *unstructured.Unstructured) *ControlPlaneBuilder {
-	// TODO(killianmuldoon): Update to use the internal/contract package, when it is importable from here
-	if err := setNestedRef(c.obj, t, "spec", "machineTemplate", "infrastructureRef"); err != nil {
-		panic(err)
+func (c *ControlPlaneBuilder) WithInfrastructureMachineTemplate(t *unstructured.Unstructured, contractVersion string) *ControlPlaneBuilder {
+	if contractVersion == "v1beta1" {
+		err := contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Set(c.obj, &corev1.ObjectReference{
+			APIVersion: t.GetAPIVersion(),
+			Kind:       t.GetKind(),
+			Namespace:  t.GetNamespace(),
+			Name:       t.GetName(),
+		})
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(c.obj, objToRef(t))
+		if err != nil {
+			panic(err)
+		}
 	}
 	return c
 }
@@ -1485,10 +1517,22 @@ func TestControlPlane(namespace, name string) *ControlPlaneBuilder {
 }
 
 // WithInfrastructureMachineTemplate adds the given unstructured object to the TestControlPlaneBuilder as its InfrastructureMachineTemplate.
-func (c *TestControlPlaneBuilder) WithInfrastructureMachineTemplate(t *unstructured.Unstructured) *TestControlPlaneBuilder {
-	// TODO(killianmuldoon): Update to use the internal/contract package, when it is importable from here
-	if err := setNestedRef(c.obj, t, "spec", "machineTemplate", "infrastructureRef"); err != nil {
-		panic(err)
+func (c *TestControlPlaneBuilder) WithInfrastructureMachineTemplate(t *unstructured.Unstructured, contractVersion string) *TestControlPlaneBuilder {
+	if contractVersion == "v1beta1" {
+		err := contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Set(c.obj, &corev1.ObjectReference{
+			APIVersion: t.GetAPIVersion(),
+			Kind:       t.GetKind(),
+			Namespace:  t.GetNamespace(),
+			Name:       t.GetName(),
+		})
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(c.obj, objToRef(t))
+		if err != nil {
+			panic(err)
+		}
 	}
 	return c
 }
@@ -1924,12 +1968,13 @@ func (m *MachineSetBuilder) Build() *clusterv1.MachineSet {
 
 // MachineBuilder holds the variables required to build a Machine.
 type MachineBuilder struct {
-	name        string
-	namespace   string
-	version     *string
-	clusterName string
-	bootstrap   *unstructured.Unstructured
-	labels      map[string]string
+	name         string
+	namespace    string
+	version      *string
+	clusterName  string
+	bootstrap    *unstructured.Unstructured
+	infraMachine *unstructured.Unstructured
+	labels       map[string]string
 }
 
 // Machine returns a MachineBuilder.
@@ -1946,9 +1991,15 @@ func (m *MachineBuilder) WithVersion(version string) *MachineBuilder {
 	return m
 }
 
-// WithBootstrapTemplate adds a bootstrap template to the MachineBuilder.
+// WithBootstrapTemplate adds a bootstrap config to the MachineBuilder.
 func (m *MachineBuilder) WithBootstrapTemplate(bootstrap *unstructured.Unstructured) *MachineBuilder {
 	m.bootstrap = bootstrap
+	return m
+}
+
+// WithInfrastructureMachine adds an infrastructure machine to the MachineBuilder.
+func (m *MachineBuilder) WithInfrastructureMachine(infraMachine *unstructured.Unstructured) *MachineBuilder {
+	m.infraMachine = infraMachine
 	return m
 }
 
@@ -1984,6 +2035,9 @@ func (m *MachineBuilder) Build() *clusterv1.Machine {
 	if m.bootstrap != nil {
 		machine.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrap)
 	}
+	if m.infraMachine != nil {
+		machine.Spec.InfrastructureRef = *objToRef(m.bootstrap)
+	}
 	if m.clusterName != "" {
 		if len(m.labels) == 0 {
 			machine.Labels = map[string]string{}
@@ -2005,25 +2059,13 @@ func objToClusterClassTemplateRef(obj *unstructured.Unstructured) *clusterv1.Clu
 // objToRef returns a reference to the given object.
 // Note: This function only operates on Unstructured instead of client.Object
 // because it is only safe to assume for Unstructured that the GVK is set.
-func objToRef(obj *unstructured.Unstructured) *corev1.ObjectReference {
+func objToRef(obj *unstructured.Unstructured) *clusterv1.ContractVersionedObjectReference {
 	gvk := obj.GetObjectKind().GroupVersionKind()
-	return &corev1.ObjectReference{
-		Kind:       gvk.Kind,
-		APIVersion: gvk.GroupVersion().String(),
-		Namespace:  obj.GetNamespace(),
-		Name:       obj.GetName(),
+	return &clusterv1.ContractVersionedObjectReference{
+		APIGroup: gvk.Group,
+		Kind:     gvk.Kind,
+		Name:     obj.GetName(),
 	}
-}
-
-// setNestedRef sets the value of a nested field to a reference to the refObj provided.
-func setNestedRef(obj, refObj *unstructured.Unstructured, fields ...string) error {
-	ref := map[string]interface{}{
-		"kind":       refObj.GetKind(),
-		"namespace":  refObj.GetNamespace(),
-		"name":       refObj.GetName(),
-		"apiVersion": refObj.GetAPIVersion(),
-	}
-	return unstructured.SetNestedField(obj.UnstructuredContent(), ref, fields...)
 }
 
 // setSpecFields sets fields in an unstructured object from a map.

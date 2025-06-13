@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -33,6 +32,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func init() {
@@ -53,11 +53,10 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					APIVersion: "test/v1alpha1",
-					Kind:       "UnknownInfraMachine",
-					Namespace:  "foo",
-					Name:       "infraTemplate",
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: "test",
+					Kind:     "UnknownInfraMachine",
+					Name:     "infraTemplate",
 				},
 				NodeDrainTimeoutSeconds: ptr.To(int32(1)),
 			},

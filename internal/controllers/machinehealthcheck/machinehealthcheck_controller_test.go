@@ -1378,11 +1378,10 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 						Bootstrap: clusterv1.Bootstrap{
 							DataSecretName: ptr.To("test-data-secret-name"),
 						},
-						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-							Kind:       "GenericInfrastructureMachineTemplate",
-							Name:       infraTmpl.GetName(),
-							Namespace:  mhc.Namespace,
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+							Kind:     "GenericInfrastructureMachineTemplate",
+							Name:     infraTmpl.GetName(),
 						},
 					},
 				},
@@ -2611,11 +2610,10 @@ func createMachinesWithNodes(
 		g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 		g.Expect(env.Status().Patch(ctx, infraMachine, infraMachinePatch)).To(Succeed())
 
-		machine.Spec.InfrastructureRef = corev1.ObjectReference{
-			APIVersion: infraMachine.GetAPIVersion(),
-			Kind:       infraMachine.GetKind(),
-			Name:       infraMachine.GetName(),
-			Namespace:  infraMachine.GetNamespace(),
+		machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+			APIGroup: infraMachine.GroupVersionKind().Group,
+			Kind:     infraMachine.GetKind(),
+			Name:     infraMachine.GetName(),
 		}
 		if len(o.finalizers) > 0 {
 			machine.Finalizers = o.finalizers

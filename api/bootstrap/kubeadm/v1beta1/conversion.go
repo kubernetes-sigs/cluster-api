@@ -249,7 +249,6 @@ func Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *KubeadmC
 }
 
 func Convert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
-	// Type neta has been dropped in v1beta2
 	return autoConvert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s)
 }
 
@@ -314,12 +313,10 @@ func Convert_v1beta1_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToken
 }
 
 func Convert_v1beta1_InitConfiguration_To_v1beta2_InitConfiguration(in *InitConfiguration, out *bootstrapv1.InitConfiguration, s apimachineryconversion.Scope) error {
-	// Type neta has been dropped in v1beta2
 	return autoConvert_v1beta1_InitConfiguration_To_v1beta2_InitConfiguration(in, out, s)
 }
 
 func Convert_v1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(in *JoinConfiguration, out *bootstrapv1.JoinConfiguration, s apimachineryconversion.Scope) error {
-	// Type neta has been dropped in v1beta2
 	return autoConvert_v1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(in, out, s)
 }
 

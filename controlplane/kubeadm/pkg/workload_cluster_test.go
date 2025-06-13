@@ -187,6 +187,23 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 					Version: "v1.16.3",
 				}},
 		},
+		{
+			name:        "does not update image repository when Proxy is disabled from spec",
+			ds:          newKubeProxyDSWithImage(""), // Using the same image name that would otherwise lead to an error
+			expectErr:   false,
+			expectImage: "",
+			KCP: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+							Proxy: bootstrapv1.Proxy{
+								Disabled: new(true),
+							},
+						},
+					},
+					Version: "v1.16.3",
+				}},
+		},
 	}
 
 	for i := range tests {

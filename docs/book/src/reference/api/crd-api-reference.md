@@ -395,6 +395,7 @@ _Appears in:_
 | `controllerManager` _[ControllerManager](#controllermanager)_ | controllerManager contains extra settings for the controller manager control plane component |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `scheduler` _[Scheduler](#scheduler)_ | scheduler contains extra settings for the scheduler control plane component |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `dns` _[DNS](#dns)_ | dns defines the options for the DNS add-on installed in the cluster. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `proxy` _[Proxy](#proxy)_ | proxy defines the options for the proxy add-on installed in the cluster. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `certificatesDir` _string_ | certificatesDir specifies where to store or look for all required certificates.<br />NB: if not provided, this will default to `/etc/kubernetes/pki` |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `imageRepository` _string_ | imageRepository sets the container registry to pull images from.<br />If not set, the default registry of kubeadm will be used (registry.k8s.io). |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `featureGates` _object (keys:string, values:boolean)_ | featureGates enabled by the user. |  | Optional: \{\} <br /> |
@@ -458,6 +459,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `imageRepository` _string_ | imageRepository sets the container registry to pull images from.<br />if not set, the ImageRepository defined in ClusterConfiguration will be used instead. |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `imageTag` _string_ | imageTag allows to specify a tag for the image.<br />In case this value is set, kubeadm does not change automatically the version of the above components during upgrades. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `disabled` _boolean_ | disabled specifies whether to disable this addon in the cluster<br />Default: false (defaulted in kubeadm) |  | Optional: \{\} <br /> |
 
 
 #### Discovery
@@ -1309,6 +1311,23 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `directory` _string_ | directory is a path to a directory that contains files named "target[suffix][+patchtype].extension".<br />For example, "kube-apiserver0+merge.yaml" or just "etcd.json". "target" can be one of<br />"kube-apiserver", "kube-controller-manager", "kube-scheduler", "etcd". "patchtype" can be one<br />of "strategic" "merge" or "json" and they match the patch formats supported by kubectl.<br />The default "patchtype" is "strategic". "extension" must be either "json" or "yaml".<br />"suffix" is an optional string that can be used to determine which patches are applied<br />first alpha-numerically.<br />These files can be written into the target directory via KubeadmConfig.Files which<br />specifies additional files to be created on the machine, either with content inline or<br />by referencing a secret. |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+
+
+#### Proxy
+
+
+
+Proxy defines the proxy addon that should be used in the cluster.
+
+_Validation:_
+- MinProperties: 1
+
+_Appears in:_
+- [ClusterConfiguration](#clusterconfiguration)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `disabled` _boolean_ | disabled specifies whether to disable this addon in the cluster<br />Default: false (defaulted in kubeadm) |  | Optional: \{\} <br /> |
 
 
 #### Scheduler

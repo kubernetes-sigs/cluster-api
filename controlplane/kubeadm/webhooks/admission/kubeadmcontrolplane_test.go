@@ -598,11 +598,24 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		controlplanev1.SkipCoreDNSAnnotation: "",
 	}
 
+	validUnsupportedCoreDNSVersionWithDisabledDNS := dns.DeepCopy()
+	validUnsupportedCoreDNSVersionWithDisabledDNS.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
+		ImageRepository: "gcr.io/capi-test",
+		ImageTag:        "v99.99.99",
+		Disabled:        new(true),
+	}
+
 	unsetCoreDNSToVersion := dns.DeepCopy()
 	unsetCoreDNSToVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
 		ImageRepository: "",
 		ImageTag:        "",
 	}
+
+	dnsDisabled := before.DeepCopy()
+	dnsDisabled.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.Disabled = new(true)
+
+	proxyDisabled := before.DeepCopy()
+	proxyDisabled.Spec.KubeadmConfigSpec.ClusterConfiguration.Proxy.Disabled = new(true)
 
 	certificatesDir := before.DeepCopy()
 	certificatesDir.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificatesDir = "a new certificates directory"
@@ -939,6 +952,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:    validUnsupportedCoreDNSVersionWithSkipAnnotation,
 		},
 		{
+			name:   "should succeed when upgrading to an unsupported version and KCP has DNS disabled",
+			before: dns,
+			kcp:    validUnsupportedCoreDNSVersionWithDisabledDNS,
+		},
+		{
 			name:      "should fail when using an invalid DNS build",
 			expectErr: true,
 			before:    before,
@@ -949,6 +967,18 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: true,
 			before:    dns,
 			kcp:       dnsInvalidCoreDNSToVersion,
+		},
+
+		{
+			name:   "should succeed when disabling DNS",
+			before: before,
+			kcp:    dnsDisabled,
+		},
+
+		{
+			name:   "should succeed when disabling Proxy",
+			before: before,
+			kcp:    proxyDisabled,
 		},
 
 		{

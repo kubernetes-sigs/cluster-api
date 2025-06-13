@@ -85,10 +85,18 @@ func Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfiguratio
 }
 
 func Convert_upstreamv1beta4_DNS_To_v1beta2_DNS(in *DNS, out *bootstrapv1.DNS, _ apimachineryconversion.Scope) error {
-	// Following fields do not exist in CABPK v1beta1 version:
-	// - Disabled (Not supported yet)
+	if in.Disabled {
+		out.Disabled = new(true)
+	}
 	out.ImageRepository = in.ImageRepository
 	out.ImageTag = in.ImageTag
+	return nil
+}
+
+func Convert_upstreamv1beta4_Proxy_To_v1beta2_Proxy(in *Proxy, out *bootstrapv1.Proxy, _ apimachineryconversion.Scope) error {
+	if in.Disabled {
+		out.Disabled = new(true)
+	}
 	return nil
 }
 
@@ -517,9 +525,14 @@ func Convert_v1beta2_BootstrapToken_To_upstreamv1beta4_BootstrapToken(in *bootst
 	return nil
 }
 
-func Convert_v1beta2_DNS_To_upstreamv1beta4_DNS(in *bootstrapv1.DNS, out *DNS, _ apimachineryconversion.Scope) error {
+func Convert_v1beta2_DNS_To_upstreamv1beta4_DNS(in *bootstrapv1.DNS, out *DNS, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_DNS_To_upstreamv1beta4_DNS(in, out, s); err != nil {
+		return err
+	}
+
 	out.ImageRepository = in.ImageRepository
 	out.ImageTag = in.ImageTag
+
 	return nil
 }
 

@@ -379,13 +379,19 @@ func Convert_v1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(in *JoinConf
 	return nil
 }
 
-func Convert_v1beta1_DNS_To_v1beta2_DNS(in *DNS, out *bootstrapv1.DNS, _ apimachineryconversion.Scope) error {
+func Convert_v1beta1_DNS_To_v1beta2_DNS(in *DNS, out *bootstrapv1.DNS, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_DNS_To_v1beta2_DNS(in, out, s); err != nil {
+		return err
+	}
 	out.ImageRepository = in.ImageRepository
 	out.ImageTag = in.ImageTag
 	return nil
 }
 
-func Convert_v1beta2_DNS_To_v1beta1_DNS(in *bootstrapv1.DNS, out *DNS, _ apimachineryconversion.Scope) error {
+func Convert_v1beta2_DNS_To_v1beta1_DNS(in *bootstrapv1.DNS, out *DNS, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_DNS_To_v1beta1_DNS(in, out, s); err != nil {
+		return err
+	}
 	out.ImageRepository = in.ImageRepository
 	out.ImageTag = in.ImageTag
 	return nil

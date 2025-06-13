@@ -2915,11 +2915,15 @@ func TestTemplateToObject(t *testing.T) {
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     cluster,
-			templateRef: fakeRef1,
-			template:    template,
-			currentRef:  nil,
-			obj:         obj,
+			cluster: cluster,
+			templateRef: &clusterv1.ClusterClassTemplateReference{
+				Kind:       fakeRef1.Kind,
+				Name:       fakeRef1.Name,
+				APIVersion: fakeRef1.APIVersion,
+			},
+			template:   template,
+			currentRef: nil,
+			obj:        obj,
 		})
 	})
 	t.Run("Overrides the generated name if there is already a reference", func(t *testing.T) {
@@ -2936,11 +2940,15 @@ func TestTemplateToObject(t *testing.T) {
 
 		// ObjectMeta
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     cluster,
-			templateRef: fakeRef1,
-			template:    template,
-			currentRef:  fakeRef2,
-			obj:         obj,
+			cluster: cluster,
+			templateRef: &clusterv1.ClusterClassTemplateReference{
+				Kind:       fakeRef1.Kind,
+				Name:       fakeRef1.Name,
+				APIVersion: fakeRef1.APIVersion,
+			},
+			template:   template,
+			currentRef: fakeRef2,
+			obj:        obj,
 		})
 	})
 }
@@ -2975,11 +2983,15 @@ func TestTemplateToTemplate(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 		assertTemplateToTemplate(g, assertTemplateInput{
-			cluster:     cluster,
-			templateRef: fakeRef1,
-			template:    template,
-			currentRef:  nil,
-			obj:         obj,
+			cluster: cluster,
+			templateRef: &clusterv1.ClusterClassTemplateReference{
+				Kind:       fakeRef1.Kind,
+				Name:       fakeRef1.Name,
+				APIVersion: fakeRef1.APIVersion,
+			},
+			template:   template,
+			currentRef: nil,
+			obj:        obj,
 		})
 	})
 	t.Run("Overrides the generated name if there is already a reference", func(t *testing.T) {
@@ -2994,18 +3006,22 @@ func TestTemplateToTemplate(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 		assertTemplateToTemplate(g, assertTemplateInput{
-			cluster:     cluster,
-			templateRef: fakeRef1,
-			template:    template,
-			currentRef:  fakeRef2,
-			obj:         obj,
+			cluster: cluster,
+			templateRef: &clusterv1.ClusterClassTemplateReference{
+				Kind:       fakeRef1.Kind,
+				Name:       fakeRef1.Name,
+				APIVersion: fakeRef1.APIVersion,
+			},
+			template:   template,
+			currentRef: fakeRef2,
+			obj:        obj,
 		})
 	})
 }
 
 type assertTemplateInput struct {
 	cluster             *clusterv1.Cluster
-	templateRef         *corev1.ObjectReference
+	templateRef         *clusterv1.ClusterClassTemplateReference
 	template            *unstructured.Unstructured
 	labels, annotations map[string]string
 	currentRef          *corev1.ObjectReference

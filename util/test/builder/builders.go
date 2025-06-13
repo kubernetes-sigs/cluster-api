@@ -499,8 +499,8 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 		obj.Status.Conditions = c.conditions
 	}
 	if c.infrastructureClusterTemplate != nil {
-		obj.Spec.Infrastructure.LocalObjectTemplate = clusterv1.LocalObjectTemplate{
-			Ref: objToRef(c.infrastructureClusterTemplate),
+		obj.Spec.Infrastructure.ClusterClassTemplate = clusterv1.ClusterClassTemplate{
+			Ref: objToClusterClassTemplateRef(c.infrastructureClusterTemplate),
 		}
 	}
 	if c.controlPlaneMetadata != nil {
@@ -510,8 +510,8 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 		obj.Spec.ControlPlane.ReadinessGates = c.controlPlaneReadinessGates
 	}
 	if c.controlPlaneTemplate != nil {
-		obj.Spec.ControlPlane.LocalObjectTemplate = clusterv1.LocalObjectTemplate{
-			Ref: objToRef(c.controlPlaneTemplate),
+		obj.Spec.ControlPlane.ClusterClassTemplate = clusterv1.ClusterClassTemplate{
+			Ref: objToClusterClassTemplateRef(c.controlPlaneTemplate),
 		}
 	}
 	if c.controlPlaneMHC != nil {
@@ -527,8 +527,8 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 		obj.Spec.ControlPlane.NodeDeletionTimeoutSeconds = c.controlPlaneNodeDeletionTimeout
 	}
 	if c.controlPlaneInfrastructureMachineTemplate != nil {
-		obj.Spec.ControlPlane.MachineInfrastructure = &clusterv1.LocalObjectTemplate{
-			Ref: objToRef(c.controlPlaneInfrastructureMachineTemplate),
+		obj.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ClusterClassTemplate{
+			Ref: objToClusterClassTemplateRef(c.controlPlaneInfrastructureMachineTemplate),
 		}
 	}
 	if c.controlPlaneNamingStrategy != nil {
@@ -658,10 +658,10 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 		},
 	}
 	if m.bootstrapTemplate != nil {
-		obj.Template.Bootstrap.Ref = objToRef(m.bootstrapTemplate)
+		obj.Template.Bootstrap.Ref = objToClusterClassTemplateRef(m.bootstrapTemplate)
 	}
 	if m.infrastructureMachineTemplate != nil {
-		obj.Template.Infrastructure.Ref = objToRef(m.infrastructureMachineTemplate)
+		obj.Template.Infrastructure.Ref = objToClusterClassTemplateRef(m.infrastructureMachineTemplate)
 	}
 	if m.machineHealthCheckClass != nil {
 		obj.MachineHealthCheck = m.machineHealthCheckClass
@@ -787,10 +787,10 @@ func (m *MachinePoolClassBuilder) Build() *clusterv1.MachinePoolClass {
 		},
 	}
 	if m.bootstrapTemplate != nil {
-		obj.Template.Bootstrap.Ref = objToRef(m.bootstrapTemplate)
+		obj.Template.Bootstrap.Ref = objToClusterClassTemplateRef(m.bootstrapTemplate)
 	}
 	if m.infrastructureMachinePoolTemplate != nil {
-		obj.Template.Infrastructure.Ref = objToRef(m.infrastructureMachinePoolTemplate)
+		obj.Template.Infrastructure.Ref = objToClusterClassTemplateRef(m.infrastructureMachinePoolTemplate)
 	}
 	if m.failureDomains != nil {
 		obj.FailureDomains = m.failureDomains
@@ -1991,6 +1991,15 @@ func (m *MachineBuilder) Build() *clusterv1.Machine {
 		machine.Labels[clusterv1.ClusterNameLabel] = m.clusterName
 	}
 	return machine
+}
+
+func objToClusterClassTemplateRef(obj *unstructured.Unstructured) *clusterv1.ClusterClassTemplateReference {
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	return &clusterv1.ClusterClassTemplateReference{
+		Kind:       gvk.Kind,
+		APIVersion: gvk.GroupVersion().String(),
+		Name:       obj.GetName(),
+	}
 }
 
 // objToRef returns a reference to the given object.

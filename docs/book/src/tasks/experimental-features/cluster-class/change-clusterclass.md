@@ -100,7 +100,7 @@ looking at the [reference](#reference) documentation at the end of this page.
 ## Compatibility Checks
 
 When changing a ClusterClass, the system validates the required changes according to
-a set of "compatibility rules" in order to prevent changes which would lead to a non-functional
+a set of compatibility rules to prevent changes which would lead to a non-functional
 Cluster, e.g. changing the InfrastructureProvider from AWS to Azure.
 
 If the proposed changes are evaluated as dangerous, the operation is rejected.

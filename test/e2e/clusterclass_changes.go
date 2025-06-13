@@ -318,7 +318,7 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 
 	// Get ControlPlaneTemplate object.
 	controlPlaneTemplateRef := input.ClusterClass.Spec.ControlPlane.Ref
-	controlPlaneTemplate, err := external.Get(ctx, mgmtClient, controlPlaneTemplateRef)
+	controlPlaneTemplate, err := external.Get(ctx, mgmtClient, controlPlaneTemplateRef.ToObjectReference(input.ClusterClass.Namespace))
 	Expect(err).ToNot(HaveOccurred())
 
 	// Create a new ControlPlaneTemplate object with a new name and ModifyControlPlaneFields set.
@@ -456,7 +456,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 			log.Logf("Modifying the BootstrapConfigTemplate of MachineDeploymentClass %q of ClusterClass %s", mdClass.Class, klog.KObj(input.ClusterClass))
 
 			// Retrieve BootstrapConfigTemplate object.
-			bootstrapConfigTemplateRef = mdClass.Template.Bootstrap.Ref
+			bootstrapConfigTemplateRef = mdClass.Template.Bootstrap.Ref.ToObjectReference(input.ClusterClass.Namespace)
 			bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef)
 			Expect(err).ToNot(HaveOccurred())
 			// Create a new BootstrapConfigTemplate object with a new name and ModifyBootstrapConfigTemplateFields set.
@@ -473,7 +473,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 		log.Logf("Modifying the InfrastructureMachineTemplate of MachineDeploymentClass %q of ClusterClass %s", mdClass.Class, klog.KObj(input.ClusterClass))
 
 		// Retrieve InfrastructureMachineTemplate object.
-		infrastructureMachineTemplateRef := mdClass.Template.Infrastructure.Ref
+		infrastructureMachineTemplateRef := mdClass.Template.Infrastructure.Ref.ToObjectReference(input.ClusterClass.Namespace)
 		infrastructureMachineTemplate, err := external.Get(ctx, mgmtClient, infrastructureMachineTemplateRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Create a new InfrastructureMachineTemplate object with a new name and ModifyInfrastructureMachineTemplateFields set.
@@ -579,7 +579,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 			log.Logf("Modifying the BootstrapConfigTemplate of MachinePoolClass %q of ClusterClass %s", mpClass.Class, klog.KObj(input.ClusterClass))
 
 			// Retrieve BootstrapConfigTemplate object.
-			bootstrapConfigTemplateRef = mpClass.Template.Bootstrap.Ref
+			bootstrapConfigTemplateRef = mpClass.Template.Bootstrap.Ref.ToObjectReference(input.ClusterClass.Namespace)
 			bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef)
 			Expect(err).ToNot(HaveOccurred())
 			// Create a new BootstrapConfigTemplate object with a new name and ModifyBootstrapConfigTemplateFields set.
@@ -596,7 +596,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 		log.Logf("Modifying the InfrastructureMachinePoolTemplate of MachinePoolClass %q of ClusterClass %s", mpClass.Class, klog.KObj(input.ClusterClass))
 
 		// Retrieve InfrastructureMachineTemplate object.
-		infrastructureMachinePoolTemplateRef := mpClass.Template.Infrastructure.Ref
+		infrastructureMachinePoolTemplateRef := mpClass.Template.Infrastructure.Ref.ToObjectReference(input.ClusterClass.Namespace)
 		infrastructureMachinePoolTemplate, err := external.Get(ctx, mgmtClient, infrastructureMachinePoolTemplateRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Create a new InfrastructureMachinePoolTemplate object with a new name and ModifyInfrastructureMachinePoolTemplateFields set.
@@ -896,12 +896,17 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 }
 
 // cloneRef performs required modifications to avoid conflict, and create a copy of the referenced object, updating the ref in-place.
-func cloneRef(ctx context.Context, cl client.Client, ref *corev1.ObjectReference, namespace string) {
+func cloneRef(ctx context.Context, cl client.Client, ref *clusterv1.ClusterClassTemplateReference, namespace string) {
 	if ref == nil {
 		return
 	}
 
-	template, err := external.Get(ctx, cl, ref)
+	template, err := external.Get(ctx, cl, &corev1.ObjectReference{
+		Kind:       ref.Kind,
+		Namespace:  namespace,
+		Name:       ref.Name,
+		APIVersion: ref.APIVersion,
+	})
 	Expect(err).ToNot(HaveOccurred())
 	if namespace != "" {
 		template.SetNamespace(namespace)
@@ -912,8 +917,6 @@ func cloneRef(ctx context.Context, cl client.Client, ref *corev1.ObjectReference
 	template.SetResourceVersion("")
 	template.SetOwnerReferences(nil)
 	Expect(cl.Create(ctx, template)).To(Succeed())
-
-	*ref = *external.GetObjectReference(template)
 }
 
 // deleteMachineDeploymentTopologyAndWaitInput is the input type for deleteMachineDeploymentTopologyAndWaitInput.

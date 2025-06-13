@@ -25,7 +25,6 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -311,7 +310,7 @@ func validateSelectorName(name string, path *field.Path, resourceName string, in
 }
 
 // selectorMatchTemplate returns true if APIVersion and Kind for the given selector match the reference.
-func selectorMatchTemplate(selector clusterv1.PatchSelector, reference *corev1.ObjectReference) bool {
+func selectorMatchTemplate(selector clusterv1.PatchSelector, reference *clusterv1.ClusterClassTemplateReference) bool {
 	if reference == nil {
 		return false
 	}

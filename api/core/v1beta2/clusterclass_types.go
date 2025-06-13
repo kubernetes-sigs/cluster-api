@@ -22,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -132,7 +133,7 @@ type ClusterClassSpec struct {
 // InfrastructureClass defines the class for the infrastructure cluster.
 type InfrastructureClass struct {
 	// LocalObjectTemplate contains the reference to a provider-specific infrastructure cluster template.
-	LocalObjectTemplate `json:",inline"`
+	ClusterClassTemplate `json:",inline"`
 
 	// namingStrategy allows changing the naming pattern used when creating the infrastructure cluster object.
 	// +optional
@@ -152,7 +153,7 @@ type ControlPlaneClass struct {
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
 	// LocalObjectTemplate contains the reference to a provider-specific control plane template.
-	LocalObjectTemplate `json:",inline"`
+	ClusterClassTemplate `json:",inline"`
 
 	// machineInfrastructure defines the metadata and infrastructure information
 	// for control plane machines.
@@ -161,7 +162,7 @@ type ControlPlaneClass struct {
 	// referenced above is Machine based and supports setting replicas.
 	//
 	// +optional
-	MachineInfrastructure *LocalObjectTemplate `json:"machineInfrastructure,omitempty"`
+	MachineInfrastructure *ClusterClassTemplate `json:"machineInfrastructure,omitempty"`
 
 	// machineHealthCheck defines a MachineHealthCheck for this ControlPlaneClass.
 	// This field is supported if and only if the ControlPlane provider template
@@ -357,12 +358,12 @@ type MachineDeploymentClassTemplate struct {
 	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of worker Machines.
 	// +required
-	Bootstrap LocalObjectTemplate `json:"bootstrap"`
+	Bootstrap ClusterClassTemplate `json:"bootstrap"`
 
 	// infrastructure contains the infrastructure template reference to be used
 	// for the creation of worker Machines.
 	// +required
-	Infrastructure LocalObjectTemplate `json:"infrastructure"`
+	Infrastructure ClusterClassTemplate `json:"infrastructure"`
 }
 
 // MachineDeploymentClassNamingStrategy defines the naming strategy for machine deployment objects.
@@ -507,12 +508,12 @@ type MachinePoolClassTemplate struct {
 	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of the Machines in the MachinePool.
 	// +required
-	Bootstrap LocalObjectTemplate `json:"bootstrap"`
+	Bootstrap ClusterClassTemplate `json:"bootstrap"`
 
 	// infrastructure contains the infrastructure template reference to be used
 	// for the creation of the MachinePool.
 	// +required
-	Infrastructure LocalObjectTemplate `json:"infrastructure"`
+	Infrastructure ClusterClassTemplate `json:"infrastructure"`
 }
 
 // MachinePoolClassNamingStrategy defines the naming strategy for machine pool objects.
@@ -1141,12 +1142,51 @@ type ExternalPatchDefinition struct {
 	Settings map[string]string `json:"settings,omitempty"`
 }
 
-// LocalObjectTemplate defines a template for a topology Class.
-type LocalObjectTemplate struct {
+// ClusterClassTemplate defines a template referenced by a ClusterClass.
+type ClusterClassTemplate struct {
 	// ref is a required reference to a custom resource
 	// offered by a provider.
 	// +required
-	Ref *corev1.ObjectReference `json:"ref"`
+	Ref *ClusterClassTemplateReference `json:"ref"`
+}
+
+// ClusterClassTemplateReference is a reference to a ClusterClass template.
+type ClusterClassTemplateReference struct {
+	// kind of the template.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Kind string `json:"kind"`
+
+	// name of the template.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Name string `json:"name"`
+
+	// apiVersion of the template.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	APIVersion string `json:"apiVersion"`
+}
+
+// ToObjectReference return an object reference for the ClusterClassTemplateReference in a given namespace.
+func (r *ClusterClassTemplateReference) ToObjectReference(namespace string) *corev1.ObjectReference {
+	if r == nil {
+		return nil
+	}
+	return &corev1.ObjectReference{
+		APIVersion: r.APIVersion,
+		Kind:       r.Kind,
+		Namespace:  namespace,
+		Name:       r.Name,
+	}
+}
+
+// GroupVersionKind gets the GroupVersionKind for a ClusterClassTemplateReference.
+func (r *ClusterClassTemplateReference) GroupVersionKind() schema.GroupVersionKind {
+	return schema.FromAPIVersionAndKind(r.APIVersion, r.Kind)
 }
 
 // ANCHOR: ClusterClassStatus

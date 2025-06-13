@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -134,6 +135,7 @@ func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubClusterClassStatus,
 		hubJSONSchemaProps,
+		spokeClusterClass,
 		spokeClusterClassStatus,
 		spokeJSONSchemaProps,
 		spokeControlPlaneClass,
@@ -141,6 +143,7 @@ func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeMachinePoolClass,
 		spokeMachineHealthCheckClass,
 		spokeUnhealthyCondition,
+		spokeLocalObjectTemplate,
 	}
 }
 
@@ -197,6 +200,12 @@ func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c randfill.Continue) {
 	in.Items = in2
 }
 
+func spokeClusterClass(in *ClusterClass, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.Namespace = "foo"
+}
+
 func spokeClusterClassStatus(in *ClusterClassStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
@@ -248,6 +257,21 @@ func spokeJSONSchemaProps(in *JSONSchemaProps, c randfill.Continue) {
 		in.Properties[c.String(0)] = *in2
 	}
 	in.Items = in2
+}
+
+func spokeLocalObjectTemplate(in *LocalObjectTemplate, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Ref == nil {
+		return
+	}
+
+	in.Ref = &corev1.ObjectReference{
+		APIVersion: in.Ref.APIVersion,
+		Kind:       in.Ref.Kind,
+		Name:       in.Ref.Name,
+		Namespace:  "foo",
+	}
 }
 
 func MachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

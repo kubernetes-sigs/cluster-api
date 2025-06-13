@@ -1511,8 +1511,8 @@ func TestReconcileControlPlane(t *testing.T) {
 				ClusterClass: &clusterv1.ClusterClass{},
 			}
 			if tt.class.InfrastructureMachineTemplate != nil {
-				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.LocalObjectTemplate{
-					Ref: contract.ObjToRef(tt.class.InfrastructureMachineTemplate),
+				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ClusterClassTemplate{
+					Ref: objToClusterClassTemplateRef(tt.class.InfrastructureMachineTemplate),
 				}
 			}
 			if tt.upgradeTracker != nil {
@@ -1687,8 +1687,8 @@ func TestReconcileControlPlaneCleanup(t *testing.T) {
 			ClusterClass: &clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						MachineInfrastructure: &clusterv1.LocalObjectTemplate{
-							Ref: contract.ObjToRef(infrastructureMachineTemplate),
+						MachineInfrastructure: &clusterv1.ClusterClassTemplate{
+							Ref: objToClusterClassTemplateRef(infrastructureMachineTemplate),
 						},
 					},
 				},
@@ -1843,8 +1843,8 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 				ClusterClass: &clusterv1.ClusterClass{},
 			}
 			if tt.class.InfrastructureMachineTemplate != nil {
-				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.LocalObjectTemplate{
-					Ref: contract.ObjToRef(tt.class.InfrastructureMachineTemplate),
+				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ClusterClassTemplate{
+					Ref: objToClusterClassTemplateRef(tt.class.InfrastructureMachineTemplate),
 				}
 			}
 
@@ -4109,5 +4109,14 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 			err := createErrorWithoutObjectName(ctx, tt.input, tt.obj)
 			g.Expect(err.Error()).To(Equal(tt.expected.Error()))
 		})
+	}
+}
+
+func objToClusterClassTemplateRef(obj *unstructured.Unstructured) *clusterv1.ClusterClassTemplateReference {
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	return &clusterv1.ClusterClassTemplateReference{
+		Kind:       gvk.Kind,
+		APIVersion: gvk.GroupVersion().String(),
+		Name:       obj.GetName(),
 	}
 }

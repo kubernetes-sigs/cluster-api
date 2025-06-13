@@ -115,7 +115,10 @@ As a developer of an add-ons orchestration solution:
 * **Before a Cluster is Created** I want to automatically check if enough disk space is available for allocation to the cluster for persistent storage of collected metrics values.
 * **After the Control Plane** **is Initialized** I want to automatically install a metrics database and associated add-ons in the workload cluster.
 * **Before the Cluster is Upgraded** I want to install a new version of the metrics database with a new version of the custom metrics apiservice to interact directly with the Kubernetes apiserver.
-* **After the ControlPlane is Upgraded** I want to automatically check that the new version of the custom metrics apiservice is working and correctly fulfilled by my metrics database.
+* **Before the ControlPlane is Upgraded** I want to install a new version of the metrics database with a new version of the custom metrics apiservice to interact directly with the Kubernetes apiserver.
+* **After the ControlPlane is Upgraded** I want to install new versions of metrics collectors to each upgraded node in the cluster.
+* **Before workers are Upgraded** I want to install a new version of the metrics database with a new version of the custom metrics apiservice to interact directly with the Kubernetes apiserver.
+* **After workers are Upgraded** I want to install new versions of metrics collectors to each upgraded node in the cluster
 * **After the Cluster is Upgraded** I want to install new versions of metrics collectors to each upgraded node in the cluster.
 * **Before the Cluster is Deleted** I want to automatically back up persistent volumes used by the metrics database.
 
@@ -123,7 +126,7 @@ As a developer of an add-ons orchestration solution:
 
 Below is a description for the Runtime Hooks introduced by this proposal.
 
-![runtime-hooks](images/runtime-hooks/runtime-hooks.png)
+![runtime-hooks](images/lifecycle-hooks/lifecycle-hooks.png)
 
 The remainder of this section has been moved to the Cluster API [book](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-lifecycle-hooks.md#definitions)
 to avoid duplication.
@@ -210,6 +213,7 @@ See [upgrade strategy](#upgrade-strategy).
 * [x] 2022-04-04: Opened corresponding [issue](https://github.com/kubernetes-sigs/cluster-api/issues/6374)
 * [x] 2022-04-06: Presented proposal at a [community meeting]
 * [x] 2022-04-14: Opened proposal PR
+* [x] 2025-05-13: Added runtime hooks for chained upgrades; see [proposal: Chained and efficient upgrades for Clusters with managed topologies](20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md)
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI/edit#heading=h.pxsq37pzkbdq

@@ -156,7 +156,7 @@ func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Cont
 			}
 			node := &corev1.Node{}
 			// This should not be an Expect(), because it may return error during machine deletion.
-			err := input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: machine.Status.NodeRef.Name, Namespace: machine.Status.NodeRef.Namespace}, node)
+			err := input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: machine.Status.NodeRef.Name}, node)
 			if err != nil {
 				return false
 			}

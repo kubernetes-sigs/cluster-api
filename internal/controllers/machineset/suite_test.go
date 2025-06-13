@@ -222,10 +222,8 @@ func fakeMachineNodeRef(m *clusterv1.Machine, pid string, g *WithT) {
 	g.Expect(env.Patch(ctx, m, patchMachine)).To(Succeed())
 
 	patchMachine = client.MergeFrom(m.DeepCopy())
-	m.Status.NodeRef = &corev1.ObjectReference{
-		APIVersion: corev1.SchemeGroupVersion.String(),
-		Kind:       "Node",
-		Name:       node.Name,
+	m.Status.NodeRef = &clusterv1.MachineNodeReference{
+		Name: node.Name,
 	}
 	g.Expect(env.Status().Patch(ctx, m, patchMachine)).To(Succeed())
 }

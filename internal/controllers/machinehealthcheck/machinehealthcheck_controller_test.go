@@ -2675,7 +2675,7 @@ func createMachinesWithNodes(
 
 			nodes = append(nodes, node)
 
-			machine.Status.NodeRef = &corev1.ObjectReference{
+			machine.Status.NodeRef = &clusterv1.MachineNodeReference{
 				Name: node.Name,
 			}
 		}

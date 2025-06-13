@@ -1626,7 +1626,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							},
 						},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &corev1.ObjectReference{},
+							NodeRef: &clusterv1.MachineNodeReference{},
 						},
 					},
 				},

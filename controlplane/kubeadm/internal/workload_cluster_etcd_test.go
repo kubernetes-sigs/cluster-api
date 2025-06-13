@@ -315,7 +315,7 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 func TestRemoveEtcdMemberForMachine(t *testing.T) {
 	machine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: "cp1",
 			},
 		},
@@ -787,7 +787,7 @@ func (c *fakeEtcdClientGenerator) forLeader(_ context.Context, _ []string) (*etc
 func defaultMachine(transforms ...func(m *clusterv1.Machine)) *clusterv1.Machine {
 	m := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: "machine-node",
 			},
 		},

@@ -463,7 +463,7 @@ func TestMachine_Reconcile(t *testing.T) {
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: "test",
 			},
 		},
@@ -875,7 +875,7 @@ func TestReconcileRequest(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
+					NodeRef: &clusterv1.MachineNodeReference{
 						Name: "test",
 					},
 					ObservedGeneration: 1,
@@ -905,7 +905,7 @@ func TestReconcileRequest(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
+					NodeRef: &clusterv1.MachineNodeReference{
 						Name: "test",
 					},
 					ObservedGeneration: 1,
@@ -1079,7 +1079,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: "test",
 			},
 			ObservedGeneration: 1,
@@ -1786,7 +1786,7 @@ func TestDrainNode(t *testing.T) {
 				reconcileDeleteCache: cache.New[cache.ReconcileEntry](cache.DefaultTTL),
 			}
 
-			testMachine.Status.NodeRef = &corev1.ObjectReference{
+			testMachine.Status.NodeRef = &clusterv1.MachineNodeReference{
 				Name: tt.nodeName,
 			}
 			if tt.nodeDrainStartTime != nil {
@@ -1849,7 +1849,7 @@ func TestDrainNode_withCaching(t *testing.T) {
 			Name:      "test-machine",
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: "node-1",
 			},
 			Deletion: &clusterv1.MachineDeletionStatus{
@@ -2575,7 +2575,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				reconcileDeleteCache: cache.New[cache.ReconcileEntry](cache.DefaultTTL),
 			}
 
-			testMachine.Status.NodeRef = &corev1.ObjectReference{
+			testMachine.Status.NodeRef = &clusterv1.MachineNodeReference{
 				Name: tt.node.GetName(),
 			}
 
@@ -2657,7 +2657,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
+					NodeRef: &clusterv1.MachineNodeReference{
 						Name: "test",
 					},
 				},
@@ -2690,7 +2690,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
+					NodeRef: &clusterv1.MachineNodeReference{
 						Name: "test",
 					},
 				},
@@ -2721,7 +2721,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
+					NodeRef: &clusterv1.MachineNodeReference{
 						Name: "test",
 					},
 				},
@@ -2774,7 +2774,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
+					NodeRef: &clusterv1.MachineNodeReference{
 						Name: "test",
 					},
 				},
@@ -2813,7 +2813,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
+					NodeRef: &clusterv1.MachineNodeReference{
 						Name: "test",
 					},
 				},
@@ -2852,7 +2852,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
+					NodeRef: &clusterv1.MachineNodeReference{
 						Name: "test",
 					},
 				},
@@ -2958,7 +2958,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
+					NodeRef: &clusterv1.MachineNodeReference{
 						Name: "test1",
 					},
 				},
@@ -2978,7 +2978,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
+					NodeRef: &clusterv1.MachineNodeReference{
 						Name: "test2",
 					},
 				},
@@ -3337,7 +3337,7 @@ func TestNodeDeletion(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: "test",
 			},
 		},
@@ -3359,7 +3359,7 @@ func TestNodeDeletion(t *testing.T) {
 			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: "cp1",
 			},
 		},
@@ -3552,7 +3552,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: "cp1",
 			},
 		},

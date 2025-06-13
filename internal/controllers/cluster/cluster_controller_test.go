@@ -515,10 +515,7 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 				ClusterName: "test-cluster",
 			},
 			Status: clusterv1.MachineStatus{
-				NodeRef: &corev1.ObjectReference{
-					Kind:      "Node",
-					Namespace: "test-node",
-				},
+				NodeRef: &clusterv1.MachineNodeReference{},
 			},
 		}
 		controlPlaneWithoutNoderef := &clusterv1.Machine{
@@ -552,10 +549,7 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 				ClusterName: "test-cluster",
 			},
 			Status: clusterv1.MachineStatus{
-				NodeRef: &corev1.ObjectReference{
-					Kind:      "Node",
-					Namespace: "test-node",
-				},
+				NodeRef: &clusterv1.MachineNodeReference{},
 			},
 		}
 		nonControlPlaneWithoutNoderef := &clusterv1.Machine{

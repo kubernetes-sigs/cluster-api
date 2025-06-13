@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"unsafe"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
@@ -1103,5 +1104,17 @@ func Convert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(
 
 	out.GenerateExtension = in.GeneratePatchesExtension
 	out.ValidateExtension = in.ValidateTopologyExtension
+	return nil
+}
+
+func Convert_v1_ObjectReference_To_v1beta2_MachineNodeReference(in *corev1.ObjectReference, out *clusterv1.MachineNodeReference, _ apimachineryconversion.Scope) error {
+	out.Name = in.Name
+	return nil
+}
+
+func Convert_v1beta2_MachineNodeReference_To_v1_ObjectReference(in *clusterv1.MachineNodeReference, out *corev1.ObjectReference, _ apimachineryconversion.Scope) error {
+	out.Name = in.Name
+	out.APIVersion = corev1.SchemeGroupVersion.String()
+	out.Kind = "Node"
 	return nil
 }

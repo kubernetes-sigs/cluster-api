@@ -598,7 +598,7 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 				BootstrapDataSecretCreated: true,
 			},
 			Phase: string(clusterv1.MachinePhaseRunning),
-			NodeRef: &corev1.ObjectReference{
+			NodeRef: &clusterv1.MachineNodeReference{
 				Name: nodeName,
 			},
 		},

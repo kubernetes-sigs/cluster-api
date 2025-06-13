@@ -690,6 +690,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*corev1.ObjectReference)(nil), (*v1beta2.MachineNodeReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_ObjectReference_To_v1beta2_MachineNodeReference(a.(*corev1.ObjectReference), b.(*v1beta2.MachineNodeReference), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*ClusterClassSpec)(nil), (*v1beta2.ClusterClassSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(a.(*ClusterClassSpec), b.(*v1beta2.ClusterClassSpec), scope)
 	}); err != nil {
@@ -912,6 +917,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.MachineHealthCheckStatus)(nil), (*MachineHealthCheckStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineHealthCheckStatus_To_v1beta1_MachineHealthCheckStatus(a.(*v1beta2.MachineHealthCheckStatus), b.(*MachineHealthCheckStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.MachineNodeReference)(nil), (*corev1.ObjectReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachineNodeReference_To_v1_ObjectReference(a.(*v1beta2.MachineNodeReference), b.(*corev1.ObjectReference), scope)
 	}); err != nil {
 		return err
 	}
@@ -3414,7 +3424,15 @@ func autoConvert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in *v1beta2.MachineS
 }
 
 func autoConvert_v1beta1_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, out *v1beta2.MachineStatus, s conversion.Scope) error {
-	out.NodeRef = (*corev1.ObjectReference)(unsafe.Pointer(in.NodeRef))
+	if in.NodeRef != nil {
+		in, out := &in.NodeRef, &out.NodeRef
+		*out = new(v1beta2.MachineNodeReference)
+		if err := Convert_v1_ObjectReference_To_v1beta2_MachineNodeReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.NodeRef = nil
+	}
 	out.NodeInfo = (*corev1.NodeSystemInfo)(unsafe.Pointer(in.NodeInfo))
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
@@ -3454,7 +3472,15 @@ func autoConvert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(in *v1beta2.Mach
 		out.Conditions = nil
 	}
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
-	out.NodeRef = (*corev1.ObjectReference)(unsafe.Pointer(in.NodeRef))
+	if in.NodeRef != nil {
+		in, out := &in.NodeRef, &out.NodeRef
+		*out = new(corev1.ObjectReference)
+		if err := Convert_v1beta2_MachineNodeReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.NodeRef = nil
+	}
 	out.NodeInfo = (*corev1.NodeSystemInfo)(unsafe.Pointer(in.NodeInfo))
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
 	out.Addresses = *(*MachineAddresses)(unsafe.Pointer(&in.Addresses))

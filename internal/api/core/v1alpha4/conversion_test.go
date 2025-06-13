@@ -115,6 +115,15 @@ func spokeMachineStatus(in *MachineStatus, c randfill.Continue) {
 	// These fields have been removed in v1beta1
 	// data is going to be lost, so we're forcing zero values to avoid round trip errors.
 	in.Version = nil
+
+	if in.NodeRef != nil {
+		// Drop everything except name
+		in.NodeRef = &corev1.ObjectReference{
+			Name:       in.NodeRef.Name,
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Node",
+		}
+	}
 }
 
 func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

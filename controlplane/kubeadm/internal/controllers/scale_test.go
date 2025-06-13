@@ -606,8 +606,7 @@ func TestPreflightChecks(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				{
 					Status: clusterv1.MachineStatus{
-						NodeRef: &corev1.ObjectReference{
-							Kind: "Node",
+						NodeRef: &clusterv1.MachineNodeReference{
 							Name: "node-1",
 						},
 						Conditions: []metav1.Condition{
@@ -634,8 +633,7 @@ func TestPreflightChecks(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				{
 					Status: clusterv1.MachineStatus{
-						NodeRef: &corev1.ObjectReference{
-							Kind: "Node",
+						NodeRef: &clusterv1.MachineNodeReference{
 							Name: "node-1",
 						},
 						Conditions: []metav1.Condition{
@@ -669,8 +667,7 @@ func TestPreflightChecks(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				{
 					Status: clusterv1.MachineStatus{
-						NodeRef: &corev1.ObjectReference{
-							Kind: "Node",
+						NodeRef: &clusterv1.MachineNodeReference{
 							Name: "node-1",
 						},
 						Conditions: []metav1.Condition{

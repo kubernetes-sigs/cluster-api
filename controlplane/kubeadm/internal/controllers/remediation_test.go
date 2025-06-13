@@ -2131,8 +2131,7 @@ func withUnhealthyAPIServerPod() machineOption {
 
 func withNodeRef(ref string) machineOption {
 	return func(machine *clusterv1.Machine) {
-		machine.Status.NodeRef = &corev1.ObjectReference{
-			Kind: "Node",
+		machine.Status.NodeRef = &clusterv1.MachineNodeReference{
 			Name: ref,
 		}
 	}

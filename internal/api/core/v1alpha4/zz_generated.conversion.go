@@ -29,6 +29,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
+	v1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -1858,7 +1859,15 @@ func autoConvert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in *v1beta2.Machine
 }
 
 func autoConvert_v1alpha4_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, out *v1beta2.MachineStatus, s conversion.Scope) error {
-	out.NodeRef = (*corev1.ObjectReference)(unsafe.Pointer(in.NodeRef))
+	if in.NodeRef != nil {
+		in, out := &in.NodeRef, &out.NodeRef
+		*out = new(v1beta2.MachineNodeReference)
+		if err := v1beta1.Convert_v1_ObjectReference_To_v1beta2_MachineNodeReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.NodeRef = nil
+	}
 	out.NodeInfo = (*corev1.NodeSystemInfo)(unsafe.Pointer(in.NodeInfo))
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
 	// WARNING: in.Version requires manual conversion: does not exist in peer-type
@@ -1896,7 +1905,15 @@ func autoConvert_v1beta2_MachineStatus_To_v1alpha4_MachineStatus(in *v1beta2.Mac
 		out.Conditions = nil
 	}
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
-	out.NodeRef = (*corev1.ObjectReference)(unsafe.Pointer(in.NodeRef))
+	if in.NodeRef != nil {
+		in, out := &in.NodeRef, &out.NodeRef
+		*out = new(corev1.ObjectReference)
+		if err := v1beta1.Convert_v1beta2_MachineNodeReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.NodeRef = nil
+	}
 	out.NodeInfo = (*corev1.NodeSystemInfo)(unsafe.Pointer(in.NodeInfo))
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
 	out.Addresses = *(*MachineAddresses)(unsafe.Pointer(&in.Addresses))

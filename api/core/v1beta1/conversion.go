@@ -1140,6 +1140,18 @@ func Convert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(
 	return nil
 }
 
+func Convert_v1_ObjectReference_To_v1beta2_MachineNodeReference(in *corev1.ObjectReference, out *clusterv1.MachineNodeReference, _ apimachineryconversion.Scope) error {
+	out.Name = in.Name
+	return nil
+}
+
+func Convert_v1beta2_MachineNodeReference_To_v1_ObjectReference(in *clusterv1.MachineNodeReference, out *corev1.ObjectReference, _ apimachineryconversion.Scope) error {
+	out.Name = in.Name
+	out.APIVersion = corev1.SchemeGroupVersion.String()
+	out.Kind = "Node"
+	return nil
+}
+
 func Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(in *LocalObjectTemplate, out *clusterv1.ClusterClassTemplate, _ apimachineryconversion.Scope) error {
 	if in.Ref == nil {
 		return nil

@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 
@@ -30,7 +29,7 @@ import (
 
 func TestMachineToDelete(t *testing.T) {
 	now := metav1.Now()
-	nodeRef := &corev1.ObjectReference{Name: "some-node"}
+	nodeRef := &clusterv1.MachineNodeReference{Name: "some-node"}
 	healthyMachine := &clusterv1.Machine{Status: clusterv1.MachineStatus{NodeRef: nodeRef}}
 	mustDeleteMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &now},
@@ -288,7 +287,7 @@ func TestMachineToDelete(t *testing.T) {
 
 func TestMachineNewestDelete(t *testing.T) {
 	currentTime := metav1.Now()
-	nodeRef := &corev1.ObjectReference{Name: "some-node"}
+	nodeRef := &clusterv1.MachineNodeReference{Name: "some-node"}
 	mustDeleteMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &currentTime},
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
@@ -438,7 +437,7 @@ func TestMachineNewestDelete(t *testing.T) {
 
 func TestMachineOldestDelete(t *testing.T) {
 	currentTime := metav1.Now()
-	nodeRef := &corev1.ObjectReference{Name: "some-node"}
+	nodeRef := &clusterv1.MachineNodeReference{Name: "some-node"}
 	empty := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
@@ -731,7 +730,7 @@ func TestMachineDeleteMultipleSamePriority(t *testing.T) {
 }
 
 func TestIsMachineHealthy(t *testing.T) {
-	nodeRef := &corev1.ObjectReference{Name: "some-node"}
+	nodeRef := &clusterv1.MachineNodeReference{Name: "some-node"}
 
 	tests := []struct {
 		desc    string

@@ -241,7 +241,7 @@ func PatchNodeCondition(ctx context.Context, input PatchNodeConditionInput) {
 	Expect(input.Machine.Status.NodeRef).ToNot(BeNil())
 	node := &corev1.Node{}
 	Eventually(func() error {
-		return input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: input.Machine.Status.NodeRef.Name, Namespace: input.Machine.Status.NodeRef.Namespace}, node)
+		return input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: input.Machine.Status.NodeRef.Name}, node)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get node %s", input.Machine.Status.NodeRef.Name)
 	patchHelper, err := patch.NewHelper(node, input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient())
 	Expect(err).ToNot(HaveOccurred())

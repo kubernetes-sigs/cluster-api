@@ -68,7 +68,7 @@ controller_runtime_reconcile_panics_total{controller="clusterclass"} 0
 # TYPE controller_runtime_webhook_panics_total counter
 controller_runtime_webhook_panics_total 0
 `),
-			wantErr: "panic occurred in \"cluster\" controller",
+			wantErr: "1 panics occurred in \"cluster\" controller (check logs for more details)",
 		},
 		{
 			name: "panic occurred in webhook",
@@ -85,7 +85,7 @@ controller_runtime_reconcile_panics_total{controller="clusterclass"} 0
 # TYPE controller_runtime_webhook_panics_total counter
 controller_runtime_webhook_panics_total 1
 `),
-			wantErr: "panic occurred in webhook",
+			wantErr: "1 panics occurred in webhooks (check logs for more details)",
 		},
 	}
 	for _, tt := range tests {

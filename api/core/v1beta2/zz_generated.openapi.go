@@ -100,6 +100,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineInitializationStatus":               schema_cluster_api_api_core_v1beta2_MachineInitializationStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineList":                               schema_cluster_api_api_core_v1beta2_MachineList(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy":                     schema_cluster_api_api_core_v1beta2_MachineNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNodeReference":                      schema_cluster_api_api_core_v1beta2_MachineNodeReference(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePool":                               schema_cluster_api_api_core_v1beta2_MachinePool(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClass":                          schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy":            schema_cluster_api_api_core_v1beta2_MachinePoolClassNamingStrategy(ref),
@@ -3722,6 +3723,28 @@ func schema_cluster_api_api_core_v1beta2_MachineNamingStrategy(ref common.Refere
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_MachineNodeReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineNodeReference is a reference to a the node running on the machine.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name of the node.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_MachinePool(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -4921,7 +4944,7 @@ func schema_cluster_api_api_core_v1beta2_MachineStatus(ref common.ReferenceCallb
 					"nodeRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "nodeRef will point to the corresponding Node if it exists.",
-							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNodeReference"),
 						},
 					},
 					"nodeInfo": {
@@ -4986,7 +5009,7 @@ func schema_cluster_api_api_core_v1beta2_MachineStatus(ref common.ReferenceCallb
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.NodeSystemInfo", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineAddress", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeletionStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeprecatedStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineInitializationStatus"},
+			"k8s.io/api/core/v1.NodeSystemInfo", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineAddress", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeletionStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeprecatedStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineInitializationStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNodeReference"},
 	}
 }
 

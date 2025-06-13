@@ -321,6 +321,15 @@ func spokeMachineStatus(in *MachineStatus, c randfill.Continue) {
 			in.V1Beta2 = nil
 		}
 	}
+
+	if in.NodeRef != nil {
+		// Drop everything except name
+		in.NodeRef = &corev1.ObjectReference{
+			Name:       in.NodeRef.Name,
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Node",
+		}
+	}
 }
 
 func MachineSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

@@ -43,7 +43,10 @@ verify_kind_version() {
       if ! [ -d "${GOPATH_BIN}" ]; then
         mkdir -p "${GOPATH_BIN}"
       fi
-
+      
+      # Download the kind binary with retry logic.
+      # Retries up to $max_retries times in case of network or server errors.
+      # The '-f' flag in curl ensures it fails on HTTP errors.
       max_retries=5
       retry_count=0
       until curl -sfLo "${GOPATH_BIN}/kind" "https://github.com/kubernetes-sigs/kind/releases/download/${MINIMUM_KIND_VERSION}/kind-${goos}-${goarch}"; do
@@ -55,6 +58,17 @@ verify_kind_version() {
         echo "Download of kind failed, retrying (${retry_count}/${max_retries})..."
         sleep 3
       done
+
+      if [ ! -s "${GOPATH_BIN}/kind" ]; then
+        echo "Downloaded kind binary is missing or empty!"
+        return 2
+      fi
+
+      chmod +x "${GOPATH_BIN}/kind"
+      verify_gopath_bin
+      else
+        echo "Missing required binary in path: kind"
+        return 2
     fi
   fi
 

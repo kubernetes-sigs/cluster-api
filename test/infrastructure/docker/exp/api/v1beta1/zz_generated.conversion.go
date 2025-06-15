@@ -95,11 +95,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachinePoolStatus)(nil), (*DockerMachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_DockerMachinePoolStatus_To_v1beta1_DockerMachinePoolStatus(a.(*v1beta2.DockerMachinePoolStatus), b.(*DockerMachinePoolStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*DockerMachinePoolTemplate)(nil), (*v1beta2.DockerMachinePoolTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_DockerMachinePoolTemplate_To_v1beta2_DockerMachinePoolTemplate(a.(*DockerMachinePoolTemplate), b.(*v1beta2.DockerMachinePoolTemplate), scope)
 	}); err != nil {
@@ -137,6 +132,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachinePoolTemplateSpec)(nil), (*DockerMachinePoolTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_DockerMachinePoolTemplateSpec_To_v1beta1_DockerMachinePoolTemplateSpec(a.(*v1beta2.DockerMachinePoolTemplateSpec), b.(*DockerMachinePoolTemplateSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.DockerMachinePoolStatus)(nil), (*DockerMachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachinePoolStatus_To_v1beta1_DockerMachinePoolStatus(a.(*v1beta2.DockerMachinePoolStatus), b.(*DockerMachinePoolStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -308,8 +308,9 @@ func autoConvert_v1beta1_DockerMachinePoolStatus_To_v1beta2_DockerMachinePoolSta
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert corev1beta2.Condition to v1.Condition
-			compileErrorOnMissingConversion()
+			if err := apiv1beta1.Convert_v1beta2_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil
@@ -333,8 +334,9 @@ func autoConvert_v1beta2_DockerMachinePoolStatus_To_v1beta1_DockerMachinePoolSta
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1beta2.Conditions, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert v1.Condition to corev1beta2.Condition
-			compileErrorOnMissingConversion()
+			if err := apiv1beta1.Convert_v1_Condition_To_v1beta2_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil

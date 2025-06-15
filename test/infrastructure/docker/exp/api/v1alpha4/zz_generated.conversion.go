@@ -269,8 +269,9 @@ func autoConvert_v1alpha4_DockerMachinePoolStatus_To_v1beta2_DockerMachinePoolSt
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert corev1alpha4.Condition to v1.Condition
-			compileErrorOnMissingConversion()
+			if err := apiv1alpha4.Convert_v1alpha4_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil
@@ -293,8 +294,9 @@ func autoConvert_v1beta2_DockerMachinePoolStatus_To_v1alpha4_DockerMachinePoolSt
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1alpha4.Conditions, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert v1.Condition to corev1alpha4.Condition
-			compileErrorOnMissingConversion()
+			if err := apiv1alpha4.Convert_v1_Condition_To_v1alpha4_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil

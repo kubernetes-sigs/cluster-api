@@ -100,16 +100,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DevClusterStatus)(nil), (*v1beta2.DevClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(a.(*DevClusterStatus), b.(*v1beta2.DevClusterStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.DevClusterStatus)(nil), (*DevClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(a.(*v1beta2.DevClusterStatus), b.(*DevClusterStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*DevClusterTemplate)(nil), (*v1beta2.DevClusterTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_DevClusterTemplate_To_v1beta2_DevClusterTemplate(a.(*DevClusterTemplate), b.(*v1beta2.DevClusterTemplate), scope)
 	}); err != nil {
@@ -200,16 +190,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DevMachineStatus)(nil), (*v1beta2.DevMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(a.(*DevMachineStatus), b.(*v1beta2.DevMachineStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.DevMachineStatus)(nil), (*DevMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(a.(*v1beta2.DevMachineStatus), b.(*DevMachineStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*DevMachineTemplate)(nil), (*v1beta2.DevMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_DevMachineTemplate_To_v1beta2_DevMachineTemplate(a.(*DevMachineTemplate), b.(*v1beta2.DevMachineTemplate), scope)
 	}); err != nil {
@@ -287,16 +267,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerClusterSpec)(nil), (*DockerClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_DockerClusterSpec_To_v1beta1_DockerClusterSpec(a.(*v1beta2.DockerClusterSpec), b.(*DockerClusterSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*DockerClusterStatus)(nil), (*v1beta2.DockerClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(a.(*DockerClusterStatus), b.(*v1beta2.DockerClusterStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerClusterStatus)(nil), (*DockerClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(a.(*v1beta2.DockerClusterStatus), b.(*DockerClusterStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -397,16 +367,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachineSpec)(nil), (*DockerMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_DockerMachineSpec_To_v1beta1_DockerMachineSpec(a.(*v1beta2.DockerMachineSpec), b.(*DockerMachineSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*DockerMachineStatus)(nil), (*v1beta2.DockerMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(a.(*DockerMachineStatus), b.(*v1beta2.DockerMachineStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachineStatus)(nil), (*DockerMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(a.(*v1beta2.DockerMachineStatus), b.(*DockerMachineStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -530,8 +490,58 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*corev1beta2.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1beta2_Condition(a.(*v1.Condition), b.(*corev1beta2.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*DevClusterStatus)(nil), (*v1beta2.DevClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(a.(*DevClusterStatus), b.(*v1beta2.DevClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*DevMachineStatus)(nil), (*v1beta2.DevMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(a.(*DevMachineStatus), b.(*v1beta2.DevMachineStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*DockerClusterStatus)(nil), (*v1beta2.DockerClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(a.(*DockerClusterStatus), b.(*v1beta2.DockerClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*DockerMachineStatus)(nil), (*v1beta2.DockerMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(a.(*DockerMachineStatus), b.(*v1beta2.DockerMachineStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*corev1beta1.ObjectMeta)(nil), (*corev1beta2.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(a.(*corev1beta1.ObjectMeta), b.(*corev1beta2.ObjectMeta), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*corev1beta2.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_Condition_To_v1_Condition(a.(*corev1beta2.Condition), b.(*v1.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.DevClusterStatus)(nil), (*DevClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(a.(*v1beta2.DevClusterStatus), b.(*DevClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.DevMachineStatus)(nil), (*DevMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(a.(*v1beta2.DevMachineStatus), b.(*DevMachineStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.DockerClusterStatus)(nil), (*DockerClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(a.(*v1beta2.DockerClusterStatus), b.(*DockerClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.DockerMachineStatus)(nil), (*DockerMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(a.(*v1beta2.DockerMachineStatus), b.(*DockerMachineStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -720,8 +730,9 @@ func autoConvert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevClu
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert corev1beta2.Condition to v1.Condition
-			compileErrorOnMissingConversion()
+			if err := Convert_v1beta2_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil
@@ -737,8 +748,9 @@ func autoConvert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in *v1beta
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1beta2.Conditions, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert v1.Condition to corev1beta2.Condition
-			compileErrorOnMissingConversion()
+			if err := Convert_v1_Condition_To_v1beta2_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil
@@ -1018,8 +1030,9 @@ func autoConvert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in *DevMac
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert corev1beta2.Condition to v1.Condition
-			compileErrorOnMissingConversion()
+			if err := Convert_v1beta2_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil
@@ -1037,8 +1050,9 @@ func autoConvert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *v1beta
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1beta2.Conditions, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert v1.Condition to corev1beta2.Condition
-			compileErrorOnMissingConversion()
+			if err := Convert_v1_Condition_To_v1beta2_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil
@@ -1308,8 +1322,9 @@ func autoConvert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert corev1beta2.Condition to v1.Condition
-			compileErrorOnMissingConversion()
+			if err := Convert_v1beta2_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil
@@ -1325,8 +1340,9 @@ func autoConvert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1beta2.Conditions, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert v1.Condition to corev1beta2.Condition
-			compileErrorOnMissingConversion()
+			if err := Convert_v1_Condition_To_v1beta2_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil
@@ -1643,8 +1659,9 @@ func autoConvert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert corev1beta2.Condition to v1.Condition
-			compileErrorOnMissingConversion()
+			if err := Convert_v1beta2_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil
@@ -1661,8 +1678,9 @@ func autoConvert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1beta2.Conditions, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert v1.Condition to corev1beta2.Condition
-			compileErrorOnMissingConversion()
+			if err := Convert_v1_Condition_To_v1beta2_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil

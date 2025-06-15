@@ -190,6 +190,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*corev1alpha4.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1alpha4_Condition(a.(*v1.Condition), b.(*corev1alpha4.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*corev1alpha4.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Condition_To_v1_Condition(a.(*corev1alpha4.Condition), b.(*v1.Condition), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.DockerClusterStatus)(nil), (*DockerClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(a.(*v1beta2.DockerClusterStatus), b.(*DockerClusterStatus), scope)
 	}); err != nil {
@@ -373,8 +383,9 @@ func autoConvert_v1alpha4_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in 
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert corev1alpha4.Condition to v1.Condition
-			compileErrorOnMissingConversion()
+			if err := Convert_v1alpha4_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil
@@ -394,8 +405,9 @@ func autoConvert_v1beta2_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(in 
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1alpha4.Conditions, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert v1.Condition to corev1alpha4.Condition
-			compileErrorOnMissingConversion()
+			if err := Convert_v1_Condition_To_v1alpha4_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil
@@ -632,8 +644,9 @@ func autoConvert_v1alpha4_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in 
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert corev1alpha4.Condition to v1.Condition
-			compileErrorOnMissingConversion()
+			if err := Convert_v1alpha4_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil
@@ -654,8 +667,9 @@ func autoConvert_v1beta2_DockerMachineStatus_To_v1alpha4_DockerMachineStatus(in 
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1alpha4.Conditions, len(*in))
 		for i := range *in {
-			// FIXME: Provide conversion function to convert v1.Condition to corev1alpha4.Condition
-			compileErrorOnMissingConversion()
+			if err := Convert_v1_Condition_To_v1alpha4_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
 		out.Conditions = nil

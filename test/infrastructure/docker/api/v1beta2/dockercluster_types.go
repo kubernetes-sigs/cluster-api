@@ -118,7 +118,9 @@ type DockerClusterDeprecatedStatus struct {
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type DockerClusterV1Beta1DeprecatedStatus struct {
 	// conditions defines current service state of the DockerCluster.
+	//
 	// +optional
+	//
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped.
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }

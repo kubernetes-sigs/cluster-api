@@ -421,6 +421,12 @@ func staticPodName(component, nodeName string) string {
 func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error {
 	// Return early if we've been asked to skip kube-proxy upgrades entirely.
 	if _, ok := kcp.Annotations[controlplanev1.SkipKubeProxyAnnotation]; ok {
+		//
+		return nil
+	}
+
+	// Return early if Proxy is disabled
+	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil && kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Proxy.Disabled {
 		return nil
 	}
 

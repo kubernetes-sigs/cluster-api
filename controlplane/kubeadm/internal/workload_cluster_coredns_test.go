@@ -194,6 +194,23 @@ func TestUpdateCoreDNS(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			name: "returns early without error if dns is disabled in spec",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							DNS: bootstrapv1.DNS{
+								Disabled: true,
+							},
+						},
+					},
+					Version: "v1.23.0",
+				},
+			},
+			objs:      []client.Object{badCM},
+			expectErr: false,
+		},
+		{
 			name:      "returns early without error if CoreDNS info is not found",
 			kcp:       validKCP,
 			expectErr: false,

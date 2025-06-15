@@ -86,6 +86,11 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 		return nil
 	}
 
+	// Return early if DNS is disabled
+	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.Disabled {
+		return nil
+	}
+
 	clusterConfig := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
 
 	// Get the CoreDNS info needed for the upgrade.

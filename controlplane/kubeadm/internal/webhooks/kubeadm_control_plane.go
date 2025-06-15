@@ -656,6 +656,11 @@ func (webhook *KubeadmControlPlane) validateCoreDNSVersion(oldK, newK *controlpl
 		return allErrs
 	}
 
+	// Skip validating if DNS is disabled.
+	if newK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.Disabled {
+		return allErrs
+	}
+
 	if err := migration.ValidUpMigration(version.MajorMinorPatch(fromVersion).String(), version.MajorMinorPatch(toVersion).String()); err != nil {
 		allErrs = append(
 			allErrs,

@@ -24,6 +24,7 @@ package v1alpha4
 import (
 	unsafe "unsafe"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -368,7 +369,16 @@ func Convert_v1beta2_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(in *v1beta2
 func autoConvert_v1alpha4_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *DockerClusterStatus, out *v1beta2.DockerClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.FailureDomains = *(*v1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			// FIXME: Provide conversion function to convert corev1alpha4.Condition to v1.Condition
+			compileErrorOnMissingConversion()
+		}
+	} else {
+		out.Conditions = nil
+	}
 	return nil
 }
 
@@ -380,8 +390,17 @@ func Convert_v1alpha4_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *Doc
 func autoConvert_v1beta2_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(in *v1beta2.DockerClusterStatus, out *DockerClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.FailureDomains = *(*corev1alpha4.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Conditions = *(*corev1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
-	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1alpha4.Conditions, len(*in))
+		for i := range *in {
+			// FIXME: Provide conversion function to convert v1.Condition to corev1alpha4.Condition
+			compileErrorOnMissingConversion()
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -609,7 +628,16 @@ func autoConvert_v1alpha4_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in 
 	out.Ready = in.Ready
 	out.LoadBalancerConfigured = in.LoadBalancerConfigured
 	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
-	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			// FIXME: Provide conversion function to convert corev1alpha4.Condition to v1.Condition
+			compileErrorOnMissingConversion()
+		}
+	} else {
+		out.Conditions = nil
+	}
 	return nil
 }
 
@@ -622,8 +650,17 @@ func autoConvert_v1beta2_DockerMachineStatus_To_v1alpha4_DockerMachineStatus(in 
 	out.Ready = in.Ready
 	out.LoadBalancerConfigured = in.LoadBalancerConfigured
 	out.Addresses = *(*[]corev1alpha4.MachineAddress)(unsafe.Pointer(&in.Addresses))
-	out.Conditions = *(*corev1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
-	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1alpha4.Conditions, len(*in))
+		for i := range *in {
+			// FIXME: Provide conversion function to convert v1.Condition to corev1alpha4.Condition
+			compileErrorOnMissingConversion()
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }
 

@@ -150,16 +150,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DevClusterV1Beta2Status)(nil), (*v1beta2.DevClusterV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DevClusterV1Beta2Status_To_v1beta2_DevClusterV1Beta2Status(a.(*DevClusterV1Beta2Status), b.(*v1beta2.DevClusterV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.DevClusterV1Beta2Status)(nil), (*DevClusterV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_DevClusterV1Beta2Status_To_v1beta1_DevClusterV1Beta2Status(a.(*v1beta2.DevClusterV1Beta2Status), b.(*DevClusterV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*DevMachine)(nil), (*v1beta2.DevMachine)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_DevMachine_To_v1beta2_DevMachine(a.(*DevMachine), b.(*v1beta2.DevMachine), scope)
 	}); err != nil {
@@ -260,16 +250,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DevMachineV1Beta2Status)(nil), (*v1beta2.DevMachineV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DevMachineV1Beta2Status_To_v1beta2_DevMachineV1Beta2Status(a.(*DevMachineV1Beta2Status), b.(*v1beta2.DevMachineV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.DevMachineV1Beta2Status)(nil), (*DevMachineV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_DevMachineV1Beta2Status_To_v1beta1_DevMachineV1Beta2Status(a.(*v1beta2.DevMachineV1Beta2Status), b.(*DevMachineV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*DockerCluster)(nil), (*v1beta2.DockerCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_DockerCluster_To_v1beta2_DockerCluster(a.(*DockerCluster), b.(*v1beta2.DockerCluster), scope)
 	}); err != nil {
@@ -357,16 +337,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerClusterTemplateSpec)(nil), (*DockerClusterTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_DockerClusterTemplateSpec_To_v1beta1_DockerClusterTemplateSpec(a.(*v1beta2.DockerClusterTemplateSpec), b.(*DockerClusterTemplateSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*DockerClusterV1Beta2Status)(nil), (*v1beta2.DockerClusterV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerClusterV1Beta2Status_To_v1beta2_DockerClusterV1Beta2Status(a.(*DockerClusterV1Beta2Status), b.(*v1beta2.DockerClusterV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerClusterV1Beta2Status)(nil), (*DockerClusterV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_DockerClusterV1Beta2Status_To_v1beta1_DockerClusterV1Beta2Status(a.(*v1beta2.DockerClusterV1Beta2Status), b.(*DockerClusterV1Beta2Status), scope)
 	}); err != nil {
 		return err
 	}
@@ -477,16 +447,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachineTemplateSpec)(nil), (*DockerMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_DockerMachineTemplateSpec_To_v1beta1_DockerMachineTemplateSpec(a.(*v1beta2.DockerMachineTemplateSpec), b.(*DockerMachineTemplateSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*DockerMachineV1Beta2Status)(nil), (*v1beta2.DockerMachineV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerMachineV1Beta2Status_To_v1beta2_DockerMachineV1Beta2Status(a.(*DockerMachineV1Beta2Status), b.(*v1beta2.DockerMachineV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachineV1Beta2Status)(nil), (*DockerMachineV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_DockerMachineV1Beta2Status_To_v1beta1_DockerMachineV1Beta2Status(a.(*v1beta2.DockerMachineV1Beta2Status), b.(*DockerMachineV1Beta2Status), scope)
 	}); err != nil {
 		return err
 	}
@@ -683,7 +643,17 @@ func Convert_v1beta2_DevClusterBackendSpec_To_v1beta1_DevClusterBackendSpec(in *
 
 func autoConvert_v1beta1_DevClusterList_To_v1beta2_DevClusterList(in *DevClusterList, out *v1beta2.DevClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.DevCluster)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.DevCluster, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_DevCluster_To_v1beta2_DevCluster(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -694,7 +664,17 @@ func Convert_v1beta1_DevClusterList_To_v1beta2_DevClusterList(in *DevClusterList
 
 func autoConvert_v1beta2_DevClusterList_To_v1beta1_DevClusterList(in *v1beta2.DevClusterList, out *DevClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]DevCluster)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]DevCluster, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_DevCluster_To_v1beta1_DevCluster(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -736,27 +716,35 @@ func Convert_v1beta2_DevClusterSpec_To_v1beta1_DevClusterSpec(in *v1beta2.DevClu
 func autoConvert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevClusterStatus, out *v1beta2.DevClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*v1beta2.DevClusterV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			// FIXME: Provide conversion function to convert corev1beta2.Condition to v1.Condition
+			compileErrorOnMissingConversion()
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus is an autogenerated conversion function.
-func Convert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevClusterStatus, out *v1beta2.DevClusterStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in, out, s)
 }
 
 func autoConvert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in *v1beta2.DevClusterStatus, out *DevClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*DevClusterV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1beta2.Conditions, len(*in))
+		for i := range *in {
+			// FIXME: Provide conversion function to convert v1.Condition to corev1beta2.Condition
+			compileErrorOnMissingConversion()
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus is an autogenerated conversion function.
-func Convert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in *v1beta2.DevClusterStatus, out *DevClusterStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_DevClusterTemplate_To_v1beta2_DevClusterTemplate(in *DevClusterTemplate, out *v1beta2.DevClusterTemplate, s conversion.Scope) error {
@@ -881,26 +869,6 @@ func Convert_v1beta2_DevClusterTemplateSpec_To_v1beta1_DevClusterTemplateSpec(in
 	return autoConvert_v1beta2_DevClusterTemplateSpec_To_v1beta1_DevClusterTemplateSpec(in, out, s)
 }
 
-func autoConvert_v1beta1_DevClusterV1Beta2Status_To_v1beta2_DevClusterV1Beta2Status(in *DevClusterV1Beta2Status, out *v1beta2.DevClusterV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta1_DevClusterV1Beta2Status_To_v1beta2_DevClusterV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta1_DevClusterV1Beta2Status_To_v1beta2_DevClusterV1Beta2Status(in *DevClusterV1Beta2Status, out *v1beta2.DevClusterV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta1_DevClusterV1Beta2Status_To_v1beta2_DevClusterV1Beta2Status(in, out, s)
-}
-
-func autoConvert_v1beta2_DevClusterV1Beta2Status_To_v1beta1_DevClusterV1Beta2Status(in *v1beta2.DevClusterV1Beta2Status, out *DevClusterV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta2_DevClusterV1Beta2Status_To_v1beta1_DevClusterV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta2_DevClusterV1Beta2Status_To_v1beta1_DevClusterV1Beta2Status(in *v1beta2.DevClusterV1Beta2Status, out *DevClusterV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta2_DevClusterV1Beta2Status_To_v1beta1_DevClusterV1Beta2Status(in, out, s)
-}
-
 func autoConvert_v1beta1_DevMachine_To_v1beta2_DevMachine(in *DevMachine, out *v1beta2.DevMachine, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1beta1_DevMachineSpec_To_v1beta2_DevMachineSpec(&in.Spec, &out.Spec, s); err != nil {
@@ -977,7 +945,17 @@ func Convert_v1beta2_DevMachineBackendStatus_To_v1beta1_DevMachineBackendStatus(
 
 func autoConvert_v1beta1_DevMachineList_To_v1beta2_DevMachineList(in *DevMachineList, out *v1beta2.DevMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.DevMachine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.DevMachine, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_DevMachine_To_v1beta2_DevMachine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -988,7 +966,17 @@ func Convert_v1beta1_DevMachineList_To_v1beta2_DevMachineList(in *DevMachineList
 
 func autoConvert_v1beta2_DevMachineList_To_v1beta1_DevMachineList(in *v1beta2.DevMachineList, out *DevMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]DevMachine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]DevMachine, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_DevMachine_To_v1beta1_DevMachine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1026,29 +1014,37 @@ func Convert_v1beta2_DevMachineSpec_To_v1beta1_DevMachineSpec(in *v1beta2.DevMac
 func autoConvert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in *DevMachineStatus, out *v1beta2.DevMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
-	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*v1beta2.DevMachineV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			// FIXME: Provide conversion function to convert corev1beta2.Condition to v1.Condition
+			compileErrorOnMissingConversion()
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	out.Backend = (*v1beta2.DevMachineBackendStatus)(unsafe.Pointer(in.Backend))
 	return nil
-}
-
-// Convert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus is an autogenerated conversion function.
-func Convert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in *DevMachineStatus, out *v1beta2.DevMachineStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in, out, s)
 }
 
 func autoConvert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *v1beta2.DevMachineStatus, out *DevMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
-	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*DevMachineV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
 	out.Backend = (*DevMachineBackendStatus)(unsafe.Pointer(in.Backend))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1beta2.Conditions, len(*in))
+		for i := range *in {
+			// FIXME: Provide conversion function to convert v1.Condition to corev1beta2.Condition
+			compileErrorOnMissingConversion()
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus is an autogenerated conversion function.
-func Convert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *v1beta2.DevMachineStatus, out *DevMachineStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_DevMachineTemplate_To_v1beta2_DevMachineTemplate(in *DevMachineTemplate, out *v1beta2.DevMachineTemplate, s conversion.Scope) error {
@@ -1173,26 +1169,6 @@ func Convert_v1beta2_DevMachineTemplateSpec_To_v1beta1_DevMachineTemplateSpec(in
 	return autoConvert_v1beta2_DevMachineTemplateSpec_To_v1beta1_DevMachineTemplateSpec(in, out, s)
 }
 
-func autoConvert_v1beta1_DevMachineV1Beta2Status_To_v1beta2_DevMachineV1Beta2Status(in *DevMachineV1Beta2Status, out *v1beta2.DevMachineV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta1_DevMachineV1Beta2Status_To_v1beta2_DevMachineV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta1_DevMachineV1Beta2Status_To_v1beta2_DevMachineV1Beta2Status(in *DevMachineV1Beta2Status, out *v1beta2.DevMachineV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta1_DevMachineV1Beta2Status_To_v1beta2_DevMachineV1Beta2Status(in, out, s)
-}
-
-func autoConvert_v1beta2_DevMachineV1Beta2Status_To_v1beta1_DevMachineV1Beta2Status(in *v1beta2.DevMachineV1Beta2Status, out *DevMachineV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta2_DevMachineV1Beta2Status_To_v1beta1_DevMachineV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta2_DevMachineV1Beta2Status_To_v1beta1_DevMachineV1Beta2Status(in *v1beta2.DevMachineV1Beta2Status, out *DevMachineV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta2_DevMachineV1Beta2Status_To_v1beta1_DevMachineV1Beta2Status(in, out, s)
-}
-
 func autoConvert_v1beta1_DockerCluster_To_v1beta2_DockerCluster(in *DockerCluster, out *v1beta2.DockerCluster, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1beta1_DockerClusterSpec_To_v1beta2_DockerClusterSpec(&in.Spec, &out.Spec, s); err != nil {
@@ -1253,7 +1229,17 @@ func Convert_v1beta2_DockerClusterBackendSpec_To_v1beta1_DockerClusterBackendSpe
 
 func autoConvert_v1beta1_DockerClusterList_To_v1beta2_DockerClusterList(in *DockerClusterList, out *v1beta2.DockerClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.DockerCluster)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.DockerCluster, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_DockerCluster_To_v1beta2_DockerCluster(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1264,7 +1250,17 @@ func Convert_v1beta1_DockerClusterList_To_v1beta2_DockerClusterList(in *DockerCl
 
 func autoConvert_v1beta2_DockerClusterList_To_v1beta1_DockerClusterList(in *v1beta2.DockerClusterList, out *DockerClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]DockerCluster)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]DockerCluster, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_DockerCluster_To_v1beta1_DockerCluster(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1308,27 +1304,35 @@ func Convert_v1beta2_DockerClusterSpec_To_v1beta1_DockerClusterSpec(in *v1beta2.
 func autoConvert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *DockerClusterStatus, out *v1beta2.DockerClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*v1beta2.DockerClusterV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			// FIXME: Provide conversion function to convert corev1beta2.Condition to v1.Condition
+			compileErrorOnMissingConversion()
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus is an autogenerated conversion function.
-func Convert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *DockerClusterStatus, out *v1beta2.DockerClusterStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in, out, s)
 }
 
 func autoConvert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *v1beta2.DockerClusterStatus, out *DockerClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*DockerClusterV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1beta2.Conditions, len(*in))
+		for i := range *in {
+			// FIXME: Provide conversion function to convert v1.Condition to corev1beta2.Condition
+			compileErrorOnMissingConversion()
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus is an autogenerated conversion function.
-func Convert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *v1beta2.DockerClusterStatus, out *DockerClusterStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_DockerClusterTemplate_To_v1beta2_DockerClusterTemplate(in *DockerClusterTemplate, out *v1beta2.DockerClusterTemplate, s conversion.Scope) error {
@@ -1453,26 +1457,6 @@ func Convert_v1beta2_DockerClusterTemplateSpec_To_v1beta1_DockerClusterTemplateS
 	return autoConvert_v1beta2_DockerClusterTemplateSpec_To_v1beta1_DockerClusterTemplateSpec(in, out, s)
 }
 
-func autoConvert_v1beta1_DockerClusterV1Beta2Status_To_v1beta2_DockerClusterV1Beta2Status(in *DockerClusterV1Beta2Status, out *v1beta2.DockerClusterV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta1_DockerClusterV1Beta2Status_To_v1beta2_DockerClusterV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta1_DockerClusterV1Beta2Status_To_v1beta2_DockerClusterV1Beta2Status(in *DockerClusterV1Beta2Status, out *v1beta2.DockerClusterV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerClusterV1Beta2Status_To_v1beta2_DockerClusterV1Beta2Status(in, out, s)
-}
-
-func autoConvert_v1beta2_DockerClusterV1Beta2Status_To_v1beta1_DockerClusterV1Beta2Status(in *v1beta2.DockerClusterV1Beta2Status, out *DockerClusterV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta2_DockerClusterV1Beta2Status_To_v1beta1_DockerClusterV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta2_DockerClusterV1Beta2Status_To_v1beta1_DockerClusterV1Beta2Status(in *v1beta2.DockerClusterV1Beta2Status, out *DockerClusterV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta2_DockerClusterV1Beta2Status_To_v1beta1_DockerClusterV1Beta2Status(in, out, s)
-}
-
 func autoConvert_v1beta1_DockerLoadBalancer_To_v1beta2_DockerLoadBalancer(in *DockerLoadBalancer, out *v1beta2.DockerLoadBalancer, s conversion.Scope) error {
 	if err := Convert_v1beta1_ImageMeta_To_v1beta2_ImageMeta(&in.ImageMeta, &out.ImageMeta, s); err != nil {
 		return err
@@ -1581,7 +1565,17 @@ func Convert_v1beta2_DockerMachineBackendStatus_To_v1beta1_DockerMachineBackendS
 
 func autoConvert_v1beta1_DockerMachineList_To_v1beta2_DockerMachineList(in *DockerMachineList, out *v1beta2.DockerMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.DockerMachine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.DockerMachine, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_DockerMachine_To_v1beta2_DockerMachine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1592,7 +1586,17 @@ func Convert_v1beta1_DockerMachineList_To_v1beta2_DockerMachineList(in *DockerMa
 
 func autoConvert_v1beta2_DockerMachineList_To_v1beta1_DockerMachineList(in *v1beta2.DockerMachineList, out *DockerMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]DockerMachine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]DockerMachine, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_DockerMachine_To_v1beta1_DockerMachine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1635,28 +1639,36 @@ func autoConvert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *
 	out.Ready = in.Ready
 	out.LoadBalancerConfigured = in.LoadBalancerConfigured
 	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
-	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*v1beta2.DockerMachineV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			// FIXME: Provide conversion function to convert corev1beta2.Condition to v1.Condition
+			compileErrorOnMissingConversion()
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus is an autogenerated conversion function.
-func Convert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *DockerMachineStatus, out *v1beta2.DockerMachineStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in, out, s)
 }
 
 func autoConvert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *v1beta2.DockerMachineStatus, out *DockerMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.LoadBalancerConfigured = in.LoadBalancerConfigured
 	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
-	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*DockerMachineV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1beta2.Conditions, len(*in))
+		for i := range *in {
+			// FIXME: Provide conversion function to convert v1.Condition to corev1beta2.Condition
+			compileErrorOnMissingConversion()
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus is an autogenerated conversion function.
-func Convert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *v1beta2.DockerMachineStatus, out *DockerMachineStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_DockerMachineTemplate_To_v1beta2_DockerMachineTemplate(in *DockerMachineTemplate, out *v1beta2.DockerMachineTemplate, s conversion.Scope) error {
@@ -1779,26 +1791,6 @@ func autoConvert_v1beta2_DockerMachineTemplateSpec_To_v1beta1_DockerMachineTempl
 // Convert_v1beta2_DockerMachineTemplateSpec_To_v1beta1_DockerMachineTemplateSpec is an autogenerated conversion function.
 func Convert_v1beta2_DockerMachineTemplateSpec_To_v1beta1_DockerMachineTemplateSpec(in *v1beta2.DockerMachineTemplateSpec, out *DockerMachineTemplateSpec, s conversion.Scope) error {
 	return autoConvert_v1beta2_DockerMachineTemplateSpec_To_v1beta1_DockerMachineTemplateSpec(in, out, s)
-}
-
-func autoConvert_v1beta1_DockerMachineV1Beta2Status_To_v1beta2_DockerMachineV1Beta2Status(in *DockerMachineV1Beta2Status, out *v1beta2.DockerMachineV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta1_DockerMachineV1Beta2Status_To_v1beta2_DockerMachineV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta1_DockerMachineV1Beta2Status_To_v1beta2_DockerMachineV1Beta2Status(in *DockerMachineV1Beta2Status, out *v1beta2.DockerMachineV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerMachineV1Beta2Status_To_v1beta2_DockerMachineV1Beta2Status(in, out, s)
-}
-
-func autoConvert_v1beta2_DockerMachineV1Beta2Status_To_v1beta1_DockerMachineV1Beta2Status(in *v1beta2.DockerMachineV1Beta2Status, out *DockerMachineV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta2_DockerMachineV1Beta2Status_To_v1beta1_DockerMachineV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta2_DockerMachineV1Beta2Status_To_v1beta1_DockerMachineV1Beta2Status(in *v1beta2.DockerMachineV1Beta2Status, out *DockerMachineV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta2_DockerMachineV1Beta2Status_To_v1beta1_DockerMachineV1Beta2Status(in, out, s)
 }
 
 func autoConvert_v1beta1_ImageMeta_To_v1beta2_ImageMeta(in *ImageMeta, out *v1beta2.ImageMeta, s conversion.Scope) error {

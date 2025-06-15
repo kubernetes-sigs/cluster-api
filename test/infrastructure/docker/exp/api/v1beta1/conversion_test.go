@@ -19,7 +19,12 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/randfill"
 
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -29,12 +34,29 @@ import (
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for DockerMachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &infraexpv1.DockerMachinePool{},
-		Spoke: &DockerMachinePool{},
+		Hub:         &infraexpv1.DockerMachinePool{},
+		Spoke:       &DockerMachinePool{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{DockerMachinePoolFuzzFunc},
 	}))
 
 	t.Run("for DockerMachinePoolTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:   &infraexpv1.DockerMachinePoolTemplate{},
 		Spoke: &DockerMachinePoolTemplate{},
 	}))
+}
+
+func DockerMachinePoolFuzzFunc(_ runtimeserializer.CodecFactory) []any {
+	return []any{
+		hubDockerClusterStatus,
+	}
+}
+
+func hubDockerClusterStatus(in *infraexpv1.DockerMachinePoolStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infraexpv1.DockerMachinePoolV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
+	}
 }

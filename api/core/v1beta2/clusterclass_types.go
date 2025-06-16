@@ -997,15 +997,19 @@ type PatchDefinition struct {
 // Note: The results of selection based on the individual fields are ANDed.
 type PatchSelector struct {
 	// apiVersion filters templates by apiVersion.
+	// apiVersion must be fully qualified domain name followed by / and a version.
 	// +required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=512
+	// +kubebuilder:validation:MaxLength=317
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$`
 	APIVersion string `json:"apiVersion"`
 
 	// kind filters templates by kind.
+	// kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
 	// +required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
 	Kind string `json:"kind"`
 
 	// matchResources selects templates based on where they are referenced.
@@ -1153,24 +1157,27 @@ type ClusterClassTemplate struct {
 // ClusterClassTemplateReference is a reference to a ClusterClass template.
 type ClusterClassTemplateReference struct {
 	// kind of the template.
+	// kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
 	// +required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=256
-	// +kubebuilder:validation:XValidation:rule="self.lowerAscii().matches('[a-z]([-a-z0-9]*[a-z0-9])?')",message="kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character"
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
 	Kind string `json:"kind"`
 
 	// name of the template.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:XValidation:rule="self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')",message="name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character."
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name"`
 
 	// apiVersion of the template.
+	// apiVersion must be fully qualified domain name followed by / and a version.
 	// +required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=512
-	// +kubebuilder:validation:XValidation:rule="self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\\\/[a-z]([-a-z0-9]*[a-z0-9])?')",message="apiVersion must be fully qualified domain name followed by / and a version."
+	// +kubebuilder:validation:MaxLength=317
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$`
 	APIVersion string `json:"apiVersion"`
 }
 

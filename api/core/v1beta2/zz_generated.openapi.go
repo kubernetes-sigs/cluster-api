@@ -762,7 +762,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassTemplateReference(ref commo
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "kind of the template.",
+							Description: "kind of the template. kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -770,7 +770,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassTemplateReference(ref commo
 					},
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "name of the template.",
+							Description: "name of the template. name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -778,7 +778,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassTemplateReference(ref commo
 					},
 					"apiVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "apiVersion of the template.",
+							Description: "apiVersion of the template. apiVersion must be fully qualified domain name followed by / and a version.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -5182,7 +5182,7 @@ func schema_cluster_api_api_core_v1beta2_PatchSelector(ref common.ReferenceCallb
 				Properties: map[string]spec.Schema{
 					"apiVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "apiVersion filters templates by apiVersion.",
+							Description: "apiVersion filters templates by apiVersion. apiVersion must be fully qualified domain name followed by / and a version.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -5190,7 +5190,7 @@ func schema_cluster_api_api_core_v1beta2_PatchSelector(ref common.ReferenceCallb
 					},
 					"kind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "kind filters templates by kind.",
+							Description: "kind filters templates by kind. kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",

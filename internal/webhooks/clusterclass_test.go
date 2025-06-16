@@ -65,7 +65,7 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 					builder.ControlPlaneTemplate("", "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate("", "cpInfra1").
+					builder.InfrastructureMachineTemplate("", "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -93,7 +93,7 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 					builder.ControlPlaneTemplate("", "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate("", "cpInfra1").
+					builder.InfrastructureMachineTemplate("", "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -117,7 +117,7 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 					builder.ControlPlaneTemplate("", "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate("", "cpInfra1").
+					builder.InfrastructureMachineTemplate("", "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -202,7 +202,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -280,7 +280,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -301,7 +301,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -322,7 +322,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
@@ -343,7 +343,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
@@ -366,7 +366,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				Build(),
 			old:       nil,
@@ -394,7 +394,7 @@ func TestClusterClassValidation(t *testing.T) {
 				WithControlPlaneTemplate(
 					refToUnstructured(refBadTemplate)).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				Build(),
 			old:       nil,
@@ -410,7 +410,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -432,7 +432,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -455,7 +455,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
@@ -477,7 +477,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
@@ -501,7 +501,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				Build(),
 			old:       nil,
@@ -529,7 +529,7 @@ func TestClusterClassValidation(t *testing.T) {
 				WithControlPlaneTemplate(
 					refToUnstructured(refBadAPIVersion)).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				Build(),
 			old:       nil,
@@ -544,7 +544,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -566,7 +566,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -588,7 +588,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
@@ -610,7 +610,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
@@ -634,7 +634,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -660,7 +660,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
@@ -686,7 +686,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
 					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
@@ -724,7 +724,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
 					NodeStartupTimeoutSeconds: ptr.To(int32(60)),
@@ -820,7 +820,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -844,7 +844,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -872,7 +872,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -896,7 +896,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -924,7 +924,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -941,7 +941,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1106,7 +1106,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1130,7 +1130,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1158,7 +1158,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1175,7 +1175,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1196,7 +1196,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
@@ -1213,7 +1213,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
@@ -1234,7 +1234,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1258,7 +1258,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1298,7 +1298,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1315,7 +1315,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1341,7 +1341,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
@@ -1358,7 +1358,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
@@ -1384,7 +1384,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1408,7 +1408,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
@@ -1434,7 +1434,7 @@ func TestClusterClassValidation(t *testing.T) {
 						Build()).
 				WithControlPlaneNamingStrategy(&clusterv1.ControlPlaneClassNamingStrategy{Template: ptr.To("{{ .cluster.name }}-cp-{{ .random }}")}).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1465,7 +1465,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				Build(),
 			expectErr: true,
@@ -1480,7 +1480,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				Build(),
 			expectErr: true,
@@ -1495,7 +1495,7 @@ func TestClusterClassValidation(t *testing.T) {
 						Build()).
 				WithControlPlaneNamingStrategy(&clusterv1.ControlPlaneClassNamingStrategy{Template: ptr.To("template-cp-{{ .invalidkey }}")}).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				Build(),
 			expectErr: true,
@@ -1510,7 +1510,7 @@ func TestClusterClassValidation(t *testing.T) {
 						Build()).
 				WithControlPlaneNamingStrategy(&clusterv1.ControlPlaneClassNamingStrategy{Template: ptr.To("template-cp-{{ .cluster.name }}-")}).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				Build(),
 			expectErr: true,
@@ -1524,7 +1524,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1546,7 +1546,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
@@ -1568,7 +1568,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("bb").
@@ -1590,7 +1590,7 @@ func TestClusterClassValidation(t *testing.T) {
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
 				WithControlPlaneInfrastructureMachineTemplate(
-					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("bb").

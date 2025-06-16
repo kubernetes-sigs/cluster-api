@@ -3035,34 +3035,29 @@ spec:
                           offered by a provider.
                         properties:
                           apiVersion:
-                            description: apiVersion of the template.
-                            maxLength: 512
+                            description: |-
+                              apiVersion of the template.
+                              apiVersion must be fully qualified domain name followed by / and a version.
+                            maxLength: 317
                             minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
                             type: string
-                            x-kubernetes-validations:
-                            - message: apiVersion must be fully qualified domain name
-                                followed by / and a version.
-                              rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/[a-z]([-a-z0-9]*[a-z0-9])?')
                           kind:
-                            description: kind of the template.
-                            maxLength: 256
+                            description: |-
+                              kind of the template.
+                              kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                            maxLength: 63
                             minLength: 1
+                            pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
                             type: string
-                            x-kubernetes-validations:
-                            - message: kind must consist of lower case alphanumeric
-                                characters or '-', start with an alphabetic character,
-                                and end with an alphanumeric character
-                              rule: self.lowerAscii().matches('[a-z]([-a-z0-9]*[a-z0-9])?')
                           name:
-                            description: name of the template.
+                            description: |-
+                              name of the template.
+                              name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
                             maxLength: 253
                             minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                             type: string
-                            x-kubernetes-validations:
-                            - message: name must consist of lower case alphanumeric
-                                characters, '-' or '.', and must start and end with
-                                an alphanumeric character.
-                              rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
                         required:
                         - apiVersion
                         - kind
@@ -3193,34 +3188,29 @@ spec:
                       offered by a provider.
                     properties:
                       apiVersion:
-                        description: apiVersion of the template.
-                        maxLength: 512
+                        description: |-
+                          apiVersion of the template.
+                          apiVersion must be fully qualified domain name followed by / and a version.
+                        maxLength: 317
                         minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
                         type: string
-                        x-kubernetes-validations:
-                        - message: apiVersion must be fully qualified domain name
-                            followed by / and a version.
-                          rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/[a-z]([-a-z0-9]*[a-z0-9])?')
                       kind:
-                        description: kind of the template.
-                        maxLength: 256
+                        description: |-
+                          kind of the template.
+                          kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                        maxLength: 63
                         minLength: 1
+                        pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
                         type: string
-                        x-kubernetes-validations:
-                        - message: kind must consist of lower case alphanumeric characters
-                            or '-', start with an alphabetic character, and end with
-                            an alphanumeric character
-                          rule: self.lowerAscii().matches('[a-z]([-a-z0-9]*[a-z0-9])?')
                       name:
-                        description: name of the template.
+                        description: |-
+                          name of the template.
+                          name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
                         maxLength: 253
                         minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                         type: string
-                        x-kubernetes-validations:
-                        - message: name must consist of lower case alphanumeric characters,
-                            '-' or '.', and must start and end with an alphanumeric
-                            character.
-                          rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
                     required:
                     - apiVersion
                     - kind
@@ -3257,34 +3247,29 @@ spec:
                       offered by a provider.
                     properties:
                       apiVersion:
-                        description: apiVersion of the template.
-                        maxLength: 512
+                        description: |-
+                          apiVersion of the template.
+                          apiVersion must be fully qualified domain name followed by / and a version.
+                        maxLength: 317
                         minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
                         type: string
-                        x-kubernetes-validations:
-                        - message: apiVersion must be fully qualified domain name
-                            followed by / and a version.
-                          rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/[a-z]([-a-z0-9]*[a-z0-9])?')
                       kind:
-                        description: kind of the template.
-                        maxLength: 256
+                        description: |-
+                          kind of the template.
+                          kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                        maxLength: 63
                         minLength: 1
+                        pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
                         type: string
-                        x-kubernetes-validations:
-                        - message: kind must consist of lower case alphanumeric characters
-                            or '-', start with an alphabetic character, and end with
-                            an alphanumeric character
-                          rule: self.lowerAscii().matches('[a-z]([-a-z0-9]*[a-z0-9])?')
                       name:
-                        description: name of the template.
+                        description: |-
+                          name of the template.
+                          name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
                         maxLength: 253
                         minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                         type: string
-                        x-kubernetes-validations:
-                        - message: name must consist of lower case alphanumeric characters,
-                            '-' or '.', and must start and end with an alphanumeric
-                            character.
-                          rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
                     required:
                     - apiVersion
                     - kind
@@ -3381,14 +3366,20 @@ spec:
                               should be applied.
                             properties:
                               apiVersion:
-                                description: apiVersion filters templates by apiVersion.
-                                maxLength: 512
+                                description: |-
+                                  apiVersion filters templates by apiVersion.
+                                  apiVersion must be fully qualified domain name followed by / and a version.
+                                maxLength: 317
                                 minLength: 1
+                                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
                                 type: string
                               kind:
-                                description: kind filters templates by kind.
-                                maxLength: 256
+                                description: |-
+                                  kind filters templates by kind.
+                                  kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                                maxLength: 63
                                 minLength: 1
+                                pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
                                 type: string
                               matchResources:
                                 description: matchResources selects templates based
@@ -4280,35 +4271,29 @@ spec:
                                     offered by a provider.
                                   properties:
                                     apiVersion:
-                                      description: apiVersion of the template.
-                                      maxLength: 512
+                                      description: |-
+                                        apiVersion of the template.
+                                        apiVersion must be fully qualified domain name followed by / and a version.
+                                      maxLength: 317
                                       minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
                                       type: string
-                                      x-kubernetes-validations:
-                                      - message: apiVersion must be fully qualified
-                                          domain name followed by / and a version.
-                                        rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/[a-z]([-a-z0-9]*[a-z0-9])?')
                                     kind:
-                                      description: kind of the template.
-                                      maxLength: 256
+                                      description: |-
+                                        kind of the template.
+                                        kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                                      maxLength: 63
                                       minLength: 1
+                                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
                                       type: string
-                                      x-kubernetes-validations:
-                                      - message: kind must consist of lower case alphanumeric
-                                          characters or '-', start with an alphabetic
-                                          character, and end with an alphanumeric
-                                          character
-                                        rule: self.lowerAscii().matches('[a-z]([-a-z0-9]*[a-z0-9])?')
                                     name:
-                                      description: name of the template.
+                                      description: |-
+                                        name of the template.
+                                        name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
                                       maxLength: 253
                                       minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                       type: string
-                                      x-kubernetes-validations:
-                                      - message: name must consist of lower case alphanumeric
-                                          characters, '-' or '.', and must start and
-                                          end with an alphanumeric character.
-                                        rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
                                   required:
                                   - apiVersion
                                   - kind
@@ -4328,35 +4313,29 @@ spec:
                                     offered by a provider.
                                   properties:
                                     apiVersion:
-                                      description: apiVersion of the template.
-                                      maxLength: 512
+                                      description: |-
+                                        apiVersion of the template.
+                                        apiVersion must be fully qualified domain name followed by / and a version.
+                                      maxLength: 317
                                       minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
                                       type: string
-                                      x-kubernetes-validations:
-                                      - message: apiVersion must be fully qualified
-                                          domain name followed by / and a version.
-                                        rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/[a-z]([-a-z0-9]*[a-z0-9])?')
                                     kind:
-                                      description: kind of the template.
-                                      maxLength: 256
+                                      description: |-
+                                        kind of the template.
+                                        kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                                      maxLength: 63
                                       minLength: 1
+                                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
                                       type: string
-                                      x-kubernetes-validations:
-                                      - message: kind must consist of lower case alphanumeric
-                                          characters or '-', start with an alphabetic
-                                          character, and end with an alphanumeric
-                                          character
-                                        rule: self.lowerAscii().matches('[a-z]([-a-z0-9]*[a-z0-9])?')
                                     name:
-                                      description: name of the template.
+                                      description: |-
+                                        name of the template.
+                                        name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
                                       maxLength: 253
                                       minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                       type: string
-                                      x-kubernetes-validations:
-                                      - message: name must consist of lower case alphanumeric
-                                          characters, '-' or '.', and must start and
-                                          end with an alphanumeric character.
-                                        rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
                                   required:
                                   - apiVersion
                                   - kind
@@ -4499,35 +4478,29 @@ spec:
                                     offered by a provider.
                                   properties:
                                     apiVersion:
-                                      description: apiVersion of the template.
-                                      maxLength: 512
+                                      description: |-
+                                        apiVersion of the template.
+                                        apiVersion must be fully qualified domain name followed by / and a version.
+                                      maxLength: 317
                                       minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
                                       type: string
-                                      x-kubernetes-validations:
-                                      - message: apiVersion must be fully qualified
-                                          domain name followed by / and a version.
-                                        rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/[a-z]([-a-z0-9]*[a-z0-9])?')
                                     kind:
-                                      description: kind of the template.
-                                      maxLength: 256
+                                      description: |-
+                                        kind of the template.
+                                        kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                                      maxLength: 63
                                       minLength: 1
+                                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
                                       type: string
-                                      x-kubernetes-validations:
-                                      - message: kind must consist of lower case alphanumeric
-                                          characters or '-', start with an alphabetic
-                                          character, and end with an alphanumeric
-                                          character
-                                        rule: self.lowerAscii().matches('[a-z]([-a-z0-9]*[a-z0-9])?')
                                     name:
-                                      description: name of the template.
+                                      description: |-
+                                        name of the template.
+                                        name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
                                       maxLength: 253
                                       minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                       type: string
-                                      x-kubernetes-validations:
-                                      - message: name must consist of lower case alphanumeric
-                                          characters, '-' or '.', and must start and
-                                          end with an alphanumeric character.
-                                        rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
                                   required:
                                   - apiVersion
                                   - kind
@@ -4547,35 +4520,29 @@ spec:
                                     offered by a provider.
                                   properties:
                                     apiVersion:
-                                      description: apiVersion of the template.
-                                      maxLength: 512
+                                      description: |-
+                                        apiVersion of the template.
+                                        apiVersion must be fully qualified domain name followed by / and a version.
+                                      maxLength: 317
                                       minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
                                       type: string
-                                      x-kubernetes-validations:
-                                      - message: apiVersion must be fully qualified
-                                          domain name followed by / and a version.
-                                        rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/[a-z]([-a-z0-9]*[a-z0-9])?')
                                     kind:
-                                      description: kind of the template.
-                                      maxLength: 256
+                                      description: |-
+                                        kind of the template.
+                                        kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                                      maxLength: 63
                                       minLength: 1
+                                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
                                       type: string
-                                      x-kubernetes-validations:
-                                      - message: kind must consist of lower case alphanumeric
-                                          characters or '-', start with an alphabetic
-                                          character, and end with an alphanumeric
-                                          character
-                                        rule: self.lowerAscii().matches('[a-z]([-a-z0-9]*[a-z0-9])?')
                                     name:
-                                      description: name of the template.
+                                      description: |-
+                                        name of the template.
+                                        name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
                                       maxLength: 253
                                       minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                       type: string
-                                      x-kubernetes-validations:
-                                      - message: name must consist of lower case alphanumeric
-                                          characters, '-' or '.', and must start and
-                                          end with an alphanumeric character.
-                                        rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
                                   required:
                                   - apiVersion
                                   - kind

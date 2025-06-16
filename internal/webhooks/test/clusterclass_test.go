@@ -74,7 +74,7 @@ func TestClusterClassWebhook_Succeed_Create(t *testing.T) {
 		WithWorkerMachineDeploymentClasses(
 			*builder.MachineDeploymentClass("md1").
 				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate(ns.Name, "OLD_INFRA").Build()).
+					builder.InfrastructureMachineTemplate(ns.Name, "old-infra").Build()).
 				WithBootstrapTemplate(
 					builder.BootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build(),

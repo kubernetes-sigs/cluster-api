@@ -1163,14 +1163,14 @@ type ClusterClassTemplateReference struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:XValidation:rule="self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')",message="name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character."
+	// +kubebuilder:validation:XValidation:rule="self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')",message="name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character."
 	Name string `json:"name"`
 
 	// apiVersion of the template.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	// +kubebuilder:validation:XValidation:rule="self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/[a-z]([-a-z0-9]*[a-z0-9])?')",message="apiVersion must be fully qualified domain name followed by / and a version."
+	// +kubebuilder:validation:XValidation:rule="self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\\\/[a-z]([-a-z0-9]*[a-z0-9])?')",message="apiVersion must be fully qualified domain name followed by / and a version."
 	APIVersion string `json:"apiVersion"`
 }
 

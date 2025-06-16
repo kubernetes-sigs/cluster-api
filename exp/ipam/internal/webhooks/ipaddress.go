@@ -141,14 +141,6 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 		}
 	}
 
-	if ip.Spec.PoolRef.APIGroup == nil {
-		allErrs = append(allErrs,
-			field.Invalid(
-				specPath.Child("poolRef.apiGroup"),
-				ip.Spec.PoolRef.APIGroup,
-				"the pool reference needs to contain a group"))
-	}
-
 	claim := &ipamv1.IPAddressClaim{}
 	err = webhook.Client.Get(ctx, types.NamespacedName{Name: ip.Spec.ClaimRef.Name, Namespace: ip.Namespace}, claim)
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -162,8 +154,7 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 	}
 
 	if claim.Name != "" && // only report non-matching pool if the claim exists
-		(ip.Spec.PoolRef.APIGroup == nil || claim.Spec.PoolRef.APIGroup == nil ||
-			*ip.Spec.PoolRef.APIGroup != *claim.Spec.PoolRef.APIGroup ||
+		(ip.Spec.PoolRef.APIGroup != claim.Spec.PoolRef.APIGroup ||
 			ip.Spec.PoolRef.Kind != claim.Spec.PoolRef.Kind ||
 			ip.Spec.PoolRef.Name != claim.Spec.PoolRef.Name) {
 		allErrs = append(allErrs,

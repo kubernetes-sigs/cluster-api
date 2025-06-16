@@ -211,7 +211,9 @@ func Convert_v1beta2_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(in *v1bet
 }
 
 func autoConvert_v1alpha1_IPAddressClaimSpec_To_v1beta2_IPAddressClaimSpec(in *IPAddressClaimSpec, out *v1beta2.IPAddressClaimSpec, s conversion.Scope) error {
-	out.PoolRef = in.PoolRef
+	if err := v1beta1.Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(&in.PoolRef, &out.PoolRef, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -222,12 +224,16 @@ func Convert_v1alpha1_IPAddressClaimSpec_To_v1beta2_IPAddressClaimSpec(in *IPAdd
 
 func autoConvert_v1beta2_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(in *v1beta2.IPAddressClaimSpec, out *IPAddressClaimSpec, s conversion.Scope) error {
 	// WARNING: in.ClusterName requires manual conversion: does not exist in peer-type
-	out.PoolRef = in.PoolRef
+	if err := v1beta1.Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(&in.PoolRef, &out.PoolRef, s); err != nil {
+		return err
+	}
 	return nil
 }
 
 func autoConvert_v1alpha1_IPAddressClaimStatus_To_v1beta2_IPAddressClaimStatus(in *IPAddressClaimStatus, out *v1beta2.IPAddressClaimStatus, s conversion.Scope) error {
-	out.AddressRef = in.AddressRef
+	if err := v1beta1.Convert_v1_LocalObjectReference_To_v1beta2_IPAddressReference(&in.AddressRef, &out.AddressRef, s); err != nil {
+		return err
+	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
@@ -259,7 +265,9 @@ func autoConvert_v1beta2_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(i
 	} else {
 		out.Conditions = nil
 	}
-	out.AddressRef = in.AddressRef
+	if err := v1beta1.Convert_v1beta2_IPAddressReference_To_v1_LocalObjectReference(&in.AddressRef, &out.AddressRef, s); err != nil {
+		return err
+	}
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -307,8 +315,12 @@ func Convert_v1beta2_IPAddressList_To_v1alpha1_IPAddressList(in *v1beta2.IPAddre
 }
 
 func autoConvert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec(in *IPAddressSpec, out *v1beta2.IPAddressSpec, s conversion.Scope) error {
-	out.ClaimRef = in.ClaimRef
-	out.PoolRef = in.PoolRef
+	if err := v1beta1.Convert_v1_LocalObjectReference_To_v1beta2_IPAddressClaimReference(&in.ClaimRef, &out.ClaimRef, s); err != nil {
+		return err
+	}
+	if err := v1beta1.Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(&in.PoolRef, &out.PoolRef, s); err != nil {
+		return err
+	}
 	out.Address = in.Address
 	out.Prefix = int32(in.Prefix)
 	out.Gateway = in.Gateway
@@ -321,8 +333,12 @@ func Convert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec(in *IPAddressSpec, 
 }
 
 func autoConvert_v1beta2_IPAddressSpec_To_v1alpha1_IPAddressSpec(in *v1beta2.IPAddressSpec, out *IPAddressSpec, s conversion.Scope) error {
-	out.ClaimRef = in.ClaimRef
-	out.PoolRef = in.PoolRef
+	if err := v1beta1.Convert_v1beta2_IPAddressClaimReference_To_v1_LocalObjectReference(&in.ClaimRef, &out.ClaimRef, s); err != nil {
+		return err
+	}
+	if err := v1beta1.Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(&in.PoolRef, &out.PoolRef, s); err != nil {
+		return err
+	}
 	out.Address = in.Address
 	out.Prefix = int(in.Prefix)
 	out.Gateway = in.Gateway

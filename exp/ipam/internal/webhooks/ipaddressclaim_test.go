@@ -21,8 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/ptr"
 
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 )
@@ -31,10 +29,10 @@ func TestIPAddressClaimValidateCreate(t *testing.T) {
 	getClaim := func(fn func(addr *ipamv1.IPAddressClaim)) ipamv1.IPAddressClaim {
 		claim := ipamv1.IPAddressClaim{
 			Spec: ipamv1.IPAddressClaimSpec{
-				PoolRef: corev1.TypedLocalObjectReference{
+				PoolRef: ipamv1.IPPoolReference{
 					Name:     "identical",
 					Kind:     "TestPool",
-					APIGroup: ptr.To("ipam.cluster.x-k8s.io"),
+					APIGroup: "ipam.cluster.x-k8s.io",
 				},
 			},
 		}
@@ -51,13 +49,6 @@ func TestIPAddressClaimValidateCreate(t *testing.T) {
 			name:      "should accept a valid claim",
 			claim:     getClaim(func(*ipamv1.IPAddressClaim) {}),
 			expectErr: false,
-		},
-		{
-			name: "should reject a pool reference without a group",
-			claim: getClaim(func(addr *ipamv1.IPAddressClaim) {
-				addr.Spec.PoolRef.APIGroup = nil
-			}),
-			expectErr: true,
 		},
 	}
 
@@ -81,7 +72,7 @@ func TestIPAddressClaimValidateUpdate(t *testing.T) {
 	getClaim := func(fn func(addr *ipamv1.IPAddressClaim)) ipamv1.IPAddressClaim {
 		claim := ipamv1.IPAddressClaim{
 			Spec: ipamv1.IPAddressClaimSpec{
-				PoolRef: corev1.TypedLocalObjectReference{
+				PoolRef: ipamv1.IPPoolReference{
 					Name: "identical",
 				},
 			},

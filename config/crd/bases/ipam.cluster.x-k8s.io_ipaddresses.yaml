@@ -273,16 +273,16 @@ spec:
                   created for.
                 properties:
                   name:
-                    default: ""
                     description: |-
-                      Name of the referent.
-                      This field is effectively required, but due to backwards compatibility is
-                      allowed to be empty. Instances of this type with an empty value here are
-                      almost certainly wrong.
-                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      name of the IPAddressClaim.
+                      name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                     type: string
+                required:
+                - name
                 type: object
-                x-kubernetes-map-type: atomic
               gateway:
                 description: gateway is the network gateway of the network the address
                   is from.
@@ -294,22 +294,32 @@ spec:
                   was created from.
                 properties:
                   apiGroup:
-                    description: |-
-                      APIGroup is the group for the resource being referenced.
-                      If APIGroup is not specified, the specified Kind must be in the core API group.
-                      For any other third-party types, APIGroup is required.
+                    description: apiGroup of the IPPool.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                     type: string
                   kind:
-                    description: Kind is the type of resource being referenced
+                    description: |-
+                      kind of the IPPool.
+                      kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                    maxLength: 63
+                    minLength: 1
+                    pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
                     type: string
                   name:
-                    description: Name is the name of resource being referenced
+                    description: |-
+                      name of the IPPool.
+                      name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                     type: string
                 required:
+                - apiGroup
                 - kind
                 - name
                 type: object
-                x-kubernetes-map-type: atomic
               prefix:
                 description: prefix is the prefix of the address.
                 format: int32

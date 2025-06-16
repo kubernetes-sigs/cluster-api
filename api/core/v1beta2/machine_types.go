@@ -556,12 +556,13 @@ type MachineStatus struct {
 	Deprecated *MachineDeprecatedStatus `json:"deprecated,omitempty"`
 }
 
-// MachineNodeReference is a reference to a the node running on the machine.
+// MachineNodeReference is a reference to the node running on the machine.
 type MachineNodeReference struct {
 	// name of the node.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')",message="name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character."
 	Name string `json:"name"`
 }
 

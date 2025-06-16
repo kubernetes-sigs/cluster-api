@@ -3727,7 +3727,7 @@ func schema_cluster_api_api_core_v1beta2_MachineNodeReference(ref common.Referen
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineNodeReference is a reference to a the node running on the machine.",
+				Description: "MachineNodeReference is a reference to the node running on the machine.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"name": {

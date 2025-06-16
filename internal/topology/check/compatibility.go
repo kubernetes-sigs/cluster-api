@@ -46,7 +46,7 @@ func ObjectsAreStrictlyCompatible(current, desired client.Object) field.ErrorLis
 }
 
 // ObjectsAreCompatible checks if two referenced objects are compatible, meaning that
-// they are of the same GroupKind.
+// they are of the same GroupKind and in the same namespace.
 func ObjectsAreCompatible(current, desired client.Object) field.ErrorList {
 	var allErrs field.ErrorList
 

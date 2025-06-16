@@ -793,20 +793,20 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 
 	// Copy ClusterClass templates to the new namespace
 	for i, mdClass := range newClusterClass.Spec.Workers.MachineDeployments {
-		cloneRef(ctx, mgmtClient, mdClass.Template.Infrastructure.Ref.ToObjectReference(input.ClusterClass.Namespace), input.ClusterClassNamespace)
-		cloneRef(ctx, mgmtClient, mdClass.Template.Bootstrap.Ref.ToObjectReference(input.ClusterClass.Namespace), input.ClusterClassNamespace)
+		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mdClass.Template.Infrastructure, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mdClass.Template.Bootstrap, input.ClusterClass.Namespace, input.ClusterClassNamespace)
 		newClusterClass.Spec.Workers.MachineDeployments[i] = mdClass
 	}
 
 	for i, mpClass := range newClusterClass.Spec.Workers.MachinePools {
-		cloneRef(ctx, mgmtClient, mpClass.Template.Infrastructure.Ref.ToObjectReference(input.ClusterClass.Namespace), input.ClusterClassNamespace)
-		cloneRef(ctx, mgmtClient, mpClass.Template.Bootstrap.Ref.ToObjectReference(input.ClusterClass.Namespace), input.ClusterClassNamespace)
+		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mpClass.Template.Infrastructure, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mpClass.Template.Bootstrap, input.ClusterClass.Namespace, input.ClusterClassNamespace)
 		newClusterClass.Spec.Workers.MachinePools[i] = mpClass
 	}
 
-	cloneRef(ctx, mgmtClient, newClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref.ToObjectReference(input.ClusterClass.Namespace), input.ClusterClassNamespace)
-	cloneRef(ctx, mgmtClient, newClusterClass.Spec.ControlPlane.Ref.ToObjectReference(input.ClusterClass.Namespace), input.ClusterClassNamespace)
-	cloneRef(ctx, mgmtClient, newClusterClass.Spec.Infrastructure.Ref.ToObjectReference(input.ClusterClass.Namespace), input.ClusterClassNamespace)
+	cloneTemplateAndUpdateRef(ctx, mgmtClient, newClusterClass.Spec.ControlPlane.MachineInfrastructure, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+	cloneTemplateAndUpdateRef(ctx, mgmtClient, &newClusterClass.Spec.ControlPlane.ClusterClassTemplate, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+	cloneTemplateAndUpdateRef(ctx, mgmtClient, &newClusterClass.Spec.Infrastructure.ClusterClassTemplate, input.ClusterClass.Namespace, input.ClusterClassNamespace)
 
 	Expect(mgmtClient.Create(ctx, newClusterClass)).To(Succeed())
 
@@ -893,23 +893,29 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 	return newClusterClass
 }
 
-// cloneRef performs required modifications to avoid conflict, and create a copy of the referenced object, updating the ref in-place.
-func cloneRef(ctx context.Context, cl client.Client, ref *corev1.ObjectReference, namespace string) {
-	if ref == nil {
+// cloneTemplateAndUpdateRef performs required modifications to avoid conflict, and create a copy of the referenced object, updating the ref in-place.
+func cloneTemplateAndUpdateRef(ctx context.Context, cl client.Client, template *clusterv1.ClusterClassTemplate, currentNamespace, targetNamespace string) {
+	if template == nil || template.Ref == nil {
 		return
 	}
 
-	template, err := external.Get(ctx, cl, ref)
+	templateObject, err := external.Get(ctx, cl, template.Ref.ToObjectReference(currentNamespace))
 	Expect(err).ToNot(HaveOccurred())
-	if namespace != "" {
-		template.SetNamespace(namespace)
+	if targetNamespace != "" {
+		templateObject.SetNamespace(targetNamespace)
 	} else {
-		template.SetGenerateName(template.GetName() + "-")
-		template.SetName("")
+		templateObject.SetGenerateName(templateObject.GetName() + "-")
+		templateObject.SetName("")
 	}
-	template.SetResourceVersion("")
-	template.SetOwnerReferences(nil)
-	Expect(cl.Create(ctx, template)).To(Succeed())
+	templateObject.SetResourceVersion("")
+	templateObject.SetOwnerReferences(nil)
+	Expect(cl.Create(ctx, templateObject)).To(Succeed())
+
+	template.Ref = &clusterv1.ClusterClassTemplateReference{
+		Kind:       templateObject.GetKind(),
+		Name:       templateObject.GetName(),
+		APIVersion: templateObject.GetAPIVersion(),
+	}
 }
 
 // deleteMachineDeploymentTopologyAndWaitInput is the input type for deleteMachineDeploymentTopologyAndWaitInput.

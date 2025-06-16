@@ -1155,23 +1155,26 @@ type ClusterClassTemplateReference struct {
 	// kind of the template.
 	// +required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:XValidation:rule="self.lowerAscii().matches('[a-z]([-a-z0-9]*[a-z0-9])?')",message="kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character"
 	Kind string `json:"kind"`
 
 	// name of the template.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')",message="name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character."
 	Name string `json:"name"`
 
 	// apiVersion of the template.
 	// +required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:MaxLength=512
+	// +kubebuilder:validation:XValidation:rule="self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/[a-z]([-a-z0-9]*[a-z0-9])?')",message="apiVersion must be fully qualified domain name followed by / and a version."
 	APIVersion string `json:"apiVersion"`
 }
 
-// ToObjectReference return an object reference for the ClusterClassTemplateReference in a given namespace.
+// ToObjectReference returns an object reference for the ClusterClassTemplateReference in a given namespace.
 func (r *ClusterClassTemplateReference) ToObjectReference(namespace string) *corev1.ObjectReference {
 	if r == nil {
 		return nil

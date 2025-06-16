@@ -264,7 +264,7 @@ func TestClusterClassTemplateAreCompatible(t *testing.T) {
 	}
 }
 
-func TestLocalObjectTemplateIsValid(t *testing.T) {
+func TestClusterClassTemplateIsValid(t *testing.T) {
 	pathPrefix := field.NewPath("this", "is", "a", "prefix")
 
 	validTemplate := &clusterv1.ClusterClassTemplate{

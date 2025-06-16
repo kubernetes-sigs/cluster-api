@@ -3732,7 +3732,7 @@ func schema_cluster_api_api_core_v1beta2_MachineNodeReference(ref common.Referen
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "name of the node.",
+							Description: "name of the node. name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",

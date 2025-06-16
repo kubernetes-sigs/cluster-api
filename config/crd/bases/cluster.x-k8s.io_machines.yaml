@@ -2074,14 +2074,13 @@ spec:
                 description: nodeRef will point to the corresponding Node if it exists.
                 properties:
                   name:
-                    description: name of the node.
+                    description: |-
+                      name of the node.
+                      name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
                     maxLength: 253
                     minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                     type: string
-                    x-kubernetes-validations:
-                    - message: name must consist of lower case alphanumeric characters,
-                        '-' or '.', and must start and end with an alphanumeric character.
-                      rule: self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
                 required:
                 - name
                 type: object

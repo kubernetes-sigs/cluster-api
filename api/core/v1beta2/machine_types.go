@@ -559,10 +559,11 @@ type MachineStatus struct {
 // MachineNodeReference is a reference to the node running on the machine.
 type MachineNodeReference struct {
 	// name of the node.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:XValidation:rule="self.matches('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')",message="name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character."
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name"`
 }
 

@@ -221,10 +221,8 @@ func TestHasNodeRefs(t *testing.T) {
 				Initialization: &clusterv1.MachineInitializationStatus{
 					InfrastructureProvisioned: true,
 				},
-				NodeRef: &corev1.ObjectReference{
-					Kind:      "Node",
-					Namespace: metav1.NamespaceDefault,
-					Name:      "node-0",
+				NodeRef: &clusterv1.MachineNodeReference{
+					Name: "node-0",
 				},
 			},
 		}

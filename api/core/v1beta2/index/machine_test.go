@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -42,7 +41,7 @@ func TestIndexMachineByNodeName(t *testing.T) {
 			name: "when the machine has valid a NodeRef",
 			object: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
+					NodeRef: &clusterv1.MachineNodeReference{
 						Name: "node1",
 					},
 				},

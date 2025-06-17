@@ -3233,10 +3233,10 @@ func (t creationTimestamp) ApplyToMachine(m *clusterv1.Machine) {
 	m.CreationTimestamp = metav1.Time(t)
 }
 
-type nodeRef corev1.ObjectReference
+type nodeRef clusterv1.MachineNodeReference
 
 func (r nodeRef) ApplyToMachine(m *clusterv1.Machine) {
-	m.Status.NodeRef = ptr.To(corev1.ObjectReference(r))
+	m.Status.NodeRef = ptr.To(clusterv1.MachineNodeReference(r))
 }
 
 type topology bool

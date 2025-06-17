@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,6 +117,15 @@ func spokeMachineStatus(in *MachineStatus, c randfill.Continue) {
 	// These fields have been removed in v1beta1
 	// data is going to be lost, so we're forcing zero values to avoid round trip errors.
 	in.Version = nil
+
+	if in.NodeRef != nil {
+		// Drop everything except name
+		in.NodeRef = &corev1.ObjectReference{
+			Name:       in.NodeRef.Name,
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Node",
+		}
+	}
 }
 
 func MachineSetFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {

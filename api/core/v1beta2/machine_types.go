@@ -516,7 +516,7 @@ type MachineStatus struct {
 
 	// nodeRef will point to the corresponding Node if it exists.
 	// +optional
-	NodeRef *corev1.ObjectReference `json:"nodeRef,omitempty"`
+	NodeRef *MachineNodeReference `json:"nodeRef,omitempty"`
 
 	// nodeInfo is a set of ids/uuids to uniquely identify the node.
 	// More info: https://kubernetes.io/docs/concepts/nodes/node/#info
@@ -554,6 +554,17 @@ type MachineStatus struct {
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *MachineDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// MachineNodeReference is a reference to the node running on the machine.
+type MachineNodeReference struct {
+	// name of the node.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name"`
 }
 
 // MachineInitializationStatus provides observations of the Machine initialization process.

@@ -744,11 +744,8 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 			if err != nil && err != ErrNodeNotFound {
 				log.Error(err, "Failed to get node while deleting Machine")
 			} else if err == nil {
-				machine.Status.NodeRef = &corev1.ObjectReference{
-					APIVersion: corev1.SchemeGroupVersion.String(),
-					Kind:       "Node",
-					Name:       node.Name,
-					UID:        node.UID,
+				machine.Status.NodeRef = &clusterv1.MachineNodeReference{
+					Name: node.Name,
 				}
 			}
 		}

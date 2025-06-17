@@ -811,7 +811,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
 				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
-				m.Status.NodeRef = &corev1.ObjectReference{
+				m.Status.NodeRef = &clusterv1.MachineNodeReference{
 					Name: "test-node-1",
 				}
 				return m
@@ -863,7 +863,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			cluster: defaultCluster,
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Status.NodeRef = &corev1.ObjectReference{
+				m.Status.NodeRef = &clusterv1.MachineNodeReference{
 					Name: "test-node-1",
 				}
 				return m
@@ -2173,7 +2173,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
+		machine.Status.NodeRef = &clusterv1.MachineNodeReference{Name: node.Name}
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
@@ -2264,7 +2264,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
+		machine.Status.NodeRef = &clusterv1.MachineNodeReference{Name: node.Name}
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
@@ -2344,7 +2344,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
+		machine.Status.NodeRef = &clusterv1.MachineNodeReference{Name: node.Name}
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
@@ -2506,7 +2506,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
+		machine.Status.NodeRef = &clusterv1.MachineNodeReference{Name: node.Name}
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		modifiedMachine = machine.DeepCopy()

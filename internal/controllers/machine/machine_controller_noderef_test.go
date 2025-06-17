@@ -151,10 +151,8 @@ func TestReconcileNode(t *testing.T) {
 					ProviderID: ptr.To("aws://us-east-1/test-node-1"),
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
-						Kind:       "Node",
-						Name:       "test-node-1",
-						APIVersion: "v1",
+					NodeRef: &clusterv1.MachineNodeReference{
+						Name: "test-node-1",
 					},
 				},
 			},
@@ -179,10 +177,8 @@ func TestReconcileNode(t *testing.T) {
 					ProviderID: ptr.To("aws://us-east-1/test-node-1"),
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &corev1.ObjectReference{
-						Kind:       "Node",
-						Name:       "test-node-1",
-						APIVersion: "v1",
+					NodeRef: &clusterv1.MachineNodeReference{
+						Name: "test-node-1",
 					},
 				},
 			},

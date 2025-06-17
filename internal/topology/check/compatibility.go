@@ -85,13 +85,13 @@ func ObjectsAreInTheSameNamespace(current, desired client.Object) field.ErrorLis
 	return allErrs
 }
 
-// LocalObjectTemplatesAreCompatible checks if two referenced objects are compatible, meaning that
+// ClusterClassTemplateAreCompatible checks if two referenced objects are compatible, meaning that
 // they are of the same GroupKind.
-func LocalObjectTemplatesAreCompatible(current, desired clusterv1.LocalObjectTemplate, pathPrefix *field.Path) field.ErrorList {
+func ClusterClassTemplateAreCompatible(current, desired clusterv1.ClusterClassTemplate, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	currentGK := current.Ref.GetObjectKind().GroupVersionKind().GroupKind()
-	desiredGK := desired.Ref.GetObjectKind().GroupVersionKind().GroupKind()
+	currentGK := current.Ref.GroupVersionKind().GroupKind()
+	desiredGK := desired.Ref.GroupVersionKind().GroupKind()
 
 	if currentGK.Group != desiredGK.Group {
 		allErrs = append(allErrs, field.Forbidden(
@@ -110,8 +110,8 @@ func LocalObjectTemplatesAreCompatible(current, desired clusterv1.LocalObjectTem
 	return allErrs
 }
 
-// LocalObjectTemplateIsValid ensures the template is in the correct namespace, has no nil references, and has a valid Kind and GroupVersion.
-func LocalObjectTemplateIsValid(template *clusterv1.LocalObjectTemplate, namespace string, pathPrefix *field.Path) field.ErrorList {
+// ClusterClassTemplateIsValid ensures the template has no nil references, and has a valid Kind and GroupVersion.
+func ClusterClassTemplateIsValid(template *clusterv1.ClusterClassTemplate, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// check if ref is not nil.
@@ -128,18 +128,6 @@ func LocalObjectTemplateIsValid(template *clusterv1.LocalObjectTemplate, namespa
 			field.Required(
 				pathPrefix.Child("ref", "name"),
 				"template name must be defined",
-			),
-		)
-	}
-
-	// validate if namespace matches the provided namespace
-	if namespace != "" && template.Ref.Namespace != namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				pathPrefix.Child("ref", "namespace"),
-				template.Ref.Namespace,
-				fmt.Sprintf("template must be in the same namespace as the ClusterClass (%s)", namespace),
 			),
 		)
 	}
@@ -194,14 +182,14 @@ func ClusterClassesAreCompatible(current, desired *clusterv1.ClusterClass) field
 	}
 
 	// Validate InfrastructureClusterTemplate changes desired a compatible way.
-	allErrs = append(allErrs, LocalObjectTemplatesAreCompatible(current.Spec.Infrastructure.LocalObjectTemplate, desired.Spec.Infrastructure.LocalObjectTemplate,
+	allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.Infrastructure.ClusterClassTemplate, desired.Spec.Infrastructure.ClusterClassTemplate,
 		field.NewPath("spec", "infrastructure"))...)
 
 	// Validate control plane changes desired a compatible way.
-	allErrs = append(allErrs, LocalObjectTemplatesAreCompatible(current.Spec.ControlPlane.LocalObjectTemplate, desired.Spec.ControlPlane.LocalObjectTemplate,
+	allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.ClusterClassTemplate, desired.Spec.ControlPlane.ClusterClassTemplate,
 		field.NewPath("spec", "controlPlane"))...)
 	if desired.Spec.ControlPlane.MachineInfrastructure != nil && current.Spec.ControlPlane.MachineInfrastructure != nil {
-		allErrs = append(allErrs, LocalObjectTemplatesAreCompatible(*current.Spec.ControlPlane.MachineInfrastructure, *desired.Spec.ControlPlane.MachineInfrastructure,
+		allErrs = append(allErrs, ClusterClassTemplateAreCompatible(*current.Spec.ControlPlane.MachineInfrastructure, *desired.Spec.ControlPlane.MachineInfrastructure,
 			field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
 	}
 
@@ -228,7 +216,7 @@ func MachineDeploymentClassesAreCompatible(current, desired *clusterv1.ClusterCl
 				// class.Template.Bootstrap is ensured syntactically correct by LocalObjectTemplateIsValid.
 
 				// Validates class.Template.Infrastructure template changes in a compatible way
-				allErrs = append(allErrs, LocalObjectTemplatesAreCompatible(oldClass.Template.Infrastructure, class.Template.Infrastructure,
+				allErrs = append(allErrs, ClusterClassTemplateAreCompatible(oldClass.Template.Infrastructure, class.Template.Infrastructure,
 					field.NewPath("spec", "workers", "machineDeployments").Index(i))...)
 			}
 		}
@@ -269,7 +257,7 @@ func MachinePoolClassesAreCompatible(current, desired *clusterv1.ClusterClass) f
 				// class.Template.Bootstrap is ensured syntactically correct by LocalObjectTemplateIsValid.
 
 				// Validates class.Template.Infrastructure template changes in a compatible way
-				allErrs = append(allErrs, LocalObjectTemplatesAreCompatible(oldClass.Template.Infrastructure, class.Template.Infrastructure,
+				allErrs = append(allErrs, ClusterClassTemplateAreCompatible(oldClass.Template.Infrastructure, class.Template.Infrastructure,
 					field.NewPath("spec", "workers", "machinePools").Index(i))...)
 			}
 		}
@@ -424,32 +412,26 @@ func MachinePoolTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cl
 	return allErrs
 }
 
-// ClusterClassReferencesAreValid checks that each template reference in the ClusterClass is valid .
-func ClusterClassReferencesAreValid(clusterClass *clusterv1.ClusterClass) field.ErrorList {
+// ClusterClassTemplatesAreValid checks that each template reference in the ClusterClass is valid .
+func ClusterClassTemplatesAreValid(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, LocalObjectTemplateIsValid(&clusterClass.Spec.Infrastructure.LocalObjectTemplate, clusterClass.Namespace,
-		field.NewPath("spec", "infrastructure"))...)
-	allErrs = append(allErrs, LocalObjectTemplateIsValid(&clusterClass.Spec.ControlPlane.LocalObjectTemplate, clusterClass.Namespace,
-		field.NewPath("spec", "controlPlane"))...)
+	allErrs = append(allErrs, ClusterClassTemplateIsValid(&clusterClass.Spec.Infrastructure.ClusterClassTemplate, field.NewPath("spec", "infrastructure"))...)
+	allErrs = append(allErrs, ClusterClassTemplateIsValid(&clusterClass.Spec.ControlPlane.ClusterClassTemplate, field.NewPath("spec", "controlPlane"))...)
 	if clusterClass.Spec.ControlPlane.MachineInfrastructure != nil {
-		allErrs = append(allErrs, LocalObjectTemplateIsValid(clusterClass.Spec.ControlPlane.MachineInfrastructure, clusterClass.Namespace, field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
+		allErrs = append(allErrs, ClusterClassTemplateIsValid(clusterClass.Spec.ControlPlane.MachineInfrastructure, field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
 	}
 
 	for i := range clusterClass.Spec.Workers.MachineDeployments {
 		mdc := clusterClass.Spec.Workers.MachineDeployments[i]
-		allErrs = append(allErrs, LocalObjectTemplateIsValid(&mdc.Template.Bootstrap, clusterClass.Namespace,
-			field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "bootstrap"))...)
-		allErrs = append(allErrs, LocalObjectTemplateIsValid(&mdc.Template.Infrastructure, clusterClass.Namespace,
-			field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "infrastructure"))...)
+		allErrs = append(allErrs, ClusterClassTemplateIsValid(&mdc.Template.Bootstrap, field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "bootstrap"))...)
+		allErrs = append(allErrs, ClusterClassTemplateIsValid(&mdc.Template.Infrastructure, field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "infrastructure"))...)
 	}
 
 	for i := range clusterClass.Spec.Workers.MachinePools {
 		mpc := clusterClass.Spec.Workers.MachinePools[i]
-		allErrs = append(allErrs, LocalObjectTemplateIsValid(&mpc.Template.Bootstrap, clusterClass.Namespace,
-			field.NewPath("spec", "workers", "machinePools").Index(i).Child("template", "bootstrap"))...)
-		allErrs = append(allErrs, LocalObjectTemplateIsValid(&mpc.Template.Infrastructure, clusterClass.Namespace,
-			field.NewPath("spec", "workers", "machinePools").Index(i).Child("template", "infrastructure"))...)
+		allErrs = append(allErrs, ClusterClassTemplateIsValid(&mpc.Template.Bootstrap, field.NewPath("spec", "workers", "machinePools").Index(i).Child("template", "bootstrap"))...)
+		allErrs = append(allErrs, ClusterClassTemplateIsValid(&mpc.Template.Infrastructure, field.NewPath("spec", "workers", "machinePools").Index(i).Child("template", "infrastructure"))...)
 	}
 
 	return allErrs

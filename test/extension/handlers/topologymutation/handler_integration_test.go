@@ -28,7 +28,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -264,7 +263,7 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 
 	// Get ClusterClass and referenced templates.
 	// ClusterClass
-	s.Blueprint.ClusterClass = mustFind(findObject[*clusterv1.ClusterClass](parsedObjects, groupVersionKindName{
+	s.Blueprint.ClusterClass = mustFind(findObject[*clusterv1.ClusterClass](parsedObjects, &clusterv1.ClusterClassTemplateReference{
 		Kind: "ClusterClass",
 	}))
 	// Set paused condition for ClusterClass
@@ -275,12 +274,12 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 		ObservedGeneration: s.Blueprint.ClusterClass.GetGeneration(),
 	})
 	// InfrastructureClusterTemplate
-	s.Blueprint.InfrastructureClusterTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, refToGroupVersionKindName(s.Blueprint.ClusterClass.Spec.Infrastructure.Ref)))
+	s.Blueprint.InfrastructureClusterTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.Infrastructure.Ref))
 
 	// ControlPlane
-	s.Blueprint.ControlPlane.Template = mustFind(findObject[*unstructured.Unstructured](parsedObjects, refToGroupVersionKindName(s.Blueprint.ClusterClass.Spec.ControlPlane.Ref)))
+	s.Blueprint.ControlPlane.Template = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.ControlPlane.Ref))
 	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
-		s.Blueprint.ControlPlane.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, refToGroupVersionKindName(s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref)))
+		s.Blueprint.ControlPlane.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref))
 	}
 	if s.Blueprint.HasControlPlaneMachineHealthCheck() {
 		s.Blueprint.ControlPlane.MachineHealthCheck = s.Blueprint.ClusterClass.Spec.ControlPlane.MachineHealthCheck
@@ -290,8 +289,8 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 	for _, machineDeploymentClass := range s.Blueprint.ClusterClass.Spec.Workers.MachineDeployments {
 		machineDeploymentBlueprint := &scope.MachineDeploymentBlueprint{}
 		machineDeploymentClass.Template.Metadata.DeepCopyInto(&machineDeploymentBlueprint.Metadata)
-		machineDeploymentBlueprint.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, refToGroupVersionKindName(machineDeploymentClass.Template.Infrastructure.Ref)))
-		machineDeploymentBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, refToGroupVersionKindName(machineDeploymentClass.Template.Bootstrap.Ref)))
+		machineDeploymentBlueprint.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Template.Infrastructure.Ref))
+		machineDeploymentBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Template.Bootstrap.Ref))
 		if machineDeploymentClass.MachineHealthCheck != nil {
 			machineDeploymentBlueprint.MachineHealthCheck = machineDeploymentClass.MachineHealthCheck
 		}
@@ -302,29 +301,23 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 	for _, machinePoolClass := range s.Blueprint.ClusterClass.Spec.Workers.MachinePools {
 		machinePoolBlueprint := &scope.MachinePoolBlueprint{}
 		machinePoolClass.Template.Metadata.DeepCopyInto(&machinePoolBlueprint.Metadata)
-		machinePoolBlueprint.InfrastructureMachinePoolTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, refToGroupVersionKindName(machinePoolClass.Template.Infrastructure.Ref)))
-		machinePoolBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, refToGroupVersionKindName(machinePoolClass.Template.Bootstrap.Ref)))
+		machinePoolBlueprint.InfrastructureMachinePoolTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machinePoolClass.Template.Infrastructure.Ref))
+		machinePoolBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machinePoolClass.Template.Bootstrap.Ref))
 		s.Blueprint.MachinePools[machinePoolClass.Class] = machinePoolBlueprint
 	}
 
 	return s, nil
 }
 
-type groupVersionKindName struct {
-	Name       string
-	APIVersion string
-	Kind       string
-}
-
 // parseObjects parses objects in clusterClassYAML and returns them by groupVersionKindName.
-func parseObjects(clusterClassYAML []byte) (map[groupVersionKindName]runtime.Object, error) {
+func parseObjects(clusterClassYAML []byte) (map[clusterv1.ClusterClassTemplateReference]runtime.Object, error) {
 	// Only adding clusterv1 as we want to parse everything else as Unstructured,
 	// because everything else is stored as Unstructured in Scope.
 	scheme := runtime.NewScheme()
 	_ = clusterv1.AddToScheme(scheme)
 	universalDeserializer := serializer.NewCodecFactory(scheme).UniversalDeserializer()
 
-	parsedObjects := map[groupVersionKindName]runtime.Object{}
+	parsedObjects := map[clusterv1.ClusterClassTemplateReference]runtime.Object{}
 	// Inspired by cluster-api/util/yaml.ToUnstructured
 	reader := apiyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(clusterClassYAML)))
 	for {
@@ -347,7 +340,7 @@ func parseObjects(clusterClassYAML []byte) (map[groupVersionKindName]runtime.Obj
 			if err := yaml.Unmarshal(objectBytes, u); err != nil {
 				return nil, err
 			}
-			parsedObjects[groupVersionKindName{
+			parsedObjects[clusterv1.ClusterClassTemplateReference{
 				Name:       u.GetName(),
 				APIVersion: u.GroupVersionKind().GroupVersion().String(),
 				Kind:       u.GroupVersionKind().Kind,
@@ -364,7 +357,7 @@ func parseObjects(clusterClassYAML []byte) (map[groupVersionKindName]runtime.Obj
 		if !ok {
 			return nil, errors.Errorf("found an object which is not a metav1.Object")
 		}
-		parsedObjects[groupVersionKindName{
+		parsedObjects[clusterv1.ClusterClassTemplateReference{
 			Name:       metaObj.GetName(),
 			APIVersion: gvk.GroupVersion().String(),
 			Kind:       gvk.Kind,
@@ -381,7 +374,7 @@ func mustFind[K runtime.Object](obj K, err error) K {
 }
 
 // findObject looks up an object with the given groupVersionKindName in the given objects map.
-func findObject[K runtime.Object](objects map[groupVersionKindName]runtime.Object, groupVersionKindName groupVersionKindName) (K, error) {
+func findObject[K runtime.Object](objects map[clusterv1.ClusterClassTemplateReference]runtime.Object, groupVersionKindName *clusterv1.ClusterClassTemplateReference) (K, error) {
 	var res K
 	var alreadyFound bool
 	for gvkn, obj := range objects {
@@ -408,14 +401,6 @@ func findObject[K runtime.Object](objects map[groupVersionKindName]runtime.Objec
 	}
 
 	return res, nil
-}
-
-func refToGroupVersionKindName(ref *corev1.ObjectReference) groupVersionKindName {
-	return groupVersionKindName{
-		APIVersion: ref.APIVersion,
-		Kind:       ref.Kind,
-		Name:       ref.Name,
-	}
 }
 
 type TopologyMutationHook interface {

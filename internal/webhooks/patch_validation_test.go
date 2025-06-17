@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -44,8 +43,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -131,8 +130,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -184,8 +183,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -271,8 +270,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -294,8 +293,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -317,8 +316,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -359,8 +358,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -399,8 +398,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -451,8 +450,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -504,8 +503,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -557,8 +556,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -610,8 +609,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -665,8 +664,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -705,8 +704,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -760,8 +759,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -799,8 +798,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -841,8 +840,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -882,8 +881,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -927,8 +926,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -966,8 +965,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1021,8 +1020,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1073,8 +1072,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1128,8 +1127,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1180,8 +1179,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1232,8 +1231,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1289,8 +1288,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1330,8 +1329,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1374,8 +1373,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1401,8 +1400,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1428,8 +1427,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1452,8 +1451,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1480,8 +1479,8 @@ func TestValidatePatches(t *testing.T) {
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
-							Ref: &corev1.ObjectReference{
+						ClusterClassTemplate: clusterv1.ClusterClassTemplate{
+							Ref: &clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionControlPlane.String(),
 								Kind:       "ControlPlaneTemplate",
 							},
@@ -1538,7 +1537,7 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithControlPlaneTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureClusterTemplate",
 						}),
@@ -1558,7 +1557,7 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureClusterTemplate",
 						}),
@@ -1577,7 +1576,7 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: "nonmatchinginfrastructure.cluster.x-k8s.io/vx",
 							Kind:       "InfrastructureClusterTemplate",
 						}),
@@ -1597,7 +1596,7 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithControlPlaneTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "ControlPlaneTemplate",
 						}),
@@ -1616,7 +1615,7 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithControlPlaneTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
@@ -1636,14 +1635,14 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithControlPlaneTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureMachineTemplate",
 						}),
@@ -1662,14 +1661,14 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithControlPlaneTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "NonMatchingInfrastructureMachineTemplate",
 						}),
@@ -1695,12 +1694,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -1709,12 +1708,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -1737,12 +1736,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -1765,12 +1764,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -1793,24 +1792,24 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "NonMatchingInfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -1834,24 +1833,24 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
 					*builder.MachinePoolClass("bb").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "NonMatchingInfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -1875,7 +1874,7 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureMachineTemplate",
 						}),
@@ -1894,24 +1893,24 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "NonMatchingInfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -1931,24 +1930,24 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("aa").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
 					*builder.MachinePoolClass("bb").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "NonMatchingInfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -1972,12 +1971,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("a-something-a").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -2001,12 +2000,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("a-something-a").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -2030,12 +2029,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("a-something-a").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -2058,12 +2057,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("a-something-a").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -2086,12 +2085,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("a-something-a").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -2114,12 +2113,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("a-something-a").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -2142,12 +2141,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("a-something-a").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -2170,12 +2169,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("a-something-a").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -2197,21 +2196,21 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureClusterTemplate",
 						}),
 				).
 				WithControlPlaneTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "NonMatchingInfrastructureMachineTemplate",
 						}),
@@ -2234,7 +2233,7 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureMachineTemplate",
 						}),
@@ -2242,24 +2241,24 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -2283,14 +2282,14 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithControlPlaneTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureMachineTemplate",
 						}),
@@ -2298,24 +2297,24 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "NonMatchingInfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
 						Build(),
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "InfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -2339,14 +2338,14 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithControlPlaneTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureMachineTemplate",
 						}),
@@ -2354,12 +2353,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "OtherInfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).
@@ -2384,21 +2383,21 @@ func Test_validateSelectors(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureClusterTemplate",
 						}),
 				).
 				WithControlPlaneTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "NonMatchingControlPlaneTemplate",
 						}),
 				).
 				WithControlPlaneInfrastructureMachineTemplate(
 					refToUnstructured(
-						&corev1.ObjectReference{
+						&clusterv1.ClusterClassTemplateReference{
 							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 							Kind:       "InfrastructureMachineTemplate",
 						}),
@@ -2406,12 +2405,12 @@ func Test_validateSelectors(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("bb").
 						WithInfrastructureTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 								Kind:       "OtherInfrastructureMachineTemplate",
 							})).
 						WithBootstrapTemplate(
-							refToUnstructured(&corev1.ObjectReference{
+							refToUnstructured(&clusterv1.ClusterClassTemplateReference{
 								APIVersion: clusterv1.GroupVersionBootstrap.String(),
 								Kind:       "BootstrapTemplate",
 							})).

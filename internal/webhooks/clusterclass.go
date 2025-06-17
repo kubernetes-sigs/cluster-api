@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,62 +46,18 @@ import (
 func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clusterv1.ClusterClass{}).
-		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update;delete,path=/validate-cluster-x-k8s-io-v1beta2-clusterclass,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=clusterclasses,versions=v1beta2,name=validation.clusterclass.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta2-clusterclass,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=clusterclasses,versions=v1beta2,name=default.clusterclass.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 // ClusterClass implements a validation and defaulting webhook for ClusterClass.
 type ClusterClass struct {
 	Client client.Reader
 }
 
-var _ webhook.CustomDefaulter = &ClusterClass{}
 var _ webhook.CustomValidator = &ClusterClass{}
-
-// Default implements defaulting for ClusterClass create and update.
-func (webhook *ClusterClass) Default(_ context.Context, obj runtime.Object) error {
-	in, ok := obj.(*clusterv1.ClusterClass)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterClass but got a %T", obj))
-	}
-	// Default all namespaces in the references to the object namespace.
-	defaultNamespace(in.Spec.Infrastructure.Ref, in.Namespace)
-	defaultNamespace(in.Spec.ControlPlane.Ref, in.Namespace)
-
-	if in.Spec.ControlPlane.MachineInfrastructure != nil {
-		defaultNamespace(in.Spec.ControlPlane.MachineInfrastructure.Ref, in.Namespace)
-	}
-
-	if in.Spec.ControlPlane.MachineHealthCheck != nil {
-		defaultNamespace(in.Spec.ControlPlane.MachineHealthCheck.RemediationTemplate, in.Namespace)
-	}
-
-	for i := range in.Spec.Workers.MachineDeployments {
-		defaultNamespace(in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref, in.Namespace)
-		defaultNamespace(in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref, in.Namespace)
-
-		if in.Spec.Workers.MachineDeployments[i].MachineHealthCheck != nil {
-			defaultNamespace(in.Spec.Workers.MachineDeployments[i].MachineHealthCheck.RemediationTemplate, in.Namespace)
-		}
-	}
-
-	for i := range in.Spec.Workers.MachinePools {
-		defaultNamespace(in.Spec.Workers.MachinePools[i].Template.Bootstrap.Ref, in.Namespace)
-		defaultNamespace(in.Spec.Workers.MachinePools[i].Template.Infrastructure.Ref, in.Namespace)
-	}
-
-	return nil
-}
-
-func defaultNamespace(ref *corev1.ObjectReference, namespace string) {
-	if ref != nil && ref.Namespace == "" {
-		ref.Namespace = namespace
-	}
-}
 
 // ValidateCreate implements validation for ClusterClass create.
 func (webhook *ClusterClass) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
@@ -159,8 +114,8 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 	}
 	var allErrs field.ErrorList
 
-	// Ensure all references are valid.
-	allErrs = append(allErrs, check.ClusterClassReferencesAreValid(newClusterClass)...)
+	// Ensure all template references are valid.
+	allErrs = append(allErrs, check.ClusterClassTemplatesAreValid(newClusterClass)...)
 
 	// Ensure all MachineDeployment classes are unique.
 	allErrs = append(allErrs, check.MachineDeploymentClassesAreUnique(newClusterClass)...)

@@ -294,7 +294,9 @@ spec:
                   was created from.
                 properties:
                   apiGroup:
-                    description: apiGroup of the IPPool.
+                    description: |-
+                      apiGroup of the IPPool.
+                      apiGroup must be fully qualified domain name.
                     maxLength: 253
                     minLength: 1
                     pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$

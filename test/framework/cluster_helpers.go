@@ -368,7 +368,6 @@ func DescribeCluster(ctx context.Context, input DescribeClusterInput) {
 		AddTemplateVirtualNode:  true,
 		Echo:                    true,
 		Grouping:                false,
-		V1Beta2:                 true,
 	})
 	Expect(err).ToNot(HaveOccurred(), "Failed to run clusterctl describe")
 

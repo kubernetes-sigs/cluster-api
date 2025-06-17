@@ -58,8 +58,10 @@ type DescribeClusterOptions struct {
 	// have the same Status, Severity and Reason.
 	Grouping bool
 
-	// V1Beta2 instructs tree to use V1Beta2 conditions.
-	V1Beta2 bool
+	// V1Beta1 instructs tree to use V1Beta1 conditions.
+	//
+	// Deprecated: This field will be removed when v1beta1 will be dropped.
+	V1Beta1 bool
 }
 
 // DescribeCluster returns the object tree representing the status of a Cluster API cluster.
@@ -99,6 +101,6 @@ func (c *clusterctlClient) DescribeCluster(ctx context.Context, options Describe
 		AddTemplateVirtualNode:  options.AddTemplateVirtualNode,
 		Echo:                    options.Echo,
 		Grouping:                options.Grouping,
-		V1Beta2:                 options.V1Beta2,
+		V1Beta1:                 options.V1Beta1,
 	})
 }

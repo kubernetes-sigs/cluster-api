@@ -860,10 +860,10 @@ func Test_Add_setsShowObjectConditionsAnnotation(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		for _, v1beta2 := range []bool{true, false} {
-			tt.args.treeOptions.V1Beta2 = v1beta2
+		for _, v1beta1 := range []bool{true, false} {
+			tt.args.treeOptions.V1Beta1 = v1beta1
 
-			t.Run(tt.name+" v1beta2: "+fmt.Sprintf("%t", v1beta2), func(t *testing.T) {
+			t.Run(tt.name+" v1beta2: "+fmt.Sprintf("%t", v1beta1), func(t *testing.T) {
 				root := parent.DeepCopy()
 				tree := NewObjectTree(root, tt.args.treeOptions)
 
@@ -925,10 +925,10 @@ func Test_Add_setsGroupingObjectAnnotation(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		for _, v1beta2 := range []bool{true, false} {
-			tt.args.treeOptions.V1Beta2 = v1beta2
+		for _, v1beta1 := range []bool{true, false} {
+			tt.args.treeOptions.V1Beta1 = v1beta1
 
-			t.Run(tt.name+" v1beta2: "+fmt.Sprintf("%t", v1beta2), func(t *testing.T) {
+			t.Run(tt.name+" v1beta2: "+fmt.Sprintf("%t", v1beta1), func(t *testing.T) {
 				root := parent.DeepCopy()
 				tree := NewObjectTree(root, tt.args.treeOptions)
 
@@ -979,10 +979,10 @@ func Test_Add_setsObjectMetaNameAnnotation(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		for _, v1beta2 := range []bool{true, false} {
-			treeOptions := ObjectTreeOptions{V1Beta2: v1beta2}
+		for _, v1beta1 := range []bool{true, false} {
+			treeOptions := ObjectTreeOptions{V1Beta1: v1beta1}
 
-			t.Run(tt.name+" v1beta2: "+fmt.Sprintf("%t", v1beta2), func(t *testing.T) {
+			t.Run(tt.name+" v1beta2: "+fmt.Sprintf("%t", v1beta1), func(t *testing.T) {
 				root := parent.DeepCopy()
 				tree := NewObjectTree(root, treeOptions)
 
@@ -1067,7 +1067,6 @@ func Test_Add_NoEcho(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.treeOptions.V1Beta2 = true
 			root := parent.DeepCopy()
 			tree := NewObjectTree(root, tt.args.treeOptions)
 
@@ -1149,6 +1148,8 @@ func Test_Add_NoEcho_V1Beta1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			tt.args.treeOptions.V1Beta1 = true
+
 			root := parent.DeepCopy()
 			tree := NewObjectTree(root, tt.args.treeOptions)
 
@@ -1249,7 +1250,7 @@ func Test_Add_Grouping(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			root := parent.DeepCopy()
-			tree := NewObjectTree(root, ObjectTreeOptions{V1Beta2: true})
+			tree := NewObjectTree(root, ObjectTreeOptions{})
 
 			for i := range tt.args.siblings {
 				tree.Add(parent, tt.args.siblings[i], tt.args.addOptions...)
@@ -1361,7 +1362,7 @@ func Test_Add_Grouping_V1Beta1(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			root := parent.DeepCopy()
-			tree := NewObjectTree(root, ObjectTreeOptions{})
+			tree := NewObjectTree(root, ObjectTreeOptions{V1Beta1: true})
 
 			for i := range tt.args.siblings {
 				tree.Add(parent, tt.args.siblings[i], tt.args.addOptions...)

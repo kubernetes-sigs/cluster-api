@@ -57,8 +57,10 @@ type DiscoverOptions struct {
 	// have the same Status, Severity and Reason.
 	Grouping bool
 
-	// V1Beta2 instructs tree to use V1Beta2 conditions.
-	V1Beta2 bool
+	// V1Beta1 instructs tree to use V1Beta1 conditions.
+	//
+	// Deprecated: This field will be removed when v1beta1 will be dropped.
+	V1Beta1 bool
 }
 
 func (d DiscoverOptions) toObjectTreeOptions() ObjectTreeOptions {

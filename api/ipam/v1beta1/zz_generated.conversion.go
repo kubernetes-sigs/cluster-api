@@ -22,6 +22,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -101,6 +102,21 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*corev1.LocalObjectReference)(nil), (*v1beta2.IPAddressClaimReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_LocalObjectReference_To_v1beta2_IPAddressClaimReference(a.(*corev1.LocalObjectReference), b.(*v1beta2.IPAddressClaimReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*corev1.LocalObjectReference)(nil), (*v1beta2.IPAddressReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_LocalObjectReference_To_v1beta2_IPAddressReference(a.(*corev1.LocalObjectReference), b.(*v1beta2.IPAddressReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*corev1.TypedLocalObjectReference)(nil), (*v1beta2.IPPoolReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(a.(*corev1.TypedLocalObjectReference), b.(*v1beta2.IPPoolReference), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*corev1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Condition_To_v1_Condition(a.(*corev1beta1.Condition), b.(*v1.Condition), scope)
 	}); err != nil {
@@ -111,8 +127,23 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.IPAddressClaimReference)(nil), (*corev1.LocalObjectReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IPAddressClaimReference_To_v1_LocalObjectReference(a.(*v1beta2.IPAddressClaimReference), b.(*corev1.LocalObjectReference), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.IPAddressClaimStatus)(nil), (*IPAddressClaimStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus(a.(*v1beta2.IPAddressClaimStatus), b.(*IPAddressClaimStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.IPAddressReference)(nil), (*corev1.LocalObjectReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IPAddressReference_To_v1_LocalObjectReference(a.(*v1beta2.IPAddressReference), b.(*corev1.LocalObjectReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.IPPoolReference)(nil), (*corev1.TypedLocalObjectReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(a.(*v1beta2.IPPoolReference), b.(*corev1.TypedLocalObjectReference), scope)
 	}); err != nil {
 		return err
 	}
@@ -221,7 +252,9 @@ func Convert_v1beta2_IPAddressClaimList_To_v1beta1_IPAddressClaimList(in *v1beta
 
 func autoConvert_v1beta1_IPAddressClaimSpec_To_v1beta2_IPAddressClaimSpec(in *IPAddressClaimSpec, out *v1beta2.IPAddressClaimSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
-	out.PoolRef = in.PoolRef
+	if err := Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(&in.PoolRef, &out.PoolRef, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -232,7 +265,9 @@ func Convert_v1beta1_IPAddressClaimSpec_To_v1beta2_IPAddressClaimSpec(in *IPAddr
 
 func autoConvert_v1beta2_IPAddressClaimSpec_To_v1beta1_IPAddressClaimSpec(in *v1beta2.IPAddressClaimSpec, out *IPAddressClaimSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
-	out.PoolRef = in.PoolRef
+	if err := Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(&in.PoolRef, &out.PoolRef, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -242,7 +277,9 @@ func Convert_v1beta2_IPAddressClaimSpec_To_v1beta1_IPAddressClaimSpec(in *v1beta
 }
 
 func autoConvert_v1beta1_IPAddressClaimStatus_To_v1beta2_IPAddressClaimStatus(in *IPAddressClaimStatus, out *v1beta2.IPAddressClaimStatus, s conversion.Scope) error {
-	out.AddressRef = in.AddressRef
+	if err := Convert_v1_LocalObjectReference_To_v1beta2_IPAddressReference(&in.AddressRef, &out.AddressRef, s); err != nil {
+		return err
+	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
@@ -270,7 +307,9 @@ func autoConvert_v1beta2_IPAddressClaimStatus_To_v1beta1_IPAddressClaimStatus(in
 	} else {
 		out.Conditions = nil
 	}
-	out.AddressRef = in.AddressRef
+	if err := Convert_v1beta2_IPAddressReference_To_v1_LocalObjectReference(&in.AddressRef, &out.AddressRef, s); err != nil {
+		return err
+	}
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -318,8 +357,12 @@ func Convert_v1beta2_IPAddressList_To_v1beta1_IPAddressList(in *v1beta2.IPAddres
 }
 
 func autoConvert_v1beta1_IPAddressSpec_To_v1beta2_IPAddressSpec(in *IPAddressSpec, out *v1beta2.IPAddressSpec, s conversion.Scope) error {
-	out.ClaimRef = in.ClaimRef
-	out.PoolRef = in.PoolRef
+	if err := Convert_v1_LocalObjectReference_To_v1beta2_IPAddressClaimReference(&in.ClaimRef, &out.ClaimRef, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(&in.PoolRef, &out.PoolRef, s); err != nil {
+		return err
+	}
 	out.Address = in.Address
 	out.Prefix = int32(in.Prefix)
 	out.Gateway = in.Gateway
@@ -332,8 +375,12 @@ func Convert_v1beta1_IPAddressSpec_To_v1beta2_IPAddressSpec(in *IPAddressSpec, o
 }
 
 func autoConvert_v1beta2_IPAddressSpec_To_v1beta1_IPAddressSpec(in *v1beta2.IPAddressSpec, out *IPAddressSpec, s conversion.Scope) error {
-	out.ClaimRef = in.ClaimRef
-	out.PoolRef = in.PoolRef
+	if err := Convert_v1beta2_IPAddressClaimReference_To_v1_LocalObjectReference(&in.ClaimRef, &out.ClaimRef, s); err != nil {
+		return err
+	}
+	if err := Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(&in.PoolRef, &out.PoolRef, s); err != nil {
+		return err
+	}
 	out.Address = in.Address
 	out.Prefix = int(in.Prefix)
 	out.Gateway = in.Gateway

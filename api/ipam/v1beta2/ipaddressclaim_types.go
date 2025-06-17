@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -51,7 +50,7 @@ type IPAddressClaimSpec struct {
 
 	// poolRef is a reference to the pool from which an IP address should be created.
 	// +required
-	PoolRef corev1.TypedLocalObjectReference `json:"poolRef"`
+	PoolRef IPPoolReference `json:"poolRef"`
 }
 
 // IPAddressClaimStatus is the observed status of a IPAddressClaim.
@@ -66,11 +65,22 @@ type IPAddressClaimStatus struct {
 
 	// addressRef is a reference to the address that was created for this claim.
 	// +optional
-	AddressRef corev1.LocalObjectReference `json:"addressRef,omitempty"`
+	AddressRef IPAddressReference `json:"addressRef,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *IPAddressClaimDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// IPAddressReference is a reference to an IPAddress.
+type IPAddressReference struct {
+	// name of the IPAddress.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name"`
 }
 
 // IPAddressClaimDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.

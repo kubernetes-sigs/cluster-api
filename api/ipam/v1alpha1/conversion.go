@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -118,10 +118,10 @@ func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-func Convert_v1beta2_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(from *ipamv1.IPAddressClaimSpec, to *IPAddressClaimSpec, scope apiconversion.Scope) error {
+func Convert_v1beta2_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(from *ipamv1.IPAddressClaimSpec, to *IPAddressClaimSpec, scope apimachineryconversion.Scope) error {
 	return autoConvert_v1beta2_IPAddressClaimSpec_To_v1alpha1_IPAddressClaimSpec(from, to, scope)
 }
 
-func Convert_v1beta2_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(from *ipamv1.IPAddressClaimStatus, to *IPAddressClaimStatus, scope apiconversion.Scope) error {
+func Convert_v1beta2_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(from *ipamv1.IPAddressClaimStatus, to *IPAddressClaimStatus, scope apimachineryconversion.Scope) error {
 	return autoConvert_v1beta2_IPAddressClaimStatus_To_v1alpha1_IPAddressClaimStatus(from, to, scope)
 }

@@ -48,19 +48,7 @@ type IPAddressClaim struct {
 var _ webhook.CustomValidator = &IPAddressClaim{}
 
 // ValidateCreate implements webhook.CustomValidator.
-func (webhook *IPAddressClaim) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	claim, ok := obj.(*ipamv1.IPAddressClaim)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an IPAddressClaim but got a %T", obj))
-	}
-
-	if claim.Spec.PoolRef.APIGroup == nil {
-		return nil, field.Invalid(
-			field.NewPath("spec.poolRef.apiGroup"),
-			claim.Spec.PoolRef.APIGroup,
-			"the pool reference needs to contain a group")
-	}
-
+func (webhook *IPAddressClaim) ValidateCreate(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 

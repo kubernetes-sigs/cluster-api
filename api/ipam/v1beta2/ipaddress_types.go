@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,11 +24,11 @@ import (
 type IPAddressSpec struct {
 	// claimRef is a reference to the claim this IPAddress was created for.
 	// +required
-	ClaimRef corev1.LocalObjectReference `json:"claimRef"`
+	ClaimRef IPAddressClaimReference `json:"claimRef"`
 
 	// poolRef is a reference to the pool that this IPAddress was created from.
 	// +required
-	PoolRef corev1.TypedLocalObjectReference `json:"poolRef"`
+	PoolRef IPPoolReference `json:"poolRef"`
 
 	// address is the IP address.
 	// +required
@@ -46,6 +45,44 @@ type IPAddressSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=39
 	Gateway string `json:"gateway,omitempty"`
+}
+
+// IPAddressClaimReference is a reference to an IPAddressClaim.
+type IPAddressClaimReference struct {
+	// name of the IPAddressClaim.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name"`
+}
+
+// IPPoolReference is a reference to an IPPool.
+type IPPoolReference struct {
+	// name of the IPPool.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name"`
+
+	// kind of the IPPool.
+	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
+	Kind string `json:"kind"`
+
+	// apiGroup of the IPPool.
+	// apiGroup must be fully qualified domain name.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	APIGroup string `json:"apiGroup"`
 }
 
 // +kubebuilder:object:root=true

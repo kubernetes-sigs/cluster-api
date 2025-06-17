@@ -17,8 +17,10 @@ limitations under the License.
 package v1beta1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -101,6 +103,42 @@ func Convert_v1beta1_IPAddressClaimStatus_To_v1beta2_IPAddressClaimStatus(in *IP
 	if in.Conditions != nil {
 		clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
+	return nil
+}
+
+func Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(in *corev1.TypedLocalObjectReference, out *ipamv1.IPPoolReference, _ apimachineryconversion.Scope) error {
+	out.Kind = in.Kind
+	out.Name = in.Name
+	out.APIGroup = ptr.Deref(in.APIGroup, "")
+	return nil
+}
+
+func Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(in *ipamv1.IPPoolReference, out *corev1.TypedLocalObjectReference, _ apimachineryconversion.Scope) error {
+	out.Kind = in.Kind
+	out.Name = in.Name
+	if in.APIGroup != "" {
+		out.APIGroup = ptr.To(in.APIGroup)
+	}
+	return nil
+}
+
+func Convert_v1_LocalObjectReference_To_v1beta2_IPAddressReference(in *corev1.LocalObjectReference, out *ipamv1.IPAddressReference, _ apimachineryconversion.Scope) error {
+	out.Name = in.Name
+	return nil
+}
+
+func Convert_v1beta2_IPAddressReference_To_v1_LocalObjectReference(in *ipamv1.IPAddressReference, out *corev1.LocalObjectReference, _ apimachineryconversion.Scope) error {
+	out.Name = in.Name
+	return nil
+}
+
+func Convert_v1_LocalObjectReference_To_v1beta2_IPAddressClaimReference(in *corev1.LocalObjectReference, out *ipamv1.IPAddressClaimReference, _ apimachineryconversion.Scope) error {
+	out.Name = in.Name
+	return nil
+}
+
+func Convert_v1beta2_IPAddressClaimReference_To_v1_LocalObjectReference(in *ipamv1.IPAddressClaimReference, out *corev1.LocalObjectReference, _ apimachineryconversion.Scope) error {
+	out.Name = in.Name
 	return nil
 }
 

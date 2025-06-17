@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/randfill"
@@ -34,8 +35,9 @@ import (
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for IPAddress", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &ipamv1.IPAddress{},
-		Spoke: &IPAddress{},
+		Hub:         &ipamv1.IPAddress{},
+		Spoke:       &IPAddress{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{IPAddressFuzzFuncs},
 	}))
 	t.Run("for IPAddressClaim", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &ipamv1.IPAddressClaim{},
@@ -44,9 +46,23 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 }
 
+func IPAddressFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeTypedLocalObjectReference,
+	}
+}
+
+func spokeTypedLocalObjectReference(in *corev1.TypedLocalObjectReference, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.APIGroup != nil && *in.APIGroup == "" {
+		in.APIGroup = nil
+	}
+}
+
 func IPAddressClaimFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubIPAddressClaimStatus,
+		spokeTypedLocalObjectReference,
 	}
 }
 

@@ -21,10 +21,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -42,10 +40,10 @@ func TestIPAddressValidateCreate(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: ipamv1.IPAddressClaimSpec{
-			PoolRef: corev1.TypedLocalObjectReference{
+			PoolRef: ipamv1.IPPoolReference{
 				Kind:     "TestPool",
 				Name:     "pool",
-				APIGroup: ptr.To("ipam.cluster.x-k8s.io"),
+				APIGroup: "ipam.cluster.x-k8s.io",
 			},
 		},
 	}
@@ -56,7 +54,7 @@ func TestIPAddressValidateCreate(t *testing.T) {
 				Namespace: "default",
 			},
 			Spec: ipamv1.IPAddressSpec{
-				ClaimRef: corev1.LocalObjectReference{Name: claim.Name},
+				ClaimRef: ipamv1.IPAddressClaimReference{Name: claim.Name},
 				PoolRef:  claim.Spec.PoolRef,
 				Address:  "10.0.0.1",
 				Prefix:   24,
@@ -146,14 +144,6 @@ func TestIPAddressValidateCreate(t *testing.T) {
 			extraObjs: []client.Object{claim},
 			expectErr: true,
 		},
-		{
-			name: "a pool reference that does not contain a group should be rejected",
-			ip: getAddress(false, func(addr *ipamv1.IPAddress) {
-				addr.Spec.PoolRef.APIGroup = nil
-			}),
-			extraObjs: []client.Object{claim},
-			expectErr: true,
-		},
 	}
 
 	for i := range tests {
@@ -181,8 +171,8 @@ func TestIPAddressValidateUpdate(t *testing.T) {
 				Namespace: "default",
 			},
 			Spec: ipamv1.IPAddressSpec{
-				ClaimRef: corev1.LocalObjectReference{},
-				PoolRef:  corev1.TypedLocalObjectReference{},
+				ClaimRef: ipamv1.IPAddressClaimReference{},
+				PoolRef:  ipamv1.IPPoolReference{},
 				Address:  "10.0.0.1",
 				Prefix:   24,
 				Gateway:  "10.0.0.254",

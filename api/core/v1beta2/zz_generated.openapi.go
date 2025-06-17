@@ -762,7 +762,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassTemplateReference(ref commo
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "kind of the template. kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character",
+							Description: "kind of the template. kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -5190,7 +5190,7 @@ func schema_cluster_api_api_core_v1beta2_PatchSelector(ref common.ReferenceCallb
 					},
 					"kind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "kind filters templates by kind. kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character",
+							Description: "kind filters templates by kind. kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",

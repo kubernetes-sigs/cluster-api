@@ -1005,7 +1005,7 @@ type PatchSelector struct {
 	APIVersion string `json:"apiVersion"`
 
 	// kind filters templates by kind.
-	// kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
@@ -1157,7 +1157,7 @@ type ClusterClassTemplate struct {
 // ClusterClassTemplateReference is a reference to a ClusterClass template.
 type ClusterClassTemplateReference struct {
 	// kind of the template.
-	// kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63

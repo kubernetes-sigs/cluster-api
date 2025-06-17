@@ -3045,7 +3045,7 @@ spec:
                           kind:
                             description: |-
                               kind of the template.
-                              kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                              kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
                             maxLength: 63
                             minLength: 1
                             pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
@@ -3198,7 +3198,7 @@ spec:
                       kind:
                         description: |-
                           kind of the template.
-                          kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                          kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
                         maxLength: 63
                         minLength: 1
                         pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
@@ -3257,7 +3257,7 @@ spec:
                       kind:
                         description: |-
                           kind of the template.
-                          kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                          kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
                         maxLength: 63
                         minLength: 1
                         pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
@@ -3376,7 +3376,7 @@ spec:
                               kind:
                                 description: |-
                                   kind filters templates by kind.
-                                  kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                                  kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
                                 maxLength: 63
                                 minLength: 1
                                 pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
@@ -4281,7 +4281,7 @@ spec:
                                     kind:
                                       description: |-
                                         kind of the template.
-                                        kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                                        kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
                                       maxLength: 63
                                       minLength: 1
                                       pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
@@ -4323,7 +4323,7 @@ spec:
                                     kind:
                                       description: |-
                                         kind of the template.
-                                        kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                                        kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
                                       maxLength: 63
                                       minLength: 1
                                       pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
@@ -4488,7 +4488,7 @@ spec:
                                     kind:
                                       description: |-
                                         kind of the template.
-                                        kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                                        kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
                                       maxLength: 63
                                       minLength: 1
                                       pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
@@ -4530,7 +4530,7 @@ spec:
                                     kind:
                                       description: |-
                                         kind of the template.
-                                        kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+                                        kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
                                       maxLength: 63
                                       minLength: 1
                                       pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$

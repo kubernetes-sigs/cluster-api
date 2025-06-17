@@ -69,7 +69,7 @@ type IPPoolReference struct {
 	Name string `json:"name"`
 
 	// kind of the IPPool.
-	// kind must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character
+	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63

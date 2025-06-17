@@ -109,8 +109,10 @@ func init() {
 		"Disable grouping machines when ready condition has the same Status, Severity and Reason.")
 	_ = describeClusterClusterCmd.Flags().MarkDeprecated("disable-grouping",
 		"use --grouping instead.")
-	describeClusterClusterCmd.Flags().BoolVar(&dc.v1beta2, "v1beta2", false,
+	describeClusterClusterCmd.Flags().BoolVar(&dc.v1beta2, "v1beta2", true,
 		"Use V1Beta2 conditions..")
+	_ = describeClusterClusterCmd.Flags().MarkDeprecated("v1beta2",
+		"this field will be removed when v1beta1 will be dropped.")
 	describeClusterClusterCmd.Flags().BoolVarP(&dc.color, "color", "c", false, "Enable or disable color output; if not set color is enabled by default only if using tty. The flag is overridden by the NO_COLOR env variable if set.")
 
 	// completions
@@ -144,7 +146,7 @@ func runDescribeCluster(cmd *cobra.Command, name string) error {
 		AddTemplateVirtualNode:  true,
 		Echo:                    dc.echo,
 		Grouping:                dc.grouping && !dc.disableGrouping,
-		V1Beta2:                 dc.v1beta2,
+		V1Beta1:                 !dc.v1beta2,
 	})
 	if err != nil {
 		return err

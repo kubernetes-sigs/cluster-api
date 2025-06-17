@@ -57,8 +57,10 @@ type ObjectTreeOptions struct {
 	// have the same Status, Severity and Reason
 	Grouping bool
 
-	// V1Beta2 instructs tree to use V1Beta2 conditions.
-	V1Beta2 bool
+	// V1Beta1 instructs tree to use V1Beta1 conditions.
+	//
+	// Deprecated: This field will be removed when v1beta1 will be dropped.
+	V1Beta1 bool
 }
 
 // ObjectTree defines an object tree representing the status of a Cluster API cluster.
@@ -99,15 +101,15 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 	// its parent.
 	var objReadyV1Beta1, parentReadyV1Beta1 *clusterv1.Condition
 	var objAvailable, objReady, objUpToDate, parentReady *metav1.Condition
-	switch od.options.V1Beta2 {
+	switch od.options.V1Beta1 {
 	case true:
+		objReadyV1Beta1 = GetV1Beta1ReadyCondition(obj)
+		parentReadyV1Beta1 = GetV1Beta1ReadyCondition(parent)
+	default:
 		objAvailable = GetAvailableCondition(obj)
 		objReady = GetReadyCondition(obj)
 		objUpToDate = GetMachineUpToDateCondition(obj)
 		parentReady = GetReadyCondition(parent)
-	default:
-		objReadyV1Beta1 = GetV1Beta1ReadyCondition(obj)
-		parentReadyV1Beta1 = GetV1Beta1ReadyCondition(parent)
 	}
 
 	// If it is requested to show all the conditions for the object, add
@@ -119,13 +121,13 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 	// If echo should be dropped from the ObjectTree, return if the object's ready condition is true, and it is the same it has of parent's object ready condition (it is an echo).
 	// Note: the Echo option applies only for infrastructure machine or bootstrap config objects, and for those objects only Ready condition makes sense.
 	if addOpts.NoEcho && !od.options.Echo {
-		switch od.options.V1Beta2 {
+		switch od.options.V1Beta1 {
 		case true:
-			if (objReady != nil && objReady.Status == metav1.ConditionTrue) || hasSameAvailableReadyUptoDateStatusAndReason(nil, nil, parentReady, objReady, nil, nil) {
+			if (objReadyV1Beta1 != nil && objReadyV1Beta1.Status == corev1.ConditionTrue) || hasSameReadyStatusSeverityAndReason(parentReadyV1Beta1, objReadyV1Beta1) {
 				return false, false
 			}
 		default:
-			if (objReadyV1Beta1 != nil && objReadyV1Beta1.Status == corev1.ConditionTrue) || hasSameReadyStatusSeverityAndReason(parentReadyV1Beta1, objReadyV1Beta1) {
+			if (objReady != nil && objReady.Status == metav1.ConditionTrue) || hasSameAvailableReadyUptoDateStatusAndReason(nil, nil, parentReady, objReady, nil, nil) {
 				return false, false
 			}
 		}
@@ -156,22 +158,22 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 
 			var sReadyV1Beta1 *clusterv1.Condition
 			var sAvailable, sReady, sUpToDate *metav1.Condition
-			switch od.options.V1Beta2 {
+			switch od.options.V1Beta1 {
 			case true:
+				sReadyV1Beta1 = GetV1Beta1ReadyCondition(s)
+
+				// If the object's ready condition has a different Status, Severity and Reason than the sibling object,
+				// move on (they should not be grouped).
+				if !hasSameReadyStatusSeverityAndReason(objReadyV1Beta1, sReadyV1Beta1) {
+					continue
+				}
+			default:
 				// If the object's ready condition has a different Available/ReadyUpToDate condition than the sibling object,
 				// move on (they should not be grouped).
 				sAvailable = GetAvailableCondition(s)
 				sReady = GetReadyCondition(s)
 				sUpToDate = GetMachineUpToDateCondition(s)
 				if !hasSameAvailableReadyUptoDateStatusAndReason(objAvailable, sAvailable, objReady, sReady, objUpToDate, sUpToDate) {
-					continue
-				}
-			default:
-				sReadyV1Beta1 = GetV1Beta1ReadyCondition(s)
-
-				// If the object's ready condition has a different Status, Severity and Reason than the sibling object,
-				// move on (they should not be grouped).
-				if !hasSameReadyStatusSeverityAndReason(objReadyV1Beta1, sReadyV1Beta1) {
 					continue
 				}
 			}
@@ -181,11 +183,11 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 				// Check to see if the group object kind matches the object, i.e. group is MachineGroup and object is Machine.
 				// If so, upgrade it with the current object.
 				if s.GetObjectKind().GroupVersionKind().Kind == obj.GetObjectKind().GroupVersionKind().Kind+"Group" {
-					switch od.options.V1Beta2 {
+					switch od.options.V1Beta1 {
 					case true:
-						updateGroupNode(s, sReady, obj, objAvailable, objReady, objUpToDate)
-					default:
 						updateV1Beta1GroupNode(s, sReadyV1Beta1, obj, objReadyV1Beta1)
+					default:
+						updateGroupNode(s, sReady, obj, objAvailable, objReady, objUpToDate)
 					}
 
 					return true, false
@@ -199,11 +201,11 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 
 			// Create virtual object for the group and add it to the object tree.
 			var groupNode *NodeObject
-			switch od.options.V1Beta2 {
+			switch od.options.V1Beta1 {
 			case true:
-				groupNode = createGroupNode(s, sReady, obj, objAvailable, objReady, objUpToDate)
-			default:
 				groupNode = createV1Beta1GroupNode(s, sReadyV1Beta1, obj, objReadyV1Beta1)
+			default:
+				groupNode = createGroupNode(s, sReady, obj, objAvailable, objReady, objUpToDate)
 			}
 
 			// By default, grouping objects should be sorted last.

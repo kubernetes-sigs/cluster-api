@@ -314,9 +314,7 @@ func Test_TreePrefix(t *testing.T) {
 						Message: "first line must not be validated in the test\nsecond line",
 					}),
 				)
-				objectTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{
-					V1Beta2: true,
-				})
+				objectTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{})
 
 				o1 := fakeObject("child1",
 					withCondition(falseCondition("Available", "first line must not be validated in the test\nsecond line")),
@@ -348,9 +346,7 @@ func Test_TreePrefix(t *testing.T) {
 						Reason: "Available",
 					}),
 				)
-				obectjTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{
-					V1Beta2: true,
-				})
+				obectjTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{})
 
 				o1 := fakeObject("child1",
 					withCondition(trueCondition()),
@@ -383,9 +379,7 @@ func Test_TreePrefix(t *testing.T) {
 						Reason: "Available",
 					}),
 				)
-				obectjTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{
-					V1Beta2: true,
-				})
+				obectjTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{})
 
 				o1 := fakeObject("child1",
 					withCondition(trueCondition()),
@@ -432,9 +426,7 @@ func Test_TreePrefix(t *testing.T) {
 						Reason: "Available",
 					}),
 				)
-				obectjTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{
-					V1Beta2: true,
-				})
+				obectjTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{})
 
 				o1 := fakeObject("child1",
 					withCondition(trueCondition()),
@@ -475,9 +467,7 @@ func Test_TreePrefix(t *testing.T) {
 						Reason: "Available",
 					}),
 				)
-				obectjTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{
-					V1Beta2: true,
-				})
+				obectjTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{})
 
 				o1 := fakeObject("child1",
 					withCondition(trueCondition()),

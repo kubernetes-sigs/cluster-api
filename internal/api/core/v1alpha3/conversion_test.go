@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/randfill"
@@ -263,7 +264,9 @@ func hubClusterVariable(in *clusterv1.ClusterVariable, c randfill.Continue) {
 func MachineHealthCheckFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachineHealthCheckStatus,
+		spokeMachineHealthCheck,
 		spokeMachineHealthCheckSpec,
+		spokeObjectReference,
 		spokeUnhealthyCondition,
 	}
 }
@@ -276,6 +279,25 @@ func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c randf
 			in.Deprecated = nil
 		}
 	}
+}
+
+func spokeMachineHealthCheck(in *MachineHealthCheck, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.Namespace = "foo"
+}
+
+func spokeObjectReference(in *corev1.ObjectReference, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in == nil {
+		return
+	}
+
+	in.Namespace = "foo"
+	in.UID = types.UID("")
+	in.ResourceVersion = ""
+	in.FieldPath = ""
 }
 
 func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

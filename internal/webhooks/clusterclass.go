@@ -472,10 +472,10 @@ func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorL
 }
 
 // validateMachineHealthCheckClass validates the MachineHealthCheckSpec fields defined in a MachineHealthCheckClass.
-func validateMachineHealthCheckClass(fldPath *field.Path, namepace string, m *clusterv1.MachineHealthCheckClass) field.ErrorList {
+func validateMachineHealthCheckClass(fldPath *field.Path, namespace string, m *clusterv1.MachineHealthCheckClass) field.ErrorList {
 	mhc := clusterv1.MachineHealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namepace,
+			Namespace: namespace,
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
 			NodeStartupTimeoutSeconds: m.NodeStartupTimeoutSeconds,

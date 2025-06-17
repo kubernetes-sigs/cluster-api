@@ -37,8 +37,23 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 
 func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.Cluster)
+	if err := Convert_v1beta2_Cluster_To_v1beta1_Cluster(src, dst, nil); err != nil {
+		return err
+	}
 
-	return Convert_v1beta2_Cluster_To_v1beta1_Cluster(src, dst, nil)
+	if dst.Spec.Topology != nil {
+		if dst.Spec.Topology.ControlPlane.MachineHealthCheck != nil && dst.Spec.Topology.ControlPlane.MachineHealthCheck.RemediationTemplate != nil {
+			dst.Spec.Topology.ControlPlane.MachineHealthCheck.RemediationTemplate.Namespace = dst.Namespace
+		}
+		if dst.Spec.Topology.Workers != nil {
+			for _, md := range dst.Spec.Topology.Workers.MachineDeployments {
+				if md.MachineHealthCheck != nil && md.MachineHealthCheck.RemediationTemplate != nil {
+					md.MachineHealthCheck.RemediationTemplate.Namespace = dst.Namespace
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
@@ -49,8 +64,19 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 
 func (dst *ClusterClass) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.ClusterClass)
+	if err := Convert_v1beta2_ClusterClass_To_v1beta1_ClusterClass(src, dst, nil); err != nil {
+		return err
+	}
 
-	return Convert_v1beta2_ClusterClass_To_v1beta1_ClusterClass(src, dst, nil)
+	if dst.Spec.ControlPlane.MachineHealthCheck != nil && dst.Spec.ControlPlane.MachineHealthCheck.RemediationTemplate != nil {
+		dst.Spec.ControlPlane.MachineHealthCheck.RemediationTemplate.Namespace = dst.Namespace
+	}
+	for _, md := range dst.Spec.Workers.MachineDeployments {
+		if md.MachineHealthCheck != nil && md.MachineHealthCheck.RemediationTemplate != nil {
+			md.MachineHealthCheck.RemediationTemplate.Namespace = dst.Namespace
+		}
+	}
+	return nil
 }
 
 func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
@@ -140,8 +166,14 @@ func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 
 func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineHealthCheck)
+	if err := Convert_v1beta2_MachineHealthCheck_To_v1beta1_MachineHealthCheck(src, dst, nil); err != nil {
+		return err
+	}
 
-	return Convert_v1beta2_MachineHealthCheck_To_v1beta1_MachineHealthCheck(src, dst, nil)
+	if dst.Spec.RemediationTemplate != nil {
+		dst.Spec.RemediationTemplate.Namespace = src.Namespace
+	}
+	return nil
 }
 
 func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
@@ -1137,6 +1169,20 @@ func Convert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(
 
 	out.GenerateExtension = in.GeneratePatchesExtension
 	out.ValidateExtension = in.ValidateTopologyExtension
+	return nil
+}
+
+func Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in *corev1.ObjectReference, out *clusterv1.MachineHealthCheckRemediationTemplateReference, _ apimachineryconversion.Scope) error {
+	out.Name = in.Name
+	out.Kind = in.Kind
+	out.APIVersion = in.APIVersion
+	return nil
+}
+
+func Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(in *clusterv1.MachineHealthCheckRemediationTemplateReference, out *corev1.ObjectReference, _ apimachineryconversion.Scope) error {
+	out.Name = in.Name
+	out.Kind = in.Kind
+	out.APIVersion = in.APIVersion
 	return nil
 }
 

@@ -690,6 +690,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*corev1.ObjectReference)(nil), (*v1beta2.MachineHealthCheckRemediationTemplateReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(a.(*corev1.ObjectReference), b.(*v1beta2.MachineHealthCheckRemediationTemplateReference), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*corev1.ObjectReference)(nil), (*v1beta2.MachineNodeReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1_ObjectReference_To_v1beta2_MachineNodeReference(a.(*corev1.ObjectReference), b.(*v1beta2.MachineNodeReference), scope)
 	}); err != nil {
@@ -907,6 +912,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.MachineHealthCheckClass)(nil), (*MachineHealthCheckClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineHealthCheckClass_To_v1beta1_MachineHealthCheckClass(a.(*v1beta2.MachineHealthCheckClass), b.(*MachineHealthCheckClass), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.MachineHealthCheckRemediationTemplateReference)(nil), (*corev1.ObjectReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(a.(*v1beta2.MachineHealthCheckRemediationTemplateReference), b.(*corev1.ObjectReference), scope)
 	}); err != nil {
 		return err
 	}
@@ -2638,7 +2648,15 @@ func autoConvert_v1beta1_MachineHealthCheckClass_To_v1beta2_MachineHealthCheckCl
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
 	// WARNING: in.NodeStartupTimeout requires manual conversion: does not exist in peer-type
-	out.RemediationTemplate = (*corev1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
+	if in.RemediationTemplate != nil {
+		in, out := &in.RemediationTemplate, &out.RemediationTemplate
+		*out = new(v1beta2.MachineHealthCheckRemediationTemplateReference)
+		if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RemediationTemplate = nil
+	}
 	return nil
 }
 
@@ -2647,7 +2665,15 @@ func autoConvert_v1beta2_MachineHealthCheckClass_To_v1beta1_MachineHealthCheckCl
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
 	// WARNING: in.NodeStartupTimeoutSeconds requires manual conversion: does not exist in peer-type
-	out.RemediationTemplate = (*corev1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
+	if in.RemediationTemplate != nil {
+		in, out := &in.RemediationTemplate, &out.RemediationTemplate
+		*out = new(corev1.ObjectReference)
+		if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RemediationTemplate = nil
+	}
 	return nil
 }
 
@@ -2700,7 +2726,15 @@ func autoConvert_v1beta1_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpe
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
 	// WARNING: in.NodeStartupTimeout requires manual conversion: does not exist in peer-type
-	out.RemediationTemplate = (*corev1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
+	if in.RemediationTemplate != nil {
+		in, out := &in.RemediationTemplate, &out.RemediationTemplate
+		*out = new(v1beta2.MachineHealthCheckRemediationTemplateReference)
+		if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RemediationTemplate = nil
+	}
 	return nil
 }
 
@@ -2711,7 +2745,15 @@ func autoConvert_v1beta2_MachineHealthCheckSpec_To_v1beta1_MachineHealthCheckSpe
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
 	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
 	// WARNING: in.NodeStartupTimeoutSeconds requires manual conversion: does not exist in peer-type
-	out.RemediationTemplate = (*corev1.ObjectReference)(unsafe.Pointer(in.RemediationTemplate))
+	if in.RemediationTemplate != nil {
+		in, out := &in.RemediationTemplate, &out.RemediationTemplate
+		*out = new(corev1.ObjectReference)
+		if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RemediationTemplate = nil
+	}
 	return nil
 }
 

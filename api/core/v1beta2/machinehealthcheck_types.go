@@ -19,6 +19,7 @@ package v1beta2
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -114,7 +115,53 @@ type MachineHealthCheckSpec struct {
 	// creates a new object from the template referenced and hands off remediation of the machine to
 	// a controller that lives outside of Cluster API.
 	// +optional
-	RemediationTemplate *corev1.ObjectReference `json:"remediationTemplate,omitempty"`
+	RemediationTemplate *MachineHealthCheckRemediationTemplateReference `json:"remediationTemplate,omitempty"`
+}
+
+// MachineHealthCheckRemediationTemplateReference is a reference to a remediation template.
+type MachineHealthCheckRemediationTemplateReference struct {
+	// kind of the remediation template.
+	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
+	Kind string `json:"kind"`
+
+	// name of the remediation template.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name"`
+
+	// apiVersion of the remediation template.
+	// apiVersion must be fully qualified domain name followed by / and a version.
+	// NOTE: This field must be kept in sync with the APIVersion of the remediation template.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=317
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$`
+	APIVersion string `json:"apiVersion"`
+}
+
+// ToObjectReference returns an object reference for the MachineHealthCheckRemediationTemplateReference in a given namespace.
+func (r *MachineHealthCheckRemediationTemplateReference) ToObjectReference(namespace string) *corev1.ObjectReference {
+	if r == nil {
+		return nil
+	}
+	return &corev1.ObjectReference{
+		APIVersion: r.APIVersion,
+		Kind:       r.Kind,
+		Namespace:  namespace,
+		Name:       r.Name,
+	}
+}
+
+// GroupVersionKind gets the GroupVersionKind for a MachineHealthCheckRemediationTemplateReference.
+func (r *MachineHealthCheckRemediationTemplateReference) GroupVersionKind() schema.GroupVersionKind {
+	return schema.FromAPIVersionAndKind(r.APIVersion, r.Kind)
 }
 
 // ANCHOR_END: MachineHealthCHeckSpec

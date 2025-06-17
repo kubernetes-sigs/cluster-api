@@ -520,6 +520,10 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 		}
 	}
 
+	if dst.Spec.RemediationTemplate != nil {
+		dst.Spec.RemediationTemplate.Namespace = src.Namespace
+	}
+	
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
 }

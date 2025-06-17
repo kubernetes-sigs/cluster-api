@@ -1591,11 +1591,10 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		infraRemediationTmpl.SetNamespace(cluster.Namespace)
 		g.Expect(env.Create(ctx, infraRemediationTmpl)).To(Succeed())
 
-		remediationTemplate := &corev1.ObjectReference{
+		remediationTemplate := &clusterv1.MachineHealthCheckRemediationTemplateReference{
 			APIVersion: builder.RemediationGroupVersion.String(),
 			Kind:       "GenericExternalRemediationTemplate",
 			Name:       infraRemediationTmpl.GetName(),
-			Namespace:  cluster.Namespace,
 		}
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -1750,11 +1749,10 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		infraRemediationTmpl.SetNamespace(cluster.Namespace)
 		g.Expect(env.Create(ctx, infraRemediationTmpl)).To(Succeed())
 
-		remediationTemplate := &corev1.ObjectReference{
+		remediationTemplate := &clusterv1.MachineHealthCheckRemediationTemplateReference{
 			APIVersion: builder.RemediationGroupVersion.String(),
 			Kind:       "GenericExternalRemediationTemplate",
 			Name:       infraRemediationTmpl.GetName(),
-			Namespace:  ns.Name,
 		}
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)

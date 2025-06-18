@@ -42,11 +42,11 @@ func TestFuzzyConversion(t *testing.T) {
 
 func DockerMachinePoolFuzzFunc(_ runtimeserializer.CodecFactory) []any {
 	return []any{
-		hubDockerClusterStatus,
+		hubDockerMachinePoolStatus,
 	}
 }
 
-func hubDockerClusterStatus(in *infraexpv1.DockerMachinePoolStatus, c randfill.Continue) {
+func hubDockerMachinePoolStatus(in *infraexpv1.DockerMachinePoolStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.Deprecated != nil {

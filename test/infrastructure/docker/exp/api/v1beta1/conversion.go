@@ -59,10 +59,6 @@ func (dst *DockerMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	if src.Status.Deprecated == nil {
-		return nil
-	}
-
 	dst.Status.Conditions = nil
 	if src.Status.Deprecated != nil && src.Status.Deprecated.V1Beta1 != nil {
 		if src.Status.Deprecated.V1Beta1.Conditions != nil {

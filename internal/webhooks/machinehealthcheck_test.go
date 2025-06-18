@@ -38,7 +38,7 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{"foo": "bar"},
 			},
-			RemediationTemplate: &corev1.ObjectReference{},
+			RemediationTemplate: &clusterv1.MachineHealthCheckRemediationTemplateReference{},
 			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
 					Type:   corev1.NodeReady,
@@ -56,7 +56,6 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 	g.Expect(mhc.Spec.MaxUnhealthy.String()).To(Equal("100%"))
 	g.Expect(mhc.Spec.NodeStartupTimeoutSeconds).ToNot(BeNil())
 	g.Expect(*mhc.Spec.NodeStartupTimeoutSeconds).To(Equal(int32(10 * 60)))
-	g.Expect(mhc.Spec.RemediationTemplate.Namespace).To(Equal(mhc.Namespace))
 }
 
 func TestMachineHealthCheckLabelSelectorAsSelectorValidation(t *testing.T) {
@@ -444,54 +443,4 @@ func TestMachineHealthCheckClusterNameSelectorValidation(t *testing.T) {
 	g.Expect(webhook.validate(nil, mhc)).To(Succeed())
 	delete(mhc.Spec.Selector.MatchLabels, clusterv1.ClusterNameLabel)
 	g.Expect(webhook.validate(nil, mhc)).To(Succeed())
-}
-
-func TestMachineHealthCheckRemediationTemplateNamespaceValidation(t *testing.T) {
-	valid := &clusterv1.MachineHealthCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foo",
-		},
-		Spec: clusterv1.MachineHealthCheckSpec{
-			Selector:            metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
-			RemediationTemplate: &corev1.ObjectReference{Namespace: "foo"},
-			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-				{
-					Type:   corev1.NodeReady,
-					Status: corev1.ConditionFalse,
-				},
-			},
-		},
-	}
-	invalid := valid.DeepCopy()
-	invalid.Spec.RemediationTemplate.Namespace = "bar"
-
-	tests := []struct {
-		name      string
-		expectErr bool
-		c         *clusterv1.MachineHealthCheck
-	}{
-		{
-			name:      "should return error when MachineHealthCheck namespace and RemediationTemplate ref namespace mismatch",
-			expectErr: true,
-			c:         invalid,
-		},
-		{
-			name:      "should succeed when namespaces match",
-			expectErr: false,
-			c:         valid,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-			webhook := &MachineHealthCheck{}
-
-			if tt.expectErr {
-				g.Expect(webhook.validate(nil, tt.c)).NotTo(Succeed())
-			} else {
-				g.Expect(webhook.validate(nil, tt.c)).To(Succeed())
-			}
-		})
-	}
 }

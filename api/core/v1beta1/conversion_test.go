@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
@@ -79,7 +80,9 @@ func TestFuzzyConversion(t *testing.T) {
 func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubClusterStatus,
+		spokeCluster,
 		spokeClusterTopology,
+		spokeObjectReference,
 		spokeClusterStatus,
 		spokeClusterVariable,
 		spokeControlPlaneTopology,
@@ -105,6 +108,12 @@ func hubClusterStatus(in *clusterv1.ClusterStatus, c randfill.Continue) {
 			in.Initialization = nil
 		}
 	}
+}
+
+func spokeCluster(in *Cluster, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.Namespace = "foo"
 }
 
 func spokeClusterTopology(in *Topology, c randfill.Continue) {
@@ -136,6 +145,7 @@ func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubClusterClassStatus,
 		hubJSONSchemaProps,
 		spokeClusterClass,
+		spokeObjectReference,
 		spokeClusterClassStatus,
 		spokeJSONSchemaProps,
 		spokeControlPlaneClass,
@@ -414,8 +424,10 @@ func spokeMachineDeploymentStatus(in *MachineDeploymentStatus, c randfill.Contin
 func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachineHealthCheckStatus,
-		spokeMachineHealthCheckStatus,
+		spokeMachineHealthCheck,
 		spokeMachineHealthCheckSpec,
+		spokeObjectReference,
+		spokeMachineHealthCheckStatus,
 		spokeUnhealthyCondition,
 	}
 }
@@ -430,6 +442,12 @@ func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c randf
 	}
 }
 
+func spokeMachineHealthCheck(in *MachineHealthCheck, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.Namespace = "foo"
+}
+
 func spokeMachineHealthCheckStatus(in *MachineHealthCheckStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
@@ -438,6 +456,19 @@ func spokeMachineHealthCheckStatus(in *MachineHealthCheckStatus, c randfill.Cont
 			in.V1Beta2 = nil
 		}
 	}
+}
+
+func spokeObjectReference(in *corev1.ObjectReference, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in == nil {
+		return
+	}
+
+	in.Namespace = "foo"
+	in.UID = types.UID("")
+	in.ResourceVersion = ""
+	in.FieldPath = ""
 }
 
 func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {

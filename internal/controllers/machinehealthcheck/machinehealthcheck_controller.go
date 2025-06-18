@@ -437,7 +437,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 					UID:        t.Machine.UID,
 				}
 
-				from, err := external.Get(ctx, r.Client, m.Spec.RemediationTemplate)
+				from, err := external.Get(ctx, r.Client, m.Spec.RemediationTemplate.ToObjectReference(m.Namespace))
 				if err != nil {
 					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationTemplateAvailableV1Beta1Condition, clusterv1.ExternalRemediationTemplateNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 
@@ -445,7 +445,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 						Type:    clusterv1.MachineExternallyRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineExternallyRemediatedRemediationTemplateNotFoundReason,
-						Message: fmt.Sprintf("Error retrieving remediation template %s %s", m.Spec.RemediationTemplate.Kind, klog.KRef(m.Spec.RemediationTemplate.Namespace, m.Spec.RemediationTemplate.Name)),
+						Message: fmt.Sprintf("Error retrieving remediation template %s %s", m.Spec.RemediationTemplate.Kind, klog.KRef(m.Namespace, m.Spec.RemediationTemplate.Name)),
 					})
 					errList = append(errList, errors.Wrapf(err, "error retrieving remediation template %v %q for machine %q in namespace %q within cluster %q", m.Spec.RemediationTemplate.GroupVersionKind(), m.Spec.RemediationTemplate.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
 					return errList
@@ -453,7 +453,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 
 				generateTemplateInput := &external.GenerateTemplateInput{
 					Template:    from,
-					TemplateRef: m.Spec.RemediationTemplate,
+					TemplateRef: m.Spec.RemediationTemplate.ToObjectReference(m.Namespace),
 					Namespace:   t.Machine.Namespace,
 					ClusterName: t.Machine.Spec.ClusterName,
 					OwnerRef:    cloneOwnerRef,

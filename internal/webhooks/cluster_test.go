@@ -80,7 +80,7 @@ func TestClusterTopologyDefaultNamespaces(t *testing.T) {
 			WithVersion("v1.19.1").
 			WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
 				MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-					RemediationTemplate: &corev1.ObjectReference{},
+					RemediationTemplate: &clusterv1.MachineHealthCheckRemediationTemplateReference{},
 				},
 			}).
 			WithMachineDeployment(
@@ -88,7 +88,7 @@ func TestClusterTopologyDefaultNamespaces(t *testing.T) {
 					WithClass("aa").
 					WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
 						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
-							RemediationTemplate: &corev1.ObjectReference{},
+							RemediationTemplate: &clusterv1.MachineHealthCheckRemediationTemplateReference{},
 						},
 					}).
 					Build()).
@@ -115,11 +115,6 @@ func TestClusterTopologyDefaultNamespaces(t *testing.T) {
 	t.Run("for Cluster", util.CustomDefaultValidateTest(ctx, c, webhook))
 
 	g.Expect(webhook.Default(ctx, c)).To(Succeed())
-
-	g.Expect(c.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace).To(Equal(c.Namespace))
-	for i := range c.Spec.Topology.Workers.MachineDeployments {
-		g.Expect(c.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace).To(Equal(c.Namespace))
-	}
 }
 
 // TestClusterDefaultAndValidateVariables cases where cluster.spec.topology.class is altered.

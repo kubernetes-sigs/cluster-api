@@ -86,10 +86,6 @@ func (webhook *MachineHealthCheck) Default(_ context.Context, obj runtime.Object
 		m.Spec.NodeStartupTimeoutSeconds = &clusterv1.DefaultNodeStartupTimeoutSeconds
 	}
 
-	if m.Spec.RemediationTemplate != nil && m.Spec.RemediationTemplate.Namespace == "" {
-		m.Spec.RemediationTemplate.Namespace = m.Namespace
-	}
-
 	return nil
 }
 
@@ -184,16 +180,6 @@ func (webhook *MachineHealthCheck) validateCommonFields(m *clusterv1.MachineHeal
 				field.Invalid(fldPath.Child("maxUnhealthy"), m.Spec.MaxUnhealthy, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
 			)
 		}
-	}
-	if m.Spec.RemediationTemplate != nil && m.Spec.RemediationTemplate.Namespace != m.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				fldPath.Child("remediationTemplate", "namespace"),
-				m.Spec.RemediationTemplate.Namespace,
-				"must match metadata.namespace",
-			),
-		)
 	}
 
 	return allErrs

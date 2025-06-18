@@ -17,6 +17,10 @@ limitations under the License.
 package upstreamv1beta4
 
 import (
+	"math"
+	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -66,8 +70,8 @@ func Convert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguratio
 	if err := autoConvert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s); err != nil {
 		return err
 	}
-	out.CertificateValidityPeriodDays = clusterv1.ConvertToDays(in.CertificateValidityPeriod)
-	out.CACertificateValidityPeriodDays = clusterv1.ConvertToSeconds(in.CACertificateValidityPeriod)
+	out.CertificateValidityPeriodDays = convertToDays(in.CertificateValidityPeriod)
+	out.CACertificateValidityPeriodDays = convertToDays(in.CACertificateValidityPeriod)
 	return nil
 }
 
@@ -76,8 +80,8 @@ func Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfiguratio
 	if err := autoConvert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfiguration(in, out, s); err != nil {
 		return err
 	}
-	out.CertificateValidityPeriod = clusterv1.ConvertFromDays(in.CertificateValidityPeriodDays)
-	out.CACertificateValidityPeriod = clusterv1.ConvertFromSeconds(in.CACertificateValidityPeriodDays)
+	out.CertificateValidityPeriod = convertFromDays(in.CertificateValidityPeriodDays)
+	out.CACertificateValidityPeriod = convertFromDays(in.CACertificateValidityPeriodDays)
 	return nil
 }
 
@@ -233,4 +237,27 @@ func (src *ClusterConfiguration) GetAdditionalData(data *upstream.AdditionalData
 
 	// NOTE: for kubeadm v1beta4 types we are not reading ControlPlaneComponentHealthCheckSeconds into additional data
 	// because Cluster API types are aligned with kubeadm's v1beta4 API version.
+}
+
+// convertToDays takes *metav1.Duration and returns a *int32.
+// Durations longer than MaxInt32 are capped.
+// NOTE: this is a util function intended only for usage in API conversions.
+func convertToDays(in *metav1.Duration) *int32 {
+	if in == nil {
+		return nil
+	}
+	days := math.Trunc(in.Hours() / 24)
+	if days > math.MaxInt32 {
+		return ptr.To[int32](math.MaxInt32)
+	}
+	return ptr.To(int32(days))
+}
+
+// convertFromDays takes *int32 and returns a *metav1.Duration.
+// NOTE: this is a util function intended only for usage in API conversions.
+func convertFromDays(in *int32) *metav1.Duration {
+	if in == nil {
+		return nil
+	}
+	return ptr.To(metav1.Duration{Duration: time.Duration(*in) * time.Hour * 24})
 }

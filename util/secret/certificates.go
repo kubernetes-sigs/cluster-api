@@ -71,8 +71,8 @@ func NewCertificatesForInitialControlPlane(config *bootstrapv1.ClusterConfigurat
 		if config.CertificatesDir != "" {
 			certificatesDir = config.CertificatesDir
 		}
-		if config.CertificateValidityPeriodDays != nil {
-			validityPeriodDays = config.CertificateValidityPeriodDays
+		if config.CACertificateValidityPeriodDays != nil {
+			validityPeriodDays = config.CACertificateValidityPeriodDays
 		}
 	}
 

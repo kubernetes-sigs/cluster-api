@@ -800,6 +800,7 @@ spec:
                       conditions:
                         description: |-
                           conditions defines current service state of the DockerMachine.
+
                           Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped.
                         items:
                           description: Condition defines an observation of a Cluster

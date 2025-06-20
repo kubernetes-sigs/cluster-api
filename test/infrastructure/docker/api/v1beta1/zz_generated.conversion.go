@@ -742,8 +742,6 @@ func autoConvert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevClu
 }
 
 func autoConvert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in *v1beta2.DevClusterStatus, out *DevClusterStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1beta2.Conditions, len(*in))
@@ -755,6 +753,8 @@ func autoConvert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in *v1beta
 	} else {
 		out.Conditions = nil
 	}
+	out.Ready = in.Ready
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -1043,9 +1043,6 @@ func autoConvert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in *DevMac
 }
 
 func autoConvert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *v1beta2.DevMachineStatus, out *DevMachineStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
-	out.Backend = (*DevMachineBackendStatus)(unsafe.Pointer(in.Backend))
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1beta2.Conditions, len(*in))
@@ -1057,6 +1054,9 @@ func autoConvert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *v1beta
 	} else {
 		out.Conditions = nil
 	}
+	out.Ready = in.Ready
+	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Backend = (*DevMachineBackendStatus)(unsafe.Pointer(in.Backend))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -1334,8 +1334,6 @@ func autoConvert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *
 }
 
 func autoConvert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *v1beta2.DockerClusterStatus, out *DockerClusterStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1beta2.Conditions, len(*in))
@@ -1347,6 +1345,8 @@ func autoConvert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *
 	} else {
 		out.Conditions = nil
 	}
+	out.Ready = in.Ready
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -1671,9 +1671,6 @@ func autoConvert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *
 }
 
 func autoConvert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *v1beta2.DockerMachineStatus, out *DockerMachineStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	out.LoadBalancerConfigured = in.LoadBalancerConfigured
-	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1beta2.Conditions, len(*in))
@@ -1685,6 +1682,9 @@ func autoConvert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *
 	} else {
 		out.Conditions = nil
 	}
+	out.Ready = in.Ready
+	out.LoadBalancerConfigured = in.LoadBalancerConfigured
+	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }

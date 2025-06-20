@@ -334,8 +334,6 @@ func Convert_v1alpha3_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *Doc
 }
 
 func autoConvert_v1beta2_DockerClusterStatus_To_v1alpha3_DockerClusterStatus(in *v1beta2.DockerClusterStatus, out *DockerClusterStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	out.FailureDomains = *(*corev1alpha3.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1alpha3.Conditions, len(*in))
@@ -347,6 +345,8 @@ func autoConvert_v1beta2_DockerClusterStatus_To_v1alpha3_DockerClusterStatus(in 
 	} else {
 		out.Conditions = nil
 	}
+	out.Ready = in.Ready
+	out.FailureDomains = *(*corev1alpha3.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -473,9 +473,6 @@ func Convert_v1alpha3_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *Doc
 }
 
 func autoConvert_v1beta2_DockerMachineStatus_To_v1alpha3_DockerMachineStatus(in *v1beta2.DockerMachineStatus, out *DockerMachineStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	out.LoadBalancerConfigured = in.LoadBalancerConfigured
-	out.Addresses = *(*[]corev1alpha3.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1alpha3.Conditions, len(*in))
@@ -487,6 +484,9 @@ func autoConvert_v1beta2_DockerMachineStatus_To_v1alpha3_DockerMachineStatus(in 
 	} else {
 		out.Conditions = nil
 	}
+	out.Ready = in.Ready
+	out.LoadBalancerConfigured = in.LoadBalancerConfigured
+	out.Addresses = *(*[]corev1alpha3.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }

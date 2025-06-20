@@ -429,8 +429,9 @@ spec:
             description: DevClusterStatus defines the observed state of the DevCluster.
             properties:
               conditions:
-                description: conditions represents the observations of a DevCluster's
-                  current state.
+                description: |-
+                  conditions represents the observations of a DevCluster's current state.
+                  Known condition types are Ready, LoadBalancerAvailable and Paused.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -492,7 +493,7 @@ spec:
                 x-kubernetes-list-type: map
               deprecated:
                 description: deprecated groups all the status fields that are deprecated
-                  and will be removed when support for v1beta1 will be dropped.
+                  and will be removed when all the nested field are removed.
                 properties:
                   v1beta1:
                     description: v1beta1 groups all the status fields that are deprecated

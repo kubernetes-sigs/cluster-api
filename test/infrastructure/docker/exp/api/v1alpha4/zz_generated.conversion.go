@@ -285,11 +285,6 @@ func Convert_v1alpha4_DockerMachinePoolStatus_To_v1beta2_DockerMachinePoolStatus
 }
 
 func autoConvert_v1beta2_DockerMachinePoolStatus_To_v1alpha4_DockerMachinePoolStatus(in *v1beta2.DockerMachinePoolStatus, out *DockerMachinePoolStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	out.Replicas = in.Replicas
-	out.ObservedGeneration = in.ObservedGeneration
-	out.Instances = *(*[]DockerMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
-	// WARNING: in.InfrastructureMachineKind requires manual conversion: does not exist in peer-type
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(corev1alpha4.Conditions, len(*in))
@@ -301,6 +296,11 @@ func autoConvert_v1beta2_DockerMachinePoolStatus_To_v1alpha4_DockerMachinePoolSt
 	} else {
 		out.Conditions = nil
 	}
+	out.Ready = in.Ready
+	out.Replicas = in.Replicas
+	out.ObservedGeneration = in.ObservedGeneration
+	out.Instances = *(*[]DockerMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
+	// WARNING: in.InfrastructureMachineKind requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }

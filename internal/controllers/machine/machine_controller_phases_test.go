@@ -24,7 +24,6 @@ import (
 	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,11 +54,10 @@ func TestReconcileBootstrap(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: clusterv1.GroupVersionBootstrap.String(),
-					Kind:       "GenericBootstrapConfig",
-					Name:       "bootstrap-config1",
-					Namespace:  metav1.NamespaceDefault,
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
+					Kind:     "GenericBootstrapConfig",
+					Name:     "bootstrap-config1",
 				},
 			},
 		},
@@ -257,11 +255,10 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: clusterv1.GroupVersionBootstrap.String(),
-							Kind:       "GenericBootstrapConfig",
-							Name:       "bootstrap-config1",
-							Namespace:  metav1.NamespaceDefault,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionBootstrap.Group,
+							Kind:     "GenericBootstrapConfig",
+							Name:     "bootstrap-config1",
 						},
 						DataSecretName: ptr.To("secret-data"),
 					},
@@ -305,11 +302,10 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: clusterv1.GroupVersionBootstrap.String(),
-							Kind:       "GenericBootstrapConfig",
-							Name:       "bootstrap-config1",
-							Namespace:  metav1.NamespaceDefault,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionBootstrap.Group,
+							Kind:     "GenericBootstrapConfig",
+							Name:     "bootstrap-config1",
 						},
 						DataSecretName: ptr.To("secret-data"),
 					},
@@ -392,11 +388,10 @@ func TestReconcileInfrastructure(t *testing.T) {
 			},
 		},
 		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  metav1.NamespaceDefault,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 		},
 	}
@@ -713,11 +708,10 @@ func TestReconcileInfrastructure(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachine",
-						Name:       "infra-config1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachine",
+						Name:     "infra-config1",
 					},
 					ProviderID:    ptr.To("test://something"),
 					FailureDomain: ptr.To("something"),
@@ -778,11 +772,10 @@ func TestReconcileInfrastructure(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachine",
-						Name:       "infra-config1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachine",
+						Name:     "infra-config1",
 					},
 					ProviderID:    ptr.To("test://something"),
 					FailureDomain: ptr.To("something"),
@@ -843,11 +836,10 @@ func TestReconcileInfrastructure(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachine",
-						Name:       "infra-config1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachine",
+						Name:     "infra-config1",
 					},
 				},
 				Status: clusterv1.MachineStatus{
@@ -874,11 +866,10 @@ func TestReconcileInfrastructure(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachine",
-						Name:       "infra-config1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachine",
+						Name:     "infra-config1",
 					},
 				},
 				Status: clusterv1.MachineStatus{
@@ -910,11 +901,10 @@ func TestReconcileInfrastructure(t *testing.T) {
 					Finalizers:        []string{"foo"},
 				},
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachine",
-						Name:       "infra-config1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachine",
+						Name:     "infra-config1",
 					},
 				},
 				Status: clusterv1.MachineStatus{
@@ -940,11 +930,10 @@ func TestReconcileInfrastructure(t *testing.T) {
 					Finalizers:        []string{"foo"},
 				},
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachine",
-						Name:       "infra-config1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachine",
+						Name:     "infra-config1",
 					},
 				},
 				Status: clusterv1.MachineStatus{
@@ -1108,10 +1097,10 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: clusterv1.GroupVersionBootstrap.String(),
-							Kind:       "GenericBootstrapConfig",
-							Name:       "bootstrap-config-without-expiry",
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionBootstrap.Group,
+							Kind:     "GenericBootstrapConfig",
+							Name:     "bootstrap-config-without-expiry",
 						},
 					},
 				},
@@ -1133,10 +1122,10 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: clusterv1.GroupVersionBootstrap.String(),
-							Kind:       "GenericBootstrapConfig",
-							Name:       "bootstrap-config-with-expiry",
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionBootstrap.Group,
+							Kind:     "GenericBootstrapConfig",
+							Name:     "bootstrap-config-with-expiry",
 						},
 					},
 				},
@@ -1161,10 +1150,10 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: clusterv1.GroupVersionBootstrap.String(),
-							Kind:       "GenericBootstrapConfig",
-							Name:       "bootstrap-config-without-expiry",
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionBootstrap.Group,
+							Kind:     "GenericBootstrapConfig",
+							Name:     "bootstrap-config-without-expiry",
 						},
 					},
 				},
@@ -1189,10 +1178,10 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: clusterv1.GroupVersionBootstrap.String(),
-							Kind:       "GenericBootstrapConfig",
-							Name:       "bootstrap-config-with-expiry",
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionBootstrap.Group,
+							Kind:     "GenericBootstrapConfig",
+							Name:     "bootstrap-config-with-expiry",
 						},
 					},
 				},
@@ -1214,10 +1203,10 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: clusterv1.GroupVersionBootstrap.String(),
-							Kind:       "GenericBootstrapConfig",
-							Name:       "bootstrap-config-without-expiry",
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionBootstrap.Group,
+							Kind:     "GenericBootstrapConfig",
+							Name:     "bootstrap-config-without-expiry",
 						},
 					},
 				},

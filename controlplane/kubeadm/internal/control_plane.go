@@ -275,7 +275,7 @@ func (c *ControlPlane) UpToDateMachines() collections.Machines {
 func getInfraResources(ctx context.Context, cl client.Client, machines collections.Machines) (map[string]*unstructured.Unstructured, error) {
 	result := map[string]*unstructured.Unstructured{}
 	for _, m := range machines {
-		infraObj, err := external.Get(ctx, cl, &m.Spec.InfrastructureRef)
+		infraObj, err := external.GetObjectFromContractVersionedRef(ctx, cl, &m.Spec.InfrastructureRef, m.Namespace)
 		if err != nil {
 			if apierrors.IsNotFound(errors.Cause(err)) {
 				continue

@@ -234,7 +234,7 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 			ClusterClass:          originalClusterClassState,
 			Cluster:               clusterResources.Cluster,
 			// This rebase will revert the CP back to the original state. If we modified CP fields via
-			// modifyControlPlaneViaClusterClassAndWait this rebase will leads to changes in the CP.
+			// modifyControlPlaneViaClusterClassAndWait this rebase will lead to changes in the CP.
 			ControlPlaneChanged:          input.ModifyControlPlaneFields != nil,
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -345,10 +345,10 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 		// Get the ControlPlane.
 		controlPlaneRef := input.Cluster.Spec.ControlPlaneRef
 		controlPlaneTopology := input.Cluster.Spec.Topology.ControlPlane
-		controlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
+		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, controlPlaneRef, input.Cluster.Namespace)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		contractVersion, err := contract.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind())
+		contractVersion, err := contract.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind().GroupKind())
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Verify that the fields from Cluster topology are set on the control plane.
@@ -519,7 +519,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 				if mdClass.Template.Bootstrap.Ref != nil {
 					// Get the corresponding BootstrapConfigTemplate.
 					bootstrapConfigTemplateRef := md.Spec.Template.Spec.Bootstrap.ConfigRef
-					bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef)
+					bootstrapConfigTemplate, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, bootstrapConfigTemplateRef, md.Namespace)
 					g.Expect(err).ToNot(HaveOccurred())
 
 					// Verify that ModifyBootstrapConfigTemplateFields have been set.
@@ -533,7 +533,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 
 				// Get the corresponding InfrastructureMachineTemplate.
 				infrastructureMachineTemplateRef := md.Spec.Template.Spec.InfrastructureRef
-				infrastructureMachineTemplate, err := external.Get(ctx, mgmtClient, &infrastructureMachineTemplateRef)
+				infrastructureMachineTemplate, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, &infrastructureMachineTemplateRef, md.Namespace)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				// Verify that ModifyInfrastructureMachineTemplateFields have been set.
@@ -641,7 +641,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 				if mpClass.Template.Bootstrap.Ref != nil {
 					// Get the corresponding BootstrapConfig object.
 					bootstrapConfigObjectRef := mp.Spec.Template.Spec.Bootstrap.ConfigRef
-					bootstrapConfigObject, err := external.Get(ctx, mgmtClient, bootstrapConfigObjectRef)
+					bootstrapConfigObject, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, bootstrapConfigObjectRef, mp.Namespace)
 					g.Expect(err).ToNot(HaveOccurred())
 
 					// Verify that ModifyBootstrapConfigTemplateFields have been set and propagates to the BootstrapConfig.
@@ -657,7 +657,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 
 				// Get the corresponding InfrastructureMachinePoolTemplate.
 				infrastructureMachinePoolRef := mp.Spec.Template.Spec.InfrastructureRef
-				infrastructureMachinePool, err := external.Get(ctx, mgmtClient, &infrastructureMachinePoolRef)
+				infrastructureMachinePool, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, &infrastructureMachinePoolRef, mp.Namespace)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				// Verify that ModifyInfrastructureMachinePoolTemplateFields have been set.
@@ -812,7 +812,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 
 	// Get the current ControlPlane, we will later verify that it has not changed.
 	controlPlaneRef := input.Cluster.Spec.ControlPlaneRef
-	beforeControlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
+	beforeControlPlane, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, controlPlaneRef, input.Cluster.Namespace)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Rebase the Cluster to the new ClusterClass.
@@ -858,12 +858,12 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 
 	if input.ControlPlaneChanged {
 		Eventually(func(g Gomega) {
-			controlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
+			controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, controlPlaneRef, input.Cluster.Namespace)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(controlPlane.GetGeneration()).ToNot(Equal(beforeControlPlane.GetGeneration()),
 				"ControlPlane generation should be incremented during the rebase because ControlPlane expected to be changed.")
 
-			contractVersion, err := contract.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind())
+			contractVersion, err := contract.GetContractVersion(ctx, mgmtClient, controlPlane.GroupVersionKind().GroupKind())
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Ensure KCP recognized the change and finished scaling.
@@ -883,7 +883,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 			// Verify that the ControlPlane has not been changed.
 			// NOTE: MachineDeployments are rolled out before the ControlPlane. Thus, we know that the
 			// ControlPlane would have been updated by now, if there have been any changes.
-			afterControlPlane, err := external.Get(ctx, mgmtClient, controlPlaneRef)
+			afterControlPlane, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, controlPlaneRef, input.Cluster.Namespace)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(afterControlPlane.GetGeneration()).To(Equal(beforeControlPlane.GetGeneration()),
 				"ControlPlane generation should not be incremented during the rebase because ControlPlane should not be affected.")

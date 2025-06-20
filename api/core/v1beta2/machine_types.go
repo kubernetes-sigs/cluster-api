@@ -393,7 +393,7 @@ type MachineSpec struct {
 	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
 	// +required
-	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
+	InfrastructureRef ContractVersionedObjectReference `json:"infrastructureRef"`
 
 	// version defines the desired Kubernetes version.
 	// This field is meant to be optionally used by bootstrap providers.
@@ -702,7 +702,7 @@ type Bootstrap struct {
 	// allow users/operators to specify Bootstrap.DataSecretName without
 	// the need of a controller.
 	// +optional
-	ConfigRef *corev1.ObjectReference `json:"configRef,omitempty"`
+	ConfigRef *ContractVersionedObjectReference `json:"configRef,omitempty"`
 
 	// dataSecretName is the name of the secret that stores the bootstrap data script.
 	// If nil, the Machine should remain in the Pending state.

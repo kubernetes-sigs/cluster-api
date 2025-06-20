@@ -546,7 +546,15 @@ func Convert_v1beta2_APIEndpoint_To_v1alpha4_APIEndpoint(in *v1beta2.APIEndpoint
 }
 
 func autoConvert_v1alpha4_Bootstrap_To_v1beta2_Bootstrap(in *Bootstrap, out *v1beta2.Bootstrap, s conversion.Scope) error {
-	out.ConfigRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ConfigRef))
+	if in.ConfigRef != nil {
+		in, out := &in.ConfigRef, &out.ConfigRef
+		*out = new(v1beta2.ContractVersionedObjectReference)
+		if err := v1beta1.Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ConfigRef = nil
+	}
 	out.DataSecretName = (*string)(unsafe.Pointer(in.DataSecretName))
 	return nil
 }
@@ -557,7 +565,15 @@ func Convert_v1alpha4_Bootstrap_To_v1beta2_Bootstrap(in *Bootstrap, out *v1beta2
 }
 
 func autoConvert_v1beta2_Bootstrap_To_v1alpha4_Bootstrap(in *v1beta2.Bootstrap, out *Bootstrap, s conversion.Scope) error {
-	out.ConfigRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ConfigRef))
+	if in.ConfigRef != nil {
+		in, out := &in.ConfigRef, &out.ConfigRef
+		*out = new(corev1.ObjectReference)
+		if err := v1beta1.Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ConfigRef = nil
+	}
 	out.DataSecretName = (*string)(unsafe.Pointer(in.DataSecretName))
 	return nil
 }
@@ -771,8 +787,24 @@ func autoConvert_v1alpha4_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, ou
 	if err := Convert_v1alpha4_APIEndpoint_To_v1beta2_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.ControlPlaneRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ControlPlaneRef))
-	out.InfrastructureRef = (*corev1.ObjectReference)(unsafe.Pointer(in.InfrastructureRef))
+	if in.ControlPlaneRef != nil {
+		in, out := &in.ControlPlaneRef, &out.ControlPlaneRef
+		*out = new(v1beta2.ContractVersionedObjectReference)
+		if err := v1beta1.Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ControlPlaneRef = nil
+	}
+	if in.InfrastructureRef != nil {
+		in, out := &in.InfrastructureRef, &out.InfrastructureRef
+		*out = new(v1beta2.ContractVersionedObjectReference)
+		if err := v1beta1.Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.InfrastructureRef = nil
+	}
 	if in.Topology != nil {
 		in, out := &in.Topology, &out.Topology
 		*out = new(v1beta2.Topology)
@@ -796,8 +828,24 @@ func autoConvert_v1beta2_ClusterSpec_To_v1alpha4_ClusterSpec(in *v1beta2.Cluster
 	if err := Convert_v1beta2_APIEndpoint_To_v1alpha4_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.ControlPlaneRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ControlPlaneRef))
-	out.InfrastructureRef = (*corev1.ObjectReference)(unsafe.Pointer(in.InfrastructureRef))
+	if in.ControlPlaneRef != nil {
+		in, out := &in.ControlPlaneRef, &out.ControlPlaneRef
+		*out = new(corev1.ObjectReference)
+		if err := v1beta1.Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ControlPlaneRef = nil
+	}
+	if in.InfrastructureRef != nil {
+		in, out := &in.InfrastructureRef, &out.InfrastructureRef
+		*out = new(corev1.ObjectReference)
+		if err := v1beta1.Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.InfrastructureRef = nil
+	}
 	if in.Topology != nil {
 		in, out := &in.Topology, &out.Topology
 		*out = new(Topology)
@@ -1849,7 +1897,9 @@ func autoConvert_v1alpha4_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, ou
 	if err := Convert_v1alpha4_Bootstrap_To_v1beta2_Bootstrap(&in.Bootstrap, &out.Bootstrap, s); err != nil {
 		return err
 	}
-	out.InfrastructureRef = in.InfrastructureRef
+	if err := v1beta1.Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
+		return err
+	}
 	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
@@ -1862,7 +1912,9 @@ func autoConvert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in *v1beta2.Machine
 	if err := Convert_v1beta2_Bootstrap_To_v1alpha4_Bootstrap(&in.Bootstrap, &out.Bootstrap, s); err != nil {
 		return err
 	}
-	out.InfrastructureRef = in.InfrastructureRef
+	if err := v1beta1.Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
+		return err
+	}
 	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))

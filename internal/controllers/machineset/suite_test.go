@@ -140,16 +140,16 @@ func TestMain(m *testing.M) {
 	}))
 }
 
-func fakeBootstrapRefDataSecretCreated(ref corev1.ObjectReference, base map[string]interface{}, g *WithT) {
+func fakeBootstrapRefDataSecretCreated(ref clusterv1.ContractVersionedObjectReference, namespace string, base map[string]interface{}, g *WithT) {
 	bref := (&unstructured.Unstructured{Object: base}).DeepCopy()
 	g.Eventually(func() error {
-		return env.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}, bref)
+		return env.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: namespace}, bref)
 	}).Should(Succeed())
 
 	bdataSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: ref.Name,
-			Namespace:    ref.Namespace,
+			Namespace:    namespace,
 		},
 		StringData: map[string]string{
 			"value": "data",
@@ -163,10 +163,10 @@ func fakeBootstrapRefDataSecretCreated(ref corev1.ObjectReference, base map[stri
 	g.Expect(env.Status().Patch(ctx, bref, brefPatch)).To(Succeed())
 }
 
-func fakeInfrastructureRefProvisioned(ref corev1.ObjectReference, base map[string]interface{}, g *WithT) string {
+func fakeInfrastructureRefProvisioned(ref clusterv1.ContractVersionedObjectReference, namespace string, base map[string]interface{}, g *WithT) string {
 	iref := (&unstructured.Unstructured{Object: base}).DeepCopy()
 	g.Eventually(func() error {
-		return env.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}, iref)
+		return env.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: namespace}, iref)
 	}).Should(Succeed())
 
 	irefPatch := client.MergeFrom(iref.DeepCopy())

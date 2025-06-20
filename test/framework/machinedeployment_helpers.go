@@ -34,6 +34,7 @@ import (
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/machineset"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
@@ -293,16 +294,12 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 
 		log.Logf("Patching the new infrastructure ref to Machine Deployment %s", klog.KObj(deployment))
 		// Retrieve infra object.
-		infraRef := deployment.Spec.Template.Spec.InfrastructureRef
-		infraObj := &unstructured.Unstructured{}
-		infraObj.SetGroupVersionKind(infraRef.GroupVersionKind())
-		key := client.ObjectKey{
-			Namespace: input.Cluster.Namespace,
-			Name:      infraRef.Name,
-		}
+		infraRef := &deployment.Spec.Template.Spec.InfrastructureRef
+		var infraObj *unstructured.Unstructured
 		Eventually(func() error {
-			return mgmtClient.Get(ctx, key, infraObj)
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get infra object %s for MachineDeployment %s", klog.KRef(key.Namespace, key.Name), klog.KObj(deployment))
+			infraObj, err = external.GetObjectFromContractVersionedRef(ctx, mgmtClient, infraRef, deployment.Namespace)
+			return err
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get infra object %s for MachineDeployment %s", klog.KRef(deployment.Namespace, infraRef.Name), klog.KObj(deployment))
 
 		// Create a new infra object.
 		newInfraObj := infraObj
@@ -317,7 +314,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 		patchHelper, err := patch.NewHelper(deployment, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 		infraRef.Name = newInfraObjName
-		deployment.Spec.Template.Spec.InfrastructureRef = infraRef
+		deployment.Spec.Template.Spec.InfrastructureRef = *infraRef
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, deployment)
 		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch new infrastructure ref to MachineDeployment %s", klog.KObj(deployment))

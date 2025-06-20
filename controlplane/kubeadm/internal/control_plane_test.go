@@ -22,7 +22,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
@@ -87,35 +86,35 @@ func TestControlPlane(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Version:           ptr.To("v1.31.0"), // up-to-date
 					FailureDomain:     ptr.To("one"),
-					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: clusterv1.GroupVersionInfrastructure.String(), Name: "m1"},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m1"},
 				}},
 			"machine-2": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 				Spec: clusterv1.MachineSpec{
 					Version:           ptr.To("v1.29.0"), // not up-to-date
 					FailureDomain:     ptr.To("two"),
-					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: clusterv1.GroupVersionInfrastructure.String(), Name: "m2"},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m2"},
 				}},
 			"machine-3": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m3", DeletionTimestamp: ptr.To(metav1.Now())}, // deleted
 				Spec: clusterv1.MachineSpec{
 					Version:           ptr.To("v1.29.3"), // not up-to-date
 					FailureDomain:     ptr.To("three"),
-					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: clusterv1.GroupVersionInfrastructure.String(), Name: "m3"},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m3"},
 				}},
 			"machine-4": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m4", DeletionTimestamp: ptr.To(metav1.Now())}, // deleted
 				Spec: clusterv1.MachineSpec{
 					Version:           ptr.To("v1.31.0"), // up-to-date
 					FailureDomain:     ptr.To("two"),
-					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: clusterv1.GroupVersionInfrastructure.String(), Name: "m4"},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m4"},
 				}},
 			"machine-5": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m5"},
 				Spec: clusterv1.MachineSpec{
 					Version:           ptr.To("v1.31.0"), // up-to-date
 					FailureDomain:     ptr.To("three"),
-					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: clusterv1.GroupVersionInfrastructure.String(), Name: "m5"},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m5"},
 				}},
 		}
 		controlPlane, err := NewControlPlane(ctx, nil, env.GetClient(), cluster, kcp, machines)

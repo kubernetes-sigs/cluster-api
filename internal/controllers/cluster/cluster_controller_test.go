@@ -135,8 +135,16 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).ToNot(HaveOccurred())
-			cluster.Spec.InfrastructureRef = &corev1.ObjectReference{Name: "test"}
-			cluster.Spec.ControlPlaneRef = &corev1.ObjectReference{Name: "test-too"}
+			cluster.Spec.InfrastructureRef = &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.GenericInfrastructureClusterKind,
+				Name:     "test",
+			}
+			cluster.Spec.ControlPlaneRef = &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "test-too",
+			}
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
@@ -281,7 +289,11 @@ func TestClusterReconciler(t *testing.T) {
 				cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
 			}
 			cluster.Status.Initialization.InfrastructureProvisioned = true
-			cluster.Spec.InfrastructureRef = &corev1.ObjectReference{Name: "test"}
+			cluster.Spec.InfrastructureRef = &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.GenericInfrastructureClusterKind,
+				Name:     "test",
+			}
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
@@ -394,6 +406,11 @@ func TestClusterReconciler(t *testing.T) {
 			Spec: clusterv1.MachineSpec{
 				ClusterName: cluster.Name,
 				ProviderID:  ptr.To("aws:///id-node-1"),
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.InfrastructureGroupVersion.Group,
+					Kind:     builder.TestInfrastructureMachineKind,
+					Name:     "inframachine",
+				},
 				Bootstrap: clusterv1.Bootstrap{
 					DataSecretName: ptr.To(""),
 				},
@@ -822,7 +839,7 @@ func TestFilterOwnedDescendants(t *testing.T) {
 		g := NewWithT(t)
 
 		cWithCP := c.DeepCopy()
-		cWithCP.Spec.ControlPlaneRef = &corev1.ObjectReference{
+		cWithCP.Spec.ControlPlaneRef = &clusterv1.ContractVersionedObjectReference{
 			Kind: "SomeKind",
 		}
 
@@ -895,7 +912,7 @@ func TestObjectsPendingDelete(t *testing.T) {
 	t.Run("With a control plane object", func(t *testing.T) {
 		g := NewWithT(t)
 
-		c := &clusterv1.Cluster{Spec: clusterv1.ClusterSpec{ControlPlaneRef: &corev1.ObjectReference{Kind: "SomeKind"}}}
+		c := &clusterv1.Cluster{Spec: clusterv1.ClusterSpec{ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{Kind: "SomeKind"}}}
 		g.Expect(d.objectsPendingDeleteCount(c)).To(Equal(14))
 		g.Expect(d.objectsPendingDeleteNames(c)).To(Equal([]string{"MachineDeployments: md1, md2", "MachineSets: ms1, ms2", "MachinePools: mp1, mp2", "Worker Machines: w1, w2, w3, w4, w5, ... (3 more)"}))
 	})
@@ -909,10 +926,9 @@ func TestReconcileV1Beta1ControlPlaneInitializedControlPlaneRef(t *testing.T) {
 			Name: "c",
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &corev1.ObjectReference{
-				APIVersion: "test.io/v1",
-				Namespace:  "test",
-				Name:       "foo",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: "test.io",
+				Name:     "foo",
 			},
 		},
 	}

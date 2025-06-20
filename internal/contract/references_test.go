@@ -32,17 +32,17 @@ var fooRefBuilder = func() *unstructured.Unstructured {
 	return refObj
 }
 
-func TestGetNestedRef(t *testing.T) {
+func TestGetAndSetNestedV1Beta1Ref(t *testing.T) {
 	t.Run("Gets a nested ref if defined", func(t *testing.T) {
 		g := NewWithT(t)
 
 		refObj := fooRefBuilder()
 		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
-		err := SetNestedRef(obj, refObj, "spec", "machineTemplate", "infrastructureRef")
+		err := setNestedV1Beta1Ref(obj, ObjToRef(refObj), "spec", "machineTemplate", "infrastructureRef")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		ref, err := GetNestedRef(obj, "spec", "machineTemplate", "infrastructureRef")
+		ref, err := getNestedV1Beta1Ref(obj, "spec", "machineTemplate", "infrastructureRef")
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(ref).ToNot(BeNil())
 		g.Expect(ref.APIVersion).To(Equal(refObj.GetAPIVersion()))
@@ -55,7 +55,7 @@ func TestGetNestedRef(t *testing.T) {
 
 		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
-		ref, err := GetNestedRef(obj, "spec", "machineTemplate", "infrastructureRef")
+		ref, err := getNestedV1Beta1Ref(obj, "spec", "machineTemplate", "infrastructureRef")
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(ref).To(BeNil())
 	})
@@ -72,23 +72,23 @@ func TestGetNestedRef(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		// Reference name missing
 
-		ref, err := GetNestedRef(obj, "spec", "machineTemplate", "infrastructureRef")
+		ref, err := getNestedV1Beta1Ref(obj, "spec", "machineTemplate", "infrastructureRef")
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(ref).To(BeNil())
 	})
 }
 
-func TestSetNestedRef(t *testing.T) {
+func TestSetNestedV1Beta1Ref(t *testing.T) {
 	t.Run("Sets a nested ref", func(t *testing.T) {
 		g := NewWithT(t)
 
 		refObj := fooRefBuilder()
 		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
-		err := SetNestedRef(obj, refObj, "spec", "machineTemplate", "infrastructureRef")
+		err := setNestedV1Beta1Ref(obj, ObjToRef(refObj), "spec", "machineTemplate", "infrastructureRef")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		ref, err := GetNestedRef(obj, "spec", "machineTemplate", "infrastructureRef")
+		ref, err := getNestedV1Beta1Ref(obj, "spec", "machineTemplate", "infrastructureRef")
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(ref).ToNot(BeNil())
 		g.Expect(ref.APIVersion).To(Equal(refObj.GetAPIVersion()))

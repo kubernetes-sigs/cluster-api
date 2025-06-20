@@ -2549,6 +2549,7 @@ func newWorkerMachineForCluster(cluster *clusterv1.Cluster) *clusterv1.Machine {
 	return builder.Machine(cluster.Namespace, "worker-machine").
 		WithVersion("v1.23.1").
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(cluster.Namespace, "conf1").Unstructured()).
+		WithInfrastructureMachine(builder.InfrastructureMachine(cluster.Namespace, "inframachine").Build()).
 		WithClusterName(cluster.Name).
 		Build()
 }
@@ -2627,11 +2628,10 @@ func addKubeadmConfigToMachine(config *bootstrapv1.KubeadmConfig, machine *clust
 	}
 
 	if machine.Spec.Bootstrap.ConfigRef == nil {
-		machine.Spec.Bootstrap.ConfigRef = &corev1.ObjectReference{}
+		machine.Spec.Bootstrap.ConfigRef = &clusterv1.ContractVersionedObjectReference{}
 	}
 
 	machine.Spec.Bootstrap.ConfigRef.Name = config.Name
-	machine.Spec.Bootstrap.ConfigRef.Namespace = config.Namespace
 }
 
 // addKubeadmConfigToMachine adds the config details to the passed MachinePool and adds the Machine to the KubeadmConfig as an ownerReference.
@@ -2648,7 +2648,6 @@ func addKubeadmConfigToMachinePool(config *bootstrapv1.KubeadmConfig, machinePoo
 		},
 	}
 	machinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Name = config.Name
-	machinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = config.Namespace
 }
 
 func createSecrets(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) []client.Object {

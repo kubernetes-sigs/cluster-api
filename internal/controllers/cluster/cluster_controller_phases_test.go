@@ -55,11 +55,10 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 				Host: "1.2.3.4",
 				Port: 8443,
 			},
-			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "test",
-				Namespace:  "test-namespace",
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "test",
 			},
 		},
 	}
@@ -72,11 +71,10 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "test",
-				Namespace:  "test-namespace",
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "test",
 			},
 		},
 	}
@@ -303,11 +301,10 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 				Host: "1.2.3.4",
 				Port: 8443,
 			},
-			ControlPlaneRef: &corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionControlPlane.String(),
-				Kind:       "GenericControlPlane",
-				Name:       "test",
-				Namespace:  "test-namespace",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionControlPlane.Group,
+				Kind:     "GenericControlPlane",
+				Name:     "test",
 			},
 		},
 	}
@@ -320,11 +317,10 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionControlPlane.String(),
-				Kind:       "GenericControlPlane",
-				Name:       "test",
-				Namespace:  "test-namespace",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionControlPlane.Group,
+				Kind:     "GenericControlPlane",
+				Name:     "test",
 			},
 		},
 	}
@@ -679,11 +675,10 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 				Host: "1.2.3.4",
 				Port: 8443,
 			},
-			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureCluster",
-				Name:       "test",
-				Namespace:  "test-namespace",
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureCluster",
+				Name:     "test",
 			},
 		},
 	}

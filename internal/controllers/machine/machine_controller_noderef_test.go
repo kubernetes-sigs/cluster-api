@@ -405,18 +405,16 @@ func TestNodeLabelSync(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: defaultCluster.Name,
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: clusterv1.GroupVersionBootstrap.String(),
-					Kind:       "GenericBootstrapConfig",
-					Name:       "bootstrap-config1",
-					Namespace:  metav1.NamespaceDefault,
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
+					Kind:     "GenericBootstrapConfig",
+					Name:     "bootstrap-config1",
 				},
 			},
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  metav1.NamespaceDefault,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 		},
 	}
@@ -449,8 +447,6 @@ func TestNodeLabelSync(t *testing.T) {
 
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
-		machine.Spec.Bootstrap.ConfigRef.Namespace = ns.Name
-		machine.Spec.InfrastructureRef.Namespace = ns.Name
 		machine.Spec.ProviderID = ptr.To(nodeProviderID)
 
 		// Set Machine labels.
@@ -1030,7 +1026,7 @@ func TestPatchNode(t *testing.T) {
 						UID:        "uid",
 					}},
 				},
-				Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+				Spec: newFakeMachineSpec(clusterName),
 			},
 			ms: nil,
 			md: nil,
@@ -1065,7 +1061,7 @@ func TestPatchNode(t *testing.T) {
 						UID:        "uid",
 					}},
 				},
-				Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+				Spec: newFakeMachineSpec(clusterName),
 			},
 			ms: &clusterv1.MachineSet{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1078,7 +1074,7 @@ func TestPatchNode(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{
 					ClusterName: clusterName,
 					Template: clusterv1.MachineTemplateSpec{
-						Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+						Spec: newFakeMachineSpec(clusterName),
 					},
 				},
 			},
@@ -1093,7 +1089,7 @@ func TestPatchNode(t *testing.T) {
 				Spec: clusterv1.MachineDeploymentSpec{
 					ClusterName: clusterName,
 					Template: clusterv1.MachineTemplateSpec{
-						Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+						Spec: newFakeMachineSpec(clusterName),
 					},
 				},
 			},
@@ -1132,7 +1128,7 @@ func TestPatchNode(t *testing.T) {
 						UID:        "uid",
 					}},
 				},
-				Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+				Spec: newFakeMachineSpec(clusterName),
 			},
 			ms: &clusterv1.MachineSet{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1145,7 +1141,7 @@ func TestPatchNode(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{
 					ClusterName: clusterName,
 					Template: clusterv1.MachineTemplateSpec{
-						Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+						Spec: newFakeMachineSpec(clusterName),
 					},
 				},
 			},
@@ -1160,7 +1156,7 @@ func TestPatchNode(t *testing.T) {
 				Spec: clusterv1.MachineDeploymentSpec{
 					ClusterName: clusterName,
 					Template: clusterv1.MachineTemplateSpec{
-						Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+						Spec: newFakeMachineSpec(clusterName),
 					},
 				},
 			},
@@ -1322,22 +1318,20 @@ func TestMultiplePatchNode(t *testing.T) {
 		})
 	}
 }
-func newFakeMachineSpec(namespace, clusterName string) clusterv1.MachineSpec {
+func newFakeMachineSpec(clusterName string) clusterv1.MachineSpec {
 	return clusterv1.MachineSpec{
 		ClusterName: clusterName,
 		Bootstrap: clusterv1.Bootstrap{
-			ConfigRef: &corev1.ObjectReference{
-				APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
-				Kind:       "KubeadmConfigTemplate",
-				Name:       fmt.Sprintf("%s-md-0", clusterName),
-				Namespace:  namespace,
+			ConfigRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: "bootstrap.cluster.x-k8s.io",
+				Kind:     "KubeadmConfigTemplate",
+				Name:     fmt.Sprintf("%s-md-0", clusterName),
 			},
 		},
-		InfrastructureRef: corev1.ObjectReference{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-			Kind:       "FakeMachineTemplate",
-			Name:       fmt.Sprintf("%s-md-0", clusterName),
-			Namespace:  namespace,
+		InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+			APIGroup: "infrastructure.cluster.x-k8s.io",
+			Kind:     "FakeMachineTemplate",
+			Name:     fmt.Sprintf("%s-md-0", clusterName),
 		},
 	}
 }
@@ -1348,7 +1342,7 @@ func newFakeMachine(namespace, clusterName string) *clusterv1.Machine {
 			Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
 			Namespace: namespace,
 		},
-		Spec: newFakeMachineSpec(namespace, clusterName),
+		Spec: newFakeMachineSpec(clusterName),
 	}
 }
 
@@ -1361,7 +1355,7 @@ func newFakeMachineSet(namespace, clusterName string) *clusterv1.MachineSet {
 		Spec: clusterv1.MachineSetSpec{
 			ClusterName: clusterName,
 			Template: clusterv1.MachineTemplateSpec{
-				Spec: newFakeMachineSpec(namespace, clusterName),
+				Spec: newFakeMachineSpec(clusterName),
 			},
 		},
 	}
@@ -1376,7 +1370,7 @@ func newFakeMachineDeployment(namespace, clusterName string) *clusterv1.MachineD
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: clusterName,
 			Template: clusterv1.MachineTemplateSpec{
-				Spec: newFakeMachineSpec(namespace, clusterName),
+				Spec: newFakeMachineSpec(clusterName),
 			},
 		},
 	}

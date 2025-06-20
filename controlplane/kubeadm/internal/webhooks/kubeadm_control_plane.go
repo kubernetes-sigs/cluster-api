@@ -67,19 +67,15 @@ func (webhook *KubeadmControlPlane) Default(_ context.Context, obj runtime.Objec
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmControlPlane but got a %T", obj))
 	}
 
-	defaultKubeadmControlPlaneSpec(&k.Spec, k.Namespace)
+	defaultKubeadmControlPlaneSpec(&k.Spec)
 
 	return nil
 }
 
-func defaultKubeadmControlPlaneSpec(s *controlplanev1.KubeadmControlPlaneSpec, namespace string) {
+func defaultKubeadmControlPlaneSpec(s *controlplanev1.KubeadmControlPlaneSpec) {
 	if s.Replicas == nil {
 		replicas := int32(1)
 		s.Replicas = &replicas
-	}
-
-	if s.MachineTemplate.InfrastructureRef.Namespace == "" {
-		s.MachineTemplate.InfrastructureRef.Namespace = namespace
 	}
 
 	if !strings.HasPrefix(s.Version, "v") {
@@ -122,7 +118,7 @@ func (webhook *KubeadmControlPlane) ValidateCreate(_ context.Context, obj runtim
 	}
 
 	spec := k.Spec
-	allErrs := validateKubeadmControlPlaneSpec(spec, k.Namespace, field.NewPath("spec"))
+	allErrs := validateKubeadmControlPlaneSpec(spec, field.NewPath("spec"))
 	allErrs = append(allErrs, validateClusterConfiguration(nil, spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, spec.KubeadmConfigSpec.Validate(field.NewPath("spec", "kubeadmConfigSpec"))...)
 	if len(allErrs) > 0 {
@@ -223,7 +219,7 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		// spec.machineTemplate
 		{spec, "machineTemplate", "metadata"},
 		{spec, "machineTemplate", "metadata", "*"},
-		{spec, "machineTemplate", "infrastructureRef", "apiVersion"},
+		{spec, "machineTemplate", "infrastructureRef", "apiGroup"},
 		{spec, "machineTemplate", "infrastructureRef", "name"},
 		{spec, "machineTemplate", "infrastructureRef", "kind"},
 		{spec, "machineTemplate", "nodeDrainTimeoutSeconds"},
@@ -253,7 +249,7 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmControlPlane but got a %T", newObj))
 	}
 
-	allErrs := validateKubeadmControlPlaneSpec(newK.Spec, newK.Namespace, field.NewPath("spec"))
+	allErrs := validateKubeadmControlPlaneSpec(newK.Spec, field.NewPath("spec"))
 
 	originalJSON, err := json.Marshal(oldK)
 	if err != nil {
@@ -301,7 +297,7 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 	return nil, nil
 }
 
-func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, namespace string, pathPrefix *field.Path) field.ErrorList {
+func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if s.Replicas == nil {
@@ -344,12 +340,12 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, n
 		}
 	}
 
-	if s.MachineTemplate.InfrastructureRef.APIVersion == "" {
+	if s.MachineTemplate.InfrastructureRef.APIGroup == "" {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
-				pathPrefix.Child("machineTemplate", "infrastructure", "apiVersion"),
-				s.MachineTemplate.InfrastructureRef.APIVersion,
+				pathPrefix.Child("machineTemplate", "infrastructure", "apiGroup"),
+				s.MachineTemplate.InfrastructureRef.APIGroup,
 				"cannot be empty",
 			),
 		)
@@ -371,16 +367,6 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, n
 				pathPrefix.Child("machineTemplate", "infrastructure", "name"),
 				s.MachineTemplate.InfrastructureRef.Name,
 				"cannot be empty",
-			),
-		)
-	}
-	if s.MachineTemplate.InfrastructureRef.Namespace != namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				pathPrefix.Child("machineTemplate", "infrastructure", "namespace"),
-				s.MachineTemplate.InfrastructureRef.Namespace,
-				"must match metadata.namespace",
 			),
 		)
 	}

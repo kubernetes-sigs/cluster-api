@@ -38,7 +38,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -509,23 +508,12 @@ func (r *Reconciler) getTemplatesAndSetOwner(ctx context.Context, s *scope) erro
 	return nil
 }
 
-func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
+func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *clusterv1.ContractVersionedObjectReference) error {
 	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
 		return nil
 	}
 
-	if err := contract.UpdateReferenceAPIContract(ctx, c, ref); err != nil {
-		// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found.
-		return errors.New(err.Error())
-	}
-
-	// Ensure the ref namespace is populated for objects not yet defaulted by webhook
-	if ref.Namespace == "" {
-		ref = ref.DeepCopy()
-		ref.Namespace = cluster.Namespace
-	}
-
-	obj, err := external.Get(ctx, c, ref)
+	obj, err := external.GetObjectFromContractVersionedRef(ctx, c, ref, cluster.Namespace)
 	if err != nil {
 		return err
 	}

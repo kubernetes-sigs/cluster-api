@@ -154,18 +154,16 @@ func TestWatches(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  ns.Name,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: clusterv1.GroupVersionBootstrap.String(),
-					Kind:       "GenericBootstrapConfig",
-					Name:       "bootstrap-config-machinereconcile",
-					Namespace:  ns.Name,
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
+					Kind:     "GenericBootstrapConfig",
+					Name:     "bootstrap-config-machinereconcile",
 				},
 			},
 		},
@@ -295,18 +293,16 @@ func TestWatchesDelete(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  ns.Name,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: clusterv1.GroupVersionBootstrap.String(),
-					Kind:       "GenericBootstrapConfig",
-					Name:       "bootstrap-config-machinereconcile",
-					Namespace:  ns.Name,
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
+					Kind:     "GenericBootstrapConfig",
+					Name:     "bootstrap-config-machinereconcile",
 				},
 			},
 		},
@@ -447,18 +443,16 @@ func TestMachine_Reconcile(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  ns.Name,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: clusterv1.GroupVersionBootstrap.String(),
-					Kind:       "GenericBootstrapConfig",
-					Name:       "bootstrap-config-machinereconcile",
-					Namespace:  ns.Name,
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
+					Kind:     "GenericBootstrapConfig",
+					Name:     "bootstrap-config-machinereconcile",
 				},
 			},
 		},
@@ -866,11 +860,10 @@ func TestReconcileRequest(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachine",
-						Name:       "infra-config1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachine",
+						Name:     "infra-config1",
 					},
 					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
@@ -896,11 +889,10 @@ func TestReconcileRequest(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachine",
-						Name:       "infra-config1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachine",
+						Name:     "infra-config1",
 					},
 					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
@@ -930,11 +922,10 @@ func TestReconcileRequest(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachine",
-						Name:       "infra-config1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachine",
+						Name:     "infra-config1",
 					},
 					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
@@ -1063,18 +1054,16 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ProviderID:  ptr.To("test://id-1"),
 			ClusterName: "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  metav1.NamespaceDefault,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: clusterv1.GroupVersionBootstrap.String(),
-					Kind:       "GenericBootstrapConfig",
-					Name:       "bootstrap-config1",
-					Namespace:  metav1.NamespaceDefault,
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
+					Kind:     "GenericBootstrapConfig",
+					Name:     "bootstrap-config1",
 				},
 			},
 		},
@@ -1367,11 +1356,10 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  metav1.NamespaceDefault,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
@@ -1420,7 +1408,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
@@ -1445,7 +1433,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
@@ -1469,7 +1457,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
@@ -1486,7 +1474,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:             "test-cluster",
-					InfrastructureRef:       corev1.ObjectReference{},
+					InfrastructureRef:       clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:               clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					NodeDrainTimeoutSeconds: ptr.To(int32(60)),
 				},
@@ -1509,7 +1497,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:             "test-cluster",
-					InfrastructureRef:       corev1.ObjectReference{},
+					InfrastructureRef:       clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:               clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					NodeDrainTimeoutSeconds: ptr.To(int32(60)),
 				},
@@ -1531,7 +1519,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
@@ -1981,7 +1969,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
@@ -2006,7 +1994,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
@@ -2030,7 +2018,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
@@ -2047,7 +2035,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:                    "test-cluster",
-					InfrastructureRef:              corev1.ObjectReference{},
+					InfrastructureRef:              clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:                      clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					NodeVolumeDetachTimeoutSeconds: ptr.To(int32(30)),
 				},
@@ -2070,7 +2058,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:                    "test-cluster",
-					InfrastructureRef:              corev1.ObjectReference{},
+					InfrastructureRef:              clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:                      clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					NodeVolumeDetachTimeoutSeconds: ptr.To(int32(60)),
 				},
@@ -2092,7 +2080,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
@@ -2612,13 +2600,13 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2626,7 +2614,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
@@ -2639,13 +2627,13 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2653,7 +2641,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
@@ -2670,13 +2658,13 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel:         "test-cluster",
 						clusterv1.MachineControlPlaneLabel: "",
@@ -2686,7 +2674,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
@@ -2703,13 +2691,13 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2717,7 +2705,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
@@ -2734,7 +2722,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "test-cluster",
-					Namespace:         metav1.NamespaceDefault,
+					Namespace:         "test-cluster",
 					DeletionTimestamp: &deletionts,
 					Finalizers:        []string{clusterv1.ClusterFinalizer},
 				},
@@ -2748,21 +2736,20 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef: &corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionControlPlane.String(),
-						Kind:       "AWSManagedControlPlane",
-						Name:       "test-cluster",
-						Namespace:  "test-cluster",
+					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionControlPlane.Group,
+						Kind:     builder.GenericControlPlaneKind,
+						Name:     "test-cluster",
 					},
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2770,7 +2757,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
@@ -2787,21 +2774,20 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef: &corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionControlPlane.String(),
-						Kind:       "AWSManagedControlPlane",
-						Name:       "test-cluster-2",
-						Namespace:  "test-cluster",
+					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.ControlPlaneGroupVersion.Group,
+						Kind:     builder.GenericControlPlaneKind,
+						Name:     "test-cluster-2",
 					},
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2809,7 +2795,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
@@ -2826,21 +2812,20 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef: &corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionControlPlane.String(),
-						Kind:       "AWSManagedControlPlane",
-						Name:       "test-cluster-3",
-						Namespace:  "test-cluster",
+					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionControlPlane.Group,
+						Kind:     builder.GenericControlPlaneKind,
+						Name:     "test-cluster-3",
 					},
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2848,7 +2833,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
@@ -2865,13 +2850,13 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "created",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2879,7 +2864,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
@@ -2901,7 +2886,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		},
 	}
 	emp.SetAPIVersion(clusterv1.GroupVersionControlPlane.String())
-	emp.SetKind("AWSManagedControlPlane")
+	emp.SetKind(builder.GenericControlPlaneKind)
 	emp.SetName("test-cluster")
 	emp.SetNamespace("test-cluster")
 
@@ -2909,7 +2894,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		Object: map[string]interface{}{},
 	}
 	mcpBeingDeleted.SetAPIVersion(clusterv1.GroupVersionControlPlane.String())
-	mcpBeingDeleted.SetKind("AWSManagedControlPlane")
+	mcpBeingDeleted.SetKind(builder.GenericControlPlaneKind)
 	mcpBeingDeleted.SetName("test-cluster-2")
 	mcpBeingDeleted.SetNamespace("test-cluster")
 	mcpBeingDeleted.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
@@ -2923,7 +2908,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		},
 	}
 	empBeingDeleted.SetAPIVersion(clusterv1.GroupVersionControlPlane.String())
-	empBeingDeleted.SetKind("AWSManagedControlPlane")
+	empBeingDeleted.SetKind(builder.GenericControlPlaneKind)
 	empBeingDeleted.SetName("test-cluster-3")
 	empBeingDeleted.SetNamespace("test-cluster")
 	empBeingDeleted.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
@@ -2946,7 +2931,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			m1 := &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cp1",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2954,7 +2939,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
@@ -2966,7 +2951,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			m2 := &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cp2",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: "test-cluster",
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
@@ -2974,7 +2959,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
-					InfrastructureRef: corev1.ObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
@@ -2997,6 +2982,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				emp,
 				mcpBeingDeleted,
 				empBeingDeleted,
+				// Note: CRD is needed to look up the apiVersion from contract labels.
+				builder.GenericControlPlaneCRD,
 			).Build()
 			mr := &Reconciler{
 				Client:       c,
@@ -3149,18 +3136,16 @@ func TestNodeToMachine(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  ns.Name,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: clusterv1.GroupVersionBootstrap.String(),
-					Kind:       "GenericBootstrapConfig",
-					Name:       "bootstrap-config-machinereconcile",
-					Namespace:  ns.Name,
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
+					Kind:     "GenericBootstrapConfig",
+					Name:     "bootstrap-config-machinereconcile",
 				},
 			},
 		},
@@ -3191,16 +3176,16 @@ func TestNodeToMachine(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config2",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config2",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: clusterv1.GroupVersionBootstrap.String(),
-					Kind:       "GenericBootstrapConfig",
-					Name:       "bootstrap-config-machinereconcile",
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
+					Kind:     "GenericBootstrapConfig",
+					Name:     "bootstrap-config-machinereconcile",
 				},
 			},
 		},
@@ -3328,11 +3313,10 @@ func TestNodeDeletion(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  metav1.NamespaceDefault,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
@@ -3355,7 +3339,7 @@ func TestNodeDeletion(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
@@ -3525,11 +3509,10 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-				Kind:       "GenericInfrastructureMachine",
-				Name:       "infra-config1",
-				Namespace:  metav1.NamespaceDefault,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
 			},
 			Bootstrap:  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 			ProviderID: ptr.To("test://id-1"),
@@ -3548,7 +3531,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       "test-cluster",
-			InfrastructureRef: corev1.ObjectReference{},
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
 			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{

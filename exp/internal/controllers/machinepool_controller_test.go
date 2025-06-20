@@ -354,11 +354,10 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Replicas:       ptr.To[int32](1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							InfrastructureRef: corev1.ObjectReference{
-								APIVersion: builder.InfrastructureGroupVersion.String(),
-								Kind:       builder.TestInfrastructureMachinePoolKind,
-								Name:       "infra-config1",
-								Namespace:  metav1.NamespaceDefault,
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								APIGroup: builder.InfrastructureGroupVersion.Group,
+								Kind:     builder.TestInfrastructureMachinePoolKind,
+								Name:     "infra-config1",
 							},
 							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 						},
@@ -406,11 +405,10 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Replicas:    ptr.To[int32](1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							InfrastructureRef: corev1.ObjectReference{
-								APIVersion: builder.InfrastructureGroupVersion.String(),
-								Kind:       builder.TestInfrastructureMachinePoolKind,
-								Name:       "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
-								Namespace:  metav1.NamespaceDefault,
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								APIGroup: builder.InfrastructureGroupVersion.Group,
+								Kind:     builder.TestInfrastructureMachinePoolKind,
+								Name:     "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 							},
 							Bootstrap:                  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 							NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
@@ -469,11 +467,10 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Replicas:    ptr.To[int32](1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							InfrastructureRef: corev1.ObjectReference{
-								APIVersion: builder.InfrastructureGroupVersion.String(),
-								Kind:       builder.TestInfrastructureMachinePoolKind,
-								Name:       "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
-								Namespace:  metav1.NamespaceDefault,
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								APIGroup: builder.InfrastructureGroupVersion.Group,
+								Kind:     builder.TestInfrastructureMachinePoolKind,
+								Name:     "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 							},
 							Bootstrap:                  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 							NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
@@ -532,11 +529,10 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Replicas:    ptr.To[int32](1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							InfrastructureRef: corev1.ObjectReference{
-								APIVersion: builder.InfrastructureGroupVersion.String(),
-								Kind:       builder.TestInfrastructureMachinePoolKind,
-								Name:       "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
-								Namespace:  metav1.NamespaceDefault,
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								APIGroup: builder.InfrastructureGroupVersion.Group,
+								Kind:     builder.TestInfrastructureMachinePoolKind,
+								Name:     "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 							},
 							Bootstrap:                  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 							NodeDeletionTimeoutSeconds: ptr.To(int32(10)), // timeout passed
@@ -748,7 +744,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 
 	infraConfig := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       builder.TestInfrastructureMachineTemplateKind,
+			"kind":       builder.TestInfrastructureMachinePoolKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
 			"metadata": map[string]interface{}{
 				"name":      "delete-infra",
@@ -767,18 +763,16 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 			Replicas:    ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: builder.InfrastructureGroupVersion.String(),
-						Kind:       builder.TestInfrastructureMachineTemplateKind,
-						Name:       "delete-infra",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachinePoolKind,
+						Name:     "delete-infra",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: builder.BootstrapGroupVersion.String(),
-							Kind:       builder.TestBootstrapConfigKind,
-							Name:       "delete-bootstrap",
-							Namespace:  metav1.NamespaceDefault,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigKind,
+							Name:     "delete-bootstrap",
 						},
 					},
 				},
@@ -826,7 +820,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			objs := []client.Object{testCluster, machinePool}
+			objs := []client.Object{testCluster, machinePool, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachinePoolCRD}
 
 			if tc.bootstrapExists {
 				objs = append(objs, bootstrapConfig)
@@ -872,11 +866,10 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 			Replicas:    ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: builder.InfrastructureGroupVersion.String(),
-						Kind:       builder.TestInfrastructureMachineTemplateKind,
-						Name:       "infra-config1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachinePoolKind,
+						Name:     "infra-config1",
 					},
 					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
@@ -891,7 +884,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
-	clientFake := fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&clusterv1.MachinePool{}).Build()
+	clientFake := fake.NewClientBuilder().WithObjects(testCluster, m, builder.TestInfrastructureMachinePoolCRD).WithStatusSubresource(&clusterv1.MachinePool{}).Build()
 	mr := &MachinePoolReconciler{
 		Client:       clientFake,
 		ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
@@ -937,7 +930,7 @@ func TestMachinePoolConditions(t *testing.T) {
 	infraConfig := func(ready bool) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
 			Object: map[string]interface{}{
-				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"kind":       builder.TestInfrastructureMachinePoolKind,
 				"apiVersion": builder.InfrastructureGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "infra1",
@@ -967,18 +960,16 @@ func TestMachinePoolConditions(t *testing.T) {
 			Replicas:    ptr.To[int32](2),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: builder.InfrastructureGroupVersion.String(),
-						Kind:       builder.TestInfrastructureMachineTemplateKind,
-						Name:       "infra1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachinePoolKind,
+						Name:     "infra1",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: builder.BootstrapGroupVersion.String(),
-							Kind:       builder.TestBootstrapConfigKind,
-							Name:       "bootstrap1",
-							Namespace:  metav1.NamespaceDefault,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigKind,
+							Name:     "bootstrap1",
 						},
 					},
 				},
@@ -1141,10 +1132,10 @@ func TestMachinePoolConditions(t *testing.T) {
 			dataSecretCreated: true,
 			expectError:       true,
 			beforeFunc: func(_, _ *unstructured.Unstructured, mp *clusterv1.MachinePool, _ *corev1.NodeList) {
-				mp.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
-					APIVersion: builder.InfrastructureGroupVersion.String(),
-					Kind:       builder.TestInfrastructureMachineTemplateKind,
-					Name:       "does-not-exist",
+				mp.Spec.Template.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.InfrastructureGroupVersion.Group,
+					Kind:     builder.TestInfrastructureMachinePoolKind,
+					Name:     "does-not-exist",
 				}
 			},
 			conditionAssertFunc: func(t *testing.T, getter v1beta1conditions.Getter) {
@@ -1179,7 +1170,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				&nodes.Items[0],
 				&nodes.Items[1],
 				builder.TestBootstrapConfigCRD,
-				builder.TestInfrastructureMachineTemplateCRD,
+				builder.TestInfrastructureMachinePoolCRD,
 			).WithStatusSubresource(&clusterv1.MachinePool{}).Build()
 
 			r := &MachinePoolReconciler{

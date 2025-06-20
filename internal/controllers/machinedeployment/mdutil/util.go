@@ -394,7 +394,7 @@ func MachineTemplateUpToDate(current, desired *clusterv1.MachineTemplateSpec) (u
 	// common operation so it is acceptable to handle it in this way).
 	if currentCopy.Spec.Bootstrap.ConfigRef != nil {
 		if !reflect.DeepEqual(currentCopy.Spec.Bootstrap, desiredCopy.Spec.Bootstrap) {
-			logMessages = append(logMessages, fmt.Sprintf("spec.bootstrap.configRef %s %s, %s %s required", currentCopy.Spec.Bootstrap.ConfigRef.Kind, currentCopy.Spec.Bootstrap.ConfigRef.Name, ptr.Deref(desiredCopy.Spec.Bootstrap.ConfigRef, corev1.ObjectReference{}).Kind, ptr.Deref(desiredCopy.Spec.Bootstrap.ConfigRef, corev1.ObjectReference{}).Name))
+			logMessages = append(logMessages, fmt.Sprintf("spec.bootstrap.configRef %s %s, %s %s required", currentCopy.Spec.Bootstrap.ConfigRef.Kind, currentCopy.Spec.Bootstrap.ConfigRef.Name, ptr.Deref(desiredCopy.Spec.Bootstrap.ConfigRef, clusterv1.ContractVersionedObjectReference{}).Kind, ptr.Deref(desiredCopy.Spec.Bootstrap.ConfigRef, clusterv1.ContractVersionedObjectReference{}).Name))
 			// Note: dropping "Template" suffix because conditions message will surface on machine.
 			conditionMessages = append(conditionMessages, fmt.Sprintf("%s is not up-to-date", strings.TrimSuffix(currentCopy.Spec.Bootstrap.ConfigRef.Kind, clusterv1.TemplateSuffix)))
 		}
@@ -442,16 +442,6 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 	templateCopy.Spec.NodeDrainTimeoutSeconds = nil
 	templateCopy.Spec.NodeDeletionTimeoutSeconds = nil
 	templateCopy.Spec.NodeVolumeDetachTimeoutSeconds = nil
-
-	// Remove the version part from the references APIVersion field,
-	// for more details see issue #2183 and #2140.
-	// Remove namespace part of the ref, as it always correllates with current MD namespace
-	templateCopy.Spec.InfrastructureRef.APIVersion = templateCopy.Spec.InfrastructureRef.GroupVersionKind().Group
-	templateCopy.Spec.InfrastructureRef.Namespace = ""
-	if templateCopy.Spec.Bootstrap.ConfigRef != nil {
-		templateCopy.Spec.Bootstrap.ConfigRef.APIVersion = templateCopy.Spec.Bootstrap.ConfigRef.GroupVersionKind().Group
-		templateCopy.Spec.Bootstrap.ConfigRef.Namespace = ""
-	}
 
 	return templateCopy
 }

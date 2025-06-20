@@ -863,7 +863,7 @@ func Test_Add_setsShowObjectConditionsAnnotation(t *testing.T) {
 		for _, v1beta1 := range []bool{true, false} {
 			tt.args.treeOptions.V1Beta1 = v1beta1
 
-			t.Run(tt.name+" v1beta2: "+fmt.Sprintf("%t", v1beta1), func(t *testing.T) {
+			t.Run(tt.name+" v1beta1: "+fmt.Sprintf("%t", v1beta1), func(t *testing.T) {
 				root := parent.DeepCopy()
 				tree := NewObjectTree(root, tt.args.treeOptions)
 
@@ -928,7 +928,7 @@ func Test_Add_setsGroupingObjectAnnotation(t *testing.T) {
 		for _, v1beta1 := range []bool{true, false} {
 			tt.args.treeOptions.V1Beta1 = v1beta1
 
-			t.Run(tt.name+" v1beta2: "+fmt.Sprintf("%t", v1beta1), func(t *testing.T) {
+			t.Run(tt.name+" v1beta1: "+fmt.Sprintf("%t", v1beta1), func(t *testing.T) {
 				root := parent.DeepCopy()
 				tree := NewObjectTree(root, tt.args.treeOptions)
 
@@ -982,7 +982,7 @@ func Test_Add_setsObjectMetaNameAnnotation(t *testing.T) {
 		for _, v1beta1 := range []bool{true, false} {
 			treeOptions := ObjectTreeOptions{V1Beta1: v1beta1}
 
-			t.Run(tt.name+" v1beta2: "+fmt.Sprintf("%t", v1beta1), func(t *testing.T) {
+			t.Run(tt.name+" v1beta1: "+fmt.Sprintf("%t", v1beta1), func(t *testing.T) {
 				root := parent.DeepCopy()
 				tree := NewObjectTree(root, treeOptions)
 

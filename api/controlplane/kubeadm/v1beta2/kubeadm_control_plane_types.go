@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -486,7 +485,7 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
 	// +required
-	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
+	InfrastructureRef clusterv1.ContractVersionedObjectReference `json:"infrastructureRef"`
 
 	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition;
 	// KubeadmControlPlane will always add readinessGates for the condition it is setting on the Machine:

@@ -29,6 +29,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 	kubeadmv1beta2 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	v1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	v1beta2 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	kubeadmv1alpha4 "sigs.k8s.io/cluster-api/internal/api/bootstrap/kubeadm/v1alpha4"
@@ -273,7 +274,9 @@ func autoConvert_v1alpha4_KubeadmControlPlaneMachineTemplate_To_v1beta2_KubeadmC
 	if err := Convert_v1alpha4_ObjectMeta_To_v1beta2_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	out.InfrastructureRef = in.InfrastructureRef
+	if err := v1beta1.Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
+		return err
+	}
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -282,7 +285,9 @@ func autoConvert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmC
 	if err := Convert_v1beta2_ObjectMeta_To_v1alpha4_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	out.InfrastructureRef = in.InfrastructureRef
+	if err := v1beta1.Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
+		return err
+	}
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type

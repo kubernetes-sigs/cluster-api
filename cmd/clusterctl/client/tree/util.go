@@ -197,8 +197,8 @@ func VirtualObject(namespace, kind, name string) *NodeObject {
 func ObjectReferenceObject(objectRef *corev1.ObjectReference) *NodeObject {
 	return &NodeObject{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       objectRef.APIVersion,
-			APIVersion: objectRef.Kind,
+			Kind:       objectRef.Kind,
+			APIVersion: objectRef.APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: objectRef.Namespace,

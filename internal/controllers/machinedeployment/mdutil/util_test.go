@@ -185,18 +185,16 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 			Version:                        ptr.To("v1.25.0"),
 			FailureDomain:                  ptr.To("failure-domain1"),
 			MinReadySeconds:                ptr.To[int32](10),
-			InfrastructureRef: corev1.ObjectReference{
-				Name:       "infra1",
-				Namespace:  "default",
-				Kind:       "InfrastructureMachineTemplate",
-				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Name:     "infra1",
+				Kind:     "InfrastructureMachineTemplate",
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					Name:       "bootstrap1",
-					Namespace:  "default",
-					Kind:       "BootstrapConfigTemplate",
-					APIVersion: clusterv1.GroupVersionBootstrap.String(),
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					Name:     "bootstrap1",
+					Kind:     "BootstrapConfigTemplate",
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
 				},
 			},
 		},
@@ -235,9 +233,6 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 	machineTemplateWithDifferentInfraRef := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentInfraRef.Spec.InfrastructureRef.Name = "infra2"
 
-	machineTemplateWithDifferentInfraRefAPIVersion := machineTemplate.DeepCopy()
-	machineTemplateWithDifferentInfraRefAPIVersion.Spec.InfrastructureRef.APIVersion = "infrastructure.cluster.x-k8s.io/v1beta2"
-
 	machineTemplateWithBootstrapDataSecret := machineTemplate.DeepCopy()
 	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.ConfigRef = nil
 	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.DataSecretName = ptr.To("data-secret1")
@@ -247,9 +242,6 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 
 	machineTemplateWithDifferentBootstrapConfigRef := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentBootstrapConfigRef.Spec.Bootstrap.ConfigRef.Name = "bootstrap2"
-
-	machineTemplateWithDifferentBootstrapConfigRefAPIVersion := machineTemplate.DeepCopy()
-	machineTemplateWithDifferentBootstrapConfigRefAPIVersion.Spec.Bootstrap.ConfigRef.APIVersion = "bootstrap.cluster.x-k8s.io/v1beta2"
 
 	tests := []struct {
 		Name                       string
@@ -356,18 +348,6 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 			expectedLogMessages2:       []string{"spec.bootstrap.dataSecretName data-secret1, nil required"},
 			expectedConditionMessages1: []string{"BootstrapConfig is not up-to-date"},
 			expectedConditionMessages2: []string{"spec.bootstrap.dataSecretName data-secret1, nil required"},
-		},
-		{
-			Name:             "Same spec, except desired has different InfrastructureRef APIVersion",
-			current:          machineTemplate,
-			desired:          machineTemplateWithDifferentInfraRefAPIVersion,
-			expectedUpToDate: true,
-		},
-		{
-			Name:             "Same spec, except desired has different Bootstrap.ConfigRef APIVersion",
-			current:          machineTemplate,
-			desired:          machineTemplateWithDifferentBootstrapConfigRefAPIVersion,
-			expectedUpToDate: true,
 		},
 	}
 

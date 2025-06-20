@@ -33,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -62,6 +63,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	controlplanev1alpha3 "sigs.k8s.io/cluster-api/internal/api/controlplane/kubeadm/v1alpha3"
 	controlplanev1alpha4 "sigs.k8s.io/cluster-api/internal/api/controlplane/kubeadm/v1alpha4"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
@@ -319,7 +321,7 @@ func main() {
 
 	setupChecks(mgr)
 	setupReconcilers(ctx, mgr)
-	setupWebhooks(mgr)
+	setupWebhooks(ctx, mgr)
 
 	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
@@ -432,7 +434,15 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 }
 
-func setupWebhooks(mgr ctrl.Manager) {
+func setupWebhooks(ctx context.Context, mgr ctrl.Manager) {
+	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
+	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
+	}
+	controlplanev1alpha3.SetAPIVersionGetter(apiVersionGetter)
+	controlplanev1alpha4.SetAPIVersionGetter(apiVersionGetter)
+	controlplanev1beta1.SetAPIVersionGetter(apiVersionGetter)
+
 	if err := (&kcpwebhooks.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
 		os.Exit(1)

@@ -82,17 +82,6 @@ func generateCRD(gvk schema.GroupVersionKind, properties map[string]apiextension
 }
 
 var (
-	refSchema = apiextensionsv1.JSONSchemaProps{
-		Type: "object",
-		Properties: map[string]apiextensionsv1.JSONSchemaProps{
-			"apiVersion": {Type: "string"},
-			"kind":       {Type: "string"},
-			"name":       {Type: "string"},
-			"namespace":  {Type: "string"},
-			// NOTE: omitting fields not used for sake of simplicity.
-		},
-	}
-
 	metadataSchema = apiextensionsv1.JSONSchemaProps{
 		Type: "object",
 		Properties: map[string]apiextensionsv1.JSONSchemaProps{

@@ -74,18 +74,17 @@ func TestClusterToKubeadmControlPlane(t *testing.T) {
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
 	cluster.Spec = clusterv1.ClusterSpec{
-		ControlPlaneRef: &corev1.ObjectReference{
-			Kind:       "KubeadmControlPlane",
-			Namespace:  metav1.NamespaceDefault,
-			Name:       "kcp-foo",
-			APIVersion: controlplanev1.GroupVersion.String(),
+		ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+			APIGroup: controlplanev1.GroupVersion.Group,
+			Kind:     "KubeadmControlPlane",
+			Name:     "kcp-foo",
 		},
 	}
 
 	expectedResult := []ctrl.Request{
 		{
 			NamespacedName: client.ObjectKey{
-				Namespace: cluster.Spec.ControlPlaneRef.Namespace,
+				Namespace: cluster.Namespace,
 				Name:      cluster.Spec.ControlPlaneRef.Name,
 			},
 		},
@@ -123,11 +122,10 @@ func TestClusterToKubeadmControlPlaneOtherControlPlane(t *testing.T) {
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
 	cluster.Spec = clusterv1.ClusterSpec{
-		ControlPlaneRef: &corev1.ObjectReference{
-			Kind:       "OtherControlPlane",
-			Namespace:  metav1.NamespaceDefault,
-			Name:       "other-foo",
-			APIVersion: controlplanev1.GroupVersion.String(),
+		ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+			APIGroup: controlplanev1.GroupVersion.Group,
+			Kind:     "OtherControlPlane",
+			Name:     "other-foo",
 		},
 	}
 
@@ -246,11 +244,10 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					Kind:       "UnknownInfraMachine",
-					APIVersion: "test/v1alpha1",
-					Name:       "foo",
-					Namespace:  metav1.NamespaceDefault,
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "UnknownInfraMachine",
+					APIGroup: "test",
+					Name:     "foo",
 				},
 			},
 		},
@@ -287,11 +284,10 @@ func TestReconcileNoKCP(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					Kind:       "UnknownInfraMachine",
-					APIVersion: "test/v1alpha1",
-					Name:       "foo",
-					Namespace:  metav1.NamespaceDefault,
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "UnknownInfraMachine",
+					APIGroup: "test",
+					Name:     "foo",
 				},
 			},
 		},
@@ -329,11 +325,10 @@ func TestReconcileNoCluster(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					Kind:       "UnknownInfraMachine",
-					APIVersion: "test/v1alpha1",
-					Name:       "foo",
-					Namespace:  metav1.NamespaceDefault,
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "UnknownInfraMachine",
+					APIGroup: "test",
+					Name:     "foo",
 				},
 			},
 		},
@@ -381,11 +376,10 @@ func TestReconcilePaused(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					Kind:       "UnknownInfraMachine",
-					APIVersion: "test/v1alpha1",
-					Name:       "foo",
-					Namespace:  metav1.NamespaceDefault,
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "UnknownInfraMachine",
+					APIGroup: "test",
+					Name:     "foo",
 				},
 			},
 		},
@@ -437,11 +431,10 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					Kind:       "UnknownInfraMachine",
-					APIVersion: "test/v1alpha1",
-					Name:       "foo",
-					Namespace:  metav1.NamespaceDefault,
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "UnknownInfraMachine",
+					APIGroup: "test",
+					Name:     "foo",
 				},
 			},
 		},
@@ -521,10 +514,10 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: bootstrapv1.GroupVersion.String(),
-							Kind:       "KubeadmConfig",
-							Name:       name,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: bootstrapv1.GroupVersion.Group,
+							Kind:     "KubeadmConfig",
+							Name:     name,
 						},
 					},
 					Version: &version,
@@ -589,10 +582,10 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: bootstrapv1.GroupVersion.String(),
-							Kind:       "KubeadmConfig",
-							Name:       name,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: bootstrapv1.GroupVersion.Group,
+							Kind:     "KubeadmConfig",
+							Name:     name,
 						},
 					},
 					Version: &version,
@@ -704,10 +697,10 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: bootstrapv1.GroupVersion.String(),
-							Kind:       "KubeadmConfig",
-							Name:       name,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: bootstrapv1.GroupVersion.Group,
+							Kind:     "KubeadmConfig",
+							Name:     name,
 						},
 					},
 					Version: &version,
@@ -762,9 +755,9 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
-							ConfigRef: &corev1.ObjectReference{
-								APIVersion: bootstrapv1.GroupVersion.String(),
-								Kind:       "KubeadmConfig",
+							ConfigRef: &clusterv1.ContractVersionedObjectReference{
+								APIGroup: bootstrapv1.GroupVersion.Group,
+								Kind:     "KubeadmConfig",
 							},
 						},
 						Version: ptr.To("v1.15.0"),
@@ -991,18 +984,16 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 			Name: "machineWithoutExpiryAnnotation",
 		},
 		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
-				Kind:       "GenericMachine",
-				APIVersion: "generic.io/v1",
-				Namespace:  metav1.NamespaceDefault,
-				Name:       "machineWithoutExpiryAnnotation-infra",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     builder.TestInfrastructureMachineKind,
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Name:     "machineWithoutExpiryAnnotation-infra",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Namespace:  metav1.NamespaceDefault,
-					Name:       "machineWithoutExpiryAnnotation-bootstrap",
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					Kind:     "KubeadmConfig",
+					APIGroup: bootstrapv1.GroupVersion.Group,
+					Name:     "machineWithoutExpiryAnnotation-bootstrap",
 				},
 			},
 		},
@@ -1022,18 +1013,16 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 			Name: "machineWithExpiryAnnotation",
 		},
 		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
-				Kind:       "GenericMachine",
-				APIVersion: "generic.io/v1",
-				Namespace:  metav1.NamespaceDefault,
-				Name:       "machineWithExpiryAnnotation-infra",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     builder.TestInfrastructureMachineKind,
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Name:     "machineWithExpiryAnnotation-infra",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Namespace:  metav1.NamespaceDefault,
-					Name:       "machineWithExpiryAnnotation-bootstrap",
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					Kind:     "KubeadmConfig",
+					APIGroup: bootstrapv1.GroupVersion.Group,
+					Name:     "machineWithExpiryAnnotation-bootstrap",
 				},
 			},
 		},
@@ -1057,18 +1046,16 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 			DeletionTimestamp: &metav1.Time{Time: time.Now()},
 		},
 		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
-				Kind:       "GenericMachine",
-				APIVersion: "generic.io/v1",
-				Namespace:  metav1.NamespaceDefault,
-				Name:       "machineWithDeletionTimestamp-infra",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     builder.TestInfrastructureMachineKind,
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Name:     "machineWithDeletionTimestamp-infra",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Namespace:  metav1.NamespaceDefault,
-					Name:       "machineWithDeletionTimestamp-bootstrap",
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					Kind:     "KubeadmConfig",
+					APIGroup: bootstrapv1.GroupVersion.Group,
+					Name:     "machineWithDeletionTimestamp-bootstrap",
 				},
 			},
 		},
@@ -1088,18 +1075,16 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 			Name: "machineWithoutNodeRef",
 		},
 		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
-				Kind:       "GenericMachine",
-				APIVersion: "generic.io/v1",
-				Namespace:  metav1.NamespaceDefault,
-				Name:       "machineWithoutNodeRef-infra",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     builder.TestInfrastructureMachineKind,
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Name:     "machineWithoutNodeRef-infra",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Namespace:  metav1.NamespaceDefault,
-					Name:       "machineWithoutNodeRef-bootstrap",
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					Kind:     "KubeadmConfig",
+					APIGroup: bootstrapv1.GroupVersion.Group,
+					Name:     "machineWithoutNodeRef-bootstrap",
 				},
 			},
 		},
@@ -1114,18 +1099,16 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 			Name: "machineWithoutKubeadmConfig",
 		},
 		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
-				Kind:       "GenericMachine",
-				APIVersion: "generic.io/v1",
-				Namespace:  metav1.NamespaceDefault,
-				Name:       "machineWithoutKubeadmConfig-infra",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     builder.TestInfrastructureMachineKind,
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Name:     "machineWithoutKubeadmConfig-infra",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Namespace:  metav1.NamespaceDefault,
-					Name:       "machineWithoutKubeadmConfig-bootstrap",
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					Kind:     "KubeadmConfig",
+					APIGroup: bootstrapv1.GroupVersion.Group,
+					Name:     "machineWithoutKubeadmConfig-bootstrap",
 				},
 			},
 		},
@@ -1149,6 +1132,8 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 		machineWithExpiryAnnotationKubeadmConfig,
 		machineWithDeletionTimestampKubeadmConfig,
 		machineWithoutNodeRefKubeadmConfig,
+		// Note: CRD is needed to look up the apiVersion from contract labels.
+		builder.TestInfrastructureMachineCRD,
 	)
 
 	managementCluster := &fakeManagementCluster{
@@ -1230,7 +1215,7 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "GenericInfrastructureMachineTemplate",
+			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-foo",
@@ -1264,11 +1249,10 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 			Replicas: nil,
 			Version:  "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					Kind:       genericInfrastructureMachineTemplate.GetKind(),
-					APIVersion: genericInfrastructureMachineTemplate.GetAPIVersion(),
-					Name:       genericInfrastructureMachineTemplate.GetName(),
-					Namespace:  cluster.Namespace,
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     genericInfrastructureMachineTemplate.GetKind(),
+					APIGroup: genericInfrastructureMachineTemplate.GroupVersionKind().Group,
+					Name:     genericInfrastructureMachineTemplate.GetName(),
 				},
 			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
@@ -1404,7 +1388,7 @@ kubernetesVersion: metav1.16.1
 		machine := machineList.Items[0]
 		g.Expect(machine.Name).To(HavePrefix(kcp.Name))
 		// Newly cloned infra objects should have the infraref annotation.
-		infraObj, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef)
+		infraObj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericInfrastructureMachineTemplate.GetName()))
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind().String()))
@@ -1507,11 +1491,10 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 			Replicas: nil,
 			Version:  "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					Kind:       genericInfrastructureMachineTemplate.GetKind(),
-					APIVersion: genericInfrastructureMachineTemplate.GetAPIVersion(),
-					Name:       genericInfrastructureMachineTemplate.GetName(),
-					Namespace:  cluster.Namespace,
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     genericInfrastructureMachineTemplate.GetKind(),
+					APIGroup: genericInfrastructureMachineTemplate.GroupVersionKind().Group,
+					Name:     genericInfrastructureMachineTemplate.GetName(),
 				},
 			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
@@ -1644,7 +1627,7 @@ kubernetesVersion: metav1.16.1`,
 		machine := machineList.Items[0]
 		g.Expect(machine.Name).To(HavePrefix(kcp.Name))
 		// Newly cloned infra objects should have the infraref annotation.
-		infraObj, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef)
+		infraObj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericInfrastructureMachineTemplate.GetName()))
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind().String()))
@@ -1711,11 +1694,10 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 			"spec": infraMachineSpec,
 		},
 	}
-	infraMachineRef := &corev1.ObjectReference{
-		Kind:       "GenericInfrastructureMachine",
-		Namespace:  namespace.Name,
-		Name:       "existing-inframachine",
-		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+	infraMachineRef := &clusterv1.ContractVersionedObjectReference{
+		Kind:     "GenericInfrastructureMachine",
+		Name:     "existing-inframachine",
+		APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 	}
 	// Note: use "manager" as the field owner to mimic the manager used before ClusterAPI v1.4.0.
 	g.Expect(env.Create(ctx, existingInfraMachine, client.FieldOwner("manager"))).To(Succeed())
@@ -1746,11 +1728,10 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		},
 		Spec: *bootstrapSpec,
 	}
-	bootstrapRef := &corev1.ObjectReference{
-		Kind:       "KubeadmConfig",
-		Namespace:  namespace.Name,
-		Name:       "existing-kubeadmconfig",
-		APIVersion: bootstrapv1.GroupVersion.String(),
+	bootstrapRef := &clusterv1.ContractVersionedObjectReference{
+		Kind:     "KubeadmConfig",
+		Name:     "existing-kubeadmconfig",
+		APIGroup: bootstrapv1.GroupVersion.Group,
 	}
 	// Note: use "manager" as the field owner to mimic the manager used before ClusterAPI v1.4.0.
 	g.Expect(env.Create(ctx, existingKubeadmConfig, client.FieldOwner("manager"))).To(Succeed())
@@ -1808,8 +1789,10 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
-			InfrastructureRef: corev1.ObjectReference{
-				Namespace: namespace.Name,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     builder.GenericInfrastructureMachineKind,
+				Name:     "inframachine",
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: ptr.To("machine-bootstrap-secret"),
@@ -1846,8 +1829,10 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
-			InfrastructureRef: corev1.ObjectReference{
-				Namespace: namespace.Name,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     builder.GenericInfrastructureMachineKind,
+				Name:     "inframachine",
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: ptr.To("machine-bootstrap-secret"),
@@ -1883,11 +1868,10 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 						"modified-annotation":  "modified-value",  // Annotation value will be modified while testing in-place mutation.
 					},
 				},
-				InfrastructureRef: corev1.ObjectReference{
-					Kind:       "GenericInfrastructureMachineTemplate",
-					Namespace:  namespace.Name,
-					Name:       "infra-foo",
-					APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "GenericInfrastructureMachineTemplate",
+					Name:     "infra-foo",
+					APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 				},
 				NodeDrainTimeoutSeconds:        duration5s,
 				NodeVolumeDetachTimeoutSeconds: duration5s,
@@ -2096,9 +2080,13 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.MachineSpec{
-			Version:           ptr.To("v1.31.0"),
-			ProviderID:        ptr.To("foo"),
-			InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: clusterv1.GroupVersionInfrastructure.String(), Name: "m1"},
+			Version:    ptr.To("v1.31.0"),
+			ProviderID: ptr.To("foo"),
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     "GenericInfrastructureMachine",
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Name:     "m1",
+			},
 		},
 	}
 	defaultMachine1NotUpToDate := defaultMachine1.DeepCopy()
@@ -3758,11 +3746,10 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 
 	cluster := newCluster(&types.NamespacedName{Name: kcpName, Namespace: namespace})
 	cluster.Spec = clusterv1.ClusterSpec{
-		ControlPlaneRef: &corev1.ObjectReference{
-			Kind:       "KubeadmControlPlane",
-			Namespace:  namespace,
-			Name:       kcpName,
-			APIVersion: controlplanev1.GroupVersion.String(),
+		ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+			APIGroup: controlplanev1.GroupVersion.Group,
+			Kind:     "KubeadmControlPlane",
+			Name:     kcpName,
 		},
 	}
 
@@ -3785,11 +3772,10 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					Kind:       "GenericInfrastructureMachineTemplate",
-					Namespace:  namespace,
-					Name:       "infra-foo",
-					APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     builder.GenericInfrastructureMachineTemplateKind,
+					Name:     "infra-foo",
+					APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 				},
 			},
 			Replicas: ptr.To[int32](int32(3)),
@@ -3807,7 +3793,7 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 
 	genericMachineTemplate := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "GenericInfrastructureMachineTemplate",
+			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-foo",
@@ -3847,11 +3833,10 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
-			InfrastructureRef: corev1.ObjectReference{
-				Kind:       builder.GenericInfrastructureMachineCRD.Kind,
-				APIVersion: builder.GenericInfrastructureMachineCRD.APIVersion,
-				Name:       builder.GenericInfrastructureMachineCRD.Name,
-				Namespace:  builder.GenericInfrastructureMachineCRD.Namespace,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     builder.GenericInfrastructureMachineKind,
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Name:     "inframachine",
 			},
 		},
 		Status: clusterv1.MachineStatus{

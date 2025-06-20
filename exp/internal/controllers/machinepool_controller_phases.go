@@ -106,18 +106,14 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *clusterv1.MachinePool) {
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a MachinePool.
-func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, m *clusterv1.MachinePool, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
+func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, m *clusterv1.MachinePool, ref *clusterv1.ContractVersionedObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if err := contract.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
-		return external.ReconcileOutput{}, err
-	}
-
-	obj, err := external.Get(ctx, r.Client, ref)
+	obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			return external.ReconcileOutput{}, errors.Wrapf(err, "could not find %v %q for MachinePool %q in namespace %q, requeuing",
-				ref.GroupVersionKind(), ref.Name, m.Name, ref.Namespace)
+			return external.ReconcileOutput{}, errors.Wrapf(err, "could not find %s %s for MachinePool %s, requeuing",
+				ref.Kind, klog.KRef(m.Namespace, ref.Name), klog.KObj(m))
 		}
 		return external.ReconcileOutput{}, err
 	}
@@ -201,7 +197,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, s *scope
 		}
 
 		// Determine contract version used by the BootstrapConfig.
-		contractVersion, err := contract.GetContractVersion(ctx, r.Client, bootstrapConfig.GroupVersionKind())
+		contractVersion, err := contract.GetContractVersion(ctx, r.Client, bootstrapConfig.GroupVersionKind().GroupKind())
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -281,8 +277,8 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 					mp.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 				}
 				mp.Status.Deprecated.V1Beta1.FailureReason = ptr.To(capierrors.InvalidConfigurationMachinePoolError)
-				mp.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(fmt.Sprintf("MachinePool infrastructure resource %v with name %q has been deleted after being ready",
-					mp.Spec.Template.Spec.InfrastructureRef.GroupVersionKind(), mp.Spec.Template.Spec.InfrastructureRef.Name))
+				mp.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(fmt.Sprintf("MachinePool infrastructure resource %s %s has been deleted after being ready",
+					mp.Spec.Template.Spec.InfrastructureRef.Kind, klog.KRef(mp.Namespace, mp.Spec.Template.Spec.InfrastructureRef.Name)))
 			}
 			v1beta1conditions.MarkFalse(mp, clusterv1.InfrastructureReadyV1Beta1Condition, clusterv1.IncorrectExternalRefV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", fmt.Sprintf("could not find infra reference of kind %s with name %s", mp.Spec.Template.Spec.InfrastructureRef.Kind, mp.Spec.Template.Spec.InfrastructureRef.Name))
 		}
@@ -489,11 +485,10 @@ func (r *MachinePoolReconciler) createOrUpdateMachines(ctx context.Context, s *s
 // computeDesiredMachine constructs the desired Machine for an infraMachine.
 // If the Machine exists, it ensures the Machine always owned by the MachinePool.
 func (r *MachinePoolReconciler) computeDesiredMachine(mp *clusterv1.MachinePool, infraMachine *unstructured.Unstructured, existingMachine *clusterv1.Machine, existingNode *corev1.Node) *clusterv1.Machine {
-	infraRef := corev1.ObjectReference{
-		APIVersion: infraMachine.GetAPIVersion(),
-		Kind:       infraMachine.GetKind(),
-		Name:       infraMachine.GetName(),
-		Namespace:  infraMachine.GetNamespace(),
+	infraRef := clusterv1.ContractVersionedObjectReference{
+		APIGroup: infraMachine.GroupVersionKind().Group,
+		Kind:     infraMachine.GetKind(),
+		Name:     infraMachine.GetName(),
 	}
 
 	var kubernetesVersion *string

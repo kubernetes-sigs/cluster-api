@@ -101,7 +101,7 @@ func MachinePoolToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVer
 		gk := gvk.GroupKind()
 		ref := m.Spec.Template.Spec.InfrastructureRef
 		// Return early if the GroupKind doesn't match what we expect.
-		infraGK := ref.GroupVersionKind().GroupKind()
+		infraGK := ref.GroupKind()
 		if gk != infraGK {
 			log.V(4).Info("Infra kind doesn't match filter group kind", "infrastructureGroupKind", infraGK.String())
 			return nil

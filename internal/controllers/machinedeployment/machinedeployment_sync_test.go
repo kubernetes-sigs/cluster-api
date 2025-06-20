@@ -520,15 +520,15 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 	duration10s := ptr.To(int32(10))
 	namingTemplateKey := "test"
 
-	infraRef := corev1.ObjectReference{
-		Kind:       "GenericInfrastructureMachineTemplate",
-		Name:       "infra-template-1",
-		APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+	infraRef := clusterv1.ContractVersionedObjectReference{
+		Kind:     "GenericInfrastructureMachineTemplate",
+		Name:     "infra-template-1",
+		APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 	}
-	bootstrapRef := corev1.ObjectReference{
-		Kind:       "GenericBootstrapConfigTemplate",
-		Name:       "bootstrap-template-1",
-		APIVersion: clusterv1.GroupVersionBootstrap.String(),
+	bootstrapRef := clusterv1.ContractVersionedObjectReference{
+		Kind:     "GenericBootstrapConfigTemplate",
+		Name:     "bootstrap-template-1",
+		APIGroup: clusterv1.GroupVersionBootstrap.Group,
 	}
 
 	deployment := &clusterv1.MachineDeployment{

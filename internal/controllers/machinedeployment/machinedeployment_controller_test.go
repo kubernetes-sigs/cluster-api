@@ -128,11 +128,10 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						ClusterName: testCluster.Name,
 						Version:     &version,
-						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-							Kind:       "GenericInfrastructureMachineTemplate",
-							Name:       "md-template",
-							Namespace:  namespace.Name,
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+							Kind:     "GenericInfrastructureMachineTemplate",
+							Name:     "md-template",
 						},
 						Bootstrap: clusterv1.Bootstrap{
 							DataSecretName: ptr.To("data-secret-name"),
@@ -209,7 +208,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		t.Log("Verifying the linked infrastructure template has a cluster owner reference")
 		g.Eventually(func() bool {
-			obj, err := external.Get(ctx, env, &deployment.Spec.Template.Spec.InfrastructureRef)
+			obj, err := external.GetObjectFromContractVersionedRef(ctx, env, &deployment.Spec.Template.Spec.InfrastructureRef, deployment.Namespace)
 			if err != nil {
 				return false
 			}
@@ -312,11 +311,10 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		t.Log("Creating the infrastructure template")
 		g.Expect(env.Create(ctx, infraTmpl2)).To(Succeed())
 
-		infraTmpl2Ref := corev1.ObjectReference{
-			APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-			Kind:       "GenericInfrastructureMachineTemplate",
-			Name:       "md-template-2",
-			Namespace:  namespace.Name,
+		infraTmpl2Ref := clusterv1.ContractVersionedObjectReference{
+			APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+			Kind:     "GenericInfrastructureMachineTemplate",
+			Name:     "md-template-2",
 		}
 		modifyFunc = func(d *clusterv1.MachineDeployment) { d.Spec.Template.Spec.InfrastructureRef = infraTmpl2Ref }
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
@@ -439,7 +437,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				}
 
 				if m.Status.NodeRef == nil {
-					providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, infraResource, g)
+					providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, m.Namespace, infraResource, g)
 					fakeMachineNodeRef(&m, providerID, g)
 				}
 			}
@@ -467,7 +465,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				if !metav1.IsControlledBy(&m, &newms) {
 					continue
 				}
-				providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, infraResource, g)
+				providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, m.Namespace, infraResource, g)
 				fakeMachineNodeRef(&m, providerID, g)
 			}
 
@@ -553,11 +551,10 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 				Spec: clusterv1.MachineSpec{
 					ClusterName: testCluster.Name,
 					Version:     &version,
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachineTemplate",
-						Name:       "md-template",
-						Namespace:  namespace.Name,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachineTemplate",
+						Name:     "md-template",
 					},
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To("data-secret-name"),
@@ -623,11 +620,10 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: testCluster.Name,
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachineTemplate",
-						Name:       "md-template",
-						Namespace:  testCluster.Namespace,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachineTemplate",
+						Name:     "md-template",
 					},
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To("data-secret-name"),

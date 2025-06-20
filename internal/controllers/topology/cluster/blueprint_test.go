@@ -53,7 +53,6 @@ func TestGetBlueprint(t *testing.T) {
 	controlPlaneInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "controlplaneinframachinetemplate1").
 		Build()
 	controlPlaneTemplateWithInfrastructureMachine := builder.ControlPlaneTemplate(metav1.NamespaceDefault, "controlplanetempaltewithinfrastructuremachine1").
-		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
 		Build()
 
 	workerInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "workerinframachinetemplate1").

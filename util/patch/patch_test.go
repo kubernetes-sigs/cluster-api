@@ -626,10 +626,10 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Updating the object spec")
 			obj.Spec.Paused = true
-			obj.Spec.InfrastructureRef = &corev1.ObjectReference{
-				Kind:      "test-kind",
-				Name:      "test-ref",
-				Namespace: ns.Name,
+			obj.Spec.InfrastructureRef = &clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "test-kind",
+				Name:     "test-ref",
 			}
 
 			t.Log("Patching the object")
@@ -711,10 +711,10 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Updating the object spec")
 			obj.Spec.Paused = true
-			obj.Spec.InfrastructureRef = &corev1.ObjectReference{
-				Kind:      "test-kind",
-				Name:      "test-ref",
-				Namespace: ns.Name,
+			obj.Spec.InfrastructureRef = &clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "test-kind",
+				Name:     "test-ref",
 			}
 
 			t.Log("Updating the object status")
@@ -803,6 +803,11 @@ func TestPatchHelper(t *testing.T) {
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "test1",
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.InfrastructureGroupVersion.Group,
+							Kind:     builder.TestInfrastructureMachineTemplateKind,
+							Name:     "inframachinetemplate",
+						},
 					},
 				},
 			},
@@ -958,6 +963,11 @@ func TestPatchHelper(t *testing.T) {
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "test1",
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.InfrastructureGroupVersion.Group,
+							Kind:     builder.TestInfrastructureMachineTemplateKind,
+							Name:     "inframachinetemplate",
+						},
 					},
 				},
 			},

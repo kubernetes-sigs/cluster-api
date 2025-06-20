@@ -24,13 +24,15 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	k8sversion "k8s.io/apimachinery/pkg/version"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/contract"
 )
 
 var (
@@ -54,17 +56,17 @@ func GetCompatibleVersions(contract string) sets.Set[string] {
 // UpdateReferenceAPIContract takes a client and object reference, queries the API Server for
 // the Custom Resource Definition and looks which one is the stored version available.
 //
-// The object passed as input is modified in place if an updated compatible version is found.
+// The object reference passed as input is modified in place if an updated compatible version is found.
 // NOTE: This version depends on CRDs being named correctly as defined by contract.CalculateCRDName.
-func UpdateReferenceAPIContract(ctx context.Context, c client.Client, ref *corev1.ObjectReference) error {
+func UpdateReferenceAPIContract(ctx context.Context, c client.Reader, ref *corev1.ObjectReference) error {
 	gvk := ref.GroupVersionKind()
 
-	metadata, err := util.GetGVKMetadata(ctx, c, gvk)
+	metadata, err := GetGKMetadata(ctx, c, gvk.GroupKind())
 	if err != nil {
 		return errors.Wrapf(err, "failed to update apiVersion in ref")
 	}
 
-	_, chosen, err := getLatestAPIVersionFromContract(metadata, Version)
+	_, chosen, err := GetLatestContractAndAPIVersionFromContract(metadata, Version)
 	if err != nil {
 		return errors.Wrapf(err, "failed to update apiVersion in ref")
 	}
@@ -78,30 +80,49 @@ func UpdateReferenceAPIContract(ctx context.Context, c client.Client, ref *corev
 	return nil
 }
 
-// GetContractVersion get the latest compatible contract from a CRD based on currentContractVersion.
-func GetContractVersion(ctx context.Context, c client.Client, gvk schema.GroupVersionKind) (string, error) {
-	crdMetadata, err := util.GetGVKMetadata(ctx, c, gvk)
+// GetContractVersion gets the latest compatible contract version from a CRD based on the current contract Version.
+func GetContractVersion(ctx context.Context, c client.Reader, gk schema.GroupKind) (string, error) {
+	crdMetadata, err := GetGKMetadata(ctx, c, gk)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get contract version")
+		return "", errors.Wrapf(err, "failed to get contract version for kind %s", gk.Kind)
 	}
 
-	contractVersion, _, err := getLatestAPIVersionFromContract(crdMetadata, Version)
+	contractVersion, _, err := GetLatestContractAndAPIVersionFromContract(crdMetadata, Version)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get contract version")
+		return "", errors.Wrapf(err, "failed to get contract version for kind %s", gk.Kind)
 	}
 
 	return contractVersion, nil
 }
 
-// getLatestAPIVersionFromContract returns the latest apiVersion and the latest compatible contract version from labels.
-func getLatestAPIVersionFromContract(metadata metav1.Object, currentContractVersion string) (string, string, error) {
+// GetAPIVersion gets the latest compatible apiVersion from a CRD based on the current contract Version.
+func GetAPIVersion(ctx context.Context, c client.Reader, gk schema.GroupKind) (string, error) {
+	crdMetadata, err := GetGKMetadata(ctx, c, gk)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get apiVersion for kind %s", gk.Kind)
+	}
+
+	_, version, err := GetLatestContractAndAPIVersionFromContract(crdMetadata, Version)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get apiVersion for kind %s", gk.Kind)
+	}
+
+	return schema.GroupVersion{
+		Group:   gk.Group,
+		Version: version,
+	}.String(), nil
+}
+
+// GetLatestContractAndAPIVersionFromContract gets the latest compatible contract version and apiVersion from a CRD based on
+// the passed in currentContractVersion.
+func GetLatestContractAndAPIVersionFromContract(metadata metav1.Object, currentContractVersion string) (string, string, error) {
 	if currentContractVersion == "" {
 		return "", "", errors.Errorf("current contract version cannot be empty")
 	}
 
 	labels := metadata.GetLabels()
 
-	sortedCompatibleContractVersions := util.KubeAwareAPIVersions(GetCompatibleVersions(currentContractVersion).UnsortedList())
+	sortedCompatibleContractVersions := kubeAwareAPIVersions(GetCompatibleVersions(currentContractVersion).UnsortedList())
 	sort.Sort(sort.Reverse(sortedCompatibleContractVersions))
 
 	for _, contractVersion := range sortedCompatibleContractVersions {
@@ -114,7 +135,7 @@ func getLatestAPIVersionFromContract(metadata metav1.Object, currentContractVers
 		}
 
 		// Pick the latest version in the slice and validate it.
-		kubeVersions := util.KubeAwareAPIVersions(strings.Split(supportedVersions, "_"))
+		kubeVersions := kubeAwareAPIVersions(strings.Split(supportedVersions, "_"))
 		sort.Sort(kubeVersions)
 		return contractVersion, kubeVersions[len(kubeVersions)-1], nil
 	}
@@ -122,11 +143,12 @@ func getLatestAPIVersionFromContract(metadata metav1.Object, currentContractVers
 	return "", "", errors.Errorf("cannot find any versions matching contract versions %q for CRD %v as contract version label(s) are either missing or empty (see https://cluster-api.sigs.k8s.io/developer/providers/contracts.html#api-version-labels)", sortedCompatibleContractVersions, metadata.GetName())
 }
 
-// GetContractVersionForVersion gets the contract version for a specific apiVersion.
-func GetContractVersionForVersion(ctx context.Context, c client.Client, gvk schema.GroupVersionKind, version string) (string, error) {
-	crdMetadata, err := util.GetGVKMetadata(ctx, c, gvk)
+// GetContractVersionForVersion gets the contract version for an apiVersion from a CRD.
+// The passed in version is only the version part of the apiVersion, not the full apiVersion.
+func GetContractVersionForVersion(ctx context.Context, c client.Reader, gk schema.GroupKind, version string) (string, error) {
+	crdMetadata, err := GetGKMetadata(ctx, c, gk)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get contract version")
+		return "", errors.Wrapf(err, "failed to get contract version for version %s for kind %s", version, gk.Kind)
 	}
 
 	contractPrefix := fmt.Sprintf("%s/", clusterv1.GroupVersion.Group)
@@ -142,5 +164,32 @@ func GetContractVersionForVersion(ctx context.Context, c client.Client, gvk sche
 		}
 	}
 
-	return "", errors.Errorf("cannot find any contract version matching version %q for CRD %v", version, crdMetadata.GetName())
+	return "", errors.Errorf("cannot find any contract version matching version %s for CRD %s", version, crdMetadata.GetName())
+}
+
+// GetGKMetadata retrieves a CustomResourceDefinition metadata from the API server using partial object metadata.
+//
+// This function is greatly more efficient than GetCRDWithContract and should be preferred in most cases.
+func GetGKMetadata(ctx context.Context, c client.Reader, gk schema.GroupKind) (*metav1.PartialObjectMetadata, error) {
+	meta := &metav1.PartialObjectMetadata{}
+	meta.SetName(contract.CalculateCRDName(gk.Group, gk.Kind))
+	meta.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
+	if err := c.Get(ctx, client.ObjectKeyFromObject(meta), meta); err != nil {
+		return meta, errors.Wrap(err, "failed to get CustomResourceDefinition metadata")
+	}
+	return meta, nil
+}
+
+// kubeAwareAPIVersions is a sortable slice of kube-like version strings.
+//
+// Kube-like version strings are starting with a v, followed by a major version,
+// optional "alpha" or "beta" strings followed by a minor version (e.g. v1, v2beta1).
+// Versions will be sorted based on GA/alpha/beta first and then major and minor
+// versions. e.g. v2, v1, v1beta2, v1beta1, v1alpha1.
+type kubeAwareAPIVersions []string
+
+func (k kubeAwareAPIVersions) Len() int      { return len(k) }
+func (k kubeAwareAPIVersions) Swap(i, j int) { k[i], k[j] = k[j], k[i] }
+func (k kubeAwareAPIVersions) Less(i, j int) bool {
+	return k8sversion.CompareKubeAwareVersionStrings(k[i], k[j]) < 0
 }

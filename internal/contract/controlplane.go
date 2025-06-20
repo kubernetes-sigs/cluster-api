@@ -18,11 +18,13 @@ package contract
 
 import (
 	"encoding/json"
+	"strings"
 	"sync"
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -327,11 +329,73 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contrac
 // ControlPlaneMachineTemplate provides a helper struct for working with MachineTemplate in ClusterClass.
 type ControlPlaneMachineTemplate struct{}
 
-// InfrastructureRef provides access to the infrastructureRef of a MachineTemplate.
-func (c *ControlPlaneMachineTemplate) InfrastructureRef() *Ref {
-	return &Ref{
+// InfrastructureV1Beta1Ref provides access to the infrastructureRef of a MachineTemplate.
+func (c *ControlPlaneMachineTemplate) InfrastructureV1Beta1Ref() *V1Beta1Ref {
+	return &V1Beta1Ref{
 		path: Path{"spec", "machineTemplate", "infrastructureRef"},
 	}
+}
+
+// InfrastructureRef provides access to the infrastructureRef of a MachineTemplate.
+func (c *ControlPlaneMachineTemplate) InfrastructureRef() *ControlPlaneMachineTemplateInfrastructureRef {
+	return &ControlPlaneMachineTemplateInfrastructureRef{
+		path: Path{"spec", "machineTemplate", "infrastructureRef"},
+	}
+}
+
+// ControlPlaneMachineTemplateInfrastructureRef provide a helper struct for working with references in Unstructured objects.
+type ControlPlaneMachineTemplateInfrastructureRef struct {
+	path Path
+}
+
+// Path returns the path of the reference.
+func (r *ControlPlaneMachineTemplateInfrastructureRef) Path() Path {
+	return r.path
+}
+
+// Get gets the reference value from the Unstructured object.
+func (r *ControlPlaneMachineTemplateInfrastructureRef) Get(obj *unstructured.Unstructured) (*clusterv1.ContractVersionedObjectReference, error) {
+	return getNestedRef(obj, r.path...)
+}
+
+// Set sets the reference value in the Unstructured object.
+func (r *ControlPlaneMachineTemplateInfrastructureRef) Set(obj *unstructured.Unstructured, ref *clusterv1.ContractVersionedObjectReference) error {
+	return setNestedRef(obj, ref, r.path...)
+}
+
+// getNestedRef returns the ref value from a nested field in an Unstructured object.
+func getNestedRef(obj *unstructured.Unstructured, fields ...string) (*clusterv1.ContractVersionedObjectReference, error) {
+	ref := &clusterv1.ContractVersionedObjectReference{}
+	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "apiGroup")...); ok && err == nil {
+		ref.APIGroup = v
+	} else {
+		return nil, errors.Errorf("failed to get %s.apiGroup from %s", strings.Join(fields, "."), obj.GetKind())
+	}
+	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "kind")...); ok && err == nil {
+		ref.Kind = v
+	} else {
+		return nil, errors.Errorf("failed to get %s.kind from %s", strings.Join(fields, "."), obj.GetKind())
+	}
+	if v, ok, err := unstructured.NestedString(obj.UnstructuredContent(), append(fields, "name")...); ok && err == nil {
+		ref.Name = v
+	} else {
+		return nil, errors.Errorf("failed to get %s.name from %s", strings.Join(fields, "."), obj.GetKind())
+	}
+	return ref, nil
+}
+
+// setNestedRef sets the value of a nested field in an Unstructured to a reference to the refObj provided.
+func setNestedRef(obj *unstructured.Unstructured, ref *clusterv1.ContractVersionedObjectReference, fields ...string) error {
+	r := map[string]interface{}{
+		"kind":     ref.Kind,
+		"name":     ref.Name,
+		"apiGroup": ref.APIGroup,
+	}
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), r, fields...); err != nil {
+		return errors.Wrapf(err, "failed to set object reference on object %v %s",
+			obj.GroupVersionKind(), klog.KObj(obj))
+	}
+	return nil
 }
 
 // Metadata provides access to the metadata of a MachineTemplate.

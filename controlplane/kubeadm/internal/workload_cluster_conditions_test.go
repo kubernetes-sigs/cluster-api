@@ -1457,7 +1457,7 @@ func fakeMachine(name string, options ...fakeMachineOption) *clusterv1.Machine {
 			Name: name,
 		},
 		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Kind: "GenericInfraMachine",
 				Name: fmt.Sprintf("infra-%s", name),
 			},

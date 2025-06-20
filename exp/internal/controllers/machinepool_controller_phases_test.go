@@ -74,18 +74,16 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: builder.BootstrapGroupVersion.String(),
-							Kind:       builder.TestBootstrapConfigKind,
-							Name:       "bootstrap-config1",
-							Namespace:  metav1.NamespaceDefault,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigKind,
+							Name:     "bootstrap-config1",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: builder.InfrastructureGroupVersion.String(),
-						Kind:       builder.TestInfrastructureMachineTemplateKind,
-						Name:       "infra-config1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachineTemplateKind,
+						Name:     "infra-config1",
 					},
 				},
 			},
@@ -830,11 +828,10 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: builder.BootstrapGroupVersion.String(),
-							Kind:       builder.TestBootstrapConfigKind,
-							Name:       "bootstrap-config1",
-							Namespace:  metav1.NamespaceDefault,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigKind,
+							Name:     "bootstrap-config1",
 						},
 					},
 				},
@@ -978,11 +975,10 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								ConfigRef: &corev1.ObjectReference{
-									APIVersion: builder.BootstrapGroupVersion.String(),
-									Kind:       builder.TestBootstrapConfigKind,
-									Name:       "bootstrap-config1",
-									Namespace:  metav1.NamespaceDefault,
+								ConfigRef: &clusterv1.ContractVersionedObjectReference{
+									APIGroup: builder.BootstrapGroupVersion.Group,
+									Kind:     builder.TestBootstrapConfigKind,
+									Name:     "bootstrap-config1",
 								},
 								DataSecretName: ptr.To("data"),
 							},
@@ -1070,11 +1066,10 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								ConfigRef: &corev1.ObjectReference{
-									APIVersion: builder.BootstrapGroupVersion.String(),
-									Kind:       builder.TestBootstrapConfigKind,
-									Name:       "bootstrap-config1",
-									Namespace:  metav1.NamespaceDefault,
+								ConfigRef: &clusterv1.ContractVersionedObjectReference{
+									APIGroup: builder.BootstrapGroupVersion.Group,
+									Kind:     builder.TestBootstrapConfigKind,
+									Name:     "bootstrap-config1",
 								},
 								DataSecretName: ptr.To("data"),
 							},
@@ -1148,18 +1143,16 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: builder.BootstrapGroupVersion.String(),
-							Kind:       builder.TestBootstrapConfigKind,
-							Name:       "bootstrap-config1",
-							Namespace:  metav1.NamespaceDefault,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigKind,
+							Name:     "bootstrap-config1",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: builder.InfrastructureGroupVersion.String(),
-						Kind:       builder.TestInfrastructureMachineTemplateKind,
-						Name:       "infra-config1",
-						Namespace:  metav1.NamespaceDefault,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachineTemplateKind,
+						Name:     "infra-config1",
 					},
 				},
 			},
@@ -1229,18 +1222,16 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								ConfigRef: &corev1.ObjectReference{
-									APIVersion: builder.BootstrapGroupVersion.String(),
-									Kind:       builder.TestBootstrapConfigKind,
-									Name:       "bootstrap-config1",
-									Namespace:  metav1.NamespaceDefault,
+								ConfigRef: &clusterv1.ContractVersionedObjectReference{
+									APIGroup: builder.BootstrapGroupVersion.Group,
+									Kind:     builder.TestBootstrapConfigKind,
+									Name:     "bootstrap-config1",
 								},
 							},
-							InfrastructureRef: corev1.ObjectReference{
-								APIVersion: builder.InfrastructureGroupVersion.String(),
-								Kind:       builder.TestInfrastructureMachineTemplateKind,
-								Name:       "infra-config1",
-								Namespace:  metav1.NamespaceDefault,
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								APIGroup: builder.InfrastructureGroupVersion.Group,
+								Kind:     builder.TestInfrastructureMachineTemplateKind,
+								Name:     "infra-config1",
 							},
 						},
 					},
@@ -1431,7 +1422,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			g.Expect(machineList.Items).To(HaveLen(2))
 			for i := range machineList.Items {
 				machine := &machineList.Items[i]
-				_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef)
+				_, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
@@ -1502,7 +1493,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			g.Expect(machineList.Items).To(HaveLen(2))
 			for i := range machineList.Items {
 				machine := &machineList.Items[i]
-				_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef)
+				_, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
@@ -1745,18 +1736,16 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: builder.BootstrapGroupVersion.String(),
-							Kind:       builder.TestBootstrapConfigKind,
-							Name:       "bootstrap-config1",
-							Namespace:  ns.Name,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigKind,
+							Name:     "bootstrap-config1",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: builder.InfrastructureGroupVersion.String(),
-						Kind:       builder.TestInfrastructureMachineTemplateKind,
-						Name:       "infra-config1",
-						Namespace:  ns.Name,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachineTemplateKind,
+						Name:     "infra-config1",
 					},
 				},
 			},
@@ -2141,16 +2130,16 @@ func getMachines(replicas int, mpName, clusterName, nsName string) []clusterv1.M
 			Spec: clusterv1.MachineSpec{
 				ClusterName: clusterName,
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &corev1.ObjectReference{
-						APIVersion: builder.BootstrapGroupVersion.String(),
-						Kind:       builder.GenericBootstrapConfigKind,
-						Name:       fmt.Sprintf("bootstrap-config-%d", i),
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.BootstrapGroupVersion.Group,
+						Kind:     builder.GenericBootstrapConfigKind,
+						Name:     fmt.Sprintf("bootstrap-config-%d", i),
 					},
 				},
-				InfrastructureRef: corev1.ObjectReference{
-					APIVersion: builder.InfrastructureGroupVersion.String(),
-					Kind:       builder.GenericInfrastructureMachineKind,
-					Name:       fmt.Sprintf("%s-infra-%d", mpName, i),
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.InfrastructureGroupVersion.Group,
+					Kind:     builder.GenericInfrastructureMachineKind,
+					Name:     fmt.Sprintf("%s-infra-%d", mpName, i),
 				},
 			},
 		}
@@ -2174,18 +2163,16 @@ func getMachinePool(replicas int, mpName, clusterName, nsName string) clusterv1.
 				Spec: clusterv1.MachineSpec{
 					ClusterName: clusterName,
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: builder.BootstrapGroupVersion.String(),
-							Kind:       builder.GenericBootstrapConfigKind,
-							Name:       "bootstrap-config1",
-							Namespace:  nsName,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.GenericBootstrapConfigKind,
+							Name:     "bootstrap-config1",
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: builder.InfrastructureGroupVersion.String(),
-						Kind:       builder.GenericInfrastructureMachineKind,
-						Name:       "infra-config1",
-						Namespace:  nsName,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.GenericInfrastructureMachineKind,
+						Name:     "infra-config1",
 					},
 				},
 			},

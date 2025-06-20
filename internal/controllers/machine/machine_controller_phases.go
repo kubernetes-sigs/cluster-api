@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -46,15 +45,7 @@ import (
 var externalReadyWait = 30 * time.Second
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
-func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
-	if err := contract.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
-		if apierrors.IsNotFound(err) {
-			// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found.
-			return nil, errors.New(err.Error())
-		}
-		return nil, err
-	}
-
+func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *clusterv1.ContractVersionedObjectReference) (*unstructured.Unstructured, error) {
 	obj, err := r.ensureExternalOwnershipAndWatch(ctx, cluster, m, ref)
 	if err != nil {
 		return nil, err
@@ -93,10 +84,10 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 
 // ensureExternalOwnershipAndWatch ensures that only the Machine owns the external object,
 // adds a watch to the external object if one does not already exist and adds the necessary labels.
-func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *clusterv1.ContractVersionedObjectReference) (*unstructured.Unstructured, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	obj, err := external.Get(ctx, r.Client, ref)
+	obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +168,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 				// TODO: we can also relax this and tolerate the absence of the bootstrap ref way before, e.g. after node ref is set
 				return ctrl.Result{}, nil
 			}
-			log.Info("Could not find bootstrap config object, requeuing", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Spec.Bootstrap.ConfigRef.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
+			log.Info("Could not find bootstrap config object, requeuing", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
 			// TODO: we can make this smarter and requeue only if we are before node ref is set
 			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 		}
@@ -196,7 +187,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	}
 
 	// Determine contract version used by the BootstrapConfig.
-	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.bootstrapConfig.GroupVersionKind())
+	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.bootstrapConfig.GroupVersionKind().GroupKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -281,11 +272,11 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 					m.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
 				}
 				m.Status.Deprecated.V1Beta1.FailureReason = ptr.To(capierrors.InvalidConfigurationMachineError)
-				m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after provisioning was completed",
-					m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
-				return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
+				m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %s %s has been deleted after provisioning was completed",
+					m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name)))
+				return ctrl.Result{}, errors.Errorf("could not find %s %s for Machine %s", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name), klog.KObj(m))
 			}
-			log.Info("Could not find InfrastructureMachine, requeuing", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name))
+			log.Info("Could not find InfrastructureMachine, requeuing", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name))
 			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 		}
 		return ctrl.Result{}, err
@@ -293,7 +284,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	s.infraMachine = obj
 
 	// Determine contract version used by the InfraMachine.
-	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.infraMachine.GroupVersionKind())
+	contractVersion, err := contract.GetContractVersion(ctx, r.Client, s.infraMachine.GroupVersionKind().GroupKind())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -422,14 +413,14 @@ func (r *Reconciler) reconcileCertificateExpiry(_ context.Context, s *scope) (ct
 
 // removeOnCreateOwnerRefs will remove any MachineSet or control plane owner references from passed objects.
 func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj *unstructured.Unstructured) error {
-	cpGVK := getControlPlaneGVKForMachine(cluster, m)
+	cpGK := getControlPlaneGKForMachine(cluster, m)
 	for _, owner := range obj.GetOwnerReferences() {
 		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
 		if err != nil {
 			return errors.Wrapf(err, "could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
 		}
 		if (ownerGV.Group == clusterv1.GroupVersion.Group && owner.Kind == "MachineSet") ||
-			(cpGVK != nil && ownerGV.Group == cpGVK.GroupVersion().Group && owner.Kind == cpGVK.Kind) {
+			(cpGK != nil && ownerGV.Group == cpGK.Group && owner.Kind == cpGK.Kind) {
 			ownerRefs := util.RemoveOwnerRef(obj.GetOwnerReferences(), owner)
 			obj.SetOwnerReferences(ownerRefs)
 		}
@@ -439,27 +430,27 @@ func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, o
 
 // hasOnCreateOwnerRefs will check if any MachineSet or control plane owner references from passed objects are set.
 func hasOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj *unstructured.Unstructured) (bool, error) {
-	cpGVK := getControlPlaneGVKForMachine(cluster, m)
+	cpGK := getControlPlaneGKForMachine(cluster, m)
 	for _, owner := range obj.GetOwnerReferences() {
 		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
 		if err != nil {
 			return false, errors.Wrapf(err, "could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
 		}
 		if (ownerGV.Group == clusterv1.GroupVersion.Group && owner.Kind == "MachineSet") ||
-			(cpGVK != nil && ownerGV.Group == cpGVK.GroupVersion().Group && owner.Kind == cpGVK.Kind) {
+			(cpGK != nil && ownerGV.Group == cpGK.Group && owner.Kind == cpGK.Kind) {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-// getControlPlaneGVKForMachine returns the Kind of the control plane in the Cluster associated with the Machine.
+// getControlPlaneGKForMachine returns the Kind of the control plane in the Cluster associated with the Machine.
 // This function checks that the Machine is managed by a control plane, and then retrieves the Kind from the Cluster's
 // .spec.controlPlaneRef.
-func getControlPlaneGVKForMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) *schema.GroupVersionKind {
+func getControlPlaneGKForMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) *schema.GroupKind {
 	if _, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]; ok {
 		if cluster.Spec.ControlPlaneRef != nil {
-			gvk := cluster.Spec.ControlPlaneRef.GroupVersionKind()
+			gvk := cluster.Spec.ControlPlaneRef.GroupKind()
 			return &gvk
 		}
 	}

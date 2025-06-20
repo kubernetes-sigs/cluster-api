@@ -72,16 +72,16 @@ func TestGetContractVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gvk := clusterv1.GroupVersionBootstrap.WithKind("TestBootstrapConfig")
+			gk := clusterv1.GroupVersionBootstrap.WithKind("TestBootstrapConfig").GroupKind()
 
 			u := &unstructured.Unstructured{}
-			u.SetName(contract.CalculateCRDName(gvk.Group, gvk.Kind))
+			u.SetName(contract.CalculateCRDName(gk.Group, gk.Kind))
 			u.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
 			u.SetLabels(tt.crdLabels)
 
 			fakeClient := fake.NewClientBuilder().WithObjects(u).Build()
 
-			contractVersion, err := GetContractVersion(t.Context(), fakeClient, gvk)
+			contractVersion, err := GetContractVersion(t.Context(), fakeClient, gk)
 
 			if tt.expectError {
 				g.Expect(err).To(HaveOccurred())
@@ -89,6 +89,71 @@ func TestGetContractVersion(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(contractVersion).To(Equal(tt.expectedContractVersion))
+		})
+	}
+}
+
+func TestGetAPIVersion(t *testing.T) {
+	testCases := []struct {
+		name               string
+		crdLabels          map[string]string
+		expectedAPIVersion string
+		expectError        bool
+	}{
+		{
+			name:               "no contract labels",
+			crdLabels:          nil,
+			expectedAPIVersion: "",
+			expectError:        true,
+		},
+		{
+			name: "only v1beta1 contract label",
+			crdLabels: map[string]string{
+				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
+			},
+			expectedAPIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
+			expectError:        false,
+		},
+		{
+			name: "only v1beta2 contract label",
+			crdLabels: map[string]string{
+				"cluster.x-k8s.io/v1beta2": "v1alpha3_v1alpha4",
+			},
+			expectedAPIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
+			expectError:        false,
+		},
+		{
+			name: "v1beta1 and v1beta2 contract labels",
+			crdLabels: map[string]string{
+				"cluster.x-k8s.io/v1beta1": "v1alpha1_v1alpha2",
+				"cluster.x-k8s.io/v1beta2": "v1alpha3_v1alpha4",
+			},
+			expectedAPIVersion: "bootstrap.cluster.x-k8s.io/v1alpha4",
+			expectError:        false,
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			gk := clusterv1.GroupVersionBootstrap.WithKind("TestBootstrapConfig").GroupKind()
+
+			u := &unstructured.Unstructured{}
+			u.SetName(contract.CalculateCRDName(gk.Group, gk.Kind))
+			u.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
+			u.SetLabels(tt.crdLabels)
+
+			fakeClient := fake.NewClientBuilder().WithObjects(u).Build()
+
+			apiVersion, err := GetAPIVersion(t.Context(), fakeClient, gk)
+
+			if tt.expectError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(apiVersion).To(Equal(tt.expectedAPIVersion))
 		})
 	}
 }
@@ -181,7 +246,7 @@ func TestGetLatestAPIVersionFromContract(t *testing.T) {
 			u := &unstructured.Unstructured{}
 			u.SetLabels(tt.crdLabels)
 
-			contractVersion, apiVersion, err := getLatestAPIVersionFromContract(u, tt.currentContractVersion)
+			contractVersion, apiVersion, err := GetLatestContractAndAPIVersionFromContract(u, tt.currentContractVersion)
 
 			if tt.expectError {
 				g.Expect(err).To(HaveOccurred())
@@ -264,16 +329,16 @@ func TestGetContractVersionForVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gvk := clusterv1.GroupVersionBootstrap.WithKind("TestBootstrapConfig")
+			gk := clusterv1.GroupVersionBootstrap.WithKind("TestBootstrapConfig").GroupKind()
 
 			u := &unstructured.Unstructured{}
-			u.SetName(contract.CalculateCRDName(gvk.Group, gvk.Kind))
+			u.SetName(contract.CalculateCRDName(gk.Group, gk.Kind))
 			u.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
 			u.SetLabels(tt.crdLabels)
 
 			fakeClient := fake.NewClientBuilder().WithObjects(u).Build()
 
-			contractVersion, err := GetContractVersionForVersion(t.Context(), fakeClient, gvk, tt.version)
+			contractVersion, err := GetContractVersionForVersion(t.Context(), fakeClient, gk, tt.version)
 
 			if tt.expectError {
 				g.Expect(err).To(HaveOccurred())

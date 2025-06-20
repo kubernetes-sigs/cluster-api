@@ -563,10 +563,10 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 		}
 		machines[i] = updatedMachine
 
-		infraMachine, err := external.Get(ctx, r.Client, &updatedMachine.Spec.InfrastructureRef)
+		infraMachine, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, &updatedMachine.Spec.InfrastructureRef, updatedMachine.Namespace)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to get InfrastructureMachine %s",
-				klog.KRef(updatedMachine.Spec.InfrastructureRef.Namespace, updatedMachine.Spec.InfrastructureRef.Name))
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get InfrastructureMachine %s %s",
+				updatedMachine.Spec.InfrastructureRef.Kind, klog.KRef(updatedMachine.Namespace, updatedMachine.Spec.InfrastructureRef.Name))
 		}
 		// Cleanup managed fields of all InfrastructureMachines to drop ownership of labels and annotations
 		// from "manager". We do this so that InfrastructureMachines that are created using the Create method
@@ -585,10 +585,10 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 		}
 
 		if updatedMachine.Spec.Bootstrap.ConfigRef != nil {
-			bootstrapConfig, err := external.Get(ctx, r.Client, updatedMachine.Spec.Bootstrap.ConfigRef)
+			bootstrapConfig, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, updatedMachine.Spec.Bootstrap.ConfigRef, updatedMachine.Namespace)
 			if err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to get BootstrapConfig %s",
-					klog.KRef(updatedMachine.Spec.Bootstrap.ConfigRef.Namespace, updatedMachine.Spec.Bootstrap.ConfigRef.Name))
+				return ctrl.Result{}, errors.Wrapf(err, "failed to get BootstrapConfig %s %s",
+					updatedMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(updatedMachine.Namespace, updatedMachine.Spec.Bootstrap.ConfigRef.Name))
 			}
 			// Cleanup managed fields of all BootstrapConfigs to drop ownership of labels and annotations
 			// from "manager". We do this so that BootstrapConfigs that are created using the Create method
@@ -715,15 +715,57 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 			}
 			// Clone and set the infrastructure and bootstrap references.
 			var (
-				infraRef, bootstrapRef *corev1.ObjectReference
-				err                    error
+				infraRef, bootstrapRef        *clusterv1.ContractVersionedObjectReference
+				infraMachine, bootstrapConfig *unstructured.Unstructured
 			)
 
 			// Create the BootstrapConfig if necessary.
 			if ms.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
-				bootstrapRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
-					Client:      r.Client,
-					TemplateRef: ms.Spec.Template.Spec.Bootstrap.ConfigRef,
+				apiVersion, err := contract.GetAPIVersion(ctx, r.Client, ms.Spec.Template.Spec.Bootstrap.ConfigRef.GroupKind())
+				if err == nil {
+					bootstrapConfig, bootstrapRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
+						Client: r.Client,
+						TemplateRef: &corev1.ObjectReference{
+							APIVersion: apiVersion,
+							Kind:       ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind,
+							Namespace:  ms.Namespace,
+							Name:       ms.Spec.Template.Spec.Bootstrap.ConfigRef.Name,
+						},
+						Namespace:   machine.Namespace,
+						Name:        machine.Name,
+						ClusterName: machine.Spec.ClusterName,
+						Labels:      machine.Labels,
+						Annotations: machine.Annotations,
+						OwnerRef: &metav1.OwnerReference{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "MachineSet",
+							Name:       ms.Name,
+							UID:        ms.UID,
+						},
+					})
+				}
+				if err != nil {
+					v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.BootstrapTemplateCloningFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
+					return ctrl.Result{}, errors.Wrapf(err, "failed to clone bootstrap configuration from %s %s while creating a Machine",
+						ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind,
+						klog.KRef(ms.Namespace, ms.Spec.Template.Spec.Bootstrap.ConfigRef.Name))
+				}
+				machine.Spec.Bootstrap.ConfigRef = bootstrapRef
+				log = log.WithValues(bootstrapRef.Kind, klog.KRef(ms.Namespace, bootstrapRef.Name))
+			}
+
+			// Create the InfraMachine.
+			apiVersion, err := contract.GetAPIVersion(ctx, r.Client, ms.Spec.Template.Spec.InfrastructureRef.GroupKind())
+			if err == nil {
+				infraMachine, infraRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
+					Client: r.Client,
+					TemplateRef: &corev1.ObjectReference{
+						APIVersion: apiVersion,
+						Kind:       ms.Spec.Template.Spec.InfrastructureRef.Kind,
+						Namespace:  ms.Namespace,
+						Name:       ms.Spec.Template.Spec.InfrastructureRef.Name,
+					},
+
 					Namespace:   machine.Namespace,
 					Name:        machine.Name,
 					ClusterName: machine.Spec.ClusterName,
@@ -736,46 +778,21 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 						UID:        ms.UID,
 					},
 				})
-				if err != nil {
-					v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.BootstrapTemplateCloningFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
-					return ctrl.Result{}, errors.Wrapf(err, "failed to clone bootstrap configuration from %s %s while creating a machine",
-						ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind,
-						klog.KRef(ms.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace, ms.Spec.Template.Spec.Bootstrap.ConfigRef.Name))
-				}
-				machine.Spec.Bootstrap.ConfigRef = bootstrapRef
-				log = log.WithValues(bootstrapRef.Kind, klog.KRef(bootstrapRef.Namespace, bootstrapRef.Name))
 			}
-
-			// Create the InfraMachine.
-			infraRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
-				Client:      r.Client,
-				TemplateRef: &ms.Spec.Template.Spec.InfrastructureRef,
-				Namespace:   machine.Namespace,
-				Name:        machine.Name,
-				ClusterName: machine.Spec.ClusterName,
-				Labels:      machine.Labels,
-				Annotations: machine.Annotations,
-				OwnerRef: &metav1.OwnerReference{
-					APIVersion: clusterv1.GroupVersion.String(),
-					Kind:       "MachineSet",
-					Name:       ms.Name,
-					UID:        ms.UID,
-				},
-			})
 			if err != nil {
 				var deleteErr error
 				if bootstrapRef != nil {
 					// Cleanup the bootstrap resource if we can't create the InfraMachine; or we might risk to leak it.
-					if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*bootstrapRef)); err != nil && !apierrors.IsNotFound(err) {
-						deleteErr = errors.Wrapf(err, "failed to cleanup %s %s after %s creation failed", bootstrapRef.Kind, klog.KRef(bootstrapRef.Namespace, bootstrapRef.Name), (&ms.Spec.Template.Spec.InfrastructureRef).Kind)
+					if err := r.Client.Delete(ctx, bootstrapConfig); err != nil && !apierrors.IsNotFound(err) {
+						deleteErr = errors.Wrapf(err, "failed to cleanup %s %s after %s creation failed", bootstrapRef.Kind, klog.KRef(ms.Namespace, bootstrapRef.Name), ms.Spec.Template.Spec.InfrastructureRef.Kind)
 					}
 				}
 				v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.InfrastructureTemplateCloningFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
-				return ctrl.Result{}, kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to clone infrastructure machine from %s %s while creating a machine",
+				return ctrl.Result{}, kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to clone infrastructure machine from %s %s while creating a Machine",
 					ms.Spec.Template.Spec.InfrastructureRef.Kind,
-					klog.KRef(ms.Spec.Template.Spec.InfrastructureRef.Namespace, ms.Spec.Template.Spec.InfrastructureRef.Name)), deleteErr})
+					klog.KRef(ms.Namespace, ms.Spec.Template.Spec.InfrastructureRef.Name)), deleteErr})
 			}
-			log = log.WithValues(infraRef.Kind, klog.KRef(infraRef.Namespace, infraRef.Name))
+			log = log.WithValues(infraRef.Kind, klog.KRef(ms.Namespace, infraRef.Name))
 			machine.Spec.InfrastructureRef = *infraRef
 
 			// Create the Machine.
@@ -787,12 +804,12 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 					clusterv1.ConditionSeverityError, "%s", err.Error())
 
 				// Try to cleanup the external objects if the Machine creation failed.
-				if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*infraRef)); !apierrors.IsNotFound(err) {
-					log.Error(err, "Failed to cleanup infrastructure machine object after Machine creation error", infraRef.Kind, klog.KRef(infraRef.Namespace, infraRef.Name))
+				if err := r.Client.Delete(ctx, infraMachine); !apierrors.IsNotFound(err) {
+					log.Error(err, "Failed to cleanup infrastructure machine object after Machine creation error", infraRef.Kind, klog.KRef(ms.Namespace, infraRef.Name))
 				}
 				if bootstrapRef != nil {
-					if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*bootstrapRef)); !apierrors.IsNotFound(err) {
-						log.Error(err, "Failed to cleanup bootstrap configuration object after Machine creation error", bootstrapRef.Kind, klog.KRef(bootstrapRef.Namespace, bootstrapRef.Name))
+					if err := r.Client.Delete(ctx, bootstrapConfig); !apierrors.IsNotFound(err) {
+						log.Error(err, "Failed to cleanup bootstrap configuration object after Machine creation error", bootstrapRef.Kind, klog.KRef(ms.Namespace, bootstrapRef.Name))
 					}
 				}
 				continue
@@ -893,7 +910,7 @@ func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, exi
 	// to make sure to not point to incorrect refs.
 	// Note: During Machine creation, these refs will be updated with the correct values after the corresponding
 	// objects are created.
-	desiredMachine.Spec.InfrastructureRef = corev1.ObjectReference{}
+	desiredMachine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{}
 	desiredMachine.Spec.Bootstrap.ConfigRef = nil
 
 	// If we are updating an existing Machine reuse the name, uid, infrastructureRef and bootstrap.configRef
@@ -1533,22 +1550,12 @@ func patchMachineConditions(ctx context.Context, c client.Client, machines []*cl
 	return nil
 }
 
-func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, owner *clusterv1.MachineDeployment, ref *corev1.ObjectReference) (objectNotFound bool, err error) {
+func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, owner *clusterv1.MachineDeployment, ref *clusterv1.ContractVersionedObjectReference) (objectNotFound bool, err error) {
 	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
 		return false, nil
 	}
 
-	if err := contract.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
-		return false, err
-	}
-
-	// Ensure the ref namespace is populated for objects not yet defaulted by webhook
-	if ref.Namespace == "" {
-		ref = ref.DeepCopy()
-		ref.Namespace = cluster.Namespace
-	}
-
-	obj, err := external.Get(ctx, r.Client, ref)
+	obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, ms.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			if !ms.DeletionTimestamp.IsZero() {

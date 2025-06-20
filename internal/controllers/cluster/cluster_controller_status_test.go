@@ -21,7 +21,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
@@ -59,7 +58,7 @@ func TestSetPhases(t *testing.T) {
 				},
 				Status: clusterv1.ClusterStatus{},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
 				},
 			},
 
@@ -75,7 +74,7 @@ func TestSetPhases(t *testing.T) {
 					Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
 				},
 			},
 
@@ -88,7 +87,7 @@ func TestSetPhases(t *testing.T) {
 					Name: "test-cluster",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
 					ControlPlaneEndpoint: clusterv1.APIEndpoint{
 						Host: "1.2.3.4",
 						Port: 8443,
@@ -112,7 +111,7 @@ func TestSetPhases(t *testing.T) {
 						Host: "1.2.3.4",
 						Port: 8443,
 					},
-					ControlPlaneRef: &corev1.ObjectReference{},
+					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{},
 				},
 				Status: clusterv1.ClusterStatus{
 					Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}, // Note, this is automatically set when there is no cluster infrastructure (no-op).
@@ -133,7 +132,7 @@ func TestSetPhases(t *testing.T) {
 					Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{},
+					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
 				},
 			},
 
@@ -3021,16 +3020,16 @@ func fakeMachine(name string, options ...fakeMachineOption) *clusterv1.Machine {
 	return m
 }
 
-type controlPlaneRef corev1.ObjectReference
+type controlPlaneRef clusterv1.ContractVersionedObjectReference
 
 func (r controlPlaneRef) ApplyToCluster(c *clusterv1.Cluster) {
-	c.Spec.ControlPlaneRef = ptr.To(corev1.ObjectReference(r))
+	c.Spec.ControlPlaneRef = ptr.To(clusterv1.ContractVersionedObjectReference(r))
 }
 
-type infrastructureRef corev1.ObjectReference
+type infrastructureRef clusterv1.ContractVersionedObjectReference
 
 func (r infrastructureRef) ApplyToCluster(c *clusterv1.Cluster) {
-	c.Spec.InfrastructureRef = ptr.To(corev1.ObjectReference(r))
+	c.Spec.InfrastructureRef = ptr.To(clusterv1.ContractVersionedObjectReference(r))
 }
 
 type infrastructureProvisioned bool

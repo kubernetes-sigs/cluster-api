@@ -17,8 +17,13 @@ limitations under the License.
 package v1beta1
 
 import (
+	"errors"
+	"fmt"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
@@ -30,11 +35,25 @@ import (
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
+var apiVersionGetter = func(_ schema.GroupKind) (string, error) {
+	return "", errors.New("apiVersionGetter not set")
+}
+
+func SetAPIVersionGetter(f func(gk schema.GroupKind) (string, error)) {
+	apiVersionGetter = f
+}
+
 func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*controlplanev1.KubeadmControlPlane)
 	if err := Convert_v1beta1_KubeadmControlPlane_To_v1beta2_KubeadmControlPlane(src, dst, nil); err != nil {
 		return err
 	}
+
+	infraRef, err := convertToContractVersionedObjectReference(&src.Spec.MachineTemplate.InfrastructureRef)
+	if err != nil {
+		return err
+	}
+	dst.Spec.MachineTemplate.InfrastructureRef = *infraRef
 
 	// Manually restore data.
 	restored := &controlplanev1.KubeadmControlPlane{}
@@ -56,6 +75,12 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	if err := Convert_v1beta2_KubeadmControlPlane_To_v1beta1_KubeadmControlPlane(src, dst, nil); err != nil {
 		return err
 	}
+
+	infraRef, err := convertToObjectReference(&src.Spec.MachineTemplate.InfrastructureRef, src.Namespace)
+	if err != nil {
+		return err
+	}
+	dst.Spec.MachineTemplate.InfrastructureRef = *infraRef
 
 	// Convert timeouts moved from one struct to another.
 	dst.Spec.KubeadmConfigSpec.ConvertFrom(&src.Spec.KubeadmConfigSpec)
@@ -269,4 +294,46 @@ func Convert_v1_Condition_To_v1beta1_Condition(in *metav1.Condition, out *cluste
 
 func Convert_v1beta1_Condition_To_v1_Condition(in *clusterv1beta1.Condition, out *metav1.Condition, s apimachineryconversion.Scope) error {
 	return clusterv1beta1.Convert_v1beta1_Condition_To_v1_Condition(in, out, s)
+}
+
+func Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(_ *corev1.ObjectReference, _ *clusterv1.ContractVersionedObjectReference, _ apimachineryconversion.Scope) error {
+	// This is implemented in ConvertTo/ConvertFrom as we have all necessary information available there.
+	return nil
+}
+
+func Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(_ *clusterv1.ContractVersionedObjectReference, _ *corev1.ObjectReference, _ apimachineryconversion.Scope) error {
+	// This is implemented in ConvertTo/ConvertFrom as we have all necessary information available there.
+	return nil
+}
+
+func convertToContractVersionedObjectReference(ref *corev1.ObjectReference) (*clusterv1.ContractVersionedObjectReference, error) {
+	var apiGroup string
+	if ref.APIVersion != "" {
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert object: failed to parse apiVersion: %v", err)
+		}
+		apiGroup = gv.Group
+	}
+	return &clusterv1.ContractVersionedObjectReference{
+		APIGroup: apiGroup,
+		Kind:     ref.Kind,
+		Name:     ref.Name,
+	}, nil
+}
+
+func convertToObjectReference(ref *clusterv1.ContractVersionedObjectReference, namespace string) (*corev1.ObjectReference, error) {
+	apiVersion, err := apiVersionGetter(schema.GroupKind{
+		Group: ref.APIGroup,
+		Kind:  ref.Kind,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert object: %v", err)
+	}
+	return &corev1.ObjectReference{
+		APIVersion: apiVersion,
+		Kind:       ref.Kind,
+		Namespace:  namespace,
+		Name:       ref.Name,
+	}, nil
 }

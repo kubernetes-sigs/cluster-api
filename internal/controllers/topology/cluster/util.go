@@ -39,13 +39,3 @@ func (r *Reconciler) getReference(ctx context.Context, ref *corev1.ObjectReferen
 	}
 	return obj, nil
 }
-
-// refToUnstructured returns an unstructured object with details from an ObjectReference.
-func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
-	uns := &unstructured.Unstructured{}
-	uns.SetAPIVersion(ref.APIVersion)
-	uns.SetKind(ref.Kind)
-	uns.SetNamespace(ref.Namespace)
-	uns.SetName(ref.Name)
-	return uns
-}

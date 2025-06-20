@@ -24,6 +24,7 @@ package v1beta1
 import (
 	unsafe "unsafe"
 
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -177,6 +178,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*corev1.ObjectReference)(nil), (*corev1beta2.ContractVersionedObjectReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(a.(*corev1.ObjectReference), b.(*corev1beta2.ContractVersionedObjectReference), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*corev1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Condition_To_v1_Condition(a.(*corev1beta1.Condition), b.(*v1.Condition), scope)
 	}); err != nil {
@@ -209,6 +215,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*RemediationStrategy)(nil), (*v1beta2.RemediationStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_RemediationStrategy_To_v1beta2_RemediationStrategy(a.(*RemediationStrategy), b.(*v1beta2.RemediationStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*corev1beta2.ContractVersionedObjectReference)(nil), (*corev1.ObjectReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(a.(*corev1beta2.ContractVersionedObjectReference), b.(*corev1.ObjectReference), scope)
 	}); err != nil {
 		return err
 	}
@@ -323,7 +334,9 @@ func autoConvert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1beta2_KubeadmCo
 	if err := Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	out.InfrastructureRef = in.InfrastructureRef
+	if err := Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
+		return err
+	}
 	out.ReadinessGates = *(*[]corev1beta2.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
@@ -335,7 +348,9 @@ func autoConvert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1beta1_KubeadmCo
 	if err := Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	out.InfrastructureRef = in.InfrastructureRef
+	if err := Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
+		return err
+	}
 	out.ReadinessGates = *(*[]corev1beta1.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type

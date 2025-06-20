@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
 	"maps"
 	"slices"
 	"testing"
@@ -24,9 +25,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -39,16 +41,39 @@ import (
 )
 
 func TestGetCurrentState(t *testing.T) {
+	testGetCurrentState(t, "v1beta1")
+	testGetCurrentState(t, "v1beta2")
+}
+
+func testGetCurrentState(t *testing.T, controlPlaneContractVersion string) {
+	t.Helper()
+
 	crds := []client.Object{
-		builder.GenericControlPlaneCRD,
 		builder.GenericInfrastructureClusterCRD,
 		builder.GenericControlPlaneTemplateCRD,
 		builder.GenericInfrastructureClusterTemplateCRD,
+		builder.GenericBootstrapConfigCRD,
 		builder.GenericBootstrapConfigTemplateCRD,
 		builder.GenericInfrastructureMachineTemplateCRD,
 		builder.GenericInfrastructureMachineCRD,
 		builder.GenericInfrastructureMachinePoolTemplateCRD,
 		builder.GenericInfrastructureMachinePoolCRD,
+	}
+	if controlPlaneContractVersion == "v1beta1" {
+		crd := builder.GenericControlPlaneCRD.DeepCopy()
+		crd.Labels = map[string]string{
+			// Set label to signal that ControlPlane implements v1beta1 contract.
+			fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta1"): clusterv1.GroupVersionControlPlane.Version,
+		}
+		crds = append(crds, crd)
+	} else {
+		crd := builder.GenericControlPlaneCRD.DeepCopy()
+		crd.Labels = map[string]string{
+			// Set label to signal that ControlPlane implements v1beta1 contract.
+			// Note: This is identical to how GenericControlPlaneCRD is defined, but setting this here for clarity
+			fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta2"): clusterv1.GroupVersionControlPlane.Version,
+		}
+		crds = append(crds, crd)
 	}
 
 	// The following is a block creating a number of objects for use in the test cases.
@@ -69,20 +94,18 @@ func TestGetCurrentState(t *testing.T) {
 	controlPlaneInfrastructureMachineTemplateNotTopologyOwned := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfraTemplate").
 		Build()
 	controlPlaneTemplateWithInfrastructureMachine := builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cpTemplateWithInfra1").
-		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
 		Build()
 	controlPlaneTemplateWithInfrastructureMachineNotTopologyOwned := builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cpTemplateWithInfra1").
-		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplateNotTopologyOwned).
 		Build()
 	controlPlane := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
 		Build()
 	controlPlane.SetLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""})
 	controlPlaneWithInfra := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
-		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
+		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate, controlPlaneContractVersion).
 		Build()
 	controlPlaneWithInfra.SetLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""})
 	controlPlaneWithInfraNotTopologyOwned := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
-		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplateNotTopologyOwned).
+		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplateNotTopologyOwned, controlPlaneContractVersion).
 		Build()
 	controlPlaneNotTopologyOwned := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
 		Build()
@@ -1128,7 +1151,7 @@ func TestGetCurrentState(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s (control plane contract %s)", tt.name, controlPlaneContractVersion), func(t *testing.T) {
 			g := NewWithT(t)
 
 			// Sets up a scope with a Blueprint.
@@ -1185,37 +1208,22 @@ func TestAlignRefAPIVersion(t *testing.T) {
 	tests := []struct {
 		name                     string
 		templateFromClusterClass *unstructured.Unstructured
-		currentRef               *corev1.ObjectReference
+		currentRef               *clusterv1.ContractVersionedObjectReference
 		isCurrentTemplate        bool
+		objs                     []client.Object
 		want                     *corev1.ObjectReference
 		wantErr                  bool
 	}{
-		{
-			name: "Error for invalid apiVersion",
-			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"kind":       "DockerClusterTemplate",
-			}},
-			currentRef: &corev1.ObjectReference{
-				APIVersion: "invalid/api/version",
-				Kind:       "DockerCluster",
-				Name:       "my-cluster-abc",
-				Namespace:  metav1.NamespaceDefault,
-			},
-			isCurrentTemplate: false,
-			wantErr:           true,
-		},
 		{
 			name: "Use apiVersion from ClusterClass: group and kind is the same (+/- Template suffix)",
 			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerClusterTemplate",
 			}},
-			currentRef: &corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/different", // should be overwritten with version from CC
-				Kind:       "DockerCluster",
-				Name:       "my-cluster-abc",
-				Namespace:  metav1.NamespaceDefault,
+			currentRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "DockerCluster",
+				Name:     "my-cluster-abc",
 			},
 			isCurrentTemplate: false,
 			want: &corev1.ObjectReference{
@@ -1230,64 +1238,60 @@ func TestAlignRefAPIVersion(t *testing.T) {
 			name: "Use apiVersion from ClusterClass: group and kind is the same",
 			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
 				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-				"kind":       "KubeadmConfigTemplate",
+				"kind":       builder.GenericBootstrapConfigKind,
 			}},
-			currentRef: &corev1.ObjectReference{
-				APIVersion: "bootstrap.cluster.x-k8s.io/different", // should be overwritten with version from CC
-				Kind:       "KubeadmConfigTemplate",
-				Name:       "my-cluster-abc",
-				Namespace:  metav1.NamespaceDefault,
+			currentRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionBootstrap.Group,
+				Kind:     builder.GenericBootstrapConfigKind,
+				Name:     "my-cluster-abc",
 			},
 			isCurrentTemplate: true,
 			want: &corev1.ObjectReference{
 				// Group & kind is the same => apiVersion is taken from ClusterClass.
 				APIVersion: clusterv1.GroupVersionBootstrap.String(),
-				Kind:       "KubeadmConfigTemplate",
+				Kind:       builder.GenericBootstrapConfigKind,
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
 		},
 		{
-			name: "Use apiVersion from currentRef: kind is different",
+			name: "Use apiVersion from CRD: kind is different",
 			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha4",
+				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 				"kind":       "DifferentConfigTemplate",
 			}},
-			currentRef: &corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionBootstrap.String(),
-				Kind:       "KubeadmConfigTemplate",
-				Name:       "my-cluster-abc",
-				Namespace:  metav1.NamespaceDefault,
+			currentRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionBootstrap.Group,
+				Kind:     builder.GenericBootstrapConfigKind,
+				Name:     "my-cluster-abc",
 			},
 			isCurrentTemplate: true,
+			objs:              []client.Object{builder.GenericBootstrapConfigCRD},
 			want: &corev1.ObjectReference{
-				// kind is different => apiVersion is taken from currentRef.
+				// kind is different => apiVersion is taken from CRD.
 				APIVersion: clusterv1.GroupVersionBootstrap.String(),
-				Kind:       "KubeadmConfigTemplate",
+				Kind:       builder.GenericBootstrapConfigKind,
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
 		},
 		{
-			name: "Use apiVersion from currentRef: group is different",
+			name: "Use apiVersion from CRD: group is different",
 			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
-				"apiVersion": schema.GroupVersion{
-					Group:   "foo",
-					Version: clusterv1.GroupVersionBootstrap.String(),
-				}.String(),
-				"kind": "KubeadmConfigTemplate",
+				"apiVersion": "different.bootstrap.cluster.x-k8s.io/v1beta2",
+				"kind":       builder.GenericBootstrapConfigKind,
 			}},
-			currentRef: &corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersionBootstrap.String(),
-				Kind:       "KubeadmConfigTemplate",
-				Name:       "my-cluster-abc",
-				Namespace:  metav1.NamespaceDefault,
+			currentRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionBootstrap.Group,
+				Kind:     builder.GenericBootstrapConfigKind,
+				Name:     "my-cluster-abc",
 			},
 			isCurrentTemplate: true,
+			objs:              []client.Object{builder.GenericBootstrapConfigCRD},
 			want: &corev1.ObjectReference{
-				// group is different => apiVersion is taken from currentRef.
+				// group is different => apiVersion is taken from CRD.
 				APIVersion: clusterv1.GroupVersionBootstrap.String(),
-				Kind:       "KubeadmConfigTemplate",
+				Kind:       builder.GenericBootstrapConfigKind,
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
@@ -1297,7 +1301,11 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := alignRefAPIVersion(tt.templateFromClusterClass, tt.currentRef, tt.isCurrentTemplate)
+			scheme := runtime.NewScheme()
+			g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+			c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objs...).Build()
+
+			got, err := alignRefAPIVersion(t.Context(), c, tt.templateFromClusterClass, tt.currentRef, metav1.NamespaceDefault, tt.isCurrentTemplate)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

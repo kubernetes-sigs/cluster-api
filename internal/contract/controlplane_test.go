@@ -21,6 +21,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -199,23 +200,49 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(Equal("my-selector"))
 	})
-	t.Run("Manages spec.machineTemplate.infrastructureRef", func(t *testing.T) {
+	t.Run("Manages spec.machineTemplate.infrastructureRef (v1beta1)", func(t *testing.T) {
 		g := NewWithT(t)
 
-		refObj := fooRefBuilder()
+		fooRef := &corev1.ObjectReference{
+			APIVersion: "fooApiVersion",
+			Kind:       "fooKind",
+			Namespace:  "fooNamespace",
+			Name:       "fooName",
+		}
+
+		g.Expect(ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Path()).To(Equal(Path{"spec", "machineTemplate", "infrastructureRef"}))
+
+		err := ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Set(obj, fooRef)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(got.APIVersion).To(Equal(fooRef.APIVersion))
+		g.Expect(got.Kind).To(Equal(fooRef.Kind))
+		g.Expect(got.Name).To(Equal(fooRef.Name))
+		g.Expect(got.Namespace).To(Equal(fooRef.Namespace))
+	})
+	t.Run("Manages spec.machineTemplate.infrastructureRef (v1beta2)", func(t *testing.T) {
+		g := NewWithT(t)
+
+		fooRef := &clusterv1.ContractVersionedObjectReference{
+			APIGroup: "fooAPIGroup",
+			Kind:     "fooKind",
+			Name:     "fooName",
+		}
 
 		g.Expect(ControlPlane().MachineTemplate().InfrastructureRef().Path()).To(Equal(Path{"spec", "machineTemplate", "infrastructureRef"}))
 
-		err := ControlPlane().MachineTemplate().InfrastructureRef().Set(obj, refObj)
+		err := ControlPlane().MachineTemplate().InfrastructureRef().Set(obj, fooRef)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		got, err := ControlPlane().MachineTemplate().InfrastructureRef().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(got.APIVersion).To(Equal(refObj.GetAPIVersion()))
-		g.Expect(got.Kind).To(Equal(refObj.GetKind()))
-		g.Expect(got.Name).To(Equal(refObj.GetName()))
-		g.Expect(got.Namespace).To(Equal(refObj.GetNamespace()))
+		g.Expect(got.APIGroup).To(Equal(fooRef.APIGroup))
+		g.Expect(got.Kind).To(Equal(fooRef.Kind))
+		g.Expect(got.Name).To(Equal(fooRef.Name))
 	})
 	t.Run("Manages spec.machineTemplate.metadata", func(t *testing.T) {
 		g := NewWithT(t)
@@ -579,4 +606,53 @@ func TestControlPlaneIsScaling(t *testing.T) {
 			g.Expect(actual).To(Equal(tt.wantScaling))
 		})
 	}
+}
+
+func TestGetAndSetNestedRef(t *testing.T) {
+	t.Run("Gets a nested ref if defined", func(t *testing.T) {
+		g := NewWithT(t)
+
+		fooRef := &clusterv1.ContractVersionedObjectReference{
+			APIGroup: "fooAPIGroup",
+			Kind:     "fooKind",
+			Name:     "fooName",
+		}
+		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+
+		err := setNestedRef(obj, fooRef, "spec", "machineTemplate", "infrastructureRef")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		ref, err := getNestedRef(obj, "spec", "machineTemplate", "infrastructureRef")
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ref).ToNot(BeNil())
+		g.Expect(ref.APIGroup).To(Equal(fooRef.APIGroup))
+		g.Expect(ref.Kind).To(Equal(fooRef.Kind))
+		g.Expect(ref.Name).To(Equal(fooRef.Name))
+	})
+	t.Run("getNestedRef fails if the nested ref does not exist", func(t *testing.T) {
+		g := NewWithT(t)
+
+		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+
+		ref, err := getNestedRef(obj, "spec", "machineTemplate", "infrastructureRef")
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(ref).To(BeNil())
+	})
+	t.Run("getNestedRef fails if the nested ref exist but it is incomplete", func(t *testing.T) {
+		g := NewWithT(t)
+
+		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+
+		err := unstructured.SetNestedField(obj.UnstructuredContent(), "foo", "spec", "machineTemplate", "infrastructureRef", "kind")
+		g.Expect(err).ToNot(HaveOccurred())
+		err = unstructured.SetNestedField(obj.UnstructuredContent(), "bar", "spec", "machineTemplate", "infrastructureRef", "namespace")
+		g.Expect(err).ToNot(HaveOccurred())
+		err = unstructured.SetNestedField(obj.UnstructuredContent(), "baz", "spec", "machineTemplate", "infrastructureRef", "apiVersion")
+		g.Expect(err).ToNot(HaveOccurred())
+		// Reference name missing
+
+		ref, err := getNestedRef(obj, "spec", "machineTemplate", "infrastructureRef")
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(ref).To(BeNil())
+	})
 }

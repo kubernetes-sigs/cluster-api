@@ -64,7 +64,7 @@ func testControlPlaneTemplateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.C
 				"template": {
 					Type: "object",
 					Properties: map[string]apiextensionsv1.JSONSchemaProps{
-						"spec": controPlaneSpecSchema,
+						"spec": controlPlaneSpecSchema(true),
 					},
 				},
 			},
@@ -79,7 +79,7 @@ func testControlPlaneCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomRes
 			// Ref https://github.com/kubernetes-sigs/controller-tools/blob/59485af1c1f6a664655dad49543c474bb4a0d2a2/pkg/crd/gen.go#L185
 			Type: "object",
 		},
-		"spec": controPlaneSpecSchema,
+		"spec": controlPlaneSpecSchema(false),
 		"status": {
 			Type: "object",
 			Properties: map[string]apiextensionsv1.JSONSchemaProps{
@@ -106,8 +106,8 @@ func testControlPlaneCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomRes
 	})
 }
 
-var (
-	controPlaneSpecSchema = apiextensionsv1.JSONSchemaProps{
+func controlPlaneSpecSchema(isTemplate bool) apiextensionsv1.JSONSchemaProps {
+	return apiextensionsv1.JSONSchemaProps{
 		Type: "object",
 		Properties: map[string]apiextensionsv1.JSONSchemaProps{
 			// Mandatory field from the Cluster API contract - version support
@@ -122,12 +122,25 @@ var (
 			// mandatory field from the Cluster API contract - using Machines support
 			"machineTemplate": {
 				Type: "object",
-				Properties: map[string]apiextensionsv1.JSONSchemaProps{
-					"metadata":            metadataSchema,
-					"infrastructureRef":   refSchema,
-					"nodeDeletionTimeout": {Type: "string"},
-					"nodeDrainTimeout":    {Type: "string"},
-				},
+				Properties: func(isTemplate bool) map[string]apiextensionsv1.JSONSchemaProps {
+					props := map[string]apiextensionsv1.JSONSchemaProps{
+						"metadata":                       metadataSchema,
+						"nodeDeletionTimeoutSeconds":     {Type: "string"},
+						"nodeDrainTimeoutSeconds":        {Type: "string"},
+						"nodeVolumeDetachTimeoutSeconds": {Type: "string"},
+					}
+					if !isTemplate {
+						props["infrastructureRef"] = apiextensionsv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]apiextensionsv1.JSONSchemaProps{
+								"apiGroup": {Type: "string"},
+								"kind":     {Type: "string"},
+								"name":     {Type: "string"},
+							},
+						}
+					}
+					return props
+				}(isTemplate),
 			},
 			// General purpose fields to be used in different test scenario.
 			"foo": {Type: "string"},
@@ -156,4 +169,4 @@ var (
 			},
 		},
 	}
-)
+}

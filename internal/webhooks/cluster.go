@@ -91,14 +91,6 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", obj))
 	}
 
-	if cluster.Spec.InfrastructureRef != nil && cluster.Spec.InfrastructureRef.Namespace == "" {
-		cluster.Spec.InfrastructureRef.Namespace = cluster.Namespace
-	}
-
-	if cluster.Spec.ControlPlaneRef != nil && cluster.Spec.ControlPlaneRef.Namespace == "" {
-		cluster.Spec.ControlPlaneRef.Namespace = cluster.Namespace
-	}
-
 	// Additional defaulting if the Cluster uses a managed topology.
 	if cluster.Spec.Topology != nil {
 		// Tolerate version strings without a "v" prefix: prepend it if it's not there.
@@ -202,16 +194,6 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 			),
 		)
 	}
-	if newCluster.Spec.InfrastructureRef != nil && newCluster.Spec.InfrastructureRef.Namespace != newCluster.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				specPath.Child("infrastructureRef", "namespace"),
-				newCluster.Spec.InfrastructureRef.Namespace,
-				"must match metadata.namespace",
-			),
-		)
-	}
 
 	if newCluster.Spec.ControlPlaneRef == nil && oldCluster != nil && oldCluster.Spec.ControlPlaneRef != nil {
 		allErrs = append(
@@ -219,16 +201,6 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 			field.Forbidden(
 				specPath.Child("controlPlaneRef"),
 				"cannot be removed",
-			),
-		)
-	}
-	if newCluster.Spec.ControlPlaneRef != nil && newCluster.Spec.ControlPlaneRef.Namespace != newCluster.Namespace {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				specPath.Child("controlPlaneRef", "namespace"),
-				newCluster.Spec.ControlPlaneRef.Namespace,
-				"must match metadata.namespace",
 			),
 		)
 	}
@@ -499,7 +471,7 @@ func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *fi
 }
 
 func validateTopologyControlPlaneVersion(ctx context.Context, ctrlClient client.Reader, oldCluster *clusterv1.Cluster, oldVersion semver.Version) error {
-	cp, err := external.Get(ctx, ctrlClient, oldCluster.Spec.ControlPlaneRef)
+	cp, err := external.GetObjectFromContractVersionedRef(ctx, ctrlClient, oldCluster.Spec.ControlPlaneRef, oldCluster.Namespace)
 	if err != nil {
 		return errors.Wrap(err, "failed to check if control plane is upgrading: failed to get control plane object")
 	}

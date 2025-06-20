@@ -188,12 +188,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineD
 
 	// Delete unused templates.
 	ref := md.Spec.Template.Spec.Bootstrap.ConfigRef
-	if err := machineset.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return errors.Wrapf(err, "failed to delete %s %s for MachineDeployment %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name), klog.KObj(md))
+	if err := machineset.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, md.Namespace); err != nil {
+		return errors.Wrapf(err, "failed to delete %s %s for MachineDeployment %s", ref.Kind, klog.KRef(md.Namespace, ref.Name), klog.KObj(md))
 	}
 	ref = &md.Spec.Template.Spec.InfrastructureRef
-	if err := machineset.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return errors.Wrapf(err, "failed to delete %s %s for MachineDeployment %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name), klog.KObj(md))
+	if err := machineset.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, md.Namespace); err != nil {
+		return errors.Wrapf(err, "failed to delete %s %s for MachineDeployment %s", ref.Kind, klog.KRef(md.Namespace, ref.Name), klog.KObj(md))
 	}
 
 	// If the MachineDeployment has a MachineHealthCheck delete it.

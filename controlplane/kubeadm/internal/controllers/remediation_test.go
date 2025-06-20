@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestGetMachineToBeRemediated(t *testing.T) {
@@ -2166,6 +2167,11 @@ func createMachine(ctx context.Context, g *WithT, namespace, name string, option
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "cluster",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.GenericInfrastructureMachineKind,
+				Name:     "inframachine",
+			},
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: utilptr.To("secret"),
 			},

@@ -325,8 +325,8 @@ func TestApply(t *testing.T) {
 								},
 								{
 									Op:    "add",
-									Path:  "/spec/template/spec/machineTemplate/infrastructureRef",
-									Value: &apiextensionsv1.JSON{Raw: []byte(`{"apiVersion":"invalid","kind":"invalid","namespace":"invalid","name":"invalid"}`)},
+									Path:  "/spec/template/spec/machineTemplate",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"infrastructureRef":{"apiVersion":"invalid","kind":"invalid","namespace":"invalid","name":"invalid"}}`)},
 								},
 							},
 						},
@@ -1040,7 +1040,6 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 	controlPlaneInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "controlplaneinframachinetemplate1").
 		Build()
 	controlPlaneTemplate := builder.ControlPlaneTemplate(metav1.NamespaceDefault, "controlPlaneTemplate1").
-		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
 		Build()
 
 	workerInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "linux-worker-inframachinetemplate").
@@ -1222,7 +1221,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 		WithVersion("v1.21.2").
 		WithReplicas(3).
 		// Make sure we're using an independent instance of the template.
-		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate.DeepCopy()).
+		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate.DeepCopy(), "v1beta2").
 		Build()
 
 	desired := &scope.ClusterState{

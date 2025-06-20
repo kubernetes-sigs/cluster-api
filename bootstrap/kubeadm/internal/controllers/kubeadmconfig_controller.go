@@ -1156,7 +1156,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(ctx context.Context, o
 
 	for _, m := range machineList.Items {
 		if m.Spec.Bootstrap.ConfigRef != nil &&
-			m.Spec.Bootstrap.ConfigRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
+			m.Spec.Bootstrap.ConfigRef.GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
 			name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 			result = append(result, ctrl.Request{NamespacedName: name})
 		}
@@ -1170,7 +1170,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(ctx context.Context, o
 
 		for _, mp := range machinePoolList.Items {
 			if mp.Spec.Template.Spec.Bootstrap.ConfigRef != nil &&
-				mp.Spec.Template.Spec.Bootstrap.ConfigRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
+				mp.Spec.Template.Spec.Bootstrap.ConfigRef.GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
 				name := client.ObjectKey{Namespace: mp.Namespace, Name: mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name}
 				result = append(result, ctrl.Request{NamespacedName: name})
 			}
@@ -1189,7 +1189,7 @@ func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o
 	}
 
 	result := []ctrl.Request{}
-	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.GroupVersionKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig") {
+	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
@@ -1206,7 +1206,7 @@ func (r *KubeadmConfigReconciler) MachinePoolToBootstrapMapFunc(_ context.Contex
 
 	result := []ctrl.Request{}
 	configRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
-	if configRef != nil && configRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
+	if configRef != nil && configRef.GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: configRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}

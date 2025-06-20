@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -92,7 +91,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneWithNoVersion),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneWithNoVersion),
 					},
 				},
 				controlPlane: controlPlaneWithNoVersion,
@@ -107,7 +106,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneWithInvalidVersion),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneWithInvalidVersion),
 					},
 				},
 				controlPlane: controlPlaneWithInvalidVersion,
@@ -122,7 +121,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneUpgrading),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 					},
 				},
 				controlPlane: controlPlaneUpgrading,
@@ -144,7 +143,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneProvisioning),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneProvisioning),
 					},
 				},
 				controlPlane: controlPlaneProvisioning,
@@ -161,7 +160,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneUpgrading),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 					},
 				},
 				controlPlane: controlPlaneUpgrading,
@@ -178,7 +177,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 						Topology: &clusterv1.Topology{
 							Version: "v1.27.2",
 						},
@@ -198,7 +197,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneUpgrading),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 					},
 				},
 				controlPlane: controlPlaneUpgrading,
@@ -213,7 +212,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								Version:   ptr.To("v1.26.2"),
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{Kind: "KubeadmConfigTemplate"}},
+								Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{Kind: "KubeadmConfigTemplate"}},
 							},
 						},
 					},
@@ -228,7 +227,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -243,7 +242,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -263,7 +262,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -289,7 +288,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -317,7 +316,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable128),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable128),
 					},
 				},
 				controlPlane: controlPlaneStable128,
@@ -345,7 +344,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -374,7 +373,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable128),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable128),
 					},
 				},
 				controlPlane: controlPlaneStable128,
@@ -400,7 +399,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -412,9 +411,9 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								Version: ptr.To("v1.25.5"),
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{
-									APIVersion: bootstrapv1.GroupVersion.String(),
-									Kind:       "KubeadmConfigTemplate",
+								Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{
+									APIGroup: bootstrapv1.GroupVersion.Group,
+									Kind:     "KubeadmConfigTemplate",
 								}},
 							},
 						},
@@ -432,7 +431,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -458,7 +457,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -473,9 +472,9 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								Version: ptr.To("v1.25.0"),
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{
-									APIVersion: bootstrapv1.GroupVersion.String(),
-									Kind:       "KubeadmConfigTemplate",
+								Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{
+									APIGroup: bootstrapv1.GroupVersion.Group,
+									Kind:     "KubeadmConfigTemplate",
 								}},
 							},
 						},
@@ -491,7 +490,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -503,9 +502,9 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								Version: ptr.To("v1.26.2"),
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{
-									APIVersion: bootstrapv1.GroupVersion.String(),
-									Kind:       "KubeadmConfigTemplate",
+								Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{
+									APIGroup: bootstrapv1.GroupVersion.Group,
+									Kind:     "KubeadmConfigTemplate",
 								}},
 							},
 						},
@@ -515,36 +514,6 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				wantErr:      false,
 			},
 			{
-				name: "kubeadm version preflight check: should error if the bootstrap ref APIVersion is invalid",
-				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
-					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
-					},
-				},
-				controlPlane: controlPlaneStable,
-				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
-					Spec: clusterv1.MachineSetSpec{
-						Template: clusterv1.MachineTemplateSpec{
-							Spec: clusterv1.MachineSpec{
-								Version: ptr.To("v1.26.2"),
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{
-									APIVersion: "bootstrap.cluster.x-k8s.io/vx/invalid",
-									Kind:       "KubeadmConfigTemplate",
-								}},
-							},
-						},
-					},
-				},
-				wantMessages: nil,
-				wantErr:      true,
-			},
-			{
 				name: "control plane version preflight check: should pass if the machine set version and control plane version are not the same but the preflight check is skipped",
 				cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -552,7 +521,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					},
 					Spec: clusterv1.ClusterSpec{
 						Topology:        &clusterv1.Topology{},
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -582,7 +551,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					},
 					Spec: clusterv1.ClusterSpec{
 						// No Topology
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -612,7 +581,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					},
 					Spec: clusterv1.ClusterSpec{
 						Topology:        &clusterv1.Topology{},
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -642,7 +611,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					},
 					Spec: clusterv1.ClusterSpec{
 						Topology:        &clusterv1.Topology{},
-						ControlPlaneRef: contract.ObjToRef(controlPlaneStable),
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
@@ -671,7 +640,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				g := NewWithT(t)
 				objs := []client.Object{}
 				if tt.controlPlane != nil {
-					objs = append(objs, tt.controlPlane)
+					objs = append(objs, tt.controlPlane, builder.GenericControlPlaneCRD)
 				}
 				fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 				r := &Reconciler{
@@ -698,7 +667,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				Namespace: ns,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: contract.ObjToRef(controlPlaneUpgrading),
+				ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 			},
 		}
 		controlPlane := controlPlaneUpgrading
@@ -710,9 +679,9 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
 						Version: ptr.To("v1.26.0"),
-						Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{
-							APIVersion: bootstrapv1.GroupVersion.String(),
-							Kind:       "KubeadmConfigTemplate",
+						Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: bootstrapv1.GroupVersion.Group,
+							Kind:     "KubeadmConfigTemplate",
 						}},
 					},
 				},

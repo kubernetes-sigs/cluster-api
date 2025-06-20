@@ -17,11 +17,14 @@ limitations under the License.
 package v1beta1
 
 import (
+	"errors"
+	"fmt"
 	"unsafe"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
@@ -29,16 +32,60 @@ import (
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
+var apiVersionGetter = func(_ schema.GroupKind) (string, error) {
+	return "", errors.New("apiVersionGetter not set")
+}
+
+func SetAPIVersionGetter(f func(gk schema.GroupKind) (string, error)) {
+	apiVersionGetter = f
+}
+
 func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.Cluster)
 
-	return Convert_v1beta1_Cluster_To_v1beta2_Cluster(src, dst, nil)
+	if err := Convert_v1beta1_Cluster_To_v1beta2_Cluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	if src.Spec.InfrastructureRef != nil {
+		infraRef, err := convertToContractVersionedObjectReference(src.Spec.InfrastructureRef)
+		if err != nil {
+			return err
+		}
+		dst.Spec.InfrastructureRef = infraRef
+	}
+
+	if src.Spec.ControlPlaneRef != nil {
+		controlPlaneRef, err := convertToContractVersionedObjectReference(src.Spec.ControlPlaneRef)
+		if err != nil {
+			return err
+		}
+		dst.Spec.ControlPlaneRef = controlPlaneRef
+	}
+
+	return nil
 }
 
 func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.Cluster)
 	if err := Convert_v1beta2_Cluster_To_v1beta1_Cluster(src, dst, nil); err != nil {
 		return err
+	}
+
+	if src.Spec.InfrastructureRef != nil {
+		infraRef, err := convertToObjectReference(src.Spec.InfrastructureRef, src.Namespace)
+		if err != nil {
+			return err
+		}
+		dst.Spec.InfrastructureRef = infraRef
+	}
+
+	if src.Spec.ControlPlaneRef != nil {
+		controlPlaneRef, err := convertToObjectReference(src.Spec.ControlPlaneRef, src.Namespace)
+		if err != nil {
+			return err
+		}
+		dst.Spec.ControlPlaneRef = controlPlaneRef
 	}
 
 	if dst.Spec.Topology != nil {
@@ -86,6 +133,10 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	if err := convertMachineSpecToContractVersionedObjectReference(&src.Spec, &dst.Spec); err != nil {
+		return err
+	}
+
 	restored := &clusterv1.Machine{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
@@ -103,6 +154,10 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	if err := convertMachineSpecToObjectReference(&src.Spec, &dst.Spec, src.Namespace); err != nil {
+		return err
+	}
+
 	return utilconversion.MarshalData(src, dst)
 }
 
@@ -110,6 +165,10 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineSet)
 
 	if err := Convert_v1beta1_MachineSet_To_v1beta2_MachineSet(src, dst, nil); err != nil {
+		return err
+	}
+
+	if err := convertMachineSpecToContractVersionedObjectReference(&src.Spec.Template.Spec, &dst.Spec.Template.Spec); err != nil {
 		return err
 	}
 
@@ -129,6 +188,10 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	if err := convertMachineSpecToObjectReference(&src.Spec.Template.Spec, &dst.Spec.Template.Spec, src.Namespace); err != nil {
+		return err
+	}
+
 	dst.Spec.MinReadySeconds = ptr.Deref(src.Spec.Template.Spec.MinReadySeconds, 0)
 
 	return nil
@@ -141,6 +204,10 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	if err := convertMachineSpecToContractVersionedObjectReference(&src.Spec.Template.Spec, &dst.Spec.Template.Spec); err != nil {
+		return err
+	}
+
 	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
 
 	return nil
@@ -150,6 +217,10 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineDeployment)
 
 	if err := Convert_v1beta2_MachineDeployment_To_v1beta1_MachineDeployment(src, dst, nil); err != nil {
+		return err
+	}
+
+	if err := convertMachineSpecToObjectReference(&src.Spec.Template.Spec, &dst.Spec.Template.Spec, src.Namespace); err != nil {
 		return err
 	}
 
@@ -183,6 +254,10 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	if err := convertMachineSpecToContractVersionedObjectReference(&src.Spec.Template.Spec, &dst.Spec.Template.Spec); err != nil {
+		return err
+	}
+
 	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
 
 	return nil
@@ -192,6 +267,10 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachinePool)
 
 	if err := Convert_v1beta2_MachinePool_To_v1beta1_MachinePool(src, dst, nil); err != nil {
+		return err
+	}
+
+	if err := convertMachineSpecToObjectReference(&src.Spec.Template.Spec, &dst.Spec.Template.Spec, src.Namespace); err != nil {
 		return err
 	}
 
@@ -1186,6 +1265,16 @@ func Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_Object
 	return nil
 }
 
+func Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(_ *corev1.ObjectReference, _ *clusterv1.ContractVersionedObjectReference, _ apimachineryconversion.Scope) error {
+	// This is implemented in ConvertTo/ConvertFrom as we have all necessary information available there.
+	return nil
+}
+
+func Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(_ *clusterv1.ContractVersionedObjectReference, _ *corev1.ObjectReference, _ apimachineryconversion.Scope) error {
+	// This is implemented in ConvertTo/ConvertFrom as we have all necessary information available there.
+	return nil
+}
+
 func Convert_v1_ObjectReference_To_v1beta2_MachineNodeReference(in *corev1.ObjectReference, out *clusterv1.MachineNodeReference, _ apimachineryconversion.Scope) error {
 	out.Name = in.Name
 	return nil
@@ -1222,4 +1311,72 @@ func Convert_v1beta2_ClusterClassTemplate_To_v1beta1_LocalObjectTemplate(in *clu
 		APIVersion: in.Ref.APIVersion,
 	}
 	return nil
+}
+
+func convertMachineSpecToContractVersionedObjectReference(src *MachineSpec, dst *clusterv1.MachineSpec) error {
+	infraRef, err := convertToContractVersionedObjectReference(&src.InfrastructureRef)
+	if err != nil {
+		return err
+	}
+	dst.InfrastructureRef = *infraRef
+
+	if src.Bootstrap.ConfigRef != nil {
+		bootstrapRef, err := convertToContractVersionedObjectReference(src.Bootstrap.ConfigRef)
+		if err != nil {
+			return err
+		}
+		dst.Bootstrap.ConfigRef = bootstrapRef
+	}
+
+	return nil
+}
+
+func convertMachineSpecToObjectReference(src *clusterv1.MachineSpec, dst *MachineSpec, namespace string) error {
+	infraRef, err := convertToObjectReference(&src.InfrastructureRef, namespace)
+	if err != nil {
+		return err
+	}
+	dst.InfrastructureRef = *infraRef
+
+	if src.Bootstrap.ConfigRef != nil {
+		bootstrapRef, err := convertToObjectReference(src.Bootstrap.ConfigRef, namespace)
+		if err != nil {
+			return err
+		}
+		dst.Bootstrap.ConfigRef = bootstrapRef
+	}
+
+	return nil
+}
+
+func convertToContractVersionedObjectReference(ref *corev1.ObjectReference) (*clusterv1.ContractVersionedObjectReference, error) {
+	var apiGroup string
+	if ref.APIVersion != "" {
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert object: failed to parse apiVersion: %v", err)
+		}
+		apiGroup = gv.Group
+	}
+	return &clusterv1.ContractVersionedObjectReference{
+		APIGroup: apiGroup,
+		Kind:     ref.Kind,
+		Name:     ref.Name,
+	}, nil
+}
+
+func convertToObjectReference(ref *clusterv1.ContractVersionedObjectReference, namespace string) (*corev1.ObjectReference, error) {
+	apiVersion, err := apiVersionGetter(schema.GroupKind{
+		Group: ref.APIGroup,
+		Kind:  ref.Kind,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert object: %v", err)
+	}
+	return &corev1.ObjectReference{
+		APIVersion: apiVersion,
+		Kind:       ref.Kind,
+		Namespace:  namespace,
+		Name:       ref.Name,
+	}, nil
 }

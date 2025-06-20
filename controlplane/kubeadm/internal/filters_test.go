@@ -201,6 +201,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 +   CertificatesDir: "foo",
     ImageRepository: "",
     FeatureGates:    nil,
+    ... // 2 identical fields
   }`))
 	})
 	t.Run("Return true if cluster configuration is nil (special case)", func(t *testing.T) {
@@ -913,6 +914,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 +   CertificatesDir: "foo",
     ImageRepository: "",
     FeatureGates:    nil,
+    ... // 2 identical fields
   }`))
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
@@ -1662,7 +1664,7 @@ func TestUpToDate(t *testing.T) {
 			infraConfigs:            defaultInfraConfigs,
 			machineConfigs:          defaultMachineConfigs,
 			expectUptoDate:          false,
-			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 3 identical fields\n    Scheduler:       {},\n    DNS:             {},\n-   CertificatesDir: \"foo\",\n+   CertificatesDir: \"bar\",\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n  }"},
+			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 3 identical fields\n    Scheduler:       {},\n    DNS:             {},\n-   CertificatesDir: \"foo\",\n+   CertificatesDir: \"bar\",\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n    ... // 2 identical fields\n  }"},
 			expectConditionMessages: []string{"KubeadmConfig is not up-to-date"},
 		},
 		{
@@ -1687,7 +1689,6 @@ func TestUpToDate(t *testing.T) {
 
 			upToDate, logMessages, conditionMessages, err := UpToDate(tt.machine, tt.kcp, &reconciliationTime, tt.infraConfigs, tt.machineConfigs)
 			g.Expect(err).ToNot(HaveOccurred())
-
 			g.Expect(upToDate).To(Equal(tt.expectUptoDate))
 			g.Expect(logMessages).To(Equal(tt.expectLogMessages))
 			g.Expect(conditionMessages).To(Equal(tt.expectConditionMessages))

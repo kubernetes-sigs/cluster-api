@@ -18,10 +18,13 @@ package secret_test
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
@@ -52,4 +55,42 @@ func TestNewControlPlaneJoinCertsAsFilesNotPanicsWhenEmpty(t *testing.T) {
 	config := &bootstrapv1.ClusterConfiguration{}
 	certs := secret.NewControlPlaneJoinCerts(config)
 	g.Expect(certs.AsFiles()).To(BeEmpty())
+}
+
+func TestNewCertificatesForInitialControlPlane(t *testing.T) {
+	tests := []struct {
+		name                            string
+		expectedExpiry                  time.Time
+		caCertificateValidityPeriodDays *int32
+	}{
+		{
+			name:           "should return default expiry if caCertificateValidityPeriodDays not set",
+			expectedExpiry: time.Now().UTC().Add(time.Hour * 24 * 365 * 10), // 10 years.
+		},
+		{
+			name:                            "should return expiry if caCertificateValidityPeriodDays set",
+			expectedExpiry:                  time.Now().UTC().Add(time.Hour * 24 * 10), // 10 days.
+			caCertificateValidityPeriodDays: ptr.To[int32](10),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			clusterCerts := secret.NewCertificatesForInitialControlPlane(&bootstrapv1.ClusterConfiguration{
+				CACertificateValidityPeriodDays: test.caCertificateValidityPeriodDays,
+			})
+			g.Expect(clusterCerts.Generate()).To(Succeed())
+			caCert := clusterCerts.GetByPurpose(secret.ClusterCA)
+
+			g.Expect(caCert.KeyPair).NotTo(BeNil())
+			g.Expect(caCert.KeyPair.Cert).NotTo(BeNil())
+
+			// Decode the cert
+			decodedCert, err := certs.DecodeCertPEM(caCert.KeyPair.Cert)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Expect(decodedCert.NotAfter).Should(BeTemporally("~", test.expectedExpiry, 1*time.Minute))
+		})
+	}
 }

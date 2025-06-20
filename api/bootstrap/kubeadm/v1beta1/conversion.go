@@ -63,6 +63,18 @@ func RestoreKubeadmConfigSpec(restored *bootstrapv1.KubeadmConfigSpec, dst *boot
 		}
 		dst.JoinConfiguration.Timeouts = restored.JoinConfiguration.Timeouts
 	}
+	if restored.ClusterConfiguration != nil &&
+		(restored.ClusterConfiguration.CertificateValidityPeriodDays != nil || restored.ClusterConfiguration.CACertificateValidityPeriodDays != nil) {
+		if dst.ClusterConfiguration == nil {
+			dst.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
+		}
+		if restored.ClusterConfiguration.CertificateValidityPeriodDays != nil {
+			dst.ClusterConfiguration.CertificateValidityPeriodDays = restored.ClusterConfiguration.CertificateValidityPeriodDays
+		}
+		if restored.ClusterConfiguration.CACertificateValidityPeriodDays != nil {
+			dst.ClusterConfiguration.CACertificateValidityPeriodDays = restored.ClusterConfiguration.CACertificateValidityPeriodDays
+		}
+	}
 }
 
 func (src *KubeadmConfigSpec) ConvertTo(dst *bootstrapv1.KubeadmConfigSpec) {
@@ -336,4 +348,8 @@ func Convert_v1_Condition_To_v1beta1_Condition(in *metav1.Condition, out *cluste
 
 func Convert_v1beta1_Condition_To_v1_Condition(in *clusterv1beta1.Condition, out *metav1.Condition, s apimachineryconversion.Scope) error {
 	return clusterv1beta1.Convert_v1beta1_Condition_To_v1_Condition(in, out, s)
+}
+
+func Convert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in *bootstrapv1.ClusterConfiguration, out *ClusterConfiguration, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in, out, s)
 }

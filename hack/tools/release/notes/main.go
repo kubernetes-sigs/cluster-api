@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
@@ -42,6 +43,11 @@ const (
 	alphaRelease     = "ALPHA RELEASE"
 	betaRelease      = "BETA RELEASE"
 	releaseCandidate = "RELEASE CANDIDATE"
+
+	// Pre-release type constants.
+	preReleaseRC    = "rc"
+	preReleaseBeta  = "beta"
+	preReleaseAlpha = "alpha"
 )
 
 func main() {
@@ -143,11 +149,11 @@ func releaseTypeFromNewTag(newTagConfig string) string {
 	// Only allow RC and beta releases. More types must be defined here.
 	// If a new type is not defined, no warning banner will be printed.
 	switch newTag.Pre[0].VersionStr {
-	case "rc":
+	case preReleaseRC:
 		return releaseCandidate
-	case "beta":
+	case preReleaseBeta:
 		return betaRelease
-	case "alpha":
+	case preReleaseAlpha:
 		return alphaRelease
 	}
 	return ""
@@ -185,6 +191,45 @@ func validateConfig(config *notesCmdConfig) error {
 		if err := validateRef(config.toRef); err != nil {
 			return err
 		}
+	}
+
+	if config.previousReleaseVersion != "" {
+		if err := validatePreviousReleaseVersion(config.previousReleaseVersion); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validatePreviousReleaseVersion(previousReleaseVersion string) error {
+	// Extract version string from ref format (e.g., "tags/v1.0.0-rc.1" -> "v1.0.0-rc.1")
+	if !strings.Contains(previousReleaseVersion, "/") {
+		return errors.New("--previous-release-version must be in ref format (e.g., tags/v1.0.0-rc.1)")
+	}
+
+	parts := strings.SplitN(previousReleaseVersion, "/", 2)
+	if len(parts) != 2 {
+		return errors.New("--previous-release-version must be in ref format (e.g., tags/v1.0.0-rc.1)")
+	}
+
+	versionStr := parts[1]
+
+	// Parse the version to check if it contains rc, beta, or alpha
+	version, err := semver.ParseTolerant(versionStr)
+	if err != nil {
+		return errors.Wrap(err, "invalid --previous-release-version, is not a valid semver")
+	}
+
+	// Check if the version has pre-release identifiers
+	if len(version.Pre) == 0 {
+		return errors.Errorf("--previous-release-version must contain '%s', '%s', or '%s' pre-release identifier", preReleaseRC, preReleaseBeta, preReleaseAlpha)
+	}
+
+	// Check if the first pre-release identifier is 'rc', 'beta', or 'alpha'
+	preReleaseType := version.Pre[0].VersionStr
+	if preReleaseType != preReleaseRC && preReleaseType != preReleaseBeta && preReleaseType != preReleaseAlpha {
+		return errors.Errorf("--previous-release-version must contain '%s', '%s', or '%s' pre-release identifier", preReleaseRC, preReleaseBeta, preReleaseAlpha)
 	}
 
 	return nil

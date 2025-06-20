@@ -155,9 +155,7 @@ func Convert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevCluster
 	if out.Deprecated.V1Beta1 == nil {
 		out.Deprecated.V1Beta1 = &infrav1.DevClusterV1Beta1DeprecatedStatus{}
 	}
-	if in.Conditions != nil {
-		out.Deprecated.V1Beta1.Conditions = in.Conditions
-	}
+	out.Deprecated.V1Beta1.Conditions = in.Conditions
 
 	return nil
 }
@@ -172,10 +170,8 @@ func Convert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in *infrav1.De
 	out.Conditions = nil
 
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
-	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
-		if in.Deprecated.V1Beta1.Conditions != nil {
-			out.Conditions = in.Deprecated.V1Beta1.Conditions
-		}
+	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil && in.Deprecated.V1Beta1.Conditions != nil {
+		out.Conditions = in.Deprecated.V1Beta1.Conditions
 	}
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
@@ -213,10 +209,7 @@ func Convert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in *DevMachine
 	if out.Deprecated.V1Beta1 == nil {
 		out.Deprecated.V1Beta1 = &infrav1.DevMachineV1Beta1DeprecatedStatus{}
 	}
-
-	if in.Conditions != nil {
-		out.Deprecated.V1Beta1.Conditions = in.Conditions
-	}
+	out.Deprecated.V1Beta1.Conditions = in.Conditions
 
 	return nil
 }
@@ -231,10 +224,8 @@ func Convert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *infrav1.De
 	out.Conditions = nil
 
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
-	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
-		if in.Deprecated.V1Beta1.Conditions != nil {
-			out.Conditions = in.Deprecated.V1Beta1.Conditions
-		}
+	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil && in.Deprecated.V1Beta1.Conditions != nil {
+		out.Conditions = in.Deprecated.V1Beta1.Conditions
 	}
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
@@ -272,9 +263,8 @@ func Convert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *Dock
 	if out.Deprecated.V1Beta1 == nil {
 		out.Deprecated.V1Beta1 = &infrav1.DockerClusterV1Beta1DeprecatedStatus{}
 	}
-	if in.Conditions != nil {
-		out.Deprecated.V1Beta1.Conditions = in.Conditions
-	}
+	out.Deprecated.V1Beta1.Conditions = in.Conditions
+
 	return nil
 }
 
@@ -288,10 +278,8 @@ func Convert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *infr
 	out.Conditions = nil
 
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
-	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
-		if in.Deprecated.V1Beta1.Conditions != nil {
-			out.Conditions = in.Deprecated.V1Beta1.Conditions
-		}
+	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil && in.Deprecated.V1Beta1.Conditions != nil {
+		out.Conditions = in.Deprecated.V1Beta1.Conditions
 	}
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
@@ -329,10 +317,8 @@ func Convert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *Dock
 	if out.Deprecated.V1Beta1 == nil {
 		out.Deprecated.V1Beta1 = &infrav1.DockerMachineV1Beta1DeprecatedStatus{}
 	}
+	out.Deprecated.V1Beta1.Conditions = in.Conditions
 
-	if in.Conditions != nil {
-		out.Deprecated.V1Beta1.Conditions = in.Conditions
-	}
 	return nil
 }
 
@@ -346,10 +332,8 @@ func Convert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *infr
 	out.Conditions = nil
 
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
-	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil {
-		if in.Deprecated.V1Beta1.Conditions != nil {
-			out.Conditions = in.Deprecated.V1Beta1.Conditions
-		}
+	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil && in.Deprecated.V1Beta1.Conditions != nil {
+		out.Conditions = in.Deprecated.V1Beta1.Conditions
 	}
 
 	// Move new conditions (v1beta2) to the v1beta2 field.

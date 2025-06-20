@@ -84,6 +84,14 @@ type ImageMeta struct {
 
 // DockerClusterStatus defines the observed state of DockerCluster.
 type DockerClusterStatus struct {
+	// conditions represents the observations of a DockerCluster's current state.
+	// Known condition types are LoadBalancerAvailable and Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// Ready denotes that the docker cluster (infrastructure) is ready.
 	// +optional
 	Ready bool `json:"ready"`
@@ -93,15 +101,7 @@ type DockerClusterStatus struct {
 	// +optional
 	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
 
-	// conditions represents the observations of a DockerCluster's current state.
-	// Known condition types are Ready, LoadBalancerAvailable, Deleting, Paused.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	// deprecated groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *DockerClusterDeprecatedStatus `json:"deprecated,omitempty"`
 }

@@ -63,6 +63,14 @@ type DockerMachinePoolSpec struct {
 
 // DockerMachinePoolStatus defines the observed state of DockerMachinePool.
 type DockerMachinePoolStatus struct {
+	// conditions represents the observations of a DockerMachinePool's current state.
+	// Known condition types are Ready, ReplicasReady, Resized, ReplicasReady.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// Ready denotes that the machine pool is ready
 	// +optional
 	Ready bool `json:"ready"`
@@ -83,14 +91,7 @@ type DockerMachinePoolStatus struct {
 	// +optional
 	InfrastructureMachineKind string `json:"infrastructureMachineKind,omitempty"`
 
-	// conditions represents the observations of a DevCluster's current state.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	// deprecated groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *DockerMachinePoolDeprecatedStatus `json:"deprecated,omitempty"`
 }

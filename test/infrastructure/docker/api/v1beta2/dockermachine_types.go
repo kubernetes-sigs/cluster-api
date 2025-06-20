@@ -81,6 +81,15 @@ type Mount struct {
 
 // DockerMachineStatus defines the observed state of DockerMachine.
 type DockerMachineStatus struct {
+	// conditions represents the observations of a DockerMachine's current state.
+	// Known condition types are NodeProvisioned, EtcdProvisioned, APIServerProvisioned, VMProvisioned,
+	// ControlPlaneInitialized, BootstrapExecSucceeded, LoadBalancerAvailable, ContainerProvisioned and Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// Ready denotes that the machine (docker container) is ready
 	// +optional
 	Ready bool `json:"ready"`
@@ -94,15 +103,7 @@ type DockerMachineStatus struct {
 	// +optional
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
-	// conditions represents the observations of a DockerMachine's current state.
-	// Known condition types are Ready, ContainerProvisioned, BootstrapExecSucceeded, Deleting, Paused.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	// deprecated groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *DockerMachineDeprecatedStatus `json:"deprecated,omitempty"`
 }

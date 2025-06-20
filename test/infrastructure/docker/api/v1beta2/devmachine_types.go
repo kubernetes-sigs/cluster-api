@@ -348,6 +348,15 @@ type CommonProvisioningSettings struct {
 
 // DevMachineStatus defines the observed state of DevMachine.
 type DevMachineStatus struct {
+	// conditions represents the observations of a DevMachine's current state.
+	// Known condition types are Ready, NodeProvisioned, EtcdProvisioned, APIServerProvisioned, VMProvisioned,
+	// ControlPlaneInitialized, BootstrapExecSucceeded, LoadBalancerAvailable, ContainerProvisioned and Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// ready denotes that the machine is ready
 	// +optional
 	Ready bool `json:"ready"`
@@ -360,14 +369,7 @@ type DevMachineStatus struct {
 	// +optional
 	Backend *DevMachineBackendStatus `json:"backend,omitempty"`
 
-	// conditions represents the observations of a DevMachine's current state.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	// deprecated groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *DevMachineDeprecatedStatus `json:"deprecated,omitempty"`
 }

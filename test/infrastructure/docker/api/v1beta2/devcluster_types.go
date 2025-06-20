@@ -110,6 +110,14 @@ type InMemoryClusterBackendSpec struct{}
 
 // DevClusterStatus defines the observed state of the DevCluster.
 type DevClusterStatus struct {
+	// conditions represents the observations of a DevCluster's current state.
+	// Known condition types are Ready, LoadBalancerAvailable and Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// ready denotes that the dev cluster infrastructure is ready.
 	// +optional
 	Ready bool `json:"ready"`
@@ -119,14 +127,7 @@ type DevClusterStatus struct {
 	// +optional
 	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
 
-	// conditions represents the observations of a DevCluster's current state.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	// deprecated groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *DevClusterDeprecatedStatus `json:"deprecated,omitempty"`
 }

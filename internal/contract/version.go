@@ -61,12 +61,12 @@ func GetCompatibleVersions(contract string) sets.Set[string] {
 func UpdateReferenceAPIContract(ctx context.Context, c client.Reader, ref *corev1.ObjectReference) error {
 	gvk := ref.GroupVersionKind()
 
-	metadata, err := GetGVKMetadata(ctx, c, gvk.GroupKind())
+	metadata, err := GetGKMetadata(ctx, c, gvk.GroupKind())
 	if err != nil {
 		return errors.Wrapf(err, "failed to update apiVersion in ref")
 	}
 
-	_, chosen, err := GetLatestAPIVersionFromContract(metadata, Version)
+	_, chosen, err := GetLatestContractAndAPIVersionFromContract(metadata, Version)
 	if err != nil {
 		return errors.Wrapf(err, "failed to update apiVersion in ref")
 	}
@@ -82,12 +82,12 @@ func UpdateReferenceAPIContract(ctx context.Context, c client.Reader, ref *corev
 
 // GetContractVersion gets the latest compatible contract version from a CRD based on the current contract Version.
 func GetContractVersion(ctx context.Context, c client.Reader, gk schema.GroupKind) (string, error) {
-	crdMetadata, err := GetGVKMetadata(ctx, c, gk)
+	crdMetadata, err := GetGKMetadata(ctx, c, gk)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get contract version for kind %s", gk.Kind)
 	}
 
-	contractVersion, _, err := GetLatestAPIVersionFromContract(crdMetadata, Version)
+	contractVersion, _, err := GetLatestContractAndAPIVersionFromContract(crdMetadata, Version)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get contract version for kind %s", gk.Kind)
 	}
@@ -97,12 +97,12 @@ func GetContractVersion(ctx context.Context, c client.Reader, gk schema.GroupKin
 
 // GetAPIVersion gets the latest compatible apiVersion from a CRD based on the current contract Version.
 func GetAPIVersion(ctx context.Context, c client.Reader, gk schema.GroupKind) (string, error) {
-	crdMetadata, err := GetGVKMetadata(ctx, c, gk)
+	crdMetadata, err := GetGKMetadata(ctx, c, gk)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get apiVersion for kind %s", gk.Kind)
 	}
 
-	_, version, err := GetLatestAPIVersionFromContract(crdMetadata, Version)
+	_, version, err := GetLatestContractAndAPIVersionFromContract(crdMetadata, Version)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get apiVersion for kind %s", gk.Kind)
 	}
@@ -113,9 +113,9 @@ func GetAPIVersion(ctx context.Context, c client.Reader, gk schema.GroupKind) (s
 	}.String(), nil
 }
 
-// GetLatestAPIVersionFromContract gets the latest compatible contract version and apiVersion from a CRD based on
+// GetLatestContractAndAPIVersionFromContract gets the latest compatible contract version and apiVersion from a CRD based on
 // the passed in currentContractVersion.
-func GetLatestAPIVersionFromContract(metadata metav1.Object, currentContractVersion string) (string, string, error) {
+func GetLatestContractAndAPIVersionFromContract(metadata metav1.Object, currentContractVersion string) (string, string, error) {
 	if currentContractVersion == "" {
 		return "", "", errors.Errorf("current contract version cannot be empty")
 	}
@@ -144,8 +144,9 @@ func GetLatestAPIVersionFromContract(metadata metav1.Object, currentContractVers
 }
 
 // GetContractVersionForVersion gets the contract version for an apiVersion from a CRD.
+// The passed in version is only the version part of the apiVersion, not the full apiVersion.
 func GetContractVersionForVersion(ctx context.Context, c client.Reader, gk schema.GroupKind, version string) (string, error) {
-	crdMetadata, err := GetGVKMetadata(ctx, c, gk)
+	crdMetadata, err := GetGKMetadata(ctx, c, gk)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get contract version for version %s for kind %s", version, gk.Kind)
 	}
@@ -166,10 +167,10 @@ func GetContractVersionForVersion(ctx context.Context, c client.Reader, gk schem
 	return "", errors.Errorf("cannot find any contract version matching version %s for CRD %s", version, crdMetadata.GetName())
 }
 
-// GetGVKMetadata retrieves a CustomResourceDefinition metadata from the API server using partial object metadata.
+// GetGKMetadata retrieves a CustomResourceDefinition metadata from the API server using partial object metadata.
 //
 // This function is greatly more efficient than GetCRDWithContract and should be preferred in most cases.
-func GetGVKMetadata(ctx context.Context, c client.Reader, gk schema.GroupKind) (*metav1.PartialObjectMetadata, error) {
+func GetGKMetadata(ctx context.Context, c client.Reader, gk schema.GroupKind) (*metav1.PartialObjectMetadata, error) {
 	meta := &metav1.PartialObjectMetadata{}
 	meta.SetName(contract.CalculateCRDName(gk.Group, gk.Kind))
 	meta.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))

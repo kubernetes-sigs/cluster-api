@@ -1795,17 +1795,17 @@ spec:
                             properties:
                               apiGroup:
                                 description: |-
-                                  apiGroup is the group for the resource being referenced.
+                                  apiGroup is the group of the resource being referenced.
                                   apiGroup must be fully qualified domain name.
                                   The corresponding version for this reference will be looked up from the contract
-                                  labels of the corresponding CRD of the referenced object.
+                                  labels of the corresponding CRD of the resource being referenced.
                                 maxLength: 253
                                 minLength: 1
                                 pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                 type: string
                               kind:
                                 description: |-
-                                  kind of the referent.
+                                  kind of the resource being referenced.
                                   kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
                                 maxLength: 63
                                 minLength: 1
@@ -1813,7 +1813,7 @@ spec:
                                 type: string
                               name:
                                 description: |-
-                                  name of the referent.
+                                  name of the resource being referenced.
                                   name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
                                 maxLength: 253
                                 minLength: 1
@@ -1852,17 +1852,17 @@ spec:
                         properties:
                           apiGroup:
                             description: |-
-                              apiGroup is the group for the resource being referenced.
+                              apiGroup is the group of the resource being referenced.
                               apiGroup must be fully qualified domain name.
                               The corresponding version for this reference will be looked up from the contract
-                              labels of the corresponding CRD of the referenced object.
+                              labels of the corresponding CRD of the resource being referenced.
                             maxLength: 253
                             minLength: 1
                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                             type: string
                           kind:
                             description: |-
-                              kind of the referent.
+                              kind of the resource being referenced.
                               kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
                             maxLength: 63
                             minLength: 1
@@ -1870,7 +1870,7 @@ spec:
                             type: string
                           name:
                             description: |-
-                              name of the referent.
+                              name of the resource being referenced.
                               name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
                             maxLength: 253
                             minLength: 1

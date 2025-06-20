@@ -355,9 +355,9 @@ func (metadata *ObjectMeta) Validate(parent *field.Path) field.ErrorList {
 	return allErrs
 }
 
-// ContractVersionedObjectReference is a reference to an object.
+// ContractVersionedObjectReference is a reference to a resource for which the version is inferred from contract labels.
 type ContractVersionedObjectReference struct {
-	// kind of the referent.
+	// kind of the resource being referenced.
 	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
 	// +required
 	// +kubebuilder:validation:MinLength=1
@@ -365,7 +365,7 @@ type ContractVersionedObjectReference struct {
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
 	Kind string `json:"kind"`
 
-	// name of the referent.
+	// name of the resource being referenced.
 	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
 	// +required
 	// +kubebuilder:validation:MinLength=1
@@ -373,10 +373,10 @@ type ContractVersionedObjectReference struct {
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name"`
 
-	// apiGroup is the group for the resource being referenced.
+	// apiGroup is the group of the resource being referenced.
 	// apiGroup must be fully qualified domain name.
 	// The corresponding version for this reference will be looked up from the contract
-	// labels of the corresponding CRD of the referenced object.
+	// labels of the corresponding CRD of the resource being referenced.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253

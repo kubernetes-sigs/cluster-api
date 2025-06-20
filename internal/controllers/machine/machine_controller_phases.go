@@ -413,7 +413,7 @@ func (r *Reconciler) reconcileCertificateExpiry(_ context.Context, s *scope) (ct
 
 // removeOnCreateOwnerRefs will remove any MachineSet or control plane owner references from passed objects.
 func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj *unstructured.Unstructured) error {
-	cpGK := getControlPlaneGVKForMachine(cluster, m)
+	cpGK := getControlPlaneGKForMachine(cluster, m)
 	for _, owner := range obj.GetOwnerReferences() {
 		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
 		if err != nil {
@@ -430,7 +430,7 @@ func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, o
 
 // hasOnCreateOwnerRefs will check if any MachineSet or control plane owner references from passed objects are set.
 func hasOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj *unstructured.Unstructured) (bool, error) {
-	cpGK := getControlPlaneGVKForMachine(cluster, m)
+	cpGK := getControlPlaneGKForMachine(cluster, m)
 	for _, owner := range obj.GetOwnerReferences() {
 		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
 		if err != nil {
@@ -444,10 +444,10 @@ func hasOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj 
 	return false, nil
 }
 
-// getControlPlaneGVKForMachine returns the Kind of the control plane in the Cluster associated with the Machine.
+// getControlPlaneGKForMachine returns the Kind of the control plane in the Cluster associated with the Machine.
 // This function checks that the Machine is managed by a control plane, and then retrieves the Kind from the Cluster's
 // .spec.controlPlaneRef.
-func getControlPlaneGVKForMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) *schema.GroupKind {
+func getControlPlaneGKForMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) *schema.GroupKind {
 	if _, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]; ok {
 		if cluster.Spec.ControlPlaneRef != nil {
 			gvk := cluster.Spec.ControlPlaneRef.GroupKind()

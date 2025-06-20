@@ -1412,12 +1412,12 @@ func schema_cluster_api_api_core_v1beta2_ContractVersionedObjectReference(ref co
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ContractVersionedObjectReference is a reference to an object.",
+				Description: "ContractVersionedObjectReference is a reference to a resource for which the version is inferred from contract labels.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "kind of the referent. kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.",
+							Description: "kind of the resource being referenced. kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1425,7 +1425,7 @@ func schema_cluster_api_api_core_v1beta2_ContractVersionedObjectReference(ref co
 					},
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "name of the referent. name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.",
+							Description: "name of the resource being referenced. name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1433,7 +1433,7 @@ func schema_cluster_api_api_core_v1beta2_ContractVersionedObjectReference(ref co
 					},
 					"apiGroup": {
 						SchemaProps: spec.SchemaProps{
-							Description: "apiGroup is the group for the resource being referenced. apiGroup must be fully qualified domain name. The corresponding version for this reference will be looked up from the contract labels of the corresponding CRD of the referenced object.",
+							Description: "apiGroup is the group of the resource being referenced. apiGroup must be fully qualified domain name. The corresponding version for this reference will be looked up from the contract labels of the corresponding CRD of the resource being referenced.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",

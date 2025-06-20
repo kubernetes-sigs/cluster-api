@@ -56,7 +56,7 @@ func GetObjectFromContractVersionedRef(ctx context.Context, c client.Reader, ref
 		return nil, errors.Errorf("cannot get object - object reference not set")
 	}
 
-	metadata, err := contract.GetGVKMetadata(ctx, c, schema.GroupKind{Group: ref.APIGroup, Kind: ref.Kind})
+	metadata, err := contract.GetGKMetadata(ctx, c, schema.GroupKind{Group: ref.APIGroup, Kind: ref.Kind})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found.
@@ -65,7 +65,7 @@ func GetObjectFromContractVersionedRef(ctx context.Context, c client.Reader, ref
 		return nil, errors.Wrapf(err, "failed to get object from ref")
 	}
 
-	_, latestAPIVersion, err := contract.GetLatestAPIVersionFromContract(metadata, contract.Version)
+	_, latestAPIVersion, err := contract.GetLatestContractAndAPIVersionFromContract(metadata, contract.Version)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get object from ref")
 	}

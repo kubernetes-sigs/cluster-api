@@ -66,6 +66,7 @@ source of inspiration and ideas for others.
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
 - [Outscale](https://github.com/outscale/cluster-api-provider-outscale)
 - [Proxmox](https://github.com/ionos-cloud/cluster-api-provider-proxmox)
+- [Scaleway](https://github.com/scaleway/cluster-api-provider-scaleway)
 - [Sidero](https://github.com/siderolabs/sidero)
 - [Tinkerbell](https://github.com/tinkerbell/cluster-api-provider-tinkerbell)
 - [vcluster](https://github.com/loft-sh/cluster-api-provider-vcluster)

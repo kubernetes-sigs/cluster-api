@@ -350,6 +350,7 @@ providers.
 | CAPONE        | cluster.x-k8s.io/provider=infrastructure-opennebula   |
 | CAPO          | cluster.x-k8s.io/provider=infrastructure-openstack    |
 | CAPOCI        | cluster.x-k8s.io/provider=infrastructure-oci          |
+| CAPS          | cluster.x-k8s.io/provider=infrastructure-scaleway     |
 | CAPT          | cluster.x-k8s.io/provider=infrastructure-tinkerbell   |
 | CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere      |
 | CAPVC         | cluster.x-k8s.io/provider=infrastructure-vcluster     |

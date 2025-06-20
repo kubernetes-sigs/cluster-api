@@ -1994,7 +1994,7 @@ kind delete cluster
 [Akamai (Linode) provider]: https://linode.github.io/cluster-api-provider-linode/introduction.html
 [AWS provider prerequisites]: https://cluster-api-aws.sigs.k8s.io/topics/using-clusterawsadm-to-fulfill-prerequisites.html
 [AWS provider releases]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases
-[Azure Provider Prerequisites]: https://capz.sigs.k8s.io/getting-started.html#prerequisites
+[Azure Provider Prerequisites]: https://capz.sigs.k8s.io/getting-started-with-aks.html#prerequisites
 [bootstrap cluster]: ../reference/glossary.md#bootstrap-cluster
 [capa]: https://cluster-api-aws.sigs.k8s.io
 [capv-upload-images]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md#uploading-the-machine-images

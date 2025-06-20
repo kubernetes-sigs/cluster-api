@@ -147,7 +147,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinepool)
 
@@ -190,7 +190,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinepool)
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePoolPhasePending))
@@ -230,7 +230,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinepool)
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePoolPhaseProvisioning))
@@ -286,7 +286,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		// Set ReadyReplicas
 		machinepool.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{
@@ -358,7 +358,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		// Set ReadyReplicas
 		machinepool.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{
@@ -408,7 +408,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinepool)
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePoolPhaseProvisioned))
@@ -461,7 +461,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		// Set ReadyReplicas
 		machinepool.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{
@@ -531,7 +531,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		// Set ReadyReplicas
 		machinepool.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{
@@ -607,7 +607,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinepool)
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePoolPhaseDeleting))
@@ -681,7 +681,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinePool)
 		g.Expect(machinePool.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePoolPhaseRunning))
@@ -701,7 +701,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		// Reconcile again. The new bootstrap config should be used.
 		res, err = r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinePool)
 		g.Expect(*machinePool.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("secret-data-new"))
@@ -777,7 +777,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinePool)
 		g.Expect(machinePool.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePoolPhaseRunning))
@@ -801,7 +801,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Controller should wait until bootstrap provider reports ready bootstrap config
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinePool)
 
@@ -1848,7 +1848,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinepool)
 
@@ -1916,7 +1916,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinepool)
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePoolPhaseRunning))
@@ -1967,7 +1967,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinepool)
 
@@ -2014,7 +2014,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinepool)
 
@@ -2083,7 +2083,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 
 		res, err := r.reconcile(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 		r.reconcilePhase(machinepool)
 

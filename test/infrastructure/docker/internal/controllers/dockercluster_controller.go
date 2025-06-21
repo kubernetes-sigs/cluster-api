@@ -195,10 +195,12 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 }
 
 func dockerClusterToDevCluster(dockerCluster *infrav1.DockerCluster) *infrav1.DevCluster {
-	var v1Beta2Status *infrav1.DevClusterV1Beta2Status
-	if dockerCluster.Status.V1Beta2 != nil {
-		v1Beta2Status = &infrav1.DevClusterV1Beta2Status{
-			Conditions: dockerCluster.Status.V1Beta2.Conditions,
+	var v1Beta1Status *infrav1.DevClusterDeprecatedStatus
+	if dockerCluster.Status.Deprecated != nil && dockerCluster.Status.Deprecated.V1Beta1 != nil {
+		v1Beta1Status = &infrav1.DevClusterDeprecatedStatus{
+			V1Beta1: &infrav1.DevClusterV1Beta1DeprecatedStatus{
+				Conditions: dockerCluster.Status.Deprecated.V1Beta1.Conditions,
+			},
 		}
 	}
 
@@ -217,16 +219,18 @@ func dockerClusterToDevCluster(dockerCluster *infrav1.DockerCluster) *infrav1.De
 			Ready:          dockerCluster.Status.Ready,
 			FailureDomains: dockerCluster.Status.FailureDomains,
 			Conditions:     dockerCluster.Status.Conditions,
-			V1Beta2:        v1Beta2Status,
+			Deprecated:     v1Beta1Status,
 		},
 	}
 }
 
 func devClusterToDockerCluster(devCluster *infrav1.DevCluster, dockerCluster *infrav1.DockerCluster) {
-	var v1Beta2Status *infrav1.DockerClusterV1Beta2Status
-	if devCluster.Status.V1Beta2 != nil {
-		v1Beta2Status = &infrav1.DockerClusterV1Beta2Status{
-			Conditions: devCluster.Status.V1Beta2.Conditions,
+	var v1Beta1Status *infrav1.DockerClusterDeprecatedStatus
+	if devCluster.Status.Deprecated != nil && devCluster.Status.Deprecated.V1Beta1 != nil {
+		v1Beta1Status = &infrav1.DockerClusterDeprecatedStatus{
+			V1Beta1: &infrav1.DockerClusterV1Beta1DeprecatedStatus{
+				Conditions: devCluster.Status.Deprecated.V1Beta1.Conditions,
+			},
 		}
 	}
 
@@ -237,5 +241,5 @@ func devClusterToDockerCluster(devCluster *infrav1.DevCluster, dockerCluster *in
 	dockerCluster.Status.Ready = devCluster.Status.Ready
 	dockerCluster.Status.FailureDomains = devCluster.Status.FailureDomains
 	dockerCluster.Status.Conditions = devCluster.Status.Conditions
-	dockerCluster.Status.V1Beta2 = v1Beta2Status
+	dockerCluster.Status.Deprecated = v1Beta1Status
 }

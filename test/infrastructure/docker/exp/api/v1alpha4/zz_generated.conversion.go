@@ -24,6 +24,7 @@ package v1alpha4
 import (
 	unsafe "unsafe"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -264,7 +265,17 @@ func autoConvert_v1alpha4_DockerMachinePoolStatus_To_v1beta2_DockerMachinePoolSt
 	out.Replicas = in.Replicas
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Instances = *(*[]v1beta2.DockerMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
-	out.Conditions = *(*corev1beta2.Conditions)(unsafe.Pointer(&in.Conditions))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			if err := apiv1alpha4.Convert_v1alpha4_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	return nil
 }
 
@@ -274,11 +285,22 @@ func Convert_v1alpha4_DockerMachinePoolStatus_To_v1beta2_DockerMachinePoolStatus
 }
 
 func autoConvert_v1beta2_DockerMachinePoolStatus_To_v1alpha4_DockerMachinePoolStatus(in *v1beta2.DockerMachinePoolStatus, out *DockerMachinePoolStatus, s conversion.Scope) error {
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1alpha4.Conditions, len(*in))
+		for i := range *in {
+			if err := apiv1alpha4.Convert_v1_Condition_To_v1alpha4_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	out.Ready = in.Ready
 	out.Replicas = in.Replicas
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Instances = *(*[]DockerMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
-	out.Conditions = *(*corev1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
 	// WARNING: in.InfrastructureMachineKind requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }

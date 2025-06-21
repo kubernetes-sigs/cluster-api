@@ -182,11 +182,15 @@ func TestReconcileNormalNode(t *testing.T) {
 			},
 		},
 		Status: infrav1.DevMachineStatus{
-			Conditions: []clusterv1.Condition{
-				{
-					Type:               infrav1.VMProvisionedCondition,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: metav1.Now(),
+			Deprecated: &infrav1.DevMachineDeprecatedStatus{
+				V1Beta1: &infrav1.DevMachineV1Beta1DeprecatedStatus{
+					Conditions: []clusterv1.Condition{
+						{
+							Type:               infrav1.VMProvisionedCondition,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: metav1.Now(),
+						},
+					},
 				},
 			},
 		},
@@ -271,11 +275,15 @@ func TestReconcileNormalEtcd(t *testing.T) {
 			Name: "bar0",
 		},
 		Status: infrav1.DevMachineStatus{
-			Conditions: []clusterv1.Condition{
-				{
-					Type:               infrav1.VMProvisionedCondition,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: metav1.Now(),
+			Deprecated: &infrav1.DevMachineDeprecatedStatus{
+				V1Beta1: &infrav1.DevMachineV1Beta1DeprecatedStatus{
+					Conditions: []clusterv1.Condition{
+						{
+							Type:               infrav1.VMProvisionedCondition,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: metav1.Now(),
+						},
+					},
 				},
 			},
 		},
@@ -297,16 +305,20 @@ func TestReconcileNormalEtcd(t *testing.T) {
 			},
 		},
 		Status: infrav1.DevMachineStatus{
-			Conditions: []clusterv1.Condition{
-				{
-					Type:               infrav1.VMProvisionedCondition,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: metav1.Now(),
-				},
-				{
-					Type:               infrav1.NodeProvisionedCondition,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: metav1.Now(),
+			Deprecated: &infrav1.DevMachineDeprecatedStatus{
+				V1Beta1: &infrav1.DevMachineV1Beta1DeprecatedStatus{
+					Conditions: []clusterv1.Condition{
+						{
+							Type:               infrav1.VMProvisionedCondition,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: metav1.Now(),
+						},
+						{
+							Type:               infrav1.NodeProvisionedCondition,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: metav1.Now(),
+						},
+					},
 				},
 			},
 		},
@@ -498,11 +510,15 @@ func TestReconcileNormalApiServer(t *testing.T) {
 			Name: "bar",
 		},
 		Status: infrav1.DevMachineStatus{
-			Conditions: []clusterv1.Condition{
-				{
-					Type:               infrav1.VMProvisionedCondition,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: metav1.Now(),
+			Deprecated: &infrav1.DevMachineDeprecatedStatus{
+				V1Beta1: &infrav1.DevMachineV1Beta1DeprecatedStatus{
+					Conditions: []clusterv1.Condition{
+						{
+							Type:               infrav1.VMProvisionedCondition,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: metav1.Now(),
+						},
+					},
 				},
 			},
 		},
@@ -524,16 +540,20 @@ func TestReconcileNormalApiServer(t *testing.T) {
 			},
 		},
 		Status: infrav1.DevMachineStatus{
-			Conditions: []clusterv1.Condition{
-				{
-					Type:               infrav1.VMProvisionedCondition,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: metav1.Now(),
-				},
-				{
-					Type:               infrav1.NodeProvisionedCondition,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: metav1.Now(),
+			Deprecated: &infrav1.DevMachineDeprecatedStatus{
+				V1Beta1: &infrav1.DevMachineV1Beta1DeprecatedStatus{
+					Conditions: []clusterv1.Condition{
+						{
+							Type:               infrav1.VMProvisionedCondition,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: metav1.Now(),
+						},
+						{
+							Type:               infrav1.NodeProvisionedCondition,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: metav1.Now(),
+						},
+					},
 				},
 			},
 		},
@@ -661,11 +681,15 @@ func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc 
 			Name: "bar",
 		},
 		Status: infrav1.DevMachineStatus{
-			Conditions: []clusterv1.Condition{
-				{
-					Type:               infrav1.APIServerProvisionedCondition,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: metav1.Now(),
+			Deprecated: &infrav1.DevMachineDeprecatedStatus{
+				V1Beta1: &infrav1.DevMachineV1Beta1DeprecatedStatus{
+					Conditions: []clusterv1.Condition{
+						{
+							Type:               infrav1.APIServerProvisionedCondition,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: metav1.Now(),
+						},
+					},
 				},
 			},
 		},

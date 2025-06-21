@@ -332,9 +332,9 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 }
 
 func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *infrav1.DockerMachine) {
-	var v1Beta2Status *infrav1.DockerMachineDeprecatedStatus
+	var v1Beta1Status *infrav1.DockerMachineDeprecatedStatus
 	if devMachine.Status.Deprecated != nil && devMachine.Status.Deprecated.V1Beta1 != nil {
-		v1Beta2Status = &infrav1.DockerMachineDeprecatedStatus{
+		v1Beta1Status = &infrav1.DockerMachineDeprecatedStatus{
 			V1Beta1: &infrav1.DockerMachineV1Beta1DeprecatedStatus{
 				Conditions: devMachine.Status.Deprecated.V1Beta1.Conditions,
 			},
@@ -351,6 +351,6 @@ func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *in
 	dockerMachine.Status.Ready = devMachine.Status.Ready
 	dockerMachine.Status.Addresses = devMachine.Status.Addresses
 	dockerMachine.Status.Conditions = devMachine.Status.Conditions
-	dockerMachine.Status.Deprecated = v1Beta2Status
+	dockerMachine.Status.Deprecated = v1Beta1Status
 	dockerMachine.Status.LoadBalancerConfigured = devMachine.Status.Backend.Docker.LoadBalancerConfigured
 }

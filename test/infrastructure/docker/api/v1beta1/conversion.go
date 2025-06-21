@@ -349,9 +349,11 @@ func Convert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *infr
 // Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)
 
 func Convert_v1beta2_Condition_To_v1_Condition(_ *clusterv1.Condition, _ *metav1.Condition, _ apiconversion.Scope) error {
+	// NOTE: legacy (v1beta1) conditions should not be automatically converted into v1beta2 conditions.
 	return nil
 }
 
 func Convert_v1_Condition_To_v1beta2_Condition(_ *metav1.Condition, _ *clusterv1.Condition, _ apiconversion.Scope) error {
+	// NOTE: v1beta2 conditions should not be automatically converted into legacy (v1beta1) conditions.
 	return nil
 }

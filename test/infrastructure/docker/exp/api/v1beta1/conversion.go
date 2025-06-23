@@ -60,10 +60,8 @@ func (dst *DockerMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	dst.Status.Conditions = nil
-	if src.Status.Deprecated != nil && src.Status.Deprecated.V1Beta1 != nil {
-		if src.Status.Deprecated.V1Beta1.Conditions != nil {
-			dst.Status.Conditions = src.Status.Deprecated.V1Beta1.Conditions
-		}
+	if src.Status.Deprecated != nil && src.Status.Deprecated.V1Beta1 != nil && src.Status.Deprecated.V1Beta1.Conditions != nil {
+		dst.Status.Conditions = src.Status.Deprecated.V1Beta1.Conditions
 	}
 
 	return utilconversion.MarshalData(src, dst)

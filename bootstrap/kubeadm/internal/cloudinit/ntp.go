@@ -21,7 +21,7 @@ const (
 {{- if . }}
 ntp:
   {{ if .Enabled -}}
-  enabled: true
+  enabled: {{ .Enabled }}
   {{ end -}}
   servers:{{ range .Servers }}
     - {{ . }}

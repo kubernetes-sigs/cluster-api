@@ -250,29 +250,29 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding the step counter during the deletion process).
 	v1beta1conditions.SetSummary(dockerMachine,
 		v1beta1conditions.WithConditions(
-			infrav1.ContainerProvisionedCondition,
-			infrav1.BootstrapExecSucceededCondition,
+			infrav1.ContainerProvisionedV1Beta1Condition,
+			infrav1.BootstrapExecSucceededV1Beta1Condition,
 		),
 		v1beta1conditions.WithStepCounterIf(dockerMachine.DeletionTimestamp.IsZero() && dockerMachine.Spec.ProviderID == nil),
 	)
-	if err := conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyV1Beta2Condition,
+	if err := conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyCondition,
 		conditions.ForConditionTypes{
-			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
-			infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
+			infrav1.DevMachineDockerContainerProvisionedCondition,
+			infrav1.DevMachineDockerContainerBootstrapExecSucceededCondition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
 		conditions.CustomMergeStrategy{
 			MergeStrategy: conditions.DefaultMergeStrategy(
 				// Use custom reasons.
 				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
-					infrav1.DevMachineNotReadyV1Beta2Reason,
-					infrav1.DevMachineReadyUnknownV1Beta2Reason,
-					infrav1.DevMachineReadyV1Beta2Reason,
+					infrav1.DevMachineNotReadyReason,
+					infrav1.DevMachineReadyUnknownReason,
+					infrav1.DevMachineReadyReason,
 				)),
 			),
 		},
 	); err != nil {
-		return errors.Wrapf(err, "failed to set %s condition", infrav1.DevMachineReadyV1Beta2Condition)
+		return errors.Wrapf(err, "failed to set %s condition", infrav1.DevMachineReadyCondition)
 	}
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
@@ -281,14 +281,14 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 		dockerMachine,
 		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyV1Beta1Condition,
-			infrav1.ContainerProvisionedCondition,
-			infrav1.BootstrapExecSucceededCondition,
+			infrav1.ContainerProvisionedV1Beta1Condition,
+			infrav1.BootstrapExecSucceededV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedCondition,
-			infrav1.DevMachineReadyV1Beta2Condition,
-			infrav1.DevMachineDockerContainerProvisionedV1Beta2Condition,
-			infrav1.DevMachineDockerContainerBootstrapExecSucceededV1Beta2Condition,
+			infrav1.DevMachineReadyCondition,
+			infrav1.DevMachineDockerContainerProvisionedCondition,
+			infrav1.DevMachineDockerContainerBootstrapExecSucceededCondition,
 		}},
 	)
 }

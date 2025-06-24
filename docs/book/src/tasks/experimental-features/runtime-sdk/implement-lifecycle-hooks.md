@@ -14,8 +14,7 @@ The lifecycle hooks allow hooking into the Cluster lifecycle. The following diag
 
 ![Lifecycle Hooks overview](../../../images/runtime-sdk-lifecycle-hooks.png)
 
-Please see the corresponding [proposal: Runtime hooks for Add-on Management (lifecycle hooks)](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220414-lifecycle-hooks.md) and
-also [proposal: Chained and efficient upgrades for Clusters with managed topologies](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md)]
+Please see the corresponding [CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220414-runtime-hooks.md) 
 for additional background information. 
 
 ## Guidelines
@@ -70,8 +69,6 @@ message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
 
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
 (*) The objects which are part of a Cluster topology are the infrastructure Cluster, the Control Plane, the 
 MachineDeployments and the templates derived from the ClusterClass.
 
@@ -110,8 +107,6 @@ status: Success # or Failure
 message: "error message if status == Failure"
 ```
 
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
 ###  BeforeClusterUpgrade
 
 This hook is called after the Cluster object has been updated with a new `spec.topology.version` by the user, and
@@ -140,17 +135,8 @@ cluster:
    ...
   status:
    ...
-fromKubernetesVersion: "v1.30.0"
-toKubernetesVersion: "v1.33.0"
-upgradePlan:
-  controlPlane:
-  - v1.30.0
-  - v1.31.0
-  - v1.32.3
-  - v1.33.0
-  workers:
-  - v1.32.3
-  - v1.33.0
+fromKubernetesVersion: "v1.21.2"
+toKubernetesVersion: "v1.22.0"
 ```
 
 #### Example Response:
@@ -163,74 +149,16 @@ message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
 
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
 (*) Under normal circumstances `spec.topology.version` gets propagated to the control plane immediately; however 
   if previous upgrades or worker machine rollouts are still in progress, the system waits for those operations 
   to complete before starting the new upgrade.
 
-###  BeforeControlPlaneUpgrade
-
-This hook is called before a new version is propagated to the control plane object. Runtime Extension implementers
-can use this hook to execute pre-upgrade add-on tasks and block upgrades of the ControlPlane.
-
-Note: 
-- When an upgrade is starting, BeforeControlPlaneUpgrade will be called after BeforeClusterUpgrade is completed.
-- When an upgrade is in progress BeforeControlPlaneUpgrade will be called for each intermediate version that will
-  be applied to the control plane (instead BeforeClusterUpgrade will be called only once at the beginning of the upgrade).
-
-#### Example Request:
-
-```yaml
-apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
-kind: BeforeControlPlaneUpgradeRequest
-settings: <Runtime Extension settings>
-cluster:
-  apiVersion: cluster.x-k8s.io/v1beta1
-  kind: Cluster
-  metadata:
-   name: test-cluster
-   namespace: test-ns
-  spec:
-   ...
-  status:
-   ...
-fromKubernetesVersion: "v1.30.0"
-toKubernetesVersion: "v1.33.0"
-upgradePlan:
-  controlPlane:
-  - v1.30.0
-  - v1.31.0
-  - v1.32.3
-  - v1.33.0
-  workers:
-  - v1.32.3
-  - v1.33.0
-```
-
-Note: The upgrade plan in the request contains only missing steps to reach the target version.
-
-#### Example Response:
-
-```yaml
-apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
-kind: BeforeControlPlaneUpgradeResponse
-status: Success # or Failure
-message: "error message if status == Failure"
-retryAfterSeconds: 10
-```
-
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
 ###  AfterControlPlaneUpgrade
 
-This hook is called after the entire control plane has been upgraded to the version specified in `spec.topology.version` 
-or to an intermediate version in the upgrade plan and:
-- if workers upgrade can be skipped for this version, immediately before the next intermediate version is applied to the control plane
-- if workers upgrade must be performed for this version, immediately before the new version is going to be propagated to the MachineDeployments of the Cluster.
-
-Runtime Extension implementers can use this hook to execute post-upgrade add-on tasks and block upgrades to the next
-version of the control plane or to workers until everything is ready.
+This hook is called after the entire control plane has been upgraded to the version specified in `spec.topology.version`,
+and immediately before the new version is going to be propagated to the MachineDeployments of the Cluster. 
+Runtime Extension implementers can use this hook to execute post-upgrade add-on tasks and block upgrades to workers
+until everything is ready.
 
 Note: While the MachineDeployments upgrade is blocked changes made to existing MachineDeployments and creating new MachineDeployments
 will be delayed while the object is waiting for upgrade. Example: modifying MachineDeployments (think scale up),
@@ -254,18 +182,8 @@ cluster:
    ...
   status:
    ...
-kubernetesVersion: "v1.30.0"
-upgradePlan:
-  controlPlane:
-    - v1.31.0
-    - v1.32.3
-    - v1.33.0
-  workers:
-    - v1.32.3
-    - v1.33.0
+kubernetesVersion: "v1.22.0"
 ```
-
-Note: The upgrade plan in the request contains only missing steps to reach the target version, if any.
 
 #### Example Response:
 
@@ -276,113 +194,6 @@ status: Success # or Failure
 message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
-
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
-###  BeforeWorkersUpgrade
-
-This hook is called before a new version is propagated to workers. Runtime Extension implementers
-can use this hook to execute pre-upgrade add-on tasks and block upgrades of Workers.
-
-Note:
-- This hook will be called only if workers upgrade must be performed for an intermediate version of of a chained upgrade
-  or when upgrading to the target `spec.topology.version`.
-
-#### Example Request:
-
-```yaml
-apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
-kind: BeforeWorkersUpgradeRequest
-settings: <Runtime Extension settings>
-cluster:
-  apiVersion: cluster.x-k8s.io/v1beta1
-  kind: Cluster
-  metadata:
-   name: test-cluster
-   namespace: test-ns
-  spec:
-   ...
-  status:
-   ...
-fromKubernetesVersion: "v1.30.0"
-toKubernetesVersion: "v1.33.0"
-upgradePlan:
-  controlPlane:
-  - v1.30.0
-  - v1.31.0
-  - v1.32.3
-  - v1.33.0
-  workers:
-  - v1.32.3
-  - v1.33.0
-```
-
-Note: The upgrade plan in the request contains only missing steps to reach the target version.
-
-#### Example Response:
-
-```yaml
-apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
-kind: BeforeControlPlaneUpgradeResponse
-status: Success # or Failure
-message: "error message if status == Failure"
-retryAfterSeconds: 10
-```
-
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
-###  AfterWorkersUpgrade
-
-This hook is called after all the workers have been upgraded to the version specified in `spec.topology.version`
-or to an intermediate version in the upgrade plan, and:
-- if the upgrade plan is completed and the entire cluster is at `spec.topology.version`, immediately before calling the AfterClusterUpgrade hook
-- if the upgrade plan is not complete and the entire cluster is now at one of the intermediate versions, immediately before calling BeforeControlPlaneUpgrade hook for the next intermediate step
-
-Runtime Extension implementers can use this hook to execute post-upgrade add-on tasks; if the upgrade plan is not completed,
-this hook allows to block upgrades to the next version of the control plane until everything is ready.
-
-#### Example Request:
-
-```yaml
-apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
-kind: AfterWorkersRequest
-settings: <Runtime Extension settings>
-cluster:
-  apiVersion: cluster.x-k8s.io/v1beta1
-  kind: Cluster
-  metadata:
-   name: test-cluster
-   namespace: test-ns
-  spec:
-   ...
-  status:
-   ...
-kubernetesVersion: "v1.30.0"
-upgradePlan:
-  controlPlane:
-    - v1.31.0
-    - v1.32.3
-    - v1.33.0
-  workers:
-    - v1.32.3
-    - v1.33.0
-```
-
-Note: The upgrade plan in the request contains only missing steps to reach the target version, if any.
-
-#### Example Response:
-
-```yaml
-apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
-kind: AfterControlPlaneUpgradeResponse
-status: Success # or Failure
-message: "error message if status == Failure"
-retryAfterSeconds: 10
-```
-
-Note: retryAfterSeconds is ignored when workers version is equal to `spec.topology.version`.
-
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
 
 ###  AfterClusterUpgrade
 
@@ -451,13 +262,3 @@ status: Success # or Failure
 message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
-
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
-<script>
-// openSwaggerUI calculates the absolute URL of the RuntimeSDK YAML file and opens Swagger UI.
-function openSwaggerUI() {
-  var schemaURL = new URL("runtime-sdk-openapi.yaml", document.baseURI).href
-  window.open("https://editor.swagger.io/?url=" + schemaURL)
-}
-</script>

@@ -26,7 +26,7 @@ Additional documentation:
 * Background information:
     * [Runtime SDK CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220221-runtime-SDK.md)
     * [Topology Mutation Hook CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220330-topology-mutation-hook.md)
-    * [Runtime Hooks for Add-on Management CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220414-lifecycle-hooks.md)
+    * [Runtime Hooks for Add-on Management CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220414-runtime-hooks.md)
 * For Runtime Extension developers:
     * [Implementing Runtime Extensions](./implement-extensions.md)
     * [Implementing Lifecycle Hook Extensions](./implement-lifecycle-hooks.md)

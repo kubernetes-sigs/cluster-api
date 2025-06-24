@@ -29,44 +29,44 @@ const (
 	ListenerAnnotationName = "inmemorycluster.infrastructure.cluster.x-k8s.io/listener"
 )
 
-// DevCluster's v1Beta2 conditions that apply to all the supported backends.
+// DevCluster's conditions that apply to all the supported backends.
 
-// DevCluster's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
+// DevCluster's Ready condition and corresponding reasons.
 const (
-	// DevClusterReadyV1Beta2Condition is true if
+	// DevClusterReadyCondition is true if
 	// - The DevCluster's is using a docker backend and LoadBalancerAvailable is true.
-	DevClusterReadyV1Beta2Condition = clusterv1.ReadyCondition
+	DevClusterReadyCondition = clusterv1.ReadyCondition
 
-	// DevClusterReadyV1Beta2Reason surfaces when the DevCluster readiness criteria is met.
-	DevClusterReadyV1Beta2Reason = clusterv1.ReadyReason
+	// DevClusterReadyReason surfaces when the DevCluster readiness criteria is met.
+	DevClusterReadyReason = clusterv1.ReadyReason
 
-	// DevClusterNotReadyV1Beta2Reason surfaces when the DevCluster readiness criteria is not met.
-	DevClusterNotReadyV1Beta2Reason = clusterv1.NotReadyReason
+	// DevClusterNotReadyReason surfaces when the DevCluster readiness criteria is not met.
+	DevClusterNotReadyReason = clusterv1.NotReadyReason
 
-	// DevClusterReadyUnknownV1Beta2Reason surfaces when at least one DevCluster readiness criteria is unknown
+	// DevClusterReadyUnknownReason surfaces when at least one DevCluster readiness criteria is unknown
 	// and no DevCluster readiness criteria is not met.
-	DevClusterReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownReason
+	DevClusterReadyUnknownReason = clusterv1.ReadyUnknownReason
 )
 
-// DevCluster's v1Beta2 conditions that apply to the docker backend.
+// DevCluster's conditions that apply to the docker backend.
 
-// LoadBalancerAvailable condition and corresponding reasons that will be used in v1Beta2 API version for a DevCluster's docker backend.
+// LoadBalancerAvailable condition and corresponding reasons for a DevCluster's docker backend.
 const (
-	// DevClusterDockerLoadBalancerAvailableV1Beta2Condition documents the availability of the container that implements
+	// DevClusterDockerLoadBalancerAvailableCondition documents the availability of the container that implements
 	// the load balancer for a DevCluster's docker backend..
-	DevClusterDockerLoadBalancerAvailableV1Beta2Condition string = "LoadBalancerAvailable"
+	DevClusterDockerLoadBalancerAvailableCondition string = "LoadBalancerAvailable"
 
-	// DevClusterDockerLoadBalancerNotAvailableV1Beta2Reason surfaces when the container that implements
+	// DevClusterDockerLoadBalancerNotAvailableReason surfaces when the container that implements
 	// the load balancer for a DevCluster's docker backend is not available.
-	DevClusterDockerLoadBalancerNotAvailableV1Beta2Reason = clusterv1.NotAvailableReason
+	DevClusterDockerLoadBalancerNotAvailableReason = clusterv1.NotAvailableReason
 
-	// DevClusterDockerLoadBalancerAvailableV1Beta2Reason surfaces when the container that implements
+	// DevClusterDockerLoadBalancerAvailableReason surfaces when the container that implements
 	// the load balancer for a DevCluster's docker backend is available.
-	DevClusterDockerLoadBalancerAvailableV1Beta2Reason = clusterv1.AvailableReason
+	DevClusterDockerLoadBalancerAvailableReason = clusterv1.AvailableReason
 
-	// DevClusterDockerLoadBalancerDeletingV1Beta2Reason surfaces when the container that implements
+	// DevClusterDockerLoadBalancerDeletingReason surfaces when the container that implements
 	// the load balancer for a DevCluster's docker backend is deleting.
-	DevClusterDockerLoadBalancerDeletingV1Beta2Reason = clusterv1.DeletingReason
+	DevClusterDockerLoadBalancerDeletingReason = clusterv1.DeletingReason
 )
 
 // DevClusterSpec defines the desired state of the DevCluster infrastructure.

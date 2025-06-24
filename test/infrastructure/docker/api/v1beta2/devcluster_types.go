@@ -110,6 +110,14 @@ type InMemoryClusterBackendSpec struct{}
 
 // DevClusterStatus defines the observed state of the DevCluster.
 type DevClusterStatus struct {
+	// conditions represents the observations of a DevCluster's current state.
+	// Known condition types are Ready, LoadBalancerAvailable and Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// ready denotes that the dev cluster infrastructure is ready.
 	// +optional
 	Ready bool `json:"ready"`
@@ -119,24 +127,28 @@ type DevClusterStatus struct {
 	// +optional
 	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
 
-	// conditions defines current service state of the DevCluster.
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
-
-	// v1beta2 groups all the fields that will be added or modified in DevCluster's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *DevClusterV1Beta2Status `json:"v1beta2,omitempty"`
+	Deprecated *DevClusterDeprecatedStatus `json:"deprecated,omitempty"`
 }
 
-// DevClusterV1Beta2Status groups all the fields that will be added or modified in DevCluster with the V1Beta2 version.
+// DevClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type DevClusterV1Beta2Status struct {
-	// conditions represents the observations of a DevCluster's current state.
+type DevClusterDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
 	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	V1Beta1 *DevClusterV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// DevClusterV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type DevClusterV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the DevCluster.
+	//
+	// +optional
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 is dropped.
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:resource:path=devclusters,scope=Namespaced,categories=cluster-api
@@ -157,28 +169,31 @@ type DevCluster struct {
 
 // GetV1Beta1Conditions returns the set of conditions for this object.
 func (c *DevCluster) GetV1Beta1Conditions() clusterv1.Conditions {
-	return c.Status.Conditions
+	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
+		return nil
+	}
+	return c.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetV1Beta1Conditions sets the conditions on this object.
 func (c *DevCluster) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
-	c.Status.Conditions = conditions
+	if c.Status.Deprecated == nil {
+		c.Status.Deprecated = &DevClusterDeprecatedStatus{}
+	}
+	if c.Status.Deprecated.V1Beta1 == nil {
+		c.Status.Deprecated.V1Beta1 = &DevClusterV1Beta1DeprecatedStatus{}
+	}
+	c.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
 // GetConditions returns the set of conditions for this object.
 func (c *DevCluster) GetConditions() []metav1.Condition {
-	if c.Status.V1Beta2 == nil {
-		return nil
-	}
-	return c.Status.V1Beta2.Conditions
+	return c.Status.Conditions
 }
 
 // SetConditions sets conditions for an API object.
 func (c *DevCluster) SetConditions(conditions []metav1.Condition) {
-	if c.Status.V1Beta2 == nil {
-		c.Status.V1Beta2 = &DevClusterV1Beta2Status{}
-	}
-	c.Status.V1Beta2.Conditions = conditions
+	c.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

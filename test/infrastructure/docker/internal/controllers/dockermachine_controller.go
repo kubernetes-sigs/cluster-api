@@ -294,10 +294,12 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 }
 
 func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.DevMachine {
-	var v1Beta2Status *infrav1.DevMachineV1Beta2Status
-	if dockerMachine.Status.V1Beta2 != nil {
-		v1Beta2Status = &infrav1.DevMachineV1Beta2Status{
-			Conditions: dockerMachine.Status.V1Beta2.Conditions,
+	var v1Beta1Status *infrav1.DevMachineDeprecatedStatus
+	if dockerMachine.Status.Deprecated != nil && dockerMachine.Status.Deprecated.V1Beta1 != nil {
+		v1Beta1Status = &infrav1.DevMachineDeprecatedStatus{
+			V1Beta1: &infrav1.DevMachineV1Beta1DeprecatedStatus{
+				Conditions: dockerMachine.Status.Deprecated.V1Beta1.Conditions,
+			},
 		}
 	}
 
@@ -319,7 +321,7 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 			Ready:      dockerMachine.Status.Ready,
 			Addresses:  dockerMachine.Status.Addresses,
 			Conditions: dockerMachine.Status.Conditions,
-			V1Beta2:    v1Beta2Status,
+			Deprecated: v1Beta1Status,
 			Backend: &infrav1.DevMachineBackendStatus{
 				Docker: &infrav1.DockerMachineBackendStatus{
 					LoadBalancerConfigured: dockerMachine.Status.LoadBalancerConfigured,
@@ -330,10 +332,12 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 }
 
 func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *infrav1.DockerMachine) {
-	var v1Beta2Status *infrav1.DockerMachineV1Beta2Status
-	if devMachine.Status.V1Beta2 != nil {
-		v1Beta2Status = &infrav1.DockerMachineV1Beta2Status{
-			Conditions: devMachine.Status.V1Beta2.Conditions,
+	var v1Beta1Status *infrav1.DockerMachineDeprecatedStatus
+	if devMachine.Status.Deprecated != nil && devMachine.Status.Deprecated.V1Beta1 != nil {
+		v1Beta1Status = &infrav1.DockerMachineDeprecatedStatus{
+			V1Beta1: &infrav1.DockerMachineV1Beta1DeprecatedStatus{
+				Conditions: devMachine.Status.Deprecated.V1Beta1.Conditions,
+			},
 		}
 	}
 
@@ -347,6 +351,6 @@ func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *in
 	dockerMachine.Status.Ready = devMachine.Status.Ready
 	dockerMachine.Status.Addresses = devMachine.Status.Addresses
 	dockerMachine.Status.Conditions = devMachine.Status.Conditions
-	dockerMachine.Status.V1Beta2 = v1Beta2Status
+	dockerMachine.Status.Deprecated = v1Beta1Status
 	dockerMachine.Status.LoadBalancerConfigured = devMachine.Status.Backend.Docker.LoadBalancerConfigured
 }

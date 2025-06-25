@@ -99,6 +99,9 @@ Cluster API Provider Outscale
 ### CAPOCI
 Cluster API Provider Oracle Cloud Infrastructure (OCI)
 
+### CAPS
+Cluster API Provider Scaleway
+
 ### CAPT
 Cluster API Provider Tinkerbell
 

@@ -18,7 +18,6 @@ package crdmigrator
 
 import (
 	"context"
-	"fmt"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
@@ -29,7 +28,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
@@ -38,14 +36,12 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -59,6 +55,7 @@ import (
 )
 
 func TestReconcile(t *testing.T) {
+	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	crdName := "testclusters.test.cluster.x-k8s.io"
 	crdObjectKey := client.ObjectKey{Name: crdName}
 
@@ -170,7 +167,7 @@ func TestReconcile(t *testing.T) {
 			}()
 
 			t.Logf("T1: Install CRDs")
-			g.Expect(installCRDs(ctx, env.GetClient(), "test/t1/crd")).To(Succeed())
+			g.Expect(env.ApplyCRDs(ctx, filepath.Join(path.Dir(filename), "..", "..", "controllers", "crdmigrator", "test", "t1", "crd"))).To(Succeed())
 			validateStoredVersions(t, g, crdObjectKey, "v1beta1")
 
 			t.Logf("T1: Start Manager")
@@ -211,7 +208,7 @@ func TestReconcile(t *testing.T) {
 			stopManager(cancelManager, managerStopped)
 
 			t.Logf("T2: Install CRDs")
-			g.Expect(installCRDs(ctx, env.GetClient(), "test/t2/crd")).To(Succeed())
+			g.Expect(env.ApplyCRDs(ctx, filepath.Join(path.Dir(filename), "..", "..", "controllers", "crdmigrator", "test", "t2", "crd"))).To(Succeed())
 			validateStoredVersions(t, g, crdObjectKey, "v1beta1", "v1beta2")
 
 			t.Logf("T2: Start Manager")
@@ -245,7 +242,7 @@ func TestReconcile(t *testing.T) {
 			stopManager(cancelManager, managerStopped)
 
 			t.Logf("T3: Install CRDs")
-			g.Expect(installCRDs(ctx, env.GetClient(), "test/t3/crd")).To(Succeed())
+			g.Expect(env.ApplyCRDs(ctx, filepath.Join(path.Dir(filename), "..", "..", "controllers", "crdmigrator", "test", "t3", "crd"))).To(Succeed())
 			// Stored versions didn't change.
 			if skipCRDMigrationPhases.Has(StorageVersionMigrationPhase) {
 				validateStoredVersions(t, g, crdObjectKey, "v1beta1", "v1beta2")
@@ -284,7 +281,7 @@ func TestReconcile(t *testing.T) {
 			stopManager(cancelManager, managerStopped)
 
 			t.Logf("T4: Install CRDs")
-			err = installCRDs(ctx, env.GetClient(), "test/t4/crd")
+			err = env.ApplyCRDs(ctx, filepath.Join(path.Dir(filename), "..", "..", "controllers", "crdmigrator", "test", "t4", "crd"))
 			if skipCRDMigrationPhases.Has(StorageVersionMigrationPhase) {
 				// If storage version migration was skipped before, we now cannot deploy CRDs that remove v1beta1.
 				g.Expect(err).To(HaveOccurred())
@@ -487,65 +484,6 @@ func startManager(ctx context.Context, mgr manager.Manager) (context.CancelFunc,
 func stopManager(cancelManager context.CancelFunc, managerStopped chan struct{}) {
 	cancelManager()
 	<-managerStopped
-}
-
-func installCRDs(ctx context.Context, c client.Client, crdPath string) error {
-	// Get the root of the current file to use in CRD paths.
-	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
-
-	installOpts := envtest.CRDInstallOptions{
-		Scheme:       env.GetScheme(),
-		MaxTime:      10 * time.Second,
-		PollInterval: 100 * time.Millisecond,
-		Paths: []string{
-			filepath.Join(path.Dir(filename), "..", "..", "controllers", "crdmigrator", crdPath),
-		},
-		ErrorIfPathMissing: true,
-	}
-
-	// Read the CRD YAMLs into options.CRDs.
-	if err := envtest.ReadCRDFiles(&installOpts); err != nil {
-		return fmt.Errorf("unable to read CRD files: %w", err)
-	}
-
-	// Apply the CRDs.
-	if err := applyCRDs(ctx, c, installOpts.CRDs); err != nil {
-		return fmt.Errorf("unable to create CRD instances: %w", err)
-	}
-
-	// Wait for the CRDs to appear in discovery.
-	if err := envtest.WaitForCRDs(env.GetConfig(), installOpts.CRDs, installOpts); err != nil {
-		return fmt.Errorf("something went wrong waiting for CRDs to appear as API resources: %w", err)
-	}
-
-	return nil
-}
-
-func applyCRDs(ctx context.Context, c client.Client, crds []*apiextensionsv1.CustomResourceDefinition) error {
-	for _, crd := range crds {
-		existingCrd := crd.DeepCopy()
-		err := c.Get(ctx, client.ObjectKey{Name: crd.GetName()}, existingCrd)
-		switch {
-		case apierrors.IsNotFound(err):
-			if err := c.Create(ctx, crd); err != nil {
-				return fmt.Errorf("unable to create CRD %s: %w", crd.GetName(), err)
-			}
-		case err != nil:
-			return fmt.Errorf("unable to get CRD %s to check if it exists: %w", crd.GetName(), err)
-		default:
-			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-				if err := c.Get(ctx, client.ObjectKey{Name: crd.GetName()}, existingCrd); err != nil {
-					return err
-				}
-				// Note: Intentionally only overwriting spec and thus preserving metadata labels, annotations, etc.
-				existingCrd.Spec = crd.Spec
-				return c.Update(ctx, existingCrd)
-			}); err != nil {
-				return fmt.Errorf("unable to update CRD %s: %w", crd.GetName(), err)
-			}
-		}
-	}
-	return nil
 }
 
 type noopWebhookServer struct {

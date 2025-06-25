@@ -308,6 +308,14 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		crd:crdVersions=v1 \
 		output:crd:dir=./util/test/builder/crd
 	$(CONTROLLER_GEN) \
+		paths=./internal/topology/upgrade/test/t1/... \
+		crd:crdVersions=v1 \
+		output:crd:dir=./internal/topology/upgrade/test/t1/crd
+	$(CONTROLLER_GEN) \
+		paths=./internal/topology/upgrade/test/t2/... \
+		crd:crdVersions=v1 \
+		output:crd:dir=./internal/topology/upgrade/test/t2/crd
+	$(CONTROLLER_GEN) \
 		paths=./controllers/crdmigrator/test/t1/... \
 		crd:crdVersions=v1 \
 		output:crd:dir=./controllers/crdmigrator/test/t1/crd
@@ -403,6 +411,7 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 		paths=./internal/runtime/test/... \
 		paths=./cmd/clusterctl/... \
 		paths=./util/test/builder/... \
+		paths=./internal/topology/upgrade/test/... \
 		paths=./util/deprecated/v1beta1/test/builder/... \
 		paths=./controllers/crdmigrator/test/...
 
@@ -454,13 +463,14 @@ generate-go-conversions-core: ## Run all generate-go-conversions-core-* targets
 
 .PHONY: generate-go-conversions-core-api
 generate-go-conversions-core-api: $(CONVERSION_GEN) ## Generate conversions go code for core api
-	$(MAKE) clean-generated-conversions SRC_DIRS="./api/core/v1beta1,./internal/api/core/v1alpha3,./internal/api/core/v1alpha4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/core/v1beta1,./internal/api/core/v1alpha3,./internal/api/core/v1alpha4,./internal/topology/upgrade/test/t2/v1beta1"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/api/core/v1alpha3 \
 		./internal/api/core/v1alpha4 \
-		./api/core/v1beta1
+		./api/core/v1beta1 \
+		./internal/topology/upgrade/test/t2/v1beta1
 
 .PHONY: generate-go-conversions-addons-api
 generate-go-conversions-addons-api: $(CONVERSION_GEN) ## Generate conversions go code for addons api

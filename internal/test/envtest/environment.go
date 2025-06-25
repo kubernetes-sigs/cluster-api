@@ -44,6 +44,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
@@ -616,5 +617,62 @@ func verifyPanicMetrics() error {
 		return kerrors.NewAggregate(errs)
 	}
 
+	return nil
+}
+
+// ApplyCRDs allows you to add or replace CRDs after test env has been started.
+func (e *Environment) ApplyCRDs(ctx context.Context, crdPath string) error {
+	installOpts := envtest.CRDInstallOptions{
+		Scheme:       e.GetScheme(),
+		MaxTime:      10 * time.Second,
+		PollInterval: 100 * time.Millisecond,
+		Paths: []string{
+			crdPath,
+		},
+		ErrorIfPathMissing: true,
+	}
+
+	// Read the CRD YAMLs into options.CRDs.
+	if err := envtest.ReadCRDFiles(&installOpts); err != nil {
+		return fmt.Errorf("unable to read CRD files: %w", err)
+	}
+
+	// Apply the CRDs.
+	if err := applyCRDs(ctx, e.GetClient(), installOpts.CRDs); err != nil {
+		return fmt.Errorf("unable to create CRD instances: %w", err)
+	}
+
+	// Wait for the CRDs to appear in discovery.
+	if err := envtest.WaitForCRDs(e.GetConfig(), installOpts.CRDs, installOpts); err != nil {
+		return fmt.Errorf("something went wrong waiting for CRDs to appear as API resources: %w", err)
+	}
+
+	return nil
+}
+
+func applyCRDs(ctx context.Context, c client.Client, crds []*apiextensionsv1.CustomResourceDefinition) error {
+	for _, crd := range crds {
+		existingCrd := crd.DeepCopy()
+		err := c.Get(ctx, client.ObjectKey{Name: crd.GetName()}, existingCrd)
+		switch {
+		case apierrors.IsNotFound(err):
+			if err := c.Create(ctx, crd); err != nil {
+				return fmt.Errorf("unable to create CRD %s: %w", crd.GetName(), err)
+			}
+		case err != nil:
+			return fmt.Errorf("unable to get CRD %s to check if it exists: %w", crd.GetName(), err)
+		default:
+			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+				if err := c.Get(ctx, client.ObjectKey{Name: crd.GetName()}, existingCrd); err != nil {
+					return err
+				}
+				// Note: Intentionally only overwriting spec and thus preserving metadata labels, annotations, etc.
+				existingCrd.Spec = crd.Spec
+				return c.Update(ctx, existingCrd)
+			}); err != nil {
+				return fmt.Errorf("unable to update CRD %s: %w", crd.GetName(), err)
+			}
+		}
+	}
 	return nil
 }

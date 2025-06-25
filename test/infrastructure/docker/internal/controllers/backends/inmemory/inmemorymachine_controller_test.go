@@ -75,12 +75,32 @@ var (
 )
 
 func updateNodeProvisionedTime(machine *infrav1.DevMachine) {
+	klog.Infof("DEBUG: machineName: %s", machine.Name)
+
+	// current status structure
 	for i := range machine.Status.Conditions {
+		klog.Infof("DEBUG: current status structure, found %d conditions", len(machine.Status.Conditions))
 		if machine.Status.Conditions[i].Type == string(infrav1.NodeProvisionedCondition) {
+			klog.Infof("DEBUG: NodeProvisionedCondition in current status structure, updating LastTransitionTime")
 			machine.Status.Conditions[i].LastTransitionTime = metav1.Now()
-			break
+			return
 		}
 	}
+
+	// deprecated status structure
+	if machine.Status.Deprecated != nil && machine.Status.Deprecated.V1Beta1 != nil {
+		klog.Infof("DEBUG: deprecated status structure, found %d conditions", len(machine.Status.Deprecated.V1Beta1.Conditions))
+		for i := range machine.Status.Deprecated.V1Beta1.Conditions {
+			klog.Infof("DEBUG: Checking condition type: %s", machine.Status.Deprecated.V1Beta1.Conditions[i].Type)
+			if machine.Status.Deprecated.V1Beta1.Conditions[i].Type == infrav1.NodeProvisionedCondition {
+				klog.Infof("DEBUG: NodeProvisionedCondition in deprecated status structure, updating LastTransitionTime")
+				machine.Status.Deprecated.V1Beta1.Conditions[i].LastTransitionTime = metav1.Now()
+				return
+			}
+		}
+	}
+
+	klog.Infof("DEBUG: NodeProvisionedCondition not found in status structure for machine %s", machine.Name)
 }
 
 func init() {

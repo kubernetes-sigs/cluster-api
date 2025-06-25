@@ -19,7 +19,7 @@ package v1beta1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
 
@@ -81,7 +81,7 @@ type DockerMachinePoolStatus struct {
 
 	// Conditions defines current service state of the DockerMachinePool.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// InfrastructureMachineKind is the kind of the infrastructure resources behind MachinePool Machines.
 	// +optional
@@ -92,7 +92,7 @@ type DockerMachinePoolStatus struct {
 type DockerMachinePoolInstanceStatus struct {
 	// Addresses contains the associated addresses for the docker machine.
 	// +optional
-	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
+	Addresses []clusterv1beta1.MachineAddress `json:"addresses,omitempty"`
 
 	// InstanceName is the identification of the Machine Instance within the Machine Pool
 	InstanceName string `json:"instanceName,omitempty"`
@@ -134,12 +134,12 @@ type DockerMachinePool struct {
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.
-func (d *DockerMachinePool) GetV1Beta1Conditions() clusterv1.Conditions {
+func (d *DockerMachinePool) GetV1Beta1Conditions() clusterv1beta1.Conditions {
 	return d.Status.Conditions
 }
 
 // SetV1Beta1Conditions sets the conditions on this object.
-func (d *DockerMachinePool) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
+func (d *DockerMachinePool) SetV1Beta1Conditions(conditions clusterv1beta1.Conditions) {
 	d.Status.Conditions = conditions
 }
 

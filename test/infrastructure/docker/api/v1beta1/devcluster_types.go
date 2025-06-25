@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -35,17 +34,17 @@ const (
 const (
 	// DevClusterReadyV1Beta2Condition is true if
 	// - The DevCluster's is using a docker backend and LoadBalancerAvailable is true.
-	DevClusterReadyV1Beta2Condition = clusterv1.ReadyCondition
+	DevClusterReadyV1Beta2Condition = clusterv1beta1.ReadyV1Beta2Condition
 
 	// DevClusterReadyV1Beta2Reason surfaces when the DevCluster readiness criteria is met.
-	DevClusterReadyV1Beta2Reason = clusterv1.ReadyReason
+	DevClusterReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
 
 	// DevClusterNotReadyV1Beta2Reason surfaces when the DevCluster readiness criteria is not met.
-	DevClusterNotReadyV1Beta2Reason = clusterv1.NotReadyReason
+	DevClusterNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
 
 	// DevClusterReadyUnknownV1Beta2Reason surfaces when at least one DevCluster readiness criteria is unknown
 	// and no DevCluster readiness criteria is not met.
-	DevClusterReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownReason
+	DevClusterReadyUnknownV1Beta2Reason = clusterv1beta1.ReadyUnknownV1Beta2Reason
 )
 
 // DevCluster's v1Beta2 conditions that apply to the docker backend.
@@ -58,15 +57,15 @@ const (
 
 	// DevClusterDockerLoadBalancerNotAvailableV1Beta2Reason surfaces when the container that implements
 	// the load balancer for a DevCluster's docker backend is not available.
-	DevClusterDockerLoadBalancerNotAvailableV1Beta2Reason = clusterv1.NotAvailableReason
+	DevClusterDockerLoadBalancerNotAvailableV1Beta2Reason = clusterv1beta1.NotAvailableV1Beta2Reason
 
 	// DevClusterDockerLoadBalancerAvailableV1Beta2Reason surfaces when the container that implements
 	// the load balancer for a DevCluster's docker backend is available.
-	DevClusterDockerLoadBalancerAvailableV1Beta2Reason = clusterv1.AvailableReason
+	DevClusterDockerLoadBalancerAvailableV1Beta2Reason = clusterv1beta1.AvailableV1Beta2Reason
 
 	// DevClusterDockerLoadBalancerDeletingV1Beta2Reason surfaces when the container that implements
 	// the load balancer for a DevCluster's docker backend is deleting.
-	DevClusterDockerLoadBalancerDeletingV1Beta2Reason = clusterv1.DeletingReason
+	DevClusterDockerLoadBalancerDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
 )
 
 // DevClusterSpec defines the desired state of the DevCluster infrastructure.
@@ -121,7 +120,7 @@ type DevClusterStatus struct {
 
 	// conditions defines current service state of the DevCluster.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in DevCluster's status with the V1Beta2 version.
 	// +optional
@@ -156,12 +155,12 @@ type DevCluster struct {
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.
-func (c *DevCluster) GetV1Beta1Conditions() clusterv1.Conditions {
+func (c *DevCluster) GetV1Beta1Conditions() clusterv1beta1.Conditions {
 	return c.Status.Conditions
 }
 
 // SetV1Beta1Conditions sets the conditions on this object.
-func (c *DevCluster) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
+func (c *DevCluster) SetV1Beta1Conditions(conditions clusterv1beta1.Conditions) {
 	c.Status.Conditions = conditions
 }
 

@@ -21,7 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -95,7 +94,7 @@ type DockerClusterStatus struct {
 
 	// Conditions defines current service state of the DockerCluster.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in DockerCluster's's status with the V1Beta2 version.
 	// +optional
@@ -141,12 +140,12 @@ type DockerCluster struct {
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.
-func (c *DockerCluster) GetV1Beta1Conditions() clusterv1.Conditions {
+func (c *DockerCluster) GetV1Beta1Conditions() clusterv1beta1.Conditions {
 	return c.Status.Conditions
 }
 
 // SetV1Beta1Conditions sets the conditions on this object.
-func (c *DockerCluster) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
+func (c *DockerCluster) SetV1Beta1Conditions(conditions clusterv1beta1.Conditions) {
 	c.Status.Conditions = conditions
 }
 

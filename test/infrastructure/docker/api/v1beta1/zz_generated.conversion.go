@@ -490,8 +490,13 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1.Condition)(nil), (*corev1beta2.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1_Condition_To_v1beta2_Condition(a.(*v1.Condition), b.(*corev1beta2.Condition), scope)
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*corev1beta1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1beta1_Condition(a.(*v1.Condition), b.(*corev1beta1.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*corev1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Condition_To_v1_Condition(a.(*corev1beta1.Condition), b.(*v1.Condition), scope)
 	}); err != nil {
 		return err
 	}
@@ -517,11 +522,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*corev1beta1.ObjectMeta)(nil), (*corev1beta2.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(a.(*corev1beta1.ObjectMeta), b.(*corev1beta2.ObjectMeta), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*corev1beta2.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Condition_To_v1_Condition(a.(*corev1beta2.Condition), b.(*v1.Condition), scope)
 	}); err != nil {
 		return err
 	}
@@ -730,7 +730,7 @@ func autoConvert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevClu
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta2_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -744,9 +744,9 @@ func autoConvert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevClu
 func autoConvert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in *v1beta2.DevClusterStatus, out *DevClusterStatus, s conversion.Scope) error {
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(corev1beta2.Conditions, len(*in))
+		*out = make(corev1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := Convert_v1_Condition_To_v1beta2_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1030,7 +1030,7 @@ func autoConvert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in *DevMac
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta2_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1045,9 +1045,9 @@ func autoConvert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in *DevMac
 func autoConvert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *v1beta2.DevMachineStatus, out *DevMachineStatus, s conversion.Scope) error {
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(corev1beta2.Conditions, len(*in))
+		*out = make(corev1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := Convert_v1_Condition_To_v1beta2_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1055,7 +1055,7 @@ func autoConvert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *v1beta
 		out.Conditions = nil
 	}
 	out.Ready = in.Ready
-	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.Backend = (*DevMachineBackendStatus)(unsafe.Pointer(in.Backend))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
@@ -1322,7 +1322,7 @@ func autoConvert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta2_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1336,9 +1336,9 @@ func autoConvert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *
 func autoConvert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *v1beta2.DockerClusterStatus, out *DockerClusterStatus, s conversion.Scope) error {
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(corev1beta2.Conditions, len(*in))
+		*out = make(corev1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := Convert_v1_Condition_To_v1beta2_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1659,7 +1659,7 @@ func autoConvert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta2_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1673,9 +1673,9 @@ func autoConvert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *
 func autoConvert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *v1beta2.DockerMachineStatus, out *DockerMachineStatus, s conversion.Scope) error {
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(corev1beta2.Conditions, len(*in))
+		*out = make(corev1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := Convert_v1_Condition_To_v1beta2_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1684,7 +1684,7 @@ func autoConvert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *
 	}
 	out.Ready = in.Ready
 	out.LoadBalancerConfigured = in.LoadBalancerConfigured
-	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }

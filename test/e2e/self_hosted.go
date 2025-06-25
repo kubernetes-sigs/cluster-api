@@ -245,6 +245,14 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			return selfHostedClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 		}, "5s", "100ms").Should(BeNil(), "Failed to assert self-hosted API server stability")
 
+		By("Ensure all machines have NodeRef before doing move")
+		// Ensure all machines have NodeRef before attempting to move.
+		// This prevents clusterctl move failures when machines are still provisioning.
+		framework.WaitForClusterMachineNodeRefs(ctx, framework.WaitForClusterMachineNodeRefsInput{
+			GetLister: input.BootstrapClusterProxy.GetClient(),
+			Cluster:   cluster,
+		}, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...)
+
 		// Get the machines of the workloadCluster before it is moved to become self-hosted to make sure that the move did not trigger
 		// any unexpected rollouts.
 		preMoveMachineList := &unstructured.UnstructuredList{}
@@ -446,6 +454,14 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				kubeSystem := &corev1.Namespace{}
 				return selfHostedClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 			}, "5s", "100ms").Should(BeNil(), "Failed to assert self-hosted API server stability")
+
+			By("Ensure all machines have NodeRef before doing move back")
+			// Ensure all machines have NodeRef before attempting to move back to bootstrap.
+			// This prevents clusterctl move failures when machines are still provisioning.
+			framework.WaitForClusterMachineNodeRefs(ctx, framework.WaitForClusterMachineNodeRefsInput{
+				GetLister: selfHostedClusterProxy.GetClient(),
+				Cluster:   selfHostedCluster,
+			}, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...)
 
 			By("Moving the cluster back to bootstrap")
 			clusterctl.Move(ctx, clusterctl.MoveInput{

@@ -155,27 +155,27 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding it during the deletion process).
 	v1beta1conditions.SetSummary(dockerCluster,
 		v1beta1conditions.WithConditions(
-			infrav1.LoadBalancerAvailableCondition,
+			infrav1.LoadBalancerAvailableV1Beta1Condition,
 		),
 		v1beta1conditions.WithStepCounterIf(dockerCluster.DeletionTimestamp.IsZero()),
 	)
-	if err := conditions.SetSummaryCondition(dockerCluster, dockerCluster, infrav1.DevClusterReadyV1Beta2Condition,
+	if err := conditions.SetSummaryCondition(dockerCluster, dockerCluster, infrav1.DevClusterReadyCondition,
 		conditions.ForConditionTypes{
-			infrav1.DevClusterDockerLoadBalancerAvailableV1Beta2Condition,
+			infrav1.DevClusterDockerLoadBalancerAvailableCondition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
 		conditions.CustomMergeStrategy{
 			MergeStrategy: conditions.DefaultMergeStrategy(
 				// Use custom reasons.
 				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
-					infrav1.DevClusterNotReadyV1Beta2Reason,
-					infrav1.DevClusterReadyUnknownV1Beta2Reason,
-					infrav1.DevClusterReadyV1Beta2Reason,
+					infrav1.DevClusterNotReadyReason,
+					infrav1.DevClusterReadyUnknownReason,
+					infrav1.DevClusterReadyReason,
 				)),
 			),
 		},
 	); err != nil {
-		return errors.Wrapf(err, "failed to set %s condition", infrav1.DevClusterReadyV1Beta2Condition)
+		return errors.Wrapf(err, "failed to set %s condition", infrav1.DevClusterReadyCondition)
 	}
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
@@ -184,12 +184,12 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 		dockerCluster,
 		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyV1Beta1Condition,
-			infrav1.LoadBalancerAvailableCondition,
+			infrav1.LoadBalancerAvailableV1Beta1Condition,
 		}},
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedCondition,
-			infrav1.DevClusterReadyV1Beta2Condition,
-			infrav1.DevClusterDockerLoadBalancerAvailableV1Beta2Condition,
+			infrav1.DevClusterReadyCondition,
+			infrav1.DevClusterDockerLoadBalancerAvailableCondition,
 		}},
 	)
 }

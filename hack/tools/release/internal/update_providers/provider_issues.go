@@ -75,7 +75,7 @@ type IssueResponse struct {
 // releaseDetails is the struct for the release details.
 type releaseDetails struct {
 	ReleaseTag       string
-	BetaTag          string
+	PreReleaseTag    string
 	ReleaseLink      string
 	ReleaseDate      string
 	ReleaseNotesLink string
@@ -83,7 +83,9 @@ type releaseDetails struct {
 
 // Example command:
 //
+//	GITHUB_ISSUE_OPENER_TOKEN="fake" RELEASE_TAG="v1.6.0-alpha.0" RELEASE_DATE="2023-11-28" PROVIDER_ISSUES_DRY_RUN="true" make release-provider-issues-tool
 //	GITHUB_ISSUE_OPENER_TOKEN="fake" RELEASE_TAG="v1.6.0-beta.0" RELEASE_DATE="2023-11-28" PROVIDER_ISSUES_DRY_RUN="true" make release-provider-issues-tool
+//	GITHUB_ISSUE_OPENER_TOKEN="fake" RELEASE_TAG="v1.6.0-rc.0" RELEASE_DATE="2023-11-28" PROVIDER_ISSUES_DRY_RUN="true" make release-provider-issues-tool
 func main() {
 	githubToken, keySet := os.LookupEnv("GITHUB_ISSUE_OPENER_TOKEN")
 	if !keySet || githubToken == "" {
@@ -264,11 +266,11 @@ func getReleaseDetails() (releaseDetails, error) {
 		return releaseDetails{}, errors.New("release tag is a required. Refer to README.md in folder for more information")
 	}
 
-	// allow patterns like v1.7.0-beta.0
-	pattern := `^v\d+\.\d+\.\d+-beta\.\d+$`
+	// allow patterns like v1.7.0-alpha.0, v1.7.0-beta.0, v1.7.0-rc.0
+	pattern := `^v\d+\.\d+\.\d+-(alpha|beta|rc)\.\d+$`
 	match, err := regexp.MatchString(pattern, releaseSemVer)
 	if err != nil || !match {
-		return releaseDetails{}, errors.New("release tag must be in format `^v\\d+\\.\\d+\\.\\d+-beta\\.\\d+$` e.g. v1.7.0-beta.0")
+		return releaseDetails{}, errors.New("release tag must be in format `^v\\d+\\.\\d+\\.\\d+-(alpha|beta|rc)\\.\\d+$` e.g. v1.7.0-beta.0")
 	}
 
 	major, minor, patch := "", "", ""
@@ -296,14 +298,13 @@ func getReleaseDetails() (releaseDetails, error) {
 
 	majorMinorWithoutPrefixV := fmt.Sprintf("%s.%s", major, minor) // e.g. 1.7 . Note that there is no "v" in the majorMinor
 	releaseTag := fmt.Sprintf("v%s.%s.%s", major, minor, patch)    // e.g. v1.7.0
-	betaTag := fmt.Sprintf("%s%s", releaseTag, "-beta.0")          // e.g. v1.7.0-beta.0
 	releaseLink := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-%s.md#timeline", majorMinorWithoutPrefixV)
-	releaseNotesLink := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/releases/tag/%s", betaTag)
+	releaseNotesLink := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/releases/tag/%s", releaseSemVer)
 
 	return releaseDetails{
 		ReleaseDate:      formattedReleaseDate,
 		ReleaseTag:       releaseTag,
-		BetaTag:          betaTag,
+		PreReleaseTag:    releaseSemVer,
 		ReleaseLink:      releaseLink,
 		ReleaseNotesLink: releaseNotesLink,
 	}, nil
@@ -339,13 +340,13 @@ func formatDate(inputDate string) (string, error) {
 func getIssueBody() *template.Template {
 	// do not indent the body
 	// indenting the body will result in the body being posted as a code snippet
-	issueBody, err := template.New("issue").Parse(`CAPI {{.BetaTag}} has been released and is ready for testing.
+	issueBody, err := template.New("issue").Parse(`CAPI {{.PreReleaseTag}} has been released and is ready for testing.
 Looking forward to your feedback before {{.ReleaseTag}} release!
 
 ## For quick reference
 
 <!-- body -->
-- [CAPI {{.BetaTag}} release notes]({{.ReleaseNotesLink}})
+- [CAPI {{.PreReleaseTag}} release notes]({{.ReleaseNotesLink}})
 - [Shortcut to CAPI git issues](https://github.com/kubernetes-sigs/cluster-api/issues)
 
 ## Following are the planned dates for the upcoming releases
@@ -365,7 +366,7 @@ More details of the upcoming schedule can be seen at [CAPI {{.ReleaseTag}} relea
 
 // getIssueTitle returns the issue title template.
 func getIssueTitle() *template.Template {
-	issueTitle, err := template.New("title").Parse(`CAPI {{.BetaTag}} has been released and is ready for testing`)
+	issueTitle, err := template.New("title").Parse(`CAPI {{.PreReleaseTag}} has been released and is ready for testing`)
 	if err != nil {
 		panic(err)
 	}

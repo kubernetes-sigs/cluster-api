@@ -125,7 +125,7 @@ func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clus
 
 	allMachinesCount := mdutil.GetReplicaCountForMachineSets(allMSs)
 	log.V(4).Info("New MachineSet has available machines",
-		"machineset", client.ObjectKeyFromObject(newMS).String(), "available-replicas", newMS.Status.AvailableReplicas)
+		"machineset", client.ObjectKeyFromObject(newMS).String(), "available-replicas", ptr.Deref(newMS.Status.AvailableReplicas, 0))
 	maxUnavailable := mdutil.MaxUnavailable(*deployment)
 
 	// Check if we can scale down. We can scale down in the following 2 cases:

@@ -134,10 +134,10 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 		}
 
 		if replicas, err := contract.ControlPlane().Replicas().Get(controlPlane); err == nil && replicas != nil {
-			cluster.Status.ControlPlane.DesiredReplicas = ptr.To(*replicas)
+			cluster.Status.ControlPlane.DesiredReplicas = replicas
 		}
 		if replicas, err := contract.ControlPlane().StatusReplicas().Get(controlPlane); err == nil && replicas != nil {
-			cluster.Status.ControlPlane.Replicas = ptr.To(*replicas)
+			cluster.Status.ControlPlane.Replicas = replicas
 		}
 		if replicas, err := contract.ControlPlane().ReadyReplicas().Get(controlPlane); err == nil && replicas != nil {
 			cluster.Status.ControlPlane.ReadyReplicas = replicas

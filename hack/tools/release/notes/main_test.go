@@ -20,6 +20,7 @@ limitations under the License.
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/blang/semver/v4"
@@ -229,12 +230,86 @@ func Test_validateConfig(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "Invalid previousReleaseVersion without ref format",
+			args: &notesCmdConfig{
+				fromRef:                "ref1/tags",
+				toRef:                  "ref2/tags",
+				newTag:                 "v1.0.0",
+				previousReleaseVersion: "v1.0.0-rc.0",
+			},
+			wantErr:      true,
+			errorMessage: "--previous-release-version must be in ref format",
+		},
+		{
+			name: "Valid previousReleaseVersion with rc in ref format",
+			args: &notesCmdConfig{
+				fromRef:                "ref1/tags",
+				toRef:                  "ref2/tags",
+				newTag:                 "v1.0.0",
+				previousReleaseVersion: "tags/v1.0.0-rc.0",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid previousReleaseVersion with alpha in ref format",
+			args: &notesCmdConfig{
+				fromRef:                "ref1/tags",
+				toRef:                  "ref2/tags",
+				newTag:                 "v1.0.0",
+				previousReleaseVersion: "tags/v1.0.0-alpha.1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid previousReleaseVersion with beta in ref format",
+			args: &notesCmdConfig{
+				fromRef:                "ref1/tags",
+				toRef:                  "ref2/tags",
+				newTag:                 "v1.0.0",
+				previousReleaseVersion: "tags/v1.0.0-beta.1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Invalid previousReleaseVersion without pre-release in ref format",
+			args: &notesCmdConfig{
+				fromRef:                "ref1/tags",
+				toRef:                  "ref2/tags",
+				newTag:                 "v1.0.0",
+				previousReleaseVersion: "tags/v1.0.0",
+			},
+			wantErr:      true,
+			errorMessage: "--previous-release-version must contain 'alpha', 'beta', or 'rc' pre-release identifier",
+		},
+		{
+			name: "Invalid previousReleaseVersion with unsupported pre-release type",
+			args: &notesCmdConfig{
+				fromRef:                "ref1/tags",
+				toRef:                  "ref2/tags",
+				newTag:                 "v1.0.0",
+				previousReleaseVersion: "tags/v1.0.0-dev.1",
+			},
+			wantErr:      true,
+			errorMessage: "--previous-release-version must contain 'alpha', 'beta', or 'rc' pre-release identifier",
+		},
+		{
+			name: "Invalid previousReleaseVersion with invalid semver",
+			args: &notesCmdConfig{
+				fromRef:                "ref1/tags",
+				toRef:                  "ref2/tags",
+				newTag:                 "v1.0.0",
+				previousReleaseVersion: "tags/invalid-version",
+			},
+			wantErr:      true,
+			errorMessage: "invalid --previous-release-version, is not a valid semver",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateConfig(tt.args)
 			if tt.wantErr {
-				if err == nil || err.Error() != tt.errorMessage {
+				if err == nil || !strings.Contains(err.Error(), tt.errorMessage) {
 					t.Errorf("expected error '%s', got '%v'", tt.errorMessage, err)
 				}
 			} else if err != nil {

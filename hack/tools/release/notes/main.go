@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
@@ -42,6 +43,11 @@ const (
 	alphaRelease     = "ALPHA RELEASE"
 	betaRelease      = "BETA RELEASE"
 	releaseCandidate = "RELEASE CANDIDATE"
+
+	// Pre-release type constants.
+	preReleaseAlpha = "alpha"
+	preReleaseBeta  = "beta"
+	preReleaseRC    = "rc"
 )
 
 func main() {
@@ -140,15 +146,15 @@ func releaseTypeFromNewTag(newTagConfig string) string {
 		return ""
 	}
 
-	// Only allow RC and beta releases. More types must be defined here.
+	// Only allow alpha, beta and RC releases. More types must be defined here.
 	// If a new type is not defined, no warning banner will be printed.
 	switch newTag.Pre[0].VersionStr {
-	case "rc":
-		return releaseCandidate
-	case "beta":
-		return betaRelease
-	case "alpha":
+	case preReleaseAlpha:
 		return alphaRelease
+	case preReleaseBeta:
+		return betaRelease
+	case preReleaseRC:
+		return releaseCandidate
 	}
 	return ""
 }
@@ -185,6 +191,45 @@ func validateConfig(config *notesCmdConfig) error {
 		if err := validateRef(config.toRef); err != nil {
 			return err
 		}
+	}
+
+	if config.previousReleaseVersion != "" {
+		if err := validatePreviousReleaseVersion(config.previousReleaseVersion); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validatePreviousReleaseVersion(previousReleaseVersion string) error {
+	// Extract version string from ref format (e.g. "tags/v1.0.0-rc.1" -> "v1.0.0-rc.1")
+	if !strings.Contains(previousReleaseVersion, "/") {
+		return errors.New("--previous-release-version must be in ref format (e.g. tags/v1.0.0-rc.1)")
+	}
+
+	parts := strings.SplitN(previousReleaseVersion, "/", 2)
+	if len(parts) != 2 {
+		return errors.New("--previous-release-version must be in ref format (e.g. tags/v1.0.0-rc.1)")
+	}
+
+	versionStr := parts[1]
+
+	// Parse the version to check if it contains alpha, beta, or rc
+	version, err := semver.ParseTolerant(versionStr)
+	if err != nil {
+		return errors.Wrap(err, "invalid --previous-release-version, is not a valid semver")
+	}
+
+	// Check if the version has pre-release identifiers
+	if len(version.Pre) == 0 {
+		return errors.Errorf("--previous-release-version must contain '%s', '%s', or '%s' pre-release identifier", preReleaseAlpha, preReleaseBeta, preReleaseRC)
+	}
+
+	// Check if the first pre-release identifier is 'alpha', 'beta', or 'rc'
+	preReleaseType := version.Pre[0].VersionStr
+	if preReleaseType != preReleaseAlpha && preReleaseType != preReleaseBeta && preReleaseType != preReleaseRC {
+		return errors.Errorf("--previous-release-version must contain '%s', '%s', or '%s' pre-release identifier", preReleaseAlpha, preReleaseBeta, preReleaseRC)
 	}
 
 	return nil

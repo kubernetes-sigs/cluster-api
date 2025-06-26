@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 // Package v1beta1 contains test types.
-// +k8s:openapi-gen=true
 // +k8s:conversion-gen=sigs.k8s.io/cluster-api/internal/topology/upgrade/test/t2/v1beta2
 // +kubebuilder:object:generate=true
 // +groupName=test.cluster.x-k8s.io

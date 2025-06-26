@@ -406,14 +406,14 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 		paths=./api/ipam/... \
 		paths=./api/runtime/... \
 		paths=./api/runtime/hooks/... \
+		paths=./cmd/clusterctl/... \
+		paths=./controllers/crdmigrator/test/... \
 		paths=./internal/api/addons/... \
 		paths=./internal/api/core/... \
 		paths=./internal/runtime/test/... \
-		paths=./cmd/clusterctl/... \
-		paths=./util/test/builder/... \
 		paths=./internal/topology/upgrade/test/... \
-		paths=./util/deprecated/v1beta1/test/builder/... \
-		paths=./controllers/crdmigrator/test/...
+		paths=./util/test/builder/... \
+		paths=./util/deprecated/v1beta1/test/builder/...
 
 .PHONY: generate-go-deepcopy-kubeadm-bootstrap
 generate-go-deepcopy-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate deepcopy go code for kubeadm bootstrap

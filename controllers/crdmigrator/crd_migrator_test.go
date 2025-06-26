@@ -167,7 +167,7 @@ func TestReconcile(t *testing.T) {
 			}()
 
 			t.Logf("T1: Install CRDs")
-			g.Expect(env.ApplyCRDs(ctx, filepath.Join(path.Dir(filename), "..", "..", "controllers", "crdmigrator", "test", "t1", "crd"))).To(Succeed())
+			g.Expect(env.ApplyCRDs(ctx, filepath.Join(path.Dir(filename), "test", "t1", "crd"))).To(Succeed())
 			validateStoredVersions(t, g, crdObjectKey, "v1beta1")
 
 			t.Logf("T1: Start Manager")
@@ -208,7 +208,7 @@ func TestReconcile(t *testing.T) {
 			stopManager(cancelManager, managerStopped)
 
 			t.Logf("T2: Install CRDs")
-			g.Expect(env.ApplyCRDs(ctx, filepath.Join(path.Dir(filename), "..", "..", "controllers", "crdmigrator", "test", "t2", "crd"))).To(Succeed())
+			g.Expect(env.ApplyCRDs(ctx, filepath.Join(path.Dir(filename), "test", "t2", "crd"))).To(Succeed())
 			validateStoredVersions(t, g, crdObjectKey, "v1beta1", "v1beta2")
 
 			t.Logf("T2: Start Manager")
@@ -242,7 +242,7 @@ func TestReconcile(t *testing.T) {
 			stopManager(cancelManager, managerStopped)
 
 			t.Logf("T3: Install CRDs")
-			g.Expect(env.ApplyCRDs(ctx, filepath.Join(path.Dir(filename), "..", "..", "controllers", "crdmigrator", "test", "t3", "crd"))).To(Succeed())
+			g.Expect(env.ApplyCRDs(ctx, filepath.Join(path.Dir(filename), "test", "t3", "crd"))).To(Succeed())
 			// Stored versions didn't change.
 			if skipCRDMigrationPhases.Has(StorageVersionMigrationPhase) {
 				validateStoredVersions(t, g, crdObjectKey, "v1beta1", "v1beta2")
@@ -281,7 +281,7 @@ func TestReconcile(t *testing.T) {
 			stopManager(cancelManager, managerStopped)
 
 			t.Logf("T4: Install CRDs")
-			err = env.ApplyCRDs(ctx, filepath.Join(path.Dir(filename), "..", "..", "controllers", "crdmigrator", "test", "t4", "crd"))
+			err = env.ApplyCRDs(ctx, filepath.Join(path.Dir(filename), "test", "t4", "crd"))
 			if skipCRDMigrationPhases.Has(StorageVersionMigrationPhase) {
 				// If storage version migration was skipped before, we now cannot deploy CRDs that remove v1beta1.
 				g.Expect(err).To(HaveOccurred())

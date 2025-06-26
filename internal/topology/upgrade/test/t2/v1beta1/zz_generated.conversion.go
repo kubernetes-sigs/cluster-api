@@ -243,7 +243,7 @@ func autoConvert_v1beta1_TestResourceSpec_To_v1beta2_TestResourceSpec(in *TestRe
 	if err := Convert_v1beta1_TestResourceMachineTemplateSpec_To_v1beta2_TestResourceMachineTemplateSpec(&in.MachineTemplate, &out.MachineTemplate, s); err != nil {
 		return err
 	}
-	out.Omitable = in.Omitable
+	out.Omittable = in.Omittable
 	return nil
 }
 
@@ -258,7 +258,7 @@ func autoConvert_v1beta2_TestResourceSpec_To_v1beta1_TestResourceSpec(in *v1beta
 	if err := Convert_v1beta2_TestResourceMachineTemplateSpec_To_v1beta1_TestResourceMachineTemplateSpec(&in.MachineTemplate, &out.MachineTemplate, s); err != nil {
 		return err
 	}
-	out.Omitable = in.Omitable
+	out.Omittable = in.Omittable
 	return nil
 }
 

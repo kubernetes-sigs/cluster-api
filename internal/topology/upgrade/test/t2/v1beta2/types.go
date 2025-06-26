@@ -44,7 +44,6 @@ type TestResourceTemplateSpec struct {
 
 // TestResourceTemplateResource defines the template resource of a TestResourceTemplate.
 type TestResourceTemplateResource struct {
-	// spec is the desired state of KubeadmControlPlaneTemplateResource.
 	// +required
 	Spec TestResourceSpec `json:"spec"`
 }
@@ -60,7 +59,6 @@ type TestResourceTemplateList struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=testresources,scope=Namespaced
 // +kubebuilder:storageversion
-// +kubebuilder:subresource:status
 
 // TestResource defines a test resource.
 type TestResource struct {
@@ -71,17 +69,19 @@ type TestResource struct {
 
 // TestResourceSpec defines the resource spec.
 type TestResourceSpec struct {
-	// mandatory field from the Cluster API contract - replicas support
+	// mandatory field from the Cluster API control plane contract - replicas support
 
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Mandatory field from the Cluster API contract - version support
+	// Mandatory field from the Cluster API control plane contract - version support
+	// Note: field is not required because this CRD is also used for non - control plane cases.
 
 	// +optional
 	Version string `json:"version,omitempty"`
 
-	// Mandatory field from the Cluster API contract - machine support
+	// Mandatory field from the Cluster API control plane contract - machine support
+	// Note: field is not required because this CRD is also used for non - control plane cases.
 
 	// +required
 	MachineTemplate TestResourceMachineTemplateSpec `json:"machineTemplate"`
@@ -89,10 +89,11 @@ type TestResourceSpec struct {
 	// General purpose fields to be used in different test scenario.
 
 	// +optional
-	Omitable string `json:"omitable,omitempty"`
+	Omittable string `json:"omittable,omitempty"`
 }
 
 // TestResourceMachineTemplateSpec define the spec for machineTemplate in a resource.
+// Note: infrastructureRef field is not required because this CRD is also used for non - control plane cases.
 type TestResourceMachineTemplateSpec struct {
 	// +optional
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
@@ -102,6 +103,7 @@ type TestResourceMachineTemplateSpec struct {
 }
 
 // TestContractVersionedObjectReference is a reference to a resource for which the version is inferred from contract labels.
+// Note: fields are not required / do not have validation for sake of simplicity (not relevant for the test).
 type TestContractVersionedObjectReference struct {
 	// +optional
 	Kind string `json:"kind"`
@@ -132,8 +134,6 @@ type TestResourceStatus struct {
 	// Mandatory field from the Cluster API contract - version support
 
 	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=256
 	Version *string `json:"version,omitempty"`
 }
 

@@ -724,7 +724,7 @@ func Convert_v1beta2_DevClusterSpec_To_v1beta1_DevClusterSpec(in *v1beta2.DevClu
 }
 
 func autoConvert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevClusterStatus, out *v1beta2.DevClusterStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
+	// WARNING: in.Ready requires manual conversion: does not exist in peer-type
 	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
@@ -753,7 +753,7 @@ func autoConvert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in *v1beta
 	} else {
 		out.Conditions = nil
 	}
-	out.Ready = in.Ready
+	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
@@ -1316,7 +1316,7 @@ func Convert_v1beta2_DockerClusterSpec_To_v1beta1_DockerClusterSpec(in *v1beta2.
 }
 
 func autoConvert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *DockerClusterStatus, out *v1beta2.DockerClusterStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
+	// WARNING: in.Ready requires manual conversion: does not exist in peer-type
 	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
@@ -1345,7 +1345,7 @@ func autoConvert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *
 	} else {
 		out.Conditions = nil
 	}
-	out.Ready = in.Ready
+	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil

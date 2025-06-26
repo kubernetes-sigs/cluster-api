@@ -126,7 +126,9 @@ func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	}
 
 	// Mark the InMemoryCluster ready
-	inMemoryCluster.Status.Ready = true
+	inMemoryCluster.Status.Initialization = &infrav1.DevClusterInitializationStatus{
+		Provisioned: true,
+	}
 
 	return ctrl.Result{}, nil
 }

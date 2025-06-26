@@ -861,10 +861,17 @@ spec:
                   FailureDomains don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
                   will use this if we populate it.
                 type: object
-              ready:
-                description: Ready denotes that the docker cluster (infrastructure)
-                  is ready.
-                type: boolean
+              initialization:
+                description: |-
+                  initialization provides observations of the DevCluster initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
+                properties:
+                  provisioned:
+                    description: |-
+                      provisioned is true when the infrastructure provider reports that the Cluster's infrastructure is fully provisioned.
+                      NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
+                    type: boolean
+                type: object
             type: object
         type: object
     served: true

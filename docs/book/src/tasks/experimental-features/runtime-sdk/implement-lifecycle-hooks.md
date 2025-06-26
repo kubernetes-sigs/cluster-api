@@ -76,8 +76,10 @@ MachineDeployments and the templates derived from the ClusterClass.
 
 ###  AfterControlPlaneInitialized
 
-This hook is called after the Control Plane for the Cluster is marked as available for the first time. Runtime Extension 
-implementers can use this hook to execute tasks, for example component installation on workload clusters, that are only 
+This hook is called after the Control Plane reports that the control plane is initialized, which means the API server can accept requests.
+This usually happens sometime during the first CP machine provisioning or immediately thereafter.
+
+Runtime Extension implementers can use this hook to execute tasks, for example component installation on workload clusters, that are only 
 possible once the Control Plane is available. This hook does not block any further changes to the Cluster.
 
 #### Example Request:
@@ -159,7 +161,7 @@ For additional details, you can see the full schema in <button onclick="openSwag
 
 ###  AfterControlPlaneUpgrade
 
-This hook is called after the control plane has been upgraded to the version specified in `spec.topology.version`,
+This hook is called after the entire control plane has been upgraded to the version specified in `spec.topology.version`,
 and immediately before the new version is going to be propagated to the MachineDeployments of the Cluster. 
 Runtime Extension implementers can use this hook to execute post-upgrade add-on tasks and block upgrades to workers
 until everything is ready.

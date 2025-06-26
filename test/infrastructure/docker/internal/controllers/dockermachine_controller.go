@@ -318,7 +318,9 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 			},
 		},
 		Status: infrav1.DevMachineStatus{
-			Ready:      dockerMachine.Status.Ready,
+			Initialization: &infrav1.DevMachineInitializationStatus{
+				Provisioned: true,
+			},
 			Addresses:  dockerMachine.Status.Addresses,
 			Conditions: dockerMachine.Status.Conditions,
 			Deprecated: v1Beta1Status,
@@ -348,7 +350,9 @@ func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *in
 	dockerMachine.Spec.ExtraMounts = devMachine.Spec.Backend.Docker.ExtraMounts
 	dockerMachine.Spec.Bootstrapped = devMachine.Spec.Backend.Docker.Bootstrapped
 	dockerMachine.Spec.BootstrapTimeout = devMachine.Spec.Backend.Docker.BootstrapTimeout
-	dockerMachine.Status.Ready = devMachine.Status.Ready
+	dockerMachine.Status.Initialization = &infrav1.DockerMachineInitializationStatus{
+		Provisioned: devMachine.Status.Initialization.Provisioned,
+	}
 	dockerMachine.Status.Addresses = devMachine.Status.Addresses
 	dockerMachine.Status.Conditions = devMachine.Status.Conditions
 	dockerMachine.Status.Deprecated = v1Beta1Status

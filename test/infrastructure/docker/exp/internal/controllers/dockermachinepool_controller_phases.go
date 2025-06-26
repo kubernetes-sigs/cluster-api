@@ -200,7 +200,8 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	for i := range orderedDockerMachines {
 		dockerMachine := orderedDockerMachines[i]
 		// TODO (v1beta2): test for v1beta2 conditions
-		if dockerMachine.Status.Ready || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyV1Beta1Condition) {
+		initialization := dockerMachine.Status.Initialization
+		if initialization != nil && initialization.Provisioned || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyV1Beta1Condition) {
 			totalReadyMachines++
 		}
 	}
@@ -388,7 +389,7 @@ func (r *DockerMachinePoolReconciler) getDeletionCandidates(ctx context.Context,
 		// TODO (v1beta2): test for v1beta2 conditions
 		if !isMachineMatchingInfrastructureSpec(ctx, externalMachine, machinePool, dockerMachinePool) {
 			outdatedMachines = append(outdatedMachines, dockerMachine)
-		} else if dockerMachine.Status.Ready || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyV1Beta1Condition) {
+		} else if dockerMachine.Status.Initialization.Provisioned || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyV1Beta1Condition) {
 			readyMatchingMachines = append(readyMatchingMachines, dockerMachine)
 		}
 	}

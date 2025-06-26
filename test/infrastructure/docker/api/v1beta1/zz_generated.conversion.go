@@ -1024,7 +1024,7 @@ func Convert_v1beta2_DevMachineSpec_To_v1beta1_DevMachineSpec(in *v1beta2.DevMac
 }
 
 func autoConvert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in *DevMachineStatus, out *v1beta2.DevMachineStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
+	// WARNING: in.Ready requires manual conversion: does not exist in peer-type
 	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
@@ -1054,7 +1054,7 @@ func autoConvert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *v1beta
 	} else {
 		out.Conditions = nil
 	}
-	out.Ready = in.Ready
+	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.Backend = (*DevMachineBackendStatus)(unsafe.Pointer(in.Backend))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
@@ -1652,7 +1652,7 @@ func Convert_v1beta2_DockerMachineSpec_To_v1beta1_DockerMachineSpec(in *v1beta2.
 }
 
 func autoConvert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *DockerMachineStatus, out *v1beta2.DockerMachineStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
+	// WARNING: in.Ready requires manual conversion: does not exist in peer-type
 	out.LoadBalancerConfigured = in.LoadBalancerConfigured
 	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	if in.Conditions != nil {
@@ -1682,7 +1682,7 @@ func autoConvert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *
 	} else {
 		out.Conditions = nil
 	}
-	out.Ready = in.Ready
+	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	out.LoadBalancerConfigured = in.LoadBalancerConfigured
 	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type

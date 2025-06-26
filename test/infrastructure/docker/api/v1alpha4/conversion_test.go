@@ -70,6 +70,12 @@ func hubDockerClusterStatus(in *infrav1.DockerClusterStatus, c randfill.Continue
 			in.Deprecated = nil
 		}
 	}
+
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &infrav1.DockerClusterInitializationStatus{}) {
+			in.Initialization = nil
+		}
+	}
 }
 
 func DockerMachineFuzzFunc(_ runtimeserializer.CodecFactory) []any {

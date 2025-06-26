@@ -118,9 +118,10 @@ type DevClusterStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// ready denotes that the dev cluster infrastructure is ready.
+	// initialization provides observations of the DevCluster initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
 	// +optional
-	Ready bool `json:"ready"`
+	Initialization *DevClusterInitializationStatus `json:"initialization,omitempty"`
 
 	// failureDomains don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
 	// will use this if we populate it.
@@ -130,6 +131,14 @@ type DevClusterStatus struct {
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *DevClusterDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// DevClusterInitializationStatus provides observations of the FooCluster initialization process.
+type DevClusterInitializationStatus struct {
+	// provisioned is true when the infrastructure provider reports that the Cluster's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
+	// +optional
+	Provisioned bool `json:"provisioned,omitempty"`
 }
 
 // DevClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.

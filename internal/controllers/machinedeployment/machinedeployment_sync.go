@@ -492,7 +492,7 @@ func (r *Reconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS 
 		// NOTE: The structure of calculateV1Beta1Status() does not allow us to update the machinedeployment directly, we can only update the status obj it returns. Ideally, we should change calculateV1Beta1Status() --> updateStatus() to be consistent with the rest of the code base, until then, we update conditions here.
 		v1beta1conditions.MarkTrue(md, clusterv1.MachineDeploymentAvailableV1Beta1Condition)
 	} else {
-		v1beta1conditions.MarkFalse(md, clusterv1.MachineDeploymentAvailableV1Beta1Condition, clusterv1.WaitingForAvailableMachinesV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Minimum availability requires %d replicas, current %d available", minReplicasNeeded, ptr.Deref[int32](md.Status.AvailableReplicas, 0))
+		v1beta1conditions.MarkFalse(md, clusterv1.MachineDeploymentAvailableV1Beta1Condition, clusterv1.WaitingForAvailableMachinesV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Minimum availability requires %d replicas, current %d available", minReplicasNeeded, ptr.Deref(md.Status.AvailableReplicas, 0))
 	}
 
 	if newMS != nil {

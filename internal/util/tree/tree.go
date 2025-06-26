@@ -586,7 +586,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 		if obj.Spec.Replicas != nil {
 			v.replicas = fmt.Sprintf("%d/%d", *obj.Spec.Replicas, ptr.Deref(obj.Status.Replicas, 0))
 		}
-		if obj.Status.ReadyReplicas != nil {
+		if obj.Status.AvailableReplicas != nil {
 			v.availableCounters = fmt.Sprintf("%d", *obj.Status.AvailableReplicas)
 		}
 		if obj.Status.ReadyReplicas != nil {

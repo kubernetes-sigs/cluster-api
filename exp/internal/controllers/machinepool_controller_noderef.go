@@ -126,7 +126,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 	}
 
 	if ptr.Deref(mp.Status.Replicas, 0) != mp.Status.Deprecated.V1Beta1.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.Deprecated.V1Beta1.ReadyReplicas) {
-		log.Info("Not enough ready replicas or node references", "nodeRefs", len(nodeRefsResult.references), "readyReplicas", mp.Status.ReadyReplicas, "replicas", ptr.Deref(mp.Status.Replicas, 0))
+		log.Info("Not enough ready replicas or node references", "nodeRefs", len(nodeRefsResult.references), "readyReplicas", ptr.Deref(mp.Status.ReadyReplicas, 0), "replicas", ptr.Deref(mp.Status.Replicas, 0))
 		v1beta1conditions.MarkFalse(mp, clusterv1.ReplicasReadyV1Beta1Condition, clusterv1.WaitingForReplicasReadyV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}

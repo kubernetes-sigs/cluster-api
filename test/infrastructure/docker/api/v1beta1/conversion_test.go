@@ -121,6 +121,12 @@ func hubDockerMachineStatus(in *infrav1.DockerMachineStatus, c randfill.Continue
 			in.Deprecated = nil
 		}
 	}
+
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &infrav1.DockerMachineInitializationStatus{}) {
+			in.Initialization = nil
+		}
+	}
 }
 
 func spokeDockerMachineStatus(in *DockerMachineStatus, c randfill.Continue) {
@@ -175,6 +181,12 @@ func hubDevMachineStatus(in *infrav1.DevMachineStatus, c randfill.Continue) {
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.DevMachineV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
+		}
+	}
+
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &infrav1.DevMachineInitializationStatus{}) {
+			in.Initialization = nil
 		}
 	}
 }

@@ -81,4 +81,10 @@ func hubDockerMachineStatus(in *infrav1.DockerMachineStatus, c randfill.Continue
 			in.Deprecated = nil
 		}
 	}
+
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &infrav1.DockerMachineInitializationStatus{}) {
+			in.Initialization = nil
+		}
+	}
 }

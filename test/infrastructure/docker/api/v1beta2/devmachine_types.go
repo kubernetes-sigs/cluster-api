@@ -357,9 +357,10 @@ type DevMachineStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// ready denotes that the machine is ready
+	// initialization provides observations of the FooMachine initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
-	Ready bool `json:"ready"`
+	Initialization *DevMachineInitializationStatus `json:"initialization,omitempty"`
 
 	// addresses contains the associated addresses for the dev machine.
 	// +optional
@@ -372,6 +373,14 @@ type DevMachineStatus struct {
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *DevMachineDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// DevMachineInitializationStatus provides observations of the DevMachine initialization process.
+type DevMachineInitializationStatus struct {
+	// provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+	// +optional
+	Provisioned bool `json:"provisioned,omitempty"`
 }
 
 // DevMachineBackendStatus define backend status for a DevMachine.

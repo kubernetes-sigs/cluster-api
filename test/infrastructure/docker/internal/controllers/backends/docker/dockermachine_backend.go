@@ -117,7 +117,9 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	if dockerMachine.Spec.ProviderID != nil {
 		// ensure ready state is set.
 		// This is required after move, because status is not moved to the target cluster.
-		dockerMachine.Status.Ready = true
+		dockerMachine.Status.Initialization = &infrav1.DevMachineInitializationStatus{
+			Provisioned: true,
+		}
 
 		if externalMachine.Exists() {
 			v1beta1conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedV1Beta1Condition)
@@ -361,7 +363,9 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// Set ProviderID so the Cluster API Machine Controller can pull it
 	providerID := externalMachine.ProviderID()
 	dockerMachine.Spec.ProviderID = &providerID
-	dockerMachine.Status.Ready = true
+	dockerMachine.Status.Initialization = &infrav1.DevMachineInitializationStatus{
+		Provisioned: true,
+	}
 
 	return ctrl.Result{}, nil
 }

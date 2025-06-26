@@ -65,13 +65,13 @@ type Certificates []*Certificate
 
 // NewCertificatesForInitialControlPlane returns a list of certificates configured for a control plane node.
 func NewCertificatesForInitialControlPlane(config *bootstrapv1.ClusterConfiguration) Certificates {
-	var validityPeriodDays *int32
+	var validityPeriodDays int32
 	certificatesDir := DefaultCertificatesDir
 	if config != nil {
 		if config.CertificatesDir != "" {
 			certificatesDir = config.CertificatesDir
 		}
-		if config.CACertificateValidityPeriodDays != nil {
+		if config.CACertificateValidityPeriodDays != 0 {
 			validityPeriodDays = config.CACertificateValidityPeriodDays
 		}
 	}
@@ -334,7 +334,7 @@ type Certificate struct {
 	KeyPair            *certs.KeyPair
 	CertFile, KeyFile  string
 	Secret             *corev1.Secret
-	ValidityPeriodDays *int32
+	ValidityPeriodDays int32
 }
 
 // Hashes hashes all the certificates stored in a CA certificate.
@@ -470,7 +470,7 @@ func secretToKeyPair(s *corev1.Secret) (*certs.KeyPair, error) {
 	}, nil
 }
 
-func generateCACert(validityPeriodDays *int32) (*certs.KeyPair, error) {
+func generateCACert(validityPeriodDays int32) (*certs.KeyPair, error) {
 	x509Cert, privKey, err := newCertificateAuthority(validityPeriodDays)
 	if err != nil {
 		return nil, err
@@ -481,7 +481,7 @@ func generateCACert(validityPeriodDays *int32) (*certs.KeyPair, error) {
 	}, nil
 }
 
-func generateServiceAccountKeys(_ *int32) (*certs.KeyPair, error) {
+func generateServiceAccountKeys(_ int32) (*certs.KeyPair, error) {
 	saCreds, err := certs.NewPrivateKey()
 	if err != nil {
 		return nil, err
@@ -497,7 +497,7 @@ func generateServiceAccountKeys(_ *int32) (*certs.KeyPair, error) {
 }
 
 // newCertificateAuthority creates new certificate and private key for the certificate authority.
-func newCertificateAuthority(validityPeriodDays *int32) (*x509.Certificate, *rsa.PrivateKey, error) {
+func newCertificateAuthority(validityPeriodDays int32) (*x509.Certificate, *rsa.PrivateKey, error) {
 	key, err := certs.NewPrivateKey()
 	if err != nil {
 		return nil, nil, err
@@ -512,15 +512,15 @@ func newCertificateAuthority(validityPeriodDays *int32) (*x509.Certificate, *rsa
 }
 
 // newSelfSignedCACert creates a CA certificate.
-func newSelfSignedCACert(key *rsa.PrivateKey, validityPeriodDays *int32) (*x509.Certificate, error) {
+func newSelfSignedCACert(key *rsa.PrivateKey, validityPeriodDays int32) (*x509.Certificate, error) {
 	cfg := certs.Config{
 		CommonName: "kubernetes",
 	}
 
 	now := time.Now().UTC()
 	notAfter := now.Add(time.Hour * 24 * 365 * 10) // 10 years
-	if validityPeriodDays != nil {
-		notAfter = now.Add(time.Duration(*validityPeriodDays) * time.Hour * 24)
+	if validityPeriodDays != 0 {
+		notAfter = now.Add(time.Duration(validityPeriodDays) * time.Hour * 24)
 	}
 
 	tmpl := x509.Certificate{

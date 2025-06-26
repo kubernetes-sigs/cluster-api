@@ -21,7 +21,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -61,7 +60,7 @@ func TestNewCertificatesForInitialControlPlane(t *testing.T) {
 	tests := []struct {
 		name                            string
 		expectedExpiry                  time.Time
-		caCertificateValidityPeriodDays *int32
+		caCertificateValidityPeriodDays int32
 	}{
 		{
 			name:           "should return default expiry if caCertificateValidityPeriodDays not set",
@@ -70,7 +69,7 @@ func TestNewCertificatesForInitialControlPlane(t *testing.T) {
 		{
 			name:                            "should return expiry if caCertificateValidityPeriodDays set",
 			expectedExpiry:                  time.Now().UTC().Add(time.Hour * 24 * 10), // 10 days.
-			caCertificateValidityPeriodDays: ptr.To[int32](10),
+			caCertificateValidityPeriodDays: 10,
 		},
 	}
 	for _, test := range tests {

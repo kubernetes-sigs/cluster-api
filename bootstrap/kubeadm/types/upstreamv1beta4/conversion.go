@@ -323,22 +323,22 @@ func (src *ClusterConfiguration) GetAdditionalData(data *upstream.AdditionalData
 // convertToDays takes *metav1.Duration and returns a *int32.
 // Durations longer than MaxInt32 are capped.
 // NOTE: this is a util function intended only for usage in API conversions.
-func convertToDays(in *metav1.Duration) *int32 {
+func convertToDays(in *metav1.Duration) int32 {
 	if in == nil {
-		return nil
+		return 0
 	}
 	days := math.Trunc(in.Hours() / 24)
 	if days > math.MaxInt32 {
-		return ptr.To[int32](math.MaxInt32)
+		return math.MaxInt32
 	}
-	return ptr.To(int32(days))
+	return int32(days)
 }
 
 // convertFromDays takes *int32 and returns a *metav1.Duration.
 // NOTE: this is a util function intended only for usage in API conversions.
-func convertFromDays(in *int32) *metav1.Duration {
-	if in == nil {
+func convertFromDays(in int32) *metav1.Duration {
+	if in == 0 {
 		return nil
 	}
-	return ptr.To(metav1.Duration{Duration: time.Duration(*in) * time.Hour * 24})
+	return ptr.To(metav1.Duration{Duration: time.Duration(in) * time.Hour * 24})
 }

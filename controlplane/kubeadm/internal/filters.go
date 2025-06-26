@@ -219,13 +219,18 @@ func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine 
 		machineClusterConfig = &bootstrapv1.ClusterConfiguration{}
 	}
 
-	kcpLocalClusterConfiguration := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
+	kcpLocalClusterConfiguration := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DeepCopy()
 	if kcpLocalClusterConfiguration == nil {
 		kcpLocalClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
 	}
 
 	// Skip checking DNS fields because we can update the configuration of the working cluster in place.
 	machineClusterConfig.DNS = kcpLocalClusterConfiguration.DNS
+
+	// Drop differences that do not lead to changes to Machines, but that might exist due
+	// to changes in how we serialize objects or how webhooks work.
+	dropOmittableFields(&bootstrapv1.KubeadmConfigSpec{ClusterConfiguration: kcpLocalClusterConfiguration})
+	dropOmittableFields(&bootstrapv1.KubeadmConfigSpec{ClusterConfiguration: machineClusterConfig})
 
 	// Compare and return.
 	match, diff, err := compare.Diff(machineClusterConfig, kcpLocalClusterConfiguration)
@@ -306,6 +311,7 @@ func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp 
 		// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
 		return true, "", nil
 	}
+	machineConfig = machineConfig.DeepCopy()
 
 	// takes the KubeadmConfigSpec from KCP and applies the transformations required
 	// to allow a comparison with the KubeadmConfig referenced from the machine.
@@ -390,5 +396,207 @@ func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig
 	if kcpConfig.JoinConfiguration != nil && reflect.DeepEqual(kcpConfig.JoinConfiguration.NodeRegistration, emptyNodeRegistration) &&
 		machineConfig.Spec.JoinConfiguration != nil {
 		machineConfig.Spec.JoinConfiguration.NodeRegistration = emptyNodeRegistration
+	}
+
+	// Drop differences that do not lead to changes to Machines, but that might exist due
+	// to changes in how we serialize objects or how webhooks work.
+	dropOmittableFields(kcpConfig)
+	dropOmittableFields(&machineConfig.Spec)
+}
+
+// dropOmittableFields makes the comparison tolerant to omittable fields being set in the go struct. It applies to:
+// - empty array vs nil
+// - empty map vs nil
+// - empty struct vs nil (when struct is pointer and there are only omittable fields in the struct).
+// Note: for the part of the KubeadmConfigSpec that is rendered using go templates, consideration might be a little bit different.
+func dropOmittableFields(spec *bootstrapv1.KubeadmConfigSpec) {
+	// When rendered to kubeadm config files there is no diff between nil and empty array or map.
+	if spec.ClusterConfiguration != nil {
+		if spec.ClusterConfiguration.Etcd.Local != nil {
+			if len(spec.ClusterConfiguration.Etcd.Local.ExtraArgs) == 0 {
+				spec.ClusterConfiguration.Etcd.Local.ExtraArgs = nil
+			}
+			if len(spec.ClusterConfiguration.Etcd.Local.ExtraEnvs) == 0 {
+				spec.ClusterConfiguration.Etcd.Local.ExtraEnvs = nil
+			}
+			if len(spec.ClusterConfiguration.Etcd.Local.ServerCertSANs) == 0 {
+				spec.ClusterConfiguration.Etcd.Local.ServerCertSANs = nil
+			}
+			if len(spec.ClusterConfiguration.Etcd.Local.PeerCertSANs) == 0 {
+				spec.ClusterConfiguration.Etcd.Local.PeerCertSANs = nil
+			}
+		}
+		// NOTE: we are not dropping spec.ClusterConfiguration.Etcd.ExternalEtcd.Endpoints because this field
+		// doesn't have omitempty, so [] array is different from nil when serialized.
+		if len(spec.ClusterConfiguration.APIServer.ExtraArgs) == 0 {
+			spec.ClusterConfiguration.APIServer.ExtraArgs = nil
+		}
+		if len(spec.ClusterConfiguration.APIServer.ExtraEnvs) == 0 {
+			spec.ClusterConfiguration.APIServer.ExtraEnvs = nil
+		}
+		if len(spec.ClusterConfiguration.APIServer.ExtraVolumes) == 0 {
+			spec.ClusterConfiguration.APIServer.ExtraVolumes = nil
+		}
+		if len(spec.ClusterConfiguration.APIServer.CertSANs) == 0 {
+			spec.ClusterConfiguration.APIServer.CertSANs = nil
+		}
+		if len(spec.ClusterConfiguration.ControllerManager.ExtraArgs) == 0 {
+			spec.ClusterConfiguration.ControllerManager.ExtraArgs = nil
+		}
+		if len(spec.ClusterConfiguration.ControllerManager.ExtraEnvs) == 0 {
+			spec.ClusterConfiguration.ControllerManager.ExtraEnvs = nil
+		}
+		if len(spec.ClusterConfiguration.ControllerManager.ExtraVolumes) == 0 {
+			spec.ClusterConfiguration.ControllerManager.ExtraVolumes = nil
+		}
+		if len(spec.ClusterConfiguration.Scheduler.ExtraArgs) == 0 {
+			spec.ClusterConfiguration.Scheduler.ExtraArgs = nil
+		}
+		if len(spec.ClusterConfiguration.Scheduler.ExtraEnvs) == 0 {
+			spec.ClusterConfiguration.Scheduler.ExtraEnvs = nil
+		}
+		if len(spec.ClusterConfiguration.Scheduler.ExtraVolumes) == 0 {
+			spec.ClusterConfiguration.Scheduler.ExtraVolumes = nil
+		}
+		if len(spec.ClusterConfiguration.FeatureGates) == 0 {
+			spec.ClusterConfiguration.FeatureGates = nil
+		}
+	}
+	if spec.InitConfiguration != nil {
+		if len(spec.InitConfiguration.BootstrapTokens) == 0 {
+			spec.InitConfiguration.BootstrapTokens = nil
+		}
+		for i, token := range spec.InitConfiguration.BootstrapTokens {
+			if len(token.Usages) == 0 {
+				token.Usages = nil
+			}
+			if len(token.Groups) == 0 {
+				token.Groups = nil
+			}
+			spec.InitConfiguration.BootstrapTokens[i] = token
+		}
+		if len(spec.InitConfiguration.NodeRegistration.KubeletExtraArgs) == 0 {
+			spec.InitConfiguration.NodeRegistration.KubeletExtraArgs = nil
+		}
+		if len(spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors) == 0 {
+			spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors = nil
+		}
+		if len(spec.InitConfiguration.SkipPhases) == 0 {
+			spec.InitConfiguration.SkipPhases = nil
+		}
+		// NOTE: we are not dropping spec.InitConfiguration.Taints because for this field there
+		// is a difference between not set (use kubeadm defaults) and empty (do not apply any taint).
+	}
+	if spec.JoinConfiguration != nil {
+		if spec.JoinConfiguration.Discovery.BootstrapToken != nil {
+			if len(spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 {
+				spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes = nil
+			}
+		}
+		if spec.JoinConfiguration.Discovery.File != nil && spec.JoinConfiguration.Discovery.File.KubeConfig != nil {
+			if spec.JoinConfiguration.Discovery.File.KubeConfig.Cluster != nil {
+				if len(spec.JoinConfiguration.Discovery.File.KubeConfig.Cluster.CertificateAuthorityData) == 0 {
+					spec.JoinConfiguration.Discovery.File.KubeConfig.Cluster.CertificateAuthorityData = nil
+				}
+				if reflect.DeepEqual(spec.JoinConfiguration.Discovery.File.KubeConfig.Cluster, &bootstrapv1.KubeConfigCluster{}) {
+					spec.JoinConfiguration.Discovery.File.KubeConfig.Cluster = nil
+				}
+			}
+			if spec.JoinConfiguration.Discovery.File.KubeConfig.User.AuthProvider != nil {
+				if len(spec.JoinConfiguration.Discovery.File.KubeConfig.User.AuthProvider.Config) == 0 {
+					spec.JoinConfiguration.Discovery.File.KubeConfig.User.AuthProvider.Config = nil
+				}
+				if reflect.DeepEqual(spec.JoinConfiguration.Discovery.File.KubeConfig.User.AuthProvider, &bootstrapv1.KubeConfigAuthProvider{}) {
+					spec.JoinConfiguration.Discovery.File.KubeConfig.User.AuthProvider = nil
+				}
+			}
+			if spec.JoinConfiguration.Discovery.File.KubeConfig.User.Exec != nil {
+				if len(spec.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.Args) == 0 {
+					spec.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.Args = nil
+				}
+				if len(spec.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.Env) == 0 {
+					spec.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.Env = nil
+				}
+				if reflect.DeepEqual(spec.JoinConfiguration.Discovery.File.KubeConfig.User.Exec, &bootstrapv1.KubeConfigAuthExec{}) {
+					spec.JoinConfiguration.Discovery.File.KubeConfig.User.Exec = nil
+				}
+			}
+			if reflect.DeepEqual(spec.JoinConfiguration.Discovery.File.KubeConfig, &bootstrapv1.FileDiscoveryKubeConfig{}) {
+				spec.JoinConfiguration.Discovery.File.KubeConfig = nil
+			}
+		}
+		if len(spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs) == 0 {
+			spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = nil
+		}
+		if len(spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors) == 0 {
+			spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors = nil
+		}
+		// NOTE: we are not dropping spec.JoinConfiguration.Taints because for this field there
+		// is a difference between not set (use kubeadm defaults) and empty (do not apply any taint).
+		if len(spec.JoinConfiguration.SkipPhases) == 0 {
+			spec.JoinConfiguration.SkipPhases = nil
+		}
+	}
+
+	// When rendered to cloud init, there is no diff between nil and empty files.
+	if len(spec.Files) == 0 {
+		spec.Files = nil
+	}
+
+	// When rendered to cloud init, there is no diff between nil and empty diskSetup.filesystems.
+	// When rendered to cloud init, there is no diff between nil and empty diskSetup.filesystems[].extraOpts.
+	// When rendered to cloud init, there is no diff between nil and empty diskSetup.partitions.
+	if spec.DiskSetup != nil {
+		if len(spec.DiskSetup.Filesystems) == 0 {
+			spec.DiskSetup.Filesystems = nil
+		}
+		for i, fs := range spec.DiskSetup.Filesystems {
+			if len(fs.ExtraOpts) == 0 {
+				fs.ExtraOpts = nil
+			}
+			spec.DiskSetup.Filesystems[i] = fs
+		}
+		if len(spec.DiskSetup.Partitions) == 0 {
+			spec.DiskSetup.Partitions = nil
+		}
+	}
+
+	// When rendered to cloud init, there is no diff between nil and empty Mounts.
+	if len(spec.Mounts) == 0 {
+		spec.Mounts = nil
+	}
+
+	// When rendered to cloud init, there is no diff between nil and empty BootCommands.
+	if len(spec.BootCommands) == 0 {
+		spec.BootCommands = nil
+	}
+
+	// When rendered to cloud init, there is no diff between nil and empty PreKubeadmCommands.
+	if len(spec.PreKubeadmCommands) == 0 {
+		spec.PreKubeadmCommands = nil
+	}
+
+	// When rendered to cloud init, there is no diff between nil and empty PostKubeadmCommands.
+	if len(spec.PostKubeadmCommands) == 0 {
+		spec.PostKubeadmCommands = nil
+	}
+
+	// When rendered to cloud init, there is no diff between nil and empty Users.
+	// When rendered to cloud init, there is no diff between nil and empty Users[].SSHAuthorizedKeys.
+	if len(spec.Users) == 0 {
+		spec.Users = nil
+	}
+	for i, user := range spec.Users {
+		if len(user.SSHAuthorizedKeys) == 0 {
+			user.SSHAuthorizedKeys = nil
+		}
+		spec.Users[i] = user
+	}
+
+	// When rendered to cloud init, there is no diff between nil and empty ntp.servers.
+	if spec.NTP != nil {
+		if len(spec.NTP.Servers) == 0 {
+			spec.NTP.Servers = nil
+		}
 	}
 }

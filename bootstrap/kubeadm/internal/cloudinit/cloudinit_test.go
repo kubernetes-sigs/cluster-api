@@ -324,3 +324,164 @@ func TestNewJoinNodeCommands(t *testing.T) {
 
 	g.Expect(out).To(ContainSubstring(expectedRunCmd))
 }
+
+func TestOmittableFields(t *testing.T) {
+	tests := []struct {
+		name string
+		A    BaseUserData
+		B    BaseUserData
+	}{
+		{
+			name: "No diff between empty or nil additionalFiles", // NOTE: it maps to .Files in the KubeadmConfigSpec
+			A: BaseUserData{
+				AdditionalFiles: []bootstrapv1.File{},
+			},
+			B: BaseUserData{
+				AdditionalFiles: nil,
+			},
+		},
+		{
+			name: "No diff between empty or nil diskSetup.partitions",
+			A: BaseUserData{
+				DiskSetup: &bootstrapv1.DiskSetup{
+					Partitions: []bootstrapv1.Partition{},
+				},
+			},
+			B: BaseUserData{
+				DiskSetup: &bootstrapv1.DiskSetup{
+					Partitions: nil,
+				},
+			},
+		},
+		{
+			name: "No diff between empty or nil diskSetup.filesystems.extraOpts",
+			A: BaseUserData{
+				DiskSetup: &bootstrapv1.DiskSetup{
+					Filesystems: []bootstrapv1.Filesystem{
+						{
+							ExtraOpts: []string{},
+						},
+					},
+				},
+			},
+			B: BaseUserData{
+				DiskSetup: &bootstrapv1.DiskSetup{
+					Filesystems: []bootstrapv1.Filesystem{
+						{
+							ExtraOpts: nil,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "No diff between empty or nil diskSetup.filesystems",
+			A: BaseUserData{
+				DiskSetup: &bootstrapv1.DiskSetup{
+					Filesystems: []bootstrapv1.Filesystem{},
+				},
+			},
+			B: BaseUserData{
+				DiskSetup: &bootstrapv1.DiskSetup{
+					Filesystems: nil,
+				},
+			},
+		},
+		{
+			name: "No diff between empty or nil mounts",
+			A: BaseUserData{
+				Mounts: []bootstrapv1.MountPoints{},
+			},
+			B: BaseUserData{
+				Mounts: nil,
+			},
+		},
+		{
+			name: "No diff between empty or nil bootCommands",
+			A: BaseUserData{
+				BootCommands: []string{},
+			},
+			B: BaseUserData{
+				BootCommands: nil,
+			},
+		},
+		{
+			name: "No diff between empty or nil preKubeadmCommands",
+			A: BaseUserData{
+				PreKubeadmCommands: []string{},
+			},
+			B: BaseUserData{
+				PreKubeadmCommands: nil,
+			},
+		},
+		{
+			name: "No diff between empty or nil postKubeadmCommands",
+			A: BaseUserData{
+				PostKubeadmCommands: []string{},
+			},
+			B: BaseUserData{
+				PostKubeadmCommands: nil,
+			},
+		},
+		{
+			name: "No diff between empty or nil users",
+			A: BaseUserData{
+				Users: []bootstrapv1.User{},
+			},
+			B: BaseUserData{
+				Users: nil,
+			},
+		},
+		{
+			name: "No diff between empty or nil users.sshAuthorizedKeys",
+			A: BaseUserData{
+				Users: []bootstrapv1.User{
+					{
+						SSHAuthorizedKeys: nil,
+					},
+				},
+			},
+			B: BaseUserData{
+				Users: []bootstrapv1.User{
+					{
+						SSHAuthorizedKeys: []string{},
+					},
+				},
+			},
+		},
+		{
+			name: "No diff between empty or nil ntp.servers",
+			A: BaseUserData{
+				NTP: &bootstrapv1.NTP{
+					Servers: []string{},
+				},
+			},
+			B: BaseUserData{
+				NTP: &bootstrapv1.NTP{
+					Servers: nil,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			outA, err := NewInitControlPlane(&ControlPlaneInput{BaseUserData: tt.A})
+			g.Expect(err).ToNot(HaveOccurred())
+
+			outB, err := NewInitControlPlane(&ControlPlaneInput{BaseUserData: tt.B})
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Expect(string(outA)).To(Equal(string(outB)))
+
+			outA, err = NewJoinControlPlane(&ControlPlaneJoinInput{BaseUserData: tt.A})
+			g.Expect(err).ToNot(HaveOccurred())
+
+			outB, err = NewJoinControlPlane(&ControlPlaneJoinInput{BaseUserData: tt.B})
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Expect(string(outA)).To(Equal(string(outB)))
+		})
+	}
+}

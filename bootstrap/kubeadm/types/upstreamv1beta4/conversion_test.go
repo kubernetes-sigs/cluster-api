@@ -98,12 +98,8 @@ func spokeClusterConfigurationFuzzer(obj *ClusterConfiguration, c randfill.Conti
 	obj.Proxy = Proxy{}
 	obj.EncryptionAlgorithm = ""
 
-	if obj.CertificateValidityPeriod != nil {
-		obj.CertificateValidityPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()%24) * time.Hour * 24})
-	}
-	if obj.CACertificateValidityPeriod != nil {
-		obj.CACertificateValidityPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()%24) * time.Hour * 24})
-	}
+	obj.CertificateValidityPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()%24+1) * time.Hour * 24})
+	obj.CACertificateValidityPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()%24+1) * time.Hour * 24})
 
 	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
 	obj.Networking.ServiceSubnet = ""
@@ -189,13 +185,8 @@ func hubJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.C
 func hubClusterConfigurationFuzzer(obj *bootstrapv1.ClusterConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
-	if obj.CertificateValidityPeriodDays != nil {
-		obj.CertificateValidityPeriodDays = ptr.To[int32](*obj.CertificateValidityPeriodDays % 24)
-	}
-
-	if obj.CACertificateValidityPeriodDays != nil {
-		obj.CACertificateValidityPeriodDays = ptr.To[int32](*obj.CACertificateValidityPeriodDays % 24)
-	}
+	obj.CertificateValidityPeriodDays %= 24
+	obj.CACertificateValidityPeriodDays %= 24
 }
 
 func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {

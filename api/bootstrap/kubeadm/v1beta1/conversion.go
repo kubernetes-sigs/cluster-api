@@ -64,14 +64,14 @@ func RestoreKubeadmConfigSpec(restored *bootstrapv1.KubeadmConfigSpec, dst *boot
 		dst.JoinConfiguration.Timeouts = restored.JoinConfiguration.Timeouts
 	}
 	if restored.ClusterConfiguration != nil &&
-		(restored.ClusterConfiguration.CertificateValidityPeriodDays != nil || restored.ClusterConfiguration.CACertificateValidityPeriodDays != nil) {
+		(restored.ClusterConfiguration.CertificateValidityPeriodDays != 0 || restored.ClusterConfiguration.CACertificateValidityPeriodDays != 0) {
 		if dst.ClusterConfiguration == nil {
 			dst.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
 		}
-		if restored.ClusterConfiguration.CertificateValidityPeriodDays != nil {
+		if restored.ClusterConfiguration.CertificateValidityPeriodDays != 0 {
 			dst.ClusterConfiguration.CertificateValidityPeriodDays = restored.ClusterConfiguration.CertificateValidityPeriodDays
 		}
-		if restored.ClusterConfiguration.CACertificateValidityPeriodDays != nil {
+		if restored.ClusterConfiguration.CACertificateValidityPeriodDays != 0 {
 			dst.ClusterConfiguration.CACertificateValidityPeriodDays = restored.ClusterConfiguration.CACertificateValidityPeriodDays
 		}
 	}

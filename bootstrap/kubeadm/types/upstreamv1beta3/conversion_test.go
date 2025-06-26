@@ -201,6 +201,6 @@ func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
 func hubClusterConfigurationFuzzer(obj *bootstrapv1.ClusterConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
-	obj.CertificateValidityPeriodDays = nil
-	obj.CACertificateValidityPeriodDays = nil
+	obj.CertificateValidityPeriodDays = 0
+	obj.CACertificateValidityPeriodDays = 0
 }

@@ -1896,7 +1896,9 @@ func TestOmittableFieldsClusterConfiguration(t *testing.T) {
 						PeerCertSANs:   nil,
 					},
 					External: &bootstrapv1.ExternalEtcd{
-						Endpoints: []string{}, // The field doesn't have omit empty.
+						// The field doesn't have omit empty. It also is required and has MinItems=1, so it will
+						// never actually be nil or an empty array so that difference also won't trigger any rollouts.
+						Endpoints: []string{},
 					},
 				},
 				APIServer: bootstrapv1.APIServer{

@@ -459,6 +459,7 @@ type LocalEtcd struct {
 type ExternalEtcd struct {
 	// endpoints of etcd members. Required for ExternalEtcd.
 	// +required
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512

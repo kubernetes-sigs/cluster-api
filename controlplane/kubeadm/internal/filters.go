@@ -428,6 +428,8 @@ func dropOmittableFields(spec *bootstrapv1.KubeadmConfigSpec) {
 		}
 		// NOTE: we are not dropping spec.ClusterConfiguration.Etcd.ExternalEtcd.Endpoints because this field
 		// doesn't have omitempty, so [] array is different from nil when serialized.
+		// But this field is also required and has MinItems=1, so it will
+		// never actually be nil or an empty array so that difference also won't trigger any rollouts.
 		if len(spec.ClusterConfiguration.APIServer.ExtraArgs) == 0 {
 			spec.ClusterConfiguration.APIServer.ExtraArgs = nil
 		}

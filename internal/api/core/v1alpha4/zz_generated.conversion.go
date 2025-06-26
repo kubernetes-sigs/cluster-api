@@ -1299,7 +1299,15 @@ func autoConvert_v1beta2_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentSt
 
 func autoConvert_v1alpha4_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in *MachineDeploymentStrategy, out *v1beta2.MachineDeploymentStrategy, s conversion.Scope) error {
 	out.Type = v1beta2.MachineDeploymentStrategyType(in.Type)
-	out.RollingUpdate = (*v1beta2.MachineRollingUpdateDeployment)(unsafe.Pointer(in.RollingUpdate))
+	if in.RollingUpdate != nil {
+		in, out := &in.RollingUpdate, &out.RollingUpdate
+		*out = new(v1beta2.MachineRollingUpdateDeployment)
+		if err := Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1beta2_MachineRollingUpdateDeployment(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RollingUpdate = nil
+	}
 	return nil
 }
 
@@ -1310,7 +1318,15 @@ func Convert_v1alpha4_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStra
 
 func autoConvert_v1beta2_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(in *v1beta2.MachineDeploymentStrategy, out *MachineDeploymentStrategy, s conversion.Scope) error {
 	out.Type = MachineDeploymentStrategyType(in.Type)
-	out.RollingUpdate = (*MachineRollingUpdateDeployment)(unsafe.Pointer(in.RollingUpdate))
+	if in.RollingUpdate != nil {
+		in, out := &in.RollingUpdate, &out.RollingUpdate
+		*out = new(MachineRollingUpdateDeployment)
+		if err := Convert_v1beta2_MachineRollingUpdateDeployment_To_v1alpha4_MachineRollingUpdateDeployment(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RollingUpdate = nil
+	}
 	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -1716,7 +1732,9 @@ func autoConvert_v1beta2_MachinePoolStatus_To_v1alpha4_MachinePoolStatus(in *v1b
 func autoConvert_v1alpha4_MachineRollingUpdateDeployment_To_v1beta2_MachineRollingUpdateDeployment(in *MachineRollingUpdateDeployment, out *v1beta2.MachineRollingUpdateDeployment, s conversion.Scope) error {
 	out.MaxUnavailable = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnavailable))
 	out.MaxSurge = (*intstr.IntOrString)(unsafe.Pointer(in.MaxSurge))
-	out.DeletePolicy = (*string)(unsafe.Pointer(in.DeletePolicy))
+	if err := v1.Convert_Pointer_string_To_string(&in.DeletePolicy, &out.DeletePolicy, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1728,7 +1746,9 @@ func Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1beta2_MachineRollingUp
 func autoConvert_v1beta2_MachineRollingUpdateDeployment_To_v1alpha4_MachineRollingUpdateDeployment(in *v1beta2.MachineRollingUpdateDeployment, out *MachineRollingUpdateDeployment, s conversion.Scope) error {
 	out.MaxUnavailable = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnavailable))
 	out.MaxSurge = (*intstr.IntOrString)(unsafe.Pointer(in.MaxSurge))
-	out.DeletePolicy = (*string)(unsafe.Pointer(in.DeletePolicy))
+	if err := v1.Convert_string_To_Pointer_string(&in.DeletePolicy, &out.DeletePolicy, s); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -461,7 +461,7 @@ const (
 type ClusterSpec struct {
 	// paused can be used to prevent controllers from processing the Cluster and all its associated objects.
 	// +optional
-	Paused bool `json:"paused,omitempty"`
+	Paused bool `json:"paused,omitempty"` // nolint:kubeapilinter // FIXME: change this to pointer
 
 	// clusterNetwork represents the cluster network configuration.
 	// +optional
@@ -548,7 +548,8 @@ type Topology struct {
 
 	// controlPlane describes the cluster control plane.
 	// +optional
-	ControlPlane ControlPlaneTopology `json:"controlPlane,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	ControlPlane ControlPlaneTopology `json:"controlPlane,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// workers encapsulates the different constructs that form the worker nodes
 	// for the cluster.
@@ -596,7 +597,8 @@ type ControlPlaneTopology struct {
 	// is applied only to the ControlPlane.
 	// At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
 	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// replicas is the number of control plane nodes.
 	// If the value is nil, the ControlPlane object is created without the number of Replicas
@@ -674,7 +676,8 @@ type MachineDeploymentTopology struct {
 	// metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
 	// At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
 	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// class is the name of the MachineDeploymentClass used to create the set of worker nodes.
 	// This should match one of the deployment classes defined in the ClusterClass object
@@ -698,7 +701,7 @@ type MachineDeploymentTopology struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	FailureDomain *string `json:"failureDomain,omitempty"`
+	FailureDomain *string `json:"failureDomain,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// replicas is the number of worker nodes belonging to this set.
 	// If the value is nil, the MachineDeployment is created without the number of Replicas (defaulting to 1)
@@ -788,7 +791,8 @@ type MachinePoolTopology struct {
 	// metadata is the metadata applied to the MachinePool.
 	// At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
 	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// class is the name of the MachinePoolClass used to create the pool of worker nodes.
 	// This should match one of the deployment classes defined in the ClusterClass object
@@ -996,6 +1000,7 @@ type ClusterStatus struct {
 
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
@@ -1012,7 +1017,7 @@ type ClusterInitializationStatus struct {
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
 	// The value of this field is never updated after provisioning is completed.
 	// +optional
-	InfrastructureProvisioned bool `json:"infrastructureProvisioned"`
+	InfrastructureProvisioned bool `json:"infrastructureProvisioned"` // nolint:kubeapilinter // FIXME: change this to pointer
 
 	// controlPlaneInitialized denotes when the control plane is functional enough to accept requests.
 	// This information is usually used as a signal for starting all the provisioning operations that depends on
@@ -1021,7 +1026,7 @@ type ClusterInitializationStatus struct {
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
 	// The value of this field is never updated after initialization is completed.
 	// +optional
-	ControlPlaneInitialized bool `json:"controlPlaneInitialized"`
+	ControlPlaneInitialized bool `json:"controlPlaneInitialized"` // nolint:kubeapilinter // FIXME: change this to pointer
 }
 
 // ClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
@@ -1257,7 +1262,7 @@ type FailureDomain struct {
 
 	// controlPlane determines if this failure domain is suitable for use by control plane machines.
 	// +optional
-	ControlPlane bool `json:"controlPlane,omitempty"`
+	ControlPlane bool `json:"controlPlane,omitempty"` // nolint:kubeapilinter // FIXME: change this to pointer
 
 	// attributes is a free form map of attributes an infrastructure provider might use or require.
 	// +optional

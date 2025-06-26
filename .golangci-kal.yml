@@ -43,17 +43,17 @@ linters:
               isFirstField: Warn # Require conditions to be the first field in the status struct.
               usePatchStrategy: Forbid # Require conditions to be the first field in the status struct.
               useProtobuf: Forbid # We don't use protobuf, so protobuf tags are not required.
+            optionalFields:
+              pointers:
+                preference: WhenRequired # Always | WhenRequired # Whether to always require pointers, or only when required. Defaults to `Always`.
+                policy: SuggestFix # SuggestFix | Warn # The policy for pointers in optional fields. Defaults to `SuggestFix`.
+              omitempty:
+                policy: SuggestFix # SuggestFix | Warn | Ignore # The policy for omitempty in optional fields. Defaults to `SuggestFix`.
           # jsonTags:
           #   jsonTagRegex: "^[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)*$" # The default regex is appropriate for our use case.
           # optionalOrRequired:
           #   preferredOptionalMarker: optional | kubebuilder:validation:Optional # The preferred optional marker to use, fixes will suggest to use this marker. Defaults to `optional`.
           #   preferredRequiredMarker: required | kubebuilder:validation:Required # The preferred required marker to use, fixes will suggest to use this marker. Defaults to `required`.
-            optionalFields:
-              pointers:
-                preference: Always # Always | WhenRequired # Whether to always require pointers, or only when required. Defaults to `Always`.
-                policy: SuggestFix # SuggestFix | Warn # The policy for pointers in optional fields. Defaults to `SuggestFix`.
-              omitempty:
-                policy: SuggestFix # SuggestFix | Warn | Ignore # The policy for omitempty in optional fields. Defaults to `SuggestFix`.
           # requiredFields:
           #   pointerPolicy: Warn | SuggestFix # Defaults to `SuggestFix`. We want our required fields to not be pointers.
 
@@ -78,7 +78,7 @@ linters:
       text: "Conditions field must be a slice of metav1.Condition"
       linters:
         - kubeapilinter
-    - path: "api/addons/v1beta1/*|api/bootstrap/kubeadm/v1beta1/*|api/controlplane/kubeadm/v1beta1/*|api/core/v1beta1/*|api/ipam/v1beta1/*|api/ipam/v1alpha1/*|api/runtime/v1alpha1/*"
+    - path: "api/addons/v1beta1/*|api/bootstrap/kubeadm/v1beta1/*|api/controlplane/kubeadm/v1beta1/*|api/core/v1beta1/*|api/ipam/v1beta1/*|api/ipam/v1alpha1/*|api/runtime/v1alpha1/*|cmd/clusterctl/api/v1alpha3/*"
       text: "optionalfields"
       linters:
         - kubeapilinter
@@ -155,6 +155,25 @@ linters:
       text: "field Ref is marked as required, should not be a pointer"
       linters:
         - kubeapilinter
+
+    ## TODO: optional required tasks.
+    # Move up
+    # Audit the entire hook types + builtins from a serialization point of view (this is not a CRD)
+    - path: "api/runtime/hooks/v1alpha1/*"
+      text: "optionalfields"
+      linters:
+        - kubeapilinter
+    # FailureMessage will be removed when v1beta1 is removed
+    - path: "api/*"
+      text: "field FailureMessage is optional and does not allow the zero value"
+      linters:
+        - kubeapilinter
+    # Take a closer look
+    - path: ".*"
+      text: "field Spec|Status is optional"
+      linters:
+        - kubeapilinter
+
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0

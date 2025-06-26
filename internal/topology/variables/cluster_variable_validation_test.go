@@ -1128,7 +1128,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 						Items: &clusterv1.JSONSchemaProps{
 							Type: "string",
 						},
-						UniqueItems: true,
+						UniqueItems: ptr.To(true),
 					},
 				},
 			},
@@ -1208,7 +1208,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 							},
 						},
 						// Preserves fields for the current object (in this case unknownProperty).
-						XPreserveUnknownFields: true,
+						XPreserveUnknownFields: ptr.To(true),
 					},
 				},
 			},
@@ -1285,7 +1285,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 						Type: "object",
 						// XPreserveUnknownFields preservers recursively if the object has nested fields
 						// as no nested Properties are defined.
-						XPreserveUnknownFields: true,
+						XPreserveUnknownFields: ptr.To(true),
 					},
 				},
 			},
@@ -1313,7 +1313,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 									},
 								},
 								// Preserves fields on the current level (in this case unknownProperty).
-								XPreserveUnknownFields: true,
+								XPreserveUnknownFields: ptr.To(true),
 							},
 						},
 					},
@@ -1382,7 +1382,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 							},
 						},
 						// Preserves only on the current level as nested Properties are defined.
-						XPreserveUnknownFields: true,
+						XPreserveUnknownFields: ptr.To(true),
 					},
 				},
 			},
@@ -1412,7 +1412,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 							},
 						},
 						// Preserves only on the current level as nested Properties are defined.
-						XPreserveUnknownFields: true,
+						XPreserveUnknownFields: ptr.To(true),
 					},
 				},
 			},
@@ -1732,11 +1732,11 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:                   "object",
-						XPreserveUnknownFields: true,
+						XPreserveUnknownFields: ptr.To(true),
 						Properties: map[string]clusterv1.JSONSchemaProps{
 							"objectField": {
 								Type:                   "object",
-								XPreserveUnknownFields: true,
+								XPreserveUnknownFields: ptr.To(true),
 								XValidations: []clusterv1.ValidationRule{{
 									Rule: "self.field <= 1",
 								}},
@@ -1765,7 +1765,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:                   "object",
-						XPreserveUnknownFields: true,
+						XPreserveUnknownFields: ptr.To(true),
 						XValidations: []clusterv1.ValidationRule{{
 							Rule: "self.field <= 1",
 						}},
@@ -1796,7 +1796,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:                   "object",
-						XPreserveUnknownFields: true,
+						XPreserveUnknownFields: ptr.To(true),
 						XValidations: []clusterv1.ValidationRule{{
 							Rule: "self.field <= 1",
 						}, {
@@ -2117,7 +2117,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
 						Items: &clusterv1.JSONSchemaProps{
-							XIntOrString: true,
+							XIntOrString: ptr.To(true),
 							AnyOf: []clusterv1.JSONSchemaProps{{
 								Type: "integer",
 							}, {

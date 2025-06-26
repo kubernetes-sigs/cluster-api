@@ -21,6 +21,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -54,7 +55,7 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 		if dst.Status.Initialization == nil {
 			dst.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
 		}
-		dst.Status.Initialization.DataSecretCreated = src.Status.Ready
+		dst.Status.Initialization.DataSecretCreated = ptr.To(src.Status.Ready)
 	}
 
 	// Manually restore data.
@@ -199,7 +200,7 @@ func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Move initialization to old fields
 	if src.Status.Initialization != nil {
-		dst.Status.Ready = src.Status.Initialization.DataSecretCreated
+		dst.Status.Ready = ptr.Deref(src.Status.Initialization.DataSecretCreated, false)
 	}
 
 	// Convert timeouts moved from one struct to another.

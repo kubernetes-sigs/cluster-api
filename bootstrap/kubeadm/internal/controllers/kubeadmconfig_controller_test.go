@@ -100,7 +100,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *
 	config := newKubeadmConfig(metav1.NamespaceDefault, "cfg")
 	addKubeadmConfigToMachine(config, machine)
 
-	config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{DataSecretCreated: true}
+	config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{DataSecretCreated: ptr.To(true)}
 
 	objects := []client.Object{
 		cluster,
@@ -155,7 +155,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		},
 		Type: corev1.SecretTypeBootstrapToken,
 	}
-	config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{DataSecretCreated: true}
+	config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{DataSecretCreated: ptr.To(true)}
 
 	objects := []client.Object{
 		config,
@@ -1929,7 +1929,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 		{
 			name: "Skip CA verification if requested by the user",
 			discovery: &bootstrapv1.BootstrapTokenDiscovery{
-				UnsafeSkipCAVerification: true,
+				UnsafeSkipCAVerification: ptr.To(true),
 			},
 			skipCAVerification: true,
 		},
@@ -2758,7 +2758,7 @@ func TestKubeadmConfigReconciler_Reconcile_v1beta2_conditions(t *testing.T) {
 			name: "conditions should be true after upgrading to v1beta2",
 			config: func() *bootstrapv1.KubeadmConfig {
 				c := kubeadmConfig.DeepCopy()
-				c.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{DataSecretCreated: true}
+				c.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{DataSecretCreated: ptr.To(true)}
 				return c
 			}(),
 			machine: machine.DeepCopy(),

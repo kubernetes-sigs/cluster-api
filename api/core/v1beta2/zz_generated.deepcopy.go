@@ -1122,6 +1122,11 @@ func (in *JSONSchemaProps) DeepCopyInto(out *JSONSchemaProps) {
 		*out = new(int64)
 		**out = **in
 	}
+	if in.UniqueItems != nil {
+		in, out := &in.UniqueItems, &out.UniqueItems
+		*out = new(bool)
+		**out = **in
+	}
 	if in.MaxLength != nil {
 		in, out := &in.MaxLength, &out.MaxLength
 		*out = new(int64)
@@ -1137,9 +1142,24 @@ func (in *JSONSchemaProps) DeepCopyInto(out *JSONSchemaProps) {
 		*out = new(int64)
 		**out = **in
 	}
+	if in.ExclusiveMaximum != nil {
+		in, out := &in.ExclusiveMaximum, &out.ExclusiveMaximum
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Minimum != nil {
 		in, out := &in.Minimum, &out.Minimum
 		*out = new(int64)
+		**out = **in
+	}
+	if in.ExclusiveMinimum != nil {
+		in, out := &in.ExclusiveMinimum, &out.ExclusiveMinimum
+		*out = new(bool)
+		**out = **in
+	}
+	if in.XPreserveUnknownFields != nil {
+		in, out := &in.XPreserveUnknownFields, &out.XPreserveUnknownFields
+		*out = new(bool)
 		**out = **in
 	}
 	if in.Enum != nil {
@@ -1163,6 +1183,11 @@ func (in *JSONSchemaProps) DeepCopyInto(out *JSONSchemaProps) {
 		in, out := &in.XMetadata, &out.XMetadata
 		*out = new(VariableSchemaMetadata)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.XIntOrString != nil {
+		in, out := &in.XIntOrString, &out.XIntOrString
+		*out = new(bool)
+		**out = **in
 	}
 	if in.AllOf != nil {
 		in, out := &in.AllOf, &out.AllOf
@@ -2584,11 +2609,6 @@ func (in *MachineRollingUpdateDeployment) DeepCopyInto(out *MachineRollingUpdate
 	if in.MaxSurge != nil {
 		in, out := &in.MaxSurge, &out.MaxSurge
 		*out = new(intstr.IntOrString)
-		**out = **in
-	}
-	if in.DeletePolicy != nil {
-		in, out := &in.DeletePolicy, &out.DeletePolicy
-		*out = new(string)
 		**out = **in
 	}
 }

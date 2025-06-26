@@ -21,6 +21,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -195,7 +196,7 @@ func Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *boot
 
 	// Move initialization to old fields
 	if in.Initialization != nil {
-		out.Ready = in.Initialization.DataSecretCreated
+		out.Ready = ptr.Deref(in.Initialization.DataSecretCreated, false)
 	}
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
@@ -299,7 +300,7 @@ func Convert_v1beta1_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *Kube
 		if out.Initialization == nil {
 			out.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
 		}
-		out.Initialization.DataSecretCreated = in.Ready
+		out.Initialization.DataSecretCreated = ptr.To(in.Ready)
 	}
 	return nil
 }

@@ -103,18 +103,21 @@ type ClusterClassSpec struct {
 	// infrastructure is a reference to a local struct that holds the details
 	// for provisioning the infrastructure cluster for the Cluster.
 	// +optional
-	Infrastructure InfrastructureClass `json:"infrastructure,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	Infrastructure InfrastructureClass `json:"infrastructure,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// controlPlane is a reference to a local struct that holds the details
 	// for provisioning the Control Plane for the Cluster.
 	// +optional
-	ControlPlane ControlPlaneClass `json:"controlPlane,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	ControlPlane ControlPlaneClass `json:"controlPlane,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// workers describes the worker nodes for the cluster.
 	// It is a collection of node types which can be used to create
 	// the worker nodes of the cluster.
 	// +optional
-	Workers WorkersClass `json:"workers,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	Workers WorkersClass `json:"workers,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// variables defines the variables which can be configured
 	// in the Cluster topology and are then used in patches.
@@ -150,7 +153,8 @@ type ControlPlaneClass struct {
 	// This field is supported if and only if the control plane provider template
 	// referenced is Machine based.
 	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// LocalObjectTemplate contains the reference to a provider-specific control plane template.
 	ClusterClassTemplate `json:",inline"`
@@ -226,7 +230,7 @@ type ControlPlaneClassNamingStrategy struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
-	Template *string `json:"template,omitempty"`
+	Template *string `json:"template,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 }
 
 // InfrastructureClassNamingStrategy defines the naming strategy for infrastructure objects.
@@ -241,7 +245,7 @@ type InfrastructureClassNamingStrategy struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
-	Template *string `json:"template,omitempty"`
+	Template *string `json:"template,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 }
 
 // WorkersClass is a collection of deployment classes.
@@ -289,7 +293,7 @@ type MachineDeploymentClass struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	FailureDomain *string `json:"failureDomain,omitempty"`
+	FailureDomain *string `json:"failureDomain,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// namingStrategy allows changing the naming pattern used when creating the MachineDeployment.
 	// +optional
@@ -353,7 +357,8 @@ type MachineDeploymentClassTemplate struct {
 	// metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
 	// At runtime this metadata is merged with the corresponding metadata from the topology.
 	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of worker Machines.
@@ -379,7 +384,7 @@ type MachineDeploymentClassNamingStrategy struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
-	Template *string `json:"template,omitempty"`
+	Template *string `json:"template,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 }
 
 // MachineHealthCheckClass defines a MachineHealthCheck for a group of Machines.
@@ -408,7 +413,7 @@ type MachineHealthCheckClass struct {
 	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=32
-	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
+	UnhealthyRange *string `json:"unhealthyRange,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
 	// to consider a Machine unhealthy if a corresponding Node isn't associated
@@ -503,7 +508,8 @@ type MachinePoolClassTemplate struct {
 	// metadata is the metadata applied to the MachinePool.
 	// At runtime this metadata is merged with the corresponding metadata from the topology.
 	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of the Machines in the MachinePool.
@@ -529,7 +535,7 @@ type MachinePoolClassNamingStrategy struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
-	Template *string `json:"template,omitempty"`
+	Template *string `json:"template,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 }
 
 // IsZero returns true if none of the values of MachineHealthCheckClass are defined.
@@ -560,7 +566,8 @@ type ClusterClassVariable struct {
 	// Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.
 	//
 	// +optional
-	DeprecatedV1Beta1Metadata ClusterClassVariableMetadata `json:"deprecatedV1Beta1Metadata,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	DeprecatedV1Beta1Metadata ClusterClassVariableMetadata `json:"deprecatedV1Beta1Metadata,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// schema defines the schema of the variable.
 	// +required
@@ -676,7 +683,7 @@ type JSONSchemaProps struct {
 	// uniqueItems specifies if items in an array must be unique.
 	// NOTE: Can only be set if type is array.
 	// +optional
-	UniqueItems bool `json:"uniqueItems,omitempty"`
+	UniqueItems *bool `json:"uniqueItems,omitempty"`
 
 	// format is an OpenAPI v3 format string. Unknown formats are ignored.
 	// For a list of supported formats please see: (of the k8s.io/apiextensions-apiserver version we're currently using)
@@ -714,7 +721,7 @@ type JSONSchemaProps struct {
 	// exclusiveMaximum specifies if the Maximum is exclusive.
 	// NOTE: Can only be set if type is integer or number.
 	// +optional
-	ExclusiveMaximum bool `json:"exclusiveMaximum,omitempty"`
+	ExclusiveMaximum *bool `json:"exclusiveMaximum,omitempty"`
 
 	// minimum is the minimum of an integer or number variable.
 	// If ExclusiveMinimum is false, the variable is valid if it is greater than, or equal to, the value of Minimum.
@@ -726,13 +733,13 @@ type JSONSchemaProps struct {
 	// exclusiveMinimum specifies if the Minimum is exclusive.
 	// NOTE: Can only be set if type is integer or number.
 	// +optional
-	ExclusiveMinimum bool `json:"exclusiveMinimum,omitempty"`
+	ExclusiveMinimum *bool `json:"exclusiveMinimum,omitempty"`
 
 	// x-kubernetes-preserve-unknown-fields allows setting fields in a variable object
 	// which are not defined in the variable schema. This affects fields recursively,
 	// except if nested properties or additionalProperties are specified in the schema.
 	// +optional
-	XPreserveUnknownFields bool `json:"x-kubernetes-preserve-unknown-fields,omitempty"`
+	XPreserveUnknownFields *bool `json:"x-kubernetes-preserve-unknown-fields,omitempty"`
 
 	// enum is the list of valid values of the variable.
 	// NOTE: Can be set for all types.
@@ -771,7 +778,7 @@ type JSONSchemaProps struct {
 	//      - type: string
 	//    - ... zero or more
 	// +optional
-	XIntOrString bool `json:"x-kubernetes-int-or-string,omitempty"`
+	XIntOrString *bool `json:"x-kubernetes-int-or-string,omitempty"`
 
 	// allOf specifies that the variable must validate against all of the subschemas in the array.
 	// NOTE: This field uses PreserveUnknownFields and Schemaless,
@@ -961,7 +968,7 @@ type ClusterClassPatch struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	EnabledIf *string `json:"enabledIf,omitempty"`
+	EnabledIf *string `json:"enabledIf,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// definitions define inline patches.
 	// Note: Patches will be applied in the order of the array.
@@ -1025,11 +1032,11 @@ type PatchSelectorMatch struct {
 	// Note: this will match the controlPlane and also the controlPlane
 	// machineInfrastructure (depending on the kind and apiVersion).
 	// +optional
-	ControlPlane bool `json:"controlPlane,omitempty"`
+	ControlPlane bool `json:"controlPlane,omitempty"` // nolint:kubeapilinter // FIXME: change this to pointer
 
 	// infrastructureCluster selects templates referenced in .spec.infrastructure.
 	// +optional
-	InfrastructureCluster bool `json:"infrastructureCluster,omitempty"`
+	InfrastructureCluster bool `json:"infrastructureCluster,omitempty"` // nolint:kubeapilinter // FIXME: change this to pointer
 
 	// machineDeploymentClass selects templates referenced in specific MachineDeploymentClasses in
 	// .spec.workers.machineDeployments.
@@ -1107,7 +1114,7 @@ type JSONPatchValue struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Variable *string `json:"variable,omitempty"`
+	Variable *string `json:"variable,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// template is the Go template to be used to calculate the value.
 	// A template can reference variables defined in .spec.variables and builtin variables.
@@ -1115,7 +1122,7 @@ type JSONPatchValue struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
-	Template *string `json:"template,omitempty"`
+	Template *string `json:"template,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 }
 
 // ExternalPatchDefinition defines an external patch.
@@ -1125,19 +1132,19 @@ type ExternalPatchDefinition struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	GeneratePatchesExtension *string `json:"generatePatchesExtension,omitempty"`
+	GeneratePatchesExtension *string `json:"generatePatchesExtension,omitempty"` // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// validateTopologyExtension references an extension which is called to validate the topology.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	ValidateTopologyExtension *string `json:"validateTopologyExtension,omitempty"`
+	ValidateTopologyExtension *string `json:"validateTopologyExtension,omitempty"` // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// discoverVariablesExtension references an extension which is called to discover variables.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	DiscoverVariablesExtension *string `json:"discoverVariablesExtension,omitempty"`
+	DiscoverVariablesExtension *string `json:"discoverVariablesExtension,omitempty"` // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// settings defines key value pairs to be passed to the extensions.
 	// Values defined here take precedence over the values defined in the
@@ -1218,6 +1225,7 @@ type ClusterClassStatus struct {
 
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
@@ -1254,7 +1262,7 @@ type ClusterClassStatusVariable struct {
 
 	// definitionsConflict specifies whether or not there are conflicting definitions for a single variable name.
 	// +optional
-	DefinitionsConflict bool `json:"definitionsConflict"`
+	DefinitionsConflict bool `json:"definitionsConflict"` // nolint:kubeapilinter // FIXME: change this to pointer
 
 	// definitions is a list of definitions for a variable.
 	// +kubebuilder:validation:MaxItems=100
@@ -1286,7 +1294,8 @@ type ClusterClassStatusVariableDefinition struct {
 	// Deprecated: This field is deprecated and will be removed when support for v1beta1 will be dropped. Please use XMetadata in JSONSchemaProps instead.
 	//
 	// +optional
-	DeprecatedV1Beta1Metadata ClusterClassVariableMetadata `json:"deprecatedV1Beta1Metadata,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	DeprecatedV1Beta1Metadata ClusterClassVariableMetadata `json:"deprecatedV1Beta1Metadata,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// schema defines the schema of the variable.
 	// +required

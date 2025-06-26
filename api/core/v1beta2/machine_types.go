@@ -400,7 +400,7 @@ type MachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Version *string `json:"version,omitempty"`
+	Version *string `json:"version,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// providerID is the identification ID of the machine provided by the provider.
 	// This field must match the provider ID as seen on the node object corresponding to this machine.
@@ -415,14 +415,14 @@ type MachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	ProviderID *string `json:"providerID,omitempty"`
+	ProviderID *string `json:"providerID,omitempty"` // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// failureDomain is the failure domain the machine will be created in.
 	// Must match the name of a FailureDomain from the Cluster status.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	FailureDomain *string `json:"failureDomain,omitempty"`
+	FailureDomain *string `json:"failureDomain,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// minReadySeconds is the minimum number of seconds for which a Machine should be ready before considering it available.
 	// Defaults to 0 (Machine will be considered available as soon as the Machine is ready)
@@ -544,6 +544,7 @@ type MachineStatus struct {
 
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// deletion contains information relating to removal of the Machine.
@@ -574,13 +575,13 @@ type MachineInitializationStatus struct {
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
 	// The value of this field is never updated after provisioning is completed.
 	// +optional
-	InfrastructureProvisioned bool `json:"infrastructureProvisioned"`
+	InfrastructureProvisioned bool `json:"infrastructureProvisioned"` // nolint:kubeapilinter // FIXME: change this to pointer
 
 	// bootstrapDataSecretCreated is true when the bootstrap provider reports that the Machine's boostrap secret is created.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
 	// The value of this field is never updated after provisioning is completed.
 	// +optional
-	BootstrapDataSecretCreated bool `json:"bootstrapDataSecretCreated"`
+	BootstrapDataSecretCreated bool `json:"bootstrapDataSecretCreated"` // nolint:kubeapilinter // FIXME: change this to pointer
 }
 
 // MachineDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.

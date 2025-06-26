@@ -539,7 +539,7 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 	if err := env.Get(ctx, client.ObjectKeyFromObject(cluster), actualCluster); err != nil {
 		return nil, errors.Wrapf(err, "failed to get cluster %s", cluster.Name)
 	}
-	if c := conditions.Get(actualCluster, clusterv1.ClusterTopologyReconciledCondition); c == nil || c.Status != metav1.ConditionTrue {
+	if c := conditions.Get(actualCluster, clusterv1.ClusterTopologyReconciledCondition); c == nil || c.Status != metav1.ConditionTrue || c.ObservedGeneration != actualCluster.Generation {
 		return nil, errors.Errorf("cluster %s topology is not reconciled", cluster.Name)
 	}
 
@@ -867,22 +867,6 @@ func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter
 
 // assertClusterTopologyBecomesStable checks a cluster topology becomes stable ensuring all the objects included cluster, md and referenced template or referencedObjects do not changed/increased generation.
 func assertClusterTopologyBecomesStable(g *WithT, refs map[clusterv1.ContractVersionedObjectReference]int64, namespace, version string) {
-	g.Eventually(func(g Gomega) {
-		for r, generation := range refs {
-			obj := &unstructured.Unstructured{}
-			obj.SetGroupVersionKind(r.GroupKind().WithVersion(version))
-			if r.Kind == "Cluster" || r.Kind == "MachineDeployment" {
-				obj.SetGroupVersionKind(clusterv1.GroupVersion.WithKind(r.Kind))
-			}
-			err := env.GetClient().Get(ctx, client.ObjectKey{Name: r.Name, Namespace: namespace}, obj)
-			g.Expect(err).ToNot(HaveOccurred())
-			if generation != obj.GetGeneration() {
-				refs[r] = obj.GetGeneration()
-			}
-			g.Expect(obj.GetGeneration()).To(Equal(generation), "generation is not getting stable for %s/%s, %s", r.Kind, r.GroupKind().WithVersion(version).GroupVersion().String(), r.Name)
-		}
-	}, 5*time.Second, 1*time.Second).Should(Succeed(), "Resource versions never became stable")
-
 	g.Consistently(func(g Gomega) {
 		for r, generation := range refs {
 			obj := &unstructured.Unstructured{}

@@ -155,7 +155,7 @@ func Convert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevCluster
 	if out.Deprecated.V1Beta1 == nil {
 		out.Deprecated.V1Beta1 = &infrav1.DevClusterV1Beta1DeprecatedStatus{}
 	}
-	out.Deprecated.V1Beta1.Conditions = in.Conditions
+	clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 
 	return nil
 }
@@ -171,7 +171,7 @@ func Convert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in *infrav1.De
 
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil && in.Deprecated.V1Beta1.Conditions != nil {
-		out.Conditions = in.Deprecated.V1Beta1.Conditions
+		clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 	}
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
@@ -209,7 +209,7 @@ func Convert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in *DevMachine
 	if out.Deprecated.V1Beta1 == nil {
 		out.Deprecated.V1Beta1 = &infrav1.DevMachineV1Beta1DeprecatedStatus{}
 	}
-	out.Deprecated.V1Beta1.Conditions = in.Conditions
+	clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 
 	return nil
 }
@@ -225,7 +225,7 @@ func Convert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *infrav1.De
 
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil && in.Deprecated.V1Beta1.Conditions != nil {
-		out.Conditions = in.Deprecated.V1Beta1.Conditions
+		clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 	}
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
@@ -263,7 +263,7 @@ func Convert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *Dock
 	if out.Deprecated.V1Beta1 == nil {
 		out.Deprecated.V1Beta1 = &infrav1.DockerClusterV1Beta1DeprecatedStatus{}
 	}
-	out.Deprecated.V1Beta1.Conditions = in.Conditions
+	clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 
 	return nil
 }
@@ -279,7 +279,7 @@ func Convert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *infr
 
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil && in.Deprecated.V1Beta1.Conditions != nil {
-		out.Conditions = in.Deprecated.V1Beta1.Conditions
+		clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 	}
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
@@ -317,7 +317,7 @@ func Convert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *Dock
 	if out.Deprecated.V1Beta1 == nil {
 		out.Deprecated.V1Beta1 = &infrav1.DockerMachineV1Beta1DeprecatedStatus{}
 	}
-	out.Deprecated.V1Beta1.Conditions = in.Conditions
+	clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 
 	return nil
 }
@@ -333,7 +333,7 @@ func Convert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *infr
 
 	// Retrieve legacy conditions (v1beta1) from the deprecated field.
 	if in.Deprecated != nil && in.Deprecated.V1Beta1 != nil && in.Deprecated.V1Beta1.Conditions != nil {
-		out.Conditions = in.Deprecated.V1Beta1.Conditions
+		clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 	}
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
@@ -348,12 +348,10 @@ func Convert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *infr
 
 // Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)
 
-func Convert_v1beta2_Condition_To_v1_Condition(_ *clusterv1.Condition, _ *metav1.Condition, _ apiconversion.Scope) error {
-	// NOTE: legacy (v1beta1) conditions should not be automatically converted into v1beta2 conditions.
-	return nil
+func Convert_v1_Condition_To_v1beta1_Condition(in *metav1.Condition, out *clusterv1beta1.Condition, s apiconversion.Scope) error {
+	return clusterv1beta1.Convert_v1_Condition_To_v1beta1_Condition(in, out, s)
 }
 
-func Convert_v1_Condition_To_v1beta2_Condition(_ *metav1.Condition, _ *clusterv1.Condition, _ apiconversion.Scope) error {
-	// NOTE: v1beta2 conditions should not be automatically converted into legacy (v1beta1) conditions.
-	return nil
+func Convert_v1beta1_Condition_To_v1_Condition(in *clusterv1beta1.Condition, out *metav1.Condition, s apiconversion.Scope) error {
+	return clusterv1beta1.Convert_v1beta1_Condition_To_v1_Condition(in, out, s)
 }

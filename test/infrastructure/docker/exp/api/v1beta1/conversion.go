@@ -20,6 +20,7 @@ import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -37,9 +38,7 @@ func (src *DockerMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if src.Status.Conditions != nil {
 		dst.Status.Deprecated = &infraexpv1.DockerMachinePoolDeprecatedStatus{}
 		dst.Status.Deprecated.V1Beta1 = &infraexpv1.DockerMachinePoolV1Beta1DeprecatedStatus{}
-		if src.Status.Conditions != nil {
-			dst.Status.Deprecated.V1Beta1.Conditions = src.Status.Conditions
-		}
+		clusterv1beta1.Convert_v1beta1_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&src.Status.Conditions, &dst.Status.Deprecated.V1Beta1.Conditions)
 	}
 
 	restored := &infraexpv1.DockerMachinePool{}
@@ -61,7 +60,7 @@ func (dst *DockerMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dst.Status.Conditions = nil
 	if src.Status.Deprecated != nil && src.Status.Deprecated.V1Beta1 != nil && src.Status.Deprecated.V1Beta1.Conditions != nil {
-		dst.Status.Conditions = src.Status.Deprecated.V1Beta1.Conditions
+		clusterv1beta1.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1beta1_Conditions(&src.Status.Deprecated.V1Beta1.Conditions, &dst.Status.Conditions)
 	}
 
 	return utilconversion.MarshalData(src, dst)

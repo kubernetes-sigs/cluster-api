@@ -858,7 +858,7 @@ spec:
                 type: object
               initialization:
                 description: |-
-                  initialization provides observations of the FooMachine initialization process.
+                  initialization provides observations of the DockerMachine initialization process.
                   NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
                 properties:
                   provisioned:

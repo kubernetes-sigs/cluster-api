@@ -265,11 +265,11 @@ func Convert_v1alpha4_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *Doc
 		clusterv1alpha4.Convert_v1alpha4_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 
-	out.Initialization = nil
 	if in.Ready {
-		out.Initialization = &infrav1.DockerMachineInitializationStatus{
-			Provisioned: in.Ready,
+		if out.Initialization == nil {
+			out.Initialization = &infrav1.DockerMachineInitializationStatus{}
 		}
+		out.Initialization.Provisioned = in.Ready
 	}
 
 	return nil

@@ -357,7 +357,7 @@ type DevMachineStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// initialization provides observations of the FooMachine initialization process.
+	// initialization provides observations of the DevMachine initialization process.
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
 	Initialization *DevMachineInitializationStatus `json:"initialization,omitempty"`

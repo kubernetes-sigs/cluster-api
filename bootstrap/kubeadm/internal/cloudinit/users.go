@@ -34,7 +34,7 @@ users:{{ range . }}
     homedir: {{ .HomeDir }}
     {{- end -}}
     {{- if .Inactive }}
-    inactive: true
+    inactive: {{ .Inactive }}
     {{- end -}}
     {{- if .LockPassword }}
     lock_passwd: {{ .LockPassword }}

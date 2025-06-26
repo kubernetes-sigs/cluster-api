@@ -20,7 +20,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -44,7 +43,11 @@ type DockerClusterSpec struct {
 	// Instead, the docker cluster controller will simply copy these into the Status and allow the Cluster API
 	// controllers to do what they will with the defined failure domains.
 	// +optional
-	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
 
 	// LoadBalancer allows defining configurations for the cluster load balancer.
 	// +optional
@@ -97,10 +100,15 @@ type DockerClusterStatus struct {
 	// +optional
 	Initialization *DockerClusterInitializationStatus `json:"initialization,omitempty"`
 
-	// FailureDomains don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
+	// failureDomains is a list of failure domain objects synced from the infrastructure provider.
+	// It don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
 	// will use this if we populate it.
 	// +optional
-	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional

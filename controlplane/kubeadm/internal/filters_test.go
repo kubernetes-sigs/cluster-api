@@ -208,7 +208,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
     FeatureGates:    nil,
   }`))
 	})
-	t.Run("Return true if only omitable fields are changed", func(t *testing.T) {
+	t.Run("Return true if only omittable fields are changed", func(t *testing.T) {
 		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -467,7 +467,7 @@ func TestCleanupConfigFields(t *testing.T) {
 		g.Expect(kcpConfig.JoinConfiguration).ToNot(BeNil())
 		g.Expect(machineConfig.Spec.JoinConfiguration.NodeRegistration).To(BeComparableTo(bootstrapv1.NodeRegistrationOptions{}))
 	})
-	t.Run("drops omitable fields", func(t *testing.T) {
+	t.Run("drops omittable fields", func(t *testing.T) {
 		g := NewWithT(t)
 		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
 			JoinConfiguration: &bootstrapv1.JoinConfiguration{
@@ -511,7 +511,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -561,7 +561,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -611,7 +611,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -665,7 +665,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -733,7 +733,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -787,7 +787,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -842,7 +842,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
     ... // 9 identical fields
   }`))
 	})
-	t.Run("returns true if returns true if only omitable configurations are not equal", func(t *testing.T) {
+	t.Run("returns true if returns true if only omittable configurations are not equal", func(t *testing.T) {
 		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -850,13 +850,13 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{},
 					InitConfiguration:    &bootstrapv1.InitConfiguration{},
 					JoinConfiguration:    &bootstrapv1.JoinConfiguration{},
-					Files:                []bootstrapv1.File{}, // This is a change, but it is an omitable field and the diff between nil and empty array is not relevant.
+					Files:                []bootstrapv1.File{}, // This is a change, but it is an omittable field and the diff between nil and empty array is not relevant.
 				},
 			},
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -901,13 +901,13 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{},
 					InitConfiguration:    &bootstrapv1.InitConfiguration{},
 					JoinConfiguration:    &bootstrapv1.JoinConfiguration{},
-					Files:                []bootstrapv1.File{{}}, // This is a change
+					Files:                []bootstrapv1.File{{Path: "/tmp/foo"}}, // This is a change
 				},
 			},
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -947,7 +947,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
     InitConfiguration:    &{NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
     JoinConfiguration:    nil,
 -   Files:                nil,
-+   Files:                []v1beta2.File{{}},
++   Files:                []v1beta2.File{{Path: "/tmp/foo"}},
     DiskSetup:            nil,
     Mounts:               nil,
     ... // 8 identical fields
@@ -1029,7 +1029,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -1083,7 +1083,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -1151,7 +1151,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -1205,7 +1205,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -1260,7 +1260,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
     ... // 9 identical fields
   }`))
 	})
-	t.Run("returns true if only omitable configurations are not equal", func(t *testing.T) {
+	t.Run("returns true if only omittable configurations are not equal", func(t *testing.T) {
 		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -1268,13 +1268,13 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{},
 					InitConfiguration:    &bootstrapv1.InitConfiguration{},
 					JoinConfiguration:    &bootstrapv1.JoinConfiguration{},
-					Files:                []bootstrapv1.File{}, // This is a change, but it is an omitable field and the diff between nil and empty array is not relevant.
+					Files:                []bootstrapv1.File{}, // This is a change, but it is an omittable field and the diff between nil and empty array is not relevant.
 				},
 			},
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -1319,13 +1319,13 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{},
 					InitConfiguration:    &bootstrapv1.InitConfiguration{},
 					JoinConfiguration:    &bootstrapv1.JoinConfiguration{},
-					Files:                []bootstrapv1.File{{}}, // This is a change
+					Files:                []bootstrapv1.File{{Path: "/tmp/foo"}}, // This is a change
 				},
 			},
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -1365,7 +1365,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
     InitConfiguration:    &{NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
     JoinConfiguration:    nil,
 -   Files:                nil,
-+   Files:                []v1beta2.File{{}},
++   Files:                []v1beta2.File{{Path: "/tmp/foo"}},
     DiskSetup:            nil,
     Mounts:               nil,
     ... // 8 identical fields
@@ -1393,7 +1393,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		}
 		m := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "KubeadmConfig",
+				Kind:       "Machine",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -1847,14 +1847,14 @@ func TestUpToDate(t *testing.T) {
 	}
 }
 
-func TestOmitableFieldsClusterConfiguration(t *testing.T) {
+func TestOmittableFieldsClusterConfiguration(t *testing.T) {
 	tests := []struct {
 		name string
 		A    *bootstrapv1.ClusterConfiguration
 		B    *bootstrapv1.ClusterConfiguration
 	}{
 		{
-			name: "Test omitable fields",
+			name: "Test omittable fields",
 			A: &bootstrapv1.ClusterConfiguration{
 				Etcd: bootstrapv1.Etcd{
 					Local: &bootstrapv1.LocalEtcd{
@@ -1896,7 +1896,7 @@ func TestOmitableFieldsClusterConfiguration(t *testing.T) {
 						PeerCertSANs:   nil,
 					},
 					External: &bootstrapv1.ExternalEtcd{
-						Endpoints: []string{}, // Required
+						Endpoints: []string{}, // The field doesn't have omit empty.
 					},
 				},
 				APIServer: bootstrapv1.APIServer{
@@ -1925,29 +1925,29 @@ func TestOmitableFieldsClusterConfiguration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gotA, err := kubeadmtypes.MarshalClusterConfigurationForVersion(tt.A, semver.MustParse("1.33.0"), &upstream.AdditionalData{})
+			gotA, err := kubeadmtypes.MarshalClusterConfigurationForVersion(tt.A, semver.MustParse("1.99.0"), &upstream.AdditionalData{}) // we want to test with latest kubeadm API version.
 			g.Expect(err).ToNot(HaveOccurred())
 
-			gotB, err := kubeadmtypes.MarshalClusterConfigurationForVersion(tt.B, semver.MustParse("1.33.0"), &upstream.AdditionalData{})
+			gotB, err := kubeadmtypes.MarshalClusterConfigurationForVersion(tt.B, semver.MustParse("1.99.0"), &upstream.AdditionalData{}) // we want to test with latest kubeadm API version.
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(gotA).To(Equal(gotB), cmp.Diff(gotA, gotB))
 
-			dropOmitableFields(&bootstrapv1.KubeadmConfigSpec{ClusterConfiguration: tt.A})
-			dropOmitableFields(&bootstrapv1.KubeadmConfigSpec{ClusterConfiguration: tt.B})
+			dropOmittableFields(&bootstrapv1.KubeadmConfigSpec{ClusterConfiguration: tt.A})
+			dropOmittableFields(&bootstrapv1.KubeadmConfigSpec{ClusterConfiguration: tt.B})
 			g.Expect(tt.A).To(Equal(tt.B))
 		})
 	}
 }
 
-func TestOmitableFieldsInitConfiguration(t *testing.T) {
+func TestOmittableFieldsInitConfiguration(t *testing.T) {
 	tests := []struct {
 		name string
 		A    *bootstrapv1.InitConfiguration
 		B    *bootstrapv1.InitConfiguration
 	}{
 		{
-			name: "Test omitable fields",
+			name: "Test omittable fields",
 			A: &bootstrapv1.InitConfiguration{
 				BootstrapTokens: []bootstrapv1.BootstrapToken{},
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
@@ -1968,7 +1968,7 @@ func TestOmitableFieldsInitConfiguration(t *testing.T) {
 			},
 		},
 		{
-			name: "Test omitable fields in BootstrapToken",
+			name: "Test omittable fields in BootstrapToken",
 			A: &bootstrapv1.InitConfiguration{
 				BootstrapTokens: []bootstrapv1.BootstrapToken{
 					{
@@ -1991,29 +1991,29 @@ func TestOmitableFieldsInitConfiguration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gotA, err := kubeadmtypes.MarshalInitConfigurationForVersion(tt.A, semver.MustParse("1.33.0"))
+			gotA, err := kubeadmtypes.MarshalInitConfigurationForVersion(tt.A, semver.MustParse("1.99.0")) // we want to test with latest kubeadm API version.
 			g.Expect(err).ToNot(HaveOccurred())
 
-			gotB, err := kubeadmtypes.MarshalInitConfigurationForVersion(tt.B, semver.MustParse("1.33.0"))
+			gotB, err := kubeadmtypes.MarshalInitConfigurationForVersion(tt.B, semver.MustParse("1.99.0")) // we want to test with latest kubeadm API version.
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(gotA).To(Equal(gotB), cmp.Diff(gotA, gotB))
 
-			dropOmitableFields(&bootstrapv1.KubeadmConfigSpec{InitConfiguration: tt.A})
-			dropOmitableFields(&bootstrapv1.KubeadmConfigSpec{InitConfiguration: tt.B})
+			dropOmittableFields(&bootstrapv1.KubeadmConfigSpec{InitConfiguration: tt.A})
+			dropOmittableFields(&bootstrapv1.KubeadmConfigSpec{InitConfiguration: tt.B})
 			g.Expect(tt.A).To(Equal(tt.B))
 		})
 	}
 }
 
-func TestOmitableFieldsJoinConfiguration(t *testing.T) {
+func TestOmittableFieldsJoinConfiguration(t *testing.T) {
 	tests := []struct {
 		name string
 		A    *bootstrapv1.JoinConfiguration
 		B    *bootstrapv1.JoinConfiguration
 	}{
 		{
-			name: "Test omitable fields",
+			name: "Test omittable fields",
 			A: &bootstrapv1.JoinConfiguration{
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 					Taints:                []corev1.Taint{},
@@ -2046,8 +2046,8 @@ func TestOmitableFieldsJoinConfiguration(t *testing.T) {
 			B: &bootstrapv1.JoinConfiguration{
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 					Taints:                []corev1.Taint{},
-					KubeletExtraArgs:      []bootstrapv1.Arg{},
-					IgnorePreflightErrors: []string{},
+					KubeletExtraArgs:      nil,
+					IgnorePreflightErrors: nil,
 				},
 				Discovery: bootstrapv1.Discovery{
 					BootstrapToken: &bootstrapv1.BootstrapTokenDiscovery{
@@ -2074,7 +2074,7 @@ func TestOmitableFieldsJoinConfiguration(t *testing.T) {
 			},
 		},
 		{
-			name: "Test omitable struct",
+			name: "Test omittable struct",
 			A: &bootstrapv1.JoinConfiguration{
 				Discovery: bootstrapv1.Discovery{
 					File: &bootstrapv1.FileDiscovery{
@@ -2104,7 +2104,7 @@ func TestOmitableFieldsJoinConfiguration(t *testing.T) {
 			},
 		},
 		{
-			name: "Test omitable struct",
+			name: "Test omittable struct",
 			A: &bootstrapv1.JoinConfiguration{
 				Discovery: bootstrapv1.Discovery{
 					File: &bootstrapv1.FileDiscovery{
@@ -2125,16 +2125,16 @@ func TestOmitableFieldsJoinConfiguration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gotA, err := kubeadmtypes.MarshalJoinConfigurationForVersion(tt.A, semver.MustParse("1.33.0"))
+			gotA, err := kubeadmtypes.MarshalJoinConfigurationForVersion(tt.A, semver.MustParse("1.99.0")) // we want to test with latest kubeadm API version.
 			g.Expect(err).ToNot(HaveOccurred())
 
-			gotB, err := kubeadmtypes.MarshalJoinConfigurationForVersion(tt.B, semver.MustParse("1.33.0"))
+			gotB, err := kubeadmtypes.MarshalJoinConfigurationForVersion(tt.B, semver.MustParse("1.99.0")) // we want to test with latest kubeadm API version.
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(gotA).To(Equal(gotB), cmp.Diff(gotA, gotB))
 
-			dropOmitableFields(&bootstrapv1.KubeadmConfigSpec{JoinConfiguration: tt.A})
-			dropOmitableFields(&bootstrapv1.KubeadmConfigSpec{JoinConfiguration: tt.B})
+			dropOmittableFields(&bootstrapv1.KubeadmConfigSpec{JoinConfiguration: tt.A})
+			dropOmittableFields(&bootstrapv1.KubeadmConfigSpec{JoinConfiguration: tt.B})
 			g.Expect(tt.A).To(Equal(tt.B))
 		})
 	}

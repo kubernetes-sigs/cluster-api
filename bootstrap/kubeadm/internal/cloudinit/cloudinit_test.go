@@ -325,7 +325,7 @@ func TestNewJoinNodeCommands(t *testing.T) {
 	g.Expect(out).To(ContainSubstring(expectedRunCmd))
 }
 
-func TestOmitableFields(t *testing.T) {
+func TestOmittableFields(t *testing.T) {
 	tests := []struct {
 		name string
 		A    BaseUserData

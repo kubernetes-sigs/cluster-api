@@ -227,10 +227,10 @@ func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine 
 	// Skip checking DNS fields because we can update the configuration of the working cluster in place.
 	machineClusterConfig.DNS = kcpLocalClusterConfiguration.DNS
 
-	// Drop differences that do not lead to changes to machines, but that might exist due
-	// changes is how we serialize objects / how webhooks works.
-	dropOmitableFields(&bootstrapv1.KubeadmConfigSpec{ClusterConfiguration: kcpLocalClusterConfiguration})
-	dropOmitableFields(&bootstrapv1.KubeadmConfigSpec{ClusterConfiguration: machineClusterConfig})
+	// Drop differences that do not lead to changes to Machines, but that might exist due
+	// to changes in how we serialize objects or how webhooks work.
+	dropOmittableFields(&bootstrapv1.KubeadmConfigSpec{ClusterConfiguration: kcpLocalClusterConfiguration})
+	dropOmittableFields(&bootstrapv1.KubeadmConfigSpec{ClusterConfiguration: machineClusterConfig})
 
 	// Compare and return.
 	match, diff, err := compare.Diff(machineClusterConfig, kcpLocalClusterConfiguration)
@@ -398,18 +398,18 @@ func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig
 		machineConfig.Spec.JoinConfiguration.NodeRegistration = emptyNodeRegistration
 	}
 
-	// Drop differences that do not lead to changes to machines, but that might exist due
-	// changes is how we serialize objects / how webhooks works.
-	dropOmitableFields(kcpConfig)
-	dropOmitableFields(&machineConfig.Spec)
+	// Drop differences that do not lead to changes to Machines, but that might exist due
+	// to changes in how we serialize objects or how webhooks work.
+	dropOmittableFields(kcpConfig)
+	dropOmittableFields(&machineConfig.Spec)
 }
 
-// dropOmitableFields makes the comparison tolerant to omitable fields being set in the go struct. It applies to:
+// dropOmittableFields makes the comparison tolerant to omittable fields being set in the go struct. It applies to:
 // - empty array vs nil
 // - empty map vs nil
-// - empty struct vs nil (when struct is pointer and there are only omitable fields in the struct).
+// - empty struct vs nil (when struct is pointer and there are only omittable fields in the struct).
 // Note: for the part of the KubeadmConfigSpec that is rendered using go templates, consideration might be a little bit different.
-func dropOmitableFields(spec *bootstrapv1.KubeadmConfigSpec) {
+func dropOmittableFields(spec *bootstrapv1.KubeadmConfigSpec) {
 	// When rendered to kubeadm config files there is no diff between nil and empty array or map.
 	if spec.ClusterConfiguration != nil {
 		if spec.ClusterConfiguration.Etcd.Local != nil {
@@ -426,6 +426,8 @@ func dropOmitableFields(spec *bootstrapv1.KubeadmConfigSpec) {
 				spec.ClusterConfiguration.Etcd.Local.PeerCertSANs = nil
 			}
 		}
+		// NOTE: we are not dropping spec.ClusterConfiguration.Etcd.ExternalEtcd.Endpoints because this field
+		// doesn't have omitempty, so [] array is different from nil when serialized.
 		if len(spec.ClusterConfiguration.APIServer.ExtraArgs) == 0 {
 			spec.ClusterConfiguration.APIServer.ExtraArgs = nil
 		}
@@ -482,6 +484,8 @@ func dropOmitableFields(spec *bootstrapv1.KubeadmConfigSpec) {
 		if len(spec.InitConfiguration.SkipPhases) == 0 {
 			spec.InitConfiguration.SkipPhases = nil
 		}
+		// NOTE: we are not dropping spec.InitConfiguration.Taints because for this field there
+		// is a difference between not set (use kubeadm defaults) and empty (do not apply any taint).
 	}
 	if spec.JoinConfiguration != nil {
 		if spec.JoinConfiguration.Discovery.BootstrapToken != nil {
@@ -527,6 +531,8 @@ func dropOmitableFields(spec *bootstrapv1.KubeadmConfigSpec) {
 		if len(spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors) == 0 {
 			spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors = nil
 		}
+		// NOTE: we are not dropping spec.JoinConfiguration.Taints because for this field there
+		// is a difference between not set (use kubeadm defaults) and empty (do not apply any taint).
 		if len(spec.JoinConfiguration.SkipPhases) == 0 {
 			spec.JoinConfiguration.SkipPhases = nil
 		}

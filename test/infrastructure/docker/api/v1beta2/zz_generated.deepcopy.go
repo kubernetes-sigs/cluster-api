@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/cluster-api/api/core/v1beta1"
 	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -212,9 +211,9 @@ func (in *DevClusterStatus) DeepCopyInto(out *DevClusterStatus) {
 	}
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(v1beta1.FailureDomains, len(*in))
-		for key, val := range *in {
-			(*out)[key] = *val.DeepCopy()
+		*out = make([]corev1beta2.FailureDomain, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.Deprecated != nil {
@@ -674,9 +673,9 @@ func (in *DockerClusterBackendSpec) DeepCopyInto(out *DockerClusterBackendSpec) 
 	*out = *in
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(v1beta1.FailureDomains, len(*in))
-		for key, val := range *in {
-			(*out)[key] = *val.DeepCopy()
+		*out = make([]corev1beta2.FailureDomain, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	in.LoadBalancer.DeepCopyInto(&out.LoadBalancer)
@@ -765,9 +764,9 @@ func (in *DockerClusterSpec) DeepCopyInto(out *DockerClusterSpec) {
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(v1beta1.FailureDomains, len(*in))
-		for key, val := range *in {
-			(*out)[key] = *val.DeepCopy()
+		*out = make([]corev1beta2.FailureDomain, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	in.LoadBalancer.DeepCopyInto(&out.LoadBalancer)
@@ -800,9 +799,9 @@ func (in *DockerClusterStatus) DeepCopyInto(out *DockerClusterStatus) {
 	}
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(v1beta1.FailureDomains, len(*in))
-		for key, val := range *in {
-			(*out)[key] = *val.DeepCopy()
+		*out = make([]corev1beta2.FailureDomain, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.Deprecated != nil {

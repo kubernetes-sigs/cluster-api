@@ -21,6 +21,7 @@ import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -219,6 +220,17 @@ func Convert_v1beta2_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(in *inf
 		out.Ready = in.Initialization.Provisioned
 	}
 
+	// Move FailureDomains
+	if in.FailureDomains != nil {
+		out.FailureDomains = clusterv1alpha4.FailureDomains{}
+		for _, fd := range in.FailureDomains {
+			out.FailureDomains[fd.Name] = clusterv1alpha4.FailureDomainSpec{
+				ControlPlane: fd.ControlPlane,
+				Attributes:   fd.Attributes,
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -271,6 +283,57 @@ func Convert_v1alpha4_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *Doc
 	if in.Ready {
 		out.Initialization = &infrav1.DockerClusterInitializationStatus{
 			Provisioned: in.Ready,
+		}
+	}
+
+	// Move FailureDomains
+	if in.FailureDomains != nil {
+		out.FailureDomains = []clusterv1.FailureDomain{}
+		for name, fd := range in.FailureDomains {
+			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
+				Name:         name,
+				ControlPlane: fd.ControlPlane,
+				Attributes:   fd.Attributes,
+			})
+		}
+	}
+
+	return nil
+}
+
+func Convert_v1alpha4_DockerClusterSpec_To_v1beta2_DockerClusterSpec(in *DockerClusterSpec, out *infrav1.DockerClusterSpec, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha4_DockerClusterSpec_To_v1beta2_DockerClusterSpec(in, out, s); err != nil {
+		return err
+	}
+
+	// Move FailureDomains
+	if in.FailureDomains != nil {
+		out.FailureDomains = []clusterv1.FailureDomain{}
+		for name, fd := range in.FailureDomains {
+			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
+				Name:         name,
+				ControlPlane: fd.ControlPlane,
+				Attributes:   fd.Attributes,
+			})
+		}
+	}
+
+	return nil
+}
+
+func Convert_v1beta2_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(in *infrav1.DockerClusterSpec, out *DockerClusterSpec, s apiconversion.Scope) error {
+	if err := autoConvert_v1beta2_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(in, out, s); err != nil {
+		return err
+	}
+
+	// Move FailureDomains
+	if in.FailureDomains != nil {
+		out.FailureDomains = clusterv1alpha4.FailureDomains{}
+		for _, fd := range in.FailureDomains {
+			out.FailureDomains[fd.Name] = clusterv1alpha4.FailureDomainSpec{
+				ControlPlane: fd.ControlPlane,
+				Attributes:   fd.Attributes,
+			}
 		}
 	}
 

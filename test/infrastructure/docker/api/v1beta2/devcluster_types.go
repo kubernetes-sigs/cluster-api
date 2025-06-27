@@ -141,7 +141,7 @@ type DevClusterStatus struct {
 	Deprecated *DevClusterDeprecatedStatus `json:"deprecated,omitempty"`
 }
 
-// DevClusterInitializationStatus provides observations of the FooCluster initialization process.
+// DevClusterInitializationStatus provides observations of the DevCluster initialization process.
 type DevClusterInitializationStatus struct {
 	// provisioned is true when the infrastructure provider reports that the Cluster's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.

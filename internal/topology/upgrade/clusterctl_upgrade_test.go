@@ -81,18 +81,18 @@ func addToAllObj(cluster, prefix string, obj client.Object) {
 	allObjs[cluster][ref][obj.GetGeneration()] = obj
 }
 
-// TestDropDefaulterRemoveUnknownOrOmittableFields validates effects of removing the DropDefaulterRemoveUnknownOrOmitableFields option
+// TestDropDefaulterRemoveUnknownOrOmittableFields validates effects of removing the DropDefaulterRemoveUnknownOrOmitableFields option.
 // from provider's defaulting webhooks.
 // TL;DR if setting omittable fields in a patch, this should cause a rollout only when rebasing to a ClusterClass which uses provider objects with a new apiVersion.
 // Details:
-// Case 1: cluster1 created at t1 with v1beta references, rebased at t2 to v1beta2 references
-// * t1: create cluster1 with clusterClasst1 => should be stable
-// * t1 => t2: upgrade CRDs / webhooks
-// * t2: force reconcile cluster1 => should be stable
-// * t2: rebase cluster1 to clusterClasst2 => should roll out and then be stable
-// Case 2: cluster2 created at t2 with v1beta references, rebased at t2 to v1beta2 references
-// * t2: create cluster2 with clusterClasst1 => should be stable
-// * t2: rebase cluster2 to clusterClasst2 => should roll out and then be stable
+// Case 1: cluster1 created at t1 with v1beta references, rebased at t2 to v1beta2 references.
+// * t1: create cluster1 with clusterClasst1 => should be stable.
+// * t1 => t2: upgrade CRDs / webhooks.
+// * t2: force reconcile cluster1 => should be stable.
+// * t2: rebase cluster1 to clusterClasst2 => should roll out and then be stable.
+// Case 2: cluster2 created at t2 with v1beta references, rebased at t2 to v1beta2 references.
+// * t2: create cluster2 with clusterClasst1 => should be stable.
+// * t2: rebase cluster2 to clusterClasst2 => should roll out and then be stable.
 func TestDropDefaulterRemoveUnknownOrOmittableFields(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
@@ -621,8 +621,8 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 
 	for _, md := range machineDeployments.Items {
 		refs[clusterv1.ContractVersionedObjectReference{
-			APIGroup: md.GroupVersionKind().Group,
-			Kind:     md.GroupVersionKind().Kind,
+			APIGroup: clusterv1.GroupVersion.Group,
+			Kind:     "MachineDeployment",
 			Name:     md.GetName(),
 		}] = md.GetGeneration()
 		addToAllObj(cluster.Name, "machineDeployment "+md.Name, &md)
@@ -683,10 +683,10 @@ func checkOmittableField(mustBeSet bool) func(obj *unstructured.Unstructured) er
 				return err
 			}
 			if exists && !mustBeSet {
-				return errors.Errorf("expected to not contain omittable field")
+				return errors.New("expected to not contain omittable field")
 			}
 			if !exists && mustBeSet {
-				return errors.Errorf("expected to contain omittable field")
+				return errors.New("expected to contain omittable field")
 			}
 		case "TestResourceTemplate":
 			_, exists, err := unstructured.NestedFieldNoCopy(obj.Object, "spec", "template", "spec", "omittable")
@@ -694,10 +694,10 @@ func checkOmittableField(mustBeSet bool) func(obj *unstructured.Unstructured) er
 				return err
 			}
 			if exists && !mustBeSet {
-				return errors.Errorf("expected to not contain omittable field")
+				return errors.New("expected to not contain omittable field")
 			}
 			if !exists && mustBeSet {
-				return errors.Errorf("expected to contain omittable field")
+				return errors.New("expected to contain omittable field")
 			}
 		}
 		return nil
@@ -871,9 +871,6 @@ func assertClusterTopologyBecomesStable(g *WithT, refs map[clusterv1.ContractVer
 		for r, generation := range refs {
 			obj := &unstructured.Unstructured{}
 			obj.SetGroupVersionKind(r.GroupKind().WithVersion(version))
-			if r.Kind == "Cluster" || r.Kind == "MachineDeployment" {
-				obj.SetGroupVersionKind(clusterv1.GroupVersion.WithKind(r.Kind))
-			}
 			err := env.GetClient().Get(ctx, client.ObjectKey{Name: r.Name, Namespace: namespace}, obj)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(obj.GetGeneration()).To(Equal(generation), "generation is not remaining stable for %s/%s, %s", r.Kind, r.GroupKind().WithVersion(version).GroupVersion().String(), r.Name)

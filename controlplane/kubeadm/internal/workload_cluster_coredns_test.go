@@ -26,6 +26,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -188,6 +189,23 @@ func TestUpdateCoreDNS(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
 					Version:           "v1.23.0",
+				},
+			},
+			objs:      []client.Object{badCM},
+			expectErr: false,
+		},
+		{
+			name: "returns early without error if dns is disabled in spec",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							DNS: bootstrapv1.DNS{
+								Disabled: ptr.To(true),
+							},
+						},
+					},
+					Version: "v1.23.0",
 				},
 			},
 			objs:      []client.Object{badCM},

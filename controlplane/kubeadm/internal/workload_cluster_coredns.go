@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -87,6 +88,11 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 	}
 
 	clusterConfig := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
+
+	// Return early if DNS is disabled
+	if ptr.Deref(clusterConfig.DNS.Disabled, false) {
+		return nil
+	}
 
 	// Get the CoreDNS info needed for the upgrade.
 	info, err := w.getCoreDNSInfo(ctx, clusterConfig)

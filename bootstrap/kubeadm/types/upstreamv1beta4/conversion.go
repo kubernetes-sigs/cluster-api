@@ -124,6 +124,17 @@ func Convert_v1beta2_APIServer_To_upstreamv1beta4_APIServer(in *bootstrapv1.APIS
 	return autoConvert_v1beta2_APIServer_To_upstreamv1beta4_APIServer(in, out, s)
 }
 
+func Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfiguration(in *bootstrapv1.ClusterConfiguration, out *ClusterConfiguration, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfiguration(in, out, s); err != nil {
+		return err
+	}
+
+	if in.Proxy != nil {
+		return Convert_v1beta2_Proxy_To_upstreamv1beta4_Proxy(in.Proxy, &out.Proxy, s)
+	}
+	return nil
+}
+
 func Convert_v1beta2_Discovery_To_upstreamv1beta4_Discovery(in *bootstrapv1.Discovery, out *Discovery, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in kubeadm v1beta4 version:
 	// - Timeout (this field has been migrated to JoinConfiguration.Timeouts.TLSBootstrap, the conversion is handled in Convert_v1beta2_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration)

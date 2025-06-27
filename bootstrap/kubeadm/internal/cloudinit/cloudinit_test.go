@@ -48,7 +48,7 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 				},
 				{
 					Path:    "/tmp/existing-path",
-					Append:  true,
+					Append:  ptr.To(true),
 					Content: "hi",
 				},
 			},

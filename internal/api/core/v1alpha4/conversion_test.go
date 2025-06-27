@@ -297,16 +297,16 @@ func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c randfill.Continue) {
 	}
 	in.MaxItems = ptr.To(c.Int63())
 	in.MinItems = ptr.To(c.Int63())
-	in.UniqueItems = c.Bool()
+	in.UniqueItems = ptr.To(c.Bool())
 	in.Format = c.String(0)
 	in.MaxLength = ptr.To(c.Int63())
 	in.MinLength = ptr.To(c.Int63())
 	in.Pattern = c.String(0)
 	in.Maximum = ptr.To(c.Int63())
 	in.Maximum = ptr.To(c.Int63())
-	in.ExclusiveMaximum = c.Bool()
+	in.ExclusiveMaximum = ptr.To(c.Bool())
 	in.Minimum = ptr.To(c.Int63())
-	in.ExclusiveMinimum = c.Bool()
+	in.ExclusiveMinimum = ptr.To(c.Bool())
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting valid values.
 	in.Enum = []apiextensionsv1.JSON{

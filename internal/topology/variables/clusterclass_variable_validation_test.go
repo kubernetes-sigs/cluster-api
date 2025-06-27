@@ -2756,7 +2756,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 						Type: "object",
 						Properties: map[string]clusterv1.JSONSchemaProps{
 							"anyOfExampleField": { // Valid variant
-								XIntOrString: true,
+								XIntOrString: ptr.To(true),
 								AnyOf: []clusterv1.JSONSchemaProps{{
 									Type: "integer",
 								}, {
@@ -2764,7 +2764,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 								}},
 							},
 							"allOfExampleFieldWithAnyOf": { // Valid variant
-								XIntOrString: true,
+								XIntOrString: ptr.To(true),
 								AllOf: []clusterv1.JSONSchemaProps{{
 									AnyOf: []clusterv1.JSONSchemaProps{{
 										Type: "integer",

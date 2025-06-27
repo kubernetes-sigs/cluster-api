@@ -210,7 +210,9 @@ type FooMachineSpec struct {
 	// For Kubernetes Nodes running on the Foo provider, this value is set by the corresponding CPI component 
 	// and it has the format docker:////<vm-name>. 
     // +optional
-    ProviderID *string `json:"providerID,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ProviderID string `json:"providerID,omitempty"`
     
     // See other rules for more details about mandatory/optional fields in InfraMachine spec.
     // Other fields SHOULD be added based on the needs of your provider.
@@ -248,7 +250,10 @@ new corresponding field (also in status).
 type FooMachineStatus struct {
     // failureDomain is the unique identifier of the failure domain where this Machine has been placed in.
     // For this Foo infrastructure provider, the name is equivalent to the name of one of the available regions.
-    FailureDomain *string `json:"failureDomain,omitempty"`
+    // +optional
+    // +kubebuilder:validation:MinLength=1
+    // +kubebuilder:validation:MaxLength=256
+    FailureDomain string `json:"failureDomain,omitempty"`
 
     // See other rules for more details about mandatory/optional fields in InfraMachineStatus.
     // Other fields SHOULD be added based on the needs of your provider.
@@ -301,7 +306,7 @@ type FooMachineInitializationStatus struct {
 	// provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
 	// +optional
-	Provisioned bool `json:"provisioned,omitempty"`
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 ```
 

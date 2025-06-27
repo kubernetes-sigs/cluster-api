@@ -265,7 +265,7 @@ type FooClusterStatus struct {
 
 `FailureDomain` is defined as:
 - `name string`: the name of the failure domain (must be unique)
-- `controlPlane bool`: indicates if failure domain is appropriate for running control plane instances.
+- `controlPlane *bool`: indicates if failure domain is appropriate for running control plane instances.
 - `attributes map[string]string`: arbitrary attributes for users to apply to a failure domain.
 
 Once `status.failureDomains` is set on the InfraCluster resource and the [InfraCluster initialization completed],
@@ -307,7 +307,7 @@ type FooClusterInitializationStatus struct {
 	// provisioned is true when the infrastructure provider reports that the Cluster's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
 	// +optional
-	Provisioned bool `json:"provisioned,omitempty"`
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 ```
 

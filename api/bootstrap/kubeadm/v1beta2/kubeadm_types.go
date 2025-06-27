@@ -85,7 +85,8 @@ type InitConfiguration struct {
 	// When used in the context of control plane nodes, NodeRegistration should remain consistent
 	// across both InitConfiguration and JoinConfiguration
 	// +optional
-	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty,omitzero"` // nolint:kubeapilinter // nolint:kubeapilinter
 
 	// localAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
 	// In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint
@@ -94,7 +95,8 @@ type InitConfiguration struct {
 	// on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
 	// fails you may set the desired value here.
 	// +optional
-	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// skipPhases is a list of phases to skip during command execution.
 	// The list of phases can be obtained with the "kubeadm init --help" command.
@@ -120,23 +122,28 @@ type ClusterConfiguration struct {
 	// etcd holds configuration for etcd.
 	// NB: This value defaults to a Local (stacked) etcd
 	// +optional
-	Etcd Etcd `json:"etcd,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	Etcd Etcd `json:"etcd,omitempty,omitzero"` // nolint:kubeapilinter // FIXME: double check that unsetting etcd still works: https://github.com/kubernetes-sigs/cluster-api/pull/12065
 
 	// apiServer contains extra settings for the API server control plane component
 	// +optional
-	APIServer APIServer `json:"apiServer,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	APIServer APIServer `json:"apiServer,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// controllerManager contains extra settings for the controller manager control plane component
 	// +optional
-	ControllerManager ControlPlaneComponent `json:"controllerManager,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	ControllerManager ControlPlaneComponent `json:"controllerManager,omitempty,omitzero"` // nolint:kubeapilinter // FIXME: replace with ControllerManager struct
 
 	// scheduler contains extra settings for the scheduler control plane component
 	// +optional
-	Scheduler ControlPlaneComponent `json:"scheduler,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	Scheduler ControlPlaneComponent `json:"scheduler,omitempty,omitzero"` // nolint:kubeapilinter // FIXME: replace with Scheduler struct
 
 	// dns defines the options for the DNS add-on installed in the cluster.
 	// +optional
-	DNS DNS `json:"dns,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	DNS DNS `json:"dns,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// certificatesDir specifies where to store or look for all required certificates.
 	// NB: if not provided, this will default to `/etc/kubernetes/pki`
@@ -242,6 +249,7 @@ type APIEndpoint struct {
 	// bindPort sets the secure port for the API Server to bind to.
 	// Defaults to 6443.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	BindPort int32 `json:"bindPort,omitempty"`
 }
 
@@ -493,7 +501,8 @@ type JoinConfiguration struct {
 	// When used in the context of control plane nodes, NodeRegistration should remain consistent
 	// across both InitConfiguration and JoinConfiguration
 	// +optional
-	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// caCertPath is the path to the SSL certificate authority used to
 	// secure communications between node and control-plane.
@@ -507,7 +516,9 @@ type JoinConfiguration struct {
 	// discovery specifies the options for the kubelet to use during the TLS Bootstrap process
 	// +optional
 	// TODO: revisit when there is defaulting from k/k
-	Discovery Discovery `json:"discovery,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	// FIXME: double check that one of BootstrapToken or File must be set
+	Discovery Discovery `json:"discovery,omitempty,omitzero"` // nolint:kubeapilinter
 
 	// controlPlane defines the additional control plane instance to be deployed on the joining node.
 	// If nil, no additional control plane instance will be deployed.
@@ -537,7 +548,8 @@ type JoinConfiguration struct {
 type JoinControlPlane struct {
 	// localAPIEndpoint represents the endpoint of the API server instance to be deployed on this node.
 	// +optional
-	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty,omitzero"` // nolint:kubeapilinter
 }
 
 // Discovery specifies the options for the kubelet to use during the TLS Bootstrap process.
@@ -594,7 +606,7 @@ type BootstrapTokenDiscovery struct {
 	// without CA verification via CACertHashes. This can weaken
 	// the security of kubeadm since other nodes can impersonate the control-plane.
 	// +optional
-	UnsafeSkipCAVerification bool `json:"unsafeSkipCAVerification,omitempty"`
+	UnsafeSkipCAVerification *bool `json:"unsafeSkipCAVerification,omitempty"`
 }
 
 // FileDiscovery is used to specify a file or URL to a kubeconfig file from which to load cluster information.
@@ -652,7 +664,7 @@ type KubeConfigCluster struct {
 
 	// insecureSkipTLSVerify skips the validity check for the server's certificate. This will make your HTTPS connections insecure.
 	// +optional
-	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify,omitempty"`
+	InsecureSkipTLSVerify *bool `json:"insecureSkipTLSVerify,omitempty"`
 
 	// certificateAuthorityData contains PEM-encoded certificate authority certificates.
 	//
@@ -748,7 +760,7 @@ type KubeConfigAuthExec struct {
 	// to false. Package k8s.io/client-go/tools/auth/exec provides helper methods for
 	// reading this environment variable.
 	// +optional
-	ProvideClusterInfo bool `json:"provideClusterInfo,omitempty"`
+	ProvideClusterInfo *bool `json:"provideClusterInfo,omitempty"`
 }
 
 // KubeConfigAuthExecEnv is used for setting environment variables when executing an exec-based
@@ -787,7 +799,7 @@ type HostPathMount struct {
 	MountPath string `json:"mountPath"`
 	// readOnly controls write access to the volume
 	// +optional
-	ReadOnly bool `json:"readOnly,omitempty"`
+	ReadOnly *bool `json:"readOnly,omitempty"`
 	// pathType is the type of the HostPath.
 	// +optional
 	PathType corev1.HostPathType `json:"pathType,omitempty"`

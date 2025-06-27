@@ -115,7 +115,7 @@ type KubeadmConfigSpec struct {
 
 	// format specifies the output format of the bootstrap data
 	// +optional
-	Format Format `json:"format,omitempty"`
+	Format Format `json:"format,omitempty"` // nolint:kubeapilinter // FIXME: Talk to Joel: optionalfields linter should be improved to detect enum on the type
 
 	// verbosity is the number for the kubeadm log level verbosity.
 	// It overrides the `--v` flag in kubeadm commands.
@@ -446,7 +446,7 @@ type ContainerLinuxConfig struct {
 
 	// strict controls if AdditionalConfig should be strictly parsed. If so, warnings are treated as errors.
 	// +optional
-	Strict bool `json:"strict,omitempty"`
+	Strict *bool `json:"strict,omitempty"`
 }
 
 // KubeadmConfigStatus defines the observed state of KubeadmConfig.
@@ -468,10 +468,11 @@ type KubeadmConfigStatus struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	DataSecretName *string `json:"dataSecretName,omitempty"`
+	DataSecretName *string `json:"dataSecretName,omitempty"` // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
@@ -484,7 +485,7 @@ type KubeadmConfigInitializationStatus struct {
 	// dataSecretCreated is true when the Machine's boostrap secret is created.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
 	// +optional
-	DataSecretCreated bool `json:"dataSecretCreated,omitempty"`
+	DataSecretCreated *bool `json:"dataSecretCreated,omitempty"`
 }
 
 // KubeadmConfigDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
@@ -628,11 +629,11 @@ type File struct {
 
 	// encoding specifies the encoding of the file contents.
 	// +optional
-	Encoding Encoding `json:"encoding,omitempty"`
+	Encoding Encoding `json:"encoding,omitempty"` // nolint:kubeapilinter // FIXME: Talk to Joel: optionalfields linter should be improved to detect enum on the type
 
 	// append specifies whether to append Content to existing file if Path exists.
 	// +optional
-	Append bool `json:"append,omitempty"`
+	Append *bool `json:"append,omitempty"` // FIXME: we should check for cases like this if we have to set nil => false or vice versa in drop omittable...
 
 	// content is the actual content of the file.
 	// +optional
@@ -711,19 +712,19 @@ type User struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Gecos *string `json:"gecos,omitempty"`
+	Gecos *string `json:"gecos,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// groups specifies the additional groups for the user
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Groups *string `json:"groups,omitempty"`
+	Groups *string `json:"groups,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// homeDir specifies the home directory to use for the user
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	HomeDir *string `json:"homeDir,omitempty"`
+	HomeDir *string `json:"homeDir,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// inactive specifies whether to mark the user as inactive
 	// +optional
@@ -733,13 +734,13 @@ type User struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Shell *string `json:"shell,omitempty"`
+	Shell *string `json:"shell,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// passwd specifies a hashed password for the user
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Passwd *string `json:"passwd,omitempty"`
+	Passwd *string `json:"passwd,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// passwdFrom is a referenced source of passwd to populate the passwd.
 	// +optional
@@ -749,7 +750,7 @@ type User struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	PrimaryGroup *string `json:"primaryGroup,omitempty"`
+	PrimaryGroup *string `json:"primaryGroup,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// lockPassword specifies if password login should be disabled
 	// +optional
@@ -759,7 +760,7 @@ type User struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Sudo *string `json:"sudo,omitempty"`
+	Sudo *string `json:"sudo,omitempty"` // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// sshAuthorizedKeys specifies a list of ssh authorized keys for the user
 	// +optional
@@ -817,7 +818,7 @@ type Partition struct {
 	// 'gpt': setups a GPT partition table
 	// +optional
 	// +kubebuilder:validation:Enum=mbr;gpt
-	TableType *string `json:"tableType,omitempty"`
+	TableType *string `json:"tableType,omitempty"` // nolint:kubeapilinter // FIXME: change this to non-pointer
 }
 
 // Filesystem defines the file systems to be created.
@@ -844,7 +845,7 @@ type Filesystem struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
-	Partition *string `json:"partition,omitempty"`
+	Partition *string `json:"partition,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// overwrite defines whether or not to overwrite any existing filesystem.
 	// If true, any pre-existing file system will be destroyed. Use with Caution.
@@ -856,7 +857,7 @@ type Filesystem struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
-	ReplaceFS *string `json:"replaceFS,omitempty"`
+	ReplaceFS *string `json:"replaceFS,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// extraOpts defined extra options to add to the command for creating the file system.
 	// +optional

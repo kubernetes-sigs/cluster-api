@@ -65,7 +65,7 @@ type ClientConfig struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	URL *string `json:"url,omitempty"`
+	URL *string `json:"url,omitempty"` // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// service is a reference to the Kubernetes service for the Extension server.
 	// Note: Exactly one of `url` or `service` must be specified.
@@ -101,7 +101,7 @@ type ServiceReference struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	Path *string `json:"path,omitempty"`
+	Path *string `json:"path,omitempty"` // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// port is the port on the service that's hosting the Extension server.
 	// Defaults to 443.
@@ -178,7 +178,7 @@ type ExtensionHandler struct {
 	// Defaults to Fail if not set.
 	// +optional
 	// +kubebuilder:validation:Enum=Ignore;Fail
-	FailurePolicy *FailurePolicy `json:"failurePolicy,omitempty"`
+	FailurePolicy *FailurePolicy `json:"failurePolicy,omitempty"`  // nolint:kubeapilinter // FIXME: change this to non-pointer
 }
 
 // GroupVersionHook defines the runtime hook when the ExtensionHandler is called.

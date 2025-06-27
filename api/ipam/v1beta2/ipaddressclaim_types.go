@@ -65,7 +65,7 @@ type IPAddressClaimStatus struct {
 
 	// addressRef is a reference to the address that was created for this claim.
 	// +optional
-	AddressRef IPAddressReference `json:"addressRef,omitempty"`
+	AddressRef IPAddressReference `json:"addressRef,omitempty,omitzero"` // nolint:kubeapilinter // FIXME: Talk to Joel: optionalfields linter should be improved to detect omitzero
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional

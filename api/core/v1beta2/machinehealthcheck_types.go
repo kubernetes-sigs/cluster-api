@@ -90,7 +90,7 @@ type MachineHealthCheckSpec struct {
 	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=32
-	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
+	UnhealthyRange *string `json:"unhealthyRange,omitempty"` // nolint:kubeapilinter // FIXME: change this to non-pointer
 
 	// nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
 	// to consider a Machine unhealthy if a corresponding Node isn't associated
@@ -208,23 +208,24 @@ type MachineHealthCheckStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// expectedMachines is the total number of machines counted by this machine health check
-	// +kubebuilder:validation:Minimum=0
 	// +optional
-	ExpectedMachines int32 `json:"expectedMachines"`
+	// +kubebuilder:validation:Minimum=0
+	ExpectedMachines int32 `json:"expectedMachines"` // nolint:kubeapilinter // FIXME: change this to pointer
 
 	// currentHealthy is the total number of healthy machines counted by this machine health check
-	// +kubebuilder:validation:Minimum=0
 	// +optional
-	CurrentHealthy int32 `json:"currentHealthy"`
+	// +kubebuilder:validation:Minimum=0
+	CurrentHealthy int32 `json:"currentHealthy"` // nolint:kubeapilinter // FIXME: change this to pointer
 
 	// remediationsAllowed is the number of further remediations allowed by this machine health check before
 	// maxUnhealthy short circuiting will be applied
-	// +kubebuilder:validation:Minimum=0
 	// +optional
-	RemediationsAllowed int32 `json:"remediationsAllowed"`
+	// +kubebuilder:validation:Minimum=0
+	RemediationsAllowed int32 `json:"remediationsAllowed"` // nolint:kubeapilinter // FIXME: change this to pointer
 
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// targets shows the current list of machines the machine health check is watching

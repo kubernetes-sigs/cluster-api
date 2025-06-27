@@ -739,6 +739,14 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	unsetTimeouts.Spec.KubeadmConfigSpec.InitConfiguration.Timeouts = nil
 	unsetTimeouts.Spec.KubeadmConfigSpec.JoinConfiguration.Timeouts = nil
 
+	certificateValidityPeriod := before.DeepCopy()
+	certificateValidityPeriod.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays = 23456
+
+	invalidUpdateCACertificateValidityPeriodDays := before.DeepCopy()
+	invalidUpdateCACertificateValidityPeriodDays.Spec.KubeadmConfigSpec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{
+		CACertificateValidityPeriodDays: 23456,
+	}
+
 	tests := []struct {
 		name                  string
 		enableIgnitionFeature bool
@@ -1089,6 +1097,18 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    unsetTimeouts,
 			kcp:       changeTimeouts,
+		},
+		{
+			name:      "should succeed when making a change to the cluster config's certificateValidityPeriod",
+			expectErr: false,
+			before:    before,
+			kcp:       certificateValidityPeriod,
+		},
+		{
+			name:      "should return error when trying to mutate the cluster config's caCertificateValidityPeriodDays",
+			expectErr: true,
+			before:    before,
+			kcp:       invalidUpdateCACertificateValidityPeriodDays,
 		},
 	}
 

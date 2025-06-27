@@ -448,8 +448,20 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 
 	requeueAfterDurations := []time.Duration{}
 
+	kubeconfigUpdated, err := accessor.KubeConfigUpdated(ctx)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "error checking if kubeconfig was updated for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
+	}
+
 	// Try to connect, if not connected.
 	connected := accessor.Connected(ctx)
+	if connected && kubeconfigUpdated {
+		log.Info("Kubeconfig was updated, disconnecting to re-connect with the new kubeconfig")
+		accessor.Disconnect(ctx)
+		didDisconnect = true
+		connected = false
+	}
+
 	if !connected {
 		lastConnectionCreationErrorTimestamp := accessor.GetLastConnectionCreationErrorTimestamp(ctx)
 

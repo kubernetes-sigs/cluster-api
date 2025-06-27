@@ -450,7 +450,8 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 
 	kubeconfigUpdated, err := accessor.KubeConfigUpdated(ctx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "error checking if kubeconfig was updated for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
+		log.Error(err, "error checking if kubeconfig was updated")
+		return ctrl.Result{RequeueAfter: defaultRequeueAfter}, nil
 	}
 
 	// Try to connect, if not connected.

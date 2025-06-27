@@ -2,12 +2,14 @@ resources:
   - ../namespace.yaml
 
 helmCharts:
-  - name: promtail
+  - name: alloy
     repo: https://grafana.github.io/helm-charts
-    releaseName: promtail
-    namespace: observability
+    releaseName: alloy
+    version: 0.12.5
     valuesFile: values.yaml
-    version: 6.16.6
+    namespace: observability
+
+
 
 helmGlobals:
     # Store chart in ".charts" folder instead of "charts".

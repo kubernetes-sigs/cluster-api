@@ -308,7 +308,7 @@ analyzing them via Grafana.
 
 1. Start the development environment as described in [Developing Cluster API with Tilt](tilt.md).
     * Make sure to deploy Loki and Grafana via `deploy_observability`.
-    * If you only want to see imported logs, don't deploy promtail (via `deploy_observability`).
+    * If you only want to see imported logs, don't deploy alloy (via `deploy_observability`).
     * If you want to drop all logs from Loki, just delete the Loki Pod in the `observability` namespace.
 2. You can then import logs via the `Import Logs` button on the top right of the [Loki resource page](http://localhost:10350/r/loki/overview).
    Just click on the downwards arrow, enter either a ProwJob URL, a GCS path or a local folder and click on `Import Logs`.

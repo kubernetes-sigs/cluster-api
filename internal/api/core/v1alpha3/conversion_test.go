@@ -86,9 +86,10 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 
 	t.Run("for MachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &clusterv1.MachinePool{},
-		Spoke:       &MachinePool{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachinePoolFuzzFuncs},
+		Hub:              &clusterv1.MachinePool{},
+		HubAfterMutation: machinePoolHubAfterMutation,
+		Spoke:            &MachinePool{},
+		FuzzerFuncs:      []fuzzer.FuzzerFuncs{MachinePoolFuzzFuncs},
 	}))
 }
 
@@ -116,6 +117,13 @@ func hubMachineSpec(in *clusterv1.MachineSpec, c randfill.Continue) {
 		in.Bootstrap.ConfigRef.APIGroup = gvk.Group
 		in.Bootstrap.ConfigRef.Kind = gvk.Kind
 	}
+}
+
+func hubMachinePoolSpec(in *clusterv1.MachinePoolSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Subfields differ in v1beta2, no conversion possible
+	in.Strategy = nil
 }
 
 func hubMachineStatus(in *clusterv1.MachineStatus, c randfill.Continue) {
@@ -303,6 +311,15 @@ func clusterSpokeAfterMutation(c conversion.Convertible) {
 	cluster.Status.Conditions = tmp
 }
 
+// machinePoolHubAfterMutation modifies the spoke version of the MachinePool such that it can pass an equality test in the
+// spoke-hub-spoke conversion scenario.
+func machinePoolHubAfterMutation(c conversion.Hub) {
+	mp := c.(*clusterv1.MachinePool)
+
+	// Subfields differ in v1beta2, no conversion possible
+	mp.Spec.Strategy = nil
+}
+
 func ClusterFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubClusterSpec,
@@ -422,6 +439,7 @@ func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeBootstrap,
 		spokeObjectMeta,
 		spokeMachinePoolSpec,
+		hubMachinePoolSpec,
 		hubMachinePoolStatus,
 		spokeMachineSpec,
 	}
@@ -460,8 +478,7 @@ func spokeMachinePool(in *MachinePool, c randfill.Continue) {
 func spokeMachinePoolSpec(in *MachinePoolSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
-	// These fields have been removed in v1beta1
-	// data is going to be lost, so we're forcing zero values here.
+	// Subfields differ in v1beta2, no conversion possible
 	in.Strategy = nil
 }
 

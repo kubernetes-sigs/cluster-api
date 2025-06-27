@@ -354,7 +354,7 @@ linters:
       - linters:
           - revive
         # Ignoring stylistic checks for generated code
-        path: .*(api|types)\/.*\/conversion.*\.go$
+        path: .*(api|types|test)\/.*\/conversion.*\.go$
         # By convention, receiver names in a method should reflect their identity.
         text: 'receiver-naming: receiver name'
       - linters:

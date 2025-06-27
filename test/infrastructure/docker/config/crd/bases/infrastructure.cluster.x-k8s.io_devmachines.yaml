@@ -411,7 +411,7 @@ spec:
       name: ProviderID
       type: string
     - description: Machine ready status
-      jsonPath: .status.ready
+      jsonPath: .status.initialization.provisioned
       name: Ready
       type: string
     - description: Time duration since creation of the DevMachine

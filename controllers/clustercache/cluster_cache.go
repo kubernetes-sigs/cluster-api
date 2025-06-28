@@ -448,20 +448,8 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 
 	requeueAfterDurations := []time.Duration{}
 
-	kubeconfigUpdated, err := accessor.KubeConfigUpdated(ctx)
-	if err != nil {
-		log.Error(err, "error checking if kubeconfig was updated")
-		return ctrl.Result{RequeueAfter: defaultRequeueAfter}, nil
-	}
-
 	// Try to connect, if not connected.
 	connected := accessor.Connected(ctx)
-	if connected && kubeconfigUpdated {
-		log.Info("Kubeconfig was updated, disconnecting to re-connect with the new kubeconfig")
-		accessor.Disconnect(ctx)
-		didDisconnect = true
-		connected = false
-	}
 
 	if !connected {
 		lastConnectionCreationErrorTimestamp := accessor.GetLastConnectionCreationErrorTimestamp(ctx)
@@ -529,6 +517,20 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 	// Send events to cluster sources.
 	lastProbeSuccessTime := accessor.GetLastProbeSuccessTimestamp(ctx)
 	cc.sendEventsToClusterSources(ctx, cluster, time.Now(), lastProbeSuccessTime, didConnect, didDisconnect)
+
+	// Check if kubeconfig was updated (only when connected).
+	if connected {
+		kubeconfigUpdated, err := accessor.KubeConfigUpdated(ctx)
+		if err != nil {
+			log.Error(err, "error checking if kubeconfig was updated")
+			// Don't return error here, just log it and continue
+		} else if kubeconfigUpdated {
+			log.Info("Kubeconfig was updated, disconnecting to re-connect with the new kubeconfig")
+			accessor.Disconnect(ctx)
+			didDisconnect = true
+			connected = false
+		}
+	}
 
 	// Requeue based on requeueAfterDurations (fallback to defaultRequeueAfter).
 	return reconcile.Result{RequeueAfter: minDurationOrDefault(requeueAfterDurations, defaultRequeueAfter)}, nil

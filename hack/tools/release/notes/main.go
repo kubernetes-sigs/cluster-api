@@ -146,7 +146,7 @@ func releaseTypeFromNewTag(newTagConfig string) string {
 		return ""
 	}
 
-	// Only allow alpha, beta and RC releases. More types must be defined here.
+	// Only allow alpha, beta and rc releases. More types must be defined here.
 	// If a new type is not defined, no warning banner will be printed.
 	switch newTag.Pre[0].VersionStr {
 	case preReleaseAlpha:

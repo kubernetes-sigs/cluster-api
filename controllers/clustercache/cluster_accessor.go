@@ -154,6 +154,11 @@ type clusterAccessorHealthProbeConfig struct {
 // and health checking information (e.g. lastProbeSuccessTimestamp, consecutiveFailures).
 // lockedStateLock must be *always* held (via lock or rLock) before accessing this field.
 type clusterAccessorLockedState struct {
+	// kubeconfigResourceVersion is the resource version of the kubeconfig secret.
+	// This is used to detect if the kubeconfig secret has changed and we need to re-create the connection.
+	// It is set when the connection is created.
+	kubeconfigResourceVersion string
+
 	// lastConnectionCreationErrorTimestamp is the timestamp when connection creation failed the last time.
 	lastConnectionCreationErrorTimestamp time.Time
 
@@ -272,6 +277,12 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 	}
 
 	log.Info("Connected")
+
+	kubeconfigSecret, err := ca.getKubeConfigSecret(ctx)
+	if err != nil {
+		return err
+	}
+	ca.lockedState.kubeconfigResourceVersion = kubeconfigSecret.ResourceVersion
 
 	// Only generate the clientCertificatePrivateKey once as there is no need to regenerate it after disconnect/connect.
 	// Note: This has to be done before setting connection, because otherwise this code wouldn't be re-entrant if the
@@ -412,6 +423,18 @@ func (ca *clusterAccessor) GetRESTConfig(ctx context.Context) (*rest.Config, err
 	}
 
 	return ca.lockedState.connection.restConfig, nil
+}
+
+func (ca *clusterAccessor) KubeConfigUpdated(ctx context.Context) (bool, error) {
+	ca.rLock(ctx)
+	defer ca.rUnlock(ctx)
+
+	kubeconfigSecret, err := ca.getKubeConfigSecret(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return kubeconfigSecret.ResourceVersion != ca.lockedState.kubeconfigResourceVersion, nil
 }
 
 func (ca *clusterAccessor) GetClientCertificatePrivateKey(ctx context.Context) *rsa.PrivateKey {

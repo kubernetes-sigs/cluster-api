@@ -521,7 +521,6 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 			log.Info("Kubeconfig was updated, disconnecting to re-connect with the new kubeconfig")
 			accessor.Disconnect(ctx)
 			didDisconnect = true
-			connected = false
 		}
 	}
 

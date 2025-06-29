@@ -50,6 +50,7 @@ func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Status.Conditions = restored.Status.Conditions
+	dst.Status.Initialization = restored.Status.Initialization
 
 	return nil
 }
@@ -123,6 +124,7 @@ func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Status.Conditions = restored.Status.Conditions
+	dst.Status.Initialization = restored.Status.Initialization
 
 	return nil
 }
@@ -285,7 +287,10 @@ func Convert_v1alpha4_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *Doc
 	if out.Initialization == nil {
 		out.Initialization = &infrav1.DockerMachineInitializationStatus{}
 	}
-	out.Initialization.Provisioned = ptr.To(in.Ready)
+
+	if in.Ready {
+		out.Initialization.Provisioned = ptr.To(in.Ready)
+	}
 
 	return nil
 }
@@ -308,7 +313,10 @@ func Convert_v1alpha4_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *Doc
 	if out.Initialization == nil {
 		out.Initialization = &infrav1.DockerClusterInitializationStatus{}
 	}
-	out.Initialization.Provisioned = ptr.To(in.Ready)
+
+	if in.Ready {
+		out.Initialization.Provisioned = ptr.To(in.Ready)
+	}
 
 	// Move FailureDomains
 	if in.FailureDomains != nil {

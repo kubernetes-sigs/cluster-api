@@ -29,18 +29,38 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerCluster)
 
-	return Convert_v1beta1_DockerCluster_To_v1beta2_DockerCluster(src, dst, nil)
+	if err := Convert_v1beta1_DockerCluster_To_v1beta2_DockerCluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	restored := &infrav1.DockerCluster{}
+	if ok, err := utilconversion.UnmarshalData(dst, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Status.Initialization = restored.Status.Initialization
+
+	return nil
 }
 
 func (dst *DockerCluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerCluster)
 
-	return Convert_v1beta2_DockerCluster_To_v1beta1_DockerCluster(src, dst, nil)
+	if err := Convert_v1beta2_DockerCluster_To_v1beta1_DockerCluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -58,13 +78,32 @@ func (dst *DockerClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerMachine)
 
-	return Convert_v1beta1_DockerMachine_To_v1beta2_DockerMachine(src, dst, nil)
+	if err := Convert_v1beta1_DockerMachine_To_v1beta2_DockerMachine(src, dst, nil); err != nil {
+		return err
+	}
+
+	restored := &infrav1.DockerMachine{}
+	if ok, err := utilconversion.UnmarshalData(dst, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Status.Initialization = restored.Status.Initialization
+
+	return nil
 }
 
 func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerMachine)
 
-	return Convert_v1beta2_DockerMachine_To_v1beta1_DockerMachine(src, dst, nil)
+	if err := Convert_v1beta2_DockerMachine_To_v1beta1_DockerMachine(src, dst, nil); err != nil {
+		return err
+	}
+
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -82,13 +121,32 @@ func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DevCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DevCluster)
 
-	return Convert_v1beta1_DevCluster_To_v1beta2_DevCluster(src, dst, nil)
+	if err := Convert_v1beta1_DevCluster_To_v1beta2_DevCluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	restored := &infrav1.DevCluster{}
+	if ok, err := utilconversion.UnmarshalData(dst, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Status.Initialization = restored.Status.Initialization
+
+	return nil
 }
 
 func (dst *DevCluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DevCluster)
 
-	return Convert_v1beta2_DevCluster_To_v1beta1_DevCluster(src, dst, nil)
+	if err := Convert_v1beta2_DevCluster_To_v1beta1_DevCluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *DevClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -106,13 +164,32 @@ func (dst *DevClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DevMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DevMachine)
 
-	return Convert_v1beta1_DevMachine_To_v1beta2_DevMachine(src, dst, nil)
+	if err := Convert_v1beta1_DevMachine_To_v1beta2_DevMachine(src, dst, nil); err != nil {
+		return err
+	}
+
+	restored := &infrav1.DevMachine{}
+	if ok, err := utilconversion.UnmarshalData(dst, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Status.Initialization = restored.Status.Initialization
+
+	return nil
 }
 
 func (dst *DevMachine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DevMachine)
 
-	return Convert_v1beta2_DevMachine_To_v1beta1_DevMachine(src, dst, nil)
+	if err := Convert_v1beta2_DevMachine_To_v1beta1_DevMachine(src, dst, nil); err != nil {
+		return err
+	}
+
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *DevMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -143,7 +220,10 @@ func Convert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevCluster
 	if out.Initialization == nil {
 		out.Initialization = &infrav1.DevClusterInitializationStatus{}
 	}
-	out.Initialization.Provisioned = ptr.To(in.Ready)
+
+	if in.Ready {
+		out.Initialization.Provisioned = ptr.To(in.Ready)
+	}
 
 	if in.FailureDomains != nil {
 		out.FailureDomains = []clusterv1.FailureDomain{}
@@ -230,7 +310,10 @@ func Convert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in *DevMachine
 	if out.Initialization == nil {
 		out.Initialization = &infrav1.DevMachineInitializationStatus{}
 	}
-	out.Initialization.Provisioned = ptr.To(in.Ready)
+
+	if in.Ready {
+		out.Initialization.Provisioned = ptr.To(in.Ready)
+	}
 
 	// Reset conditions from autogenerated conversions
 	// NOTE: v1beta1 conditions should not be automatically be converted into v1beta2 conditions.
@@ -294,7 +377,10 @@ func Convert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *Dock
 	if out.Initialization == nil {
 		out.Initialization = &infrav1.DockerClusterInitializationStatus{}
 	}
-	out.Initialization.Provisioned = ptr.To(in.Ready)
+
+	if in.Ready {
+		out.Initialization.Provisioned = ptr.To(in.Ready)
+	}
 
 	if in.FailureDomains != nil {
 		out.FailureDomains = []clusterv1.FailureDomain{}
@@ -381,7 +467,10 @@ func Convert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *Dock
 	if out.Initialization == nil {
 		out.Initialization = &infrav1.DockerMachineInitializationStatus{}
 	}
-	out.Initialization.Provisioned = ptr.To(in.Ready)
+
+	if in.Ready {
+		out.Initialization.Provisioned = ptr.To(in.Ready)
+	}
 
 	// Reset conditions from autogenerated conversions
 	// NOTE: v1beta1 conditions should not be automatically be converted into v1beta2 conditions.

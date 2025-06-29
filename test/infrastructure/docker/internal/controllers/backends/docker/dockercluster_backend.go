@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -104,7 +105,7 @@ func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster 
 
 	// Mark the dockerCluster ready
 	dockerCluster.Status.Initialization = &infrav1.DevClusterInitializationStatus{
-		Provisioned: true,
+		Provisioned: ptr.To(true),
 	}
 	v1beta1conditions.MarkTrue(dockerCluster, infrav1.LoadBalancerAvailableV1Beta1Condition)
 	conditions.Set(dockerCluster, metav1.Condition{

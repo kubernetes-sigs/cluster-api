@@ -229,7 +229,7 @@ func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Conte
 
 	inMemoryMachine.Spec.ProviderID = ptr.To(calculateProviderID(inMemoryMachine))
 	inMemoryMachine.Status.Initialization = &infrav1.DevMachineInitializationStatus{
-		Provisioned: true,
+		Provisioned: ptr.To(true),
 	}
 	v1beta1conditions.MarkTrue(inMemoryMachine, infrav1.VMProvisionedCondition)
 	conditions.Set(inMemoryMachine, metav1.Condition{

@@ -205,7 +205,7 @@ func dockerClusterToDevCluster(dockerCluster *infrav1.DockerCluster) *infrav1.De
 	}
 
 	var initialization *infrav1.DevClusterInitializationStatus
-	if dockerCluster.Status.Initialization != nil {
+	if dockerCluster.Status.Initialization != nil && dockerCluster.Status.Initialization.Provisioned != nil {
 		initialization = &infrav1.DevClusterInitializationStatus{
 			Provisioned: dockerCluster.Status.Initialization.Provisioned,
 		}
@@ -242,7 +242,7 @@ func devClusterToDockerCluster(devCluster *infrav1.DevCluster, dockerCluster *in
 	}
 
 	var initialization *infrav1.DockerClusterInitializationStatus
-	if devCluster.Status.Initialization != nil {
+	if devCluster.Status.Initialization != nil && devCluster.Status.Initialization.Provisioned != nil {
 		initialization = &infrav1.DockerClusterInitializationStatus{
 			Provisioned: devCluster.Status.Initialization.Provisioned,
 		}

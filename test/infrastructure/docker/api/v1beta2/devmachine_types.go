@@ -380,7 +380,7 @@ type DevMachineInitializationStatus struct {
 	// provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
 	// +optional
-	Provisioned bool `json:"provisioned,omitempty"`
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // DevMachineBackendStatus define backend status for a DevMachine.

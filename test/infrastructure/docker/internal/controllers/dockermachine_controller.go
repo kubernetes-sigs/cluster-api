@@ -303,6 +303,13 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 		}
 	}
 
+	var initialization *infrav1.DevMachineInitializationStatus
+	if dockerMachine.Status.Initialization != nil && dockerMachine.Status.Initialization.Provisioned != nil {
+		initialization = &infrav1.DevMachineInitializationStatus{
+			Provisioned: dockerMachine.Status.Initialization.Provisioned,
+		}
+	}
+
 	return &infrav1.DevMachine{
 		ObjectMeta: dockerMachine.ObjectMeta,
 		Spec: infrav1.DevMachineSpec{
@@ -318,12 +325,10 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 			},
 		},
 		Status: infrav1.DevMachineStatus{
-			Initialization: &infrav1.DevMachineInitializationStatus{
-				Provisioned: true,
-			},
-			Addresses:  dockerMachine.Status.Addresses,
-			Conditions: dockerMachine.Status.Conditions,
-			Deprecated: v1Beta1Status,
+			Initialization: initialization,
+			Addresses:      dockerMachine.Status.Addresses,
+			Conditions:     dockerMachine.Status.Conditions,
+			Deprecated:     v1Beta1Status,
 			Backend: &infrav1.DevMachineBackendStatus{
 				Docker: &infrav1.DockerMachineBackendStatus{
 					LoadBalancerConfigured: dockerMachine.Status.LoadBalancerConfigured,

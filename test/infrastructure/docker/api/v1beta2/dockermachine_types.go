@@ -114,7 +114,7 @@ type DockerMachineInitializationStatus struct {
 	// provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
 	// +optional
-	Provisioned bool `json:"provisioned,omitempty"`
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // DockerMachineDeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.

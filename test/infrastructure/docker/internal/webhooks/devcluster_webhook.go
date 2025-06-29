@@ -19,6 +19,8 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"slices"
+	"sort"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -72,7 +74,14 @@ func (webhook *DevCluster) ValidateCreate(_ context.Context, obj runtime.Object)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DevCluster) ValidateUpdate(_ context.Context, _, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *DevCluster) ValidateUpdate(_ context.Context, _, new runtime.Object) (admission.Warnings, error) {
+	cluster, ok := new.(*infrav1.DevCluster)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DevCluster but got a %T", new))
+	}
+	if allErrs := validateDevClusterSpec(cluster.Spec); len(allErrs) > 0 {
+		return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DevCluster").GroupKind(), cluster.Name, allErrs)
+	}
 	return nil, nil
 }
 
@@ -94,6 +103,16 @@ func defaultDevClusterSpec(s *infrav1.DevClusterSpec) {
 	}
 }
 
-func validateDevClusterSpec(_ infrav1.DevClusterSpec) field.ErrorList {
+func validateDevClusterSpec(spec infrav1.DevClusterSpec) field.ErrorList {
+	domainNames := make([]string, 0, len(spec.Backend.Docker.FailureDomains))
+	for _, fd := range spec.Backend.Docker.FailureDomains {
+		domainNames = append(domainNames, fd.Name)
+	}
+	originalDomainNames := domainNames
+	sort.Strings(domainNames)
+	if !slices.Equal(originalDomainNames, domainNames) {
+		return field.ErrorList{field.Invalid(field.NewPath("spec", "backend", "docker", "failureDomains"), spec.Backend.Docker.FailureDomains, "failure domains must be sorted by name")}
+	}
+
 	return nil
 }

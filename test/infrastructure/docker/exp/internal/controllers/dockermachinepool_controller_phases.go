@@ -27,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 
@@ -201,7 +202,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 		dockerMachine := orderedDockerMachines[i]
 		// TODO (v1beta2): test for v1beta2 conditions
 		initialization := dockerMachine.Status.Initialization
-		if initialization != nil && initialization.Provisioned || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyV1Beta1Condition) {
+		if initialization != nil && ptr.Deref(initialization.Provisioned, false) || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyV1Beta1Condition) {
 			totalReadyMachines++
 		}
 	}
@@ -390,7 +391,7 @@ func (r *DockerMachinePoolReconciler) getDeletionCandidates(ctx context.Context,
 		// TODO (v1beta2): test for v1beta2 conditions
 		if !isMachineMatchingInfrastructureSpec(ctx, externalMachine, machinePool, dockerMachinePool) {
 			outdatedMachines = append(outdatedMachines, dockerMachine)
-		} else if initialization != nil && initialization.Provisioned || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyV1Beta1Condition) {
+		} else if initialization != nil && ptr.Deref(initialization.Provisioned, false) || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyV1Beta1Condition) {
 			readyMatchingMachines = append(readyMatchingMachines, dockerMachine)
 		}
 	}

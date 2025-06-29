@@ -17,6 +17,10 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"maps"
+	"slices"
+	"sort"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
@@ -249,12 +253,10 @@ func Convert_v1alpha3_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *Doc
 		clusterv1alpha3.Convert_v1alpha3_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 
-	if in.Ready {
-		if out.Initialization == nil {
-			out.Initialization = &infrav1.DockerMachineInitializationStatus{}
-		}
-		out.Initialization.Provisioned = in.Ready
+	if out.Initialization == nil {
+		out.Initialization = &infrav1.DockerMachineInitializationStatus{}
 	}
+	out.Initialization.Provisioned = ptr.To(in.Ready)
 
 	return nil
 }
@@ -274,20 +276,22 @@ func Convert_v1alpha3_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *Doc
 		clusterv1alpha3.Convert_v1alpha3_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 
-	if in.Ready {
-		out.Initialization = &infrav1.DockerClusterInitializationStatus{
-			Provisioned: ptr.To(in.Ready),
-		}
+	if out.Initialization == nil {
+		out.Initialization = &infrav1.DockerClusterInitializationStatus{}
 	}
+	out.Initialization.Provisioned = ptr.To(in.Ready)
 
 	// Move FailureDomains
 	if in.FailureDomains != nil {
 		out.FailureDomains = []clusterv1.FailureDomain{}
-		for name, fd := range in.FailureDomains {
+		domainNames := slices.Collect(maps.Keys(in.FailureDomains))
+		sort.Strings(domainNames)
+		for _, name := range domainNames {
+			domain := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: fd.ControlPlane,
-				Attributes:   fd.Attributes,
+				ControlPlane: domain.ControlPlane,
+				Attributes:   domain.Attributes,
 			})
 		}
 	}
@@ -303,11 +307,14 @@ func Convert_v1alpha3_DockerClusterSpec_To_v1beta2_DockerClusterSpec(in *DockerC
 	// Move FailureDomains
 	if in.FailureDomains != nil {
 		out.FailureDomains = []clusterv1.FailureDomain{}
-		for name, fd := range in.FailureDomains {
+		domainNames := slices.Collect(maps.Keys(in.FailureDomains))
+		sort.Strings(domainNames)
+		for _, name := range domainNames {
+			domain := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: fd.ControlPlane,
-				Attributes:   fd.Attributes,
+				ControlPlane: domain.ControlPlane,
+				Attributes:   domain.Attributes,
 			})
 		}
 	}

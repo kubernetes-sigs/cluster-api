@@ -74,10 +74,10 @@ func (webhook *DevCluster) ValidateCreate(_ context.Context, obj runtime.Object)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DevCluster) ValidateUpdate(_ context.Context, _, new runtime.Object) (admission.Warnings, error) {
-	cluster, ok := new.(*infrav1.DevCluster)
+func (webhook *DevCluster) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	cluster, ok := newObj.(*infrav1.DevCluster)
 	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DevCluster but got a %T", new))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DevCluster but got a %T", newObj))
 	}
 	if allErrs := validateDevClusterSpec(cluster.Spec); len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DevCluster").GroupKind(), cluster.Name, allErrs)
@@ -104,6 +104,10 @@ func defaultDevClusterSpec(s *infrav1.DevClusterSpec) {
 }
 
 func validateDevClusterSpec(spec infrav1.DevClusterSpec) field.ErrorList {
+	// Only validate the Docker backend if it is set.
+	if spec.Backend.Docker == nil {
+		return nil
+	}
 	domainNames := make([]string, 0, len(spec.Backend.Docker.FailureDomains))
 	for _, fd := range spec.Backend.Docker.FailureDomains {
 		domainNames = append(domainNames, fd.Name)

@@ -348,6 +348,13 @@ func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *in
 		}
 	}
 
+	var initialization *infrav1.DockerMachineInitializationStatus
+	if devMachine.Status.Initialization != nil && devMachine.Status.Initialization.Provisioned != nil {
+		initialization = &infrav1.DockerMachineInitializationStatus{
+			Provisioned: devMachine.Status.Initialization.Provisioned,
+		}
+	}
+
 	dockerMachine.ObjectMeta = devMachine.ObjectMeta
 	dockerMachine.Spec.ProviderID = devMachine.Spec.ProviderID
 	dockerMachine.Spec.CustomImage = devMachine.Spec.Backend.Docker.CustomImage
@@ -355,9 +362,7 @@ func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *in
 	dockerMachine.Spec.ExtraMounts = devMachine.Spec.Backend.Docker.ExtraMounts
 	dockerMachine.Spec.Bootstrapped = devMachine.Spec.Backend.Docker.Bootstrapped
 	dockerMachine.Spec.BootstrapTimeout = devMachine.Spec.Backend.Docker.BootstrapTimeout
-	dockerMachine.Status.Initialization = &infrav1.DockerMachineInitializationStatus{
-		Provisioned: devMachine.Status.Initialization.Provisioned,
-	}
+	dockerMachine.Status.Initialization = initialization
 	dockerMachine.Status.Addresses = devMachine.Status.Addresses
 	dockerMachine.Status.Conditions = devMachine.Status.Conditions
 	dockerMachine.Status.Deprecated = v1Beta1Status

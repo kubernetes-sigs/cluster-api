@@ -44,24 +44,8 @@ func (src *TestResourceTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.Template.Spec.BoolToPtrBool, ok, restored.Spec.Template.Spec.BoolToPtrBool, &dst.Spec.Template.Spec.BoolToPtrBool)
-	Convert_int32_To_Pointer_int32(src.Spec.Template.Spec.Int32ToPtrInt32, ok, restored.Spec.Template.Spec.Int32ToPtrInt32, &dst.Spec.Template.Spec.Int32ToPtrInt32)
+	clusterv1.Convert_int32_To_Pointer_int32(src.Spec.Template.Spec.Int32ToPtrInt32, ok, restored.Spec.Template.Spec.Int32ToPtrInt32, &dst.Spec.Template.Spec.Int32ToPtrInt32)
 	return nil
-}
-
-func Convert_int32_To_Pointer_int32(in int32, hasRestored bool, restoredIn *int32, out **int32) {
-	// If the value is 0, convert to *0 only if the value was *0 before (we know it was intentionally set to 0).
-	// In all the other cases we do not know if the value was intentionally set to 0, so convert to nil.
-	if in == 0 {
-		if hasRestored && restoredIn != nil && *restoredIn == 0 {
-			*out = ptr.To[int32](0)
-			return
-		}
-		*out = nil
-		return
-	}
-
-	// Otherwise, if the value is not 0, convert to *value.
-	*out = ptr.To(in)
 }
 
 func (dst *TestResourceTemplate) ConvertFrom(srcRaw conversion.Hub) error {
@@ -96,7 +80,7 @@ func (src *TestResource) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.BoolToPtrBool, ok, restored.Spec.BoolToPtrBool, &dst.Spec.BoolToPtrBool)
-	Convert_int32_To_Pointer_int32(src.Spec.Int32ToPtrInt32, ok, restored.Spec.Int32ToPtrInt32, &dst.Spec.Int32ToPtrInt32)
+	clusterv1.Convert_int32_To_Pointer_int32(src.Spec.Int32ToPtrInt32, ok, restored.Spec.Int32ToPtrInt32, &dst.Spec.Int32ToPtrInt32)
 	return nil
 }
 

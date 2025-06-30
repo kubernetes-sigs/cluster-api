@@ -499,6 +499,11 @@ func (in *RemediationStrategy) DeepCopyInto(out *RemediationStrategy) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.RetryPeriodSeconds != nil {
+		in, out := &in.RetryPeriodSeconds, &out.RetryPeriodSeconds
+		*out = new(int32)
+		**out = **in
+	}
 	if in.MinHealthyPeriodSeconds != nil {
 		in, out := &in.MinHealthyPeriodSeconds, &out.MinHealthyPeriodSeconds
 		*out = new(int32)

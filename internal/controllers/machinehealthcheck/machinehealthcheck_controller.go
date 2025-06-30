@@ -224,7 +224,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		return ctrl.Result{}, err
 	}
 	totalTargets := len(targets)
-	m.Status.ExpectedMachines = int32(totalTargets)
+	m.Status.ExpectedMachines = ptr.To(int32(totalTargets))
 	m.Status.Targets = make([]string, totalTargets)
 	for i, t := range targets {
 		m.Status.Targets[i] = t.Machine.Name
@@ -239,7 +239,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 
 	// health check all targets and reconcile mhc status
 	healthy, unhealthy, nextCheckTimes := r.healthCheckTargets(targets, logger, metav1.Duration{Duration: time.Duration(*nodeStartupTimeout) * time.Second})
-	m.Status.CurrentHealthy = int32(len(healthy))
+	m.Status.CurrentHealthy = ptr.To(int32(len(healthy)))
 
 	// check MHC current health against MaxUnhealthy
 	remediationAllowed, remediationCount, err := isAllowedRemediation(m)
@@ -275,7 +275,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		}
 
 		// Remediation not allowed, the number of not started or unhealthy machines either exceeds maxUnhealthy (or) not within unhealthyRange
-		m.Status.RemediationsAllowed = 0
+		m.Status.RemediationsAllowed = ptr.To[int32](0)
 		v1beta1conditions.Set(m, &clusterv1.Condition{
 			Type:     clusterv1.RemediationAllowedV1Beta1Condition,
 			Status:   corev1.ConditionFalse,
@@ -341,7 +341,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	}
 
 	// Remediation is allowed so unhealthyMachineCount is within unhealthyRange (or) maxUnhealthy - unhealthyMachineCount >= 0
-	m.Status.RemediationsAllowed = remediationCount
+	m.Status.RemediationsAllowed = ptr.To(remediationCount)
 	v1beta1conditions.MarkTrue(m, clusterv1.RemediationAllowedV1Beta1Condition)
 
 	conditions.Set(m, metav1.Condition{
@@ -709,7 +709,7 @@ func getMaxUnhealthy(mhc *clusterv1.MachineHealthCheck) (int, error) {
 	if mhc.Spec.MaxUnhealthy == nil {
 		return 0, errors.New("spec.maxUnhealthy must be set")
 	}
-	maxUnhealthy, err := intstr.GetScaledValueFromIntOrPercent(mhc.Spec.MaxUnhealthy, int(mhc.Status.ExpectedMachines), false)
+	maxUnhealthy, err := intstr.GetScaledValueFromIntOrPercent(mhc.Spec.MaxUnhealthy, int(ptr.Deref[int32](mhc.Status.ExpectedMachines, 0)), false)
 	if err != nil {
 		return 0, err
 	}
@@ -719,7 +719,7 @@ func getMaxUnhealthy(mhc *clusterv1.MachineHealthCheck) (int, error) {
 // unhealthyMachineCount calculates the number of presently unhealthy or missing machines
 // ie the delta between the expected number of machines and the current number deemed healthy.
 func unhealthyMachineCount(mhc *clusterv1.MachineHealthCheck) int {
-	return int(mhc.Status.ExpectedMachines - mhc.Status.CurrentHealthy)
+	return int(ptr.Deref(mhc.Status.ExpectedMachines, 0) - ptr.Deref(mhc.Status.CurrentHealthy, 0))
 }
 
 // getExternalRemediationRequest gets reference to External Remediation Request, unstructured object.

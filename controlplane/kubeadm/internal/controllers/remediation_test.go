@@ -517,7 +517,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 					RemediationStrategy: &controlplanev1.RemediationStrategy{
 						MaxRetry:           utilptr.To[int32](3),
-						RetryPeriodSeconds: controlplanev1.DefaultMinHealthyPeriodSeconds, // RetryPeriodSeconds not yet expired.
+						RetryPeriodSeconds: utilptr.To(controlplanev1.DefaultMinHealthyPeriodSeconds), // RetryPeriodSeconds not yet expired.
 					},
 				},
 			},

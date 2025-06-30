@@ -444,7 +444,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.RemediationStrategy = &controlplanev1.RemediationStrategy{
 		MaxRetry:                ptr.To[int32](50),
 		MinHealthyPeriodSeconds: ptr.To(int32(10 * 60 * 60)),
-		RetryPeriodSeconds:      10 * 60,
+		RetryPeriodSeconds:      ptr.To[int32](10 * 60),
 	}
 	validUpdate.Spec.KubeadmConfigSpec.Format = bootstrapv1.CloudConfig
 

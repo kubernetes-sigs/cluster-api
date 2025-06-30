@@ -1049,9 +1049,15 @@ func autoConvert_v1beta2_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSp
 }
 
 func autoConvert_v1alpha3_MachineHealthCheckStatus_To_v1beta2_MachineHealthCheckStatus(in *MachineHealthCheckStatus, out *v1beta2.MachineHealthCheckStatus, s conversion.Scope) error {
-	out.ExpectedMachines = in.ExpectedMachines
-	out.CurrentHealthy = in.CurrentHealthy
-	out.RemediationsAllowed = in.RemediationsAllowed
+	if err := v1.Convert_int32_To_Pointer_int32(&in.ExpectedMachines, &out.ExpectedMachines, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_int32_To_Pointer_int32(&in.CurrentHealthy, &out.CurrentHealthy, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_int32_To_Pointer_int32(&in.RemediationsAllowed, &out.RemediationsAllowed, s); err != nil {
+		return err
+	}
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Targets = *(*[]string)(unsafe.Pointer(&in.Targets))
 	if in.Conditions != nil {
@@ -1085,9 +1091,15 @@ func autoConvert_v1beta2_MachineHealthCheckStatus_To_v1alpha3_MachineHealthCheck
 	} else {
 		out.Conditions = nil
 	}
-	out.ExpectedMachines = in.ExpectedMachines
-	out.CurrentHealthy = in.CurrentHealthy
-	out.RemediationsAllowed = in.RemediationsAllowed
+	if err := v1.Convert_Pointer_int32_To_int32(&in.ExpectedMachines, &out.ExpectedMachines, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_Pointer_int32_To_int32(&in.CurrentHealthy, &out.CurrentHealthy, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_Pointer_int32_To_int32(&in.RemediationsAllowed, &out.RemediationsAllowed, s); err != nil {
+		return err
+	}
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Targets = *(*[]string)(unsafe.Pointer(&in.Targets))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type

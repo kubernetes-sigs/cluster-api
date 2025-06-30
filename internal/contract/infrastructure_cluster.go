@@ -190,6 +190,15 @@ func (d *FailureDomains) Get(obj *unstructured.Unstructured) ([]clusterv1.Failur
 		return nil, errors.Wrapf(err, "failed to unmarshal field at %s to json", "."+strings.Join(d.path, "."))
 	}
 
+	// Sort the failureDomains to ensure deterministic order even if the failureDomains field
+	// on the InfraCluster is not sorted.
+	slices.SortFunc(domains, func(a, b clusterv1.FailureDomain) int {
+		if a.Name < b.Name {
+			return -1
+		}
+		return 1
+	})
+
 	return domains, nil
 }
 

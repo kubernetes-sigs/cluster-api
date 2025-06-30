@@ -46,6 +46,12 @@ spec:
                   spec:
                     description: TestResourceSpec defines the resource spec.
                     properties:
+                      boolToPtrBool:
+                        type: boolean
+                      int32ToPtrInt32:
+                        format: int32
+                        minimum: 0
+                        type: integer
                       machineTemplate:
                         description: |-
                           TestResourceMachineTemplateSpec define the spec for machineTemplate in a resource.
@@ -109,9 +115,27 @@ spec:
                         type: object
                       omittable:
                         type: string
+                      ptrStringToString:
+                        maxLength: 256
+                        minLength: 1
+                        type: string
                       replicas:
                         format: int32
                         type: integer
+                      structWithOnlyOptionalFields:
+                        description: StructWithOnlyOptionalFields is a struct with
+                          only optional fields, where there the zero value (empty
+                          struct) does not makes sense.
+                        properties:
+                          a:
+                            maxLength: 256
+                            minLength: 1
+                            type: string
+                          b:
+                            maxLength: 256
+                            minLength: 1
+                            type: string
+                        type: object
                       version:
                         type: string
                     required:
@@ -158,6 +182,12 @@ spec:
                   spec:
                     description: TestResourceSpec defines the resource spec.
                     properties:
+                      boolToPtrBool:
+                        type: boolean
+                      int32ToPtrInt32:
+                        format: int32
+                        minimum: 0
+                        type: integer
                       machineTemplate:
                         description: |-
                           TestResourceMachineTemplateSpec define the spec for machineTemplate in a resource.
@@ -221,9 +251,28 @@ spec:
                         type: object
                       omittable:
                         type: string
+                      ptrStringToString:
+                        maxLength: 256
+                        minLength: 1
+                        type: string
                       replicas:
                         format: int32
                         type: integer
+                      structWithOnlyOptionalFields:
+                        description: StructWithOnlyOptionalFields is a struct with
+                          only optional fields, where there the zero value (empty
+                          struct) does not makes sense.
+                        minProperties: 1
+                        properties:
+                          a:
+                            maxLength: 256
+                            minLength: 1
+                            type: string
+                          b:
+                            maxLength: 256
+                            minLength: 1
+                            type: string
+                        type: object
                       version:
                         type: string
                     required:

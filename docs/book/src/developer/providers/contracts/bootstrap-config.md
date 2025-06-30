@@ -199,7 +199,20 @@ type FooConfigList struct {
 
 ### BootstrapConfig: data secret
 
-Each BootstrapConfig MUST store generated bootstrap data into a Kubernetes Secret.
+Each BootstrapConfig MUST store generated bootstrap data into a Kubernetes Secret and surface the secret name in .status.dataSecretName.
+
+```go
+type FooConfigStatus struct {
+    // dataSecretName is the name of the secret that stores the bootstrap data script.
+    // +optional
+    // +kubebuilder:validation:MinLength=1
+    // +kubebuilder:validation:MaxLength=253
+    DataSecretName string `json:"dataSecretName,omitempty"`
+
+    // See other rules for more details about mandatory/optional fields in BootstrapConfig status.
+    // Other fields SHOULD be added based on the needs of your provider.
+}
+```
 
 The Secret containing bootstrap data must:
 
@@ -236,7 +249,7 @@ type FooConfigInitializationStatus struct {
     // dataSecretCreated is true when the Machine's boostrap secret is created.
     // NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
     // +optional
-    DataSecretCreated bool `json:"dataSecretCreated,omitempty"`
+    DataSecretCreated *bool `json:"dataSecretCreated,omitempty"`
 }
 ```
 

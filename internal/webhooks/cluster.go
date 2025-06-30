@@ -393,6 +393,16 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 
 		// If the ClusterClass referenced in the Topology has changed compatibility checks are needed.
 		if oldCluster.GetClassKey() != newCluster.GetClassKey() {
+			if clusterClassPollErr != nil {
+				allErrs = append(
+					allErrs, field.Forbidden(
+						fldPath.Child("class"),
+						fmt.Sprintf("cannot rebase to ClusterClass %q: %s",
+							newCluster.GetClassKey(), clusterClassPollErr.Error())))
+				// Return early with errors if the new ClusterClass can't be retrieved.
+				return allWarnings, allErrs
+			}
+
 			// Check to see if the ClusterClass referenced in the old version of the Cluster exists.
 			oldClusterClass, err := webhook.pollClusterClassForCluster(ctx, oldCluster)
 			if err != nil {
@@ -402,7 +412,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 						fmt.Sprintf("valid ClusterClass with name %q could not be retrieved, change from class %[1]q to class %q cannot be validated. Error: %s",
 							oldCluster.GetClassKey(), newCluster.GetClassKey(), err.Error())))
 
-				// Return early with errors if the ClusterClass can't be retrieved.
+				// Return early with errors if the old ClusterClass can't be retrieved.
 				return allWarnings, allErrs
 			}
 

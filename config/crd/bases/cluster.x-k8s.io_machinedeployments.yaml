@@ -2505,6 +2505,7 @@ spec:
                 description: observedGeneration is the generation observed by the
                   deployment controller.
                 format: int64
+                minimum: 1
                 type: integer
               phase:
                 description: phase represents the current phase of a MachineDeployment

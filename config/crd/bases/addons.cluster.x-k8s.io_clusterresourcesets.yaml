@@ -864,6 +864,7 @@ spec:
                 description: observedGeneration reflects the generation of the most
                   recently observed ClusterResourceSet.
                 format: int64
+                minimum: 1
                 type: integer
             type: object
         type: object

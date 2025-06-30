@@ -675,6 +675,7 @@ type KubeadmControlPlaneStatus struct {
 
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// lastRemediation stores info about last remediation performed.

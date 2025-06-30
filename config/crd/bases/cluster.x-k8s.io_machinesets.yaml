@@ -2193,6 +2193,7 @@ spec:
                 description: observedGeneration reflects the generation of the most
                   recently observed MachineSet.
                 format: int64
+                minimum: 1
                 type: integer
               readyReplicas:
                 description: readyReplicas is the number of ready replicas for this

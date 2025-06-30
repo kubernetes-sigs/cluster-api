@@ -147,6 +147,7 @@ type MachinePoolStatus struct {
 
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.

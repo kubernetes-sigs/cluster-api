@@ -1985,10 +1985,13 @@ spec:
                     - clusterName
                     - infrastructureRef
                     type: object
+                required:
+                - spec
                 type: object
             required:
             - clusterName
             - selector
+            - template
             type: object
           status:
             description: status is the observed state of MachineSet.

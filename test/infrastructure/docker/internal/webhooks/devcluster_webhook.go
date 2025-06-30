@@ -112,7 +112,7 @@ func validateDevClusterSpec(spec infrav1.DevClusterSpec) field.ErrorList {
 	for _, fd := range spec.Backend.Docker.FailureDomains {
 		domainNames = append(domainNames, fd.Name)
 	}
-	originalDomainNames := domainNames
+	originalDomainNames := slices.Clone(domainNames)
 	sort.Strings(domainNames)
 	if !slices.Equal(originalDomainNames, domainNames) {
 		return field.ErrorList{field.Invalid(field.NewPath("spec", "backend", "docker", "failureDomains"), spec.Backend.Docker.FailureDomains, "failure domains must be sorted by name")}

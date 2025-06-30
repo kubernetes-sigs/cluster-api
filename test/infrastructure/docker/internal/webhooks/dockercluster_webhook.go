@@ -74,7 +74,14 @@ func (webhook *DockerCluster) ValidateCreate(_ context.Context, obj runtime.Obje
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DockerCluster) ValidateUpdate(_ context.Context, _, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *DockerCluster) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	cluster, ok := newObj.(*infrav1.DockerCluster)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerCluster but got a %T", newObj))
+	}
+	if allErrs := validateDockerClusterSpec(cluster.Spec); len(allErrs) > 0 {
+		return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DockerCluster").GroupKind(), cluster.Name, allErrs)
+	}
 	return nil, nil
 }
 
@@ -94,7 +101,7 @@ func validateDockerClusterSpec(spec infrav1.DockerClusterSpec) field.ErrorList {
 	for _, fd := range spec.FailureDomains {
 		domainNames = append(domainNames, fd.Name)
 	}
-	originalDomainNames := domainNames
+	originalDomainNames := slices.Clone(domainNames)
 	sort.Strings(domainNames)
 	if !slices.Equal(originalDomainNames, domainNames) {
 		return field.ErrorList{field.Invalid(field.NewPath("spec", "failureDomains"), spec.FailureDomains, "failure domains must be sorted by name")}

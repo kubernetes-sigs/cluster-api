@@ -129,6 +129,7 @@ type ClusterResourceSetStatus struct {
 
 	// observedGeneration reflects the generation of the most recently observed ClusterResourceSet.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.

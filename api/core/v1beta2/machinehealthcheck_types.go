@@ -225,6 +225,7 @@ type MachineHealthCheckStatus struct {
 
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// targets shows the current list of machines the machine health check is watching

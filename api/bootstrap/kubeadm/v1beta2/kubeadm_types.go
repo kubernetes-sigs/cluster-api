@@ -242,6 +242,7 @@ type APIEndpoint struct {
 	// bindPort sets the secure port for the API Server to bind to.
 	// Defaults to 6443.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	BindPort int32 `json:"bindPort,omitempty"`
 }
 

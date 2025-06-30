@@ -5323,6 +5323,7 @@ spec:
                           bindPort sets the secure port for the API Server to bind to.
                           Defaults to 6443.
                         format: int32
+                        minimum: 1
                         type: integer
                     type: object
                   nodeRegistration:
@@ -5562,6 +5563,7 @@ spec:
                               bindPort sets the secure port for the API Server to bind to.
                               Defaults to 6443.
                             format: int32
+                            minimum: 1
                             type: integer
                         type: object
                     type: object
@@ -6313,6 +6315,7 @@ spec:
                 description: observedGeneration is the latest generation observed
                   by the controller.
                 format: int64
+                minimum: 1
                 type: integer
             type: object
         type: object

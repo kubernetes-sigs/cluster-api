@@ -2186,6 +2186,7 @@ spec:
                 description: observedGeneration is the latest generation observed
                   by the controller.
                 format: int64
+                minimum: 1
                 type: integer
               phase:
                 description: phase represents the current phase of cluster actuation.

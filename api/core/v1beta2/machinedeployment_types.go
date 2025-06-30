@@ -431,6 +431,7 @@ type MachineDeploymentStatus struct {
 
 	// observedGeneration is the generation observed by the deployment controller.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// selector is the same as the label selector but in the string format to avoid introspection

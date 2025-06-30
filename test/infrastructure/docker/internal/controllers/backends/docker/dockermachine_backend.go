@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -117,7 +118,9 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	if dockerMachine.Spec.ProviderID != nil {
 		// ensure ready state is set.
 		// This is required after move, because status is not moved to the target cluster.
-		dockerMachine.Status.Ready = true
+		dockerMachine.Status.Initialization = &infrav1.DevMachineInitializationStatus{
+			Provisioned: ptr.To(true),
+		}
 
 		if externalMachine.Exists() {
 			v1beta1conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedV1Beta1Condition)
@@ -361,7 +364,9 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// Set ProviderID so the Cluster API Machine Controller can pull it
 	providerID := externalMachine.ProviderID()
 	dockerMachine.Spec.ProviderID = &providerID
-	dockerMachine.Status.Ready = true
+	dockerMachine.Status.Initialization = &infrav1.DevMachineInitializationStatus{
+		Provisioned: ptr.To(true),
+	}
 
 	return ctrl.Result{}, nil
 }

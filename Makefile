@@ -952,6 +952,11 @@ test-cover: ## Run unit and integration tests and generate a coverage report
 .PHONY: test-docker-infrastructure
 test-docker-infrastructure: $(SETUP_ENVTEST) ## Run unit and integration tests for docker infrastructure provider
 	cd $(CAPD_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
+	$(MAKE) test-docker-infrastructure-conversions TEST_ARGS="$(TEST_ARGS)"
+
+.PHONY: test-docker-infrastructure-conversions
+test-docker-infrastructure-conversions: $(SETUP_ENVTEST) ## Run conversions test for docker infrastructure provider
+	cd $(CAPD_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -run "^TestFuzzyConversion$$" ./... $(TEST_ARGS)
 
 .PHONY: test-docker-infrastructure-verbose
 test-docker-infrastructure-verbose: ## Run unit and integration tests for docker infrastructure provider with verbose flag

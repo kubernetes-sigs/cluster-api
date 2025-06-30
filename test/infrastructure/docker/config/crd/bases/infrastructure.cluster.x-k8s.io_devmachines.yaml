@@ -411,7 +411,7 @@ spec:
       name: ProviderID
       type: string
     - description: Machine ready status
-      jsonPath: .status.ready
+      jsonPath: .status.initialization.provisioned
       name: Ready
       type: string
     - description: Time duration since creation of the DevMachine
@@ -778,9 +778,17 @@ spec:
                         type: array
                     type: object
                 type: object
-              ready:
-                description: ready denotes that the machine is ready
-                type: boolean
+              initialization:
+                description: |-
+                  initialization provides observations of the DevMachine initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+                properties:
+                  provisioned:
+                    description: |-
+                      provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
+                      NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+                    type: boolean
+                type: object
             type: object
         type: object
     served: true

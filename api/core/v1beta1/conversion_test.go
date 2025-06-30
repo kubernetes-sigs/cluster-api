@@ -21,6 +21,7 @@ package v1beta1
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -138,6 +139,25 @@ func hubClusterStatus(in *clusterv1.ClusterStatus, c randfill.Continue) {
 		if reflect.DeepEqual(in.Initialization, &clusterv1.ClusterInitializationStatus{}) {
 			in.Initialization = nil
 		}
+	}
+
+	if len(in.FailureDomains) > 0 {
+		in.FailureDomains = nil // Remove all pre-existing potentially invalid FailureDomains
+		for i := range c.Int31n(20) {
+			in.FailureDomains = append(in.FailureDomains,
+				clusterv1.FailureDomain{
+					Name:         fmt.Sprintf("%d-%s", i, c.String(255)), // Ensure valid unique non-empty names.
+					ControlPlane: c.Bool(),
+				},
+			)
+		}
+		// The Cluster controller always ensures alphabetic sorting when writing this field.
+		slices.SortFunc(in.FailureDomains, func(a, b clusterv1.FailureDomain) int {
+			if a.Name < b.Name {
+				return -1
+			}
+			return 1
+		})
 	}
 }
 

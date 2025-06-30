@@ -19,6 +19,9 @@ package v1alpha4
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
+	"sort"
 	"unsafe"
 
 	corev1 "k8s.io/api/core/v1"
@@ -916,7 +919,10 @@ func Convert_v1alpha4_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, 
 	// Move FailureDomains
 	if in.FailureDomains != nil {
 		out.FailureDomains = []clusterv1.FailureDomain{}
-		for name, fd := range in.FailureDomains {
+		domainNames := slices.Collect(maps.Keys(in.FailureDomains))
+		sort.Strings(domainNames)
+		for _, name := range domainNames {
+			fd := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
 				ControlPlane: fd.ControlPlane,

@@ -174,10 +174,17 @@ func TestInfrastructureCluster(t *testing.T) {
 			"status": map[string]interface{}{
 				"failureDomains": []interface{}{
 					map[string]interface{}{
-						"name":         "newdomain",
+						"name":         "oldDomain",
 						"controlPlane": true,
 						"attributes": map[string]interface{}{
 							"attribute1": "value1",
+						},
+					},
+					map[string]interface{}{
+						"name":         "newdomain",
+						"controlPlane": true,
+						"attributes": map[string]interface{}{
+							"attribute2": "value2",
 						},
 					},
 				},
@@ -186,9 +193,17 @@ func TestInfrastructureCluster(t *testing.T) {
 		got, err = InfrastructureCluster().FailureDomains("v1beta2").Get(infraClusterV1Beta2)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
+		// Note: Also validates the failureDomains are sorted.
 		g.Expect(got).To(BeComparableTo([]clusterv1.FailureDomain{
 			{
 				Name:         "newdomain",
+				ControlPlane: true,
+				Attributes: map[string]string{
+					"attribute2": "value2",
+				},
+			},
+			{
+				Name:         "oldDomain",
 				ControlPlane: true,
 				Attributes: map[string]string{
 					"attribute1": "value1",

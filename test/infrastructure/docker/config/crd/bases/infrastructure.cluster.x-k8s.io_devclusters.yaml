@@ -341,9 +341,14 @@ spec:
                       containers.
                     properties:
                       failureDomains:
-                        additionalProperties:
+                        description: |-
+                          failureDomains are usually not defined in the spec.
+                          The docker provider is special since failure domains don't mean anything in a local docker environment.
+                          Instead, the docker cluster controller will simply copy these into the Status and allow the Cluster API
+                          controllers to do what they will with the defined failure domains.
+                        items:
                           description: |-
-                            FailureDomainSpec is the Schema for Cluster API failure domains.
+                            FailureDomain is the Schema for Cluster API failure domains.
                             It allows controllers to understand how many failure domains a cluster can optionally span across.
                           properties:
                             attributes:
@@ -356,13 +361,20 @@ spec:
                               description: controlPlane determines if this failure
                                 domain is suitable for use by control plane machines.
                               type: boolean
+                            name:
+                              description: name is the name of the failure domain.
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                          required:
+                          - name
                           type: object
-                        description: |-
-                          failureDomains are usually not defined in the spec.
-                          The docker provider is special since failure domains don't mean anything in a local docker environment.
-                          Instead, the docker cluster controller will simply copy these into the Status and allow the Cluster API
-                          controllers to do what they will with the defined failure domains.
-                        type: object
+                        maxItems: 100
+                        minItems: 1
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
                       loadBalancer:
                         description: loadBalancer allows defining configurations for
                           the cluster load balancer.
@@ -558,9 +570,13 @@ spec:
                     type: object
                 type: object
               failureDomains:
-                additionalProperties:
+                description: |-
+                  failureDomains is a list of failure domain objects synced from the infrastructure provider.
+                  It don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
+                  will use this if we populate it.
+                items:
                   description: |-
-                    FailureDomainSpec is the Schema for Cluster API failure domains.
+                    FailureDomain is the Schema for Cluster API failure domains.
                     It allows controllers to understand how many failure domains a cluster can optionally span across.
                   properties:
                     attributes:
@@ -573,15 +589,31 @@ spec:
                       description: controlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
+                    name:
+                      description: name is the name of the failure domain.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                  required:
+                  - name
                   type: object
+                maxItems: 100
+                minItems: 1
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              initialization:
                 description: |-
-                  failureDomains don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
-                  will use this if we populate it.
+                  initialization provides observations of the DevCluster initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
+                properties:
+                  provisioned:
+                    description: |-
+                      provisioned is true when the infrastructure provider reports that the Cluster's infrastructure is fully provisioned.
+                      NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
+                    type: boolean
                 type: object
-              ready:
-                description: ready denotes that the dev cluster infrastructure is
-                  ready.
-                type: boolean
             type: object
         type: object
     served: true

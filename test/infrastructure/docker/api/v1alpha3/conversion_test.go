@@ -65,6 +65,12 @@ func hubDockerClusterStatus(in *infrav1.DockerClusterStatus, c randfill.Continue
 			in.Deprecated = nil
 		}
 	}
+
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &infrav1.DockerClusterInitializationStatus{}) {
+			in.Initialization = nil
+		}
+	}
 }
 
 func DockerMachineFuzzFunc(_ runtimeserializer.CodecFactory) []any {
@@ -79,6 +85,12 @@ func hubDockerMachineStatus(in *infrav1.DockerMachineStatus, c randfill.Continue
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.DockerMachineV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
+		}
+	}
+
+	if in.Initialization != nil {
+		if reflect.DeepEqual(in.Initialization, &infrav1.DockerMachineInitializationStatus{}) {
+			in.Initialization = nil
 		}
 	}
 }

@@ -19,6 +19,8 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"slices"
+	"sort"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -72,7 +74,14 @@ func (webhook *DockerCluster) ValidateCreate(_ context.Context, obj runtime.Obje
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DockerCluster) ValidateUpdate(_ context.Context, _, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *DockerCluster) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	cluster, ok := newObj.(*infrav1.DockerCluster)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerCluster but got a %T", newObj))
+	}
+	if allErrs := validateDockerClusterSpec(cluster.Spec); len(allErrs) > 0 {
+		return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DockerCluster").GroupKind(), cluster.Name, allErrs)
+	}
 	return nil, nil
 }
 
@@ -87,6 +96,15 @@ func defaultDockerClusterSpec(s *infrav1.DockerClusterSpec) {
 	}
 }
 
-func validateDockerClusterSpec(_ infrav1.DockerClusterSpec) field.ErrorList {
+func validateDockerClusterSpec(spec infrav1.DockerClusterSpec) field.ErrorList {
+	domainNames := make([]string, 0, len(spec.FailureDomains))
+	for _, fd := range spec.FailureDomains {
+		domainNames = append(domainNames, fd.Name)
+	}
+	originalDomainNames := slices.Clone(domainNames)
+	sort.Strings(domainNames)
+	if !slices.Equal(originalDomainNames, domainNames) {
+		return field.ErrorList{field.Invalid(field.NewPath("spec", "failureDomains"), spec.FailureDomains, "failure domains must be sorted by name")}
+	}
 	return nil
 }

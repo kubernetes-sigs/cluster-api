@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -126,7 +127,9 @@ func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	}
 
 	// Mark the InMemoryCluster ready
-	inMemoryCluster.Status.Ready = true
+	inMemoryCluster.Status.Initialization = &infrav1.DevClusterInitializationStatus{
+		Provisioned: ptr.To(true),
+	}
 
 	return ctrl.Result{}, nil
 }

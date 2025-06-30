@@ -117,8 +117,7 @@ spec:
                 type: integer
               structWithOnlyOptionalFields:
                 description: StructWithOnlyOptionalFields is a struct with only optional
-                  fields, where there the zero value (empty struct) does not makes
-                  sense.
+                  fields, where the zero value (empty struct) does not make sense.
                 properties:
                   a:
                     maxLength: 256

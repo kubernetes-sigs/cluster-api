@@ -109,7 +109,7 @@ type TestResourceSpec struct {
 	StructWithOnlyOptionalFields StructWithOnlyOptionalFields `json:"structWithOnlyOptionalFields,omitempty,omitzero"`
 }
 
-// StructWithOnlyOptionalFields is a struct with only optional fields, where there the zero value (empty struct) does not makes sense.
+// StructWithOnlyOptionalFields is a struct with only optional fields, where the zero value (empty struct) does not make sense.
 // +kubebuilder:validation:MinProperties=1
 type StructWithOnlyOptionalFields struct {
 	// +optional

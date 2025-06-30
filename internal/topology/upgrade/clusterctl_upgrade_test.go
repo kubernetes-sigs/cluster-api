@@ -127,9 +127,9 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	g.Eventually(func() error {
 		cluster1Refs, err = getClusterTopologyReferences(cluster1, "v1beta1",
 			checkOmittableFromPatchesField(omittableFieldsMustNotBeSet), // The defaulting webhook drops the omittable field when using v1beta1.
-			checkPtrTToT(),                   // "" should never show up in the yaml ("" is not a valid value).
-			checkTToPtrT(),                   // zero or false should never show up due to omitempty.
-			checkTToOmitZeroT(zeroMustBeSet), // zero value should show up (no omitzero).
+			checkPtrTypeToType(),                   // "" should never show up in the yaml ("" is not a valid value).
+			checkTypeToPtrType(),                   // zero or false should never show up due to omitempty (mutating webhook is dropping omitempty values).
+			checkTypeToOmitZeroType(zeroMustBeSet), // zero value should show up (no omitzero).
 		)
 		if err != nil {
 			return err
@@ -184,15 +184,15 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	g.Eventually(func() error {
 		cluster1RefsNew, err = getClusterTopologyReferences(cluster1, "v1beta2",
 			checkOmittableFromPatchesField(omittableFieldsMustBeSet), // The defaulting webhook does not drop the omittable field anymore when using v1beta2.
-			checkPtrTToT(),                      // "" should never show up in the yaml due to omitempty.
-			checkTToPtrT(),                      // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
-			checkTToOmitZeroT(zeroMustNotBeSet), // zero value must not show up (omitzero).
+			checkPtrTypeToType(),                      // "" should never show up in the yaml due to omitempty (we set to "" in conversion, but omitempty drops it from yaml).
+			checkTypeToPtrType(),                      // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
+			checkTypeToOmitZeroType(zeroMustNotBeSet), // zero value must not show up (omitzero through conversion).
 		)
 		if err != nil {
 			return err
 		}
 		return nil
-	}, 5*time.Hour).Should(Succeed())
+	}, 5*time.Second).Should(Succeed())
 	assertRollout(g, cluster1, cluster1Refs, cluster1RefsNew) // The omittable field should trigger rollout.
 	assertClusterTopologyBecomesStable(g, cluster1RefsNew, ns.Name, "v1beta2")
 
@@ -205,9 +205,9 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	g.Eventually(func() error {
 		cluster2Refs, err = getClusterTopologyReferences(cluster2, "v1beta2",
 			checkOmittableFromPatchesField(omittableFieldsMustNotBeSet), // The conversion webhook drops the omittable field when using v1beta1.
-			checkPtrTToT(),                      // "" should never show up in the yaml due to omitempty (also not a valid value).
-			checkTToPtrT(),                      // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
-			checkTToOmitZeroT(zeroMustNotBeSet), // zero value must not show up (omitzero, also not a valid value).
+			checkPtrTypeToType(),                      // "" should never show up in the yaml ("" is not a valid value).
+			checkTypeToPtrType(),                      // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
+			checkTypeToOmitZeroType(zeroMustNotBeSet), // zero value must not show up (omitzero through conversion, also not a valid value).
 		)
 		if err != nil {
 			return err
@@ -231,9 +231,9 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	g.Eventually(func() error {
 		cluster2RefsNew, err = getClusterTopologyReferences(cluster2, "v1beta2",
 			checkOmittableFromPatchesField(omittableFieldsMustBeSet), // The defaulting webhook do not drop anymore the omittable field when using v1beta2.
-			checkPtrTToT(),                      // "" should never show up in the yaml due to omitempty (also not a valid value).
-			checkTToPtrT(),                      // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
-			checkTToOmitZeroT(zeroMustNotBeSet), // zero value must not show up (omitzero, also not a valid value).
+			checkPtrTypeToType(),                      // "" should never show up in the yaml due to omitempty (also not a valid value).
+			checkTypeToPtrType(),                      // zero or false should never show up (it will show up if someone explicitly set zero or false)
+			checkTypeToOmitZeroType(zeroMustNotBeSet), // zero value must not show up (omitzero, also not a valid value).
 		)
 		if err != nil {
 			return err
@@ -300,6 +300,16 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns.Name,
 			Name:      "test-control-plane-template-v1beta1-t1",
+		},
+		Spec: testt1v1beta1.TestResourceTemplateSpec{
+			Template: testt1v1beta1.TestResourceTemplateResource{
+				Spec: testt1v1beta1.TestResourceSpec{
+					BoolToPtrBool:                false,
+					PtrStringToString:            nil,
+					Int32ToPtrInt32:              0,
+					StructWithOnlyOptionalFields: testt1v1beta1.StructWithOnlyOptionalFields{},
+				},
+			},
 		},
 	}
 
@@ -388,7 +398,7 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 					// Note:
 					// - At t1, omittable fields are then dropped by DefaulterRemoveUnknownOrOmitableFields options in the defaulter webhook
 					// - At t2, omittable fields are then dropped by the conversion webhook
-					Name: "patch-t1",
+					Name: "patch-t1-omittable",
 					Definitions: []clusterv1.PatchDefinition{
 						{
 							Selector: clusterv1.PatchSelector{
@@ -407,6 +417,35 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 									Op:    "add",
 									Path:  "/spec/template/spec/omittable",
 									Value: &apiextensionsv1.JSON{Raw: []byte(`""`)},
+								},
+							},
+						},
+					},
+				},
+				{
+					// Add an empty struct.
+					// Note:
+					// - At t1, empty struct fields are rendered
+					// - At t2, empty struct fields are then dropped by the conversion webhook because of omitzero
+					Name: "patch-t1-structWithOnlyOptionalFields",
+					Definitions: []clusterv1.PatchDefinition{
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: testt1v1beta1.GroupVersion.String(),
+								Kind:       "TestResourceTemplate",
+								MatchResources: clusterv1.PatchSelectorMatch{
+									InfrastructureCluster: false,
+									ControlPlane:          false,
+									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+										Names: []string{machineDeploymentClass1.Class},
+									},
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:    "add",
+									Path:  "/spec/template/spec/structWithOnlyOptionalFields",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
 								},
 							},
 						},
@@ -459,6 +498,15 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns.Name,
 			Name:      "test-control-plane-template-v1beta2-t2",
+		},
+		Spec: testt2v1beta2.TestResourceTemplateSpec{
+			Template: testt2v1beta2.TestResourceTemplateResource{
+				Spec: testt2v1beta2.TestResourceSpec{
+					BoolToPtrBool:                nil,
+					Int32ToPtrInt32:              nil,
+					StructWithOnlyOptionalFields: testt2v1beta2.StructWithOnlyOptionalFields{},
+				},
+			},
 		},
 	}
 
@@ -569,6 +617,7 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 						},
 					},
 				},
+				// It is not possible to add patch empty struct due to minProperties.
 			},
 		},
 	}
@@ -752,7 +801,7 @@ func checkOmittableFromPatchesField(mustBeSet bool) func(obj *unstructured.Unstr
 	}
 }
 
-func checkPtrTToT() func(obj *unstructured.Unstructured) error {
+func checkPtrTypeToType() func(obj *unstructured.Unstructured) error {
 	return func(obj *unstructured.Unstructured) error {
 		switch obj.GetKind() {
 		case "TestResource":
@@ -776,7 +825,7 @@ func checkPtrTToT() func(obj *unstructured.Unstructured) error {
 	}
 }
 
-func checkTToPtrT() func(obj *unstructured.Unstructured) error {
+func checkTypeToPtrType() func(obj *unstructured.Unstructured) error {
 	return func(obj *unstructured.Unstructured) error {
 		switch obj.GetKind() {
 		case "TestResource":
@@ -800,9 +849,9 @@ func checkTToPtrT() func(obj *unstructured.Unstructured) error {
 				return err
 			}
 			if exists && value1 == 0 {
-				return errors.New("expected to not contain an empty int32ToPtrInt32 field")
+				return errors.New("expected to not contain an zero int32ToPtrInt32 field")
 			}
-			value2, exists, err := unstructured.NestedBool(obj.Object, "spec", "boolToPtrBool")
+			value2, exists, err := unstructured.NestedBool(obj.Object, "spec", "template", "spec", "boolToPtrBool")
 			if err != nil {
 				return err
 			}
@@ -814,7 +863,7 @@ func checkTToPtrT() func(obj *unstructured.Unstructured) error {
 	}
 }
 
-func checkTToOmitZeroT(mustBeSet bool) func(obj *unstructured.Unstructured) error {
+func checkTypeToOmitZeroType(mustBeSet bool) func(obj *unstructured.Unstructured) error {
 	return func(obj *unstructured.Unstructured) error {
 		switch obj.GetKind() {
 		case "TestResource":
@@ -825,6 +874,9 @@ func checkTToOmitZeroT(mustBeSet bool) func(obj *unstructured.Unstructured) erro
 			if exists && reflect.DeepEqual(value, map[string]interface{}{}) && !mustBeSet {
 				return errors.New("expected to not contain a zero structWithOnlyOptionalFields field")
 			}
+			if !exists && mustBeSet {
+				return errors.New("expected to contain a zero structWithOnlyOptionalFields field")
+			}
 		case "TestResourceTemplate":
 			value, exists, err := unstructured.NestedMap(obj.Object, "spec", "template", "spec", "structWithOnlyOptionalFields")
 			if err != nil {
@@ -832,6 +884,9 @@ func checkTToOmitZeroT(mustBeSet bool) func(obj *unstructured.Unstructured) erro
 			}
 			if exists && reflect.DeepEqual(value, map[string]interface{}{}) && !mustBeSet {
 				return errors.New("expected to not contain a zero structWithOnlyOptionalFields field")
+			}
+			if !exists && mustBeSet {
+				return errors.New("expected to contain a zero structWithOnlyOptionalFields field")
 			}
 		}
 		return nil

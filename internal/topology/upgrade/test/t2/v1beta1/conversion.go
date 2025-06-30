@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	testv1 "sigs.k8s.io/cluster-api/internal/topology/upgrade/test/t2/v1beta2"
@@ -41,21 +42,41 @@ func (src *TestResourceTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	// TODO: implement unit test on when nil is set
-	if !ok {
-		dst.Spec.Template.Spec.BoolToPtrBool = nil
-		dst.Spec.Template.Spec.Int32ToPtrInt32 = nil
-		return nil
-	}
-
-	if dst.Spec.Template.Spec.BoolToPtrBool != nil && !*dst.Spec.Template.Spec.BoolToPtrBool && restored.Spec.Template.Spec.BoolToPtrBool == nil {
-		dst.Spec.Template.Spec.BoolToPtrBool = nil
-	}
-	if dst.Spec.Template.Spec.Int32ToPtrInt32 != nil && *dst.Spec.Template.Spec.Int32ToPtrInt32 == 0 && restored.Spec.Template.Spec.Int32ToPtrInt32 == nil {
-		dst.Spec.Template.Spec.Int32ToPtrInt32 = nil
-	}
-
+	Convert_bool_To_Pointer_bool(src.Spec.Template.Spec.BoolToPtrBool, ok, restored.Spec.Template.Spec.BoolToPtrBool, &dst.Spec.Template.Spec.BoolToPtrBool)
+	Convert_int32_To_Pointer_int32(src.Spec.Template.Spec.Int32ToPtrInt32, ok, restored.Spec.Template.Spec.Int32ToPtrInt32, &dst.Spec.Template.Spec.Int32ToPtrInt32)
 	return nil
+}
+
+func Convert_bool_To_Pointer_bool(in bool, hasRestored bool, restoredIn *bool, out **bool) {
+	// If the value is false, convert to *false only if the value was *false before (we know it was intentionally set to false).
+	// In all the other cases we do not know if the value was intentionally set to false, so convert to nil.
+	if !in {
+		if hasRestored && restoredIn != nil && !*restoredIn {
+			*out = ptr.To(false)
+			return
+		}
+		*out = nil
+		return
+	}
+
+	// Otherwise, if the value is true, convert to *true.
+	*out = ptr.To(true)
+}
+
+func Convert_int32_To_Pointer_int32(in int32, hasRestored bool, restoredIn *int32, out **int32) {
+	// If the value is 0, convert to *0 only if the value was *0 before (we know it was intentionally set to 0).
+	// In all the other cases we do not know if the value was intentionally set to 0, so convert to nil.
+	if in == 0 {
+		if hasRestored && restoredIn != nil && *restoredIn == 0 {
+			*out = ptr.To[int32](0)
+			return
+		}
+		*out = nil
+		return
+	}
+
+	// Otherwise, if the value is not 0, convert to *value.
+	*out = ptr.To(in)
 }
 
 func (dst *TestResourceTemplate) ConvertFrom(srcRaw conversion.Hub) error {
@@ -89,19 +110,8 @@ func (src *TestResource) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	if !ok {
-		dst.Spec.BoolToPtrBool = nil
-		dst.Spec.Int32ToPtrInt32 = nil
-		return nil
-	}
-
-	if dst.Spec.BoolToPtrBool != nil && !*dst.Spec.BoolToPtrBool && restored.Spec.BoolToPtrBool == nil {
-		dst.Spec.BoolToPtrBool = nil
-	}
-	if !ok || dst.Spec.Int32ToPtrInt32 != nil && *dst.Spec.Int32ToPtrInt32 == 0 && restored.Spec.Int32ToPtrInt32 == nil {
-		dst.Spec.Int32ToPtrInt32 = nil
-	}
-
+	Convert_bool_To_Pointer_bool(src.Spec.BoolToPtrBool, ok, restored.Spec.BoolToPtrBool, &dst.Spec.BoolToPtrBool)
+	Convert_int32_To_Pointer_int32(src.Spec.Int32ToPtrInt32, ok, restored.Spec.Int32ToPtrInt32, &dst.Spec.Int32ToPtrInt32)
 	return nil
 }
 

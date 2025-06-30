@@ -24,6 +24,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	goruntime "runtime"
 	"strconv"
 	"testing"
@@ -62,6 +63,8 @@ import (
 const (
 	omittableFieldsMustBeSet    = true
 	omittableFieldsMustNotBeSet = false
+	zeroMustBeSet               = true
+	zeroMustNotBeSet            = false
 )
 
 // allObjs can be used to look at all the objects / how they change across generation while debugging.
@@ -81,8 +84,9 @@ func addToAllObj(cluster, prefix string, obj client.Object) {
 	allObjs[cluster][ref][obj.GetGeneration()] = obj
 }
 
-// TestDropDefaulterRemoveUnknownOrOmittableFields validates effects of removing the DropDefaulterRemoveUnknownOrOmitableFields option.
+// TestAPIAndWebhookChanges validates effects of API changes and effects of removing the DropDefaulterRemoveUnknownOrOmitableFields option.
 // from provider's defaulting webhooks.
+// TL;DR changes in API to align to optionalrequired recommendations can be addressed with conversions.
 // TL;DR if setting omittable fields in a patch, this should cause a rollout only when rebasing to a ClusterClass which uses provider objects with a new apiVersion.
 // Details:
 // Case 1: cluster1 created at t1 with v1beta references, rebased at t2 to v1beta2 references.
@@ -93,7 +97,7 @@ func addToAllObj(cluster, prefix string, obj client.Object) {
 // Case 2: cluster2 created at t2 with v1beta references, rebased at t2 to v1beta2 references.
 // * t2: create cluster2 with clusterClasst1 => should be stable.
 // * t2: rebase cluster2 to clusterClasst2 => should roll out and then be stable.
-func TestDropDefaulterRemoveUnknownOrOmittableFields(t *testing.T) {
+func TestAPIAndWebhookChanges(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
@@ -102,8 +106,8 @@ func TestDropDefaulterRemoveUnknownOrOmittableFields(t *testing.T) {
 
 	// T1 - mimic an existing environment with a provider using the DefaulterRemoveUnknownOrOmitableFields option in its own defaulting webhook.
 
-	// setupT1CRDAndWebHooks setups CRD and web hooks at t1.
-	// At t1 we have a CRD in v1beta1, and the defaulting web hook is using the DefaulterRemoveUnknownOrOmitableFields option.
+	// setupT1CRDAndWebHooks setups CRD and webhooks at t1.
+	// At t1 we have a CRD in v1beta1, and the defaulting webhook is using the DefaulterRemoveUnknownOrOmitableFields option.
 	t.Log("setupT1CRDAndWebHooks")
 	ct1, t1CheckObj, t1CheckTemplate, t1webhookConfig, t1TemplateWebhookConfig := setupT1CRDAndWebHooks(g, ns)
 
@@ -121,7 +125,12 @@ func TestDropDefaulterRemoveUnknownOrOmittableFields(t *testing.T) {
 	t.Log("check cluster1 is stable")
 	var cluster1Refs map[clusterv1.ContractVersionedObjectReference]int64
 	g.Eventually(func() error {
-		cluster1Refs, err = getClusterTopologyReferences(cluster1, "v1beta1", checkOmittableField(omittableFieldsMustNotBeSet)) // The defaulting webhook drops the omittable field when using v1beta1.
+		cluster1Refs, err = getClusterTopologyReferences(cluster1, "v1beta1",
+			checkOmittableFromPatchesField(omittableFieldsMustNotBeSet), // The defaulting webhook drops the omittable field when using v1beta1.
+			checkPtrTypeToType(),                   // "" should never show up in the yaml ("" is not a valid value).
+			checkTypeToPtrType(),                   // zero or false should never show up due to omitempty (mutating webhook is dropping omitempty values).
+			checkTypeToOmitZeroType(zeroMustBeSet), // zero value should show up (no omitzero).
+		)
 		if err != nil {
 			return err
 		}
@@ -131,8 +140,8 @@ func TestDropDefaulterRemoveUnknownOrOmittableFields(t *testing.T) {
 
 	// T2 -  mimic a clusterctl upgrade for a provider dropping DefaulterRemoveUnknownOrOmitableFields from its own defaulting webhook.
 
-	// setupT2CRDAndWebHooks setups CRD and web hooks at t2.
-	// At t2 we have a CRD in v1beta1 and v1beta2 with the conversion webhook, and the defaulting web hook without the DefaulterRemoveUnknownOrOmitableFields option.
+	// setupT2CRDAndWebHooks setups CRD and webhooks at t2.
+	// At t2 we have a CRD in v1beta1 and v1beta2 with the conversion webhook, and the defaulting webhook without the DefaulterRemoveUnknownOrOmitableFields option.
 	t.Log("setupT2CRDAndWebHooks")
 
 	err = env.Delete(ctx, t1TemplateWebhookConfig)
@@ -173,7 +182,12 @@ func TestDropDefaulterRemoveUnknownOrOmittableFields(t *testing.T) {
 
 	var cluster1RefsNew map[clusterv1.ContractVersionedObjectReference]int64
 	g.Eventually(func() error {
-		cluster1RefsNew, err = getClusterTopologyReferences(cluster1, "v1beta2", checkOmittableField(omittableFieldsMustBeSet)) // The defaulting webhook does not drop the omittable field anymore when using v1beta2.
+		cluster1RefsNew, err = getClusterTopologyReferences(cluster1, "v1beta2",
+			checkOmittableFromPatchesField(omittableFieldsMustBeSet), // The defaulting webhook does not drop the omittable field anymore when using v1beta2.
+			checkPtrTypeToType(),                      // "" should never show up in the yaml due to omitempty (we set to "" in conversion, but omitempty drops it from yaml).
+			checkTypeToPtrType(),                      // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
+			checkTypeToOmitZeroType(zeroMustNotBeSet), // zero value must not show up (omitzero through conversion).
+		)
 		if err != nil {
 			return err
 		}
@@ -189,7 +203,12 @@ func TestDropDefaulterRemoveUnknownOrOmittableFields(t *testing.T) {
 
 	var cluster2Refs map[clusterv1.ContractVersionedObjectReference]int64
 	g.Eventually(func() error {
-		cluster2Refs, err = getClusterTopologyReferences(cluster2, "v1beta2", checkOmittableField(omittableFieldsMustNotBeSet)) // The conversion webhook drops the omittable field when using v1beta1.
+		cluster2Refs, err = getClusterTopologyReferences(cluster2, "v1beta2",
+			checkOmittableFromPatchesField(omittableFieldsMustNotBeSet), // The conversion webhook drops the omittable field when using v1beta1.
+			checkPtrTypeToType(),                      // "" should never show up in the yaml ("" is not a valid value).
+			checkTypeToPtrType(),                      // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
+			checkTypeToOmitZeroType(zeroMustNotBeSet), // zero value must not show up (omitzero through conversion, also not a valid value).
+		)
 		if err != nil {
 			return err
 		}
@@ -210,7 +229,12 @@ func TestDropDefaulterRemoveUnknownOrOmittableFields(t *testing.T) {
 
 	var cluster2RefsNew map[clusterv1.ContractVersionedObjectReference]int64
 	g.Eventually(func() error {
-		cluster2RefsNew, err = getClusterTopologyReferences(cluster2, "v1beta2", checkOmittableField(omittableFieldsMustBeSet)) // The defaulting webhook do not drop anymore the omittable field when using v1beta2.
+		cluster2RefsNew, err = getClusterTopologyReferences(cluster2, "v1beta2",
+			checkOmittableFromPatchesField(omittableFieldsMustBeSet), // The defaulting webhook do not drop anymore the omittable field when using v1beta2.
+			checkPtrTypeToType(),                      // "" should never show up in the yaml due to omitempty (also not a valid value).
+			checkTypeToPtrType(),                      // zero or false should never show up (it will show up if someone explicitly set zero or false)
+			checkTypeToOmitZeroType(zeroMustNotBeSet), // zero value must not show up (omitzero, also not a valid value).
+		)
 		if err != nil {
 			return err
 		}
@@ -257,6 +281,18 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 			Namespace: ns.Name,
 			Name:      "test-infra-cluster-template-v1beta1-t1",
 		},
+		Spec: testt1v1beta1.TestResourceTemplateSpec{
+			Template: testt1v1beta1.TestResourceTemplateResource{
+				Spec: testt1v1beta1.TestResourceSpec{
+					BoolToPtrBool:     true,
+					PtrStringToString: ptr.To("Something"),
+					Int32ToPtrInt32:   int32(4),
+					StructWithOnlyOptionalFields: testt1v1beta1.StructWithOnlyOptionalFields{
+						A: "Something",
+					},
+				},
+			},
+		},
 	}
 	g.Expect(ct1.Create(ctx, infrastructureClusterTemplate1)).To(Succeed())
 
@@ -264,6 +300,16 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns.Name,
 			Name:      "test-control-plane-template-v1beta1-t1",
+		},
+		Spec: testt1v1beta1.TestResourceTemplateSpec{
+			Template: testt1v1beta1.TestResourceTemplateResource{
+				Spec: testt1v1beta1.TestResourceSpec{
+					BoolToPtrBool:                false,
+					PtrStringToString:            nil,
+					Int32ToPtrInt32:              0,
+					StructWithOnlyOptionalFields: testt1v1beta1.StructWithOnlyOptionalFields{},
+				},
+			},
 		},
 	}
 
@@ -352,7 +398,7 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 					// Note:
 					// - At t1, omittable fields are then dropped by DefaulterRemoveUnknownOrOmitableFields options in the defaulter webhook
 					// - At t2, omittable fields are then dropped by the conversion webhook
-					Name: "patch-t1",
+					Name: "patch-t1-omittable",
 					Definitions: []clusterv1.PatchDefinition{
 						{
 							Selector: clusterv1.PatchSelector{
@@ -371,6 +417,35 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 									Op:    "add",
 									Path:  "/spec/template/spec/omittable",
 									Value: &apiextensionsv1.JSON{Raw: []byte(`""`)},
+								},
+							},
+						},
+					},
+				},
+				{
+					// Add an empty struct.
+					// Note:
+					// - At t1, empty struct fields are rendered
+					// - At t2, empty struct fields are then dropped by the conversion webhook because of omitzero
+					Name: "patch-t1-structWithOnlyOptionalFields",
+					Definitions: []clusterv1.PatchDefinition{
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: testt1v1beta1.GroupVersion.String(),
+								Kind:       "TestResourceTemplate",
+								MatchResources: clusterv1.PatchSelectorMatch{
+									InfrastructureCluster: false,
+									ControlPlane:          false,
+									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+										Names: []string{machineDeploymentClass1.Class},
+									},
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:    "add",
+									Path:  "/spec/template/spec/structWithOnlyOptionalFields",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
 								},
 							},
 						},
@@ -403,6 +478,18 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 			Namespace: ns.Name,
 			Name:      "test-infra-cluster-template-v1beta2-t2",
 		},
+		Spec: testt2v1beta2.TestResourceTemplateSpec{
+			Template: testt2v1beta2.TestResourceTemplateResource{
+				Spec: testt2v1beta2.TestResourceSpec{
+					BoolToPtrBool:     ptr.To(true),
+					PtrStringToString: "Something",
+					Int32ToPtrInt32:   ptr.To[int32](4),
+					StructWithOnlyOptionalFields: testt2v1beta2.StructWithOnlyOptionalFields{
+						A: "Something",
+					},
+				},
+			},
+		},
 	}
 
 	g.Expect(ct2.Create(ctx, infrastructureClusterTemplate1)).To(Succeed())
@@ -411,6 +498,15 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns.Name,
 			Name:      "test-control-plane-template-v1beta2-t2",
+		},
+		Spec: testt2v1beta2.TestResourceTemplateSpec{
+			Template: testt2v1beta2.TestResourceTemplateResource{
+				Spec: testt2v1beta2.TestResourceSpec{
+					BoolToPtrBool:                nil,
+					Int32ToPtrInt32:              nil,
+					StructWithOnlyOptionalFields: testt2v1beta2.StructWithOnlyOptionalFields{},
+				},
+			},
 		},
 	}
 
@@ -521,6 +617,7 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 						},
 					},
 				},
+				// It is not possible to add patch empty struct due to minProperties.
 			},
 		},
 	}
@@ -531,7 +628,7 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 
 // getClusterTopologyReferences gets all the references for a test cluster + the corresponding generation.
 // NOTE: it also stores all the objects / how they change across generation into allObjs for debugging.
-func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, additionalChecks func(*unstructured.Unstructured) error) (map[clusterv1.ContractVersionedObjectReference]int64, error) {
+func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, additionalChecks ...func(*unstructured.Unstructured) error) (map[clusterv1.ContractVersionedObjectReference]int64, error) {
 	refs := map[clusterv1.ContractVersionedObjectReference]int64{}
 	// Get all the references
 
@@ -563,8 +660,8 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 		Kind:     refObj.GetKind(),
 		Name:     refObj.GetName(),
 	}] = refObj.GetGeneration()
-	if additionalChecks != nil {
-		if err := additionalChecks(refObj); err != nil {
+	for _, check := range additionalChecks {
+		if err := check(refObj); err != nil {
 			return nil, errors.Wrap(err, "failed additional checks on actualCluster.spec.infrastructureRef")
 		}
 	}
@@ -582,8 +679,8 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 		Kind:     refObj.GetKind(),
 		Name:     refObj.GetName(),
 	}] = refObj.GetGeneration()
-	if additionalChecks != nil {
-		if err := additionalChecks(refObj); err != nil {
+	for _, check := range additionalChecks {
+		if err := check(refObj); err != nil {
 			return nil, errors.Wrap(err, "failed additional checks on actualCluster.spec.controlPlaneRef")
 		}
 	}
@@ -602,8 +699,8 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 		Kind:     refObj.GetKind(),
 		Name:     refObj.GetName(),
 	}] = refObj.GetGeneration()
-	if additionalChecks != nil {
-		if err := additionalChecks(refObj); err != nil {
+	for _, check := range additionalChecks {
+		if err := check(refObj); err != nil {
 			return nil, errors.Wrap(err, "failed additional checks on controlPlane.spec.machineTemplate.infrastructureRef")
 		}
 	}
@@ -637,8 +734,8 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 			Kind:     refObj.GetKind(),
 			Name:     refObj.GetName(),
 		}] = refObj.GetGeneration()
-		if additionalChecks != nil {
-			if err := additionalChecks(refObj); err != nil {
+		for _, check := range additionalChecks {
+			if err := check(refObj); err != nil {
 				return nil, errors.Wrap(err, "failed additional checks on machineDeployment.spec.template.spec.infrastructureRef")
 			}
 		}
@@ -656,8 +753,8 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 			Kind:     refObj.GetKind(),
 			Name:     refObj.GetName(),
 		}] = refObj.GetGeneration()
-		if additionalChecks != nil {
-			if err := additionalChecks(refObj); err != nil {
+		for _, check := range additionalChecks {
+			if err := check(refObj); err != nil {
 				return nil, errors.Wrap(err, "failed additional checks on machineDeployment.spec.template.spec.bootstrap.configRef")
 			}
 		}
@@ -674,11 +771,11 @@ func getReferencedObject(ctx context.Context, c client.Client, ref *clusterv1.Co
 	return refObj, nil
 }
 
-func checkOmittableField(mustBeSet bool) func(obj *unstructured.Unstructured) error {
+func checkOmittableFromPatchesField(mustBeSet bool) func(obj *unstructured.Unstructured) error {
 	return func(obj *unstructured.Unstructured) error {
 		switch obj.GetKind() {
 		case "TestResource":
-			_, exists, err := unstructured.NestedFieldNoCopy(obj.Object, "spec", "omittable")
+			_, exists, err := unstructured.NestedString(obj.Object, "spec", "omittable")
 			if err != nil {
 				return err
 			}
@@ -689,7 +786,7 @@ func checkOmittableField(mustBeSet bool) func(obj *unstructured.Unstructured) er
 				return errors.New("expected to contain omittable field")
 			}
 		case "TestResourceTemplate":
-			_, exists, err := unstructured.NestedFieldNoCopy(obj.Object, "spec", "template", "spec", "omittable")
+			_, exists, err := unstructured.NestedString(obj.Object, "spec", "template", "spec", "omittable")
 			if err != nil {
 				return err
 			}
@@ -698,6 +795,98 @@ func checkOmittableField(mustBeSet bool) func(obj *unstructured.Unstructured) er
 			}
 			if !exists && mustBeSet {
 				return errors.New("expected to contain omittable field")
+			}
+		}
+		return nil
+	}
+}
+
+func checkPtrTypeToType() func(obj *unstructured.Unstructured) error {
+	return func(obj *unstructured.Unstructured) error {
+		switch obj.GetKind() {
+		case "TestResource":
+			value, exists, err := unstructured.NestedString(obj.Object, "spec", "ptrStringToString")
+			if err != nil {
+				return err
+			}
+			if exists && value == "" {
+				return errors.New("expected to not contain an empty ptrStringToString field")
+			}
+		case "TestResourceTemplate":
+			value, exists, err := unstructured.NestedString(obj.Object, "spec", "template", "spec", "ptrStringToString")
+			if err != nil {
+				return err
+			}
+			if exists && value == "" {
+				return errors.New("expected to not contain an empty ptrStringToString field")
+			}
+		}
+		return nil
+	}
+}
+
+func checkTypeToPtrType() func(obj *unstructured.Unstructured) error {
+	return func(obj *unstructured.Unstructured) error {
+		switch obj.GetKind() {
+		case "TestResource":
+			value1, exists, err := unstructured.NestedInt64(obj.Object, "spec", "int32ToPtrInt32")
+			if err != nil {
+				return err
+			}
+			if exists && value1 == 0 {
+				return errors.New("expected to not contain a zero int32ToPtrInt32 field")
+			}
+			value2, exists, err := unstructured.NestedBool(obj.Object, "spec", "boolToPtrBool")
+			if err != nil {
+				return err
+			}
+			if exists && !value2 {
+				return errors.New("expected to not contain a false boolToPtrBool field")
+			}
+		case "TestResourceTemplate":
+			value1, exists, err := unstructured.NestedInt64(obj.Object, "spec", "template", "spec", "int32ToPtrInt32")
+			if err != nil {
+				return err
+			}
+			if exists && value1 == 0 {
+				return errors.New("expected to not contain an zero int32ToPtrInt32 field")
+			}
+			value2, exists, err := unstructured.NestedBool(obj.Object, "spec", "template", "spec", "boolToPtrBool")
+			if err != nil {
+				return err
+			}
+			if exists && !value2 {
+				return errors.New("expected to not contain a false boolToPtrBool field")
+			}
+		}
+		return nil
+	}
+}
+
+func checkTypeToOmitZeroType(mustBeSet bool) func(obj *unstructured.Unstructured) error {
+	return func(obj *unstructured.Unstructured) error {
+		switch obj.GetKind() {
+		case "TestResource":
+			value, exists, err := unstructured.NestedMap(obj.Object, "spec", "structWithOnlyOptionalFields")
+			if err != nil {
+				return err
+			}
+			if exists && reflect.DeepEqual(value, map[string]interface{}{}) && !mustBeSet {
+				return errors.New("expected to not contain a zero structWithOnlyOptionalFields field")
+			}
+			if !exists && mustBeSet {
+				return errors.New("expected to contain a zero structWithOnlyOptionalFields field")
+			}
+		case "TestResourceTemplate":
+			value, exists, err := unstructured.NestedMap(obj.Object, "spec", "template", "spec", "structWithOnlyOptionalFields")
+			if err != nil {
+				return err
+			}
+			if exists && reflect.DeepEqual(value, map[string]interface{}{}) && !mustBeSet {
+				return errors.New("expected to not contain a zero structWithOnlyOptionalFields field")
+			}
+			if !exists && mustBeSet {
+				return errors.New("expected to contain a zero structWithOnlyOptionalFields field")
 			}
 		}
 		return nil
@@ -715,7 +904,7 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 		Kind:     "Cluster",
 		Name:     actualCluster.GetName(),
 	}
-	g.Expect(refsAfter[clusterRef]).To(Equal(refsBefore[clusterRef]+1), "cluster unexpected change") // Cluster is expected to have an additional generation due to the rebase
+	g.Expect(refsAfter[clusterRef]).To(BeNumerically(">", refsBefore[clusterRef]), "cluster unexpected change") // Cluster is expected to have an additional generation due to the rebase
 
 	refObj, err := getReferencedObject(ctx, env.GetClient(), actualCluster.Spec.InfrastructureRef, "v1beta2", cluster.Namespace)
 	g.Expect(err).To(Succeed())
@@ -724,7 +913,7 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 		Kind:     refObj.GetKind(),
 		Name:     refObj.GetName(),
 	}
-	g.Expect(refsAfter[infraClusterRef]).To(Equal(refsBefore[infraClusterRef]+1), "cluster.spec.infrastructureRef has unexpected generation") // InfrastructureRef is expected to have an additional generation due to the rebase.
+	g.Expect(refsAfter[infraClusterRef]).To(BeNumerically(">", refsBefore[infraClusterRef]), "cluster.spec.infrastructureRef has unexpected generation") // InfrastructureRef is expected to have an additional generation due to the rebase.
 
 	refObj, err = getReferencedObject(ctx, env.GetClient(), actualCluster.Spec.ControlPlaneRef, "v1beta2", cluster.Namespace)
 	g.Expect(err).To(Succeed())
@@ -733,7 +922,7 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 		Kind:     refObj.GetKind(),
 		Name:     refObj.GetName(),
 	}
-	g.Expect(refsAfter[controlPlaneRef]).To(Equal(refsBefore[controlPlaneRef]+1), "cluster.spec.controlPlaneRef has unexpected generation") // controlPlaneRef is expected to have an additional generation due to the rebase.
+	g.Expect(refsAfter[controlPlaneRef]).To(BeNumerically(">", refsBefore[controlPlaneRef]), "cluster.spec.controlPlaneRef has unexpected generation") // controlPlaneRef is expected to have an additional generation due to the rebase.
 
 	cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(refObj)
 	g.Expect(err).To(Succeed())
@@ -878,8 +1067,8 @@ func assertClusterTopologyBecomesStable(g *WithT, refs map[clusterv1.ContractVer
 	}, 10*time.Second, 2*time.Second).Should(Succeed(), "Resource versions didn't stay stable")
 }
 
-// setupT1CRDAndWebHooks setups CRD and web hooks at t1.
-// At t1 we have a CRD in v1beta1, and the defaulting web hook is using the DefaulterRemoveUnknownOrOmitableFields option.
+// setupT1CRDAndWebHooks setups CRD and webhooks at t1.
+// At t1 we have a CRD in v1beta1, and the defaulting webhook is using the DefaulterRemoveUnknownOrOmitableFields option.
 func setupT1CRDAndWebHooks(g *WithT, ns *corev1.Namespace) (client.Client, *testt1v1beta1.TestResource, *testt1v1beta1.TestResourceTemplate, *admissionv1.MutatingWebhookConfiguration, *admissionv1.MutatingWebhookConfiguration) {
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 
@@ -917,7 +1106,7 @@ func setupT1CRDAndWebHooks(g *WithT, ns *corev1.Namespace) (client.Client, *test
 	ct1, err := client.New(env.Config, client.Options{Scheme: t1Scheme})
 	g.Expect(err).ToNot(HaveOccurred())
 
-	// Test if web hook is working
+	// Test if webhook is working
 	g.Eventually(ctx, func(g Gomega) {
 		t1TemplateObj := &testt1v1beta1.TestResourceTemplate{
 			ObjectMeta: metav1.ObjectMeta{
@@ -964,8 +1153,8 @@ func setupT1CRDAndWebHooks(g *WithT, ns *corev1.Namespace) (client.Client, *test
 	return ct1, t1CheckObj, t1CheckTemplate, t1webhookConfig, t1TemplateWebhookConfig
 }
 
-// setupT2CRDAndWebHooks setups CRD and web hooks at t2.
-// At t2 we have a CRD in v1beta1 and v1beta2 with the conversion web hook, and the defaulting web hook without the DefaulterRemoveUnknownOrOmitableFields option.
+// setupT2CRDAndWebHooks setups CRD and webhooks at t2.
+// At t2 we have a CRD in v1beta1 and v1beta2 with the conversion webhook, and the defaulting webhook without the DefaulterRemoveUnknownOrOmitableFields option.
 func setupT2CRDAndWebHooks(g *WithT, ns *corev1.Namespace, t1CheckObj *testt1v1beta1.TestResource, t1CheckTemplate *testt1v1beta1.TestResourceTemplate) (client.Client, *admissionv1.MutatingWebhookConfiguration, *admissionv1.MutatingWebhookConfiguration) {
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 
@@ -1140,7 +1329,7 @@ func addOrReplaceConversionWebhookHandler(ctx context.Context, c client.Client, 
 		return err
 	}
 
-	// Update the CRD with the web hook configuration
+	// Update the CRD with the webhook configuration
 	crdNew := crd.DeepCopy()
 	crdNew.Spec.Conversion = &apiextensionsv1.CustomResourceConversion{
 		Strategy: "Webhook",

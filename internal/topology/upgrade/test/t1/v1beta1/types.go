@@ -86,10 +86,40 @@ type TestResourceSpec struct {
 	// +required
 	MachineTemplate TestResourceMachineTemplateSpec `json:"machineTemplate"`
 
-	// General purpose fields to be used in different test scenario.
+	// Field for testing impact of dropping the DropDefaulterRemoveUnknownOrOmittableFields options in webhooks.
 
 	// +optional
 	Omittable string `json:"omittable,omitempty"`
+
+	// Field for testing impact of API changes to comply with optionalrequired KAL linter.
+
+	// +optional
+	BoolToPtrBool bool `json:"boolToPtrBool,omitempty"`
+
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	PtrStringToString *string `json:"ptrStringToString,omitempty"`
+
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	Int32ToPtrInt32 int32 `json:"int32ToPtrInt32,omitempty"`
+
+	// +optional
+	StructWithOnlyOptionalFields StructWithOnlyOptionalFields `json:"structWithOnlyOptionalFields,omitempty"`
+}
+
+// StructWithOnlyOptionalFields is a struct with only optional fields, where the zero value (empty struct) does not make sense.
+type StructWithOnlyOptionalFields struct {
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	A string `json:"a,omitempty"`
+
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	B string `json:"b,omitempty"`
 }
 
 // TestResourceMachineTemplateSpec define the spec for machineTemplate in a resource.

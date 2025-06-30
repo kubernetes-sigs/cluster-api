@@ -67,9 +67,8 @@ type MachineSetSpec struct {
 
 	// deletePolicy defines the policy used to identify nodes to delete when downscaling.
 	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
-	// +kubebuilder:validation:Enum=Random;Newest;Oldest
 	// +optional
-	DeletePolicy string `json:"deletePolicy,omitempty"`
+	DeletePolicy MachineSetDeletePolicy `json:"deletePolicy,omitempty"`
 
 	// selector is a label query over machines that should match the replica count.
 	// Label keys and values that must match in order to be controlled by this MachineSet.
@@ -249,6 +248,7 @@ type MachineTemplateSpec struct {
 
 // MachineSetDeletePolicy defines how priority is assigned to nodes to delete when
 // downscaling a MachineSet. Defaults to "Random".
+// +kubebuilder:validation:Enum=Random;Newest;Oldest
 type MachineSetDeletePolicy string
 
 const (

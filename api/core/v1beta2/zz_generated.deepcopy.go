@@ -2588,7 +2588,7 @@ func (in *MachineRollingUpdateDeployment) DeepCopyInto(out *MachineRollingUpdate
 	}
 	if in.DeletePolicy != nil {
 		in, out := &in.DeletePolicy, &out.DeletePolicy
-		*out = new(string)
+		*out = new(MachineSetDeletePolicy)
 		**out = **in
 	}
 }

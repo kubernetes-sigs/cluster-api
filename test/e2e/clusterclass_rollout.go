@@ -198,7 +198,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 						MaxUnavailable: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
 						MaxSurge:       &intstr.IntOrString{Type: intstr.Int, IntVal: 5 + rand.Int31n(20)}, //nolint:gosec
-						DeletePolicy:   ptr.To(string(clusterv1.NewestMachineSetDeletePolicy)),
+						DeletePolicy:   ptr.To(clusterv1.NewestMachineSetDeletePolicy),
 					},
 					Remediation: &clusterv1.RemediationStrategy{
 						MaxInFlight: &intstr.IntOrString{Type: intstr.Int, IntVal: 2 + rand.Int31n(20)}, //nolint:gosec

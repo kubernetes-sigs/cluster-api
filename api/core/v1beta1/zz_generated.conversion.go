@@ -3307,7 +3307,7 @@ func Convert_v1beta2_MachineReadinessGate_To_v1beta1_MachineReadinessGate(in *v1
 func autoConvert_v1beta1_MachineRollingUpdateDeployment_To_v1beta2_MachineRollingUpdateDeployment(in *MachineRollingUpdateDeployment, out *v1beta2.MachineRollingUpdateDeployment, s conversion.Scope) error {
 	out.MaxUnavailable = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnavailable))
 	out.MaxSurge = (*intstr.IntOrString)(unsafe.Pointer(in.MaxSurge))
-	out.DeletePolicy = (*string)(unsafe.Pointer(in.DeletePolicy))
+	out.DeletePolicy = (*v1beta2.MachineSetDeletePolicy)(unsafe.Pointer(in.DeletePolicy))
 	return nil
 }
 
@@ -3406,7 +3406,7 @@ func autoConvert_v1beta1_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSet
 	out.ClusterName = in.ClusterName
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
-	out.DeletePolicy = in.DeletePolicy
+	out.DeletePolicy = v1beta2.MachineSetDeletePolicy(in.DeletePolicy)
 	out.Selector = in.Selector
 	if err := Convert_v1beta1_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
@@ -3418,7 +3418,7 @@ func autoConvert_v1beta1_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSet
 func autoConvert_v1beta2_MachineSetSpec_To_v1beta1_MachineSetSpec(in *v1beta2.MachineSetSpec, out *MachineSetSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
-	out.DeletePolicy = in.DeletePolicy
+	out.DeletePolicy = string(in.DeletePolicy)
 	out.Selector = in.Selector
 	if err := Convert_v1beta2_MachineTemplateSpec_To_v1beta1_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err

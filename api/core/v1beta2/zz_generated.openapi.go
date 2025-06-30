@@ -4715,7 +4715,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSetSpec(ref common.ReferenceCall
 						},
 					},
 				},
-				Required: []string{"clusterName", "selector"},
+				Required: []string{"clusterName", "selector", "template"},
 			},
 		},
 		Dependencies: []string{
@@ -5113,6 +5113,7 @@ func schema_cluster_api_api_core_v1beta2_MachineTemplateSpec(ref common.Referenc
 						},
 					},
 				},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{

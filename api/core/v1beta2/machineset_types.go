@@ -81,8 +81,8 @@ type MachineSetSpec struct {
 	// template is the object that describes the machine that will be created if
 	// insufficient replicas are detected.
 	// Object references to custom resources are treated as templates.
-	// +optional
-	Template MachineTemplateSpec `json:"template,omitempty"`
+	// +required
+	Template MachineTemplateSpec `json:"template"`
 
 	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
 	// Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
@@ -241,8 +241,8 @@ type MachineTemplateSpec struct {
 
 	// spec is the specification of the desired behavior of the machine.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
-	// +optional
-	Spec MachineSpec `json:"spec,omitempty"`
+	// +required
+	Spec MachineSpec `json:"spec"`
 }
 
 // ANCHOR_END: MachineTemplateSpec

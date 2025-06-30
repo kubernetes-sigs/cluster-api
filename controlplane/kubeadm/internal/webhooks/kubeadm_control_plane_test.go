@@ -483,6 +483,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	unsetEtcdLocal := etcdLocalImageTag.DeepCopy()
 	unsetEtcdLocal.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = nil
 
+	controlPlaneEndpoint := before.DeepCopy()
+	controlPlaneEndpoint.Spec.KubeadmConfigSpec.ClusterConfiguration.ControlPlaneEndpoint = "some control plane endpoint"
+
 	apiServer := before.DeepCopy()
 	apiServer.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer = bootstrapv1.APIServer{
 		ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
@@ -817,6 +820,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: true,
 			before:    before,
 			kcp:       etcdLocalImageInvalidTag,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's controlPlaneEndpoint",
+			expectErr: true,
+			before:    before,
+			kcp:       controlPlaneEndpoint,
 		},
 		{
 			name:      "should allow changes to the cluster config's apiServer",

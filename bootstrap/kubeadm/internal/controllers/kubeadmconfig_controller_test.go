@@ -1828,7 +1828,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t 
 }
 
 // Set cluster configuration defaults based on dynamic values from the cluster object.
-func TestKubeadmConfigReconciler_computeClusterConfigurationAdditionalData(t *testing.T) {
+func TestKubeadmConfigReconciler_computeClusterConfigurationAndAdditionalData(t *testing.T) {
 	k := &KubeadmConfigReconciler{}
 
 	testcases := []struct {
@@ -1870,9 +1870,10 @@ func TestKubeadmConfigReconciler_computeClusterConfigurationAdditionalData(t *te
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gotData := k.computeClusterConfigurationAdditionalData(tc.cluster, tc.machine, tc.initConfiguration)
+			clusterConfiguration := &bootstrapv1.ClusterConfiguration{}
+			gotData := k.computeClusterConfigurationAndAdditionalData(tc.cluster, tc.machine, clusterConfiguration, tc.initConfiguration)
+			g.Expect(clusterConfiguration.ControlPlaneEndpoint).To(Equal("myControlPlaneEndpoint:6443"))
 			g.Expect(gotData.KubernetesVersion).To(Equal(ptr.To("v1.23.0")))
-			g.Expect(gotData.ControlPlaneEndpoint).To(Equal(ptr.To("myControlPlaneEndpoint:6443")))
 			g.Expect(gotData.ClusterName).To(Equal(ptr.To("mycluster")))
 			g.Expect(gotData.PodSubnet).To(Equal(ptr.To("myPodSubnet")))
 			g.Expect(gotData.ServiceSubnet).To(Equal(ptr.To("myServiceSubnet")))

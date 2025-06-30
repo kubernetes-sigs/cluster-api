@@ -193,9 +193,6 @@ func (src *ClusterConfiguration) SetAdditionalData(data upstream.AdditionalData)
 	if data.ClusterName != nil {
 		src.ClusterName = *data.ClusterName
 	}
-	if data.ControlPlaneEndpoint != nil {
-		src.ControlPlaneEndpoint = *data.ControlPlaneEndpoint
-	}
 	if data.DNSDomain != nil {
 		src.Networking.DNSDomain = *data.DNSDomain
 	}
@@ -225,9 +222,6 @@ func (src *ClusterConfiguration) GetAdditionalData(data *upstream.AdditionalData
 	}
 	if src.ClusterName != "" {
 		data.ClusterName = ptr.To(src.ClusterName)
-	}
-	if src.ControlPlaneEndpoint != "" {
-		data.ControlPlaneEndpoint = ptr.To(src.ControlPlaneEndpoint)
 	}
 	if src.Networking.DNSDomain != "" {
 		data.DNSDomain = ptr.To(src.Networking.DNSDomain)

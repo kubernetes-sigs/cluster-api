@@ -185,7 +185,6 @@ func spokeKubeadmClusterConfiguration(obj *bootstrapv1alpha3.ClusterConfiguratio
 	obj.Networking.PodSubnet = ""
 	obj.Networking.DNSDomain = ""
 	obj.KubernetesVersion = ""
-	obj.ControlPlaneEndpoint = ""
 	obj.ClusterName = ""
 }
 

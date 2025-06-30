@@ -199,7 +199,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
 		g.Expect(diff).To(BeComparableTo(`&v1beta2.ClusterConfiguration{
-    ... // 3 identical fields
+    ... // 4 identical fields
     Scheduler:       {},
     DNS:             {},
 -   CertificatesDir: "bar",
@@ -1007,7 +1007,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
 		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{
-    ... // 3 identical fields
+    ... // 4 identical fields
     Scheduler:       {},
     DNS:             {},
 -   CertificatesDir: "bar",
@@ -1814,7 +1814,7 @@ func TestUpToDate(t *testing.T) {
 			infraConfigs:            defaultInfraConfigs,
 			machineConfigs:          defaultMachineConfigs,
 			expectUptoDate:          false,
-			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 3 identical fields\n    Scheduler:       {},\n    DNS:             {},\n-   CertificatesDir: \"foo\",\n+   CertificatesDir: \"bar\",\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n  }"},
+			expectLogMessages:       []string{"Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta2.ClusterConfiguration{\n    ... // 4 identical fields\n    Scheduler:       {},\n    DNS:             {},\n-   CertificatesDir: \"foo\",\n+   CertificatesDir: \"bar\",\n    ImageRepository: \"\",\n    FeatureGates:    nil,\n  }"},
 			expectConditionMessages: []string{"KubeadmConfig is not up-to-date"},
 		},
 		{

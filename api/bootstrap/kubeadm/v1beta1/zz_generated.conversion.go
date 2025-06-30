@@ -652,7 +652,7 @@ func autoConvert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in
 	}
 	// WARNING: in.Networking requires manual conversion: does not exist in peer-type
 	// WARNING: in.KubernetesVersion requires manual conversion: does not exist in peer-type
-	// WARNING: in.ControlPlaneEndpoint requires manual conversion: does not exist in peer-type
+	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 	if err := Convert_v1beta1_APIServer_To_v1beta2_APIServer(&in.APIServer, &out.APIServer, s); err != nil {
 		return err
 	}
@@ -676,6 +676,7 @@ func autoConvert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in
 	if err := Convert_v1beta2_Etcd_To_v1beta1_Etcd(&in.Etcd, &out.Etcd, s); err != nil {
 		return err
 	}
+	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 	if err := Convert_v1beta2_APIServer_To_v1beta1_APIServer(&in.APIServer, &out.APIServer, s); err != nil {
 		return err
 	}

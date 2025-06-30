@@ -125,7 +125,6 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 	data := &upstream.AdditionalData{
 		// KubernetesVersion is going to be set on a test bases.
 		ClusterName:                             ptr.To("mycluster"),
-		ControlPlaneEndpoint:                    ptr.To("myControlPlaneEndpoint:6443"),
 		DNSDomain:                               ptr.To("myDNSDomain"),
 		ServiceSubnet:                           ptr.To("myServiceSubnet"),
 		PodSubnet:                               ptr.To("myPodSubnet"),
@@ -145,7 +144,9 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 		{
 			name: "Generates a v1beta3 kubeadm configuration",
 			args: args{
-				capiObj: &bootstrapv1.ClusterConfiguration{},
+				capiObj: &bootstrapv1.ClusterConfiguration{
+					ControlPlaneEndpoint: "myControlPlaneEndpoint:6443",
+				},
 				version: semver.MustParse("1.22.0"),
 			},
 			want: "apiServer:\n" +
@@ -168,7 +169,9 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 		{
 			name: "Generates a v1beta4 kubeadm configuration",
 			args: args{
-				capiObj: &bootstrapv1.ClusterConfiguration{},
+				capiObj: &bootstrapv1.ClusterConfiguration{
+					ControlPlaneEndpoint: "myControlPlaneEndpoint:6443",
+				},
 				version: semver.MustParse("1.31.0"),
 			},
 			want: "apiServer: {}\n" +
@@ -374,14 +377,15 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 					"  serviceSubnet: myServiceSubnet\n" +
 					"scheduler: {}\n",
 			},
-			want: &bootstrapv1.ClusterConfiguration{},
+			want: &bootstrapv1.ClusterConfiguration{
+				ControlPlaneEndpoint: "myControlPlaneEndpoint:6443",
+			},
 			wantUpstreamData: &upstream.AdditionalData{
-				KubernetesVersion:    ptr.To("v1.23.1"),
-				ClusterName:          ptr.To("mycluster"),
-				ControlPlaneEndpoint: ptr.To("myControlPlaneEndpoint:6443"),
-				DNSDomain:            ptr.To("myDNSDomain"),
-				ServiceSubnet:        ptr.To("myServiceSubnet"),
-				PodSubnet:            ptr.To("myPodSubnet"),
+				KubernetesVersion: ptr.To("v1.23.1"),
+				ClusterName:       ptr.To("mycluster"),
+				DNSDomain:         ptr.To("myDNSDomain"),
+				ServiceSubnet:     ptr.To("myServiceSubnet"),
+				PodSubnet:         ptr.To("myPodSubnet"),
 			},
 			wantErr: false,
 		},
@@ -405,11 +409,12 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 					"  serviceSubnet: myServiceSubnet\n" +
 					"scheduler: {}\n",
 			},
-			want: &bootstrapv1.ClusterConfiguration{},
+			want: &bootstrapv1.ClusterConfiguration{
+				ControlPlaneEndpoint: "myControlPlaneEndpoint:6443",
+			},
 			wantUpstreamData: &upstream.AdditionalData{
 				KubernetesVersion:                       ptr.To("v1.23.1"),
 				ClusterName:                             ptr.To("mycluster"),
-				ControlPlaneEndpoint:                    ptr.To("myControlPlaneEndpoint:6443"),
 				DNSDomain:                               ptr.To("myDNSDomain"),
 				ServiceSubnet:                           ptr.To("myServiceSubnet"),
 				PodSubnet:                               ptr.To("myPodSubnet"),
@@ -436,14 +441,15 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 					"proxy: {}\n" +
 					"scheduler: {}\n",
 			},
-			want: &bootstrapv1.ClusterConfiguration{},
+			want: &bootstrapv1.ClusterConfiguration{
+				ControlPlaneEndpoint: "myControlPlaneEndpoint:6443",
+			},
 			wantUpstreamData: &upstream.AdditionalData{
-				KubernetesVersion:    ptr.To("v1.31.1"),
-				ClusterName:          ptr.To("mycluster"),
-				ControlPlaneEndpoint: ptr.To("myControlPlaneEndpoint:6443"),
-				DNSDomain:            ptr.To("myDNSDomain"),
-				ServiceSubnet:        ptr.To("myServiceSubnet"),
-				PodSubnet:            ptr.To("myPodSubnet"),
+				KubernetesVersion: ptr.To("v1.31.1"),
+				ClusterName:       ptr.To("mycluster"),
+				DNSDomain:         ptr.To("myDNSDomain"),
+				ServiceSubnet:     ptr.To("myServiceSubnet"),
+				PodSubnet:         ptr.To("myPodSubnet"),
 			},
 			wantErr: false,
 		},

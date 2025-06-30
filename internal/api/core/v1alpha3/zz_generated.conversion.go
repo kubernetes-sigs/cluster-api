@@ -1379,7 +1379,7 @@ func autoConvert_v1alpha3_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSe
 	out.ClusterName = in.ClusterName
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
-	out.DeletePolicy = in.DeletePolicy
+	out.DeletePolicy = v1beta2.MachineSetDeletePolicy(in.DeletePolicy)
 	out.Selector = in.Selector
 	if err := Convert_v1alpha3_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
@@ -1390,7 +1390,7 @@ func autoConvert_v1alpha3_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSe
 func autoConvert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *v1beta2.MachineSetSpec, out *MachineSetSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
-	out.DeletePolicy = in.DeletePolicy
+	out.DeletePolicy = string(in.DeletePolicy)
 	out.Selector = in.Selector
 	if err := Convert_v1beta2_MachineTemplateSpec_To_v1alpha3_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err

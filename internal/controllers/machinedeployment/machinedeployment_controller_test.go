@@ -118,7 +118,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 						MaxUnavailable: intOrStrPtr(0),
 						MaxSurge:       intOrStrPtr(1),
-						DeletePolicy:   ptr.To("Oldest"),
+						DeletePolicy:   ptr.To(clusterv1.OldestMachineSetDeletePolicy),
 					},
 				},
 				Template: clusterv1.MachineTemplateSpec{
@@ -204,7 +204,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		}, timeout).Should(BeEquivalentTo(1))
 
 		t.Log("Verifying that the deployment's deletePolicy was propagated to the machineset")
-		g.Expect(machineSets.Items[0].Spec.DeletePolicy).To(Equal("Oldest"))
+		g.Expect(machineSets.Items[0].Spec.DeletePolicy).To(Equal(clusterv1.OldestMachineSetDeletePolicy))
 
 		t.Log("Verifying the linked infrastructure template has a cluster owner reference")
 		g.Eventually(func() bool {
@@ -379,7 +379,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		// expect the Reconcile to be called and the MachineSet to be updated in-place.
 		t.Log("Updating deletePolicy on the MachineDeployment")
 		modifyFunc = func(d *clusterv1.MachineDeployment) {
-			d.Spec.Strategy.RollingUpdate.DeletePolicy = ptr.To("Newest")
+			d.Spec.Strategy.RollingUpdate.DeletePolicy = ptr.To(clusterv1.NewestMachineSetDeletePolicy)
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func(g Gomega) {
@@ -387,10 +387,10 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			// Verify we still only have 2 MachineSets.
 			g.Expect(machineSets.Items).To(HaveLen(2))
 			// Verify the DeletePolicy value is updated
-			g.Expect(machineSets.Items[0].Spec.DeletePolicy).Should(Equal("Newest"))
+			g.Expect(machineSets.Items[0].Spec.DeletePolicy).Should(Equal(clusterv1.NewestMachineSetDeletePolicy))
 
 			// Verify that the old machine set retains its delete policy
-			g.Expect(machineSets.Items[1].Spec.DeletePolicy).To(Equal("Oldest"))
+			g.Expect(machineSets.Items[1].Spec.DeletePolicy).To(Equal(clusterv1.OldestMachineSetDeletePolicy))
 		}).Should(Succeed())
 
 		// Verify that all the MachineSets have the expected OwnerRef.
@@ -541,7 +541,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: intOrStrPtr(0),
 					MaxSurge:       intOrStrPtr(1),
-					DeletePolicy:   ptr.To("Oldest"),
+					DeletePolicy:   ptr.To(clusterv1.OldestMachineSetDeletePolicy),
 				},
 			},
 			Template: clusterv1.MachineTemplateSpec{

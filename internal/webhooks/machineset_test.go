@@ -57,7 +57,7 @@ func TestMachineSetDefault(t *testing.T) {
 	g.Expect(webhook.Default(reqCtx, ms)).To(Succeed())
 
 	g.Expect(ms.Labels[clusterv1.ClusterNameLabel]).To(Equal(ms.Spec.ClusterName))
-	g.Expect(ms.Spec.DeletePolicy).To(Equal(string(clusterv1.RandomMachineSetDeletePolicy)))
+	g.Expect(ms.Spec.DeletePolicy).To(Equal(clusterv1.RandomMachineSetDeletePolicy))
 	g.Expect(ms.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.MachineSetNameLabel, "test-ms"))
 	g.Expect(ms.Spec.Template.Labels).To(HaveKeyWithValue(clusterv1.MachineSetNameLabel, "test-ms"))
 	g.Expect(*ms.Spec.Template.Spec.Version).To(Equal("v1.19.10"))

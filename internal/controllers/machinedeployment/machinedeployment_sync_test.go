@@ -393,7 +393,7 @@ func newTestMachineDeployment(replicas, statusReplicas, upToDateReplicas, availa
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: intOrStrPtr(0),
 					MaxSurge:       intOrStrPtr(1),
-					DeletePolicy:   ptr.To("Oldest"),
+					DeletePolicy:   ptr.To(clusterv1.OldestMachineSetDeletePolicy),
 				},
 			},
 		},
@@ -544,7 +544,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxSurge:       intOrStrPtr(1),
-					DeletePolicy:   ptr.To("Random"),
+					DeletePolicy:   ptr.To(clusterv1.RandomMachineSetDeletePolicy),
 					MaxUnavailable: intOrStrPtr(0),
 				},
 			},
@@ -584,7 +584,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		Spec: clusterv1.MachineSetSpec{
 			ClusterName:  "test-cluster",
 			Replicas:     ptr.To[int32](3),
-			DeletePolicy: string(clusterv1.RandomMachineSetDeletePolicy),
+			DeletePolicy: clusterv1.RandomMachineSetDeletePolicy,
 			Selector:     metav1.LabelSelector{MatchLabels: map[string]string{"k1": "v1"}},
 			Template:     *deployment.Spec.Template.DeepCopy(),
 			MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
@@ -640,7 +640,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		existingMS.Spec.Template.Spec.NodeDrainTimeoutSeconds = duration5s
 		existingMS.Spec.Template.Spec.NodeDeletionTimeoutSeconds = duration5s
 		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = duration5s
-		existingMS.Spec.DeletePolicy = string(clusterv1.NewestMachineSetDeletePolicy)
+		existingMS.Spec.DeletePolicy = clusterv1.NewestMachineSetDeletePolicy
 		existingMS.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 
 		expectedMS := skeletonMSBasedOnMD.DeepCopy()
@@ -680,7 +680,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		existingMS.Spec.Template.Spec.NodeDrainTimeoutSeconds = duration5s
 		existingMS.Spec.Template.Spec.NodeDeletionTimeoutSeconds = duration5s
 		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = duration5s
-		existingMS.Spec.DeletePolicy = string(clusterv1.NewestMachineSetDeletePolicy)
+		existingMS.Spec.DeletePolicy = clusterv1.NewestMachineSetDeletePolicy
 		existingMS.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 
 		oldMS := skeletonMSBasedOnMD.DeepCopy()
@@ -734,7 +734,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		existingMS.Spec.Template.Spec.NodeDrainTimeoutSeconds = duration5s
 		existingMS.Spec.Template.Spec.NodeDeletionTimeoutSeconds = duration5s
 		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = duration5s
-		existingMS.Spec.DeletePolicy = string(clusterv1.NewestMachineSetDeletePolicy)
+		existingMS.Spec.DeletePolicy = clusterv1.NewestMachineSetDeletePolicy
 		existingMS.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 
 		expectedMS := skeletonMSBasedOnMD.DeepCopy()

@@ -546,7 +546,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		scope.Config.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
 	}
 
-	additionalData := r.computeClusterConfigurationAdditionalData(scope.Cluster, machine, scope.Config.Spec.InitConfiguration)
+	additionalData := r.computeClusterConfigurationAndAdditionalData(scope.Cluster, machine, scope.Config.Spec.ClusterConfiguration, scope.Config.Spec.InitConfiguration)
 
 	clusterdata, err := kubeadmtypes.MarshalClusterConfigurationForVersion(scope.Config.Spec.ClusterConfiguration, parsedVersion, additionalData)
 	if err != nil {
@@ -1313,15 +1313,16 @@ func (r *KubeadmConfigReconciler) reconcileDiscoveryFile(ctx context.Context, cl
 	return ctrl.Result{}, nil
 }
 
-// computeClusterConfigurationAdditionalData computes additional data that must go in kubeadm's ClusterConfiguration, but exists
+// computeClusterConfigurationAndAdditionalData computes additional data that must go in kubeadm's ClusterConfiguration, but exists
 // in different Cluster API objects, like e.g. the Cluster object.
-func (r *KubeadmConfigReconciler) computeClusterConfigurationAdditionalData(cluster *clusterv1.Cluster, machine *clusterv1.Machine, initConfiguration *bootstrapv1.InitConfiguration) *upstream.AdditionalData {
+func (r *KubeadmConfigReconciler) computeClusterConfigurationAndAdditionalData(cluster *clusterv1.Cluster, machine *clusterv1.Machine, clusterConfiguration *bootstrapv1.ClusterConfiguration, initConfiguration *bootstrapv1.InitConfiguration) *upstream.AdditionalData {
 	data := &upstream.AdditionalData{}
 
-	// If there is a ControlPlaneEndpoint defined at Cluster level (e.g. the load balancer endpoint),
+	// If there is no ControlPlaneEndpoint defined in ClusterConfiguration but
+	// there is a ControlPlaneEndpoint defined at Cluster level (e.g. the load balancer endpoint),
 	// then use Cluster's ControlPlaneEndpoint as a control plane endpoint for the Kubernetes cluster.
-	if cluster.Spec.ControlPlaneEndpoint.IsValid() {
-		data.ControlPlaneEndpoint = ptr.To(cluster.Spec.ControlPlaneEndpoint.String())
+	if clusterConfiguration.ControlPlaneEndpoint == "" && cluster.Spec.ControlPlaneEndpoint.IsValid() {
+		clusterConfiguration.ControlPlaneEndpoint = cluster.Spec.ControlPlaneEndpoint.String()
 	}
 
 	// Use Cluster.Name

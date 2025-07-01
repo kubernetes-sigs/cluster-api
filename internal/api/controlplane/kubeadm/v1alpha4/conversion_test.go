@@ -221,7 +221,6 @@ func spokeClusterConfiguration(in *bootstrapv1alpha4.ClusterConfiguration, c ran
 	in.Networking.PodSubnet = ""
 	in.Networking.DNSDomain = ""
 	in.KubernetesVersion = ""
-	in.ControlPlaneEndpoint = ""
 	in.ClusterName = ""
 }
 

@@ -35,12 +35,11 @@ type AdditionalDataGetter interface {
 // in different Cluster API objects, like e.g. the Cluster object.
 type AdditionalData struct {
 	// Data from Cluster API's Cluster object.
-	KubernetesVersion    *string
-	ClusterName          *string
-	ControlPlaneEndpoint *string
-	DNSDomain            *string
-	ServiceSubnet        *string
-	PodSubnet            *string
+	KubernetesVersion *string
+	ClusterName       *string
+	DNSDomain         *string
+	ServiceSubnet     *string
+	PodSubnet         *string
 
 	// Data migrated from ClusterConfiguration to InitConfiguration in kubeadm's v1beta4 API version.
 	// Note: Corresponding Cluster API types are aligned with kubeadm's v1beta4 API version.
@@ -52,7 +51,6 @@ func (a *AdditionalData) Clone() *AdditionalData {
 	return &AdditionalData{
 		KubernetesVersion:                       a.KubernetesVersion,
 		ClusterName:                             a.ClusterName,
-		ControlPlaneEndpoint:                    a.ControlPlaneEndpoint,
 		DNSDomain:                               a.DNSDomain,
 		ServiceSubnet:                           a.ServiceSubnet,
 		PodSubnet:                               a.PodSubnet,

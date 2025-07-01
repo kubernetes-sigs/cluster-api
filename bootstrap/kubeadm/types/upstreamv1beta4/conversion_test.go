@@ -104,7 +104,6 @@ func spokeClusterConfigurationFuzzer(obj *ClusterConfiguration, c randfill.Conti
 	obj.Networking.PodSubnet = ""
 	obj.Networking.DNSDomain = ""
 	obj.KubernetesVersion = ""
-	obj.ControlPlaneEndpoint = ""
 	obj.ClusterName = ""
 }
 

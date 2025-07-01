@@ -143,7 +143,6 @@ func spokeClusterConfiguration(in *ClusterConfiguration, c randfill.Continue) {
 	in.Networking.PodSubnet = ""
 	in.Networking.DNSDomain = ""
 	in.KubernetesVersion = ""
-	in.ControlPlaneEndpoint = ""
 	in.ClusterName = ""
 }
 

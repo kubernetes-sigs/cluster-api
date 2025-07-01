@@ -1939,6 +1939,7 @@ spec:
             type: object
           status:
             description: status is the observed state of MachinePool.
+            minProperties: 1
             properties:
               availableReplicas:
                 description: availableReplicas is the number of available replicas

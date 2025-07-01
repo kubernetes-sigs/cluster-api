@@ -1728,6 +1728,7 @@ spec:
             type: object
           status:
             description: status is the observed state of Machine.
+            minProperties: 1
             properties:
               addresses:
                 description: |-

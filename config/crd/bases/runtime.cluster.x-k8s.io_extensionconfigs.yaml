@@ -521,6 +521,7 @@ spec:
             type: object
           status:
             description: status is the current state of the ExtensionConfig
+            minProperties: 1
             properties:
               conditions:
                 description: |-

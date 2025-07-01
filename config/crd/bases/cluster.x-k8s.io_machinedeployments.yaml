@@ -2331,6 +2331,7 @@ spec:
             type: object
           status:
             description: status is the observed state of MachineDeployment.
+            minProperties: 1
             properties:
               availableReplicas:
                 description: availableReplicas is the number of available replicas

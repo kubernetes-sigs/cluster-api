@@ -277,6 +277,7 @@ const (
 // ANCHOR: MachineSetStatus
 
 // MachineSetStatus defines the observed state of MachineSet.
+// +kubebuilder:validation:MinProperties=1
 type MachineSetStatus struct {
 	// conditions represents the observations of a MachineSet's current state.
 	// Known condition types are MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
@@ -450,7 +451,7 @@ type MachineSet struct {
 	Spec MachineSetSpec `json:"spec,omitempty"`
 	// status is the observed state of MachineSet.
 	// +optional
-	Status MachineSetStatus `json:"status,omitempty"`
+	Status MachineSetStatus `json:"status,omitempty,omitzero"`
 }
 
 // GetV1Beta1Conditions returns the set of conditions for the MachineSet.

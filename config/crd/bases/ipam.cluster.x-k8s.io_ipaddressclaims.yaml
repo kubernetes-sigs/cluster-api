@@ -449,6 +449,7 @@ spec:
             type: object
           status:
             description: status is the observed state of IPAddressClaim.
+            minProperties: 1
             properties:
               addressRef:
                 description: addressRef is a reference to the address that was created

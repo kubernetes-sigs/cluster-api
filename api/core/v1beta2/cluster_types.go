@@ -957,6 +957,7 @@ func (n NetworkRanges) String() string {
 // ANCHOR: ClusterStatus
 
 // ClusterStatus defines the observed state of Cluster.
+// +kubebuilder:validation:MinProperties=1
 type ClusterStatus struct {
 	// conditions represents the observations of a Cluster's current state.
 	// Known condition types are Available, InfrastructureReady, ControlPlaneInitialized, ControlPlaneAvailable, WorkersAvailable, MachinesReady
@@ -1188,7 +1189,7 @@ type Cluster struct {
 	Spec ClusterSpec `json:"spec,omitempty"`
 	// status is the observed state of Cluster.
 	// +optional
-	Status ClusterStatus `json:"status,omitempty"`
+	Status ClusterStatus `json:"status,omitempty,omitzero"`
 }
 
 // GetClassKey returns the namespaced name for the class associated with this object.

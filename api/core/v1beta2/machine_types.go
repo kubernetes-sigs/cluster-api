@@ -496,6 +496,7 @@ type MachineReadinessGate struct {
 // ANCHOR: MachineStatus
 
 // MachineStatus defines the observed state of Machine.
+// +kubebuilder:validation:MinProperties=1
 type MachineStatus struct {
 	// conditions represents the observations of a Machine's current state.
 	// Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady,
@@ -739,7 +740,7 @@ type Machine struct {
 	Spec MachineSpec `json:"spec,omitempty"`
 	// status is the observed state of Machine.
 	// +optional
-	Status MachineStatus `json:"status,omitempty"`
+	Status MachineStatus `json:"status,omitempty,omitzero"`
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.

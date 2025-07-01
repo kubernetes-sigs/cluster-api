@@ -4572,6 +4572,7 @@ spec:
             type: object
           status:
             description: status is the observed state of ClusterClass.
+            minProperties: 1
             properties:
               conditions:
                 description: |-

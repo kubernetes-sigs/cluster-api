@@ -3276,6 +3276,7 @@ spec:
             type: object
           status:
             description: status is the observed state of Cluster.
+            minProperties: 1
             properties:
               conditions:
                 description: |-

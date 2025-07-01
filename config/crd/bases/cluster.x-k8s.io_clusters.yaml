@@ -2188,6 +2188,7 @@ spec:
             type: object
           spec:
             description: spec is the desired state of Cluster.
+            minProperties: 1
             properties:
               availabilityGates:
                 description: |-
@@ -3564,6 +3565,8 @@ spec:
                     type: integer
                 type: object
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

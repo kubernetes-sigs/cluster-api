@@ -5039,6 +5039,7 @@ spec:
                 description: |-
                   kubeadmConfigSpec is a KubeadmConfigSpec
                   to use for initializing and joining machines to the control plane.
+                minProperties: 1
                 properties:
                   bootCommands:
                     description: |-
@@ -7656,6 +7657,8 @@ spec:
                 minLength: 1
                 type: string
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

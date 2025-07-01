@@ -458,6 +458,7 @@ const (
 // ANCHOR: ClusterSpec
 
 // ClusterSpec defines the desired state of Cluster.
+// +kubebuilder:validation:MinProperties=1
 type ClusterSpec struct {
 	// paused can be used to prevent controllers from processing the Cluster and all its associated objects.
 	// +optional
@@ -1185,8 +1186,8 @@ type Cluster struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of Cluster.
-	// +optional
-	Spec ClusterSpec `json:"spec,omitempty"`
+	// +required
+	Spec ClusterSpec `json:"spec"`
 	// status is the observed state of Cluster.
 	// +optional
 	Status ClusterStatus `json:"status,omitempty,omitzero"`

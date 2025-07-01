@@ -593,8 +593,8 @@ type MachineDeployment struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of MachineDeployment.
-	// +optional
-	Spec MachineDeploymentSpec `json:"spec,omitempty"`
+	// +required
+	Spec MachineDeploymentSpec `json:"spec"`
 	// status is the observed state of MachineDeployment.
 	// +optional
 	Status MachineDeploymentStatus `json:"status,omitempty,omitzero"`

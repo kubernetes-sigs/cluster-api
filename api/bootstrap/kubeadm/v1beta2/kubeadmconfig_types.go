@@ -50,6 +50,7 @@ var (
 
 // KubeadmConfigSpec defines the desired state of KubeadmConfig.
 // Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
+// +kubebuilder:validation:MinProperties=1
 type KubeadmConfigSpec struct {
 	// clusterConfiguration along with InitConfiguration are the configurations necessary for the init command
 	// +optional
@@ -542,8 +543,8 @@ type KubeadmConfig struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of KubeadmConfig.
-	// +optional
-	Spec KubeadmConfigSpec `json:"spec,omitempty"`
+	// +required
+	Spec KubeadmConfigSpec `json:"spec"`
 	// status is the observed state of KubeadmConfig.
 	// +optional
 	Status KubeadmConfigStatus `json:"status,omitempty,omitzero"`

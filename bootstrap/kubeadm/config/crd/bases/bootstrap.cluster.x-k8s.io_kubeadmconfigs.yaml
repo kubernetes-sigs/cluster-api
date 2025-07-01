@@ -4117,6 +4117,7 @@ spec:
             type: object
           spec:
             description: spec is the desired state of KubeadmConfig.
+            minProperties: 1
             properties:
               bootCommands:
                 description: |-
@@ -6336,6 +6337,8 @@ spec:
                 minimum: 1
                 type: integer
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

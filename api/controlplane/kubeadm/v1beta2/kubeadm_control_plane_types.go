@@ -807,8 +807,8 @@ type KubeadmControlPlane struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of KubeadmControlPlane.
-	// +optional
-	Spec KubeadmControlPlaneSpec `json:"spec,omitempty"`
+	// +required
+	Spec KubeadmControlPlaneSpec `json:"spec"`
 	// status is the observed state of KubeadmControlPlane.
 	// +optional
 	Status KubeadmControlPlaneStatus `json:"status,omitempty,omitzero"`

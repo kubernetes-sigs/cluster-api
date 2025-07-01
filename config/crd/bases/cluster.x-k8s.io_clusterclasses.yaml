@@ -2847,6 +2847,7 @@ spec:
             type: object
           spec:
             description: spec is the desired state of ClusterClass.
+            minProperties: 1
             properties:
               availabilityGates:
                 description: |-
@@ -5153,6 +5154,8 @@ spec:
                 maxItems: 1000
                 type: array
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

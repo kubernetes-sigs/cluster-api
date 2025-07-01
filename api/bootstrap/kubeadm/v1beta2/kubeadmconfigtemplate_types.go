@@ -23,6 +23,7 @@ import (
 )
 
 // KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate.
+// +kubebuilder:validation:MinProperties=1
 type KubeadmConfigTemplateSpec struct {
 	// template defines the desired state of KubeadmConfigTemplate.
 	// +required
@@ -30,6 +31,7 @@ type KubeadmConfigTemplateSpec struct {
 }
 
 // KubeadmConfigTemplateResource defines the Template structure.
+// +kubebuilder:validation:MinProperties=1
 type KubeadmConfigTemplateResource struct {
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
@@ -38,7 +40,7 @@ type KubeadmConfigTemplateResource struct {
 
 	// spec is the desired state of KubeadmConfig.
 	// +optional
-	Spec KubeadmConfigSpec `json:"spec,omitempty"`
+	Spec KubeadmConfigSpec `json:"spec,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -56,7 +58,7 @@ type KubeadmConfigTemplate struct {
 
 	// spec is the desired state of KubeadmConfigTemplate.
 	// +optional
-	Spec KubeadmConfigTemplateSpec `json:"spec,omitempty"`
+	Spec KubeadmConfigTemplateSpec `json:"spec,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

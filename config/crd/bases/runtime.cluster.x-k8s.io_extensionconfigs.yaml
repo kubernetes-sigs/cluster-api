@@ -395,6 +395,7 @@ spec:
               clientConfig:
                 description: clientConfig defines how to communicate with the Extension
                   server.
+                minProperties: 1
                 properties:
                   caBundle:
                     description: caBundle is a PEM encoded CA bundle which will be
@@ -709,6 +710,8 @@ spec:
                 - name
                 x-kubernetes-list-type: map
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

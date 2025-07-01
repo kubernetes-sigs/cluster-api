@@ -45,6 +45,7 @@ type ExtensionConfigSpec struct {
 
 // ClientConfig contains the information to make a client
 // connection with an Extension server.
+// +kubebuilder:validation:MinProperties=1
 type ClientConfig struct {
 	// url gives the location of the Extension server, in standard URL form
 	// (`scheme://host:port/path`).
@@ -230,8 +231,8 @@ type ExtensionConfig struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of the ExtensionConfig.
-	// +optional
-	Spec ExtensionConfigSpec `json:"spec,omitempty"`
+	// +required
+	Spec ExtensionConfigSpec `json:"spec"`
 
 	// status is the current state of the ExtensionConfig
 	// +optional

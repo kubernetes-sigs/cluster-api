@@ -332,6 +332,8 @@ spec:
             - poolRef
             - prefix
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

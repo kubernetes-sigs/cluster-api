@@ -350,6 +350,9 @@ type FooControlPlaneSpec struct {
     // version defines the desired Kubernetes version for the control plane. 
     // The value must be a valid semantic version; also if the value provided by the user does not start with the v prefix, it
     // must be added.
+    // +required
+    // +kubebuilder:validation:MinLength=1
+    // +kubebuilder:validation:MaxLength=256
     Version string `json:"version"`
     
     // See other rules for more details about mandatory/optional fields in ControlPlane spec.
@@ -364,13 +367,17 @@ type FooControlPlaneStatus struct {
     // version represents the minimum Kubernetes version for the control plane machines
     // in the cluster.
     // +optional
-    Version *string `json:"version,omitempty"`
+    // +kubebuilder:validation:MinLength=1
+    // +kubebuilder:validation:MaxLength=256
+    Version string `json:"version,omitempty"`
     
     // See other rules for more details about mandatory/optional fields in ControlPlane status.
     // Other fields SHOULD be added based on the needs of your provider.
 }
 ```
 
+NOTE: To align with API conventions, we recommend since the v1beta2 contract that the `Version` field should be 
+of type `string` (it was `*string` before). Both are compatible with the v1beta2 contract though.
 NOTE: The minimum Kubernetes version, and more specifically the API server version, will be used to determine 
 when a control plane is fully upgraded (spec.version == status.version) and for enforcing Kubernetes version skew 
 policies when a Cluster derived from a ClusterClass is managed by the Topology controller.
@@ -480,12 +487,15 @@ managed control plane providers for AKS, EKS, GKE etc), you SHOULD also implemen
 type FooControlPlaneStatus struct {
     // externalManagedControlPlane is a bool that should be set to true if the Node objects do not exist in the cluster.
     // +optional
-    ExternalManagedControlPlane bool `json:"externalManagedControlPlane,omitempty"`
+    ExternalManagedControlPlane *bool `json:"externalManagedControlPlane,omitempty"`
 
     // See other rules for more details about mandatory/optional fields in ControlPlane status.
     // Other fields SHOULD be added based on the needs of your provider.
 }
 ```
+
+NOTE: To align with API conventions, we recommend since the v1beta2 contract that the `ExternalManagedControlPlane` field should be
+of type `*bool` (it was `bool` before). Both are compatible with the v1beta2 contract though.
 
 Please note that by representing each control plane instance as Cluster API machine, each control plane instance
 can benefit from several Cluster API behaviours, for example:
@@ -521,7 +531,7 @@ type FooControlPlaneInitializationStatus struct {
     // the control plane is fully provisioned or not.
     // NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
     // +optional
-    ControlPlaneInitialized bool `json:"controlPlaneInitialized,omitempty"`
+    ControlPlaneInitialized *bool `json:"controlPlaneInitialized,omitempty"`
 }
 ```
 

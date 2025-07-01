@@ -10,17 +10,17 @@
 IMPORTANT: improving and maintaining this document is a collaborative effort, so we are encouraging constructive
 feedback and suggestions.
 
-   * [Code Review in Cluster API](#code-review-in-cluster-api)
-      * [Goal of this document](#goal-of-this-document)
-      * [Resources](#resources)
-      * [Definition](#definition)
-         * [Controller reentrancy](#controller-reentrancy)
-         * [API design](#api-design)
-            * [Serialization](#serialization)
-            * [Owner References](#owner-references)
-         * [The Cluster API contract](#the-cluster-api-contract)
-         * [Logging](#logging)
-         * [Testing](#testing)
+- [Code Review in Cluster API](#code-review-in-cluster-api)
+  - [Goal of this document](#goal-of-this-document)
+  - [Resources](#resources)
+  - [Definition](#definition)
+    - [Controller reentrancy](#controller-reentrancy)
+    - [API design](#api-design)
+      - [Serialization](#serialization)
+      - [Owner References](#owner-references)
+    - [The Cluster API contract](#the-cluster-api-contract)
+    - [Logging](#logging)
+    - [Testing](#testing)
 
 ## Resources
 
@@ -100,7 +100,7 @@ impacts of any change that can impact this area. Above all:
 
 The Cluster API rules define a set of rules/conventions the different provider authors should follow in
 order to implement providers that can interact with the core Cluster API controllers, as 
-documented [here](https://cluster-api.sigs.k8s.io/developer/guide.html) and [here](https://cluster-api.sigs.k8s.io/clusterctl/provider-contract.html).
+documented [here](https://cluster-api.sigs.k8s.io/developer/getting-started.html) and [here](https://cluster-api.sigs.k8s.io/developer/providers/contracts/overview.html).
 
 By extension, the Cluster API contract includes all the util methods that Cluster API exposes for
 making the development of providers simpler and consistent (e.g. everything under `/util` or in  `/test/framework`);
@@ -123,7 +123,7 @@ This makes any change that can impact the Cluster API contract critical and usua
 While developing controllers in Cluster API a key requirement is to add logging to observe the system and
 to help troubleshooting issues.
 
-- For CAPI controllers see [Cluster API logging conventions](https://cluster-api.sigs.k8s.io/developer/logging.html).
+- For CAPI controllers see [Cluster API logging conventions](https://cluster-api.sigs.k8s.io/developer/core/logging.html).
 - For clusterctl see [clusterctl logging conventions](https://github.com/kubernetes-sigs/cluster-api/blob/main/cmd/clusterctl/log/doc.go).
 
 ### Testing
@@ -131,4 +131,4 @@ to help troubleshooting issues.
 Testing plays a crucial role in ensuring the long term maintainability of the project.
 
 In Cluster API we are committed to have a good test coverage and also to have a nice and consistent style in implementing
-tests. For more information see [testing Cluster API](https://cluster-api.sigs.k8s.io/developer/testing.html).  
+tests. For more information see [testing Cluster API](https://cluster-api.sigs.k8s.io/developer/core/testing.html).

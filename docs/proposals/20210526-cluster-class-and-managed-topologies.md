@@ -138,7 +138,7 @@ command line flags (e.g. via `KubeadmControlPlane`) in the ClusterClass and this
 for all fields of all templates referenced in a ClusterClass.
 
 **Notes**:
-- Only compatible changes (as specified in [ClusterClass compatibility](#clusterclass-compatibility)) should be allowed.
+- Only compatible changes should be allowed.
 - Changes to InfrastructureMachineTemplates and BootstrapTemplates should be rolled out according to the established operational practices documented in 
 [Updating Machine Infrastructure and Bootstrap Templates](https://cluster-api.sigs.k8s.io/tasks/updating-machine-templates.html), i.e. "template rotation".
 - There are provider-specific incompatible changes which cannot be validated in a "core" webhook, e.g. changing an immutable field of `KubeadmControlPlane`. Those changes 
@@ -581,7 +581,7 @@ In this cases for ServerSideApply to work properly it is required to ensure the 
 type definitions, like +MapType or +MapTypeKey, see [merge strategy](https://kubernetes.io/docs/reference/using-api/server-side-apply/#merge-strategy) for more details.
 
 Note: in order to allow the topology controller to execute templates rotation only when strictly necessary, it is necessary
-to implement specific handling of dry run operations in the templates webhooks as described in [Required Changes on providers from 1.1 to 1.2](https://cluster-api.sigs.k8s.io/developer/providers/migrations/v1.1-to-v1.2#required-api-changes-for-providers).
+to implement specific handling of dry run operations in the templates webhooks as described in [Required Changes on providers from 1.1 to 1.2](https://release-1-8.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.1-to-v1.2#required-api-changes-for-providers).
 
 ### Risks and Mitigations
 

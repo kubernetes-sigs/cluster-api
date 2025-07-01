@@ -286,4 +286,4 @@ This feature is linked to experimental MachinePools, and therefore awaits its gr
 <!-- Links -->
 [Cluster API Book Glossary]: https://cluster-api.sigs.k8s.io/reference/glossary.html
 [MachineDeployment]: https://cluster-api.sigs.k8s.io/user/concepts.html#machinedeployment
-[provider contract]: https://cluster-api.sigs.k8s.io/developer/architecture/controllers/machine-pool.html#infrastructure-provider
+[provider contract]: https://cluster-api.sigs.k8s.io/developer/core/controllers/machine-pool#infrastructure-provider

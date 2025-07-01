@@ -36,8 +36,8 @@ see-also:
     - [As an operator, I would like to create Windows OS worker nodes with the CAPI API.](#as-an-operator-i-would-like-to-create-windows-os-worker-nodes-with-the-capi-api)
     - [As an operator, I would like to manage Windows OS worker nodes with the CAPI API.](#as-an-operator-i-would-like-to-manage-windows-os-worker-nodes-with-the-capi-api)
   - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-    - [Signing of the components.](#signing-of-the-components)
-    - [Known prototypes and prior work:](#known-prototypes-and-prior-work)
+    - [Signing of the components](#signing-of-the-components)
+    - [Known prototypes and prior work](#known-prototypes-and-prior-work)
   - [Security Model](#security-model)
   - [Risks and Mitigations](#risks-and-mitigations)
 - [Alternatives](#alternatives)
@@ -170,7 +170,7 @@ While this is the best choice for the alpha and the community direction there ar
 not be able to use wins due to signing or security concerns since wins allows the execution of any arbitrary command on 
 the host. Pre/post commands can be used as an alternative with additional scripts cached on the image that enable the configuration.
 
-#### Signing of the components.  
+#### Signing of the components
 
 Some infrastructure providers will require any scripts and binaries are signed before deployment.  
 This will be managed by providing the ability to provide url's to override external scripts and binaries 
@@ -178,7 +178,7 @@ during the image building process. An example of how this is could be accomplish
 implementation is the [containerd_url](https://github.com/kubernetes-sigs/image-builder/blob/58a08a1a8241356bab4afb1c6d8d2fbb8ef54bcf/images/capi/packer/config/ansible-args.json).  In this case, the 
 `containerd_url` could point to a location that would contain a packaged with signed binaries from the infrastructure provider.
 
-#### Known prototypes and prior work: 
+#### Known prototypes and prior work
 
 - https://github.com/adelina-t/cloudbase-init-capz-demo
 - https://github.com/benmoss/kubeadm-windows/tree/master/cluster-api-aws
@@ -209,7 +209,7 @@ to issue [#3761](https://github.com/kubernetes-sigs/cluster-api/issues/3761) for
 - Privileged containers are not implemented.
   - There is an active discussion and [KEP](https://docs.google.com/document/d/12EUtMdWFxhTCfFrqhlBGWV70MkZZPOgxw0X-LTR0VAo/edit#) in place.  At the Beta stage the community can do a checkpoint to determine if the solution fits user needs
 - Cloudbase-init is a third party dependency
-  - This project is under Apache 2.0 License : https://github.com/cloudbase/cloudbase-init which is cleared under the CNCF Allow list: https://github.com/cncf/foundation/blob/master/allowed-third-party-license-policy.md
+  - This project is under Apache 2.0 License : https://github.com/cloudbase/cloudbase-init which is cleared under the CNCF Allow list: https://github.com/cncf/foundation/blob/main/policies-guidance/allowed-third-party-license-policy.md
 - Windows image Distribution
   - Infrastructure providers can provide the ability to use user provided images and images provided by image-promoter are recommended for testing and demonstration purposes. It is recommended the user creates their own image. 
   - Users using the image scripts must ensure they are following [Windows licensing requirements](https://learn.microsoft.com/windows-server/windows-server-licensing/windows-server-licensing)
@@ -268,7 +268,7 @@ the existing upstream Kubernetes Windows tests to show that Windows nodes are op
 #### Stable
 Use of privileged containers. 
 
-### Version Skew Strategy 
+### Version Skew Strategy
 
 The version of support for the Windows operating system is outside the scope of cluster creation.  Please refer 
 to the Kubernetes Windows documentation for the latest version skew support, features, and functionality.

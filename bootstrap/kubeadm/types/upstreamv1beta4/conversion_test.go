@@ -78,6 +78,8 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeJoinControlPlaneFuzzer,
 		spokeTimeoutsFuzzer,
 		hubJoinConfigurationFuzzer,
+		hubHostPathMountFuzzer,
+		hubBootstrapTokenDiscoveryFuzzer,
 	}
 }
 
@@ -167,9 +169,13 @@ func spokeTimeoutsFuzzer(obj *Timeouts, c randfill.Continue) {
 	obj.UpgradeManifests = nil
 }
 
-// Custom fuzzers for CABPK v1beta1 types.
-// NOTES:
-// - When fields do not exist in kubeadm v1beta4 types, pinning them to avoid cabpk v1beta1 --> kubeadm v1beta4 --> cabpk v1beta1 round trip errors.
+func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TTL != nil {
+		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
 
 func hubJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
@@ -179,10 +185,18 @@ func hubJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.C
 	}
 }
 
-func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
-	c.FillNoCustom(in)
+func hubHostPathMountFuzzer(obj *bootstrapv1.HostPathMount, c randfill.Continue) {
+	c.FillNoCustom(obj)
 
-	if in.TTL != nil {
-		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	if obj.ReadOnly == nil {
+		obj.ReadOnly = ptr.To(false)
+	}
+}
+
+func hubBootstrapTokenDiscoveryFuzzer(obj *bootstrapv1.BootstrapTokenDiscovery, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	if obj.UnsafeSkipCAVerification == nil {
+		obj.UnsafeSkipCAVerification = ptr.To(false)
 	}
 }

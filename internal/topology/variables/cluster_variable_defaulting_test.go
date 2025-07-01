@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -308,7 +309,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name:                "cpu",
-					DefinitionsConflict: false,
+					DefinitionsConflict: ptr.To(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: true,
@@ -357,7 +358,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name:                "cpu",
-					DefinitionsConflict: false,
+					DefinitionsConflict: ptr.To(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
@@ -416,7 +417,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name:                "cpu",
-					DefinitionsConflict: true,
+					DefinitionsConflict: ptr.To(true),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
@@ -455,7 +456,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name:                "cpu",
-					DefinitionsConflict: true,
+					DefinitionsConflict: ptr.To(true),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 

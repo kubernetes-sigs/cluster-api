@@ -361,7 +361,7 @@ type machineOpt func(*clusterv1.Machine)
 func failureDomain(name string, controlPlane bool) clusterv1.FailureDomain {
 	return clusterv1.FailureDomain{
 		Name:         name,
-		ControlPlane: controlPlane,
+		ControlPlane: ptr.To(controlPlane),
 	}
 }
 

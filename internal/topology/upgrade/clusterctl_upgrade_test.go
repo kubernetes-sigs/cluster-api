@@ -405,8 +405,8 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 								APIVersion: testt1v1beta1.GroupVersion.String(),
 								Kind:       "TestResourceTemplate",
 								MatchResources: clusterv1.PatchSelectorMatch{
-									InfrastructureCluster: true,
-									ControlPlane:          true,
+									InfrastructureCluster: ptr.To(true),
+									ControlPlane:          ptr.To(true),
 									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 										Names: []string{machineDeploymentClass1.Class},
 									},
@@ -434,8 +434,8 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 								APIVersion: testt1v1beta1.GroupVersion.String(),
 								Kind:       "TestResourceTemplate",
 								MatchResources: clusterv1.PatchSelectorMatch{
-									InfrastructureCluster: false,
-									ControlPlane:          false,
+									InfrastructureCluster: ptr.To(false),
+									ControlPlane:          ptr.To(false),
 									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 										Names: []string{machineDeploymentClass1.Class},
 									},
@@ -600,8 +600,8 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 								APIVersion: testt2v1beta2.GroupVersion.String(),
 								Kind:       "TestResourceTemplate",
 								MatchResources: clusterv1.PatchSelectorMatch{
-									InfrastructureCluster: true,
-									ControlPlane:          true,
+									InfrastructureCluster: ptr.To(true),
+									ControlPlane:          ptr.To(true),
 									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 										Names: []string{machineDeploymentClass1.Class},
 									},

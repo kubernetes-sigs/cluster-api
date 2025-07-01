@@ -470,7 +470,9 @@ func autoConvert_v1alpha3_BootstrapTokenDiscovery_To_v1beta2_BootstrapTokenDisco
 	out.Token = in.Token
 	out.APIServerEndpoint = in.APIServerEndpoint
 	out.CACertHashes = *(*[]string)(unsafe.Pointer(&in.CACertHashes))
-	out.UnsafeSkipCAVerification = in.UnsafeSkipCAVerification
+	if err := v1.Convert_bool_To_Pointer_bool(&in.UnsafeSkipCAVerification, &out.UnsafeSkipCAVerification, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -483,7 +485,9 @@ func autoConvert_v1beta2_BootstrapTokenDiscovery_To_v1alpha3_BootstrapTokenDisco
 	out.Token = in.Token
 	out.APIServerEndpoint = in.APIServerEndpoint
 	out.CACertHashes = *(*[]string)(unsafe.Pointer(&in.CACertHashes))
-	out.UnsafeSkipCAVerification = in.UnsafeSkipCAVerification
+	if err := v1.Convert_Pointer_bool_To_bool(&in.UnsafeSkipCAVerification, &out.UnsafeSkipCAVerification, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -572,13 +576,33 @@ func Convert_v1beta2_ClusterConfiguration_To_v1alpha3_ClusterConfiguration(in *v
 
 func autoConvert_v1alpha3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *v1beta2.ControlPlaneComponent, s conversion.Scope) error {
 	// WARNING: in.ExtraArgs requires manual conversion: inconvertible types (map[string]string vs []sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg)
-	out.ExtraVolumes = *(*[]v1beta2.HostPathMount)(unsafe.Pointer(&in.ExtraVolumes))
+	if in.ExtraVolumes != nil {
+		in, out := &in.ExtraVolumes, &out.ExtraVolumes
+		*out = make([]v1beta2.HostPathMount, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_HostPathMount_To_v1beta2_HostPathMount(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ExtraVolumes = nil
+	}
 	return nil
 }
 
 func autoConvert_v1beta2_ControlPlaneComponent_To_v1alpha3_ControlPlaneComponent(in *v1beta2.ControlPlaneComponent, out *ControlPlaneComponent, s conversion.Scope) error {
 	// WARNING: in.ExtraArgs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg vs map[string]string)
-	out.ExtraVolumes = *(*[]HostPathMount)(unsafe.Pointer(&in.ExtraVolumes))
+	if in.ExtraVolumes != nil {
+		in, out := &in.ExtraVolumes, &out.ExtraVolumes
+		*out = make([]HostPathMount, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_HostPathMount_To_v1alpha3_HostPathMount(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ExtraVolumes = nil
+	}
 	// WARNING: in.ExtraEnvs requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -604,7 +628,15 @@ func Convert_v1beta2_DNS_To_v1alpha3_DNS(in *v1beta2.DNS, out *DNS, s conversion
 }
 
 func autoConvert_v1alpha3_Discovery_To_v1beta2_Discovery(in *Discovery, out *v1beta2.Discovery, s conversion.Scope) error {
-	out.BootstrapToken = (*v1beta2.BootstrapTokenDiscovery)(unsafe.Pointer(in.BootstrapToken))
+	if in.BootstrapToken != nil {
+		in, out := &in.BootstrapToken, &out.BootstrapToken
+		*out = new(v1beta2.BootstrapTokenDiscovery)
+		if err := Convert_v1alpha3_BootstrapTokenDiscovery_To_v1beta2_BootstrapTokenDiscovery(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.BootstrapToken = nil
+	}
 	if in.File != nil {
 		in, out := &in.File, &out.File
 		*out = new(v1beta2.FileDiscovery)
@@ -620,7 +652,15 @@ func autoConvert_v1alpha3_Discovery_To_v1beta2_Discovery(in *Discovery, out *v1b
 }
 
 func autoConvert_v1beta2_Discovery_To_v1alpha3_Discovery(in *v1beta2.Discovery, out *Discovery, s conversion.Scope) error {
-	out.BootstrapToken = (*BootstrapTokenDiscovery)(unsafe.Pointer(in.BootstrapToken))
+	if in.BootstrapToken != nil {
+		in, out := &in.BootstrapToken, &out.BootstrapToken
+		*out = new(BootstrapTokenDiscovery)
+		if err := Convert_v1beta2_BootstrapTokenDiscovery_To_v1alpha3_BootstrapTokenDiscovery(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.BootstrapToken = nil
+	}
 	if in.File != nil {
 		in, out := &in.File, &out.File
 		*out = new(FileDiscovery)
@@ -827,7 +867,9 @@ func autoConvert_v1alpha3_HostPathMount_To_v1beta2_HostPathMount(in *HostPathMou
 	out.Name = in.Name
 	out.HostPath = in.HostPath
 	out.MountPath = in.MountPath
-	out.ReadOnly = in.ReadOnly
+	if err := v1.Convert_bool_To_Pointer_bool(&in.ReadOnly, &out.ReadOnly, s); err != nil {
+		return err
+	}
 	out.PathType = corev1.HostPathType(in.PathType)
 	return nil
 }
@@ -841,7 +883,9 @@ func autoConvert_v1beta2_HostPathMount_To_v1alpha3_HostPathMount(in *v1beta2.Hos
 	out.Name = in.Name
 	out.HostPath = in.HostPath
 	out.MountPath = in.MountPath
-	out.ReadOnly = in.ReadOnly
+	if err := v1.Convert_Pointer_bool_To_bool(&in.ReadOnly, &out.ReadOnly, s); err != nil {
+		return err
+	}
 	out.PathType = corev1.HostPathType(in.PathType)
 	return nil
 }

@@ -550,7 +550,9 @@ func Convert_v1beta2_ClusterNetwork_To_v1alpha3_ClusterNetwork(in *v1beta2.Clust
 }
 
 func autoConvert_v1alpha3_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, out *v1beta2.ClusterSpec, s conversion.Scope) error {
-	out.Paused = in.Paused
+	if err := v1.Convert_bool_To_Pointer_bool(&in.Paused, &out.Paused, s); err != nil {
+		return err
+	}
 	out.ClusterNetwork = (*v1beta2.ClusterNetwork)(unsafe.Pointer(in.ClusterNetwork))
 	if err := Convert_v1alpha3_APIEndpoint_To_v1beta2_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
@@ -582,7 +584,9 @@ func Convert_v1alpha3_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, out *v
 }
 
 func autoConvert_v1beta2_ClusterSpec_To_v1alpha3_ClusterSpec(in *v1beta2.ClusterSpec, out *ClusterSpec, s conversion.Scope) error {
-	out.Paused = in.Paused
+	if err := v1.Convert_Pointer_bool_To_bool(&in.Paused, &out.Paused, s); err != nil {
+		return err
+	}
 	out.ClusterNetwork = (*ClusterNetwork)(unsafe.Pointer(in.ClusterNetwork))
 	if err := Convert_v1beta2_APIEndpoint_To_v1alpha3_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
@@ -831,7 +835,9 @@ func autoConvert_v1alpha3_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec
 	}
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.RevisionHistoryLimit requires manual conversion: does not exist in peer-type
-	out.Paused = in.Paused
+	if err := v1.Convert_bool_To_Pointer_bool(&in.Paused, &out.Paused, s); err != nil {
+		return err
+	}
 	// WARNING: in.ProgressDeadlineSeconds requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -854,7 +860,9 @@ func autoConvert_v1beta2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec
 		out.Strategy = nil
 	}
 	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
-	out.Paused = in.Paused
+	if err := v1.Convert_Pointer_bool_To_bool(&in.Paused, &out.Paused, s); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -87,7 +87,7 @@ func TestKubeadmControlPlaneReconciler_setControlPlaneInitialized(t *testing.T) 
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(controlPlane.KCP.Status.Initialization).ToNot(BeNil())
-		g.Expect(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized).To(BeTrue())
+		g.Expect(ptr.Deref(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized, false)).To(BeTrue())
 
 		setInitializedCondition(ctx, controlPlane.KCP)
 		c := conditions.Get(controlPlane.KCP, controlplanev1.KubeadmControlPlaneInitializedCondition)
@@ -163,7 +163,7 @@ func Test_setInitializedCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 					},
 				},
@@ -971,7 +971,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1003,7 +1003,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1063,7 +1063,7 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{
 							{Type: controlplanev1.KubeadmControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneInitializedReason, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-5 * time.Second)}},
@@ -1092,7 +1092,7 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{
 							{Type: controlplanev1.KubeadmControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneInitializedReason, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-5 * time.Minute)}},
@@ -1121,7 +1121,7 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 					},
 				},
@@ -1142,7 +1142,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1192,7 +1192,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1244,7 +1244,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1295,7 +1295,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1335,7 +1335,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1396,7 +1396,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1459,7 +1459,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1520,7 +1520,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1571,7 +1571,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1635,7 +1635,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1675,7 +1675,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1726,7 +1726,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1774,7 +1774,7 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1819,7 +1819,7 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1860,7 +1860,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesNotReady},
 					},
@@ -1899,7 +1899,7 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: true,
+							ControlPlaneInitialized: ptr.To(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},

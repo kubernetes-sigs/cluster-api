@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,6 +62,23 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	if err != nil {
 		return err
 	}
+
+	// Recover intent for bool values converted to *bool.
+	Initialization := controlplanev1.KubeadmControlPlaneInitializationStatus{}
+	var restoredControlPlaneInitialized *bool
+	if restored.Status.Initialization != nil {
+		restoredControlPlaneInitialized = restored.Status.Initialization.ControlPlaneInitialized
+	}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Initialized, ok, restoredControlPlaneInitialized, &Initialization.ControlPlaneInitialized)
+	if !reflect.DeepEqual(Initialization, controlplanev1.KubeadmControlPlaneInitializationStatus{}) {
+		dst.Status.Initialization = &Initialization
+	}
+
+	if err := bootstrapv1beta1.RestoreBoolIntentKubeadmConfigSpec(&src.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec, ok, &restored.Spec.KubeadmConfigSpec); err != nil {
+		return err
+	}
+
+	// Recover other values
 	if ok {
 		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec)
 	}
@@ -101,6 +119,13 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	if err != nil {
 		return err
 	}
+
+	// Recover intent for bool values converted to *bool.
+	if err := bootstrapv1beta1.RestoreBoolIntentKubeadmConfigSpec(&src.Spec.Template.Spec.KubeadmConfigSpec, &dst.Spec.Template.Spec.KubeadmConfigSpec, ok, &restored.Spec.Template.Spec.KubeadmConfigSpec); err != nil {
+		return err
+	}
+
+	// Recover other values
 	if ok {
 		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.Template.Spec.KubeadmConfigSpec, &dst.Spec.Template.Spec.KubeadmConfigSpec)
 	}
@@ -150,7 +175,7 @@ func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneSta
 
 	// Move initialized to ControlPlaneInitialized, rebuild ready
 	if in.Initialization != nil {
-		out.Initialized = in.Initialization.ControlPlaneInitialized
+		out.Initialized = ptr.Deref(in.Initialization.ControlPlaneInitialized, false)
 	}
 	out.Ready = out.ReadyReplicas > 0
 
@@ -203,13 +228,7 @@ func Convert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlaneSta
 	out.Deprecated.V1Beta1.ReadyReplicas = in.ReadyReplicas
 	out.Deprecated.V1Beta1.UnavailableReplicas = in.UnavailableReplicas
 
-	// Move initialized to ControlPlaneInitialized
-	if in.Initialized {
-		if out.Initialization == nil {
-			out.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{}
-		}
-		out.Initialization.ControlPlaneInitialized = in.Initialized
-	}
+	// Move initialized to ControlPlaneInitialized is implemented in ConvertTo.
 	return nil
 }
 

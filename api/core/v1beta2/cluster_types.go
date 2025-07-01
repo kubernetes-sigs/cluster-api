@@ -461,7 +461,7 @@ const (
 type ClusterSpec struct {
 	// paused can be used to prevent controllers from processing the Cluster and all its associated objects.
 	// +optional
-	Paused bool `json:"paused,omitempty"`
+	Paused *bool `json:"paused,omitempty"`
 
 	// clusterNetwork represents the cluster network configuration.
 	// +optional
@@ -1013,7 +1013,7 @@ type ClusterInitializationStatus struct {
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
 	// The value of this field is never updated after provisioning is completed.
 	// +optional
-	InfrastructureProvisioned bool `json:"infrastructureProvisioned"`
+	InfrastructureProvisioned *bool `json:"infrastructureProvisioned"`
 
 	// controlPlaneInitialized denotes when the control plane is functional enough to accept requests.
 	// This information is usually used as a signal for starting all the provisioning operations that depends on
@@ -1022,7 +1022,7 @@ type ClusterInitializationStatus struct {
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
 	// The value of this field is never updated after initialization is completed.
 	// +optional
-	ControlPlaneInitialized bool `json:"controlPlaneInitialized"`
+	ControlPlaneInitialized *bool `json:"controlPlaneInitialized"`
 }
 
 // ClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
@@ -1137,6 +1137,7 @@ func (c *ClusterStatus) GetTypedPhase() ClusterPhase {
 // ANCHOR: APIEndpoint
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
+// +kubebuilder:validation:MinProperties=1
 type APIEndpoint struct {
 	// host is the hostname on which the API server is serving.
 	// TODO: Can't set MinLength=1 for now, because this struct is not always used in pointer fields so today we have cases where host is set to an empty string.
@@ -1258,7 +1259,7 @@ type FailureDomain struct {
 
 	// controlPlane determines if this failure domain is suitable for use by control plane machines.
 	// +optional
-	ControlPlane bool `json:"controlPlane,omitempty"`
+	ControlPlane *bool `json:"controlPlane,omitempty"`
 
 	// attributes is a free form map of attributes an infrastructure provider might use or require.
 	// +optional

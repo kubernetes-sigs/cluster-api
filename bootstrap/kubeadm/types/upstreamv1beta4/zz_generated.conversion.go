@@ -360,7 +360,9 @@ func autoConvert_upstreamv1beta4_BootstrapTokenDiscovery_To_v1beta2_BootstrapTok
 	out.Token = in.Token
 	out.APIServerEndpoint = in.APIServerEndpoint
 	out.CACertHashes = *(*[]string)(unsafe.Pointer(&in.CACertHashes))
-	out.UnsafeSkipCAVerification = in.UnsafeSkipCAVerification
+	if err := v1.Convert_bool_To_Pointer_bool(&in.UnsafeSkipCAVerification, &out.UnsafeSkipCAVerification, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -373,7 +375,9 @@ func autoConvert_v1beta2_BootstrapTokenDiscovery_To_upstreamv1beta4_BootstrapTok
 	out.Token = in.Token
 	out.APIServerEndpoint = in.APIServerEndpoint
 	out.CACertHashes = *(*[]string)(unsafe.Pointer(&in.CACertHashes))
-	out.UnsafeSkipCAVerification = in.UnsafeSkipCAVerification
+	if err := v1.Convert_Pointer_bool_To_bool(&in.UnsafeSkipCAVerification, &out.UnsafeSkipCAVerification, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -465,7 +469,17 @@ func Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfiguratio
 
 func autoConvert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *v1beta2.ControlPlaneComponent, s conversion.Scope) error {
 	out.ExtraArgs = *(*[]v1beta2.Arg)(unsafe.Pointer(&in.ExtraArgs))
-	out.ExtraVolumes = *(*[]v1beta2.HostPathMount)(unsafe.Pointer(&in.ExtraVolumes))
+	if in.ExtraVolumes != nil {
+		in, out := &in.ExtraVolumes, &out.ExtraVolumes
+		*out = make([]v1beta2.HostPathMount, len(*in))
+		for i := range *in {
+			if err := Convert_upstreamv1beta4_HostPathMount_To_v1beta2_HostPathMount(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ExtraVolumes = nil
+	}
 	out.ExtraEnvs = *(*[]v1beta2.EnvVar)(unsafe.Pointer(&in.ExtraEnvs))
 	return nil
 }
@@ -477,7 +491,17 @@ func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_ControlPlaneCompon
 
 func autoConvert_v1beta2_ControlPlaneComponent_To_upstreamv1beta4_ControlPlaneComponent(in *v1beta2.ControlPlaneComponent, out *ControlPlaneComponent, s conversion.Scope) error {
 	out.ExtraArgs = *(*[]Arg)(unsafe.Pointer(&in.ExtraArgs))
-	out.ExtraVolumes = *(*[]HostPathMount)(unsafe.Pointer(&in.ExtraVolumes))
+	if in.ExtraVolumes != nil {
+		in, out := &in.ExtraVolumes, &out.ExtraVolumes
+		*out = make([]HostPathMount, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_HostPathMount_To_upstreamv1beta4_HostPathMount(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ExtraVolumes = nil
+	}
 	out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(&in.ExtraEnvs))
 	return nil
 }
@@ -508,7 +532,15 @@ func Convert_v1beta2_DNS_To_upstreamv1beta4_DNS(in *v1beta2.DNS, out *DNS, s con
 }
 
 func autoConvert_upstreamv1beta4_Discovery_To_v1beta2_Discovery(in *Discovery, out *v1beta2.Discovery, s conversion.Scope) error {
-	out.BootstrapToken = (*v1beta2.BootstrapTokenDiscovery)(unsafe.Pointer(in.BootstrapToken))
+	if in.BootstrapToken != nil {
+		in, out := &in.BootstrapToken, &out.BootstrapToken
+		*out = new(v1beta2.BootstrapTokenDiscovery)
+		if err := Convert_upstreamv1beta4_BootstrapTokenDiscovery_To_v1beta2_BootstrapTokenDiscovery(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.BootstrapToken = nil
+	}
 	if in.File != nil {
 		in, out := &in.File, &out.File
 		*out = new(v1beta2.FileDiscovery)
@@ -528,7 +560,15 @@ func Convert_upstreamv1beta4_Discovery_To_v1beta2_Discovery(in *Discovery, out *
 }
 
 func autoConvert_v1beta2_Discovery_To_upstreamv1beta4_Discovery(in *v1beta2.Discovery, out *Discovery, s conversion.Scope) error {
-	out.BootstrapToken = (*BootstrapTokenDiscovery)(unsafe.Pointer(in.BootstrapToken))
+	if in.BootstrapToken != nil {
+		in, out := &in.BootstrapToken, &out.BootstrapToken
+		*out = new(BootstrapTokenDiscovery)
+		if err := Convert_v1beta2_BootstrapTokenDiscovery_To_upstreamv1beta4_BootstrapTokenDiscovery(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.BootstrapToken = nil
+	}
 	if in.File != nil {
 		in, out := &in.File, &out.File
 		*out = new(FileDiscovery)
@@ -630,7 +670,9 @@ func autoConvert_upstreamv1beta4_HostPathMount_To_v1beta2_HostPathMount(in *Host
 	out.Name = in.Name
 	out.HostPath = in.HostPath
 	out.MountPath = in.MountPath
-	out.ReadOnly = in.ReadOnly
+	if err := v1.Convert_bool_To_Pointer_bool(&in.ReadOnly, &out.ReadOnly, s); err != nil {
+		return err
+	}
 	out.PathType = corev1.HostPathType(in.PathType)
 	return nil
 }
@@ -644,7 +686,9 @@ func autoConvert_v1beta2_HostPathMount_To_upstreamv1beta4_HostPathMount(in *v1be
 	out.Name = in.Name
 	out.HostPath = in.HostPath
 	out.MountPath = in.MountPath
-	out.ReadOnly = in.ReadOnly
+	if err := v1.Convert_Pointer_bool_To_bool(&in.ReadOnly, &out.ReadOnly, s); err != nil {
+		return err
+	}
 	out.PathType = corev1.HostPathType(in.PathType)
 	return nil
 }

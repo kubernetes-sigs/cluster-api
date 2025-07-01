@@ -292,7 +292,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 	}
 	switch {
 	// Wait for the infrastructure to be provisioned.
-	case (cluster.Status.Initialization == nil || !cluster.Status.Initialization.InfrastructureProvisioned):
+	case (cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false)):
 		log.Info("Cluster infrastructure is not ready, waiting")
 		v1beta1conditions.MarkFalse(config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.WaitingForClusterInfrastructureV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(scope.Config, metav1.Condition{
@@ -304,11 +304,11 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 		return ctrl.Result{}, nil
 	// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
 	// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
-	case configOwner.DataSecretName() != nil && (config.Status.Initialization == nil || !config.Status.Initialization.DataSecretCreated || config.Status.DataSecretName == nil):
+	case configOwner.DataSecretName() != nil && (config.Status.Initialization == nil || !ptr.Deref(config.Status.Initialization.DataSecretCreated, false) || config.Status.DataSecretName == nil):
 		if config.Status.Initialization == nil {
 			config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
 		}
-		config.Status.Initialization.DataSecretCreated = true
+		config.Status.Initialization.DataSecretCreated = ptr.To(true)
 		config.Status.DataSecretName = configOwner.DataSecretName()
 		v1beta1conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableV1Beta1Condition)
 		conditions.Set(scope.Config, metav1.Condition{
@@ -324,7 +324,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 		return ctrl.Result{}, nil
 	// Status is ready means a config has been generated.
 	// This also solves the upgrade scenario to a version which includes v1beta2 to ensure v1beta2 conditions are properly set.
-	case config.Status.Initialization != nil && config.Status.Initialization.DataSecretCreated:
+	case config.Status.Initialization != nil && ptr.Deref(config.Status.Initialization.DataSecretCreated, false):
 		// Based on existing code paths status.Ready is only true if status.dataSecretName is set
 		// So we can assume that the DataSecret is available.
 		v1beta1conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableV1Beta1Condition)
@@ -1044,7 +1044,7 @@ func (r *KubeadmConfigReconciler) resolveDiscoveryKubeConfig(cfg *bootstrapv1.Fi
 	cluster := clientcmdv1.Cluster{
 		Server:                   cfg.KubeConfig.Cluster.Server,
 		TLSServerName:            cfg.KubeConfig.Cluster.TLSServerName,
-		InsecureSkipTLSVerify:    cfg.KubeConfig.Cluster.InsecureSkipTLSVerify,
+		InsecureSkipTLSVerify:    ptr.Deref(cfg.KubeConfig.Cluster.InsecureSkipTLSVerify, false),
 		CertificateAuthorityData: cfg.KubeConfig.Cluster.CertificateAuthorityData,
 		ProxyURL:                 cfg.KubeConfig.Cluster.ProxyURL,
 	}
@@ -1060,7 +1060,7 @@ func (r *KubeadmConfigReconciler) resolveDiscoveryKubeConfig(cfg *bootstrapv1.Fi
 			Command:            cfg.KubeConfig.User.Exec.Command,
 			Args:               cfg.KubeConfig.User.Exec.Args,
 			APIVersion:         cfg.KubeConfig.User.Exec.APIVersion,
-			ProvideClusterInfo: cfg.KubeConfig.User.Exec.ProvideClusterInfo,
+			ProvideClusterInfo: ptr.Deref(cfg.KubeConfig.User.Exec.ProvideClusterInfo, false),
 			InteractiveMode:    "Never",
 		}
 		for _, env := range cfg.KubeConfig.User.Exec.Env {
@@ -1272,7 +1272,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 	// If the BootstrapToken does not contain any CACertHashes then force skip CA Verification
 	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 {
 		log.Info("No CAs were provided. Falling back to insecure discover method by skipping CA Cert validation")
-		config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification = true
+		config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification = ptr.To(true)
 	}
 
 	return ctrl.Result{}, nil
@@ -1402,7 +1402,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 	if scope.Config.Status.Initialization == nil {
 		scope.Config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
 	}
-	scope.Config.Status.Initialization.DataSecretCreated = true
+	scope.Config.Status.Initialization.DataSecretCreated = ptr.To(true)
 	v1beta1conditions.MarkTrue(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition)
 	conditions.Set(scope.Config, metav1.Condition{
 		Type:   bootstrapv1.KubeadmConfigDataSecretAvailableCondition,

@@ -19,6 +19,7 @@ package v1alpha4
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"maps"
 	"slices"
 	"sort"
@@ -81,69 +82,97 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Deprecated.V1Beta1.FailureMessage = src.Status.FailureMessage
 	}
 
-	// Move ControlPlaneReady and InfrastructureReady to Initialization
-	if src.Status.ControlPlaneReady || src.Status.InfrastructureReady {
-		if dst.Status.Initialization == nil {
-			dst.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
-		}
-		dst.Status.Initialization.ControlPlaneInitialized = src.Status.ControlPlaneReady
-		dst.Status.Initialization.InfrastructureProvisioned = src.Status.InfrastructureReady
-	}
+	// Move ControlPlaneReady and InfrastructureReady to Initialization is implemented in ConvertTo.
 
 	// Manually restore data.
 	restored := &clusterv1.Cluster{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
 
-	dst.Spec.AvailabilityGates = restored.Spec.AvailabilityGates
-	if restored.Spec.Topology != nil {
-		if dst.Spec.Topology == nil {
-			dst.Spec.Topology = &clusterv1.Topology{}
-		}
-		dst.Spec.Topology.ClassRef.Namespace = restored.Spec.Topology.ClassRef.Namespace
-		dst.Spec.Topology.Variables = restored.Spec.Topology.Variables
-		dst.Spec.Topology.ControlPlane.Variables = restored.Spec.Topology.ControlPlane.Variables
+	// Recover intent for bool values converted to *bool.
+	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.Paused, ok, restored.Spec.Paused, &dst.Spec.Paused)
 
-		if restored.Spec.Topology.ControlPlane.MachineHealthCheck != nil {
-			dst.Spec.Topology.ControlPlane.MachineHealthCheck = restored.Spec.Topology.ControlPlane.MachineHealthCheck
-		}
-
-		if restored.Spec.Topology.ControlPlane.NodeDrainTimeoutSeconds != nil {
-			dst.Spec.Topology.ControlPlane.NodeDrainTimeoutSeconds = restored.Spec.Topology.ControlPlane.NodeDrainTimeoutSeconds
-		}
-
-		if restored.Spec.Topology.ControlPlane.NodeVolumeDetachTimeoutSeconds != nil {
-			dst.Spec.Topology.ControlPlane.NodeVolumeDetachTimeoutSeconds = restored.Spec.Topology.ControlPlane.NodeVolumeDetachTimeoutSeconds
-		}
-
-		if restored.Spec.Topology.ControlPlane.NodeDeletionTimeoutSeconds != nil {
-			dst.Spec.Topology.ControlPlane.NodeDeletionTimeoutSeconds = restored.Spec.Topology.ControlPlane.NodeDeletionTimeoutSeconds
-		}
-		dst.Spec.Topology.ControlPlane.ReadinessGates = restored.Spec.Topology.ControlPlane.ReadinessGates
-
-		if restored.Spec.Topology.Workers != nil {
-			if dst.Spec.Topology.Workers == nil {
-				dst.Spec.Topology.Workers = &clusterv1.WorkersTopology{}
-			}
-			for i := range restored.Spec.Topology.Workers.MachineDeployments {
-				dst.Spec.Topology.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Topology.Workers.MachineDeployments[i].FailureDomain
-				dst.Spec.Topology.Workers.MachineDeployments[i].Variables = restored.Spec.Topology.Workers.MachineDeployments[i].Variables
-				dst.Spec.Topology.Workers.MachineDeployments[i].ReadinessGates = restored.Spec.Topology.Workers.MachineDeployments[i].ReadinessGates
-				dst.Spec.Topology.Workers.MachineDeployments[i].NodeDrainTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].NodeDrainTimeoutSeconds
-				dst.Spec.Topology.Workers.MachineDeployments[i].NodeVolumeDetachTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].NodeVolumeDetachTimeoutSeconds
-				dst.Spec.Topology.Workers.MachineDeployments[i].NodeDeletionTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].NodeDeletionTimeoutSeconds
-				dst.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds = restored.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds
-				dst.Spec.Topology.Workers.MachineDeployments[i].Strategy = restored.Spec.Topology.Workers.MachineDeployments[i].Strategy
-				dst.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck = restored.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck
-			}
-
-			dst.Spec.Topology.Workers.MachinePools = restored.Spec.Topology.Workers.MachinePools
-		}
+	Initialization := clusterv1.ClusterInitializationStatus{}
+	var restoredControlPlaneInitialized, restoredInfrastructureProvisioned *bool
+	if restored.Status.Initialization != nil {
+		restoredControlPlaneInitialized = restored.Status.Initialization.ControlPlaneInitialized
+		restoredInfrastructureProvisioned = restored.Status.Initialization.InfrastructureProvisioned
 	}
-	dst.Status.Conditions = restored.Status.Conditions
-	dst.Status.ControlPlane = restored.Status.ControlPlane
-	dst.Status.Workers = restored.Status.Workers
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.ControlPlaneReady, ok, restoredControlPlaneInitialized, &Initialization.ControlPlaneInitialized)
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &Initialization.InfrastructureProvisioned)
+	if !reflect.DeepEqual(Initialization, clusterv1.ClusterInitializationStatus{}) {
+		dst.Status.Initialization = &Initialization
+	}
+
+	for i, fd := range dst.Status.FailureDomains {
+		srcFD, ok := src.Status.FailureDomains[fd.Name]
+		if !ok {
+			return fmt.Errorf("failure domain %q not found in source data", fd.Name)
+		}
+		var restoredFDControlPlane *bool
+		for _, restoredFD := range restored.Status.FailureDomains {
+			if restoredFD.Name == fd.Name {
+				restoredFDControlPlane = restoredFD.ControlPlane
+				break
+			}
+		}
+		clusterv1.Convert_bool_To_Pointer_bool(srcFD.ControlPlane, ok, restoredFDControlPlane, &fd.ControlPlane)
+		dst.Status.FailureDomains[i] = fd
+	}
+
+	// Recover other values
+	if ok {
+		dst.Spec.AvailabilityGates = restored.Spec.AvailabilityGates
+		if restored.Spec.Topology != nil {
+			if dst.Spec.Topology == nil {
+				dst.Spec.Topology = &clusterv1.Topology{}
+			}
+			dst.Spec.Topology.ClassRef.Namespace = restored.Spec.Topology.ClassRef.Namespace
+			dst.Spec.Topology.Variables = restored.Spec.Topology.Variables
+			dst.Spec.Topology.ControlPlane.Variables = restored.Spec.Topology.ControlPlane.Variables
+
+			if restored.Spec.Topology.ControlPlane.MachineHealthCheck != nil {
+				dst.Spec.Topology.ControlPlane.MachineHealthCheck = restored.Spec.Topology.ControlPlane.MachineHealthCheck
+			}
+
+			if restored.Spec.Topology.ControlPlane.NodeDrainTimeoutSeconds != nil {
+				dst.Spec.Topology.ControlPlane.NodeDrainTimeoutSeconds = restored.Spec.Topology.ControlPlane.NodeDrainTimeoutSeconds
+			}
+
+			if restored.Spec.Topology.ControlPlane.NodeVolumeDetachTimeoutSeconds != nil {
+				dst.Spec.Topology.ControlPlane.NodeVolumeDetachTimeoutSeconds = restored.Spec.Topology.ControlPlane.NodeVolumeDetachTimeoutSeconds
+			}
+
+			if restored.Spec.Topology.ControlPlane.NodeDeletionTimeoutSeconds != nil {
+				dst.Spec.Topology.ControlPlane.NodeDeletionTimeoutSeconds = restored.Spec.Topology.ControlPlane.NodeDeletionTimeoutSeconds
+			}
+			dst.Spec.Topology.ControlPlane.ReadinessGates = restored.Spec.Topology.ControlPlane.ReadinessGates
+
+			if restored.Spec.Topology.Workers != nil {
+				if dst.Spec.Topology.Workers == nil {
+					dst.Spec.Topology.Workers = &clusterv1.WorkersTopology{}
+				}
+				for i := range restored.Spec.Topology.Workers.MachineDeployments {
+					dst.Spec.Topology.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Topology.Workers.MachineDeployments[i].FailureDomain
+					dst.Spec.Topology.Workers.MachineDeployments[i].Variables = restored.Spec.Topology.Workers.MachineDeployments[i].Variables
+					dst.Spec.Topology.Workers.MachineDeployments[i].ReadinessGates = restored.Spec.Topology.Workers.MachineDeployments[i].ReadinessGates
+					dst.Spec.Topology.Workers.MachineDeployments[i].NodeDrainTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].NodeDrainTimeoutSeconds
+					dst.Spec.Topology.Workers.MachineDeployments[i].NodeVolumeDetachTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].NodeVolumeDetachTimeoutSeconds
+					dst.Spec.Topology.Workers.MachineDeployments[i].NodeDeletionTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].NodeDeletionTimeoutSeconds
+					dst.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds = restored.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds
+					dst.Spec.Topology.Workers.MachineDeployments[i].Strategy = restored.Spec.Topology.Workers.MachineDeployments[i].Strategy
+					dst.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck = restored.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck
+				}
+
+				dst.Spec.Topology.Workers.MachinePools = restored.Spec.Topology.Workers.MachinePools
+			}
+		}
+		dst.Status.Conditions = restored.Status.Conditions
+		dst.Status.ControlPlane = restored.Status.ControlPlane
+		dst.Status.Workers = restored.Status.Workers
+	}
 
 	return nil
 }
@@ -188,8 +217,8 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Move initialization to old fields
 	if src.Status.Initialization != nil {
-		dst.Status.ControlPlaneReady = src.Status.Initialization.ControlPlaneInitialized
-		dst.Status.InfrastructureReady = src.Status.Initialization.InfrastructureProvisioned
+		dst.Status.ControlPlaneReady = ptr.Deref(src.Status.Initialization.ControlPlaneInitialized, false)
+		dst.Status.InfrastructureReady = ptr.Deref(src.Status.Initialization.InfrastructureProvisioned, false)
 	}
 
 	// Preserve Hub data on down-conversion except for metadata
@@ -286,28 +315,36 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Deprecated.V1Beta1.FailureMessage = src.Status.FailureMessage
 	}
 
-	// Move BootstrapReady and InfrastructureReady to Initialization
-	if src.Status.BootstrapReady || src.Status.InfrastructureReady {
-		if dst.Status.Initialization == nil {
-			dst.Status.Initialization = &clusterv1.MachineInitializationStatus{}
-		}
-		dst.Status.Initialization.BootstrapDataSecretCreated = src.Status.BootstrapReady
-		dst.Status.Initialization.InfrastructureProvisioned = src.Status.InfrastructureReady
-	}
-
 	// Manually restore data.
 	restored := &clusterv1.Machine{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
 
-	dst.Spec.MinReadySeconds = restored.Spec.MinReadySeconds
-	dst.Spec.ReadinessGates = restored.Spec.ReadinessGates
-	dst.Spec.NodeDeletionTimeoutSeconds = restored.Spec.NodeDeletionTimeoutSeconds
-	dst.Status.CertificatesExpiryDate = restored.Status.CertificatesExpiryDate
-	dst.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.NodeVolumeDetachTimeoutSeconds
-	dst.Status.Deletion = restored.Status.Deletion
-	dst.Status.Conditions = restored.Status.Conditions
+	// Recover intent for bool values converted to *bool.
+	Initialization := clusterv1.MachineInitializationStatus{}
+	var restoredBootstrapDataSecretCreated, restoredInfrastructureProvisioned *bool
+	if restored.Status.Initialization != nil {
+		restoredBootstrapDataSecretCreated = restored.Status.Initialization.BootstrapDataSecretCreated
+		restoredInfrastructureProvisioned = restored.Status.Initialization.InfrastructureProvisioned
+	}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.BootstrapReady, ok, restoredBootstrapDataSecretCreated, &Initialization.BootstrapDataSecretCreated)
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &Initialization.InfrastructureProvisioned)
+	if !reflect.DeepEqual(Initialization, clusterv1.MachineInitializationStatus{}) {
+		dst.Status.Initialization = &Initialization
+	}
+
+	// Recover other values
+	if ok {
+		dst.Spec.MinReadySeconds = restored.Spec.MinReadySeconds
+		dst.Spec.ReadinessGates = restored.Spec.ReadinessGates
+		dst.Spec.NodeDeletionTimeoutSeconds = restored.Spec.NodeDeletionTimeoutSeconds
+		dst.Status.CertificatesExpiryDate = restored.Status.CertificatesExpiryDate
+		dst.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.NodeVolumeDetachTimeoutSeconds
+		dst.Status.Deletion = restored.Status.Deletion
+		dst.Status.Conditions = restored.Status.Conditions
+	}
 
 	return nil
 }
@@ -340,8 +377,8 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Move initialization to old fields
 	if src.Status.Initialization != nil {
-		dst.Status.BootstrapReady = src.Status.Initialization.BootstrapDataSecretCreated
-		dst.Status.InfrastructureReady = src.Status.Initialization.InfrastructureProvisioned
+		dst.Status.BootstrapReady = ptr.Deref(src.Status.Initialization.BootstrapDataSecretCreated, false)
+		dst.Status.InfrastructureReady = ptr.Deref(src.Status.Initialization.InfrastructureProvisioned, false)
 	}
 
 	// Preserve Hub data on down-conversion except for metadata
@@ -476,29 +513,36 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &clusterv1.MachineDeployment{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
 
-	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
-	dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
-	dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
-	dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
+	// Recover intent for bool values converted to *bool.
+	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.Paused, ok, restored.Spec.Paused, &dst.Spec.Paused)
 
-	if restored.Spec.Strategy != nil {
-		if dst.Spec.Strategy == nil {
-			dst.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{}
+	// Recover other values
+	if ok {
+		dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
+		dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
+		dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
+		dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
+
+		if restored.Spec.Strategy != nil {
+			if dst.Spec.Strategy == nil {
+				dst.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{}
+			}
+			dst.Spec.Strategy.Remediation = restored.Spec.Strategy.Remediation
 		}
-		dst.Spec.Strategy.Remediation = restored.Spec.Strategy.Remediation
-	}
 
-	if restored.Spec.MachineNamingStrategy != nil {
-		dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
+		if restored.Spec.MachineNamingStrategy != nil {
+			dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
+		}
+		dst.Status.Conditions = restored.Status.Conditions
+		dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
+		dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
+		dst.Status.UpToDateReplicas = restored.Status.UpToDateReplicas
 	}
-	dst.Status.Conditions = restored.Status.Conditions
-	dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
-	dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
-	dst.Status.UpToDateReplicas = restored.Status.UpToDateReplicas
 
 	return nil
 }
@@ -624,29 +668,38 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Deprecated.V1Beta1.ReadyReplicas = src.Status.ReadyReplicas
 	dst.Status.Deprecated.V1Beta1.AvailableReplicas = src.Status.AvailableReplicas
 	dst.Status.Deprecated.V1Beta1.UnavailableReplicas = src.Status.UnavailableReplicas
-
-	// Move BootstrapReady and InfrastructureReady to Initialization
-	if src.Status.BootstrapReady || src.Status.InfrastructureReady {
-		if dst.Status.Initialization == nil {
-			dst.Status.Initialization = &clusterv1.MachinePoolInitializationStatus{}
-		}
-		dst.Status.Initialization.BootstrapDataSecretCreated = src.Status.BootstrapReady
-		dst.Status.Initialization.InfrastructureProvisioned = src.Status.InfrastructureReady
-	}
 	dst.Spec.Template.Spec.MinReadySeconds = src.Spec.MinReadySeconds
 
 	// Manually restore data.
 	restored := &clusterv1.MachinePool{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
-	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
-	dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
-	dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
-	dst.Status.Conditions = restored.Status.Conditions
-	dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
-	dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
-	dst.Status.UpToDateReplicas = restored.Status.UpToDateReplicas
+
+	// Recover intent for bool values converted to *bool.
+	Initialization := clusterv1.MachinePoolInitializationStatus{}
+	var restoredBootstrapDataSecretCreated, restoredInfrastructureProvisioned *bool
+	if restored.Status.Initialization != nil {
+		restoredBootstrapDataSecretCreated = restored.Status.Initialization.BootstrapDataSecretCreated
+		restoredInfrastructureProvisioned = restored.Status.Initialization.InfrastructureProvisioned
+	}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.BootstrapReady, ok, restoredBootstrapDataSecretCreated, &Initialization.BootstrapDataSecretCreated)
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &Initialization.InfrastructureProvisioned)
+	if !reflect.DeepEqual(Initialization, clusterv1.MachinePoolInitializationStatus{}) {
+		dst.Status.Initialization = &Initialization
+	}
+
+	// Recover other values
+	if ok {
+		dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
+		dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
+		dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
+		dst.Status.Conditions = restored.Status.Conditions
+		dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
+		dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
+		dst.Status.UpToDateReplicas = restored.Status.UpToDateReplicas
+	}
 
 	return nil
 }
@@ -687,8 +740,8 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Move initialization to old fields
 	if src.Status.Initialization != nil {
-		dst.Status.BootstrapReady = src.Status.Initialization.BootstrapDataSecretCreated
-		dst.Status.InfrastructureReady = src.Status.Initialization.InfrastructureProvisioned
+		dst.Status.BootstrapReady = ptr.Deref(src.Status.Initialization.BootstrapDataSecretCreated, false)
+		dst.Status.InfrastructureReady = ptr.Deref(src.Status.Initialization.InfrastructureProvisioned, false)
 	}
 
 	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
@@ -761,7 +814,7 @@ func Convert_v1beta2_ClusterStatus_To_v1alpha4_ClusterStatus(in *clusterv1.Clust
 		out.FailureDomains = FailureDomains{}
 		for _, fd := range in.FailureDomains {
 			out.FailureDomains[fd.Name] = FailureDomainSpec{
-				ControlPlane: fd.ControlPlane,
+				ControlPlane: ptr.Deref(fd.ControlPlane, false),
 				Attributes:   fd.Attributes,
 			}
 		}
@@ -925,7 +978,7 @@ func Convert_v1alpha4_ClusterStatus_To_v1beta2_ClusterStatus(in *ClusterStatus, 
 			fd := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: fd.ControlPlane,
+				ControlPlane: nil, // Note: this field will be computed in ConvertTo
 				Attributes:   fd.Attributes,
 			})
 		}

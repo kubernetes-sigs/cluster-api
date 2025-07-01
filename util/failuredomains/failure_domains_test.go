@@ -117,11 +117,11 @@ func TestPickMost(t *testing.T) {
 	fds := []clusterv1.FailureDomain{
 		{
 			Name:         *a,
-			ControlPlane: true,
+			ControlPlane: ptr.To(true),
 		},
 		{
 			Name:         *b,
-			ControlPlane: true,
+			ControlPlane: ptr.To(true),
 		},
 	}
 	machinea := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: a}}
@@ -160,7 +160,7 @@ func TestPickMost(t *testing.T) {
 			fds: []clusterv1.FailureDomain{
 				{
 					Name:         *a,
-					ControlPlane: true,
+					ControlPlane: ptr.To(true),
 				},
 			},
 			allMachines:      collections.FromMachines(machinenil.DeepCopy()),
@@ -172,7 +172,7 @@ func TestPickMost(t *testing.T) {
 			fds: []clusterv1.FailureDomain{
 				{
 					Name:         *a,
-					ControlPlane: true,
+					ControlPlane: ptr.To(true),
 				},
 			},
 			allMachines:      collections.FromMachines(machineb.DeepCopy()),
@@ -215,14 +215,14 @@ func TestPickFewestNew(t *testing.T) {
 	c := "us-west-1c"
 
 	fds3 := []clusterv1.FailureDomain{
-		{Name: a, ControlPlane: true},
-		{Name: b, ControlPlane: true},
-		{Name: c, ControlPlane: true},
+		{Name: a, ControlPlane: ptr.To(true)},
+		{Name: b, ControlPlane: ptr.To(true)},
+		{Name: c, ControlPlane: ptr.To(true)},
 	}
 
 	fds2 := []clusterv1.FailureDomain{
-		{Name: a, ControlPlane: true},
-		{Name: b, ControlPlane: true},
+		{Name: a, ControlPlane: ptr.To(true)},
+		{Name: b, ControlPlane: ptr.To(true)},
 	}
 
 	fds0 := []clusterv1.FailureDomain{}
@@ -505,14 +505,14 @@ func TestPickMostNew(t *testing.T) {
 	c := "us-west-1c"
 
 	fds3 := []clusterv1.FailureDomain{
-		{Name: a, ControlPlane: true},
-		{Name: b, ControlPlane: true},
-		{Name: c, ControlPlane: true},
+		{Name: a, ControlPlane: ptr.To(true)},
+		{Name: b, ControlPlane: ptr.To(true)},
+		{Name: c, ControlPlane: ptr.To(true)},
 	}
 
 	fds2 := []clusterv1.FailureDomain{
-		{Name: a, ControlPlane: true},
-		{Name: b, ControlPlane: true},
+		{Name: a, ControlPlane: ptr.To(true)},
+		{Name: b, ControlPlane: ptr.To(true)},
 	}
 
 	fds0 := []clusterv1.FailureDomain{}
@@ -847,8 +847,8 @@ func TestCountByFailureDomain(t *testing.T) {
 	b := "us-west-1b"
 
 	fds := []clusterv1.FailureDomain{
-		{Name: a, ControlPlane: true},
-		{Name: b, ControlPlane: true},
+		{Name: a, ControlPlane: ptr.To(true)},
+		{Name: b, ControlPlane: ptr.To(true)},
 	}
 	machinea1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a1"}, Spec: clusterv1.MachineSpec{FailureDomain: ptr.To(a)}}
 	machinea2 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a2"}, Spec: clusterv1.MachineSpec{FailureDomain: ptr.To(a)}}

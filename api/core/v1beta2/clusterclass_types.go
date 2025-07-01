@@ -676,7 +676,7 @@ type JSONSchemaProps struct {
 	// uniqueItems specifies if items in an array must be unique.
 	// NOTE: Can only be set if type is array.
 	// +optional
-	UniqueItems bool `json:"uniqueItems,omitempty"`
+	UniqueItems *bool `json:"uniqueItems,omitempty"`
 
 	// format is an OpenAPI v3 format string. Unknown formats are ignored.
 	// For a list of supported formats please see: (of the k8s.io/apiextensions-apiserver version we're currently using)
@@ -714,7 +714,7 @@ type JSONSchemaProps struct {
 	// exclusiveMaximum specifies if the Maximum is exclusive.
 	// NOTE: Can only be set if type is integer or number.
 	// +optional
-	ExclusiveMaximum bool `json:"exclusiveMaximum,omitempty"`
+	ExclusiveMaximum *bool `json:"exclusiveMaximum,omitempty"`
 
 	// minimum is the minimum of an integer or number variable.
 	// If ExclusiveMinimum is false, the variable is valid if it is greater than, or equal to, the value of Minimum.
@@ -726,13 +726,13 @@ type JSONSchemaProps struct {
 	// exclusiveMinimum specifies if the Minimum is exclusive.
 	// NOTE: Can only be set if type is integer or number.
 	// +optional
-	ExclusiveMinimum bool `json:"exclusiveMinimum,omitempty"`
+	ExclusiveMinimum *bool `json:"exclusiveMinimum,omitempty"`
 
 	// x-kubernetes-preserve-unknown-fields allows setting fields in a variable object
 	// which are not defined in the variable schema. This affects fields recursively,
 	// except if nested properties or additionalProperties are specified in the schema.
 	// +optional
-	XPreserveUnknownFields bool `json:"x-kubernetes-preserve-unknown-fields,omitempty"`
+	XPreserveUnknownFields *bool `json:"x-kubernetes-preserve-unknown-fields,omitempty"`
 
 	// enum is the list of valid values of the variable.
 	// NOTE: Can be set for all types.
@@ -771,7 +771,7 @@ type JSONSchemaProps struct {
 	//      - type: string
 	//    - ... zero or more
 	// +optional
-	XIntOrString bool `json:"x-kubernetes-int-or-string,omitempty"`
+	XIntOrString *bool `json:"x-kubernetes-int-or-string,omitempty"`
 
 	// allOf specifies that the variable must validate against all of the subschemas in the array.
 	// NOTE: This field uses PreserveUnknownFields and Schemaless,
@@ -1025,11 +1025,11 @@ type PatchSelectorMatch struct {
 	// Note: this will match the controlPlane and also the controlPlane
 	// machineInfrastructure (depending on the kind and apiVersion).
 	// +optional
-	ControlPlane bool `json:"controlPlane,omitempty"`
+	ControlPlane *bool `json:"controlPlane,omitempty"`
 
 	// infrastructureCluster selects templates referenced in .spec.infrastructure.
 	// +optional
-	InfrastructureCluster bool `json:"infrastructureCluster,omitempty"`
+	InfrastructureCluster *bool `json:"infrastructureCluster,omitempty"`
 
 	// machineDeploymentClass selects templates referenced in specific MachineDeploymentClasses in
 	// .spec.workers.machineDeployments.
@@ -1255,7 +1255,7 @@ type ClusterClassStatusVariable struct {
 
 	// definitionsConflict specifies whether or not there are conflicting definitions for a single variable name.
 	// +optional
-	DefinitionsConflict bool `json:"definitionsConflict"`
+	DefinitionsConflict *bool `json:"definitionsConflict"`
 
 	// definitions is a list of definitions for a variable.
 	// +kubebuilder:validation:MaxItems=100

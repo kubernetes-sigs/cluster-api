@@ -2275,6 +2275,7 @@ spec:
               controlPlaneEndpoint:
                 description: controlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
+                minProperties: 1
                 properties:
                   host:
                     description: host is the hostname on which the API server is serving.

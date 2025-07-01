@@ -36,6 +36,7 @@ import (
 	"k8s.io/client-go/rest/fake"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -98,7 +99,7 @@ func TestReconcile(t *testing.T) {
 
 	// Set Cluster.Status.InfrastructureReady == true
 	patch := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 	g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
 
 	// Reconcile, kubeconfig Secret doesn't exist
@@ -749,7 +750,7 @@ func createCluster(g Gomega, testCluster testCluster) {
 	}
 
 	patch := client.MergeFrom(cluster.DeepCopy())
-	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 	g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 }
 

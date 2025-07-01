@@ -612,7 +612,7 @@ type BootstrapTokenDiscovery struct {
 	// without CA verification via CACertHashes. This can weaken
 	// the security of kubeadm since other nodes can impersonate the control-plane.
 	// +optional
-	UnsafeSkipCAVerification bool `json:"unsafeSkipCAVerification,omitempty"`
+	UnsafeSkipCAVerification *bool `json:"unsafeSkipCAVerification,omitempty"`
 }
 
 // FileDiscovery is used to specify a file or URL to a kubeconfig file from which to load cluster information.
@@ -670,7 +670,7 @@ type KubeConfigCluster struct {
 
 	// insecureSkipTLSVerify skips the validity check for the server's certificate. This will make your HTTPS connections insecure.
 	// +optional
-	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify,omitempty"`
+	InsecureSkipTLSVerify *bool `json:"insecureSkipTLSVerify,omitempty"`
 
 	// certificateAuthorityData contains PEM-encoded certificate authority certificates.
 	//
@@ -766,7 +766,7 @@ type KubeConfigAuthExec struct {
 	// to false. Package k8s.io/client-go/tools/auth/exec provides helper methods for
 	// reading this environment variable.
 	// +optional
-	ProvideClusterInfo bool `json:"provideClusterInfo,omitempty"`
+	ProvideClusterInfo *bool `json:"provideClusterInfo,omitempty"`
 }
 
 // KubeConfigAuthExecEnv is used for setting environment variables when executing an exec-based
@@ -805,7 +805,7 @@ type HostPathMount struct {
 	MountPath string `json:"mountPath"`
 	// readOnly controls write access to the volume
 	// +optional
-	ReadOnly bool `json:"readOnly,omitempty"`
+	ReadOnly *bool `json:"readOnly,omitempty"`
 	// pathType is the type of the HostPath.
 	// +optional
 	PathType corev1.HostPathType `json:"pathType,omitempty"`

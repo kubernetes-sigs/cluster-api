@@ -601,7 +601,7 @@ func TestRender(t *testing.T) {
 
 	t.Run("treats warnings as errors in strict mode", func(t *testing.T) {
 		config := &bootstrapv1.ContainerLinuxConfig{
-			Strict:           true,
+			Strict:           ptr.To(true),
 			AdditionalConfig: configWithWarning,
 		}
 

@@ -2453,7 +2453,7 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{
-		InfrastructureProvisioned: true,
+		InfrastructureProvisioned: ptr.To(true),
 	}
 	conditions.Set(cluster, metav1.Condition{
 		Type:   clusterv1.ClusterInfrastructureReadyCondition,
@@ -2497,8 +2497,8 @@ func newRunningMachine(c *clusterv1.Cluster, labels map[string]string) *clusterv
 		},
 		Status: clusterv1.MachineStatus{
 			Initialization: &clusterv1.MachineInitializationStatus{
-				InfrastructureProvisioned:  true,
-				BootstrapDataSecretCreated: true,
+				InfrastructureProvisioned:  ptr.To(true),
+				BootstrapDataSecretCreated: ptr.To(true),
 			},
 			Phase:              string(clusterv1.MachinePhaseRunning),
 			ObservedGeneration: 1,

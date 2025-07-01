@@ -19,11 +19,13 @@ package v1alpha4
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -71,20 +73,29 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Deprecated.V1Beta1.UpdatedReplicas = src.Status.UpdatedReplicas
 	dst.Status.Deprecated.V1Beta1.UnavailableReplicas = src.Status.UnavailableReplicas
 
-	// Move Initialized to ControlPlaneInitialized
-	if src.Status.Initialized {
-		if dst.Status.Initialization == nil {
-			dst.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{}
-		}
-		dst.Status.Initialization.ControlPlaneInitialized = src.Status.Initialized
-	}
-
 	// Manually restore data.
 	restored := &controlplanev1.KubeadmControlPlane{}
 	ok, err := utilconversion.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
+
+	// Recover intent for bool values converted to *bool.
+	Initialization := controlplanev1.KubeadmControlPlaneInitializationStatus{}
+	var restoredControlPlaneInitialized *bool
+	if restored.Status.Initialization != nil {
+		restoredControlPlaneInitialized = restored.Status.Initialization.ControlPlaneInitialized
+	}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Initialized, ok, restoredControlPlaneInitialized, &Initialization.ControlPlaneInitialized)
+	if !reflect.DeepEqual(Initialization, controlplanev1.KubeadmControlPlaneInitializationStatus{}) {
+		dst.Status.Initialization = &Initialization
+	}
+
+	if err := bootstrapv1alpha4.RestoreBoolIntentKubeadmConfigSpec(&src.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec, ok, &restored.Spec.KubeadmConfigSpec); err != nil {
+		return err
+	}
+
+	// Recover other values
 	if ok {
 		dst.Spec.MachineTemplate.ReadinessGates = restored.Spec.MachineTemplate.ReadinessGates
 		dst.Spec.MachineTemplate.NodeDeletionTimeoutSeconds = restored.Spec.MachineTemplate.NodeDeletionTimeoutSeconds
@@ -150,7 +161,7 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Move ControlPlaneInitialized to old fields, rebuild ready
 	if src.Status.Initialization != nil {
-		dst.Status.Initialized = src.Status.Initialization.ControlPlaneInitialized
+		dst.Status.Initialized = ptr.Deref(src.Status.Initialization.ControlPlaneInitialized, false)
 	}
 	dst.Status.Ready = dst.Status.ReadyReplicas > 0
 
@@ -174,6 +185,13 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	if err != nil {
 		return err
 	}
+
+	// Recover intent for bool values converted to *bool.
+	if err := bootstrapv1alpha4.RestoreBoolIntentKubeadmConfigSpec(&src.Spec.Template.Spec.KubeadmConfigSpec, &dst.Spec.Template.Spec.KubeadmConfigSpec, ok, &restored.Spec.Template.Spec.KubeadmConfigSpec); err != nil {
+		return err
+	}
+
+	// Recover other values
 	if ok {
 		dst.Spec.Template.Spec.MachineTemplate = restored.Spec.Template.Spec.MachineTemplate
 

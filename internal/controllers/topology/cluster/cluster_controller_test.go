@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -914,12 +915,12 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	}
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessors.
 	patch := client.MergeFrom(cluster1.DeepCopy())
-	cluster1.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+	cluster1.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 	if err := env.Status().Patch(ctx, cluster1, patch); err != nil {
 		return nil, err
 	}
 	patch = client.MergeFrom(cluster2.DeepCopy())
-	cluster2.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+	cluster2.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 	if err := env.Status().Patch(ctx, cluster2, patch); err != nil {
 		return nil, err
 	}

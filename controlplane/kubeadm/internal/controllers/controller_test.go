@@ -360,7 +360,7 @@ func TestReconcilePaused(t *testing.T) {
 
 	// Test: cluster is paused and kcp is not
 	cluster := newCluster(&types.NamespacedName{Namespace: metav1.NamespaceDefault, Name: clusterName})
-	cluster.Spec.Paused = true
+	cluster.Spec.Paused = ptr.To(true)
 	kcp := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: metav1.NamespaceDefault,
@@ -403,7 +403,7 @@ func TestReconcilePaused(t *testing.T) {
 	g.Expect(machineList.Items).To(BeEmpty())
 
 	// Test: kcp is paused and cluster is not
-	cluster.Spec.Paused = false
+	cluster.Spec.Paused = ptr.To(false)
 	kcp.Annotations = map[string]string{}
 	kcp.Annotations[clusterv1.PausedAnnotation] = "paused"
 	_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -414,7 +414,7 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
-	cluster.Status = clusterv1.ClusterStatus{Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}}
+	cluster.Status = clusterv1.ClusterStatus{Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
@@ -496,7 +496,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 		cluster.Spec.ControlPlaneEndpoint.Host = "bar"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
-		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 		kcp.Spec.Version = version
 
 		fmc := &fakeManagementCluster{
@@ -564,7 +564,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 		cluster.Spec.ControlPlaneEndpoint.Host = "validhost"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
-		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 		kcp.Spec.Version = version
 
 		fmc := &fakeManagementCluster{
@@ -673,7 +673,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com1"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
-		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 		kcp.Spec.Version = version
 
 		now := metav1.Now()
@@ -742,7 +742,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com2"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
-		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 		kcp.Spec.Version = "v1.17.0"
 
 		fmc := &fakeManagementCluster{
@@ -800,7 +800,7 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 	cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 	cluster.Spec.ControlPlaneEndpoint.Host = "bar"
 	cluster.Spec.ControlPlaneEndpoint.Port = 6443
-	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 	kcp.Spec.Version = "v1.21.0"
 	key, err := certs.NewPrivateKey()
 	g.Expect(err).ToNot(HaveOccurred())
@@ -975,7 +975,7 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 	kcp := &controlplanev1.KubeadmControlPlane{
 		Status: controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: true,
+				ControlPlaneInitialized: ptr.To(true),
 			},
 		},
 	}
@@ -1210,7 +1210,7 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	g.Expect(env.Create(ctx, cluster)).To(Succeed())
 	patchHelper, err := patch.NewHelper(cluster, env)
 	g.Expect(err).ToNot(HaveOccurred())
-	cluster.Status = clusterv1.ClusterStatus{Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}}
+	cluster.Status = clusterv1.ClusterStatus{Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}}
 	g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
@@ -1450,7 +1450,7 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 	g.Expect(env.Create(ctx, cluster)).To(Succeed())
 	patchHelper, err := patch.NewHelper(cluster, env)
 	g.Expect(err).ToNot(HaveOccurred())
-	cluster.Status = clusterv1.ClusterStatus{Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}}
+	cluster.Status = clusterv1.ClusterStatus{Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}}
 	g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 	g.Expect(env.CreateAndWait(ctx, certSecret)).To(Succeed())
@@ -2116,7 +2116,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		},
 		Status: controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: true,
+				ControlPlaneInitialized: ptr.To(true),
 			},
 			Conditions: []metav1.Condition{
 				{
@@ -2143,7 +2143,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			controlPlane: &internal.ControlPlane{
 				KCP: func() *controlplanev1.KubeadmControlPlane {
 					kcp := defaultKCP.DeepCopy()
-					kcp.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{ControlPlaneInitialized: false}
+					kcp.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{ControlPlaneInitialized: ptr.To(false)}
 					conditions.Set(kcp, metav1.Condition{
 						Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 						Status: metav1.ConditionFalse,

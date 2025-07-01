@@ -192,7 +192,7 @@ func TestClusterReconciler(t *testing.T) {
 			if cluster.Status.Initialization == nil {
 				cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
 			}
-			cluster.Status.Initialization.InfrastructureProvisioned = true
+			cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
@@ -203,7 +203,7 @@ func TestClusterReconciler(t *testing.T) {
 			if err := env.Get(ctx, key, instance); err != nil {
 				return false
 			}
-			return instance.Status.Initialization != nil && instance.Status.Initialization.InfrastructureProvisioned
+			return instance.Status.Initialization != nil && ptr.Deref(instance.Status.Initialization.InfrastructureProvisioned, false)
 		}, timeout).Should(BeTrue())
 	})
 
@@ -288,7 +288,7 @@ func TestClusterReconciler(t *testing.T) {
 			if cluster.Status.Initialization == nil {
 				cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
 			}
-			cluster.Status.Initialization.InfrastructureProvisioned = true
+			cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 			cluster.Spec.InfrastructureRef = &clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.InfrastructureGroupVersion.Group,
 				Kind:     builder.GenericInfrastructureClusterKind,
@@ -304,7 +304,7 @@ func TestClusterReconciler(t *testing.T) {
 			if err := env.Get(ctx, key, instance); err != nil {
 				return false
 			}
-			return instance.Status.Initialization != nil && instance.Status.Initialization.InfrastructureProvisioned &&
+			return instance.Status.Initialization != nil && ptr.Deref(instance.Status.Initialization.InfrastructureProvisioned, false) &&
 				instance.Spec.InfrastructureRef != nil &&
 				instance.Spec.InfrastructureRef.Name == "test"
 		}, timeout).Should(BeTrue())

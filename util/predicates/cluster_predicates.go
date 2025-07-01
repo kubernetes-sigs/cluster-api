@@ -23,6 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -52,7 +53,7 @@ func ClusterCreateInfraProvisioned(scheme *runtime.Scheme, logger logr.Logger) p
 			}
 
 			// Only need to trigger a reconcile if the Cluster infrastructure is provisioned.
-			if c.Status.Initialization != nil && c.Status.Initialization.InfrastructureProvisioned {
+			if c.Status.Initialization != nil && ptr.Deref(c.Status.Initialization.InfrastructureProvisioned, false) {
 				log.V(6).Info("Cluster infrastructure is ready, allowing further processing")
 				return true
 			}
@@ -83,7 +84,7 @@ func ClusterCreateNotPaused(scheme *runtime.Scheme, logger logr.Logger) predicat
 			}
 
 			// Only need to trigger a reconcile if the Cluster.Spec.Paused is false
-			if !c.Spec.Paused {
+			if !ptr.Deref(c.Spec.Paused, false) {
 				log.V(6).Info("Cluster is not paused, allowing further processing")
 				return true
 			}
@@ -115,7 +116,7 @@ func ClusterUpdateInfraProvisioned(scheme *runtime.Scheme, logger logr.Logger) p
 
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
 
-			if (oldCluster.Status.Initialization == nil || !oldCluster.Status.Initialization.InfrastructureProvisioned) && (newCluster.Status.Initialization != nil && newCluster.Status.Initialization.InfrastructureProvisioned) {
+			if (oldCluster.Status.Initialization == nil || !ptr.Deref(oldCluster.Status.Initialization.InfrastructureProvisioned, false)) && (newCluster.Status.Initialization != nil && ptr.Deref(newCluster.Status.Initialization.InfrastructureProvisioned, false)) {
 				log.V(6).Info("Cluster infrastructure became ready, allowing further processing")
 				return true
 			}
@@ -147,7 +148,7 @@ func ClusterUpdateUnpaused(scheme *runtime.Scheme, logger logr.Logger) predicate
 
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
 
-			if oldCluster.Spec.Paused && !newCluster.Spec.Paused {
+			if ptr.Deref(oldCluster.Spec.Paused, false) && !ptr.Deref(newCluster.Spec.Paused, false) {
 				log.V(4).Info("Cluster was unpaused, allowing further processing")
 				return true
 			}
@@ -198,12 +199,12 @@ func ClusterPausedTransitions(scheme *runtime.Scheme, logger logr.Logger) predic
 
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
 
-			if oldCluster.Spec.Paused && !newCluster.Spec.Paused {
+			if ptr.Deref(oldCluster.Spec.Paused, false) && !ptr.Deref(newCluster.Spec.Paused, false) {
 				log.V(6).Info("Cluster unpausing, allowing further processing")
 				return true
 			}
 
-			if !oldCluster.Spec.Paused && newCluster.Spec.Paused {
+			if !ptr.Deref(oldCluster.Spec.Paused, false) && ptr.Deref(newCluster.Spec.Paused, false) {
 				log.V(6).Info("Cluster pausing, allowing further processing")
 				return true
 			}

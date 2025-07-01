@@ -58,7 +58,7 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *clusterv1.MachinePool) {
 	}
 
 	// Set the phase to "provisioning" if bootstrap is ready and the infrastructure isn't.
-	if mp.Status.Initialization != nil && mp.Status.Initialization.BootstrapDataSecretCreated && !mp.Status.Initialization.InfrastructureProvisioned {
+	if mp.Status.Initialization != nil && ptr.Deref(mp.Status.Initialization.BootstrapDataSecretCreated, false) && !ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
 		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseProvisioning)
 	}
 
@@ -73,12 +73,12 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *clusterv1.MachinePool) {
 	if mp.Status.Deprecated != nil && mp.Status.Deprecated.V1Beta1 != nil {
 		readyReplicas = mp.Status.Deprecated.V1Beta1.ReadyReplicas
 	}
-	if mp.Status.Initialization != nil && mp.Status.Initialization.InfrastructureProvisioned && mp.Spec.Replicas != nil && *mp.Spec.Replicas == readyReplicas {
+	if mp.Status.Initialization != nil && ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) && mp.Spec.Replicas != nil && *mp.Spec.Replicas == readyReplicas {
 		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseRunning)
 	}
 
 	// Set the appropriate phase in response to the MachinePool replica count being greater than the observed infrastructure replicas.
-	if mp.Status.Initialization != nil && mp.Status.Initialization.InfrastructureProvisioned && mp.Spec.Replicas != nil && *mp.Spec.Replicas > readyReplicas {
+	if mp.Status.Initialization != nil && ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) && mp.Spec.Replicas != nil && *mp.Spec.Replicas > readyReplicas {
 		// If we are being managed by an external autoscaler and can't predict scaling direction, set to "Scaling".
 		if annotations.ReplicasManagedByExternalAutoscaler(mp) {
 			mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseScaling)
@@ -89,7 +89,7 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *clusterv1.MachinePool) {
 	}
 
 	// Set the appropriate phase in response to the MachinePool replica count being less than the observed infrastructure replicas.
-	if mp.Status.Initialization != nil && mp.Status.Initialization.InfrastructureProvisioned && mp.Spec.Replicas != nil && *mp.Spec.Replicas < readyReplicas {
+	if mp.Status.Initialization != nil && ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) && mp.Spec.Replicas != nil && *mp.Spec.Replicas < readyReplicas {
 		// If we are being managed by an external autoscaler and can't predict scaling direction, set to "Scaling".
 		if annotations.ReplicasManagedByExternalAutoscaler(mp) {
 			mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseScaling)
@@ -223,7 +223,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, s *scope
 			if m.Status.Initialization == nil {
 				m.Status.Initialization = &clusterv1.MachinePoolInitializationStatus{}
 			}
-			m.Status.Initialization.BootstrapDataSecretCreated = dataSecretCreated
+			m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(dataSecretCreated)
 			return ctrl.Result{}, nil
 		}
 
@@ -239,7 +239,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, s *scope
 		if m.Status.Initialization == nil {
 			m.Status.Initialization = &clusterv1.MachinePoolInitializationStatus{}
 		}
-		m.Status.Initialization.BootstrapDataSecretCreated = true
+		m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 		return ctrl.Result{}, nil
 	}
 
@@ -248,7 +248,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, s *scope
 		if m.Status.Initialization == nil {
 			m.Status.Initialization = &clusterv1.MachinePoolInitializationStatus{}
 		}
-		m.Status.Initialization.BootstrapDataSecretCreated = true
+		m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 		v1beta1conditions.MarkTrue(m, clusterv1.BootstrapReadyV1Beta1Condition)
 		return ctrl.Result{}, nil
 	}
@@ -267,7 +267,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
 			log.Error(err, "infrastructure reference could not be found")
-			if mp.Status.Initialization != nil && mp.Status.Initialization.InfrastructureProvisioned {
+			if mp.Status.Initialization != nil && ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
 				// Infra object went missing after the machine pool was up and running
 				log.Error(err, "infrastructure reference has been deleted after being ready, setting failure state")
 				if mp.Status.Deprecated == nil {
@@ -298,7 +298,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 	if mp.Status.Initialization == nil {
 		mp.Status.Initialization = &clusterv1.MachinePoolInitializationStatus{}
 	}
-	mp.Status.Initialization.InfrastructureProvisioned = ready
+	mp.Status.Initialization.InfrastructureProvisioned = ptr.To(ready)
 
 	// Report a summary of current status of the infrastructure object defined for this machine pool.
 	v1beta1conditions.SetMirror(mp, clusterv1.InfrastructureReadyV1Beta1Condition,
@@ -321,7 +321,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 		return ctrl.Result{}, kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to reconcile Machines for MachinePool %s", klog.KObj(mp)), errors.Wrapf(getNodeRefsErr, "failed to get nodeRefs for MachinePool %s", klog.KObj(mp))})
 	}
 
-	if mp.Status.Initialization == nil && !mp.Status.Initialization.InfrastructureProvisioned {
+	if mp.Status.Initialization == nil && !ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
 		log.Info("Infrastructure provider is not yet ready", infraConfig.GetKind(), klog.KObj(infraConfig))
 		return ctrl.Result{}, nil
 	}

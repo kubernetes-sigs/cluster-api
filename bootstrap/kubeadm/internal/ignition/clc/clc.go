@@ -46,6 +46,7 @@ import (
 	ignition "github.com/flatcar/ignition/config/v2_3"
 	ignitionTypes "github.com/flatcar/ignition/config/v2_3/types"
 	"github.com/pkg/errors"
+	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cloudinit"
@@ -378,7 +379,7 @@ func buildIgnitionConfig(baseCLC []byte, clc *bootstrapv1.ContainerLinuxConfig) 
 	var clcWarnings string
 
 	if clc != nil && clc.AdditionalConfig != "" {
-		additionalIgn, warnings, err := clcToIgnition([]byte(clc.AdditionalConfig), clc.Strict)
+		additionalIgn, warnings, err := clcToIgnition([]byte(clc.AdditionalConfig), ptr.Deref(clc.Strict, false))
 		if err != nil {
 			return nil, "", errors.Wrapf(err, "converting additional CLC to Ignition")
 		}

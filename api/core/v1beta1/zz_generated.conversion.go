@@ -220,11 +220,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*JSONSchemaProps)(nil), (*v1beta2.JSONSchemaProps)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(a.(*JSONSchemaProps), b.(*v1beta2.JSONSchemaProps), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.JSONSchemaProps)(nil), (*JSONSchemaProps)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_JSONSchemaProps_To_v1beta1_JSONSchemaProps(a.(*v1beta2.JSONSchemaProps), b.(*JSONSchemaProps), scope)
 	}); err != nil {
@@ -755,6 +750,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*JSONSchemaProps)(nil), (*v1beta2.JSONSchemaProps)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(a.(*JSONSchemaProps), b.(*v1beta2.JSONSchemaProps), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.ClusterClassTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(a.(*LocalObjectTemplate), b.(*v1beta2.ClusterClassTemplate), scope)
 	}); err != nil {
@@ -1170,7 +1170,17 @@ func autoConvert_v1beta1_ClusterClassPatch_To_v1beta2_ClusterClassPatch(in *Clus
 	out.Name = in.Name
 	out.Description = in.Description
 	out.EnabledIf = (*string)(unsafe.Pointer(in.EnabledIf))
-	out.Definitions = *(*[]v1beta2.PatchDefinition)(unsafe.Pointer(&in.Definitions))
+	if in.Definitions != nil {
+		in, out := &in.Definitions, &out.Definitions
+		*out = make([]v1beta2.PatchDefinition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_PatchDefinition_To_v1beta2_PatchDefinition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Definitions = nil
+	}
 	if in.External != nil {
 		in, out := &in.External, &out.External
 		*out = new(v1beta2.ExternalPatchDefinition)
@@ -1192,7 +1202,17 @@ func autoConvert_v1beta2_ClusterClassPatch_To_v1beta1_ClusterClassPatch(in *v1be
 	out.Name = in.Name
 	out.Description = in.Description
 	out.EnabledIf = (*string)(unsafe.Pointer(in.EnabledIf))
-	out.Definitions = *(*[]PatchDefinition)(unsafe.Pointer(&in.Definitions))
+	if in.Definitions != nil {
+		in, out := &in.Definitions, &out.Definitions
+		*out = make([]PatchDefinition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_PatchDefinition_To_v1beta1_PatchDefinition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Definitions = nil
+	}
 	if in.External != nil {
 		in, out := &in.External, &out.External
 		*out = new(ExternalPatchDefinition)
@@ -1341,7 +1361,9 @@ func autoConvert_v1beta2_ClusterClassStatus_To_v1beta1_ClusterClassStatus(in *v1
 
 func autoConvert_v1beta1_ClusterClassStatusVariable_To_v1beta2_ClusterClassStatusVariable(in *ClusterClassStatusVariable, out *v1beta2.ClusterClassStatusVariable, s conversion.Scope) error {
 	out.Name = in.Name
-	out.DefinitionsConflict = in.DefinitionsConflict
+	if err := v1.Convert_bool_To_Pointer_bool(&in.DefinitionsConflict, &out.DefinitionsConflict, s); err != nil {
+		return err
+	}
 	if in.Definitions != nil {
 		in, out := &in.Definitions, &out.Definitions
 		*out = make([]v1beta2.ClusterClassStatusVariableDefinition, len(*in))
@@ -1363,7 +1385,9 @@ func Convert_v1beta1_ClusterClassStatusVariable_To_v1beta2_ClusterClassStatusVar
 
 func autoConvert_v1beta2_ClusterClassStatusVariable_To_v1beta1_ClusterClassStatusVariable(in *v1beta2.ClusterClassStatusVariable, out *ClusterClassStatusVariable, s conversion.Scope) error {
 	out.Name = in.Name
-	out.DefinitionsConflict = in.DefinitionsConflict
+	if err := v1.Convert_Pointer_bool_To_bool(&in.DefinitionsConflict, &out.DefinitionsConflict, s); err != nil {
+		return err
+	}
 	if in.Definitions != nil {
 		in, out := &in.Definitions, &out.Definitions
 		*out = make([]ClusterClassStatusVariableDefinition, len(*in))
@@ -1542,7 +1566,9 @@ func Convert_v1beta2_ClusterNetwork_To_v1beta1_ClusterNetwork(in *v1beta2.Cluste
 }
 
 func autoConvert_v1beta1_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, out *v1beta2.ClusterSpec, s conversion.Scope) error {
-	out.Paused = in.Paused
+	if err := v1.Convert_bool_To_Pointer_bool(&in.Paused, &out.Paused, s); err != nil {
+		return err
+	}
 	out.ClusterNetwork = (*v1beta2.ClusterNetwork)(unsafe.Pointer(in.ClusterNetwork))
 	if err := Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
@@ -1584,7 +1610,9 @@ func Convert_v1beta1_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, out *v1
 }
 
 func autoConvert_v1beta2_ClusterSpec_To_v1beta1_ClusterSpec(in *v1beta2.ClusterSpec, out *ClusterSpec, s conversion.Scope) error {
-	out.Paused = in.Paused
+	if err := v1.Convert_Pointer_bool_To_bool(&in.Paused, &out.Paused, s); err != nil {
+		return err
+	}
 	out.ClusterNetwork = (*ClusterNetwork)(unsafe.Pointer(in.ClusterNetwork))
 	if err := Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
@@ -1968,72 +1996,219 @@ func autoConvert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(in *JSONSche
 	out.Description = in.Description
 	out.Example = (*apiextensionsv1.JSON)(unsafe.Pointer(in.Example))
 	out.Type = in.Type
-	out.Properties = *(*map[string]v1beta2.JSONSchemaProps)(unsafe.Pointer(&in.Properties))
-	out.AdditionalProperties = (*v1beta2.JSONSchemaProps)(unsafe.Pointer(in.AdditionalProperties))
+	if in.Properties != nil {
+		in, out := &in.Properties, &out.Properties
+		*out = make(map[string]v1beta2.JSONSchemaProps, len(*in))
+		for key, val := range *in {
+			newVal := new(v1beta2.JSONSchemaProps)
+			if err := Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(&val, newVal, s); err != nil {
+				return err
+			}
+			(*out)[key] = *newVal
+		}
+	} else {
+		out.Properties = nil
+	}
+	if in.AdditionalProperties != nil {
+		in, out := &in.AdditionalProperties, &out.AdditionalProperties
+		*out = new(v1beta2.JSONSchemaProps)
+		if err := Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AdditionalProperties = nil
+	}
 	out.MaxProperties = (*int64)(unsafe.Pointer(in.MaxProperties))
 	out.MinProperties = (*int64)(unsafe.Pointer(in.MinProperties))
 	out.Required = *(*[]string)(unsafe.Pointer(&in.Required))
-	out.Items = (*v1beta2.JSONSchemaProps)(unsafe.Pointer(in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = new(v1beta2.JSONSchemaProps)
+		if err := Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Items = nil
+	}
 	out.MaxItems = (*int64)(unsafe.Pointer(in.MaxItems))
 	out.MinItems = (*int64)(unsafe.Pointer(in.MinItems))
-	out.UniqueItems = in.UniqueItems
+	if err := v1.Convert_bool_To_Pointer_bool(&in.UniqueItems, &out.UniqueItems, s); err != nil {
+		return err
+	}
 	out.Format = in.Format
 	out.MaxLength = (*int64)(unsafe.Pointer(in.MaxLength))
 	out.MinLength = (*int64)(unsafe.Pointer(in.MinLength))
 	out.Pattern = in.Pattern
 	out.Maximum = (*int64)(unsafe.Pointer(in.Maximum))
-	out.ExclusiveMaximum = in.ExclusiveMaximum
+	if err := v1.Convert_bool_To_Pointer_bool(&in.ExclusiveMaximum, &out.ExclusiveMaximum, s); err != nil {
+		return err
+	}
 	out.Minimum = (*int64)(unsafe.Pointer(in.Minimum))
-	out.ExclusiveMinimum = in.ExclusiveMinimum
-	out.XPreserveUnknownFields = in.XPreserveUnknownFields
+	if err := v1.Convert_bool_To_Pointer_bool(&in.ExclusiveMinimum, &out.ExclusiveMinimum, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_bool_To_Pointer_bool(&in.XPreserveUnknownFields, &out.XPreserveUnknownFields, s); err != nil {
+		return err
+	}
 	out.Enum = *(*[]apiextensionsv1.JSON)(unsafe.Pointer(&in.Enum))
 	out.Default = (*apiextensionsv1.JSON)(unsafe.Pointer(in.Default))
 	out.XValidations = *(*[]v1beta2.ValidationRule)(unsafe.Pointer(&in.XValidations))
 	out.XMetadata = (*v1beta2.VariableSchemaMetadata)(unsafe.Pointer(in.XMetadata))
-	out.XIntOrString = in.XIntOrString
-	out.AllOf = *(*[]v1beta2.JSONSchemaProps)(unsafe.Pointer(&in.AllOf))
-	out.OneOf = *(*[]v1beta2.JSONSchemaProps)(unsafe.Pointer(&in.OneOf))
-	out.AnyOf = *(*[]v1beta2.JSONSchemaProps)(unsafe.Pointer(&in.AnyOf))
-	out.Not = (*v1beta2.JSONSchemaProps)(unsafe.Pointer(in.Not))
+	if err := v1.Convert_bool_To_Pointer_bool(&in.XIntOrString, &out.XIntOrString, s); err != nil {
+		return err
+	}
+	if in.AllOf != nil {
+		in, out := &in.AllOf, &out.AllOf
+		*out = make([]v1beta2.JSONSchemaProps, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AllOf = nil
+	}
+	if in.OneOf != nil {
+		in, out := &in.OneOf, &out.OneOf
+		*out = make([]v1beta2.JSONSchemaProps, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OneOf = nil
+	}
+	if in.AnyOf != nil {
+		in, out := &in.AnyOf, &out.AnyOf
+		*out = make([]v1beta2.JSONSchemaProps, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AnyOf = nil
+	}
+	if in.Not != nil {
+		in, out := &in.Not, &out.Not
+		*out = new(v1beta2.JSONSchemaProps)
+		if err := Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Not = nil
+	}
 	return nil
-}
-
-// Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps is an autogenerated conversion function.
-func Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(in *JSONSchemaProps, out *v1beta2.JSONSchemaProps, s conversion.Scope) error {
-	return autoConvert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(in, out, s)
 }
 
 func autoConvert_v1beta2_JSONSchemaProps_To_v1beta1_JSONSchemaProps(in *v1beta2.JSONSchemaProps, out *JSONSchemaProps, s conversion.Scope) error {
 	out.Description = in.Description
 	out.Example = (*apiextensionsv1.JSON)(unsafe.Pointer(in.Example))
 	out.Type = in.Type
-	out.Properties = *(*map[string]JSONSchemaProps)(unsafe.Pointer(&in.Properties))
-	out.AdditionalProperties = (*JSONSchemaProps)(unsafe.Pointer(in.AdditionalProperties))
+	if in.Properties != nil {
+		in, out := &in.Properties, &out.Properties
+		*out = make(map[string]JSONSchemaProps, len(*in))
+		for key, val := range *in {
+			newVal := new(JSONSchemaProps)
+			if err := Convert_v1beta2_JSONSchemaProps_To_v1beta1_JSONSchemaProps(&val, newVal, s); err != nil {
+				return err
+			}
+			(*out)[key] = *newVal
+		}
+	} else {
+		out.Properties = nil
+	}
+	if in.AdditionalProperties != nil {
+		in, out := &in.AdditionalProperties, &out.AdditionalProperties
+		*out = new(JSONSchemaProps)
+		if err := Convert_v1beta2_JSONSchemaProps_To_v1beta1_JSONSchemaProps(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AdditionalProperties = nil
+	}
 	out.MaxProperties = (*int64)(unsafe.Pointer(in.MaxProperties))
 	out.MinProperties = (*int64)(unsafe.Pointer(in.MinProperties))
 	out.Required = *(*[]string)(unsafe.Pointer(&in.Required))
-	out.Items = (*JSONSchemaProps)(unsafe.Pointer(in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = new(JSONSchemaProps)
+		if err := Convert_v1beta2_JSONSchemaProps_To_v1beta1_JSONSchemaProps(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Items = nil
+	}
 	out.MaxItems = (*int64)(unsafe.Pointer(in.MaxItems))
 	out.MinItems = (*int64)(unsafe.Pointer(in.MinItems))
-	out.UniqueItems = in.UniqueItems
+	if err := v1.Convert_Pointer_bool_To_bool(&in.UniqueItems, &out.UniqueItems, s); err != nil {
+		return err
+	}
 	out.Format = in.Format
 	out.MaxLength = (*int64)(unsafe.Pointer(in.MaxLength))
 	out.MinLength = (*int64)(unsafe.Pointer(in.MinLength))
 	out.Pattern = in.Pattern
 	out.Maximum = (*int64)(unsafe.Pointer(in.Maximum))
-	out.ExclusiveMaximum = in.ExclusiveMaximum
+	if err := v1.Convert_Pointer_bool_To_bool(&in.ExclusiveMaximum, &out.ExclusiveMaximum, s); err != nil {
+		return err
+	}
 	out.Minimum = (*int64)(unsafe.Pointer(in.Minimum))
-	out.ExclusiveMinimum = in.ExclusiveMinimum
-	out.XPreserveUnknownFields = in.XPreserveUnknownFields
+	if err := v1.Convert_Pointer_bool_To_bool(&in.ExclusiveMinimum, &out.ExclusiveMinimum, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_Pointer_bool_To_bool(&in.XPreserveUnknownFields, &out.XPreserveUnknownFields, s); err != nil {
+		return err
+	}
 	out.Enum = *(*[]apiextensionsv1.JSON)(unsafe.Pointer(&in.Enum))
 	out.Default = (*apiextensionsv1.JSON)(unsafe.Pointer(in.Default))
 	out.XValidations = *(*[]ValidationRule)(unsafe.Pointer(&in.XValidations))
 	out.XMetadata = (*VariableSchemaMetadata)(unsafe.Pointer(in.XMetadata))
-	out.XIntOrString = in.XIntOrString
-	out.AllOf = *(*[]JSONSchemaProps)(unsafe.Pointer(&in.AllOf))
-	out.OneOf = *(*[]JSONSchemaProps)(unsafe.Pointer(&in.OneOf))
-	out.AnyOf = *(*[]JSONSchemaProps)(unsafe.Pointer(&in.AnyOf))
-	out.Not = (*JSONSchemaProps)(unsafe.Pointer(in.Not))
+	if err := v1.Convert_Pointer_bool_To_bool(&in.XIntOrString, &out.XIntOrString, s); err != nil {
+		return err
+	}
+	if in.AllOf != nil {
+		in, out := &in.AllOf, &out.AllOf
+		*out = make([]JSONSchemaProps, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_JSONSchemaProps_To_v1beta1_JSONSchemaProps(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AllOf = nil
+	}
+	if in.OneOf != nil {
+		in, out := &in.OneOf, &out.OneOf
+		*out = make([]JSONSchemaProps, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_JSONSchemaProps_To_v1beta1_JSONSchemaProps(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.OneOf = nil
+	}
+	if in.AnyOf != nil {
+		in, out := &in.AnyOf, &out.AnyOf
+		*out = make([]JSONSchemaProps, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_JSONSchemaProps_To_v1beta1_JSONSchemaProps(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AnyOf = nil
+	}
+	if in.Not != nil {
+		in, out := &in.Not, &out.Not
+		*out = new(JSONSchemaProps)
+		if err := Convert_v1beta2_JSONSchemaProps_To_v1beta1_JSONSchemaProps(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Not = nil
+	}
 	return nil
 }
 
@@ -2310,7 +2485,9 @@ func autoConvert_v1beta1_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(
 	out.MachineNamingStrategy = (*v1beta2.MachineNamingStrategy)(unsafe.Pointer(in.MachineNamingStrategy))
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.RevisionHistoryLimit requires manual conversion: does not exist in peer-type
-	out.Paused = in.Paused
+	if err := v1.Convert_bool_To_Pointer_bool(&in.Paused, &out.Paused, s); err != nil {
+		return err
+	}
 	// WARNING: in.ProgressDeadlineSeconds requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -2325,7 +2502,9 @@ func autoConvert_v1beta2_MachineDeploymentSpec_To_v1beta1_MachineDeploymentSpec(
 	}
 	out.Strategy = (*MachineDeploymentStrategy)(unsafe.Pointer(in.Strategy))
 	out.MachineNamingStrategy = (*MachineNamingStrategy)(unsafe.Pointer(in.MachineNamingStrategy))
-	out.Paused = in.Paused
+	if err := v1.Convert_Pointer_bool_To_bool(&in.Paused, &out.Paused, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -3723,8 +3902,12 @@ func Convert_v1beta2_PatchSelector_To_v1beta1_PatchSelector(in *v1beta2.PatchSel
 }
 
 func autoConvert_v1beta1_PatchSelectorMatch_To_v1beta2_PatchSelectorMatch(in *PatchSelectorMatch, out *v1beta2.PatchSelectorMatch, s conversion.Scope) error {
-	out.ControlPlane = in.ControlPlane
-	out.InfrastructureCluster = in.InfrastructureCluster
+	if err := v1.Convert_bool_To_Pointer_bool(&in.ControlPlane, &out.ControlPlane, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_bool_To_Pointer_bool(&in.InfrastructureCluster, &out.InfrastructureCluster, s); err != nil {
+		return err
+	}
 	out.MachineDeploymentClass = (*v1beta2.PatchSelectorMatchMachineDeploymentClass)(unsafe.Pointer(in.MachineDeploymentClass))
 	out.MachinePoolClass = (*v1beta2.PatchSelectorMatchMachinePoolClass)(unsafe.Pointer(in.MachinePoolClass))
 	return nil
@@ -3736,8 +3919,12 @@ func Convert_v1beta1_PatchSelectorMatch_To_v1beta2_PatchSelectorMatch(in *PatchS
 }
 
 func autoConvert_v1beta2_PatchSelectorMatch_To_v1beta1_PatchSelectorMatch(in *v1beta2.PatchSelectorMatch, out *PatchSelectorMatch, s conversion.Scope) error {
-	out.ControlPlane = in.ControlPlane
-	out.InfrastructureCluster = in.InfrastructureCluster
+	if err := v1.Convert_Pointer_bool_To_bool(&in.ControlPlane, &out.ControlPlane, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_Pointer_bool_To_bool(&in.InfrastructureCluster, &out.InfrastructureCluster, s); err != nil {
+		return err
+	}
 	out.MachineDeploymentClass = (*PatchSelectorMatchMachineDeploymentClass)(unsafe.Pointer(in.MachineDeploymentClass))
 	out.MachinePoolClass = (*PatchSelectorMatchMachinePoolClass)(unsafe.Pointer(in.MachinePoolClass))
 	return nil

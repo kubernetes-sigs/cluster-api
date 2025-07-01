@@ -63,7 +63,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 		cluster.Status.Deprecated = &clusterv1.ClusterDeprecatedStatus{
 			V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 				Conditions: clusterv1.Conditions{
@@ -529,7 +529,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 			},
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
-			Paused:      true, // Set this to true as we do not want to test the other parts of the reconciler in this test.
+			Paused:      ptr.To(true), // Set this to true as we do not want to test the other parts of the reconciler in this test.
 			ClusterName: testCluster.Name,
 			Replicas:    ptr.To[int32](2),
 			Selector: metav1.LabelSelector{

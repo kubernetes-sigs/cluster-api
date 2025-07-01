@@ -20,6 +20,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	testv1 "sigs.k8s.io/cluster-api/internal/topology/upgrade/test/t2/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -42,25 +43,9 @@ func (src *TestResourceTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	Convert_bool_To_Pointer_bool(src.Spec.Template.Spec.BoolToPtrBool, ok, restored.Spec.Template.Spec.BoolToPtrBool, &dst.Spec.Template.Spec.BoolToPtrBool)
+	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.Template.Spec.BoolToPtrBool, ok, restored.Spec.Template.Spec.BoolToPtrBool, &dst.Spec.Template.Spec.BoolToPtrBool)
 	Convert_int32_To_Pointer_int32(src.Spec.Template.Spec.Int32ToPtrInt32, ok, restored.Spec.Template.Spec.Int32ToPtrInt32, &dst.Spec.Template.Spec.Int32ToPtrInt32)
 	return nil
-}
-
-func Convert_bool_To_Pointer_bool(in bool, hasRestored bool, restoredIn *bool, out **bool) {
-	// If the value is false, convert to *false only if the value was *false before (we know it was intentionally set to false).
-	// In all the other cases we do not know if the value was intentionally set to false, so convert to nil.
-	if !in {
-		if hasRestored && restoredIn != nil && !*restoredIn {
-			*out = ptr.To(false)
-			return
-		}
-		*out = nil
-		return
-	}
-
-	// Otherwise, if the value is true, convert to *true.
-	*out = ptr.To(true)
 }
 
 func Convert_int32_To_Pointer_int32(in int32, hasRestored bool, restoredIn *int32, out **int32) {
@@ -110,7 +95,7 @@ func (src *TestResource) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	Convert_bool_To_Pointer_bool(src.Spec.BoolToPtrBool, ok, restored.Spec.BoolToPtrBool, &dst.Spec.BoolToPtrBool)
+	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.BoolToPtrBool, ok, restored.Spec.BoolToPtrBool, &dst.Spec.BoolToPtrBool)
 	Convert_int32_To_Pointer_int32(src.Spec.Int32ToPtrInt32, ok, restored.Spec.Int32ToPtrInt32, &dst.Spec.Int32ToPtrInt32)
 	return nil
 }

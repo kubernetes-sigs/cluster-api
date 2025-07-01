@@ -154,7 +154,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 // this is considered a proxy information about the API Server being up and running and kubeadm init successfully completed.
 // Note: This only gets initialized once and does not change if the kubeadm config map goes away.
 func setControlPlaneInitialized(ctx context.Context, controlPlane *internal.ControlPlane) error {
-	if controlPlane.KCP.Status.Initialization == nil || !controlPlane.KCP.Status.Initialization.ControlPlaneInitialized {
+	if controlPlane.KCP.Status.Initialization == nil || !ptr.Deref(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized, false) {
 		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 		if err != nil {
 			return errors.Wrap(err, "failed to create remote cluster client")
@@ -168,7 +168,7 @@ func setControlPlaneInitialized(ctx context.Context, controlPlane *internal.Cont
 			if controlPlane.KCP.Status.Initialization == nil {
 				controlPlane.KCP.Status.Initialization = &controlplanev1.KubeadmControlPlaneInitializationStatus{}
 			}
-			controlPlane.KCP.Status.Initialization.ControlPlaneInitialized = true
+			controlPlane.KCP.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
 		}
 	}
 	return nil
@@ -195,7 +195,7 @@ func setReplicas(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, mac
 }
 
 func setInitializedCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane) {
-	if kcp.Status.Initialization != nil && kcp.Status.Initialization.ControlPlaneInitialized {
+	if kcp.Status.Initialization != nil && ptr.Deref(kcp.Status.Initialization.ControlPlaneInitialized, false) {
 		conditions.Set(kcp, metav1.Condition{
 			Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 			Status: metav1.ConditionTrue,
@@ -514,7 +514,7 @@ func setDeletingCondition(_ context.Context, kcp *controlplanev1.KubeadmControlP
 }
 
 func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, etcdIsManaged bool, etcdMembers []*etcd.Member, etcdMembersAndMachinesAreMatching bool, machines collections.Machines) {
-	if kcp.Status.Initialization == nil || !kcp.Status.Initialization.ControlPlaneInitialized {
+	if kcp.Status.Initialization == nil || !ptr.Deref(kcp.Status.Initialization.ControlPlaneInitialized, false) {
 		conditions.Set(kcp, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneAvailableCondition,
 			Status:  metav1.ConditionFalse,

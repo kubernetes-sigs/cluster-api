@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -55,7 +56,7 @@ func Test_ObjectResumer(t *testing.T) {
 							Name:      "md-1",
 						},
 						Spec: clusterv1.MachineDeploymentSpec{
-							Paused: true,
+							Paused: ptr.To(true),
 						},
 					},
 				},
@@ -81,7 +82,7 @@ func Test_ObjectResumer(t *testing.T) {
 							Name:      "md-1",
 						},
 						Spec: clusterv1.MachineDeploymentSpec{
-							Paused: false,
+							Paused: ptr.To(false),
 						},
 					},
 				},
@@ -164,7 +165,7 @@ func Test_ObjectResumer(t *testing.T) {
 					md := &clusterv1.MachineDeployment{}
 					err = cl.Get(context.TODO(), key, md)
 					g.Expect(err).ToNot(HaveOccurred())
-					g.Expect(md.Spec.Paused).To(Equal(tt.wantPaused))
+					g.Expect(ptr.Deref(md.Spec.Paused, false)).To(Equal(tt.wantPaused))
 				case *controlplanev1.KubeadmControlPlane:
 					kcp := &controlplanev1.KubeadmControlPlane{}
 					err = cl.Get(context.TODO(), key, kcp)

@@ -601,7 +601,9 @@ func autoConvert_v1beta1_BootstrapTokenDiscovery_To_v1beta2_BootstrapTokenDiscov
 	out.Token = in.Token
 	out.APIServerEndpoint = in.APIServerEndpoint
 	out.CACertHashes = *(*[]string)(unsafe.Pointer(&in.CACertHashes))
-	out.UnsafeSkipCAVerification = in.UnsafeSkipCAVerification
+	if err := v1.Convert_bool_To_Pointer_bool(&in.UnsafeSkipCAVerification, &out.UnsafeSkipCAVerification, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -614,7 +616,9 @@ func autoConvert_v1beta2_BootstrapTokenDiscovery_To_v1beta1_BootstrapTokenDiscov
 	out.Token = in.Token
 	out.APIServerEndpoint = in.APIServerEndpoint
 	out.CACertHashes = *(*[]string)(unsafe.Pointer(&in.CACertHashes))
-	out.UnsafeSkipCAVerification = in.UnsafeSkipCAVerification
+	if err := v1.Convert_Pointer_bool_To_bool(&in.UnsafeSkipCAVerification, &out.UnsafeSkipCAVerification, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -702,7 +706,9 @@ func Convert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in *v1
 
 func autoConvert_v1beta1_ContainerLinuxConfig_To_v1beta2_ContainerLinuxConfig(in *ContainerLinuxConfig, out *v1beta2.ContainerLinuxConfig, s conversion.Scope) error {
 	out.AdditionalConfig = in.AdditionalConfig
-	out.Strict = in.Strict
+	if err := v1.Convert_bool_To_Pointer_bool(&in.Strict, &out.Strict, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -713,7 +719,9 @@ func Convert_v1beta1_ContainerLinuxConfig_To_v1beta2_ContainerLinuxConfig(in *Co
 
 func autoConvert_v1beta2_ContainerLinuxConfig_To_v1beta1_ContainerLinuxConfig(in *v1beta2.ContainerLinuxConfig, out *ContainerLinuxConfig, s conversion.Scope) error {
 	out.AdditionalConfig = in.AdditionalConfig
-	out.Strict = in.Strict
+	if err := v1.Convert_Pointer_bool_To_bool(&in.Strict, &out.Strict, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -724,14 +732,34 @@ func Convert_v1beta2_ContainerLinuxConfig_To_v1beta1_ContainerLinuxConfig(in *v1
 
 func autoConvert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *v1beta2.ControlPlaneComponent, s conversion.Scope) error {
 	// WARNING: in.ExtraArgs requires manual conversion: inconvertible types (map[string]string vs []sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg)
-	out.ExtraVolumes = *(*[]v1beta2.HostPathMount)(unsafe.Pointer(&in.ExtraVolumes))
+	if in.ExtraVolumes != nil {
+		in, out := &in.ExtraVolumes, &out.ExtraVolumes
+		*out = make([]v1beta2.HostPathMount, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_HostPathMount_To_v1beta2_HostPathMount(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ExtraVolumes = nil
+	}
 	out.ExtraEnvs = *(*[]v1beta2.EnvVar)(unsafe.Pointer(&in.ExtraEnvs))
 	return nil
 }
 
 func autoConvert_v1beta2_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(in *v1beta2.ControlPlaneComponent, out *ControlPlaneComponent, s conversion.Scope) error {
 	// WARNING: in.ExtraArgs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg vs map[string]string)
-	out.ExtraVolumes = *(*[]HostPathMount)(unsafe.Pointer(&in.ExtraVolumes))
+	if in.ExtraVolumes != nil {
+		in, out := &in.ExtraVolumes, &out.ExtraVolumes
+		*out = make([]HostPathMount, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_HostPathMount_To_v1beta1_HostPathMount(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ExtraVolumes = nil
+	}
 	out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(&in.ExtraEnvs))
 	return nil
 }
@@ -761,16 +789,48 @@ func Convert_v1beta2_DNS_To_v1beta1_DNS(in *v1beta2.DNS, out *DNS, s conversion.
 }
 
 func autoConvert_v1beta1_Discovery_To_v1beta2_Discovery(in *Discovery, out *v1beta2.Discovery, s conversion.Scope) error {
-	out.BootstrapToken = (*v1beta2.BootstrapTokenDiscovery)(unsafe.Pointer(in.BootstrapToken))
-	out.File = (*v1beta2.FileDiscovery)(unsafe.Pointer(in.File))
+	if in.BootstrapToken != nil {
+		in, out := &in.BootstrapToken, &out.BootstrapToken
+		*out = new(v1beta2.BootstrapTokenDiscovery)
+		if err := Convert_v1beta1_BootstrapTokenDiscovery_To_v1beta2_BootstrapTokenDiscovery(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.BootstrapToken = nil
+	}
+	if in.File != nil {
+		in, out := &in.File, &out.File
+		*out = new(v1beta2.FileDiscovery)
+		if err := Convert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.File = nil
+	}
 	out.TLSBootstrapToken = in.TLSBootstrapToken
 	// WARNING: in.Timeout requires manual conversion: does not exist in peer-type
 	return nil
 }
 
 func autoConvert_v1beta2_Discovery_To_v1beta1_Discovery(in *v1beta2.Discovery, out *Discovery, s conversion.Scope) error {
-	out.BootstrapToken = (*BootstrapTokenDiscovery)(unsafe.Pointer(in.BootstrapToken))
-	out.File = (*FileDiscovery)(unsafe.Pointer(in.File))
+	if in.BootstrapToken != nil {
+		in, out := &in.BootstrapToken, &out.BootstrapToken
+		*out = new(BootstrapTokenDiscovery)
+		if err := Convert_v1beta2_BootstrapTokenDiscovery_To_v1beta1_BootstrapTokenDiscovery(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.BootstrapToken = nil
+	}
+	if in.File != nil {
+		in, out := &in.File, &out.File
+		*out = new(FileDiscovery)
+		if err := Convert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.File = nil
+	}
 	out.TLSBootstrapToken = in.TLSBootstrapToken
 	return nil
 }
@@ -891,7 +951,9 @@ func autoConvert_v1beta1_File_To_v1beta2_File(in *File, out *v1beta2.File, s con
 	out.Owner = in.Owner
 	out.Permissions = in.Permissions
 	out.Encoding = v1beta2.Encoding(in.Encoding)
-	out.Append = in.Append
+	if err := v1.Convert_bool_To_Pointer_bool(&in.Append, &out.Append, s); err != nil {
+		return err
+	}
 	out.Content = in.Content
 	out.ContentFrom = (*v1beta2.FileSource)(unsafe.Pointer(in.ContentFrom))
 	return nil
@@ -907,7 +969,9 @@ func autoConvert_v1beta2_File_To_v1beta1_File(in *v1beta2.File, out *File, s con
 	out.Owner = in.Owner
 	out.Permissions = in.Permissions
 	out.Encoding = Encoding(in.Encoding)
-	out.Append = in.Append
+	if err := v1.Convert_Pointer_bool_To_bool(&in.Append, &out.Append, s); err != nil {
+		return err
+	}
 	out.Content = in.Content
 	out.ContentFrom = (*FileSource)(unsafe.Pointer(in.ContentFrom))
 	return nil
@@ -920,7 +984,15 @@ func Convert_v1beta2_File_To_v1beta1_File(in *v1beta2.File, out *File, s convers
 
 func autoConvert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery(in *FileDiscovery, out *v1beta2.FileDiscovery, s conversion.Scope) error {
 	out.KubeConfigPath = in.KubeConfigPath
-	out.KubeConfig = (*v1beta2.FileDiscoveryKubeConfig)(unsafe.Pointer(in.KubeConfig))
+	if in.KubeConfig != nil {
+		in, out := &in.KubeConfig, &out.KubeConfig
+		*out = new(v1beta2.FileDiscoveryKubeConfig)
+		if err := Convert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.KubeConfig = nil
+	}
 	return nil
 }
 
@@ -931,7 +1003,15 @@ func Convert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery(in *FileDiscovery, o
 
 func autoConvert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery(in *v1beta2.FileDiscovery, out *FileDiscovery, s conversion.Scope) error {
 	out.KubeConfigPath = in.KubeConfigPath
-	out.KubeConfig = (*FileDiscoveryKubeConfig)(unsafe.Pointer(in.KubeConfig))
+	if in.KubeConfig != nil {
+		in, out := &in.KubeConfig, &out.KubeConfig
+		*out = new(FileDiscoveryKubeConfig)
+		if err := Convert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeConfig(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.KubeConfig = nil
+	}
 	return nil
 }
 
@@ -941,7 +1021,15 @@ func Convert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery(in *v1beta2.FileDisc
 }
 
 func autoConvert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig(in *FileDiscoveryKubeConfig, out *v1beta2.FileDiscoveryKubeConfig, s conversion.Scope) error {
-	out.Cluster = (*v1beta2.KubeConfigCluster)(unsafe.Pointer(in.Cluster))
+	if in.Cluster != nil {
+		in, out := &in.Cluster, &out.Cluster
+		*out = new(v1beta2.KubeConfigCluster)
+		if err := Convert_v1beta1_KubeConfigCluster_To_v1beta2_KubeConfigCluster(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Cluster = nil
+	}
 	if err := Convert_v1beta1_KubeConfigUser_To_v1beta2_KubeConfigUser(&in.User, &out.User, s); err != nil {
 		return err
 	}
@@ -954,7 +1042,15 @@ func Convert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig(
 }
 
 func autoConvert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeConfig(in *v1beta2.FileDiscoveryKubeConfig, out *FileDiscoveryKubeConfig, s conversion.Scope) error {
-	out.Cluster = (*KubeConfigCluster)(unsafe.Pointer(in.Cluster))
+	if in.Cluster != nil {
+		in, out := &in.Cluster, &out.Cluster
+		*out = new(KubeConfigCluster)
+		if err := Convert_v1beta2_KubeConfigCluster_To_v1beta1_KubeConfigCluster(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Cluster = nil
+	}
 	if err := Convert_v1beta2_KubeConfigUser_To_v1beta1_KubeConfigUser(&in.User, &out.User, s); err != nil {
 		return err
 	}
@@ -1026,7 +1122,9 @@ func autoConvert_v1beta1_HostPathMount_To_v1beta2_HostPathMount(in *HostPathMoun
 	out.Name = in.Name
 	out.HostPath = in.HostPath
 	out.MountPath = in.MountPath
-	out.ReadOnly = in.ReadOnly
+	if err := v1.Convert_bool_To_Pointer_bool(&in.ReadOnly, &out.ReadOnly, s); err != nil {
+		return err
+	}
 	out.PathType = corev1.HostPathType(in.PathType)
 	return nil
 }
@@ -1040,7 +1138,9 @@ func autoConvert_v1beta2_HostPathMount_To_v1beta1_HostPathMount(in *v1beta2.Host
 	out.Name = in.Name
 	out.HostPath = in.HostPath
 	out.MountPath = in.MountPath
-	out.ReadOnly = in.ReadOnly
+	if err := v1.Convert_Pointer_bool_To_bool(&in.ReadOnly, &out.ReadOnly, s); err != nil {
+		return err
+	}
 	out.PathType = corev1.HostPathType(in.PathType)
 	return nil
 }
@@ -1051,7 +1151,15 @@ func Convert_v1beta2_HostPathMount_To_v1beta1_HostPathMount(in *v1beta2.HostPath
 }
 
 func autoConvert_v1beta1_IgnitionSpec_To_v1beta2_IgnitionSpec(in *IgnitionSpec, out *v1beta2.IgnitionSpec, s conversion.Scope) error {
-	out.ContainerLinuxConfig = (*v1beta2.ContainerLinuxConfig)(unsafe.Pointer(in.ContainerLinuxConfig))
+	if in.ContainerLinuxConfig != nil {
+		in, out := &in.ContainerLinuxConfig, &out.ContainerLinuxConfig
+		*out = new(v1beta2.ContainerLinuxConfig)
+		if err := Convert_v1beta1_ContainerLinuxConfig_To_v1beta2_ContainerLinuxConfig(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ContainerLinuxConfig = nil
+	}
 	return nil
 }
 
@@ -1061,7 +1169,15 @@ func Convert_v1beta1_IgnitionSpec_To_v1beta2_IgnitionSpec(in *IgnitionSpec, out 
 }
 
 func autoConvert_v1beta2_IgnitionSpec_To_v1beta1_IgnitionSpec(in *v1beta2.IgnitionSpec, out *IgnitionSpec, s conversion.Scope) error {
-	out.ContainerLinuxConfig = (*ContainerLinuxConfig)(unsafe.Pointer(in.ContainerLinuxConfig))
+	if in.ContainerLinuxConfig != nil {
+		in, out := &in.ContainerLinuxConfig, &out.ContainerLinuxConfig
+		*out = new(ContainerLinuxConfig)
+		if err := Convert_v1beta2_ContainerLinuxConfig_To_v1beta1_ContainerLinuxConfig(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ContainerLinuxConfig = nil
+	}
 	return nil
 }
 
@@ -1199,7 +1315,9 @@ func autoConvert_v1beta1_KubeConfigAuthExec_To_v1beta2_KubeConfigAuthExec(in *Ku
 	out.Args = *(*[]string)(unsafe.Pointer(&in.Args))
 	out.Env = *(*[]v1beta2.KubeConfigAuthExecEnv)(unsafe.Pointer(&in.Env))
 	out.APIVersion = in.APIVersion
-	out.ProvideClusterInfo = in.ProvideClusterInfo
+	if err := v1.Convert_bool_To_Pointer_bool(&in.ProvideClusterInfo, &out.ProvideClusterInfo, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1213,7 +1331,9 @@ func autoConvert_v1beta2_KubeConfigAuthExec_To_v1beta1_KubeConfigAuthExec(in *v1
 	out.Args = *(*[]string)(unsafe.Pointer(&in.Args))
 	out.Env = *(*[]KubeConfigAuthExecEnv)(unsafe.Pointer(&in.Env))
 	out.APIVersion = in.APIVersion
-	out.ProvideClusterInfo = in.ProvideClusterInfo
+	if err := v1.Convert_Pointer_bool_To_bool(&in.ProvideClusterInfo, &out.ProvideClusterInfo, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1269,7 +1389,9 @@ func Convert_v1beta2_KubeConfigAuthProvider_To_v1beta1_KubeConfigAuthProvider(in
 func autoConvert_v1beta1_KubeConfigCluster_To_v1beta2_KubeConfigCluster(in *KubeConfigCluster, out *v1beta2.KubeConfigCluster, s conversion.Scope) error {
 	out.Server = in.Server
 	out.TLSServerName = in.TLSServerName
-	out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
+	if err := v1.Convert_bool_To_Pointer_bool(&in.InsecureSkipTLSVerify, &out.InsecureSkipTLSVerify, s); err != nil {
+		return err
+	}
 	out.CertificateAuthorityData = *(*[]byte)(unsafe.Pointer(&in.CertificateAuthorityData))
 	out.ProxyURL = in.ProxyURL
 	return nil
@@ -1283,7 +1405,9 @@ func Convert_v1beta1_KubeConfigCluster_To_v1beta2_KubeConfigCluster(in *KubeConf
 func autoConvert_v1beta2_KubeConfigCluster_To_v1beta1_KubeConfigCluster(in *v1beta2.KubeConfigCluster, out *KubeConfigCluster, s conversion.Scope) error {
 	out.Server = in.Server
 	out.TLSServerName = in.TLSServerName
-	out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
+	if err := v1.Convert_Pointer_bool_To_bool(&in.InsecureSkipTLSVerify, &out.InsecureSkipTLSVerify, s); err != nil {
+		return err
+	}
 	out.CertificateAuthorityData = *(*[]byte)(unsafe.Pointer(&in.CertificateAuthorityData))
 	out.ProxyURL = in.ProxyURL
 	return nil
@@ -1296,7 +1420,15 @@ func Convert_v1beta2_KubeConfigCluster_To_v1beta1_KubeConfigCluster(in *v1beta2.
 
 func autoConvert_v1beta1_KubeConfigUser_To_v1beta2_KubeConfigUser(in *KubeConfigUser, out *v1beta2.KubeConfigUser, s conversion.Scope) error {
 	out.AuthProvider = (*v1beta2.KubeConfigAuthProvider)(unsafe.Pointer(in.AuthProvider))
-	out.Exec = (*v1beta2.KubeConfigAuthExec)(unsafe.Pointer(in.Exec))
+	if in.Exec != nil {
+		in, out := &in.Exec, &out.Exec
+		*out = new(v1beta2.KubeConfigAuthExec)
+		if err := Convert_v1beta1_KubeConfigAuthExec_To_v1beta2_KubeConfigAuthExec(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Exec = nil
+	}
 	return nil
 }
 
@@ -1307,7 +1439,15 @@ func Convert_v1beta1_KubeConfigUser_To_v1beta2_KubeConfigUser(in *KubeConfigUser
 
 func autoConvert_v1beta2_KubeConfigUser_To_v1beta1_KubeConfigUser(in *v1beta2.KubeConfigUser, out *KubeConfigUser, s conversion.Scope) error {
 	out.AuthProvider = (*KubeConfigAuthProvider)(unsafe.Pointer(in.AuthProvider))
-	out.Exec = (*KubeConfigAuthExec)(unsafe.Pointer(in.Exec))
+	if in.Exec != nil {
+		in, out := &in.Exec, &out.Exec
+		*out = new(KubeConfigAuthExec)
+		if err := Convert_v1beta2_KubeConfigAuthExec_To_v1beta1_KubeConfigAuthExec(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Exec = nil
+	}
 	return nil
 }
 
@@ -1418,7 +1558,17 @@ func autoConvert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *Kube
 	} else {
 		out.JoinConfiguration = nil
 	}
-	out.Files = *(*[]v1beta2.File)(unsafe.Pointer(&in.Files))
+	if in.Files != nil {
+		in, out := &in.Files, &out.Files
+		*out = make([]v1beta2.File, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_File_To_v1beta2_File(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Files = nil
+	}
 	out.DiskSetup = (*v1beta2.DiskSetup)(unsafe.Pointer(in.DiskSetup))
 	out.Mounts = *(*[]v1beta2.MountPoints)(unsafe.Pointer(&in.Mounts))
 	out.BootCommands = *(*[]string)(unsafe.Pointer(&in.BootCommands))
@@ -1429,7 +1579,15 @@ func autoConvert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *Kube
 	out.Format = v1beta2.Format(in.Format)
 	out.Verbosity = (*int32)(unsafe.Pointer(in.Verbosity))
 	// WARNING: in.UseExperimentalRetryJoin requires manual conversion: does not exist in peer-type
-	out.Ignition = (*v1beta2.IgnitionSpec)(unsafe.Pointer(in.Ignition))
+	if in.Ignition != nil {
+		in, out := &in.Ignition, &out.Ignition
+		*out = new(v1beta2.IgnitionSpec)
+		if err := Convert_v1beta1_IgnitionSpec_To_v1beta2_IgnitionSpec(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Ignition = nil
+	}
 	return nil
 }
 
@@ -1461,7 +1619,17 @@ func autoConvert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in *v1be
 	} else {
 		out.JoinConfiguration = nil
 	}
-	out.Files = *(*[]File)(unsafe.Pointer(&in.Files))
+	if in.Files != nil {
+		in, out := &in.Files, &out.Files
+		*out = make([]File, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_File_To_v1beta1_File(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Files = nil
+	}
 	out.DiskSetup = (*DiskSetup)(unsafe.Pointer(in.DiskSetup))
 	out.Mounts = *(*[]MountPoints)(unsafe.Pointer(&in.Mounts))
 	out.BootCommands = *(*[]string)(unsafe.Pointer(&in.BootCommands))
@@ -1471,7 +1639,15 @@ func autoConvert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in *v1be
 	out.NTP = (*NTP)(unsafe.Pointer(in.NTP))
 	out.Format = Format(in.Format)
 	out.Verbosity = (*int32)(unsafe.Pointer(in.Verbosity))
-	out.Ignition = (*IgnitionSpec)(unsafe.Pointer(in.Ignition))
+	if in.Ignition != nil {
+		in, out := &in.Ignition, &out.Ignition
+		*out = new(IgnitionSpec)
+		if err := Convert_v1beta2_IgnitionSpec_To_v1beta1_IgnitionSpec(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Ignition = nil
+	}
 	return nil
 }
 

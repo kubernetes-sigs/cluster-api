@@ -294,7 +294,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -576,7 +576,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -608,7 +608,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -640,7 +640,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -673,7 +673,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -706,7 +706,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -753,7 +753,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -800,7 +800,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: false,
+						ControlPlaneInitialized: utilptr.To(false),
 					},
 				},
 			},
@@ -852,7 +852,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: false,
+						ControlPlaneInitialized: utilptr.To(false),
 					},
 				},
 			},
@@ -946,7 +946,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -1001,7 +1001,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -1056,7 +1056,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -1112,7 +1112,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -1168,7 +1168,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -1224,7 +1224,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -1271,7 +1271,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: false,
+						ControlPlaneInitialized: utilptr.To(false),
 					},
 				},
 			},
@@ -1381,7 +1381,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: false,
+						ControlPlaneInitialized: utilptr.To(false),
 					},
 				},
 			},
@@ -1494,7 +1494,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},
@@ -1610,7 +1610,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: true,
+						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
 			},

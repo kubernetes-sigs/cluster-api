@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -39,7 +40,7 @@ func (r *rollout) ObjectResumer(ctx context.Context, proxy cluster.Proxy, ref co
 		if err != nil || deployment == nil {
 			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
-		if !deployment.Spec.Paused {
+		if !ptr.Deref(deployment.Spec.Paused, false) {
 			return errors.Errorf("MachineDeployment is not currently paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // MachineDeployment is intentionally capitalized.
 		}
 		if err := resumeMachineDeployment(ctx, proxy, ref.Name, ref.Namespace); err != nil {

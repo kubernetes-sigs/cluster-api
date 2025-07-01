@@ -155,7 +155,7 @@ func (c *ControlPlane) FailureDomains() []clusterv1.FailureDomain {
 
 	var res []clusterv1.FailureDomain
 	for _, spec := range c.Cluster.Status.FailureDomains {
-		if spec.ControlPlane {
+		if ptr.Deref(spec.ControlPlane, false) {
 			res = append(res, spec)
 		}
 	}

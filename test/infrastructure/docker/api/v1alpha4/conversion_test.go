@@ -24,8 +24,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -40,8 +42,9 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 
 	t.Run("for DockerClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &infrav1.DockerClusterTemplate{},
-		Spoke: &DockerClusterTemplate{},
+		Hub:         &infrav1.DockerClusterTemplate{},
+		Spoke:       &DockerClusterTemplate{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{DockerClusterTemplateFuzzFunc},
 	}))
 
 	t.Run("for DockerMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
@@ -59,6 +62,15 @@ func TestFuzzyConversion(t *testing.T) {
 func DockerClusterFuzzFunc(_ runtimeserializer.CodecFactory) []any {
 	return []any{
 		hubDockerClusterStatus,
+		hubFailureDomain,
+	}
+}
+
+func hubFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.ControlPlane == nil {
+		in.ControlPlane = ptr.To(false)
 	}
 }
 
@@ -75,6 +87,12 @@ func hubDockerClusterStatus(in *infrav1.DockerClusterStatus, c randfill.Continue
 		if reflect.DeepEqual(in.Initialization, &infrav1.DockerClusterInitializationStatus{}) {
 			in.Initialization = nil
 		}
+	}
+}
+
+func DockerClusterTemplateFuzzFunc(_ runtimeserializer.CodecFactory) []any {
+	return []any{
+		hubFailureDomain,
 	}
 }
 

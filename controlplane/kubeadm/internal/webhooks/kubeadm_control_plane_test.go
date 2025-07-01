@@ -508,7 +508,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				Value: "controller manager value",
 			},
 		},
-		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: true, PathType: "File"}},
+		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
 	}
 
 	scheduler := before.DeepCopy()
@@ -519,7 +519,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				Value: "scheduler value",
 			},
 		},
-		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: true, PathType: "File"}},
+		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
 	}
 
 	dns := before.DeepCopy()

@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -203,7 +204,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		cluster.UID = types.UID(util.RandomString(10))
 		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
-		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 
 		beforeMachines := collections.New()
 		for i := range 2 {
@@ -777,7 +778,7 @@ func TestPreflightCheckCondition(t *testing.T) {
 func failureDomain(name string, controlPlane bool) clusterv1.FailureDomain {
 	return clusterv1.FailureDomain{
 		Name:         name,
-		ControlPlane: controlPlane,
+		ControlPlane: ptr.To(controlPlane),
 	}
 }
 

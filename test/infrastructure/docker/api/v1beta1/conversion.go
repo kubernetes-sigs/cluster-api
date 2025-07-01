@@ -233,7 +233,7 @@ func Convert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevCluster
 			domain := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: domain.ControlPlane,
+				ControlPlane: ptr.To(domain.ControlPlane),
 				Attributes:   domain.Attributes,
 			})
 		}
@@ -277,7 +277,7 @@ func Convert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in *infrav1.De
 		out.FailureDomains = clusterv1beta1.FailureDomains{}
 		for _, fd := range in.FailureDomains {
 			out.FailureDomains[fd.Name] = clusterv1beta1.FailureDomainSpec{
-				ControlPlane: fd.ControlPlane,
+				ControlPlane: ptr.Deref(fd.ControlPlane, false),
 				Attributes:   fd.Attributes,
 			}
 		}
@@ -390,7 +390,7 @@ func Convert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *Dock
 			domain := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: domain.ControlPlane,
+				ControlPlane: ptr.To(domain.ControlPlane),
 				Attributes:   domain.Attributes,
 			})
 		}
@@ -434,7 +434,7 @@ func Convert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *infr
 		out.FailureDomains = clusterv1beta1.FailureDomains{}
 		for _, fd := range in.FailureDomains {
 			out.FailureDomains[fd.Name] = clusterv1beta1.FailureDomainSpec{
-				ControlPlane: fd.ControlPlane,
+				ControlPlane: ptr.Deref(fd.ControlPlane, false),
 				Attributes:   fd.Attributes,
 			}
 		}
@@ -550,7 +550,7 @@ func Convert_v1beta1_DockerClusterSpec_To_v1beta2_DockerClusterSpec(in *DockerCl
 			domain := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: domain.ControlPlane,
+				ControlPlane: ptr.To(domain.ControlPlane),
 				Attributes:   domain.Attributes,
 			})
 		}
@@ -569,7 +569,7 @@ func Convert_v1beta2_DockerClusterSpec_To_v1beta1_DockerClusterSpec(in *infrav1.
 		out.FailureDomains = clusterv1beta1.FailureDomains{}
 		for _, fd := range in.FailureDomains {
 			out.FailureDomains[fd.Name] = clusterv1beta1.FailureDomainSpec{
-				ControlPlane: fd.ControlPlane,
+				ControlPlane: ptr.Deref(fd.ControlPlane, false),
 				Attributes:   fd.Attributes,
 			}
 		}
@@ -588,7 +588,7 @@ func Convert_v1beta2_DockerClusterBackendSpec_To_v1beta1_DockerClusterBackendSpe
 		out.FailureDomains = clusterv1beta1.FailureDomains{}
 		for _, fd := range in.FailureDomains {
 			out.FailureDomains[fd.Name] = clusterv1beta1.FailureDomainSpec{
-				ControlPlane: fd.ControlPlane,
+				ControlPlane: ptr.Deref(fd.ControlPlane, false),
 				Attributes:   fd.Attributes,
 			}
 		}
@@ -611,7 +611,7 @@ func Convert_v1beta1_DockerClusterBackendSpec_To_v1beta2_DockerClusterBackendSpe
 			domain := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: domain.ControlPlane,
+				ControlPlane: ptr.To(domain.ControlPlane),
 				Attributes:   domain.Attributes,
 			})
 		}

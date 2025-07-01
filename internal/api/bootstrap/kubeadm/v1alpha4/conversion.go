@@ -17,10 +17,12 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"fmt"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -49,20 +51,28 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Deprecated.V1Beta1.FailureReason = src.Status.FailureReason
 	dst.Status.Deprecated.V1Beta1.FailureMessage = src.Status.FailureMessage
 
-	// Move ready to Initialization
-	if src.Status.Ready {
-		if dst.Status.Initialization == nil {
-			dst.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
-		}
-		dst.Status.Initialization.DataSecretCreated = src.Status.Ready
-	}
-
 	// Manually restore data.
 	restored := &bootstrapv1.KubeadmConfig{}
 	ok, err := utilconversion.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
+
+	// Recover intent for bool values converted to *bool.
+	Initialization := bootstrapv1.KubeadmConfigInitializationStatus{}
+	var restoredBootstrapDataSecretCreated *bool
+	if restored.Status.Initialization != nil {
+		restoredBootstrapDataSecretCreated = restored.Status.Initialization.DataSecretCreated
+	}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredBootstrapDataSecretCreated, &Initialization.DataSecretCreated)
+	if !reflect.DeepEqual(Initialization, bootstrapv1.KubeadmConfigInitializationStatus{}) {
+		dst.Status.Initialization = &Initialization
+	}
+	if err := RestoreBoolIntentKubeadmConfigSpec(&src.Spec, &dst.Spec, ok, &restored.Spec); err != nil {
+		return err
+	}
+
+	// Recover other values
 	if ok {
 		RestoreKubeadmConfigSpec(&dst.Spec, &restored.Spec)
 		dst.Status.Conditions = restored.Status.Conditions
@@ -142,6 +152,97 @@ func RestoreKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored *boot
 	}
 }
 
+func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1.KubeadmConfigSpec, hasRestored bool, restored *bootstrapv1.KubeadmConfigSpec) error {
+	if dst.JoinConfiguration != nil {
+		if dst.JoinConfiguration.Discovery.BootstrapToken != nil {
+			var restoredUnsafeSkipCAVerification *bool
+			if restored.JoinConfiguration != nil && restored.JoinConfiguration.Discovery.BootstrapToken != nil {
+				restoredUnsafeSkipCAVerification = restored.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification
+			}
+			clusterv1.Convert_bool_To_Pointer_bool(src.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification, hasRestored, restoredUnsafeSkipCAVerification, &dst.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification)
+		}
+	}
+
+	if dst.ClusterConfiguration != nil {
+		for i, volume := range dst.ClusterConfiguration.APIServer.ExtraVolumes {
+			var srcVolume *HostPathMount
+			if src.ClusterConfiguration != nil {
+				for _, v := range src.ClusterConfiguration.APIServer.ExtraVolumes {
+					if v.MountPath == volume.MountPath {
+						srcVolume = &v
+						break
+					}
+				}
+			}
+			if srcVolume == nil {
+				return fmt.Errorf("apiServer extraVolume %q not found in source data", volume.MountPath)
+			}
+			var restoredVolumeReadOnly *bool
+			if restored.ClusterConfiguration != nil {
+				for _, v := range restored.ClusterConfiguration.APIServer.ExtraVolumes {
+					if v.MountPath == volume.MountPath {
+						restoredVolumeReadOnly = v.ReadOnly
+						break
+					}
+				}
+			}
+			clusterv1.Convert_bool_To_Pointer_bool(srcVolume.ReadOnly, hasRestored, restoredVolumeReadOnly, &volume.ReadOnly)
+			dst.ClusterConfiguration.APIServer.ExtraVolumes[i] = volume
+		}
+		for i, volume := range dst.ClusterConfiguration.ControllerManager.ExtraVolumes {
+			var srcVolume *HostPathMount
+			if src.ClusterConfiguration != nil {
+				for _, v := range src.ClusterConfiguration.ControllerManager.ExtraVolumes {
+					if v.MountPath == volume.MountPath {
+						srcVolume = &v
+						break
+					}
+				}
+			}
+			if srcVolume == nil {
+				return fmt.Errorf("controllerManager extraVolume %q not found in source data", volume.MountPath)
+			}
+			var restoredVolumeReadOnly *bool
+			if restored.ClusterConfiguration != nil {
+				for _, v := range restored.ClusterConfiguration.ControllerManager.ExtraVolumes {
+					if v.MountPath == volume.MountPath {
+						restoredVolumeReadOnly = v.ReadOnly
+						break
+					}
+				}
+			}
+			clusterv1.Convert_bool_To_Pointer_bool(srcVolume.ReadOnly, hasRestored, restoredVolumeReadOnly, &volume.ReadOnly)
+			dst.ClusterConfiguration.ControllerManager.ExtraVolumes[i] = volume
+		}
+		for i, volume := range dst.ClusterConfiguration.Scheduler.ExtraVolumes {
+			var srcVolume *HostPathMount
+			if src.ClusterConfiguration != nil {
+				for _, v := range src.ClusterConfiguration.Scheduler.ExtraVolumes {
+					if v.MountPath == volume.MountPath {
+						srcVolume = &v
+						break
+					}
+				}
+			}
+			if srcVolume == nil {
+				return fmt.Errorf("scheduler extraVolume %q not found in source data", volume.MountPath)
+			}
+			var restoredVolumeReadOnly *bool
+			if restored.ClusterConfiguration != nil {
+				for _, v := range restored.ClusterConfiguration.Scheduler.ExtraVolumes {
+					if v.MountPath == volume.MountPath {
+						restoredVolumeReadOnly = v.ReadOnly
+						break
+					}
+				}
+			}
+			clusterv1.Convert_bool_To_Pointer_bool(srcVolume.ReadOnly, hasRestored, restoredVolumeReadOnly, &volume.ReadOnly)
+			dst.ClusterConfiguration.Scheduler.ExtraVolumes[i] = volume
+		}
+	}
+	return nil
+}
+
 func (src *KubeadmConfigSpec) ConvertTo(dst *bootstrapv1.KubeadmConfigSpec) {
 	// Override with timeouts values already existing in v1beta1.
 	var initControlPlaneComponentHealthCheckSeconds *int32
@@ -197,7 +298,7 @@ func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Move initialization to old fields
 	if src.Status.Initialization != nil {
-		dst.Status.Ready = src.Status.Initialization.DataSecretCreated
+		dst.Status.Ready = ptr.Deref(src.Status.Initialization.DataSecretCreated, false)
 	}
 
 	// Convert timeouts moved from one struct to another.
@@ -242,6 +343,13 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	if err != nil {
 		return err
 	}
+
+	// Recover intent for bool values converted to *bool.
+	if err := RestoreBoolIntentKubeadmConfigSpec(&src.Spec.Template.Spec, &dst.Spec.Template.Spec, ok, &restored.Spec.Template.Spec); err != nil {
+		return err
+	}
+
+	// Recover other values
 	if ok {
 		RestoreKubeadmConfigSpec(&dst.Spec.Template.Spec, &restored.Spec.Template.Spec)
 		dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta

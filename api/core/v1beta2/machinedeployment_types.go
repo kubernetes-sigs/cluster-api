@@ -292,7 +292,7 @@ type MachineDeploymentSpec struct {
 
 	// paused indicates that the deployment is paused.
 	// +optional
-	Paused bool `json:"paused,omitempty"`
+	Paused *bool `json:"paused,omitempty"`
 }
 
 // ANCHOR_END: MachineDeploymentSpec

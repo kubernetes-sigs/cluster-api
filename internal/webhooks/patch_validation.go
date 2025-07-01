@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
@@ -165,7 +166,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 	var allErrs field.ErrorList
 
 	// Return an error if none of the possible selectors are enabled.
-	if !selector.MatchResources.InfrastructureCluster && !selector.MatchResources.ControlPlane &&
+	if !ptr.Deref(selector.MatchResources.InfrastructureCluster, false) && !ptr.Deref(selector.MatchResources.ControlPlane, false) &&
 		(selector.MatchResources.MachineDeploymentClass == nil || len(selector.MatchResources.MachineDeploymentClass.Names) == 0) &&
 		(selector.MatchResources.MachinePoolClass == nil || len(selector.MatchResources.MachinePoolClass.Names) == 0) {
 		return append(allErrs,
@@ -176,7 +177,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 			))
 	}
 
-	if selector.MatchResources.InfrastructureCluster {
+	if ptr.Deref(selector.MatchResources.InfrastructureCluster, false) {
 		if !selectorMatchTemplate(selector, class.Spec.Infrastructure.Ref) {
 			allErrs = append(allErrs, field.Invalid(
 				path.Child("matchResources", "infrastructureCluster"),
@@ -186,7 +187,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 		}
 	}
 
-	if selector.MatchResources.ControlPlane {
+	if ptr.Deref(selector.MatchResources.ControlPlane, false) {
 		match := false
 		if selectorMatchTemplate(selector, class.Spec.ControlPlane.Ref) {
 			match = true

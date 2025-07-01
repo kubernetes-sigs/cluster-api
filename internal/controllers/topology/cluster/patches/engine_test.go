@@ -78,7 +78,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.GenericInfrastructureClusterTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									InfrastructureCluster: true,
+									InfrastructureCluster: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -94,7 +94,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.ControlPlaneGroupVersion.String(),
 								Kind:       builder.GenericControlPlaneTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									ControlPlane: true,
+									ControlPlane: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -110,7 +110,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.GenericInfrastructureMachineTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									ControlPlane: true,
+									ControlPlane: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -247,7 +247,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.ControlPlaneGroupVersion.String(),
 								Kind:       builder.GenericControlPlaneTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									ControlPlane: true,
+									ControlPlane: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -273,7 +273,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.ControlPlaneGroupVersion.String(),
 								Kind:       builder.GenericControlPlaneTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									ControlPlane: true,
+									ControlPlane: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -309,7 +309,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.ControlPlaneGroupVersion.String(),
 								Kind:       builder.GenericControlPlaneTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									ControlPlane: true,
+									ControlPlane: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -345,7 +345,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.GenericInfrastructureClusterTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									InfrastructureCluster: true,
+									InfrastructureCluster: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -381,7 +381,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.GenericInfrastructureClusterTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									InfrastructureCluster: true,
+									InfrastructureCluster: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -543,7 +543,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.GenericInfrastructureClusterTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									InfrastructureCluster: true,
+									InfrastructureCluster: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -561,7 +561,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.ControlPlaneGroupVersion.String(),
 								Kind:       builder.GenericControlPlaneTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									ControlPlane: true,
+									ControlPlane: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -579,7 +579,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.GenericInfrastructureMachineTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									ControlPlane: true,
+									ControlPlane: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -733,7 +733,7 @@ func TestApply(t *testing.T) {
 				{
 					Name: "infraCluster",
 					// Note: This variable is defined by multiple patches, but without conflicts.
-					DefinitionsConflict: false,
+					DefinitionsConflict: ptr.To(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "inline",
@@ -753,7 +753,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.GenericInfrastructureClusterTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									InfrastructureCluster: true,
+									InfrastructureCluster: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -771,7 +771,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.ControlPlaneGroupVersion.String(),
 								Kind:       builder.GenericControlPlaneTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									ControlPlane: true,
+									ControlPlane: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -789,7 +789,7 @@ func TestApply(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.GenericInfrastructureMachineTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
-									ControlPlane: true,
+									ControlPlane: ptr.To(true),
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -1084,7 +1084,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 			Annotations: map[string]string{"fizz": "buzz"},
 		},
 		Spec: clusterv1.ClusterSpec{
-			Paused: false,
+			Paused: ptr.To(false),
 			ClusterNetwork: &clusterv1.ClusterNetwork{
 				APIServerPort: ptr.To[int32](8),
 				Services: &clusterv1.NetworkRanges{

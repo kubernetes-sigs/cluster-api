@@ -20,11 +20,11 @@ package v1beta1
 
 import (
 	"testing"
+	"time"
 
-	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/randfill"
 
@@ -80,5 +80,9 @@ func spokeTestResourceSpec(in *TestResourceSpec, c randfill.Continue) {
 
 	if in.PtrStringToString != nil && *in.PtrStringToString == "" {
 		in.PtrStringToString = nil
+	}
+
+	if in.DurationToPtrInt32.Nanoseconds() != 0 {
+		in.DurationToPtrInt32 = metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second}
 	}
 }

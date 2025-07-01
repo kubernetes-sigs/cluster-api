@@ -185,3 +185,75 @@ func TestConvert_int32_To_Pointer_int32(t *testing.T) {
 		})
 	}
 }
+
+func TestConvert_Duration_To_Pointer_int32(t *testing.T) {
+	testCases := []struct {
+		name        string
+		in          metav1.Duration
+		hasRestored bool
+		restored    *int32
+		wantOut     *int32
+	}{
+		{
+			name:    "when applying v1beta1, 0s should be converted to nil",
+			in:      metav1.Duration{},
+			wantOut: nil,
+		},
+		{
+			name:    "when applying v1beta1, value!=0s should be converted to *value",
+			in:      metav1.Duration{Duration: 1 * time.Second},
+			wantOut: ptr.To[int32](1),
+		},
+		{
+			name:        "when doing round trip, 0s should be converted to nil if not previously explicitly set to 0s (previously set to nil)",
+			in:          metav1.Duration{},
+			hasRestored: true,
+			restored:    nil,
+			wantOut:     nil,
+		},
+		{
+			name:        "when doing round trip, 0s should be converted to nil if not previously explicitly set to 0s (previously set to another value)",
+			in:          metav1.Duration{},
+			hasRestored: true,
+			restored:    ptr.To[int32](1),
+			wantOut:     nil,
+		},
+		{
+			name:        "when doing round trip, 0s should be converted to 0s if previously explicitly set to 0s",
+			in:          metav1.Duration{},
+			hasRestored: true,
+			restored:    ptr.To[int32](0),
+			wantOut:     ptr.To[int32](0),
+		},
+		{
+			name:        "when doing round trip, value should be converted to *value (no matter of restored value is nil)",
+			in:          metav1.Duration{Duration: 1 * time.Second},
+			hasRestored: true,
+			restored:    nil,
+			wantOut:     ptr.To[int32](1),
+		},
+		{
+			name:        "when doing round trip, value should be converted to *value (no matter of restored value is not 0s)",
+			in:          metav1.Duration{Duration: 1 * time.Second},
+			hasRestored: true,
+			restored:    ptr.To[int32](2),
+			wantOut:     ptr.To[int32](1),
+		},
+		{
+			name:        "when doing round trip, value should be converted to *value (no matter of restored value is 0s)",
+			in:          metav1.Duration{Duration: 1 * time.Second},
+			hasRestored: true,
+			restored:    ptr.To[int32](0),
+			wantOut:     ptr.To[int32](1),
+		},
+	}
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			var out *int32
+			Convert_Duration_To_Pointer_int32(tt.in, tt.hasRestored, tt.restored, &out)
+			g.Expect(out).To(Equal(tt.wantOut))
+		})
+	}
+}

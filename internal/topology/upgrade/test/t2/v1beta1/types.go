@@ -101,6 +101,9 @@ type TestResourceSpec struct {
 	Int32ToPtrInt32 int32 `json:"int32ToPtrInt32,omitempty"`
 
 	// +optional
+	DurationToPtrInt32 metav1.Duration `json:"durationToPtrInt32,omitempty"`
+
+	// +optional
 	StructWithOnlyOptionalFields StructWithOnlyOptionalFields `json:"structWithOnlyOptionalFields,omitempty"`
 }
 

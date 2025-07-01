@@ -106,6 +106,10 @@ type TestResourceSpec struct {
 	Int32ToPtrInt32 *int32 `json:"int32ToPtrInt32,omitempty"`
 
 	// +optional
+	// +kubebuilder:validation:Minimum=0
+	DurationToPtrInt32 *int32 `json:"durationToPtrInt32,omitempty"`
+
+	// +optional
 	StructWithOnlyOptionalFields StructWithOnlyOptionalFields `json:"structWithOnlyOptionalFields,omitempty,omitzero"`
 }
 

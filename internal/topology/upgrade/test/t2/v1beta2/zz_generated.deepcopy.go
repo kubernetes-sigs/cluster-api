@@ -148,6 +148,11 @@ func (in *TestResourceSpec) DeepCopyInto(out *TestResourceSpec) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.DurationToPtrInt32 != nil {
+		in, out := &in.DurationToPtrInt32, &out.DurationToPtrInt32
+		*out = new(int32)
+		**out = **in
+	}
 	out.StructWithOnlyOptionalFields = in.StructWithOnlyOptionalFields
 }
 

@@ -41,6 +41,8 @@ spec:
             properties:
               boolToPtrBool:
                 type: boolean
+              durationToPtrInt32:
+                type: string
               int32ToPtrInt32:
                 format: int32
                 minimum: 0

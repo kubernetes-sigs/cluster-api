@@ -119,18 +119,10 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 			pausedCondition := conditions.Get(conf, clusterv1.PausedCondition)
 			g.Expect(pausedCondition).ToNot(BeNil())
 			g.Expect(pausedCondition.ObservedGeneration).To(Equal(conf.Generation))
-		}).WithTimeout(15 * time.Second).WithPolling(100 * time.Millisecond).Should(Succeed())
+		}).WithTimeout(10 * time.Second).WithPolling(100 * time.Millisecond).Should(Succeed())
 
 		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(extensionConfig)})
 		g.Expect(err).ToNot(HaveOccurred())
-
-		// Wait for discovery to complete before checking final conditions
-		g.Eventually(func(g Gomega) {
-			updatedConfig := &runtimev1.ExtensionConfig{}
-			g.Expect(env.GetAPIReader().Get(ctx, util.ObjectKey(extensionConfig), updatedConfig)).To(Succeed())
-			v1beta2Conditions := updatedConfig.GetConditions()
-			g.Expect(len(v1beta2Conditions)).To(BeNumerically(">=", 2))
-		}).WithTimeout(10 * time.Second).WithPolling(100 * time.Millisecond).Should(Succeed())
 
 		config := &runtimev1.ExtensionConfig{}
 		g.Expect(env.GetAPIReader().Get(ctx, util.ObjectKey(extensionConfig), config)).To(Succeed())

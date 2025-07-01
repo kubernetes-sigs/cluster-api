@@ -244,11 +244,6 @@ func (in *KubeadmControlPlaneStatus) DeepCopyInto(out *KubeadmControlPlaneStatus
 		*out = new(int32)
 		**out = **in
 	}
-	if in.Version != nil {
-		in, out := &in.Version, &out.Version
-		*out = new(string)
-		**out = **in
-	}
 	if in.LastRemediation != nil {
 		in, out := &in.LastRemediation, &out.LastRemediation
 		*out = new(LastRemediationStatus)

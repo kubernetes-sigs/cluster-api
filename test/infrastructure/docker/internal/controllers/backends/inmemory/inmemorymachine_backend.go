@@ -955,7 +955,7 @@ func (r *MachineBackendReconciler) reconcileNormalKubeProxy(ctx context.Context,
 					Containers: []corev1.Container{
 						{
 							Name:  "kube-proxy",
-							Image: fmt.Sprintf("registry.k8s.io/kube-proxy:%s", *machine.Spec.Version),
+							Image: fmt.Sprintf("registry.k8s.io/kube-proxy:%s", machine.Spec.Version),
 						},
 					},
 				},

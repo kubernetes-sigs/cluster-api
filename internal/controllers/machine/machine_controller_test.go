@@ -1052,7 +1052,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			Finalizers: []string{clusterv1.MachineFinalizer},
 		},
 		Spec: clusterv1.MachineSpec{
-			ProviderID:  ptr.To("test://id-1"),
+			ProviderID:  "test://id-1",
 			ClusterName: "test-cluster",
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
@@ -3515,7 +3515,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 				Name:     "infra-config1",
 			},
 			Bootstrap:  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-			ProviderID: ptr.To("test://id-1"),
+			ProviderID: "test://id-1",
 		},
 	}
 

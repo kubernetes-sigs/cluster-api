@@ -201,7 +201,7 @@ func (m *Machine) ContainerImage() string {
 }
 
 // Create creates a docker container hosting a Kubernetes node.
-func (m *Machine) Create(ctx context.Context, image string, role string, version *string, labels map[string]string, mounts []infrav1.Mount) error {
+func (m *Machine) Create(ctx context.Context, image string, role string, version string, labels map[string]string, mounts []infrav1.Mount) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Create if not exists.
@@ -211,11 +211,11 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 		// Get the KindMapping for the target K8s version.
 		// NOTE: The KindMapping allows to select the most recent kindest/node image available, if any, as well as
 		// provide info about the mode to be used when starting the kindest/node image itself.
-		if version == nil {
+		if version == "" {
 			return errors.New("cannot create a DockerMachine for a nil version")
 		}
 
-		semVer, err := semver.ParseTolerant(*version)
+		semVer, err := semver.ParseTolerant(version)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse DockerMachine version")
 		}
@@ -329,7 +329,7 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 }
 
 // ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`.
-func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstrapv1.Format, version *string, image string) error {
+func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstrapv1.Format, version string, image string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if m.container == nil {
@@ -339,11 +339,11 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstr
 	// Get the kindMapping for the target K8s version.
 	// NOTE: The kindMapping allows to select the most recent kindest/node image available, if any, as well as
 	// provide info about the mode to be used when starting the kindest/node image itself.
-	if version == nil {
+	if version == "" {
 		return errors.New("cannot create a DockerMachine for a nil version")
 	}
 
-	semVer, err := semver.ParseTolerant(*version)
+	semVer, err := semver.ParseTolerant(version)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse DockerMachine version")
 	}

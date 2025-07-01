@@ -226,8 +226,8 @@ func AssertControlPlaneFailureDomains(ctx context.Context, input AssertControlPl
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Couldn't list control-plane machines for the cluster %q", input.Cluster.Name)
 
 	for _, machine := range machineList.Items {
-		if machine.Spec.FailureDomain != nil {
-			machineFD := *machine.Spec.FailureDomain
+		if machine.Spec.FailureDomain != "" {
+			machineFD := machine.Spec.FailureDomain
 			if !controlPlaneFailureDomains.Has(machineFD) {
 				Fail(fmt.Sprintf("Machine %s is in the %q failure domain, expecting one of the failure domain defined at cluster level", machine.Name, machineFD))
 			}

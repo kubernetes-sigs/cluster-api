@@ -24,7 +24,6 @@ import (
 	"github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
@@ -101,7 +100,7 @@ func TestRegistry(t *testing.T) {
 		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				URL: ptr.To("https://extesions1.com/"),
+				URL: "https://extesions1.com/",
 			},
 		},
 		Status: runtimev1.ExtensionConfigStatus{
@@ -137,7 +136,7 @@ func TestRegistry(t *testing.T) {
 		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				URL: ptr.To("https://extesions2.com/"),
+				URL: "https://extesions2.com/",
 			},
 		},
 		Status: runtimev1.ExtensionConfigStatus{

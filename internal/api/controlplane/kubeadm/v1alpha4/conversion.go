@@ -168,6 +168,9 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	// Convert timeouts moved from one struct to another.
 	dst.Spec.KubeadmConfigSpec.ConvertFrom(&src.Spec.KubeadmConfigSpec)
 
+	dropEmptyStringsKubeadmConfigSpec(&dst.Spec.KubeadmConfigSpec)
+	dropEmptyStringsKubeadmControlPlaneStatus(&dst.Status)
+
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
 }
@@ -233,6 +236,8 @@ func (dst *KubeadmControlPlaneTemplate) ConvertFrom(srcRaw conversion.Hub) error
 
 	// Convert timeouts moved from one struct to another.
 	dst.Spec.Template.Spec.KubeadmConfigSpec.ConvertFrom(&src.Spec.Template.Spec.KubeadmConfigSpec)
+
+	dropEmptyStringsKubeadmConfigSpec(&dst.Spec.Template.Spec.KubeadmConfigSpec)
 
 	// Preserve Hub data on down-conversion except for metadata.
 	return utilconversion.MarshalData(src, dst)
@@ -388,4 +393,39 @@ func convertToObjectReference(ref *clusterv1.ContractVersionedObjectReference, n
 		Namespace:  namespace,
 		Name:       ref.Name,
 	}, nil
+}
+
+func dropEmptyStringsKubeadmConfigSpec(dst *bootstrapv1alpha4.KubeadmConfigSpec) {
+	for i, u := range dst.Users {
+		dropEmptyString(&u.Gecos)
+		dropEmptyString(&u.Groups)
+		dropEmptyString(&u.HomeDir)
+		dropEmptyString(&u.Shell)
+		dropEmptyString(&u.Passwd)
+		dropEmptyString(&u.PrimaryGroup)
+		dropEmptyString(&u.Sudo)
+		dst.Users[i] = u
+	}
+
+	if dst.DiskSetup != nil {
+		for i, p := range dst.DiskSetup.Partitions {
+			dropEmptyString(&p.TableType)
+			dst.DiskSetup.Partitions[i] = p
+		}
+		for i, f := range dst.DiskSetup.Filesystems {
+			dropEmptyString(&f.Partition)
+			dropEmptyString(&f.ReplaceFS)
+			dst.DiskSetup.Filesystems[i] = f
+		}
+	}
+}
+
+func dropEmptyStringsKubeadmControlPlaneStatus(dst *KubeadmControlPlaneStatus) {
+	dropEmptyString(&dst.Version)
+}
+
+func dropEmptyString(s **string) {
+	if *s != nil && **s == "" {
+		*s = nil
+	}
 }

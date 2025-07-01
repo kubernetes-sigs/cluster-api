@@ -46,7 +46,7 @@ func NewValidator(runtimeClient runtimeclient.Client, patch *clusterv1.ClusterCl
 
 func (e externalValidator) Validate(ctx context.Context, forObject client.Object, req *runtimehooksv1.ValidateTopologyRequest) (*runtimehooksv1.ValidateTopologyResponse, error) {
 	if !feature.Gates.Enabled(feature.RuntimeSDK) {
-		return nil, errors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", *e.patch.External.ValidateTopologyExtension)
+		return nil, errors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", e.patch.External.ValidateTopologyExtension)
 	}
 
 	// Set the settings defined in external patch definition on the request object.
@@ -59,7 +59,7 @@ func (e externalValidator) Validate(ctx context.Context, forObject client.Object
 	}()
 
 	resp := &runtimehooksv1.ValidateTopologyResponse{}
-	err := e.runtimeClient.CallExtension(ctx, runtimehooksv1.ValidateTopology, forObject, *e.patch.External.ValidateTopologyExtension, req, resp)
+	err := e.runtimeClient.CallExtension(ctx, runtimehooksv1.ValidateTopology, forObject, e.patch.External.ValidateTopologyExtension, req, resp)
 	if err != nil {
 		return nil, err
 	}

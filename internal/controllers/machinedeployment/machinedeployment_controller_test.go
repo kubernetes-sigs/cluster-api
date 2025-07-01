@@ -127,7 +127,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						ClusterName: testCluster.Name,
-						Version:     &version,
+						Version:     version,
 						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 							Kind:     "GenericInfrastructureMachineTemplate",
@@ -224,7 +224,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		t.Log("Verify MachineSet has expected replicas and version")
 		firstMachineSet := machineSets.Items[0]
 		g.Expect(*firstMachineSet.Spec.Replicas).To(BeEquivalentTo(2))
-		g.Expect(*firstMachineSet.Spec.Template.Spec.Version).To(BeEquivalentTo("v1.10.3"))
+		g.Expect(firstMachineSet.Spec.Template.Spec.Version).To(BeEquivalentTo("v1.10.3"))
 
 		t.Log("Verify MachineSet has expected ClusterNameLabel and MachineDeploymentNameLabel")
 		g.Expect(firstMachineSet.Labels[clusterv1.ClusterNameLabel]).To(Equal(testCluster.Name))
@@ -550,7 +550,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: testCluster.Name,
-					Version:     &version,
+					Version:     version,
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 						Kind:     "GenericInfrastructureMachineTemplate",
@@ -628,7 +628,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To("data-secret-name"),
 					},
-					Version: &version,
+					Version: version,
 				},
 			},
 		},

@@ -106,7 +106,7 @@ func TestPatch(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName:             "cluster-1",
-				Version:                 ptr.To("v1.25.0"),
+				Version:                 "v1.25.0",
 				NodeDrainTimeoutSeconds: ptr.To(int32(10)),
 				Bootstrap: clusterv1.Bootstrap{
 					DataSecretName: ptr.To("data-secret"),

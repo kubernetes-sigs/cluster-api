@@ -707,7 +707,7 @@ func assertMachineDeploymentTopologyFields(g Gomega, md clusterv1.MachineDeploym
 		g.Expect(md.Spec.Strategy).To(BeComparableTo(mdTopology.Strategy))
 	}
 
-	if mdTopology.FailureDomain != nil {
+	if mdTopology.FailureDomain != "" {
 		g.Expect(md.Spec.Template.Spec.FailureDomain).To(Equal(mdTopology.FailureDomain))
 	}
 }

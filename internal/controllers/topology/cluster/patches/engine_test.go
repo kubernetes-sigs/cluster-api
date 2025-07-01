@@ -407,8 +407,8 @@ func TestApply(t *testing.T) {
 				{
 					Name: "fake-patch1",
 					External: &clusterv1.ExternalPatchDefinition{
-						GeneratePatchesExtension:  ptr.To("patch-infrastructureCluster"),
-						ValidateTopologyExtension: ptr.To("validate-infrastructureCluster"),
+						GeneratePatchesExtension:  "patch-infrastructureCluster",
+						ValidateTopologyExtension: "validate-infrastructureCluster",
 					},
 				},
 			},
@@ -444,8 +444,8 @@ func TestApply(t *testing.T) {
 				{
 					Name: "fake-patch1",
 					External: &clusterv1.ExternalPatchDefinition{
-						GeneratePatchesExtension:  ptr.To("patch-infrastructureCluster"),
-						ValidateTopologyExtension: ptr.To("validate-infrastructureCluster"),
+						GeneratePatchesExtension:  "patch-infrastructureCluster",
+						ValidateTopologyExtension: "validate-infrastructureCluster",
 					},
 				},
 			},
@@ -478,13 +478,13 @@ func TestApply(t *testing.T) {
 				{
 					Name: "fake-patch1",
 					External: &clusterv1.ExternalPatchDefinition{
-						GeneratePatchesExtension: ptr.To("patch-infrastructureCluster"),
+						GeneratePatchesExtension: "patch-infrastructureCluster",
 					},
 				},
 				{
 					Name: "fake-patch2",
 					External: &clusterv1.ExternalPatchDefinition{
-						GeneratePatchesExtension: ptr.To("patch-controlPlane"),
+						GeneratePatchesExtension: "patch-controlPlane",
 					},
 				},
 			},
@@ -551,7 +551,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/clusterName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("builtin.cluster.name"),
+										Variable: "builtin.cluster.name",
 									},
 								},
 							},
@@ -569,7 +569,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/controlPlaneName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("builtin.controlPlane.name"),
+										Variable: "builtin.controlPlane.name",
 									},
 								},
 							},
@@ -587,7 +587,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/controlPlaneName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("builtin.controlPlane.name"),
+										Variable: "builtin.controlPlane.name",
 									},
 								},
 							},
@@ -607,7 +607,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/machineDeploymentTopologyName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("builtin.machineDeployment.topologyName"),
+										Variable: "builtin.machineDeployment.topologyName",
 									},
 								},
 							},
@@ -627,7 +627,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/machineDeploymentTopologyName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("builtin.machineDeployment.topologyName"),
+										Variable: "builtin.machineDeployment.topologyName",
 									},
 								},
 							},
@@ -647,7 +647,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/machinePoolTopologyName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("builtin.machinePool.topologyName"),
+										Variable: "builtin.machinePool.topologyName",
 									},
 								},
 							},
@@ -667,7 +667,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/machinePoolTopologyName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("builtin.machinePool.topologyName"),
+										Variable: "builtin.machinePool.topologyName",
 									},
 								},
 							},
@@ -761,7 +761,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("infraCluster"),
+										Variable: "infraCluster",
 									},
 								},
 							},
@@ -779,7 +779,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/controlPlaneField",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("controlPlaneVariable"),
+										Variable: "controlPlaneVariable",
 									},
 								},
 							},
@@ -797,7 +797,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/controlPlaneInfraMachineTemplateField",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("controlPlaneVariable"),
+										Variable: "controlPlaneVariable",
 									},
 								},
 							},
@@ -817,7 +817,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("defaultMDWorkerVariable"),
+										Variable: "defaultMDWorkerVariable",
 									},
 								},
 							},
@@ -837,7 +837,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("defaultMDWorkerVariable"),
+										Variable: "defaultMDWorkerVariable",
 									},
 								},
 							},
@@ -857,7 +857,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("defaultMPWorkerVariable"),
+										Variable: "defaultMPWorkerVariable",
 									},
 								},
 							},
@@ -877,7 +877,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("defaultMPWorkerVariable"),
+										Variable: "defaultMPWorkerVariable",
 									},
 								},
 							},

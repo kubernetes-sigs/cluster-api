@@ -44,7 +44,7 @@ func TestMachinePoolDefault(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
-					Version:   ptr.To("1.20.0"),
+					Version:   "1.20.0",
 				},
 			},
 		},
@@ -56,7 +56,7 @@ func TestMachinePoolDefault(t *testing.T) {
 
 	g.Expect(mp.Labels[clusterv1.ClusterNameLabel]).To(Equal(mp.Spec.ClusterName))
 	g.Expect(mp.Spec.Replicas).To(Equal(ptr.To[int32](1)))
-	g.Expect(mp.Spec.Template.Spec.Version).To(Equal(ptr.To("v1.20.0")))
+	g.Expect(mp.Spec.Template.Spec.Version).To(Equal("v1.20.0"))
 	g.Expect(*mp.Spec.Template.Spec.NodeDeletionTimeoutSeconds).To(Equal(defaultNodeDeletionTimeoutSeconds))
 }
 
@@ -376,7 +376,7 @@ func TestMachinePoolVersionValidation(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
-							Version:   &tt.version,
+							Version:   tt.version,
 						},
 					},
 				},

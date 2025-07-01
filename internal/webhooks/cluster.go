@@ -545,10 +545,10 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 	for i := range mds.Items {
 		md := &mds.Items[i]
 
-		mdVersion, err := semver.ParseTolerant(*md.Spec.Template.Spec.Version)
+		mdVersion, err := semver.ParseTolerant(md.Spec.Template.Spec.Version)
 		if err != nil {
 			// NOTE: this should never happen. Nevertheless, handling this for extra caution.
-			return errors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to parse version %s", md.Name, *md.Spec.Template.Spec.Version)
+			return errors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to parse version %s", md.Name, md.Spec.Template.Spec.Version)
 		}
 
 		if mdVersion.String() != oldVersion.String() {
@@ -601,10 +601,10 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 	for i := range mps.Items {
 		mp := &mps.Items[i]
 
-		mpVersion, err := semver.ParseTolerant(*mp.Spec.Template.Spec.Version)
+		mpVersion, err := semver.ParseTolerant(mp.Spec.Template.Spec.Version)
 		if err != nil {
 			// NOTE: this should never happen. Nevertheless, handling this for extra caution.
-			return errors.Wrapf(err, "failed to check if MachinePool %s is upgrading: failed to parse version %s", mp.Name, *mp.Spec.Template.Spec.Version)
+			return errors.Wrapf(err, "failed to check if MachinePool %s is upgrading: failed to parse version %s", mp.Name, mp.Spec.Template.Spec.Version)
 		}
 
 		if mpVersion.String() != oldVersion.String() {

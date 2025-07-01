@@ -300,7 +300,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.MachineOwnerRemediatedV1Beta1Condition,
 			clusterv1.DrainingSucceededV1Beta1Condition,
 		),
-		v1beta1conditions.WithStepCounterIf(machine.DeletionTimestamp.IsZero() && machine.Spec.ProviderID == nil),
+		v1beta1conditions.WithStepCounterIf(machine.DeletionTimestamp.IsZero() && machine.Spec.ProviderID == ""),
 		v1beta1conditions.WithStepCounterIfOnly(
 			clusterv1.BootstrapReadyV1Beta1Condition,
 			clusterv1.InfrastructureReadyV1Beta1Condition,
@@ -720,8 +720,8 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 	}
 
 	var providerID string
-	if machine.Spec.ProviderID != nil {
-		providerID = *machine.Spec.ProviderID
+	if machine.Spec.ProviderID != "" {
+		providerID = machine.Spec.ProviderID
 	} else if infraMachine != nil {
 		// Fallback to retrieve from infraMachine.
 		if providerIDFromInfraMachine, err := contract.InfrastructureMachine().ProviderID().Get(infraMachine); err == nil {

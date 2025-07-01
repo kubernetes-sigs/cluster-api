@@ -223,10 +223,10 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 
 		bootstrapSecrets := map[string]bootstrapv1.KubeadmConfig{}
 		for _, b := range bootstrap.Items {
-			if b.Status.DataSecretName == nil {
+			if b.Status.DataSecretName == "" {
 				continue
 			}
-			bootstrapSecrets[*b.Status.DataSecretName] = b
+			bootstrapSecrets[b.Status.DataSecretName] = b
 		}
 
 		for _, s := range secrets.Items {

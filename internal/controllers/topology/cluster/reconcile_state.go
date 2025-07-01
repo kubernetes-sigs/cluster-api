@@ -826,12 +826,12 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 }
 
 func logMachineDeploymentVersionChange(current, desired *clusterv1.MachineDeployment) string {
-	if current.Spec.Template.Spec.Version == nil || desired.Spec.Template.Spec.Version == nil {
+	if current.Spec.Template.Spec.Version == "" || desired.Spec.Template.Spec.Version == "" {
 		return ""
 	}
 
-	if *current.Spec.Template.Spec.Version != *desired.Spec.Template.Spec.Version {
-		return fmt.Sprintf(" with version change from %s to %s", *current.Spec.Template.Spec.Version, *desired.Spec.Template.Spec.Version)
+	if current.Spec.Template.Spec.Version != desired.Spec.Template.Spec.Version {
+		return fmt.Sprintf(" with version change from %s to %s", current.Spec.Template.Spec.Version, desired.Spec.Template.Spec.Version)
 	}
 	return ""
 }
@@ -1108,12 +1108,12 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, mpTo
 }
 
 func logMachinePoolVersionChange(current, desired *clusterv1.MachinePool) string {
-	if current.Spec.Template.Spec.Version == nil || desired.Spec.Template.Spec.Version == nil {
+	if current.Spec.Template.Spec.Version == "" || desired.Spec.Template.Spec.Version == "" {
 		return ""
 	}
 
-	if *current.Spec.Template.Spec.Version != *desired.Spec.Template.Spec.Version {
-		return fmt.Sprintf(" with version change from %s to %s", *current.Spec.Template.Spec.Version, *desired.Spec.Template.Spec.Version)
+	if current.Spec.Template.Spec.Version != desired.Spec.Template.Spec.Version {
+		return fmt.Sprintf(" with version change from %s to %s", current.Spec.Template.Spec.Version, desired.Spec.Template.Spec.Version)
 	}
 	return ""
 }

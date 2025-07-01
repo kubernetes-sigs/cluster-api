@@ -226,7 +226,7 @@ type ControlPlaneClassNamingStrategy struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
-	Template *string `json:"template,omitempty"`
+	Template string `json:"template,omitempty"`
 }
 
 // InfrastructureClassNamingStrategy defines the naming strategy for infrastructure objects.
@@ -241,7 +241,7 @@ type InfrastructureClassNamingStrategy struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
-	Template *string `json:"template,omitempty"`
+	Template string `json:"template,omitempty"`
 }
 
 // WorkersClass is a collection of deployment classes.
@@ -289,7 +289,7 @@ type MachineDeploymentClass struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	FailureDomain *string `json:"failureDomain,omitempty"`
+	FailureDomain string `json:"failureDomain,omitempty"`
 
 	// namingStrategy allows changing the naming pattern used when creating the MachineDeployment.
 	// +optional
@@ -379,7 +379,7 @@ type MachineDeploymentClassNamingStrategy struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
-	Template *string `json:"template,omitempty"`
+	Template string `json:"template,omitempty"`
 }
 
 // MachineHealthCheckClass defines a MachineHealthCheck for a group of Machines.
@@ -408,7 +408,7 @@ type MachineHealthCheckClass struct {
 	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=32
-	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
+	UnhealthyRange string `json:"unhealthyRange,omitempty"`
 
 	// nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
 	// to consider a Machine unhealthy if a corresponding Node isn't associated
@@ -529,7 +529,7 @@ type MachinePoolClassNamingStrategy struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
-	Template *string `json:"template,omitempty"`
+	Template string `json:"template,omitempty"`
 }
 
 // IsZero returns true if none of the values of MachineHealthCheckClass are defined.
@@ -961,7 +961,7 @@ type ClusterClassPatch struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	EnabledIf *string `json:"enabledIf,omitempty"`
+	EnabledIf string `json:"enabledIf,omitempty"`
 
 	// definitions define inline patches.
 	// Note: Patches will be applied in the order of the array.
@@ -1107,7 +1107,7 @@ type JSONPatchValue struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Variable *string `json:"variable,omitempty"`
+	Variable string `json:"variable,omitempty"`
 
 	// template is the Go template to be used to calculate the value.
 	// A template can reference variables defined in .spec.variables and builtin variables.
@@ -1115,7 +1115,7 @@ type JSONPatchValue struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
-	Template *string `json:"template,omitempty"`
+	Template string `json:"template,omitempty"`
 }
 
 // ExternalPatchDefinition defines an external patch.
@@ -1125,19 +1125,19 @@ type ExternalPatchDefinition struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	GeneratePatchesExtension *string `json:"generatePatchesExtension,omitempty"`
+	GeneratePatchesExtension string `json:"generatePatchesExtension,omitempty"`
 
 	// validateTopologyExtension references an extension which is called to validate the topology.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	ValidateTopologyExtension *string `json:"validateTopologyExtension,omitempty"`
+	ValidateTopologyExtension string `json:"validateTopologyExtension,omitempty"`
 
 	// discoverVariablesExtension references an extension which is called to discover variables.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	DiscoverVariablesExtension *string `json:"discoverVariablesExtension,omitempty"`
+	DiscoverVariablesExtension string `json:"discoverVariablesExtension,omitempty"`
 
 	// settings defines key value pairs to be passed to the extensions.
 	// Values defined here take precedence over the values defined in the

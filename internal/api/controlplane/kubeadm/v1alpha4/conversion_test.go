@@ -154,6 +154,8 @@ func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c randfill.Co
 
 	// Make sure ready is consistent with ready replicas, so we can rebuild the info after the round trip.
 	in.Ready = in.ReadyReplicas > 0
+
+	dropEmptyStringsKubeadmControlPlaneStatus(in)
 }
 
 func hubBootstrapTokenString(in *bootstrapv1.BootstrapTokenString, _ randfill.Continue) {
@@ -211,6 +213,8 @@ func spokeKubeadmConfigSpec(in *bootstrapv1alpha4.KubeadmConfigSpec, c randfill.
 
 	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
 	in.UseExperimentalRetryJoin = false
+
+	dropEmptyStringsKubeadmConfigSpec(in)
 }
 
 func spokeClusterConfiguration(in *bootstrapv1alpha4.ClusterConfiguration, c randfill.Continue) {

@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -163,7 +162,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 
 		// Patch the extension with the new server endpoint.
 		patch := client.MergeFrom(extensionConfig.DeepCopy())
-		extensionConfig.Spec.ClientConfig.URL = &updatedServer.URL
+		extensionConfig.Spec.ClientConfig.URL = updatedServer.URL
 
 		g.Expect(env.Patch(ctx, extensionConfig, patch)).To(Succeed())
 
@@ -174,8 +173,8 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			if *conf.Spec.ClientConfig.URL != updatedServer.URL {
-				return errors.Errorf("URL not set on updated object: got: %s, want: %s", *conf.Spec.ClientConfig.URL, updatedServer.URL)
+			if conf.Spec.ClientConfig.URL != updatedServer.URL {
+				return errors.Errorf("URL not set on updated object: got: %s, want: %s", conf.Spec.ClientConfig.URL, updatedServer.URL)
 			}
 			return nil
 		}, 30*time.Second, 100*time.Millisecond).Should(Succeed())
@@ -417,7 +416,7 @@ func fakeExtensionConfigForURL(namespace, name, url string) *runtimev1.Extension
 		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				URL: ptr.To(url),
+				URL: url,
 			},
 			NamespaceSelector: nil,
 		},

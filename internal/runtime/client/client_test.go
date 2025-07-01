@@ -196,7 +196,7 @@ func TestClient_httpCall(t *testing.T) {
 				defer srv.Close()
 
 				// set url to srv for in tt.opts
-				tt.opts.config.URL = ptr.To(srv.URL)
+				tt.opts.config.URL = srv.URL
 				tt.opts.config.CABundle = testcerts.CACert
 			}
 
@@ -297,7 +297,7 @@ func TestURLForExtension(t *testing.T) {
 			name: "ClientConfig using URL should have correct URL values",
 			args: args{
 				config: runtimev1.ClientConfig{
-					URL: ptr.To("https://extension-host.com"),
+					URL: "https://extension-host.com",
 				},
 				gvh:                  gvh,
 				extensionHandlerName: "test-handler",
@@ -551,7 +551,7 @@ func TestClient_CallExtension(t *testing.T) {
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
-				URL:      ptr.To("https://127.0.0.1/"),
+				URL:      "https://127.0.0.1/",
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{},
@@ -577,7 +577,7 @@ func TestClient_CallExtension(t *testing.T) {
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
-				URL:      ptr.To("https://127.0.0.1/"),
+				URL:      "https://127.0.0.1/",
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{}},
@@ -776,7 +776,7 @@ func TestClient_CallExtension(t *testing.T) {
 
 				// Set the URL to the real address of the test server.
 				for i := range tt.registeredExtensionConfigs {
-					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = ptr.To(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
+					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = fmt.Sprintf("https://%s/", srv.Listener.Addr().String())
 				}
 			}
 
@@ -946,7 +946,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
-				URL:      ptr.To("https://127.0.0.1/"),
+				URL:      "https://127.0.0.1/",
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{},
@@ -1102,7 +1102,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 
 				// Set the URL to the real address of the test server.
 				for i := range tt.registeredExtensionConfigs {
-					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = ptr.To(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
+					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = fmt.Sprintf("https://%s/", srv.Listener.Addr().String())
 				}
 			}
 

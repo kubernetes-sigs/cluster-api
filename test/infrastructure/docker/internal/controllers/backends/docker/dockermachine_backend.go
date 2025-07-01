@@ -82,7 +82,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	}
 
 	var dataSecretName *string
-	var version *string
+	var version string
 
 	if labels.IsMachinePoolOwned(dockerMachine) {
 		machinePool, err := utilexp.GetMachinePoolByLabels(ctx, r.Client, dockerMachine.GetNamespace(), dockerMachine.Labels)

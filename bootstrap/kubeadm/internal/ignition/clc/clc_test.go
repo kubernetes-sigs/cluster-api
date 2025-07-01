@@ -85,13 +85,13 @@ func TestRender(t *testing.T) {
 				Users: []bootstrapv1.User{
 					{
 						Name:         "foo",
-						Gecos:        ptr.To("Foo B. Bar"),
-						Groups:       ptr.To("foo, bar"),
-						HomeDir:      ptr.To("/home/foo"),
-						Shell:        ptr.To("/bin/false"),
-						Passwd:       ptr.To("$6$j212wezy$7H/1LT4f9/N3wpgNunhsIqtMj62OKiS3nyNwuizouQc3u7MbYCarYeAHWYPYb2FT.lbioDm2RrkJPb9BZMN1O/"),
-						PrimaryGroup: ptr.To("foo"),
-						Sudo:         ptr.To("ALL=(ALL) NOPASSWD:ALL"),
+						Gecos:        "Foo B. Bar",
+						Groups:       "foo, bar",
+						HomeDir:      "/home/foo",
+						Shell:        "/bin/false",
+						Passwd:       "$6$j212wezy$7H/1LT4f9/N3wpgNunhsIqtMj62OKiS3nyNwuizouQc3u7MbYCarYeAHWYPYb2FT.lbioDm2RrkJPb9BZMN1O/",
+						PrimaryGroup: "foo",
+						Sudo:         "ALL=(ALL) NOPASSWD:ALL",
 						SSHAuthorizedKeys: []string{
 							"foo",
 							"bar",
@@ -104,7 +104,7 @@ func TestRender(t *testing.T) {
 							Device:    "/dev/disk/azure/scsi1/lun0",
 							Layout:    true,
 							Overwrite: ptr.To(true),
-							TableType: ptr.To("gpt"),
+							TableType: "gpt",
 						},
 					},
 					Filesystems: []bootstrapv1.Filesystem{

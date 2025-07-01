@@ -117,7 +117,7 @@ func TestMachineSetReconciler(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: testCluster.Name,
-				Version:     &version,
+				Version:     version,
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: &clusterv1.ContractVersionedObjectReference{
 						APIGroup: clusterv1.GroupVersionBootstrap.Group,
@@ -412,8 +412,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				continue
 			}
 
-			g.Expect(m.Spec.Version).ToNot(BeNil())
-			g.Expect(*m.Spec.Version).To(BeEquivalentTo("v1.14.2"))
+			g.Expect(m.Spec.Version).To(BeEquivalentTo("v1.14.2"))
 			fakeBootstrapRefDataSecretCreated(*m.Spec.Bootstrap.ConfigRef, m.Namespace, bootstrapResource, g)
 			providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, m.Namespace, infraResource, g)
 			fakeMachineNodeRef(&m, providerID, g)
@@ -967,7 +966,7 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 						// Try to break Infra Cloning
 						Name: "something_invalid",
 					},
-					Version: &version,
+					Version: version,
 				},
 			},
 			Selector: metav1.LabelSelector{
@@ -1140,7 +1139,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: testCluster.Name,
-					Version:     &version,
+					Version:     version,
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &clusterv1.ContractVersionedObjectReference{
 							APIGroup: clusterv1.GroupVersionBootstrap.Group,
@@ -2295,7 +2294,7 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
 						ClusterName: testCluster.Name,
-						Version:     ptr.To("v1.14.2"),
+						Version:     "v1.14.2",
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: &clusterv1.ContractVersionedObjectReference{
 								APIGroup: clusterv1.GroupVersionBootstrap.Group,
@@ -2454,7 +2453,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       testClusterName,
-			Version:           ptr.To("v1.25.3"),
+			Version:           "v1.25.3",
 			InfrastructureRef: infraRef,
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &bootstrapRef,
@@ -2479,7 +2478,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:                    testClusterName,
-			Version:                        ptr.To("v1.25.3"),
+			Version:                        "v1.25.3",
 			NodeDrainTimeoutSeconds:        duration10s,
 			NodeVolumeDetachTimeoutSeconds: duration10s,
 			NodeDeletionTimeoutSeconds:     duration10s,
@@ -2848,7 +2847,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				Spec: clusterv1.MachineDeploymentSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To("v1.31.0"),
+							Version: "v1.31.0",
 						},
 					},
 				},
@@ -2857,7 +2856,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To("v1.31.0"),
+							Version: "v1.31.0",
 						},
 					},
 				},
@@ -2874,7 +2873,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				Spec: clusterv1.MachineDeploymentSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To("v1.31.0"),
+							Version: "v1.31.0",
 						},
 					},
 				},
@@ -2883,7 +2882,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To("v1.30.0"),
+							Version: "v1.30.0",
 						},
 					},
 				},
@@ -2902,7 +2901,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 					RolloutAfter: &metav1.Time{Time: reconciliationTime.Add(1 * time.Hour)}, // rollout after not yet expired
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To("v1.31.0"),
+							Version: "v1.31.0",
 						},
 					},
 				},
@@ -2914,7 +2913,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To("v1.31.0"),
+							Version: "v1.31.0",
 						},
 					},
 				},
@@ -2932,7 +2931,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 					RolloutAfter: &metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // rollout after expired
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To("v1.31.0"),
+							Version: "v1.31.0",
 						},
 					},
 				},
@@ -2944,7 +2943,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To("v1.31.0"),
+							Version: "v1.31.0",
 						},
 					},
 				},
@@ -2963,7 +2962,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 					RolloutAfter: &metav1.Time{Time: reconciliationTime.Add(-2 * time.Hour)}, // rollout after expired
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To("v1.31.0"),
+							Version: "v1.31.0",
 						},
 					},
 				},
@@ -2975,7 +2974,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To("v1.31.0"),
+							Version: "v1.31.0",
 						},
 					},
 				},
@@ -2993,7 +2992,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 					RolloutAfter: &metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // rollout after expired
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To("v1.30.0"),
+							Version: "v1.30.0",
 						},
 					},
 				},
@@ -3005,7 +3004,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To("v1.31.0"),
+							Version: "v1.31.0",
 						},
 					},
 				},

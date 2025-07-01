@@ -49,8 +49,8 @@ func matchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, mach
 
 	if !collections.MatchesKubernetesVersion(kcp.Spec.Version)(machine) {
 		machineVersion := ""
-		if machine != nil && machine.Spec.Version != nil {
-			machineVersion = *machine.Spec.Version
+		if machine != nil && machine.Spec.Version != "" {
+			machineVersion = machine.Spec.Version
 		}
 		logMessages = append(logMessages, fmt.Sprintf("Machine version %q is not equal to KCP version %q", machineVersion, kcp.Spec.Version))
 		// Note: the code computing the message for KCP's RolloutOut condition is making assumptions on the format/content of this message.

@@ -46,7 +46,7 @@ func NewGenerator(runtimeClient runtimeclient.Client, patch *clusterv1.ClusterCl
 
 func (e externalPatchGenerator) Generate(ctx context.Context, forObject client.Object, req *runtimehooksv1.GeneratePatchesRequest) (*runtimehooksv1.GeneratePatchesResponse, error) {
 	if !feature.Gates.Enabled(feature.RuntimeSDK) {
-		return nil, errors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", *e.patch.External.GeneratePatchesExtension)
+		return nil, errors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", e.patch.External.GeneratePatchesExtension)
 	}
 
 	// Set the settings defined in external patch definition on the request object.
@@ -59,7 +59,7 @@ func (e externalPatchGenerator) Generate(ctx context.Context, forObject client.O
 	}()
 
 	resp := &runtimehooksv1.GeneratePatchesResponse{}
-	err := e.runtimeClient.CallExtension(ctx, runtimehooksv1.GeneratePatches, forObject, *e.patch.External.GeneratePatchesExtension, req, resp)
+	err := e.runtimeClient.CallExtension(ctx, runtimehooksv1.GeneratePatches, forObject, e.patch.External.GeneratePatchesExtension, req, resp)
 	if err != nil {
 		return nil, err
 	}

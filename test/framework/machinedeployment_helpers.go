@@ -160,7 +160,7 @@ func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMach
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling AssertMachineDeploymentFailureDomains")
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling AssertMachineDeploymentFailureDomains")
 
-	machineDeploymentFD := ptr.Deref(input.MachineDeployment.Spec.Template.Spec.FailureDomain, "<None>")
+	machineDeploymentFD := input.MachineDeployment.Spec.Template.Spec.FailureDomain
 
 	Byf("Checking all the machines controlled by %s are in the %q failure domain", input.MachineDeployment.Name, machineDeploymentFD)
 	selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
@@ -173,7 +173,7 @@ func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMach
 
 	for i := range ms.Items {
 		machineSet := ms.Items[i]
-		machineSetFD := ptr.Deref(machineSet.Spec.Template.Spec.FailureDomain, "<None>")
+		machineSetFD := machineSet.Spec.Template.Spec.FailureDomain
 		Expect(machineSetFD).To(Equal(machineDeploymentFD), "MachineSet %s is in the %q failure domain, expecting %q", machineSet.Name, machineSetFD, machineDeploymentFD)
 
 		selectorMap, err = metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
@@ -185,7 +185,7 @@ func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMach
 		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list Machines for Cluster %s", klog.KObj(input.Cluster))
 
 		for _, machine := range machines.Items {
-			machineFD := ptr.Deref(machine.Spec.FailureDomain, "<None>")
+			machineFD := machine.Spec.FailureDomain
 			Expect(machineFD).To(Equal(machineDeploymentFD), "Machine %s is in the %q failure domain, expecting %q", machine.Name, machineFD, machineDeploymentFD)
 		}
 	}
@@ -250,7 +250,7 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 		Expect(err).ToNot(HaveOccurred())
 
 		oldVersion := deployment.Spec.Template.Spec.Version
-		deployment.Spec.Template.Spec.Version = &input.UpgradeVersion
+		deployment.Spec.Template.Spec.Version = input.UpgradeVersion
 		if input.UpgradeMachineTemplate != nil {
 			deployment.Spec.Template.Spec.InfrastructureRef.Name = *input.UpgradeMachineTemplate
 		}
@@ -259,7 +259,7 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch Kubernetes version on MachineDeployment %s", klog.KObj(deployment))
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s to be upgraded from %s to %s",
-			klog.KObj(deployment), *oldVersion, input.UpgradeVersion)
+			klog.KObj(deployment), oldVersion, input.UpgradeVersion)
 		WaitForMachineDeploymentMachinesToBeUpgraded(ctx, WaitForMachineDeploymentMachinesToBeUpgradedInput{
 			Lister:                   mgmtClient,
 			Cluster:                  input.Cluster,

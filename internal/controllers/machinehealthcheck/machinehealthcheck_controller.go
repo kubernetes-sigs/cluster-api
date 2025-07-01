@@ -250,7 +250,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	if !remediationAllowed {
 		var message string
 
-		if m.Spec.UnhealthyRange == nil {
+		if m.Spec.UnhealthyRange == "" {
 			logger.V(3).Info(
 				"Short-circuiting remediation",
 				totalTargetKeyLog, totalTargets,
@@ -265,13 +265,13 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 			logger.V(3).Info(
 				"Short-circuiting remediation",
 				totalTargetKeyLog, totalTargets,
-				unhealthyRangeKeyLog, *m.Spec.UnhealthyRange,
+				unhealthyRangeKeyLog, m.Spec.UnhealthyRange,
 				unhealthyTargetsKeyLog, len(unhealthy),
 			)
 			message = fmt.Sprintf("Remediation is not allowed, the number of not started or unhealthy machines does not fall within the range (total: %v, unhealthy: %v, unhealthyRange: %v)",
 				totalTargets,
 				len(unhealthy),
-				*m.Spec.UnhealthyRange)
+				m.Spec.UnhealthyRange)
 		}
 
 		// Remediation not allowed, the number of not started or unhealthy machines either exceeds maxUnhealthy (or) not within unhealthyRange
@@ -324,7 +324,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	if m.Spec.UnhealthyRange == nil {
+	if m.Spec.UnhealthyRange == "" {
 		logger.V(3).Info(
 			"Remediations are allowed",
 			totalTargetKeyLog, totalTargets,
@@ -335,7 +335,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		logger.V(3).Info(
 			"Remediations are allowed",
 			totalTargetKeyLog, totalTargets,
-			unhealthyRangeKeyLog, *m.Spec.UnhealthyRange,
+			unhealthyRangeKeyLog, m.Spec.UnhealthyRange,
 			unhealthyTargetsKeyLog, len(unhealthy),
 		)
 	}
@@ -657,7 +657,7 @@ func machineNames(machines []*clusterv1.Machine) []string {
 func isAllowedRemediation(mhc *clusterv1.MachineHealthCheck) (bool, int32, error) {
 	var remediationAllowed bool
 	var remediationCount int32
-	if mhc.Spec.UnhealthyRange != nil {
+	if mhc.Spec.UnhealthyRange != "" {
 		minVal, maxVal, err := getUnhealthyRange(mhc)
 		if err != nil {
 			return false, 0, err
@@ -684,7 +684,7 @@ func isAllowedRemediation(mhc *clusterv1.MachineHealthCheck) (bool, int32, error
 // Eg. [2-5] will return (2,5,nil).
 func getUnhealthyRange(mhc *clusterv1.MachineHealthCheck) (int, int, error) {
 	// remove '[' and ']'
-	unhealthyRange := (*(mhc.Spec.UnhealthyRange))[1 : len(*mhc.Spec.UnhealthyRange)-1]
+	unhealthyRange := (mhc.Spec.UnhealthyRange)[1 : len(mhc.Spec.UnhealthyRange)-1]
 
 	parts := strings.Split(unhealthyRange, "-")
 

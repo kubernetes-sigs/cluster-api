@@ -194,8 +194,8 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 	currentRef := cluster.Spec.InfrastructureRef
 
 	nameTemplate := "{{ .cluster.name }}-{{ .random }}"
-	if s.Blueprint.ClusterClass.Spec.Infrastructure.NamingStrategy != nil && s.Blueprint.ClusterClass.Spec.Infrastructure.NamingStrategy.Template != nil {
-		nameTemplate = *s.Blueprint.ClusterClass.Spec.Infrastructure.NamingStrategy.Template
+	if s.Blueprint.ClusterClass.Spec.Infrastructure.NamingStrategy != nil && s.Blueprint.ClusterClass.Spec.Infrastructure.NamingStrategy.Template != "" {
+		nameTemplate = s.Blueprint.ClusterClass.Spec.Infrastructure.NamingStrategy.Template
 	}
 
 	infrastructureCluster, err := templateToObject(templateToInput{
@@ -292,8 +292,8 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	controlPlaneAnnotations := util.MergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations)
 
 	nameTemplate := "{{ .cluster.name }}-{{ .random }}"
-	if s.Blueprint.ClusterClass.Spec.ControlPlane.NamingStrategy != nil && s.Blueprint.ClusterClass.Spec.ControlPlane.NamingStrategy.Template != nil {
-		nameTemplate = *s.Blueprint.ClusterClass.Spec.ControlPlane.NamingStrategy.Template
+	if s.Blueprint.ClusterClass.Spec.ControlPlane.NamingStrategy != nil && s.Blueprint.ClusterClass.Spec.ControlPlane.NamingStrategy.Template != "" {
+		nameTemplate = s.Blueprint.ClusterClass.Spec.ControlPlane.NamingStrategy.Template
 	}
 
 	controlPlane, err := templateToObject(templateToInput{
@@ -798,7 +798,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 
 	failureDomain := machineDeploymentClass.FailureDomain
-	if machineDeploymentTopology.FailureDomain != nil {
+	if machineDeploymentTopology.FailureDomain != "" {
 		failureDomain = machineDeploymentTopology.FailureDomain
 	}
 
@@ -827,8 +827,8 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	desiredInfraMachineTemplateRef := contract.ObjToContractVersionedObjectReference(desiredMachineDeployment.InfrastructureMachineTemplate)
 
 	nameTemplate := "{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}"
-	if machineDeploymentClass.NamingStrategy != nil && machineDeploymentClass.NamingStrategy.Template != nil {
-		nameTemplate = *machineDeploymentClass.NamingStrategy.Template
+	if machineDeploymentClass.NamingStrategy != nil && machineDeploymentClass.NamingStrategy.Template != "" {
+		nameTemplate = machineDeploymentClass.NamingStrategy.Template
 	}
 
 	name, err := topologynames.MachineDeploymentNameGenerator(nameTemplate, s.Current.Cluster.Name, machineDeploymentTopology.Name).GenerateName()
@@ -851,7 +851,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName:                    s.Current.Cluster.Name,
-					Version:                        ptr.To(version),
+					Version:                        version,
 					Bootstrap:                      clusterv1.Bootstrap{ConfigRef: desiredBootstrapTemplateRef},
 					InfrastructureRef:              *desiredInfraMachineTemplateRef,
 					FailureDomain:                  failureDomain,
@@ -939,7 +939,7 @@ func (g *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeplo
 	}
 
 	// Get the current version of the machine deployment.
-	currentVersion := *currentMDState.Object.Spec.Template.Spec.Version
+	currentVersion := currentMDState.Object.Spec.Template.Spec.Version
 
 	// Return early if the currentVersion is already equal to the desiredVersion
 	// no further checks required.
@@ -1142,8 +1142,8 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 	desiredInfraMachinePoolRef := contract.ObjToContractVersionedObjectReference(desiredMachinePool.InfrastructureMachinePoolObject)
 
 	nameTemplate := "{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}"
-	if machinePoolClass.NamingStrategy != nil && machinePoolClass.NamingStrategy.Template != nil {
-		nameTemplate = *machinePoolClass.NamingStrategy.Template
+	if machinePoolClass.NamingStrategy != nil && machinePoolClass.NamingStrategy.Template != "" {
+		nameTemplate = machinePoolClass.NamingStrategy.Template
 	}
 
 	name, err := topologynames.MachinePoolNameGenerator(nameTemplate, s.Current.Cluster.Name, machinePoolTopology.Name).GenerateName()
@@ -1166,7 +1166,7 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName:                    s.Current.Cluster.Name,
-					Version:                        ptr.To(version),
+					Version:                        version,
 					Bootstrap:                      clusterv1.Bootstrap{ConfigRef: desiredBootstrapConfigRef},
 					InfrastructureRef:              *desiredInfraMachinePoolRef,
 					NodeDrainTimeoutSeconds:        nodeDrainTimeout,
@@ -1234,7 +1234,7 @@ func (g *generator) computeMachinePoolVersion(s *scope.Scope, machinePoolTopolog
 	}
 
 	// Get the current version of the machine pool.
-	currentVersion := *currentMPState.Object.Spec.Template.Spec.Version
+	currentVersion := currentMPState.Object.Spec.Template.Spec.Version
 
 	// Return early if the currentVersion is already equal to the desiredVersion
 	// no further checks required.

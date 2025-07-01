@@ -128,7 +128,7 @@ func validatePatchDefinitions(patch clusterv1.ClusterClassPatch, clusterClass *c
 					"patch.external can be used only if the RuntimeSDK feature flag is enabled",
 				))
 		}
-		if patch.External.ValidateTopologyExtension == nil && patch.External.GeneratePatchesExtension == nil {
+		if patch.External.ValidateTopologyExtension == "" && patch.External.GeneratePatchesExtension == "" {
 			allErrs = append(allErrs,
 				field.Invalid(
 					path.Child("external"),
@@ -141,17 +141,17 @@ func validatePatchDefinitions(patch clusterv1.ClusterClassPatch, clusterClass *c
 }
 
 // validateSelectors validates if enabledIf is a valid template if it is set.
-func validateEnabledIf(enabledIf *string, path *field.Path) field.ErrorList {
+func validateEnabledIf(enabledIf string, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if enabledIf != nil {
+	if enabledIf != "" {
 		// Error if template can not be parsed.
-		_, err := template.New("enabledIf").Funcs(sprig.HermeticTxtFuncMap()).Parse(*enabledIf)
+		_, err := template.New("enabledIf").Funcs(sprig.HermeticTxtFuncMap()).Parse(enabledIf)
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
 					path,
-					*enabledIf,
+					enabledIf,
 					fmt.Sprintf("template can not be parsed: %v", err),
 				))
 		}
@@ -395,7 +395,7 @@ func validateJSONPatchValues(jsonPatch clusterv1.JSONPatch, variableSet map[stri
 				))
 		}
 	}
-	if jsonPatch.ValueFrom != nil && jsonPatch.ValueFrom.Template == nil && jsonPatch.ValueFrom.Variable == nil {
+	if jsonPatch.ValueFrom != nil && jsonPatch.ValueFrom.Template == "" && jsonPatch.ValueFrom.Variable == "" {
 		allErrs = append(allErrs,
 			field.Invalid(
 				path.Child("valueFrom"),
@@ -403,7 +403,7 @@ func validateJSONPatchValues(jsonPatch clusterv1.JSONPatch, variableSet map[stri
 				"valueFrom must set either template or variable",
 			))
 	}
-	if jsonPatch.ValueFrom != nil && jsonPatch.ValueFrom.Template != nil && jsonPatch.ValueFrom.Variable != nil {
+	if jsonPatch.ValueFrom != nil && jsonPatch.ValueFrom.Template != "" && jsonPatch.ValueFrom.Variable != "" {
 		allErrs = append(allErrs,
 			field.Invalid(
 				path.Child("valueFrom"),
@@ -412,28 +412,28 @@ func validateJSONPatchValues(jsonPatch clusterv1.JSONPatch, variableSet map[stri
 			))
 	}
 
-	if jsonPatch.ValueFrom != nil && jsonPatch.ValueFrom.Template != nil {
+	if jsonPatch.ValueFrom != nil && jsonPatch.ValueFrom.Template != "" {
 		// Error if template can not be parsed.
-		_, err := template.New("valueFrom.template").Funcs(sprig.HermeticTxtFuncMap()).Parse(*jsonPatch.ValueFrom.Template)
+		_, err := template.New("valueFrom.template").Funcs(sprig.HermeticTxtFuncMap()).Parse(jsonPatch.ValueFrom.Template)
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
 					path.Child("valueFrom", "template"),
-					*jsonPatch.ValueFrom.Template,
+					jsonPatch.ValueFrom.Template,
 					fmt.Sprintf("template can not be parsed: %v", err),
 				))
 		}
 	}
 
 	// If set validate that the variable is valid.
-	if jsonPatch.ValueFrom != nil && jsonPatch.ValueFrom.Variable != nil {
+	if jsonPatch.ValueFrom != nil && jsonPatch.ValueFrom.Variable != "" {
 		// If the variable is one of the list of builtin variables it's valid.
-		if strings.HasPrefix(*jsonPatch.ValueFrom.Variable, "builtin.") {
-			if _, ok := builtinVariables[*jsonPatch.ValueFrom.Variable]; !ok {
+		if strings.HasPrefix(jsonPatch.ValueFrom.Variable, "builtin.") {
+			if _, ok := builtinVariables[jsonPatch.ValueFrom.Variable]; !ok {
 				allErrs = append(allErrs,
 					field.Invalid(
 						path.Child("valueFrom", "variable"),
-						*jsonPatch.ValueFrom.Variable,
+						jsonPatch.ValueFrom.Variable,
 						"not a defined builtin variable",
 					))
 			}
@@ -442,13 +442,13 @@ func validateJSONPatchValues(jsonPatch clusterv1.JSONPatch, variableSet map[stri
 			// validating if the whole path is an existing variable.
 			// This could be done by re-using getVariableValue of the json patch
 			// generator but requires a refactoring first.
-			variableName := getVariableName(*jsonPatch.ValueFrom.Variable)
+			variableName := getVariableName(jsonPatch.ValueFrom.Variable)
 			if _, ok := variableSet[variableName]; !ok {
 				allErrs = append(allErrs,
 					field.Invalid(
 						path.Child("valueFrom", "variable"),
-						*jsonPatch.ValueFrom.Variable,
-						fmt.Sprintf("variable with name %s cannot be found", *jsonPatch.ValueFrom.Variable),
+						jsonPatch.ValueFrom.Variable,
+						fmt.Sprintf("variable with name %s cannot be found", jsonPatch.ValueFrom.Variable),
 					))
 			}
 		}

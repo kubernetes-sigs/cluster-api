@@ -887,7 +887,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			cluster: defaultCluster,
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Spec.ProviderID = ptr.To("foo://test-node-1")
+				m.Spec.ProviderID = "foo://test-node-1"
 				return m
 			}(),
 			node:                 nil,
@@ -2190,7 +2190,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 				return false
 			}
 			g.Expect(machine.Status.Addresses).To(HaveLen(2))
-			g.Expect(*machine.Spec.FailureDomain).To(Equal("us-east-2a"))
+			g.Expect(machine.Spec.FailureDomain).To(Equal("us-east-2a"))
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 			// Verify that the LastUpdated timestamp was updated
 			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
@@ -2376,7 +2376,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
 		// Set Machine ProviderID.
-		machine.Spec.ProviderID = ptr.To(nodeProviderID)
+		machine.Spec.ProviderID = nodeProviderID
 
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))

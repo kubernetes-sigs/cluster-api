@@ -780,7 +780,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 		unhealthyRange := "[1-3]"
-		mhc.Spec.UnhealthyRange = &unhealthyRange
+		mhc.Spec.UnhealthyRange = unhealthyRange
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -853,7 +853,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 		unhealthyRange := "[3-5]"
-		mhc.Spec.UnhealthyRange = &unhealthyRange
+		mhc.Spec.UnhealthyRange = unhealthyRange
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {

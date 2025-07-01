@@ -75,23 +75,23 @@ func HasControllerRef(machine *clusterv1.Machine) bool {
 
 // InFailureDomains returns a filter to find all machines
 // in any of the given failure domains.
-func InFailureDomains(failureDomains ...*string) Func {
+func InFailureDomains(failureDomains ...string) Func {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
 			return false
 		}
 		for i := range failureDomains {
 			fd := failureDomains[i]
-			if fd == nil {
+			if fd == "" {
 				if fd == machine.Spec.FailureDomain {
 					return true
 				}
 				continue
 			}
-			if machine.Spec.FailureDomain == nil {
+			if machine.Spec.FailureDomain == "" {
 				continue
 			}
-			if *fd == *machine.Spec.FailureDomain {
+			if fd == machine.Spec.FailureDomain {
 				return true
 			}
 		}
@@ -276,10 +276,10 @@ func MatchesKubernetesVersion(kubernetesVersion string) Func {
 		if machine == nil {
 			return false
 		}
-		if machine.Spec.Version == nil {
+		if machine.Spec.Version == "" {
 			return false
 		}
-		return *machine.Spec.Version == kubernetesVersion
+		return machine.Spec.Version == kubernetesVersion
 	}
 }
 
@@ -289,10 +289,10 @@ func WithVersion() Func {
 		if machine == nil {
 			return false
 		}
-		if machine.Spec.Version == nil {
+		if machine.Spec.Version == "" {
 			return false
 		}
-		if _, err := semver.ParseTolerant(*machine.Spec.Version); err != nil {
+		if _, err := semver.ParseTolerant(machine.Spec.Version); err != nil {
 			return false
 		}
 		return true

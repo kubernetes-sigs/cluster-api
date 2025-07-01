@@ -133,6 +133,8 @@ func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c randfill.Continue) {
 
 	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
 	in.UseExperimentalRetryJoin = false
+
+	dropEmptyStringsKubeadmConfigSpec(in)
 }
 
 func spokeClusterConfiguration(in *ClusterConfiguration, c randfill.Continue) {
@@ -178,4 +180,6 @@ func spokeKubeadmConfigStatus(in *KubeadmConfigStatus, c randfill.Continue) {
 			in.V1Beta2 = nil
 		}
 	}
+
+	dropEmptyStringsKubeadmConfigStatus(in)
 }

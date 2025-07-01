@@ -373,7 +373,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
 		JoinConfiguration: &bootstrapv1.JoinConfiguration{},
 	}
-	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, nil)
+	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, "")
 	g.Expect(err).To(Succeed())
 
 	machineList := &clusterv1.MachineList{}
@@ -460,7 +460,7 @@ func TestCloneConfigsAndGenerateMachineFail(t *testing.T) {
 
 	// Try to break Infra Cloning
 	kcp.Spec.MachineTemplate.InfrastructureRef.Name = "something_invalid"
-	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, nil)
+	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, "")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(&kcp.GetV1Beta1Conditions()[0]).Should(v1beta1conditions.HaveSameStateOf(&clusterv1.Condition{
 		Type:     controlplanev1.MachinesCreatedV1Beta1Condition,
@@ -803,7 +803,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 			g := NewWithT(t)
 
 			var desiredMachine *clusterv1.Machine
-			failureDomain := ptr.To("fd-1")
+			failureDomain := "fd-1"
 			var expectedMachineSpec clusterv1.MachineSpec
 			var err error
 
@@ -813,7 +813,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				// Use different ClusterConfiguration string than the information present in KCP
 				// to verify that for an existing machine we do not override this information.
 				remediationData := "remediation-data"
-				machineVersion := ptr.To("v1.25.3")
+				machineVersion := "v1.25.3"
 				existingMachine := &clusterv1.Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: machineName,
@@ -890,7 +890,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 
 				expectedMachineSpec = clusterv1.MachineSpec{
 					ClusterName:                    cluster.Name,
-					Version:                        ptr.To(tt.kcp.Spec.Version),
+					Version:                        tt.kcp.Spec.Version,
 					FailureDomain:                  failureDomain,
 					NodeDrainTimeoutSeconds:        tt.kcp.Spec.MachineTemplate.NodeDrainTimeoutSeconds,
 					NodeDeletionTimeoutSeconds:     tt.kcp.Spec.MachineTemplate.NodeDeletionTimeoutSeconds,

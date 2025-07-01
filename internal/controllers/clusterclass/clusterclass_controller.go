@@ -309,7 +309,7 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 	// to the ClusterClass status.
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
 		for _, patch := range clusterClass.Spec.Patches {
-			if patch.External == nil || patch.External.DiscoverVariablesExtension == nil {
+			if patch.External == nil || patch.External.DiscoverVariablesExtension == "" {
 				continue
 			}
 			req := &runtimehooksv1.DiscoverVariablesRequest{}
@@ -320,7 +320,7 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 			// This also mitigates spikes when ClusterClass re-syncs happen or when changes to the ExtensionConfig are applied.
 			// DiscoverVariables is expected to return a "static" response and usually there are few ExtensionConfigs in a mgmt cluster.
 			resp := &runtimehooksv1.DiscoverVariablesResponse{}
-			err := r.RuntimeClient.CallExtension(ctx, runtimehooksv1.DiscoverVariables, clusterClass, *patch.External.DiscoverVariablesExtension, req, resp,
+			err := r.RuntimeClient.CallExtension(ctx, runtimehooksv1.DiscoverVariables, clusterClass, patch.External.DiscoverVariablesExtension, req, resp,
 				runtimeclient.WithCaching{Cache: r.discoverVariablesCache, CacheKeyFunc: cacheKeyFunc})
 			if err != nil {
 				errs = append(errs, errors.Wrapf(err, "failed to call DiscoverVariables for patch %s", patch.Name))
@@ -538,8 +538,8 @@ func (r *Reconciler) extensionConfigToClusterClass(ctx context.Context, o client
 			continue
 		}
 		for _, patch := range clusterClass.Spec.Patches {
-			if patch.External != nil && patch.External.DiscoverVariablesExtension != nil {
-				extName, err := internalruntimeclient.ExtensionNameFromHandlerName(*patch.External.DiscoverVariablesExtension)
+			if patch.External != nil && patch.External.DiscoverVariablesExtension != "" {
+				extName, err := internalruntimeclient.ExtensionNameFromHandlerName(patch.External.DiscoverVariablesExtension)
 				if err != nil {
 					log.Error(err, "failed to reconcile ClusterClass for ExtensionConfig")
 					continue

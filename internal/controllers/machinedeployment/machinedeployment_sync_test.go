@@ -560,7 +560,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 					Annotations: map[string]string{"machine-annotation1": "machine-value1"},
 				},
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.25.3"),
+					Version:           "v1.25.3",
 					InfrastructureRef: infraRef,
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &bootstrapRef,

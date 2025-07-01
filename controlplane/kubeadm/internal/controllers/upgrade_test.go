@@ -163,7 +163,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 
 	machinesRequireUpgrade := collections.Machines{}
 	for i := range bothMachines.Items {
-		if bothMachines.Items[i].Spec.Version != nil && *bothMachines.Items[i].Spec.Version != UpdatedVersion {
+		if bothMachines.Items[i].Spec.Version != "" && bothMachines.Items[i].Spec.Version != UpdatedVersion {
 			machinesRequireUpgrade[bothMachines.Items[i].Name] = &bothMachines.Items[i]
 		}
 	}
@@ -215,7 +215,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 						Name:     name,
 					},
 				},
-				Version: &version,
+				Version: version,
 			},
 		}
 		cfg := &bootstrapv1.KubeadmConfig{

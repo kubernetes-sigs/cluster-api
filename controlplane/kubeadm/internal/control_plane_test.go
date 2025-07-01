@@ -54,13 +54,13 @@ func TestControlPlane(t *testing.T) {
 
 		t.Run("With all machines in known failure domain, should return the FD with most number of machines", func(*testing.T) {
 			g := NewWithT(t)
-			g.Expect(*controlPlane.FailureDomainWithMostMachines(ctx, controlPlane.Machines)).To(Equal("two"))
+			g.Expect(controlPlane.FailureDomainWithMostMachines(ctx, controlPlane.Machines)).To(Equal("two"))
 		})
 
 		t.Run("With some machines in non defined failure domains", func(*testing.T) {
 			g := NewWithT(t)
 			controlPlane.Machines.Insert(machine("machine-5", withFailureDomain("unknown")))
-			g.Expect(*controlPlane.FailureDomainWithMostMachines(ctx, controlPlane.Machines)).To(Equal("unknown"))
+			g.Expect(controlPlane.FailureDomainWithMostMachines(ctx, controlPlane.Machines)).To(Equal("unknown"))
 		})
 	})
 
@@ -84,36 +84,36 @@ func TestControlPlane(t *testing.T) {
 			"machine-1": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.31.0"), // up-to-date
-					FailureDomain:     ptr.To("one"),
+					Version:           "v1.31.0", // up-to-date
+					FailureDomain:     "one",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m1"},
 				}},
 			"machine-2": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.29.0"), // not up-to-date
-					FailureDomain:     ptr.To("two"),
+					Version:           "v1.29.0", // not up-to-date
+					FailureDomain:     "two",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m2"},
 				}},
 			"machine-3": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m3", DeletionTimestamp: ptr.To(metav1.Now())}, // deleted
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.29.3"), // not up-to-date
-					FailureDomain:     ptr.To("three"),
+					Version:           "v1.29.3", // not up-to-date
+					FailureDomain:     "three",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m3"},
 				}},
 			"machine-4": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m4", DeletionTimestamp: ptr.To(metav1.Now())}, // deleted
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.31.0"), // up-to-date
-					FailureDomain:     ptr.To("two"),
+					Version:           "v1.31.0", // up-to-date
+					FailureDomain:     "two",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m4"},
 				}},
 			"machine-5": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m5"},
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.31.0"), // up-to-date
-					FailureDomain:     ptr.To("three"),
+					Version:           "v1.31.0", // up-to-date
+					FailureDomain:     "three",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m5"},
 				}},
 		}
@@ -140,7 +140,7 @@ func TestControlPlane(t *testing.T) {
 
 		fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(fd).To(Equal(ptr.To("two"))) // deleted up-to-date machines (m4) should not be counted when picking the next failure domain for scale up
+		g.Expect(fd).To(Equal("two")) // deleted up-to-date machines (m4) should not be counted when picking the next failure domain for scale up
 	})
 }
 
@@ -367,7 +367,7 @@ func failureDomain(name string, controlPlane bool) clusterv1.FailureDomain {
 
 func withFailureDomain(fd string) machineOpt {
 	return func(m *clusterv1.Machine) {
-		m.Spec.FailureDomain = &fd
+		m.Spec.FailureDomain = fd
 	}
 }
 

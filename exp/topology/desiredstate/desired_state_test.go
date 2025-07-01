@@ -1693,7 +1693,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			NodeStartupTimeoutSeconds: nodeTimeoutDuration,
 		}).
 		WithReadinessGates(clusterClassReadinessGates).
-		WithFailureDomain(&clusterClassFailureDomain).
+		WithFailureDomain(clusterClassFailureDomain).
 		WithNodeDrainTimeout(&clusterClassDuration).
 		WithNodeVolumeDetachTimeout(&clusterClassDuration).
 		WithNodeDeletionTimeout(&clusterClassDuration).
@@ -1768,7 +1768,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		Class:                          "linux-worker",
 		Name:                           "big-pool-of-machines",
 		Replicas:                       &replicas,
-		FailureDomain:                  &topologyFailureDomain,
+		FailureDomain:                  topologyFailureDomain,
 		ReadinessGates:                 readinessGates,
 		NodeDrainTimeoutSeconds:        &topologyDuration,
 		NodeVolumeDetachTimeoutSeconds: &topologyDuration,
@@ -1805,7 +1805,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.Replicas).To(Equal(replicas))
 		g.Expect(*actualMd.Spec.Strategy).To(BeComparableTo(topologyStrategy))
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(topologyMinReadySeconds)))
-		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
+		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeoutSeconds).To(Equal(topologyDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds).To(Equal(topologyDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDeletionTimeoutSeconds).To(Equal(topologyDuration))
@@ -1863,7 +1863,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		actualMd := actual.Object
 		g.Expect(*actualMd.Spec.Strategy).To(BeComparableTo(clusterClassStrategy))
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(clusterClassMinReadySeconds)))
-		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(clusterClassFailureDomain))
+		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(clusterClassFailureDomain))
 		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(Equal(clusterClassReadinessGates))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeoutSeconds).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds).To(Equal(clusterClassDuration))
@@ -1932,7 +1932,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				Replicas: &currentReplicas,
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
-						Version: ptr.To(version),
+						Version: version,
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: contract.ObjToContractVersionedObjectReference(workerBootstrapTemplate),
 						},
@@ -1957,7 +1957,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		actualMd := actual.Object
 
 		g.Expect(*actualMd.Spec.Replicas).NotTo(Equal(currentReplicas))
-		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
+		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
 		g.Expect(actualMd.Name).To(Equal("existing-deployment-1"))
 
 		expectedAnnotations := util.MergeMap(mdTopology.Metadata.Annotations, md1.Template.Metadata.Annotations)
@@ -2118,7 +2118,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 				obj, err := e.computeMachineDeployment(ctx, s, mdTopology)
 				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(*obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
+				g.Expect(obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
 			})
 		}
 	})
@@ -2336,7 +2336,7 @@ func TestComputeMachinePool(t *testing.T) {
 				Replicas: &currentReplicas,
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
-						Version: ptr.To(version),
+						Version: version,
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: contract.ObjToContractVersionedObjectReference(workerBootstrapConfig),
 						},
@@ -2519,7 +2519,7 @@ func TestComputeMachinePool(t *testing.T) {
 
 				obj, err := e.computeMachinePool(ctx, s, mpTopology)
 				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(*obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
+				g.Expect(obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
 			})
 		}
 	})

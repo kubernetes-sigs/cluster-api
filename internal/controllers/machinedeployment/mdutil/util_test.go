@@ -182,8 +182,8 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 			NodeDeletionTimeoutSeconds:     ptr.To(int32(10)),
 			NodeVolumeDetachTimeoutSeconds: ptr.To(int32(10)),
 			ClusterName:                    "cluster1",
-			Version:                        ptr.To("v1.25.0"),
-			FailureDomain:                  ptr.To("failure-domain1"),
+			Version:                        "v1.25.0",
+			FailureDomain:                  "failure-domain1",
 			MinReadySeconds:                ptr.To[int32](10),
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Name:     "infra1",
@@ -225,10 +225,10 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 	machineTemplateWithDifferentClusterName.Spec.ClusterName = "cluster2"
 
 	machineTemplateWithDifferentVersion := machineTemplate.DeepCopy()
-	machineTemplateWithDifferentVersion.Spec.Version = ptr.To("v1.26.0")
+	machineTemplateWithDifferentVersion.Spec.Version = "v1.26.0"
 
 	machineTemplateWithDifferentFailureDomain := machineTemplate.DeepCopy()
-	machineTemplateWithDifferentFailureDomain.Spec.FailureDomain = ptr.To("failure-domain2")
+	machineTemplateWithDifferentFailureDomain.Spec.FailureDomain = "failure-domain2"
 
 	machineTemplateWithDifferentInfraRef := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentInfraRef.Spec.InfrastructureRef.Name = "infra2"

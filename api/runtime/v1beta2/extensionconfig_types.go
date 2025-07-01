@@ -65,7 +65,7 @@ type ClientConfig struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	URL *string `json:"url,omitempty"`
+	URL string `json:"url,omitempty"`
 
 	// service is a reference to the Kubernetes service for the Extension server.
 	// Note: Exactly one of `url` or `service` must be specified.
@@ -101,7 +101,7 @@ type ServiceReference struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	Path *string `json:"path,omitempty"`
+	Path string `json:"path,omitempty"`
 
 	// port is the port on the service that's hosting the Extension server.
 	// Defaults to 443.

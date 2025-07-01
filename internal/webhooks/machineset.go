@@ -121,9 +121,9 @@ func (webhook *MachineSet) Default(ctx context.Context, obj runtime.Object) erro
 		m.Spec.Template.Labels[clusterv1.MachineSetNameLabel] = format.MustFormatValue(m.Name)
 	}
 
-	if m.Spec.Template.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Template.Spec.Version, "v") {
-		normalizedVersion := "v" + *m.Spec.Template.Spec.Version
-		m.Spec.Template.Spec.Version = &normalizedVersion
+	if m.Spec.Template.Spec.Version != "" && !strings.HasPrefix(m.Spec.Template.Spec.Version, "v") {
+		normalizedVersion := "v" + m.Spec.Template.Spec.Version
+		m.Spec.Template.Spec.Version = normalizedVersion
 	}
 
 	return nil
@@ -198,13 +198,13 @@ func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
 		)
 	}
 
-	if newMS.Spec.Template.Spec.Version != nil {
-		if !version.KubeSemver.MatchString(*newMS.Spec.Template.Spec.Version) {
+	if newMS.Spec.Template.Spec.Version != "" {
+		if !version.KubeSemver.MatchString(newMS.Spec.Template.Spec.Version) {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
 					specPath.Child("template", "spec", "version"),
-					*newMS.Spec.Template.Spec.Version,
+					newMS.Spec.Template.Spec.Version,
 					"must be a valid semantic version",
 				),
 			)

@@ -125,6 +125,8 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 		}
 	}
 
+	dropEmptyStringsCluster(dst)
+
 	return utilconversion.MarshalData(src, dst)
 }
 
@@ -355,6 +357,7 @@ func (dst *ClusterClass) ConvertFrom(srcRaw conversion.Hub) error {
 			md.MachineHealthCheck.RemediationTemplate.Namespace = dst.Namespace
 		}
 	}
+	dropEmptyStringsClusterClass(dst)
 
 	return utilconversion.MarshalData(src, dst)
 }
@@ -408,6 +411,8 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	dropEmptyStringsMachineSpec(&dst.Spec)
+
 	return utilconversion.MarshalData(src, dst)
 }
 
@@ -444,6 +449,7 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dst.Spec.MinReadySeconds = ptr.Deref(src.Spec.Template.Spec.MinReadySeconds, 0)
 
+	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 	return nil
 }
 
@@ -485,6 +491,8 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
 
+	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
+
 	return utilconversion.MarshalData(src, dst)
 }
 
@@ -503,6 +511,8 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 	if dst.Spec.RemediationTemplate != nil {
 		dst.Spec.RemediationTemplate.Namespace = src.Namespace
 	}
+
+	dropEmptyStringsMachineHealthCheck(dst)
 	return nil
 }
 
@@ -553,6 +563,8 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
+
+	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
 	return utilconversion.MarshalData(src, dst)
 }
@@ -606,8 +618,12 @@ func Convert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in *clusterv1.
 	}
 
 	if in.Infrastructure.NamingStrategy != nil {
+		var template *string
+		if in.Infrastructure.NamingStrategy.Template != "" {
+			template = ptr.To(in.Infrastructure.NamingStrategy.Template)
+		}
 		out.InfrastructureNamingStrategy = &InfrastructureNamingStrategy{
-			Template: in.Infrastructure.NamingStrategy.Template,
+			Template: template,
 		}
 	}
 	return nil
@@ -628,7 +644,7 @@ func Convert_v1beta1_ClusterClassSpec_To_v1beta2_ClusterClassSpec(in *ClusterCla
 
 	if in.InfrastructureNamingStrategy != nil {
 		out.Infrastructure.NamingStrategy = &clusterv1.InfrastructureClassNamingStrategy{
-			Template: in.InfrastructureNamingStrategy.Template,
+			Template: ptr.Deref(in.InfrastructureNamingStrategy.Template, ""),
 		}
 	}
 	return nil
@@ -1496,8 +1512,8 @@ func Convert_v1beta1_ExternalPatchDefinition_To_v1beta2_ExternalPatchDefinition(
 		return err
 	}
 
-	out.GeneratePatchesExtension = in.GenerateExtension
-	out.ValidateTopologyExtension = in.ValidateExtension
+	out.GeneratePatchesExtension = ptr.Deref(in.GenerateExtension, "")
+	out.ValidateTopologyExtension = ptr.Deref(in.ValidateExtension, "")
 	return nil
 }
 
@@ -1506,8 +1522,12 @@ func Convert_v1beta2_ExternalPatchDefinition_To_v1beta1_ExternalPatchDefinition(
 		return err
 	}
 
-	out.GenerateExtension = in.GeneratePatchesExtension
-	out.ValidateExtension = in.ValidateTopologyExtension
+	if in.GeneratePatchesExtension != "" {
+		out.GenerateExtension = ptr.To(in.GeneratePatchesExtension)
+	}
+	if in.ValidateTopologyExtension != "" {
+		out.ValidateExtension = ptr.To(in.ValidateTopologyExtension)
+	}
 	return nil
 }
 
@@ -1645,4 +1665,92 @@ func Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(in *JSONSchemaPr
 	// This conversion func is required due to a bug in conversion gen that does not recognize the changes for converting bool to *bool.
 	// By implementing this func, autoConvert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps is generated properly.
 	return autoConvert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(in, out, s)
+}
+
+func dropEmptyStringsCluster(dst *Cluster) {
+	if dst.Spec.Topology != nil {
+		if dst.Spec.Topology.ControlPlane.MachineHealthCheck != nil {
+			dropEmptyString(&dst.Spec.Topology.ControlPlane.MachineHealthCheck.UnhealthyRange)
+		}
+
+		if dst.Spec.Topology.Workers != nil {
+			for i, md := range dst.Spec.Topology.Workers.MachineDeployments {
+				dropEmptyString(&md.FailureDomain)
+				if md.MachineHealthCheck != nil {
+					dropEmptyString(&md.MachineHealthCheck.UnhealthyRange)
+				}
+				dst.Spec.Topology.Workers.MachineDeployments[i] = md
+			}
+		}
+	}
+}
+
+func dropEmptyStringsClusterClass(dst *ClusterClass) {
+	if dst.Spec.InfrastructureNamingStrategy != nil {
+		dropEmptyString(&dst.Spec.InfrastructureNamingStrategy.Template)
+	}
+
+	if dst.Spec.ControlPlane.NamingStrategy != nil {
+		dropEmptyString(&dst.Spec.ControlPlane.NamingStrategy.Template)
+	}
+	if dst.Spec.ControlPlane.MachineHealthCheck != nil {
+		dropEmptyString(&dst.Spec.ControlPlane.MachineHealthCheck.UnhealthyRange)
+	}
+
+	for i, md := range dst.Spec.Workers.MachineDeployments {
+		if md.NamingStrategy != nil {
+			dropEmptyString(&md.NamingStrategy.Template)
+		}
+		dropEmptyString(&md.FailureDomain)
+		if md.MachineHealthCheck != nil {
+			dropEmptyString(&md.MachineHealthCheck.UnhealthyRange)
+		}
+		dst.Spec.Workers.MachineDeployments[i] = md
+	}
+
+	for i, mp := range dst.Spec.Workers.MachinePools {
+		if mp.NamingStrategy != nil {
+			dropEmptyString(&mp.NamingStrategy.Template)
+		}
+
+		dst.Spec.Workers.MachinePools[i] = mp
+	}
+
+	for i, p := range dst.Spec.Patches {
+		dropEmptyString(&p.EnabledIf)
+		if p.External != nil {
+			dropEmptyString(&p.External.GenerateExtension)
+			dropEmptyString(&p.External.ValidateExtension)
+			dropEmptyString(&p.External.DiscoverVariablesExtension)
+		}
+
+		for j, d := range p.Definitions {
+			for k, jp := range d.JSONPatches {
+				if jp.ValueFrom != nil {
+					dropEmptyString(&jp.ValueFrom.Variable)
+					dropEmptyString(&jp.ValueFrom.Template)
+				}
+				d.JSONPatches[k] = jp
+			}
+			p.Definitions[j] = d
+		}
+
+		dst.Spec.Patches[i] = p
+	}
+}
+
+func dropEmptyStringsMachineSpec(spec *MachineSpec) {
+	dropEmptyString(&spec.Version)
+	dropEmptyString(&spec.ProviderID)
+	dropEmptyString(&spec.FailureDomain)
+}
+
+func dropEmptyStringsMachineHealthCheck(dst *MachineHealthCheck) {
+	dropEmptyString(&dst.Spec.UnhealthyRange)
+}
+
+func dropEmptyString(s **string) {
+	if *s != nil && **s == "" {
+		*s = nil
+	}
 }

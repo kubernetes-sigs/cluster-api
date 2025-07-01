@@ -55,7 +55,7 @@ func TestReconcileNode(t *testing.T) {
 			},
 		},
 		Spec: clusterv1.MachineSpec{
-			ProviderID: ptr.To("aws://us-east-1/test-node-1"),
+			ProviderID: "aws://us-east-1/test-node-1",
 		},
 	}
 
@@ -148,7 +148,7 @@ func TestReconcileNode(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.MachineSpec{
-					ProviderID: ptr.To("aws://us-east-1/test-node-1"),
+					ProviderID: "aws://us-east-1/test-node-1",
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &clusterv1.MachineNodeReference{
@@ -174,7 +174,7 @@ func TestReconcileNode(t *testing.T) {
 					Finalizers:        []string{"foo"},
 				},
 				Spec: clusterv1.MachineSpec{
-					ProviderID: ptr.To("aws://us-east-1/test-node-1"),
+					ProviderID: "aws://us-east-1/test-node-1",
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &clusterv1.MachineNodeReference{
@@ -447,7 +447,7 @@ func TestNodeLabelSync(t *testing.T) {
 
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
-		machine.Spec.ProviderID = ptr.To(nodeProviderID)
+		machine.Spec.ProviderID = nodeProviderID
 
 		// Set Machine labels.
 		machine.Labels = map[string]string{}

@@ -40,7 +40,7 @@ func TestMachineSetDefault(t *testing.T) {
 		Spec: clusterv1.MachineSetSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: ptr.To("1.19.10"),
+					Version: "1.19.10",
 				},
 			},
 		},
@@ -60,7 +60,7 @@ func TestMachineSetDefault(t *testing.T) {
 	g.Expect(ms.Spec.DeletePolicy).To(Equal(clusterv1.RandomMachineSetDeletePolicy))
 	g.Expect(ms.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.MachineSetNameLabel, "test-ms"))
 	g.Expect(ms.Spec.Template.Labels).To(HaveKeyWithValue(clusterv1.MachineSetNameLabel, "test-ms"))
-	g.Expect(*ms.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
+	g.Expect(ms.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
 }
 
 func TestCalculateMachineSetReplicas(t *testing.T) {
@@ -390,7 +390,7 @@ func TestMachineSetVersionValidation(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To(tt.version),
+							Version: tt.version,
 						},
 					},
 				},

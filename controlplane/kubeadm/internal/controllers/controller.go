@@ -1311,18 +1311,18 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 			return errors.Errorf("unable to adopt Machine %v/%v: expected a ConfigRef of kind KubeadmConfig but instead found %v", m.Namespace, m.Name, ref)
 		}
 
-		if m.Spec.Version == nil {
+		if m.Spec.Version == "" {
 			// if the machine's version is not immediately apparent, assume the operator knows what they're doing
 			continue
 		}
 
-		machineVersion, err := semver.ParseTolerant(*m.Spec.Version)
+		machineVersion, err := semver.ParseTolerant(m.Spec.Version)
 		if err != nil {
-			return errors.Wrapf(err, "failed to parse kubernetes version %q", *m.Spec.Version)
+			return errors.Wrapf(err, "failed to parse kubernetes version %q", m.Spec.Version)
 		}
 
 		if !util.IsSupportedVersionSkew(kcpVersion, machineVersion) {
-			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "AdoptionFailed", "Could not adopt Machine %s/%s: its version (%q) is outside supported +/- one minor version skew from KCP's (%q)", m.Namespace, m.Name, *m.Spec.Version, kcp.Spec.Version)
+			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "AdoptionFailed", "Could not adopt Machine %s/%s: its version (%q) is outside supported +/- one minor version skew from KCP's (%q)", m.Namespace, m.Name, m.Spec.Version, kcp.Spec.Version)
 			// avoid returning an error here so we don't cause the KCP controller to spin until the operator clarifies their intent
 			return nil
 		}
@@ -1370,7 +1370,7 @@ func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, k
 			continue
 		}
 		// avoid taking ownership of the bootstrap data secret
-		if currentOwner.Status.DataSecretName != nil && s.Name == *currentOwner.Status.DataSecretName {
+		if s.Name == currentOwner.Status.DataSecretName {
 			continue
 		}
 

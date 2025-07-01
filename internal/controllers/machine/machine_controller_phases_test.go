@@ -468,8 +468,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeFalse())
-				g.Expect(m.Spec.ProviderID).To(BeNil())
-				g.Expect(m.Spec.FailureDomain).To(BeNil())
+				g.Expect(m.Spec.ProviderID).To(BeEmpty())
+				g.Expect(m.Spec.FailureDomain).To(BeEmpty())
 				g.Expect(m.Status.Addresses).To(BeNil())
 			},
 		},
@@ -496,8 +496,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
-				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
-				g.Expect(m.Spec.FailureDomain).To(BeNil())
+				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
+				g.Expect(m.Spec.FailureDomain).To(BeEmpty())
 				g.Expect(m.Status.Addresses).To(BeNil())
 			},
 		},
@@ -526,8 +526,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
-				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
-				g.Expect(m.Spec.FailureDomain).To(BeNil())
+				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
+				g.Expect(m.Spec.FailureDomain).To(BeEmpty())
 				g.Expect(m.Status.Addresses).To(BeNil())
 			},
 		},
@@ -555,8 +555,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
-				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
-				g.Expect(ptr.Deref(m.Spec.FailureDomain, "")).To(Equal("foo"))
+				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
+				g.Expect(m.Spec.FailureDomain).To(Equal("foo"))
 				g.Expect(m.Status.Addresses).To(BeNil())
 			},
 		},
@@ -593,8 +593,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
-				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
-				g.Expect(m.Spec.FailureDomain).To(BeNil())
+				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
+				g.Expect(m.Spec.FailureDomain).To(BeEmpty())
 				g.Expect(m.Status.Addresses).To(HaveLen(2))
 			},
 		},
@@ -632,8 +632,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
-				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
-				g.Expect(ptr.Deref(m.Spec.FailureDomain, "")).To(Equal("foo"))
+				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
+				g.Expect(m.Spec.FailureDomain).To(Equal("foo"))
 				g.Expect(m.Status.Addresses).To(HaveLen(2))
 			},
 		},
@@ -674,8 +674,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
-				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
-				g.Expect(ptr.Deref(m.Spec.FailureDomain, "")).To(Equal("foo"))
+				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
+				g.Expect(m.Spec.FailureDomain).To(Equal("foo"))
 				g.Expect(m.Status.Addresses).To(HaveLen(2))
 			},
 		},
@@ -713,8 +713,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 						Kind:     "GenericInfrastructureMachine",
 						Name:     "infra-config1",
 					},
-					ProviderID:    ptr.To("test://something"),
-					FailureDomain: ptr.To("something"),
+					ProviderID:    "test://something",
+					FailureDomain: "something",
 				},
 				Status: clusterv1.MachineStatus{
 					Initialization: &clusterv1.MachineInitializationStatus{
@@ -758,8 +758,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
-				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
-				g.Expect(ptr.Deref(m.Spec.FailureDomain, "")).To(Equal("foo"))
+				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
+				g.Expect(m.Spec.FailureDomain).To(Equal("foo"))
 				g.Expect(m.Status.Addresses).To(HaveLen(2))
 			},
 		},
@@ -777,8 +777,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 						Kind:     "GenericInfrastructureMachine",
 						Name:     "infra-config1",
 					},
-					ProviderID:    ptr.To("test://something"),
-					FailureDomain: ptr.To("something"),
+					ProviderID:    "test://something",
+					FailureDomain: "something",
 				},
 				Status: clusterv1.MachineStatus{
 					Initialization: &clusterv1.MachineInitializationStatus{
@@ -822,8 +822,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
-				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
-				g.Expect(ptr.Deref(m.Spec.FailureDomain, "")).To(Equal("foo"))
+				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
+				g.Expect(m.Spec.FailureDomain).To(Equal("foo"))
 				g.Expect(m.Status.Addresses).To(HaveLen(2))
 			},
 		},

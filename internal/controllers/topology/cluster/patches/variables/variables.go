@@ -181,7 +181,7 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 	// Construct builtin variable.
 	builtin := runtimehooksv1.Builtins{
 		MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
-			Version:      *md.Spec.Template.Spec.Version,
+			Version:      md.Spec.Template.Spec.Version,
 			Class:        mdTopology.Class,
 			Name:         md.Name,
 			TopologyName: mdTopology.Name,
@@ -237,7 +237,7 @@ func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *clusterv1.Machin
 	// Construct builtin variable.
 	builtin := runtimehooksv1.Builtins{
 		MachinePool: &runtimehooksv1.MachinePoolBuiltins{
-			Version:      *mp.Spec.Template.Spec.Version,
+			Version:      mp.Spec.Template.Spec.Version,
 			Class:        mpTopology.Class,
 			Name:         mp.Name,
 			TopologyName: mpTopology.Name,

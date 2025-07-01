@@ -252,37 +252,37 @@ func TestHashAnnotationKey(t *testing.T) {
 func TestInFailureDomain(t *testing.T) {
 	t.Run("nil machine returns false", func(t *testing.T) {
 		g := NewWithT(t)
-		g.Expect(collections.InFailureDomains(ptr.To("test"))(nil)).To(BeFalse())
+		g.Expect(collections.InFailureDomains("test")(nil)).To(BeFalse())
 	})
 	t.Run("machine with given failure domain returns true", func(t *testing.T) {
 		g := NewWithT(t)
-		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: ptr.To("test")}}
-		g.Expect(collections.InFailureDomains(ptr.To("test"))(m)).To(BeTrue())
+		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: "test"}}
+		g.Expect(collections.InFailureDomains("test")(m)).To(BeTrue())
 	})
 	t.Run("machine with a different failure domain returns false", func(t *testing.T) {
 		g := NewWithT(t)
-		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: ptr.To("notTest")}}
+		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: "notTest"}}
 		g.Expect(collections.InFailureDomains(
-			ptr.To("test"),
-			ptr.To("test2"),
-			ptr.To("test3"),
-			nil,
-			ptr.To("foo"))(m)).To(BeFalse())
+			"test",
+			"test2",
+			"test3",
+			"",
+			"foo")(m)).To(BeFalse())
 	})
 	t.Run("machine without failure domain returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.InFailureDomains(ptr.To("test"))(m)).To(BeFalse())
+		g.Expect(collections.InFailureDomains("test")(m)).To(BeFalse())
 	})
-	t.Run("machine without failure domain returns true, when nil used for failure domain", func(t *testing.T) {
+	t.Run("machine without failure domain returns true, when \"\" used for failure domain", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.InFailureDomains(nil)(m)).To(BeTrue())
+		g.Expect(collections.InFailureDomains("")(m)).To(BeTrue())
 	})
 	t.Run("machine with failure domain returns true, when one of multiple failure domains match", func(t *testing.T) {
 		g := NewWithT(t)
-		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: ptr.To("test")}}
-		g.Expect(collections.InFailureDomains(ptr.To("foo"), ptr.To("test"))(m)).To(BeTrue())
+		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: "test"}}
+		g.Expect(collections.InFailureDomains("foo", "test")(m)).To(BeTrue())
 	})
 }
 
@@ -314,11 +314,11 @@ func TestMatchesKubernetesVersion(t *testing.T) {
 		g.Expect(collections.MatchesKubernetesVersion("some_ver")(nil)).To(BeFalse())
 	})
 
-	t.Run("nil machine.Spec.Version returns false", func(t *testing.T) {
+	t.Run("empty machine.Spec.Version returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: nil,
+				Version: "",
 			},
 		}
 		g.Expect(collections.MatchesKubernetesVersion("some_ver")(machine)).To(BeFalse())
@@ -329,7 +329,7 @@ func TestMatchesKubernetesVersion(t *testing.T) {
 		kversion := "some_ver"
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: &kversion,
+				Version: kversion,
 			},
 		}
 		g.Expect(collections.MatchesKubernetesVersion("some_ver")(machine)).To(BeTrue())
@@ -340,7 +340,7 @@ func TestMatchesKubernetesVersion(t *testing.T) {
 		kversion := "some_ver_2"
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: &kversion,
+				Version: kversion,
 			},
 		}
 		g.Expect(collections.MatchesKubernetesVersion("some_ver")(machine)).To(BeFalse())
@@ -353,21 +353,11 @@ func TestWithVersion(t *testing.T) {
 		g.Expect(collections.WithVersion()(nil)).To(BeFalse())
 	})
 
-	t.Run("nil machine.Spec.Version returns false", func(t *testing.T) {
-		g := NewWithT(t)
-		machine := &clusterv1.Machine{
-			Spec: clusterv1.MachineSpec{
-				Version: nil,
-			},
-		}
-		g.Expect(collections.WithVersion()(machine)).To(BeFalse())
-	})
-
 	t.Run("empty machine.Spec.Version returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: ptr.To(""),
+				Version: "",
 			},
 		}
 		g.Expect(collections.WithVersion()(machine)).To(BeFalse())
@@ -377,7 +367,7 @@ func TestWithVersion(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: ptr.To("1..20"),
+				Version: "1..20",
 			},
 		}
 		g.Expect(collections.WithVersion()(machine)).To(BeFalse())
@@ -387,7 +377,7 @@ func TestWithVersion(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: ptr.To("1.20"),
+				Version: "1.20",
 			},
 		}
 		g.Expect(collections.WithVersion()(machine)).To(BeTrue())

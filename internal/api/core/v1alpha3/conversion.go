@@ -293,6 +293,8 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Status.InfrastructureReady = ptr.Deref(src.Status.Initialization.InfrastructureProvisioned, false)
 	}
 
+	dropEmptyStringsMachineSpec(&dst.Spec)
+
 	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
@@ -381,6 +383,8 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	dst.Spec.MinReadySeconds = ptr.Deref(src.Spec.Template.Spec.MinReadySeconds, 0)
+
+	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
 	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
@@ -487,6 +491,8 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
 
+	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
+
 	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
@@ -519,7 +525,7 @@ func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	if restored.Spec.UnhealthyRange != nil {
+	if restored.Spec.UnhealthyRange != "" {
 		dst.Spec.UnhealthyRange = restored.Spec.UnhealthyRange
 	}
 	dst.Status.Conditions = restored.Status.Conditions
@@ -662,6 +668,8 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
+
+	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
 	return utilconversion.MarshalData(src, dst)
 }
@@ -966,4 +974,16 @@ func convertToObjectReference(ref *clusterv1.ContractVersionedObjectReference, n
 		Namespace:  namespace,
 		Name:       ref.Name,
 	}, nil
+}
+
+func dropEmptyStringsMachineSpec(spec *MachineSpec) {
+	dropEmptyString(&spec.Version)
+	dropEmptyString(&spec.ProviderID)
+	dropEmptyString(&spec.FailureDomain)
+}
+
+func dropEmptyString(s **string) {
+	if *s != nil && **s == "" {
+		*s = nil
+	}
 }

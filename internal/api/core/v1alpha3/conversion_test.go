@@ -140,6 +140,8 @@ func spokeMachine(in *Machine, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	fillMachineSpec(&in.Spec, c, in.Namespace)
+
+	dropEmptyStringsMachineSpec(&in.Spec)
 }
 
 func fillMachineSpec(spec *MachineSpec, c randfill.Continue, namespace string) {
@@ -218,6 +220,8 @@ func spokeMachineSet(in *MachineSet, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	fillMachineSpec(&in.Spec.Template.Spec, c, in.Namespace)
+
+	dropEmptyStringsMachineSpec(&in.Spec.Template.Spec)
 }
 
 func MachineDeploymentFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
@@ -252,6 +256,8 @@ func spokeMachineDeployment(in *MachineDeployment, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	fillMachineSpec(&in.Spec.Template.Spec, c, in.Namespace)
+
+	dropEmptyStringsMachineSpec(&in.Spec.Template.Spec)
 }
 
 func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) {
@@ -475,6 +481,8 @@ func spokeMachinePool(in *MachinePool, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	fillMachineSpec(&in.Spec.Template.Spec, c, in.Namespace)
+
+	dropEmptyStringsMachineSpec(&in.Spec.Template.Spec)
 }
 
 func spokeMachinePoolSpec(in *MachinePoolSpec, c randfill.Continue) {

@@ -382,10 +382,10 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 
 	// If the machine is at the end of the provisioning phase, with ProviderID set, but still waiting
 	// for a matching Node to exists, surface this.
-	if ptr.Deref(machine.Spec.ProviderID, "") != "" {
+	if machine.Spec.ProviderID != "" {
 		setNodeConditions(machine, metav1.ConditionUnknown,
 			clusterv1.MachineNodeInspectionFailedReason,
-			fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", *machine.Spec.ProviderID))
+			fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", machine.Spec.ProviderID))
 		return
 	}
 
@@ -794,7 +794,7 @@ func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {
 	}
 
 	// Set the phase to "provisioned" if there is a provider ID.
-	if m.Spec.ProviderID != nil {
+	if m.Spec.ProviderID != "" {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseProvisioned)
 	}
 

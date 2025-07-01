@@ -491,9 +491,9 @@ func (r *MachinePoolReconciler) computeDesiredMachine(mp *clusterv1.MachinePool,
 		Name:     infraMachine.GetName(),
 	}
 
-	var kubernetesVersion *string
+	var kubernetesVersion string
 	if existingNode != nil && existingNode.Status.NodeInfo.KubeletVersion != "" {
-		kubernetesVersion = &existingNode.Status.NodeInfo.KubeletVersion
+		kubernetesVersion = existingNode.Status.NodeInfo.KubeletVersion
 	}
 
 	machine := &clusterv1.Machine{

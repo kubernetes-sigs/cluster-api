@@ -192,7 +192,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Users: []bootstrapv1.User{
 						{
-							Passwd: ptr.To("foo"),
+							Passwd: "foo",
 						},
 					},
 				},
@@ -228,7 +228,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					Users: []bootstrapv1.User{
 						{
 							PasswdFrom: &bootstrapv1.PasswdSource{},
-							Passwd:     ptr.To("foo"),
+							Passwd:     "foo",
 						},
 					},
 				},
@@ -249,7 +249,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 									Key: "bar",
 								},
 							},
-							Passwd: ptr.To("foo"),
+							Passwd: "foo",
 						},
 					},
 				},
@@ -270,7 +270,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 									Name: "foo",
 								},
 							},
-							Passwd: ptr.To("foo"),
+							Passwd: "foo",
 						},
 					},
 				},
@@ -332,7 +332,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					DiskSetup: &bootstrapv1.DiskSetup{
 						Partitions: []bootstrapv1.Partition{
 							{
-								TableType: ptr.To("MS-DOS"),
+								TableType: "MS-DOS",
 							},
 						},
 					},
@@ -379,7 +379,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					DiskSetup: &bootstrapv1.DiskSetup{
 						Filesystems: []bootstrapv1.Filesystem{
 							{
-								ReplaceFS: ptr.To("ntfs"),
+								ReplaceFS: "ntfs",
 							},
 						},
 					},
@@ -399,7 +399,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					DiskSetup: &bootstrapv1.DiskSetup{
 						Filesystems: []bootstrapv1.Filesystem{
 							{
-								Partition: ptr.To("1"),
+								Partition: "1",
 							},
 						},
 					},

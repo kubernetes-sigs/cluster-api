@@ -69,7 +69,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 	g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 
 	r := &Reconciler{
-		Client:        env.GetClient(),
+		Client:        env.GetAPIReader().(client.Client),
 		APIReader:     env.GetAPIReader(),
 		RuntimeClient: runtimeClient,
 	}
@@ -102,7 +102,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 	t.Run("successful reconcile and discovery on ExtensionConfig create", func(*testing.T) {
 		// Warm up the registry before trying reconciliation again.
 		warmup := &warmupRunnable{
-			Client:        env.GetClient(),
+			Client:        env.GetAPIReader().(client.Client),
 			APIReader:     env.GetAPIReader(),
 			RuntimeClient: runtimeClient,
 		}

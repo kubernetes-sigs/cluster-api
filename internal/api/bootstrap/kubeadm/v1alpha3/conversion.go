@@ -202,7 +202,7 @@ func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1
 				}
 			}
 			if srcVolume == nil {
-				return fmt.Errorf("controllerManager extraVolume %q not found in source data", volume.MountPath)
+				return fmt.Errorf("controllerManager extraVolume with hostPath %q not found in source data", volume.HostPath)
 			}
 			var restoredVolumeReadOnly *bool
 			if restored.ClusterConfiguration != nil {
@@ -227,7 +227,7 @@ func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1
 				}
 			}
 			if srcVolume == nil {
-				return fmt.Errorf("scheduler extraVolume %q not found in source data", volume.MountPath)
+				return fmt.Errorf("scheduler extraVolume with hostPath %q not found in source data", volume.HostPath)
 			}
 			var restoredVolumeReadOnly *bool
 			if restored.ClusterConfiguration != nil {

@@ -437,13 +437,6 @@ func hubMachineStatus(in *clusterv1.MachineStatus, c randfill.Continue) {
 
 	// Drop empty structs with only omit empty fields.
 	if in.Initialization != nil {
-		if ptr.Deref(in.Initialization.BootstrapDataSecretCreated, false) {
-			in.Initialization.BootstrapDataSecretCreated = nil
-		}
-		if ptr.Deref(in.Initialization.InfrastructureProvisioned, false) {
-			in.Initialization.InfrastructureProvisioned = nil
-		}
-
 		if reflect.DeepEqual(in.Initialization, &clusterv1.MachineInitializationStatus{}) {
 			in.Initialization = nil
 		}
@@ -676,13 +669,6 @@ func hubMachinePoolStatus(in *clusterv1.MachinePoolStatus, c randfill.Continue) 
 
 	// Drop empty structs with only omit empty fields.
 	if in.Initialization != nil {
-		if ptr.Deref(in.Initialization.BootstrapDataSecretCreated, false) {
-			in.Initialization.BootstrapDataSecretCreated = nil
-		}
-		if ptr.Deref(in.Initialization.InfrastructureProvisioned, false) {
-			in.Initialization.InfrastructureProvisioned = nil
-		}
-
 		if reflect.DeepEqual(in.Initialization, &clusterv1.MachinePoolInitializationStatus{}) {
 			in.Initialization = nil
 		}

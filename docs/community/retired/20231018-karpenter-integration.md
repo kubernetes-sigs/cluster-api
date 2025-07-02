@@ -16,6 +16,13 @@ see-also:
   - https://www.youtube.com/watch?v=t1Uo18v8g48
   - https://karpenter.sh
 ---
+# This Feature Group is Retired!
+
+The feature group produced an experimental provider for Karpenter based on Cluster API.
+There is more work to be done improving the provider, but that work will be focused on
+the project instead of the working group.
+
+https://github.com/kubernetes-sigs/karpenter-provider-cluster-api
 
 # Karpenter Integration with Cluster API
 

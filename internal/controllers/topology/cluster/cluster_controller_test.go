@@ -1074,8 +1074,8 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 			if *md.Spec.Replicas != *topologyMD.Replicas {
 				return fmt.Errorf("replicas %v does not match expected %v", *md.Spec.Replicas, *topologyMD.Replicas)
 			}
-			if *md.Spec.Template.Spec.Version != cluster.Spec.Topology.Version {
-				return fmt.Errorf("version %v does not match expected %v", *md.Spec.Template.Spec.Version, cluster.Spec.Topology.Version)
+			if md.Spec.Template.Spec.Version != cluster.Spec.Topology.Version {
+				return fmt.Errorf("version %v does not match expected %v", md.Spec.Template.Spec.Version, cluster.Spec.Topology.Version)
 			}
 
 			// Check if the InfrastructureReference exists.
@@ -1160,8 +1160,8 @@ func assertMachinePoolsReconcile(cluster *clusterv1.Cluster) error {
 			if *mp.Spec.Replicas != *topologyMP.Replicas {
 				return fmt.Errorf("replicas %v does not match expected %v", mp.Spec.Replicas, topologyMP.Replicas)
 			}
-			if *mp.Spec.Template.Spec.Version != cluster.Spec.Topology.Version {
-				return fmt.Errorf("version %v does not match expected %v", *mp.Spec.Template.Spec.Version, cluster.Spec.Topology.Version)
+			if mp.Spec.Template.Spec.Version != cluster.Spec.Topology.Version {
+				return fmt.Errorf("version %v does not match expected %v", mp.Spec.Template.Spec.Version, cluster.Spec.Topology.Version)
 			}
 
 			// Check if the InfrastructureReference exists.

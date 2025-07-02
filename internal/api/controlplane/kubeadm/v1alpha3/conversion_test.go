@@ -193,6 +193,8 @@ func spokeKubeadmConfigSpec(in *bootstrapv1alpha3.KubeadmConfigSpec, c randfill.
 
 	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
 	in.UseExperimentalRetryJoin = false
+
+	dropEmptyStringsKubeadmConfigSpec(in)
 }
 
 func spokeAPIServer(in *bootstrapv1alpha3.APIServer, c randfill.Continue) {

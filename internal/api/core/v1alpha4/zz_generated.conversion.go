@@ -1436,7 +1436,9 @@ func autoConvert_v1alpha4_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSp
 	out.Selector = in.Selector
 	// WARNING: in.UnhealthyConditions requires manual conversion: does not exist in peer-type
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
-	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
+	if err := v1.Convert_Pointer_string_To_string(&in.UnhealthyRange, &out.UnhealthyRange, s); err != nil {
+		return err
+	}
 	// WARNING: in.NodeStartupTimeout requires manual conversion: does not exist in peer-type
 	if in.RemediationTemplate != nil {
 		in, out := &in.RemediationTemplate, &out.RemediationTemplate
@@ -1455,7 +1457,9 @@ func autoConvert_v1beta2_MachineHealthCheckSpec_To_v1alpha4_MachineHealthCheckSp
 	out.Selector = in.Selector
 	// WARNING: in.UnhealthyNodeConditions requires manual conversion: does not exist in peer-type
 	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
-	out.UnhealthyRange = (*string)(unsafe.Pointer(in.UnhealthyRange))
+	if err := v1.Convert_string_To_Pointer_string(&in.UnhealthyRange, &out.UnhealthyRange, s); err != nil {
+		return err
+	}
 	// WARNING: in.NodeStartupTimeoutSeconds requires manual conversion: does not exist in peer-type
 	if in.RemediationTemplate != nil {
 		in, out := &in.RemediationTemplate, &out.RemediationTemplate
@@ -1908,9 +1912,15 @@ func autoConvert_v1alpha4_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, ou
 	if err := v1beta1.Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
 		return err
 	}
-	out.Version = (*string)(unsafe.Pointer(in.Version))
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
-	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
+	if err := v1.Convert_Pointer_string_To_string(&in.Version, &out.Version, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_Pointer_string_To_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_Pointer_string_To_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
+		return err
+	}
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -1923,9 +1933,15 @@ func autoConvert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in *v1beta2.Machine
 	if err := v1beta1.Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
 		return err
 	}
-	out.Version = (*string)(unsafe.Pointer(in.Version))
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
-	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
+	if err := v1.Convert_string_To_Pointer_string(&in.Version, &out.Version, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_string_To_Pointer_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_string_To_Pointer_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
+		return err
+	}
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type

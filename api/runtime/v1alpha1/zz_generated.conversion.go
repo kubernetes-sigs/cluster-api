@@ -132,8 +132,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 }
 
 func autoConvert_v1alpha1_ClientConfig_To_v1beta2_ClientConfig(in *ClientConfig, out *v1beta2.ClientConfig, s conversion.Scope) error {
-	out.URL = (*string)(unsafe.Pointer(in.URL))
-	out.Service = (*v1beta2.ServiceReference)(unsafe.Pointer(in.Service))
+	if err := v1.Convert_Pointer_string_To_string(&in.URL, &out.URL, s); err != nil {
+		return err
+	}
+	if in.Service != nil {
+		in, out := &in.Service, &out.Service
+		*out = new(v1beta2.ServiceReference)
+		if err := Convert_v1alpha1_ServiceReference_To_v1beta2_ServiceReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Service = nil
+	}
 	out.CABundle = *(*[]byte)(unsafe.Pointer(&in.CABundle))
 	return nil
 }
@@ -144,8 +154,18 @@ func Convert_v1alpha1_ClientConfig_To_v1beta2_ClientConfig(in *ClientConfig, out
 }
 
 func autoConvert_v1beta2_ClientConfig_To_v1alpha1_ClientConfig(in *v1beta2.ClientConfig, out *ClientConfig, s conversion.Scope) error {
-	out.URL = (*string)(unsafe.Pointer(in.URL))
-	out.Service = (*ServiceReference)(unsafe.Pointer(in.Service))
+	if err := v1.Convert_string_To_Pointer_string(&in.URL, &out.URL, s); err != nil {
+		return err
+	}
+	if in.Service != nil {
+		in, out := &in.Service, &out.Service
+		*out = new(ServiceReference)
+		if err := Convert_v1beta2_ServiceReference_To_v1alpha1_ServiceReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Service = nil
+	}
 	out.CABundle = *(*[]byte)(unsafe.Pointer(&in.CABundle))
 	return nil
 }
@@ -346,7 +366,9 @@ func Convert_v1beta2_GroupVersionHook_To_v1alpha1_GroupVersionHook(in *v1beta2.G
 func autoConvert_v1alpha1_ServiceReference_To_v1beta2_ServiceReference(in *ServiceReference, out *v1beta2.ServiceReference, s conversion.Scope) error {
 	out.Namespace = in.Namespace
 	out.Name = in.Name
-	out.Path = (*string)(unsafe.Pointer(in.Path))
+	if err := v1.Convert_Pointer_string_To_string(&in.Path, &out.Path, s); err != nil {
+		return err
+	}
 	out.Port = (*int32)(unsafe.Pointer(in.Port))
 	return nil
 }
@@ -359,7 +381,9 @@ func Convert_v1alpha1_ServiceReference_To_v1beta2_ServiceReference(in *ServiceRe
 func autoConvert_v1beta2_ServiceReference_To_v1alpha1_ServiceReference(in *v1beta2.ServiceReference, out *ServiceReference, s conversion.Scope) error {
 	out.Namespace = in.Namespace
 	out.Name = in.Name
-	out.Path = (*string)(unsafe.Pointer(in.Path))
+	if err := v1.Convert_string_To_Pointer_string(&in.Path, &out.Path, s); err != nil {
+		return err
+	}
 	out.Port = (*int32)(unsafe.Pointer(in.Port))
 	return nil
 }

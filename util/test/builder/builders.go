@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -606,8 +607,8 @@ func (m *MachineDeploymentClassBuilder) WithReadinessGates(readinessGates []clus
 }
 
 // WithFailureDomain sets the FailureDomain for the MachineDeploymentClassBuilder.
-func (m *MachineDeploymentClassBuilder) WithFailureDomain(f *string) *MachineDeploymentClassBuilder {
-	m.failureDomain = f
+func (m *MachineDeploymentClassBuilder) WithFailureDomain(f string) *MachineDeploymentClassBuilder {
+	m.failureDomain = &f
 	return m
 }
 
@@ -671,7 +672,7 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 		obj.ReadinessGates = m.readinessGates
 	}
 	if m.failureDomain != nil {
-		obj.FailureDomain = m.failureDomain
+		obj.FailureDomain = *m.failureDomain
 	}
 	if m.nodeDrainTimeout != nil {
 		obj.NodeDrainTimeoutSeconds = m.nodeDrainTimeout
@@ -1721,7 +1722,7 @@ func (m *MachinePoolBuilder) Build() *clusterv1.MachinePool {
 			Replicas:    m.replicas,
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version:     m.version,
+					Version:     ptr.Deref(m.version, ""),
 					ClusterName: m.clusterName,
 				},
 			},
@@ -1851,7 +1852,7 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 		obj.Generation = *m.generation
 	}
 	if m.version != nil {
-		obj.Spec.Template.Spec.Version = m.version
+		obj.Spec.Template.Spec.Version = *m.version
 	}
 	obj.Spec.Replicas = m.replicas
 	if m.bootstrapTemplate != nil {
@@ -2028,7 +2029,7 @@ func (m *MachineBuilder) Build() *clusterv1.Machine {
 			Labels:    m.labels,
 		},
 		Spec: clusterv1.MachineSpec{
-			Version:     m.version,
+			Version:     ptr.Deref(m.version, ""),
 			ClusterName: m.clusterName,
 		},
 	}

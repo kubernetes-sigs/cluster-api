@@ -405,7 +405,7 @@ func TestClusterReconciler(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: cluster.Name,
-				ProviderID:  ptr.To("aws:///id-node-1"),
+				ProviderID:  "aws:///id-node-1",
 				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.InfrastructureGroupVersion.Group,
 					Kind:     builder.TestInfrastructureMachineKind,

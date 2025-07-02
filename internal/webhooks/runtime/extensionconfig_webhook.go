@@ -131,13 +131,13 @@ func validateExtensionConfigSpec(e *runtimev1.ExtensionConfig) field.ErrorList {
 
 	specPath := field.NewPath("spec")
 
-	if e.Spec.ClientConfig.URL == nil && e.Spec.ClientConfig.Service == nil {
+	if e.Spec.ClientConfig.URL == "" && e.Spec.ClientConfig.Service == nil {
 		allErrs = append(allErrs, field.Required(
 			specPath.Child("clientConfig"),
 			"either url or service must be defined",
 		))
 	}
-	if e.Spec.ClientConfig.URL != nil && e.Spec.ClientConfig.Service != nil {
+	if e.Spec.ClientConfig.URL != "" && e.Spec.ClientConfig.Service != nil {
 		allErrs = append(allErrs, field.Forbidden(
 			specPath.Child("clientConfig"),
 			"only one of url or service can be defined",
@@ -145,17 +145,17 @@ func validateExtensionConfigSpec(e *runtimev1.ExtensionConfig) field.ErrorList {
 	}
 
 	// Validate URL
-	if e.Spec.ClientConfig.URL != nil {
-		if uri, err := url.ParseRequestURI(*e.Spec.ClientConfig.URL); err != nil {
+	if e.Spec.ClientConfig.URL != "" {
+		if uri, err := url.ParseRequestURI(e.Spec.ClientConfig.URL); err != nil {
 			allErrs = append(allErrs, field.Invalid(
 				specPath.Child("clientConfig", "url"),
-				*e.Spec.ClientConfig.URL,
+				e.Spec.ClientConfig.URL,
 				fmt.Sprintf("must be a valid URL, e.g. https://example.com: %v", err),
 			))
 		} else if uri.Scheme != "https" {
 			allErrs = append(allErrs, field.Invalid(
 				specPath.Child("clientConfig", "url"),
-				*e.Spec.ClientConfig.URL,
+				e.Spec.ClientConfig.URL,
 				"'https' is the only allowed URL scheme, e.g. https://example.com",
 			))
 		}
@@ -194,8 +194,8 @@ func validateExtensionConfigSpec(e *runtimev1.ExtensionConfig) field.ErrorList {
 			))
 		}
 
-		if e.Spec.ClientConfig.Service.Path != nil {
-			path := *e.Spec.ClientConfig.Service.Path
+		if e.Spec.ClientConfig.Service.Path != "" {
+			path := e.Spec.ClientConfig.Service.Path
 			if _, err := url.ParseRequestURI(path); err != nil {
 				allErrs = append(allErrs, field.Invalid(
 					specPath.Child("clientConfig", "service", "path"),

@@ -43,7 +43,7 @@ func TestMachineDeploymentDefault(t *testing.T) {
 			ClusterName: "test-cluster",
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: ptr.To("1.19.10"),
+					Version: "1.19.10",
 				},
 			},
 		},
@@ -79,7 +79,7 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()).To(Equal(1))
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()).To(Equal(0))
 
-	g.Expect(*md.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
+	g.Expect(md.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
 }
 
 func TestMachineDeploymentReferenceDefault(t *testing.T) {
@@ -92,7 +92,7 @@ func TestMachineDeploymentReferenceDefault(t *testing.T) {
 			ClusterName: "test-cluster",
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: ptr.To("1.19.10"),
+					Version: "1.19.10",
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &clusterv1.ContractVersionedObjectReference{},
 					},
@@ -559,7 +559,7 @@ func TestMachineDeploymentVersionValidation(t *testing.T) {
 				Spec: clusterv1.MachineDeploymentSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: ptr.To(tt.version),
+							Version: tt.version,
 						},
 					},
 				},

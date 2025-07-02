@@ -537,7 +537,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					{
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
-							DiscoverVariablesExtension: ptr.To("variables-one"),
+							DiscoverVariablesExtension: "variables-one",
 						},
 					},
 				}).
@@ -749,7 +749,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					{
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
-							DiscoverVariablesExtension: ptr.To("variables-one"),
+							DiscoverVariablesExtension: "variables-one",
 						},
 					},
 				}).
@@ -781,7 +781,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					{
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
-							DiscoverVariablesExtension: ptr.To("variables-one"),
+							DiscoverVariablesExtension: "variables-one",
 						},
 					},
 				}).
@@ -951,7 +951,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					{
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
-							DiscoverVariablesExtension: ptr.To("variables-one"),
+							DiscoverVariablesExtension: "variables-one",
 						},
 					},
 				}).
@@ -991,7 +991,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					{
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
-							DiscoverVariablesExtension: ptr.To("variables-one"),
+							DiscoverVariablesExtension: "variables-one",
 						},
 					},
 				}).
@@ -1036,7 +1036,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					{
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
-							DiscoverVariablesExtension: ptr.To("variables-one"),
+							DiscoverVariablesExtension: "variables-one",
 						},
 					},
 				}).
@@ -1105,7 +1105,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					{
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
-							DiscoverVariablesExtension: ptr.To("variables-one"),
+							DiscoverVariablesExtension: "variables-one",
 						},
 					},
 				}).
@@ -1224,20 +1224,20 @@ func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
 	// These ClusterClasses will be reconciled as they both reference the passed ExtensionConfig `runtime1`.
 	onePatchClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cc1").
 		WithPatches([]clusterv1.ClusterClassPatch{
-			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.runtime1")}},
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: "discover-variables.runtime1"}},
 		}).
 		Build()
 	twoPatchClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cc2").
 		WithPatches([]clusterv1.ClusterClassPatch{
-			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.runtime1")}},
-			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.runtime2")}},
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: "discover-variables.runtime1"}},
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: "discover-variables.runtime2"}},
 		}).
 		Build()
 
 	// This ClusterClasses will not be reconciled as it does not reference the passed ExtensionConfig `runtime1`.
 	notReconciledClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cc3").
 		WithPatches([]clusterv1.ClusterClassPatch{
-			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.other-runtime-class")}},
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: "discover-variables.other-runtime-class"}},
 		}).
 		Build()
 

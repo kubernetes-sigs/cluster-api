@@ -680,8 +680,28 @@ func Convert_v1beta2_Discovery_To_v1alpha3_Discovery(in *v1beta2.Discovery, out 
 }
 
 func autoConvert_v1alpha3_DiskSetup_To_v1beta2_DiskSetup(in *DiskSetup, out *v1beta2.DiskSetup, s conversion.Scope) error {
-	out.Partitions = *(*[]v1beta2.Partition)(unsafe.Pointer(&in.Partitions))
-	out.Filesystems = *(*[]v1beta2.Filesystem)(unsafe.Pointer(&in.Filesystems))
+	if in.Partitions != nil {
+		in, out := &in.Partitions, &out.Partitions
+		*out = make([]v1beta2.Partition, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_Partition_To_v1beta2_Partition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Partitions = nil
+	}
+	if in.Filesystems != nil {
+		in, out := &in.Filesystems, &out.Filesystems
+		*out = make([]v1beta2.Filesystem, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_Filesystem_To_v1beta2_Filesystem(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Filesystems = nil
+	}
 	return nil
 }
 
@@ -691,8 +711,28 @@ func Convert_v1alpha3_DiskSetup_To_v1beta2_DiskSetup(in *DiskSetup, out *v1beta2
 }
 
 func autoConvert_v1beta2_DiskSetup_To_v1alpha3_DiskSetup(in *v1beta2.DiskSetup, out *DiskSetup, s conversion.Scope) error {
-	out.Partitions = *(*[]Partition)(unsafe.Pointer(&in.Partitions))
-	out.Filesystems = *(*[]Filesystem)(unsafe.Pointer(&in.Filesystems))
+	if in.Partitions != nil {
+		in, out := &in.Partitions, &out.Partitions
+		*out = make([]Partition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_Partition_To_v1alpha3_Partition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Partitions = nil
+	}
+	if in.Filesystems != nil {
+		in, out := &in.Filesystems, &out.Filesystems
+		*out = make([]Filesystem, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_Filesystem_To_v1alpha3_Filesystem(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Filesystems = nil
+	}
 	return nil
 }
 
@@ -835,9 +875,13 @@ func autoConvert_v1alpha3_Filesystem_To_v1beta2_Filesystem(in *Filesystem, out *
 	out.Device = in.Device
 	out.Filesystem = in.Filesystem
 	out.Label = in.Label
-	out.Partition = (*string)(unsafe.Pointer(in.Partition))
+	if err := v1.Convert_Pointer_string_To_string(&in.Partition, &out.Partition, s); err != nil {
+		return err
+	}
 	out.Overwrite = (*bool)(unsafe.Pointer(in.Overwrite))
-	out.ReplaceFS = (*string)(unsafe.Pointer(in.ReplaceFS))
+	if err := v1.Convert_Pointer_string_To_string(&in.ReplaceFS, &out.ReplaceFS, s); err != nil {
+		return err
+	}
 	out.ExtraOpts = *(*[]string)(unsafe.Pointer(&in.ExtraOpts))
 	return nil
 }
@@ -851,9 +895,13 @@ func autoConvert_v1beta2_Filesystem_To_v1alpha3_Filesystem(in *v1beta2.Filesyste
 	out.Device = in.Device
 	out.Filesystem = in.Filesystem
 	out.Label = in.Label
-	out.Partition = (*string)(unsafe.Pointer(in.Partition))
+	if err := v1.Convert_string_To_Pointer_string(&in.Partition, &out.Partition, s); err != nil {
+		return err
+	}
 	out.Overwrite = (*bool)(unsafe.Pointer(in.Overwrite))
-	out.ReplaceFS = (*string)(unsafe.Pointer(in.ReplaceFS))
+	if err := v1.Convert_string_To_Pointer_string(&in.ReplaceFS, &out.ReplaceFS, s); err != nil {
+		return err
+	}
 	out.ExtraOpts = *(*[]string)(unsafe.Pointer(&in.ExtraOpts))
 	return nil
 }
@@ -1128,7 +1176,15 @@ func autoConvert_v1alpha3_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *Kub
 	} else {
 		out.Files = nil
 	}
-	out.DiskSetup = (*v1beta2.DiskSetup)(unsafe.Pointer(in.DiskSetup))
+	if in.DiskSetup != nil {
+		in, out := &in.DiskSetup, &out.DiskSetup
+		*out = new(v1beta2.DiskSetup)
+		if err := Convert_v1alpha3_DiskSetup_To_v1beta2_DiskSetup(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.DiskSetup = nil
+	}
 	out.Mounts = *(*[]v1beta2.MountPoints)(unsafe.Pointer(&in.Mounts))
 	out.PreKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PreKubeadmCommands))
 	out.PostKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PostKubeadmCommands))
@@ -1189,7 +1245,15 @@ func autoConvert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *v1b
 	} else {
 		out.Files = nil
 	}
-	out.DiskSetup = (*DiskSetup)(unsafe.Pointer(in.DiskSetup))
+	if in.DiskSetup != nil {
+		in, out := &in.DiskSetup, &out.DiskSetup
+		*out = new(DiskSetup)
+		if err := Convert_v1beta2_DiskSetup_To_v1alpha3_DiskSetup(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.DiskSetup = nil
+	}
 	out.Mounts = *(*[]MountPoints)(unsafe.Pointer(&in.Mounts))
 	// WARNING: in.BootCommands requires manual conversion: does not exist in peer-type
 	out.PreKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PreKubeadmCommands))
@@ -1214,7 +1278,9 @@ func autoConvert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *v1b
 
 func autoConvert_v1alpha3_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *KubeadmConfigStatus, out *v1beta2.KubeadmConfigStatus, s conversion.Scope) error {
 	// WARNING: in.Ready requires manual conversion: does not exist in peer-type
-	out.DataSecretName = (*string)(unsafe.Pointer(in.DataSecretName))
+	if err := v1.Convert_Pointer_string_To_string(&in.DataSecretName, &out.DataSecretName, s); err != nil {
+		return err
+	}
 	// WARNING: in.BootstrapData requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
@@ -1246,7 +1312,9 @@ func autoConvert_v1beta2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in 
 		out.Conditions = nil
 	}
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
-	out.DataSecretName = (*string)(unsafe.Pointer(in.DataSecretName))
+	if err := v1.Convert_string_To_Pointer_string(&in.DataSecretName, &out.DataSecretName, s); err != nil {
+		return err
+	}
 	out.ObservedGeneration = in.ObservedGeneration
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
@@ -1432,7 +1500,9 @@ func autoConvert_v1alpha3_Partition_To_v1beta2_Partition(in *Partition, out *v1b
 	out.Device = in.Device
 	out.Layout = in.Layout
 	out.Overwrite = (*bool)(unsafe.Pointer(in.Overwrite))
-	out.TableType = (*string)(unsafe.Pointer(in.TableType))
+	if err := v1.Convert_Pointer_string_To_string(&in.TableType, &out.TableType, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1445,7 +1515,9 @@ func autoConvert_v1beta2_Partition_To_v1alpha3_Partition(in *v1beta2.Partition, 
 	out.Device = in.Device
 	out.Layout = in.Layout
 	out.Overwrite = (*bool)(unsafe.Pointer(in.Overwrite))
-	out.TableType = (*string)(unsafe.Pointer(in.TableType))
+	if err := v1.Convert_string_To_Pointer_string(&in.TableType, &out.TableType, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1478,15 +1550,29 @@ func Convert_v1beta2_SecretFileSource_To_v1alpha3_SecretFileSource(in *v1beta2.S
 
 func autoConvert_v1alpha3_User_To_v1beta2_User(in *User, out *v1beta2.User, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Gecos = (*string)(unsafe.Pointer(in.Gecos))
-	out.Groups = (*string)(unsafe.Pointer(in.Groups))
-	out.HomeDir = (*string)(unsafe.Pointer(in.HomeDir))
+	if err := v1.Convert_Pointer_string_To_string(&in.Gecos, &out.Gecos, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_Pointer_string_To_string(&in.Groups, &out.Groups, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_Pointer_string_To_string(&in.HomeDir, &out.HomeDir, s); err != nil {
+		return err
+	}
 	out.Inactive = (*bool)(unsafe.Pointer(in.Inactive))
-	out.Shell = (*string)(unsafe.Pointer(in.Shell))
-	out.Passwd = (*string)(unsafe.Pointer(in.Passwd))
-	out.PrimaryGroup = (*string)(unsafe.Pointer(in.PrimaryGroup))
+	if err := v1.Convert_Pointer_string_To_string(&in.Shell, &out.Shell, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_Pointer_string_To_string(&in.Passwd, &out.Passwd, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_Pointer_string_To_string(&in.PrimaryGroup, &out.PrimaryGroup, s); err != nil {
+		return err
+	}
 	out.LockPassword = (*bool)(unsafe.Pointer(in.LockPassword))
-	out.Sudo = (*string)(unsafe.Pointer(in.Sudo))
+	if err := v1.Convert_Pointer_string_To_string(&in.Sudo, &out.Sudo, s); err != nil {
+		return err
+	}
 	out.SSHAuthorizedKeys = *(*[]string)(unsafe.Pointer(&in.SSHAuthorizedKeys))
 	return nil
 }
@@ -1498,16 +1584,30 @@ func Convert_v1alpha3_User_To_v1beta2_User(in *User, out *v1beta2.User, s conver
 
 func autoConvert_v1beta2_User_To_v1alpha3_User(in *v1beta2.User, out *User, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Gecos = (*string)(unsafe.Pointer(in.Gecos))
-	out.Groups = (*string)(unsafe.Pointer(in.Groups))
-	out.HomeDir = (*string)(unsafe.Pointer(in.HomeDir))
+	if err := v1.Convert_string_To_Pointer_string(&in.Gecos, &out.Gecos, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_string_To_Pointer_string(&in.Groups, &out.Groups, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_string_To_Pointer_string(&in.HomeDir, &out.HomeDir, s); err != nil {
+		return err
+	}
 	out.Inactive = (*bool)(unsafe.Pointer(in.Inactive))
-	out.Shell = (*string)(unsafe.Pointer(in.Shell))
-	out.Passwd = (*string)(unsafe.Pointer(in.Passwd))
+	if err := v1.Convert_string_To_Pointer_string(&in.Shell, &out.Shell, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_string_To_Pointer_string(&in.Passwd, &out.Passwd, s); err != nil {
+		return err
+	}
 	// WARNING: in.PasswdFrom requires manual conversion: does not exist in peer-type
-	out.PrimaryGroup = (*string)(unsafe.Pointer(in.PrimaryGroup))
+	if err := v1.Convert_string_To_Pointer_string(&in.PrimaryGroup, &out.PrimaryGroup, s); err != nil {
+		return err
+	}
 	out.LockPassword = (*bool)(unsafe.Pointer(in.LockPassword))
-	out.Sudo = (*string)(unsafe.Pointer(in.Sudo))
+	if err := v1.Convert_string_To_Pointer_string(&in.Sudo, &out.Sudo, s); err != nil {
+		return err
+	}
 	out.SSHAuthorizedKeys = *(*[]string)(unsafe.Pointer(&in.SSHAuthorizedKeys))
 	return nil
 }

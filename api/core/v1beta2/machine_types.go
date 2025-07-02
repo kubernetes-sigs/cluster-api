@@ -400,7 +400,7 @@ type MachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Version *string `json:"version,omitempty"`
+	Version string `json:"version,omitempty"`
 
 	// providerID is the identification ID of the machine provided by the provider.
 	// This field must match the provider ID as seen on the node object corresponding to this machine.
@@ -415,14 +415,14 @@ type MachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	ProviderID *string `json:"providerID,omitempty"`
+	ProviderID string `json:"providerID,omitempty"`
 
 	// failureDomain is the failure domain the machine will be created in.
 	// Must match the name of a FailureDomain from the Cluster status.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	FailureDomain *string `json:"failureDomain,omitempty"`
+	FailureDomain string `json:"failureDomain,omitempty"`
 
 	// minReadySeconds is the minimum number of seconds for which a Machine should be ready before considering it available.
 	// Defaults to 0 (Machine will be considered available as soon as the Machine is ready)
@@ -649,7 +649,7 @@ type MachineV1Beta1DeprecatedStatus struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
-	FailureMessage *string `json:"failureMessage,omitempty"`
+	FailureMessage *string `json:"failureMessage,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 }
 
 // ANCHOR_END: MachineStatus

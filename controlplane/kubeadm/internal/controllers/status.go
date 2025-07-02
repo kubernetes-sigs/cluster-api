@@ -126,7 +126,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 
 	// Set status.version with the lowest K8s version from CP machines.
 	lowestVersion := controlPlane.Machines.LowestVersion()
-	if lowestVersion != nil {
+	if lowestVersion != "" {
 		controlPlane.KCP.Status.Version = lowestVersion
 	}
 
@@ -571,7 +571,7 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 		// Note: this avoids some noise when a new machine is provisioning; it is not possible to delay further
 		// because the etcd member might join the cluster / control plane components might start even before
 		// kubelet registers the node to the API server (e.g. in case kubelet has issues to register itself).
-		if machine.Spec.ProviderID == nil {
+		if machine.Spec.ProviderID == "" {
 			continue
 		}
 

@@ -43,6 +43,7 @@ func TestFuzzyConversion(t *testing.T) {
 func ExtensionConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubExtensionConfigStatus,
+		spokeExtensionConfig,
 		spokeExtensionConfigStatus,
 	}
 }
@@ -55,6 +56,12 @@ func hubExtensionConfigStatus(in *runtimev1.ExtensionConfigStatus, c randfill.Co
 			in.Deprecated = nil
 		}
 	}
+}
+
+func spokeExtensionConfig(in *ExtensionConfig, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	dropEmptyStringsExtensionConfig(in)
 }
 
 func spokeExtensionConfigStatus(in *ExtensionConfigStatus, c randfill.Continue) {

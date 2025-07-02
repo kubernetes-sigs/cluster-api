@@ -184,7 +184,7 @@ func (c *ControlPlane) MachineWithDeleteAnnotation(machines collections.Machines
 
 // FailureDomainWithMostMachines returns the fd with most machines in it and at least one eligible machine in it.
 // Note: if there are eligibleMachines machines in failure domain that do not exist anymore, cleaning up those failure domains takes precedence.
-func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, eligibleMachines collections.Machines) *string {
+func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, eligibleMachines collections.Machines) string {
 	// See if there are any Machines that are not in currently defined failure domains first.
 	notInFailureDomains := eligibleMachines.Filter(
 		collections.Not(collections.InFailureDomains(getGetFailureDomainIDs(c.FailureDomains())...)),
@@ -205,17 +205,17 @@ func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, eligib
 //
 // In case of tie (more failure domain with the same number of up-to-date, not deleted machines) the failure domain with the fewest number of
 // machine overall is picked to ensure a better spreading of machines while the rollout is performed.
-func (c *ControlPlane) NextFailureDomainForScaleUp(ctx context.Context) (*string, error) {
+func (c *ControlPlane) NextFailureDomainForScaleUp(ctx context.Context) (string, error) {
 	if len(c.FailureDomains()) == 0 {
-		return nil, nil
+		return "", nil
 	}
 	return failuredomains.PickFewest(ctx, c.FailureDomains(), c.Machines, c.UpToDateMachines().Filter(collections.Not(collections.HasDeletionTimestamp))), nil
 }
 
-func getGetFailureDomainIDs(failureDomains []clusterv1.FailureDomain) []*string {
-	ids := make([]*string, 0, len(failureDomains))
+func getGetFailureDomainIDs(failureDomains []clusterv1.FailureDomain) []string {
+	ids := make([]string, 0, len(failureDomains))
 	for _, fd := range failureDomains {
-		ids = append(ids, ptr.To(fd.Name))
+		ids = append(ids, fd.Name)
 	}
 	return ids
 }

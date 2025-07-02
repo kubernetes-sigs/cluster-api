@@ -351,13 +351,13 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		return ctrl.Result{}, errors.Wrapf(err, "failed to read failureDomain from %s %s",
 			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 	default:
-		m.Spec.FailureDomain = failureDomain
+		m.Spec.FailureDomain = ptr.Deref(failureDomain, "")
 	}
 
 	// When we hit this point providerID is set, and either:
 	// - the infra machine is reporting provisioned for the first time
 	// - the infra machine already reported provisioned (and thus m.Status.InfrastructureReady is already true and it should not flip back)
-	m.Spec.ProviderID = providerID
+	m.Spec.ProviderID = *providerID
 	if m.Status.Initialization == nil {
 		m.Status.Initialization = &clusterv1.MachineInitializationStatus{}
 	}

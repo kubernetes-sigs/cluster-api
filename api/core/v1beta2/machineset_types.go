@@ -375,7 +375,7 @@ type MachineSetV1Beta1DeprecatedStatus struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
-	FailureMessage *string `json:"failureMessage,omitempty"`
+	FailureMessage *string `json:"failureMessage,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 
 	// fullyLabeledReplicas is the number of replicas that have labels matching the labels of the machine template of the MachineSet.
 	//

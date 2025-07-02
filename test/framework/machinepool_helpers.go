@@ -152,14 +152,14 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 		oldVersion := mp.Spec.Template.Spec.Version
 
 		// Upgrade to new Version.
-		mp.Spec.Template.Spec.Version = &input.UpgradeVersion
+		mp.Spec.Template.Spec.Version = input.UpgradeVersion
 
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, mp)
 		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch the new Kubernetes version to Machine Pool %s", klog.KObj(mp))
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachinePool %s to be upgraded from %s to %s",
-			klog.KObj(mp), *oldVersion, input.UpgradeVersion)
+			klog.KObj(mp), oldVersion, input.UpgradeVersion)
 		WaitForMachinePoolInstancesToBeUpgraded(ctx, WaitForMachinePoolInstancesToBeUpgradedInput{
 			Getter:                   mgmtClient,
 			WorkloadClusterGetter:    input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient(),

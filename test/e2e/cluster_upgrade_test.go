@@ -116,7 +116,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 					var upgradedAndHealthy int64
 					deletingMachines := []clusterv1.Machine{}
 					for _, m := range machines {
-						if *m.Spec.Version == cluster.Spec.Topology.Version && conditions.IsTrue(&m, clusterv1.MachineNodeHealthyCondition) {
+						if m.Spec.Version == cluster.Spec.Topology.Version && conditions.IsTrue(&m, clusterv1.MachineNodeHealthyCondition) {
 							upgradedAndHealthy++
 						}
 						if !m.DeletionTimestamp.IsZero() {

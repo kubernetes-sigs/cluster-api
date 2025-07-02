@@ -103,9 +103,9 @@ func (webhook *MachinePool) Default(ctx context.Context, obj runtime.Object) err
 	}
 
 	// tolerate version strings without a "v" prefix: prepend it if it's not there.
-	if m.Spec.Template.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Template.Spec.Version, "v") {
-		normalizedVersion := "v" + *m.Spec.Template.Spec.Version
-		m.Spec.Template.Spec.Version = &normalizedVersion
+	if m.Spec.Template.Spec.Version != "" && !strings.HasPrefix(m.Spec.Template.Spec.Version, "v") {
+		normalizedVersion := "v" + m.Spec.Template.Spec.Version
+		m.Spec.Template.Spec.Version = normalizedVersion
 	}
 
 	return nil
@@ -174,9 +174,9 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 		)
 	}
 
-	if newObj.Spec.Template.Spec.Version != nil {
-		if !version.KubeSemver.MatchString(*newObj.Spec.Template.Spec.Version) {
-			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), *newObj.Spec.Template.Spec.Version, "must be a valid semantic version"))
+	if newObj.Spec.Template.Spec.Version != "" {
+		if !version.KubeSemver.MatchString(newObj.Spec.Template.Spec.Version) {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), newObj.Spec.Template.Spec.Version, "must be a valid semantic version"))
 		}
 	}
 

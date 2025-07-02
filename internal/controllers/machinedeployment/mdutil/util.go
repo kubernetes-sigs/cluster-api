@@ -382,10 +382,10 @@ func MachineTemplateUpToDate(current, desired *clusterv1.MachineTemplateSpec) (u
 	currentCopy := MachineTemplateDeepCopyRolloutFields(current)
 	desiredCopy := MachineTemplateDeepCopyRolloutFields(desired)
 
-	if !reflect.DeepEqual(currentCopy.Spec.Version, desiredCopy.Spec.Version) {
-		logMessages = append(logMessages, fmt.Sprintf("spec.version %s, %s required", ptr.Deref(currentCopy.Spec.Version, "nil"), ptr.Deref(desiredCopy.Spec.Version, "nil")))
+	if currentCopy.Spec.Version != desiredCopy.Spec.Version {
+		logMessages = append(logMessages, fmt.Sprintf("spec.version %s, %s required", currentCopy.Spec.Version, desiredCopy.Spec.Version))
 		// Note: the code computing the message for MachineDeployment's RolloutOut condition is making assumptions on the format/content of this message.
-		conditionMessages = append(conditionMessages, fmt.Sprintf("Version %s, %s required", ptr.Deref(currentCopy.Spec.Version, "nil"), ptr.Deref(desiredCopy.Spec.Version, "nil")))
+		conditionMessages = append(conditionMessages, fmt.Sprintf("Version %s, %s required", currentCopy.Spec.Version, desiredCopy.Spec.Version))
 	}
 
 	// Note: we return a message based on desired.bootstrap.ConfigRef != nil, but we always compare the entire bootstrap
@@ -411,9 +411,9 @@ func MachineTemplateUpToDate(current, desired *clusterv1.MachineTemplateSpec) (u
 		conditionMessages = append(conditionMessages, fmt.Sprintf("%s is not up-to-date", strings.TrimSuffix(currentCopy.Spec.InfrastructureRef.Kind, clusterv1.TemplateSuffix)))
 	}
 
-	if !reflect.DeepEqual(currentCopy.Spec.FailureDomain, desiredCopy.Spec.FailureDomain) {
-		logMessages = append(logMessages, fmt.Sprintf("spec.failureDomain %s, %s required", ptr.Deref(currentCopy.Spec.FailureDomain, "nil"), ptr.Deref(desiredCopy.Spec.FailureDomain, "nil")))
-		conditionMessages = append(conditionMessages, fmt.Sprintf("Failure domain %s, %s required", ptr.Deref(currentCopy.Spec.FailureDomain, "nil"), ptr.Deref(desiredCopy.Spec.FailureDomain, "nil")))
+	if currentCopy.Spec.FailureDomain != desiredCopy.Spec.FailureDomain {
+		logMessages = append(logMessages, fmt.Sprintf("spec.failureDomain %s, %s required", currentCopy.Spec.FailureDomain, desiredCopy.Spec.FailureDomain))
+		conditionMessages = append(conditionMessages, fmt.Sprintf("Failure domain %s, %s required", currentCopy.Spec.FailureDomain, desiredCopy.Spec.FailureDomain))
 	}
 
 	if len(logMessages) > 0 || len(conditionMessages) > 0 {

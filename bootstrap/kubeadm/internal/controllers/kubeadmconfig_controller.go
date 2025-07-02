@@ -304,12 +304,12 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 		return ctrl.Result{}, nil
 	// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
 	// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
-	case configOwner.DataSecretName() != nil && (config.Status.Initialization == nil || !ptr.Deref(config.Status.Initialization.DataSecretCreated, false) || config.Status.DataSecretName == nil):
+	case configOwner.DataSecretName() != nil && (config.Status.Initialization == nil || !ptr.Deref(config.Status.Initialization.DataSecretCreated, false) || config.Status.DataSecretName == ""):
 		if config.Status.Initialization == nil {
 			config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
 		}
 		config.Status.Initialization.DataSecretCreated = ptr.To(true)
-		config.Status.DataSecretName = configOwner.DataSecretName()
+		config.Status.DataSecretName = *configOwner.DataSecretName()
 		v1beta1conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableV1Beta1Condition)
 		conditions.Set(scope.Config, metav1.Condition{
 			Type:   bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
@@ -1026,7 +1026,7 @@ func (r *KubeadmConfigReconciler) resolveUsers(ctx context.Context, cfg *bootstr
 			}
 			in.PasswdFrom = nil
 			passwdContent := string(data)
-			in.Passwd = &passwdContent
+			in.Passwd = passwdContent
 		}
 		collected = append(collected, in)
 	}
@@ -1344,8 +1344,8 @@ func (r *KubeadmConfigReconciler) computeClusterConfigurationAndAdditionalData(c
 	}
 
 	// Use Version from machine, if defined
-	if machine.Spec.Version != nil {
-		data.KubernetesVersion = machine.Spec.Version
+	if machine.Spec.Version != "" {
+		data.KubernetesVersion = ptr.To(machine.Spec.Version)
 	}
 
 	// Use ControlPlaneComponentHealthCheckSeconds from init configuration
@@ -1398,7 +1398,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 			return errors.Wrapf(err, "failed to update bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}
 	}
-	scope.Config.Status.DataSecretName = ptr.To(secret.Name)
+	scope.Config.Status.DataSecretName = secret.Name
 	if scope.Config.Status.Initialization == nil {
 		scope.Config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
 	}

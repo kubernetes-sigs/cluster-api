@@ -90,7 +90,7 @@ type MachineHealthCheckSpec struct {
 	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=32
-	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
+	UnhealthyRange string `json:"unhealthyRange,omitempty"`
 
 	// nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
 	// to consider a Machine unhealthy if a corresponding Node isn't associated

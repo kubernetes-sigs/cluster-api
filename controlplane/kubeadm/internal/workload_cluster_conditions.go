@@ -29,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -97,10 +96,10 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 	provisioningMachines := controlPlane.Machines.Filter(collections.Not(collections.HasNode()))
 	for _, machine := range provisioningMachines {
 		var msg string
-		if ptr.Deref(machine.Spec.ProviderID, "") != "" {
+		if machine.Spec.ProviderID != "" {
 			// If the machine is at the end of the provisioning phase, with ProviderID set, but still waiting
 			// for a matching Node to exists, surface this.
-			msg = fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", *machine.Spec.ProviderID)
+			msg = fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", machine.Spec.ProviderID)
 		} else {
 			// If the machine is at the beginning of the provisioning phase, with ProviderID not yet set, surface this.
 			msg = fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind)
@@ -526,10 +525,10 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	for _, machine := range provisioningMachines {
 		for _, condition := range allMachinePodConditions {
 			var msg string
-			if ptr.Deref(machine.Spec.ProviderID, "") != "" {
+			if machine.Spec.ProviderID != "" {
 				// If the machine is at the end of the provisioning phase, with ProviderID set, but still waiting
 				// for a matching Node to exists, surface this.
-				msg = fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", *machine.Spec.ProviderID)
+				msg = fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", machine.Spec.ProviderID)
 			} else {
 				// If the machine is at the beginning of the provisioning phase, with ProviderID not yet set, surface this.
 				msg = fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind)
@@ -1033,7 +1032,7 @@ func aggregateConditionsFromMachinesToKCP(input aggregateConditionsFromMachinesT
 					// Note: this avoids some noise when a new machine is provisioning; it is not possible to delay further
 					// because the etcd member might join the cluster / control plane components might start even before
 					// kubelet registers the node to the API server (e.g. in case kubelet has issues to register itself).
-					if machine.Spec.ProviderID == nil {
+					if machine.Spec.ProviderID == "" {
 						kcpMachinesWithInfo.Insert(machine.Name)
 						break
 					}

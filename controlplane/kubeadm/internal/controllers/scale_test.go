@@ -784,7 +784,7 @@ func failureDomain(name string, controlPlane bool) clusterv1.FailureDomain {
 
 func withFailureDomain(fd string) machineOpt {
 	return func(m *clusterv1.Machine) {
-		m.Spec.FailureDomain = &fd
+		m.Spec.FailureDomain = fd
 	}
 }
 

@@ -1479,7 +1479,7 @@ func withNodeRef(ref string) fakeMachineOption {
 
 func withProviderID(providerID string) fakeMachineOption {
 	return func(machine *clusterv1.Machine) {
-		machine.Spec.ProviderID = ptr.To(providerID)
+		machine.Spec.ProviderID = providerID
 	}
 }
 

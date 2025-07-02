@@ -68,7 +68,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/variableSetting/variableValue1",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName1"),
+												Variable: "variableName1",
 											},
 										},
 									},
@@ -91,7 +91,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/variableSetting/variableValue2",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName2"),
+												Variable: "variableName2",
 											},
 										},
 									},
@@ -155,7 +155,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/cluster-name",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName"),
+												Variable: "variableName",
 											},
 										},
 									},
@@ -208,7 +208,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/cluster-name",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName1"),
+												Variable: "variableName1",
 											},
 										},
 									},
@@ -231,7 +231,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/variableSetting/variableValue",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName2"),
+												Variable: "variableName2",
 											},
 										},
 									},
@@ -280,7 +280,7 @@ func TestValidatePatches(t *testing.T) {
 					Patches: []clusterv1.ClusterClassPatch{
 						{
 							Name:        "patch1",
-							EnabledIf:   ptr.To(`template {{ .variableB }}`),
+							EnabledIf:   `template {{ .variableB }}`,
 							Definitions: []clusterv1.PatchDefinition{},
 						},
 					},
@@ -303,7 +303,7 @@ func TestValidatePatches(t *testing.T) {
 					Patches: []clusterv1.ClusterClassPatch{
 						{
 							Name:      "patch1",
-							EnabledIf: ptr.To(`template {{{{{{{{ .variableB }}`),
+							EnabledIf: `template {{{{{{{{ .variableB }}`,
 						},
 					},
 				},
@@ -423,7 +423,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/0/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName"),
+												Variable: "variableName",
 											},
 										},
 									},
@@ -475,7 +475,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/1/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName"),
+												Variable: "variableName",
 											},
 										},
 									},
@@ -528,7 +528,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/01/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName"),
+												Variable: "variableName",
 											},
 										},
 									},
@@ -581,7 +581,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "remove",
 											Path: "/spec/template/0/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName"),
+												Variable: "variableName",
 											},
 										},
 									},
@@ -634,7 +634,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "replace",
 											Path: "/spec/template/0/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName"),
+												Variable: "variableName",
 											},
 										},
 									},
@@ -728,7 +728,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName"),
+												Variable: "variableName",
 											},
 											Value: &apiextensionsv1.JSON{Raw: []byte("1")},
 										},
@@ -989,8 +989,8 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName"),
-												Template: ptr.To(`template {{ .variableB }}`),
+												Variable: "variableName",
+												Template: `template {{ .variableB }}`,
 											},
 										},
 									},
@@ -1044,7 +1044,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Template: ptr.To(`template {{ .variableB }}`),
+												Template: `template {{ .variableB }}`,
 											},
 										},
 									},
@@ -1097,7 +1097,7 @@ func TestValidatePatches(t *testing.T) {
 											Path: "/spec/template/spec/",
 											ValueFrom: &clusterv1.JSONPatchValue{
 												// Template is invalid - too many leading curly braces.
-												Template: ptr.To(`template {{{{{{{{ .variableB }}`),
+												Template: `template {{{{{{{{ .variableB }}`,
 											},
 										},
 									},
@@ -1151,7 +1151,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("undefinedVariable"),
+												Variable: "undefinedVariable",
 											},
 										},
 									},
@@ -1203,7 +1203,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName"),
+												Variable: "variableName",
 											},
 										},
 									},
@@ -1255,7 +1255,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("variableName.nestedField"),
+												Variable: "variableName.nestedField",
 											},
 										},
 									},
@@ -1312,7 +1312,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("builtin.notDefined"),
+												Variable: "builtin.notDefined",
 											},
 										},
 									},
@@ -1354,7 +1354,7 @@ func TestValidatePatches(t *testing.T) {
 											Op:   "add",
 											Path: "/spec/template/spec/",
 											ValueFrom: &clusterv1.JSONPatchValue{
-												Variable: ptr.To("builtin.machineDeployment.version"),
+												Variable: "builtin.machineDeployment.version",
 											},
 										},
 									},
@@ -1385,8 +1385,8 @@ func TestValidatePatches(t *testing.T) {
 						{
 							Name: "patch1",
 							External: &clusterv1.ExternalPatchDefinition{
-								GeneratePatchesExtension:  ptr.To("generate-extension"),
-								ValidateTopologyExtension: ptr.To("generate-extension"),
+								GeneratePatchesExtension:  "generate-extension",
+								ValidateTopologyExtension: "generate-extension",
 							},
 						},
 					},
@@ -1412,8 +1412,8 @@ func TestValidatePatches(t *testing.T) {
 						{
 							Name: "patch1",
 							External: &clusterv1.ExternalPatchDefinition{
-								GeneratePatchesExtension:  ptr.To("generate-extension"),
-								ValidateTopologyExtension: ptr.To("generate-extension"),
+								GeneratePatchesExtension:  "generate-extension",
+								ValidateTopologyExtension: "generate-extension",
 							},
 						},
 					},
@@ -1463,8 +1463,8 @@ func TestValidatePatches(t *testing.T) {
 						{
 							Name: "patch1",
 							External: &clusterv1.ExternalPatchDefinition{
-								GeneratePatchesExtension:  ptr.To("generate-extension"),
-								ValidateTopologyExtension: ptr.To("generate-extension"),
+								GeneratePatchesExtension:  "generate-extension",
+								ValidateTopologyExtension: "generate-extension",
 							},
 							Definitions: []clusterv1.PatchDefinition{},
 						},

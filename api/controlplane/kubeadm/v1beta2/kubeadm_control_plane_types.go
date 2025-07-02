@@ -671,7 +671,7 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Version *string `json:"version,omitempty"`
+	Version string `json:"version,omitempty"`
 
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
@@ -732,7 +732,7 @@ type KubeadmControlPlaneV1Beta1DeprecatedStatus struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
-	FailureMessage *string `json:"failureMessage,omitempty"`
+	FailureMessage *string `json:"failureMessage,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 
 	// updatedReplicas is the total number of non-terminated machines targeted by this control plane
 	// that have the desired template spec.

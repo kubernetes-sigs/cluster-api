@@ -72,7 +72,6 @@ func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeKubeadmConfigSpec,
-		spokeKubeadmConfigStatus,
 		spokeDNS,
 		spokeClusterConfiguration,
 		hubBootstrapTokenString,
@@ -126,6 +125,8 @@ func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c randfill.Continue) {
 
 	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
 	in.UseExperimentalRetryJoin = false
+
+	dropEmptyStringsKubeadmConfigSpec(in)
 }
 
 func spokeKubeadmConfigStatus(obj *KubeadmConfigStatus, c randfill.Continue) {
@@ -133,6 +134,8 @@ func spokeKubeadmConfigStatus(obj *KubeadmConfigStatus, c randfill.Continue) {
 
 	// KubeadmConfigStatus.BootstrapData has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
 	obj.BootstrapData = nil
+
+	dropEmptyStringsKubeadmConfigStatus(obj)
 }
 
 func spokeDNS(obj *DNS, c randfill.Continue) {

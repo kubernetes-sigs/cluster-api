@@ -34,7 +34,7 @@ import (
 func IsMachineDeploymentUpgrading(ctx context.Context, c client.Reader, md *clusterv1.MachineDeployment) (bool, error) {
 	// If the MachineDeployment has no version there is no definitive way to check if it is upgrading. Therefore, return false.
 	// Note: This case should not happen.
-	if md.Spec.Template.Spec.Version == nil {
+	if md.Spec.Template.Spec.Version == "" {
 		return false, nil
 	}
 	selectorMap, err := metav1.LabelSelectorAsMap(&md.Spec.Selector)
@@ -45,14 +45,14 @@ func IsMachineDeploymentUpgrading(ctx context.Context, c client.Reader, md *clus
 	if err := c.List(ctx, machines, client.InNamespace(md.Namespace), client.MatchingLabels(selectorMap)); err != nil {
 		return false, errors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to list Machines", md.Name)
 	}
-	mdVersion := *md.Spec.Template.Spec.Version
+	mdVersion := md.Spec.Template.Spec.Version
 	// Check if the versions of the all the Machines match the MachineDeployment version.
 	for i := range machines.Items {
 		machine := machines.Items[i]
-		if machine.Spec.Version == nil {
+		if machine.Spec.Version == "" {
 			return false, fmt.Errorf("failed to check if MachineDeployment %s is upgrading: Machine %s has no version", md.Name, machine.Name)
 		}
-		if *machine.Spec.Version != mdVersion {
+		if machine.Spec.Version != mdVersion {
 			return true, nil
 		}
 	}
@@ -65,10 +65,10 @@ func IsMachineDeploymentUpgrading(ctx context.Context, c client.Reader, md *clus
 func IsMachinePoolUpgrading(ctx context.Context, c client.Reader, mp *clusterv1.MachinePool) (bool, error) {
 	// If the MachinePool has no version there is no definitive way to check if it is upgrading. Therefore, return false.
 	// Note: This case should not happen.
-	if mp.Spec.Template.Spec.Version == nil {
+	if mp.Spec.Template.Spec.Version == "" {
 		return false, nil
 	}
-	mpVersion := *mp.Spec.Template.Spec.Version
+	mpVersion := mp.Spec.Template.Spec.Version
 	// Check if the kubelet versions of the MachinePool noderefs match the MachinePool version.
 	for _, nodeRef := range mp.Status.NodeRefs {
 		node := &corev1.Node{}

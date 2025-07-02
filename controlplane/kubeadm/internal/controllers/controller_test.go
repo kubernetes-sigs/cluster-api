@@ -520,7 +520,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 							Name:     name,
 						},
 					},
-					Version: &version,
+					Version: version,
 				},
 			}
 			cfg := &bootstrapv1.KubeadmConfig{
@@ -588,7 +588,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 							Name:     name,
 						},
 					},
-					Version: &version,
+					Version: version,
 				},
 			}
 			cfg := &bootstrapv1.KubeadmConfig{
@@ -703,7 +703,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 							Name:     name,
 						},
 					},
-					Version: &version,
+					Version: version,
 				},
 			}
 			cfg := &bootstrapv1.KubeadmConfig{
@@ -760,7 +760,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 								Kind:     "KubeadmConfig",
 							},
 						},
-						Version: ptr.To("v1.15.0"),
+						Version: "v1.15.0",
 					},
 				},
 			},
@@ -1737,7 +1737,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	g.Expect(env.Create(ctx, existingKubeadmConfig, client.FieldOwner("manager"))).To(Succeed())
 
 	// Existing Machine to validate in-place mutation
-	fd := ptr.To("fd1")
+	fd := "fd1"
 	inPlaceMutatingMachine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
@@ -1763,9 +1763,9 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 				ConfigRef: bootstrapRef,
 			},
 			InfrastructureRef:              *infraMachineRef,
-			Version:                        ptr.To("v1.25.3"),
+			Version:                        "v1.25.3",
 			FailureDomain:                  fd,
-			ProviderID:                     ptr.To("provider-id"),
+			ProviderID:                     "provider-id",
 			NodeDrainTimeoutSeconds:        duration5s,
 			NodeVolumeDetachTimeoutSeconds: duration5s,
 			NodeDeletionTimeoutSeconds:     duration5s,
@@ -2080,8 +2080,8 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.MachineSpec{
-			Version:    ptr.To("v1.31.0"),
-			ProviderID: ptr.To("foo"),
+			Version:    "v1.31.0",
+			ProviderID: "foo",
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Kind:     "GenericInfrastructureMachine",
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
@@ -2090,7 +2090,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		},
 	}
 	defaultMachine1NotUpToDate := defaultMachine1.DeepCopy()
-	defaultMachine1NotUpToDate.Spec.Version = ptr.To("v1.30.0")
+	defaultMachine1NotUpToDate.Spec.Version = "v1.30.0"
 
 	defaultMachine2 := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{

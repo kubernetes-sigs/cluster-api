@@ -142,9 +142,9 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 	m.Spec.Template.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
 	// tolerate version strings without a "v" prefix: prepend it if it's not there
-	if m.Spec.Template.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Template.Spec.Version, "v") {
-		normalizedVersion := "v" + *m.Spec.Template.Spec.Version
-		m.Spec.Template.Spec.Version = &normalizedVersion
+	if m.Spec.Template.Spec.Version != "" && !strings.HasPrefix(m.Spec.Template.Spec.Version, "v") {
+		normalizedVersion := "v" + m.Spec.Template.Spec.Version
+		m.Spec.Template.Spec.Version = normalizedVersion
 	}
 
 	return nil
@@ -274,9 +274,9 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		}
 	}
 
-	if newMD.Spec.Template.Spec.Version != nil {
-		if !version.KubeSemver.MatchString(*newMD.Spec.Template.Spec.Version) {
-			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), *newMD.Spec.Template.Spec.Version, "must be a valid semantic version"))
+	if newMD.Spec.Template.Spec.Version != "" {
+		if !version.KubeSemver.MatchString(newMD.Spec.Template.Spec.Version) {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), newMD.Spec.Template.Spec.Version, "must be a valid semantic version"))
 		}
 	}
 

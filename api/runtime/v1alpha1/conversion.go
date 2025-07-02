@@ -34,7 +34,12 @@ func (src *ExtensionConfig) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *ExtensionConfig) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*runtimev1.ExtensionConfig)
 
-	return Convert_v1beta2_ExtensionConfig_To_v1alpha1_ExtensionConfig(src, dst, nil)
+	if err := Convert_v1beta2_ExtensionConfig_To_v1alpha1_ExtensionConfig(src, dst, nil); err != nil {
+		return err
+	}
+
+	dropEmptyStringsExtensionConfig(dst)
+	return nil
 }
 
 func Convert_v1beta2_ExtensionConfigStatus_To_v1alpha1_ExtensionConfigStatus(in *runtimev1.ExtensionConfigStatus, out *ExtensionConfigStatus, s apimachineryconversion.Scope) error {
@@ -99,4 +104,17 @@ func Convert_v1_Condition_To_v1beta1_Condition(in *metav1.Condition, out *cluste
 
 func Convert_v1beta1_Condition_To_v1_Condition(in *clusterv1beta1.Condition, out *metav1.Condition, s apimachineryconversion.Scope) error {
 	return clusterv1beta1.Convert_v1beta1_Condition_To_v1_Condition(in, out, s)
+}
+
+func dropEmptyStringsExtensionConfig(dst *ExtensionConfig) {
+	dropEmptyString(&dst.Spec.ClientConfig.URL)
+	if dst.Spec.ClientConfig.Service != nil {
+		dropEmptyString(&dst.Spec.ClientConfig.Service.Path)
+	}
+}
+
+func dropEmptyString(s **string) {
+	if *s != nil && **s == "" {
+		*s = nil
+	}
 }

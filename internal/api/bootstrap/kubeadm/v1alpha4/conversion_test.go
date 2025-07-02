@@ -57,6 +57,7 @@ func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubKubeadmConfigStatus,
 		spokeKubeadmConfigSpec,
+		spokeKubeadmConfigStatus,
 		spokeClusterConfiguration,
 		hubBootstrapTokenString,
 		spokeBootstrapTokenString,
@@ -122,6 +123,15 @@ func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c randfill.Continue) {
 
 	// Drop UseExperimentalRetryJoin as we intentionally don't preserve it.
 	in.UseExperimentalRetryJoin = false
+
+	dropEmptyStringsKubeadmConfigSpec(in)
+}
+
+
+func spokeKubeadmConfigStatus(obj *KubeadmConfigStatus, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	dropEmptyStringsKubeadmConfigStatus(obj)
 }
 
 func spokeClusterConfiguration(in *ClusterConfiguration, c randfill.Continue) {

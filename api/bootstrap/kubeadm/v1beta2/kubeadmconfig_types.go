@@ -274,7 +274,7 @@ func (c *KubeadmConfigSpec) validateUsers(pathPrefix *field.Path) field.ErrorLis
 
 	for i := range c.Users {
 		user := c.Users[i]
-		if user.Passwd != nil && user.PasswdFrom != nil {
+		if user.Passwd != "" && user.PasswdFrom != nil {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
@@ -383,12 +383,12 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 	}
 
 	for i, partition := range c.DiskSetup.Partitions {
-		if partition.TableType != nil && *partition.TableType != "gpt" {
+		if partition.TableType != "" && partition.TableType != "gpt" {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
 					pathPrefix.Child("diskSetup", "partitions").Index(i).Child("tableType"),
-					*partition.TableType,
+					partition.TableType,
 					fmt.Sprintf(
 						"only partition type %q is supported when spec.format is set to %q",
 						"gpt",
@@ -400,7 +400,7 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 	}
 
 	for i, fs := range c.DiskSetup.Filesystems {
-		if fs.ReplaceFS != nil {
+		if fs.ReplaceFS != "" {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
@@ -410,7 +410,7 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 			)
 		}
 
-		if fs.Partition != nil {
+		if fs.Partition != "" {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
@@ -468,7 +468,7 @@ type KubeadmConfigStatus struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	DataSecretName *string `json:"dataSecretName,omitempty"`
+	DataSecretName string `json:"dataSecretName,omitempty"`
 
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
@@ -712,19 +712,19 @@ type User struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Gecos *string `json:"gecos,omitempty"`
+	Gecos string `json:"gecos,omitempty"`
 
 	// groups specifies the additional groups for the user
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Groups *string `json:"groups,omitempty"`
+	Groups string `json:"groups,omitempty"`
 
 	// homeDir specifies the home directory to use for the user
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	HomeDir *string `json:"homeDir,omitempty"`
+	HomeDir string `json:"homeDir,omitempty"`
 
 	// inactive specifies whether to mark the user as inactive
 	// +optional
@@ -734,13 +734,13 @@ type User struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Shell *string `json:"shell,omitempty"`
+	Shell string `json:"shell,omitempty"`
 
 	// passwd specifies a hashed password for the user
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Passwd *string `json:"passwd,omitempty"`
+	Passwd string `json:"passwd,omitempty"`
 
 	// passwdFrom is a referenced source of passwd to populate the passwd.
 	// +optional
@@ -750,7 +750,7 @@ type User struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	PrimaryGroup *string `json:"primaryGroup,omitempty"`
+	PrimaryGroup string `json:"primaryGroup,omitempty"`
 
 	// lockPassword specifies if password login should be disabled
 	// +optional
@@ -760,7 +760,7 @@ type User struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Sudo *string `json:"sudo,omitempty"`
+	Sudo string `json:"sudo,omitempty"`
 
 	// sshAuthorizedKeys specifies a list of ssh authorized keys for the user
 	// +optional
@@ -818,7 +818,7 @@ type Partition struct {
 	// 'gpt': setups a GPT partition table
 	// +optional
 	// +kubebuilder:validation:Enum=mbr;gpt
-	TableType *string `json:"tableType,omitempty"`
+	TableType string `json:"tableType,omitempty"`
 }
 
 // Filesystem defines the file systems to be created.
@@ -845,7 +845,7 @@ type Filesystem struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
-	Partition *string `json:"partition,omitempty"`
+	Partition string `json:"partition,omitempty"`
 
 	// overwrite defines whether or not to overwrite any existing filesystem.
 	// If true, any pre-existing file system will be destroyed. Use with Caution.
@@ -857,7 +857,7 @@ type Filesystem struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
-	ReplaceFS *string `json:"replaceFS,omitempty"`
+	ReplaceFS string `json:"replaceFS,omitempty"`
 
 	// extraOpts defined extra options to add to the command for creating the file system.
 	// +optional

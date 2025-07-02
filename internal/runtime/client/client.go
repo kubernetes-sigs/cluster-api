@@ -553,16 +553,16 @@ func urlForExtension(config runtimev1.ClientConfig, gvh runtimecatalog.GroupVers
 			Scheme: "https",
 			Host:   host,
 		}
-		if svc.Path != nil {
-			u.Path = *svc.Path
+		if svc.Path != "" {
+			u.Path = svc.Path
 		}
 	} else {
-		if config.URL == nil {
+		if config.URL == "" {
 			return nil, errors.New("failed to compute URL: at least one of service and url should be defined in config")
 		}
 
 		var err error
-		u, err = url.Parse(*config.URL)
+		u, err = url.Parse(config.URL)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to compute URL: failed to parse url from clientConfig")
 		}

@@ -150,7 +150,7 @@ func TestNewInitControlPlaneDiskMounts(t *testing.T) {
 						Device:    "test-device",
 						Layout:    true,
 						Overwrite: ptr.To(false),
-						TableType: ptr.To("gpt"),
+						TableType: "gpt",
 					},
 				},
 				Filesystems: []bootstrapv1.Filesystem{

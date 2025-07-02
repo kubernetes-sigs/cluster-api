@@ -381,6 +381,8 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Status.InfrastructureReady = ptr.Deref(src.Status.Initialization.InfrastructureProvisioned, false)
 	}
 
+	dropEmptyStringsMachineSpec(&dst.Spec)
+
 	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
@@ -478,6 +480,8 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	dst.Spec.MinReadySeconds = ptr.Deref(src.Spec.Template.Spec.MinReadySeconds, 0)
+
+	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
@@ -582,6 +586,8 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 
 	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
 
+	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
+
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
 }
@@ -637,6 +643,8 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 	if dst.Spec.RemediationTemplate != nil {
 		dst.Spec.RemediationTemplate.Namespace = src.Namespace
 	}
+
+	dropEmptyStringsMachineHealthCheck(dst)
 
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
@@ -745,6 +753,8 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
+
+	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
 
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
@@ -1143,4 +1153,20 @@ func convertToObjectReference(ref *clusterv1.ContractVersionedObjectReference, n
 		Namespace:  namespace,
 		Name:       ref.Name,
 	}, nil
+}
+
+func dropEmptyStringsMachineSpec(spec *MachineSpec) {
+	dropEmptyString(&spec.Version)
+	dropEmptyString(&spec.ProviderID)
+	dropEmptyString(&spec.FailureDomain)
+}
+
+func dropEmptyStringsMachineHealthCheck(dst *MachineHealthCheck) {
+	dropEmptyString(&dst.Spec.UnhealthyRange)
+}
+
+func dropEmptyString(s **string) {
+	if *s != nil && **s == "" {
+		*s = nil
+	}
 }

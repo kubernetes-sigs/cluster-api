@@ -37,9 +37,9 @@ const (
 )
 
 // FailureDomainLabel returns a map with the docker label for the given failure domain.
-func FailureDomainLabel(failureDomain *string) map[string]string {
-	if failureDomain != nil && *failureDomain != "" {
-		return map[string]string{failureDomainLabelKey: *failureDomain}
+func FailureDomainLabel(failureDomain string) map[string]string {
+	if failureDomain != "" {
+		return map[string]string{failureDomainLabelKey: failureDomain}
 	}
 	return nil
 }

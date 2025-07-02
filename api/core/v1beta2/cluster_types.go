@@ -698,7 +698,7 @@ type MachineDeploymentTopology struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	FailureDomain *string `json:"failureDomain,omitempty"`
+	FailureDomain string `json:"failureDomain,omitempty"`
 
 	// replicas is the number of worker nodes belonging to this set.
 	// If the value is nil, the MachineDeployment is created without the number of Replicas (defaulting to 1)
@@ -1060,7 +1060,7 @@ type ClusterV1Beta1DeprecatedStatus struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10240
-	FailureMessage *string `json:"failureMessage,omitempty"`
+	FailureMessage *string `json:"failureMessage,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 }
 
 // ClusterControlPlaneStatus groups all the observations about control plane current state.

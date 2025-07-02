@@ -199,6 +199,8 @@ func spokeCluster(in *Cluster, c randfill.Continue) {
 		in.Spec.InfrastructureRef.ResourceVersion = ""
 		in.Spec.InfrastructureRef.FieldPath = ""
 	}
+
+	dropEmptyStringsCluster(in)
 }
 
 func spokeClusterTopology(in *Topology, c randfill.Continue) {
@@ -319,6 +321,8 @@ func spokeClusterClass(in *ClusterClass, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	in.Namespace = "foo"
+
+	dropEmptyStringsClusterClass(in)
 }
 
 func spokeClusterClassStatus(in *ClusterClassStatus, c randfill.Continue) {
@@ -447,6 +451,8 @@ func spokeMachine(in *Machine, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	fillMachineSpec(&in.Spec, c, in.Namespace)
+
+	dropEmptyStringsMachineSpec(&in.Spec)
 }
 
 func fillMachineSpec(spec *MachineSpec, c randfill.Continue, namespace string) {
@@ -532,6 +538,8 @@ func spokeMachineSet(in *MachineSet, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	fillMachineSpec(&in.Spec.Template.Spec, c, in.Namespace)
+
+	dropEmptyStringsMachineSpec(&in.Spec.Template.Spec)
 }
 
 func spokeMachineSetStatus(in *MachineSetStatus, c randfill.Continue) {
@@ -575,6 +583,8 @@ func spokeMachineDeployment(in *MachineDeployment, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	fillMachineSpec(&in.Spec.Template.Spec, c, in.Namespace)
+
+	dropEmptyStringsMachineSpec(&in.Spec.Template.Spec)
 }
 
 func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) {
@@ -622,6 +632,8 @@ func spokeMachineHealthCheck(in *MachineHealthCheck, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	in.Namespace = "foo"
+
+	dropEmptyStringsMachineHealthCheck(in)
 }
 
 func spokeMachineHealthCheckStatus(in *MachineHealthCheckStatus, c randfill.Continue) {
@@ -685,6 +697,8 @@ func spokeMachinePool(in *MachinePool, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	fillMachineSpec(&in.Spec.Template.Spec, c, in.Namespace)
+
+	dropEmptyStringsMachineSpec(&in.Spec.Template.Spec)
 }
 
 func spokeMachinePoolStatus(in *MachinePoolStatus, c randfill.Continue) {

@@ -616,8 +616,8 @@ func beforeClusterUpgradeAnnotationIsBlocking(ctx context.Context, c client.Clie
 		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
 			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: clusterRef.Name, Namespace: clusterRef.Namespace})
 		for _, machine := range controlPlaneMachines {
-			if *machine.Spec.Version == toVersion {
-				return errors.Errorf("Machine's %s version (%s) does match %s", klog.KObj(&machine), *machine.Spec.Version, toVersion)
+			if machine.Spec.Version == toVersion {
+				return errors.Errorf("Machine's %s version (%s) does match %s", klog.KObj(&machine), machine.Spec.Version, toVersion)
 			}
 		}
 
@@ -663,7 +663,7 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, clust
 		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
 			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
 		for _, machine := range controlPlaneMachines {
-			if *machine.Spec.Version == toVersion {
+			if machine.Spec.Version == toVersion {
 				blocked = false
 			}
 		}
@@ -682,7 +682,7 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, c
 			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
 		// If any of the MachineDeployments have the target Kubernetes Version, the hook is unblocked.
 		for _, md := range mds {
-			if *md.Spec.Template.Spec.Version == version {
+			if md.Spec.Template.Spec.Version == version {
 				blocked = false
 			}
 		}

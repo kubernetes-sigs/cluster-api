@@ -65,9 +65,9 @@ func (webhook *Machine) Default(_ context.Context, obj runtime.Object) error {
 	}
 	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
-	if m.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Version, "v") {
-		normalizedVersion := "v" + *m.Spec.Version
-		m.Spec.Version = &normalizedVersion
+	if m.Spec.Version != "" && !strings.HasPrefix(m.Spec.Version, "v") {
+		normalizedVersion := "v" + m.Spec.Version
+		m.Spec.Version = normalizedVersion
 	}
 
 	if m.Spec.NodeDeletionTimeoutSeconds == nil {
@@ -130,9 +130,9 @@ func (webhook *Machine) validate(oldM, newM *clusterv1.Machine) error {
 		)
 	}
 
-	if newM.Spec.Version != nil {
-		if !version.KubeSemver.MatchString(*newM.Spec.Version) {
-			allErrs = append(allErrs, field.Invalid(specPath.Child("version"), *newM.Spec.Version, "must be a valid semantic version"))
+	if newM.Spec.Version != "" {
+		if !version.KubeSemver.MatchString(newM.Spec.Version) {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("version"), newM.Spec.Version, "must be a valid semantic version"))
 		}
 	}
 

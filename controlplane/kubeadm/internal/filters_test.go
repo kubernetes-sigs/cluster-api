@@ -1706,7 +1706,7 @@ func TestUpToDate(t *testing.T) {
 			},
 		},
 		Spec: clusterv1.MachineSpec{
-			Version:           ptr.To("v1.31.0"),
+			Version:           "v1.31.0",
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{APIGroup: clusterv1.GroupVersionInfrastructure.Group, Kind: "AWSMachine", Name: "infra-machine1"},
 		},
 		Status: clusterv1.MachineStatus{

@@ -98,8 +98,8 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 	}
 
 	// Check the version skew policies only if version is defined in the MachineSet.
-	if ms.Spec.Template.Spec.Version != nil {
-		msVersion := *ms.Spec.Template.Spec.Version
+	if ms.Spec.Template.Spec.Version != "" {
+		msVersion := ms.Spec.Template.Spec.Version
 		msSemver, err := semver.ParseTolerant(msVersion)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to parse version %q of MachineSet %s", action, msVersion, klog.KObj(ms))

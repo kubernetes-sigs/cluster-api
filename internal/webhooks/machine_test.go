@@ -36,7 +36,7 @@ func TestMachineDefault(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
-			Version:   ptr.To("1.17.5"),
+			Version:   "1.17.5",
 		},
 	}
 
@@ -46,7 +46,7 @@ func TestMachineDefault(t *testing.T) {
 	g.Expect(webhook.Default(ctx, m)).To(Succeed())
 
 	g.Expect(m.Labels[clusterv1.ClusterNameLabel]).To(Equal(m.Spec.ClusterName))
-	g.Expect(*m.Spec.Version).To(Equal("v1.17.5"))
+	g.Expect(m.Spec.Version).To(Equal("v1.17.5"))
 	g.Expect(*m.Spec.NodeDeletionTimeoutSeconds).To(Equal(defaultNodeDeletionTimeoutSeconds))
 }
 
@@ -195,7 +195,7 @@ func TestMachineVersionValidation(t *testing.T) {
 
 			m := &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					Version:   &tt.version,
+					Version:   tt.version,
 					Bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("test")},
 				},
 			}

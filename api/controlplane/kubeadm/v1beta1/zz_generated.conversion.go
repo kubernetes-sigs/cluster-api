@@ -423,7 +423,9 @@ func autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlan
 	if err := v1.Convert_int32_To_Pointer_int32(&in.Replicas, &out.Replicas, s); err != nil {
 		return err
 	}
-	out.Version = (*string)(unsafe.Pointer(in.Version))
+	if err := v1.Convert_Pointer_string_To_string(&in.Version, &out.Version, s); err != nil {
+		return err
+	}
 	// WARNING: in.UpdatedReplicas requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_int32_To_Pointer_int32(&in.ReadyReplicas, &out.ReadyReplicas, s); err != nil {
 		return err
@@ -472,7 +474,9 @@ func autoConvert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlan
 	}
 	// WARNING: in.AvailableReplicas requires manual conversion: does not exist in peer-type
 	// WARNING: in.UpToDateReplicas requires manual conversion: does not exist in peer-type
-	out.Version = (*string)(unsafe.Pointer(in.Version))
+	if err := v1.Convert_string_To_Pointer_string(&in.Version, &out.Version, s); err != nil {
+		return err
+	}
 	out.ObservedGeneration = in.ObservedGeneration
 	out.LastRemediation = (*LastRemediationStatus)(unsafe.Pointer(in.LastRemediation))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type

@@ -1255,7 +1255,7 @@ type ClusterClassStatusVariable struct {
 
 	// definitionsConflict specifies whether or not there are conflicting definitions for a single variable name.
 	// +optional
-	DefinitionsConflict *bool `json:"definitionsConflict"`
+	DefinitionsConflict *bool `json:"definitionsConflict,omitempty"`
 
 	// definitions is a list of definitions for a variable.
 	// +kubebuilder:validation:MaxItems=100

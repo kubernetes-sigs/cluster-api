@@ -575,13 +575,13 @@ type MachineInitializationStatus struct {
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
 	// The value of this field is never updated after provisioning is completed.
 	// +optional
-	InfrastructureProvisioned *bool `json:"infrastructureProvisioned"`
+	InfrastructureProvisioned *bool `json:"infrastructureProvisioned,omitempty"`
 
 	// bootstrapDataSecretCreated is true when the bootstrap provider reports that the Machine's boostrap secret is created.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.
 	// The value of this field is never updated after provisioning is completed.
 	// +optional
-	BootstrapDataSecretCreated *bool `json:"bootstrapDataSecretCreated"`
+	BootstrapDataSecretCreated *bool `json:"bootstrapDataSecretCreated,omitempty"`
 }
 
 // MachineDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.

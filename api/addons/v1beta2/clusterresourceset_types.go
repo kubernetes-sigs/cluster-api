@@ -118,6 +118,7 @@ func (c *ClusterResourceSetSpec) SetTypedStrategy(p ClusterResourceSetStrategy) 
 // ANCHOR: ClusterResourceSetStatus
 
 // ClusterResourceSetStatus defines the observed state of ClusterResourceSet.
+// +kubebuilder:validation:MinProperties=1
 type ClusterResourceSetStatus struct {
 	// conditions represents the observations of a ClusterResourceSet's current state.
 	// Known condition types are ResourcesApplied.
@@ -207,7 +208,7 @@ type ClusterResourceSet struct {
 	Spec ClusterResourceSetSpec `json:"spec,omitempty"`
 	// status is the observed state of ClusterResourceSet.
 	// +optional
-	Status ClusterResourceSetStatus `json:"status,omitempty"`
+	Status ClusterResourceSetStatus `json:"status,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

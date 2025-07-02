@@ -115,6 +115,7 @@ type ServiceReference struct {
 // ANCHOR: ExtensionConfigStatus
 
 // ExtensionConfigStatus defines the observed state of ExtensionConfig.
+// +kubebuilder:validation:MinProperties=1
 type ExtensionConfigStatus struct {
 	// conditions represents the observations of a ExtensionConfig's current state.
 	// Known condition types are Discovered, Paused.
@@ -234,7 +235,7 @@ type ExtensionConfig struct {
 
 	// status is the current state of the ExtensionConfig
 	// +optional
-	Status ExtensionConfigStatus `json:"status,omitempty"`
+	Status ExtensionConfigStatus `json:"status,omitempty,omitzero"`
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.

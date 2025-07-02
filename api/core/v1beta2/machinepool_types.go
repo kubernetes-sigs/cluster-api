@@ -104,6 +104,7 @@ type MachinePoolSpec struct {
 // ANCHOR: MachinePoolStatus
 
 // MachinePoolStatus defines the observed state of MachinePool.
+// +kubebuilder:validation:MinProperties=1
 type MachinePoolStatus struct {
 	// conditions represents the observations of a MachinePool's current state.
 	// Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate,
@@ -347,7 +348,7 @@ type MachinePool struct {
 	Spec MachinePoolSpec `json:"spec,omitempty"`
 	// status is the observed state of MachinePool.
 	// +optional
-	Status MachinePoolStatus `json:"status,omitempty"`
+	Status MachinePoolStatus `json:"status,omitempty,omitzero"`
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.

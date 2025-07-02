@@ -450,6 +450,7 @@ type ContainerLinuxConfig struct {
 }
 
 // KubeadmConfigStatus defines the observed state of KubeadmConfig.
+// +kubebuilder:validation:MinProperties=1
 type KubeadmConfigStatus struct {
 	// conditions represents the observations of a KubeadmConfig's current state.
 	// Known condition types are Ready, DataSecretAvailable, CertificatesAvailable.
@@ -545,7 +546,7 @@ type KubeadmConfig struct {
 	Spec KubeadmConfigSpec `json:"spec,omitempty"`
 	// status is the observed state of KubeadmConfig.
 	// +optional
-	Status KubeadmConfigStatus `json:"status,omitempty"`
+	Status KubeadmConfigStatus `json:"status,omitempty,omitzero"`
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.

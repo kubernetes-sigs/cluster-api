@@ -6165,6 +6165,7 @@ spec:
             type: object
           status:
             description: status is the observed state of KubeadmConfig.
+            minProperties: 1
             properties:
               conditions:
                 description: |-

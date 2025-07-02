@@ -1211,6 +1211,7 @@ spec:
           status:
             description: status is the most recently observed status of MachineHealthCheck
               resource
+            minProperties: 1
             properties:
               conditions:
                 description: |-

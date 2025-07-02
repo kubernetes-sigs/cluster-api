@@ -85,7 +85,7 @@ type ClusterClass struct {
 	Spec ClusterClassSpec `json:"spec,omitempty"`
 	// status is the observed state of ClusterClass.
 	// +optional
-	Status ClusterClassStatus `json:"status,omitempty"`
+	Status ClusterClassStatus `json:"status,omitempty,omitzero"`
 }
 
 // ClusterClassSpec describes the desired state of the ClusterClass.
@@ -1202,6 +1202,7 @@ func (r *ClusterClassTemplateReference) GroupVersionKind() schema.GroupVersionKi
 // ANCHOR: ClusterClassStatus
 
 // ClusterClassStatus defines the observed state of the ClusterClass.
+// +kubebuilder:validation:MinProperties=1
 type ClusterClassStatus struct {
 	// conditions represents the observations of a ClusterClass's current state.
 	// Known condition types are VariablesReady, RefVersionsUpToDate, Paused.

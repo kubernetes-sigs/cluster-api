@@ -624,6 +624,7 @@ type MachineNamingStrategy struct {
 }
 
 // KubeadmControlPlaneStatus defines the observed state of KubeadmControlPlane.
+// +kubebuilder:validation:MinProperties=1
 type KubeadmControlPlaneStatus struct {
 	// conditions represents the observations of a KubeadmControlPlane's current state.
 	// Known condition types are Available, CertificatesAvailable, EtcdClusterAvailable, MachinesReady, MachinesUpToDate,
@@ -810,7 +811,7 @@ type KubeadmControlPlane struct {
 	Spec KubeadmControlPlaneSpec `json:"spec,omitempty"`
 	// status is the observed state of KubeadmControlPlane.
 	// +optional
-	Status KubeadmControlPlaneStatus `json:"status,omitempty"`
+	Status KubeadmControlPlaneStatus `json:"status,omitempty,omitzero"`
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.

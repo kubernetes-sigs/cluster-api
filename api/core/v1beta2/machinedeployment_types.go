@@ -419,6 +419,7 @@ type MachineNamingStrategy struct {
 // ANCHOR: MachineDeploymentStatus
 
 // MachineDeploymentStatus defines the observed state of MachineDeployment.
+// +kubebuilder:validation:MinProperties=1
 type MachineDeploymentStatus struct {
 	// conditions represents the observations of a MachineDeployment's current state.
 	// Known condition types are Available, MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
@@ -596,7 +597,7 @@ type MachineDeployment struct {
 	Spec MachineDeploymentSpec `json:"spec,omitempty"`
 	// status is the observed state of MachineDeployment.
 	// +optional
-	Status MachineDeploymentStatus `json:"status,omitempty"`
+	Status MachineDeploymentStatus `json:"status,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

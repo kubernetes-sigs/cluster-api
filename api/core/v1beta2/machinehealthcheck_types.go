@@ -198,6 +198,7 @@ type UnhealthyNodeCondition struct {
 // ANCHOR: MachineHealthCheckStatus
 
 // MachineHealthCheckStatus defines the observed state of MachineHealthCheck.
+// +kubebuilder:validation:MinProperties=1
 type MachineHealthCheckStatus struct {
 	// conditions represents the observations of a MachineHealthCheck's current state.
 	// Known condition types are RemediationAllowed, Paused.
@@ -285,7 +286,7 @@ type MachineHealthCheck struct {
 
 	// status is the most recently observed status of MachineHealthCheck resource
 	// +optional
-	Status MachineHealthCheckStatus `json:"status,omitempty"`
+	Status MachineHealthCheckStatus `json:"status,omitempty,omitzero"`
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.

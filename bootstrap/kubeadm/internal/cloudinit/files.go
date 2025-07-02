@@ -30,7 +30,7 @@ write_files:{{ range . }}
     permissions: '{{.Permissions}}'
     {{ end -}}
     {{ if .Append -}}
-    append: true
+    append: {{ .Append }}
     {{ end -}}
     content: |
 {{.Content | Indent 6}}

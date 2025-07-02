@@ -45,14 +45,14 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	// Recover intent for bool values converted to *bool.
-	Initialization := bootstrapv1.KubeadmConfigInitializationStatus{}
+	initialization := bootstrapv1.KubeadmConfigInitializationStatus{}
 	var restoredBootstrapDataSecretCreated *bool
 	if restored.Status.Initialization != nil {
 		restoredBootstrapDataSecretCreated = restored.Status.Initialization.DataSecretCreated
 	}
-	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredBootstrapDataSecretCreated, &Initialization.DataSecretCreated)
-	if !reflect.DeepEqual(Initialization, bootstrapv1.KubeadmConfigInitializationStatus{}) {
-		dst.Status.Initialization = &Initialization
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredBootstrapDataSecretCreated, &initialization.DataSecretCreated)
+	if !reflect.DeepEqual(initialization, bootstrapv1.KubeadmConfigInitializationStatus{}) {
+		dst.Status.Initialization = &initialization
 	}
 	if err := RestoreBoolIntentKubeadmConfigSpec(&src.Spec, &dst.Spec, ok, &restored.Spec); err != nil {
 		return err
@@ -117,19 +117,19 @@ func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1
 			var srcVolume *HostPathMount
 			if src.ClusterConfiguration != nil {
 				for _, v := range src.ClusterConfiguration.APIServer.ExtraVolumes {
-					if v.MountPath == volume.MountPath {
+					if v.HostPath == volume.HostPath {
 						srcVolume = &v
 						break
 					}
 				}
 			}
 			if srcVolume == nil {
-				return fmt.Errorf("apiServer extraVolume %q not found in source data", volume.MountPath)
+				return fmt.Errorf("apiServer extraVolume with hostPath %q not found in source data", volume.HostPath)
 			}
 			var restoredVolumeReadOnly *bool
 			if restored.ClusterConfiguration != nil {
 				for _, v := range restored.ClusterConfiguration.APIServer.ExtraVolumes {
-					if v.MountPath == volume.MountPath {
+					if v.HostPath == volume.HostPath {
 						restoredVolumeReadOnly = v.ReadOnly
 						break
 					}
@@ -142,7 +142,7 @@ func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1
 			var srcVolume *HostPathMount
 			if src.ClusterConfiguration != nil {
 				for _, v := range src.ClusterConfiguration.ControllerManager.ExtraVolumes {
-					if v.MountPath == volume.MountPath {
+					if v.HostPath == volume.HostPath {
 						srcVolume = &v
 						break
 					}
@@ -154,7 +154,7 @@ func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1
 			var restoredVolumeReadOnly *bool
 			if restored.ClusterConfiguration != nil {
 				for _, v := range restored.ClusterConfiguration.ControllerManager.ExtraVolumes {
-					if v.MountPath == volume.MountPath {
+					if v.HostPath == volume.HostPath {
 						restoredVolumeReadOnly = v.ReadOnly
 						break
 					}
@@ -167,7 +167,7 @@ func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1
 			var srcVolume *HostPathMount
 			if src.ClusterConfiguration != nil {
 				for _, v := range src.ClusterConfiguration.Scheduler.ExtraVolumes {
-					if v.MountPath == volume.MountPath {
+					if v.HostPath == volume.HostPath {
 						srcVolume = &v
 						break
 					}
@@ -179,7 +179,7 @@ func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1
 			var restoredVolumeReadOnly *bool
 			if restored.ClusterConfiguration != nil {
 				for _, v := range restored.ClusterConfiguration.Scheduler.ExtraVolumes {
-					if v.MountPath == volume.MountPath {
+					if v.HostPath == volume.HostPath {
 						restoredVolumeReadOnly = v.ReadOnly
 						break
 					}
@@ -199,7 +199,7 @@ func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1
 			}
 		}
 		if srcFile == nil {
-			return fmt.Errorf("file %q not found in source data", file.Path)
+			return fmt.Errorf("file with path %q not found in source data", file.Path)
 		}
 		var restoredFileAppend *bool
 		for _, f := range restored.Files {

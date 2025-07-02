@@ -311,6 +311,22 @@ func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c randfill.Continue) {
 	// NOTE: We have to fuzz the individual fields manually,
 	// because we cannot call `FillNoCustom` as it would lead
 	// to an infinite recursion.
+	_ = fillHubJSONSchemaProps(in, c)
+
+	// Fill one level recursion.
+	in.AdditionalProperties = fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)
+	in.Properties = map[string]clusterv1.JSONSchemaProps{}
+	for range c.Intn(5) {
+		in.Properties[c.String(0)] = *fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)
+	}
+	in.Items = fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)
+	in.AllOf = []clusterv1.JSONSchemaProps{*fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)}
+	in.OneOf = []clusterv1.JSONSchemaProps{*fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)}
+	in.AnyOf = []clusterv1.JSONSchemaProps{*fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)}
+	in.Not = fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)
+}
+
+func fillHubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c randfill.Continue) *clusterv1.JSONSchemaProps {
 	in.Type = c.String(0)
 	for range c.Intn(10) {
 		in.Required = append(in.Required, c.String(0))
@@ -340,19 +356,7 @@ func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c randfill.Continue) {
 	}
 	in.Default = &apiextensionsv1.JSON{Raw: []byte(strconv.FormatBool(c.Bool()))}
 
-	// We're using a copy of the current JSONSchemaProps,
-	// because we cannot recursively fuzz new schemas.
-	in2 := in.DeepCopy()
-	in.AdditionalProperties = in2
-	in.Properties = map[string]clusterv1.JSONSchemaProps{}
-	for range c.Intn(5) {
-		in.Properties[c.String(0)] = *in2
-	}
-	in.Items = in2
-	in.AllOf = []clusterv1.JSONSchemaProps{*in2}
-	in.OneOf = []clusterv1.JSONSchemaProps{*in2}
-	in.AnyOf = []clusterv1.JSONSchemaProps{*in2}
-	in.Not = in2
+	return in
 }
 
 func spokeLocalObjectTemplate(in *LocalObjectTemplate, c randfill.Continue) {

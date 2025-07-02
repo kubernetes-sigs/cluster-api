@@ -81,14 +81,14 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	// Recover intent for bool values converted to *bool.
-	Initialization := controlplanev1.KubeadmControlPlaneInitializationStatus{}
+	initialization := controlplanev1.KubeadmControlPlaneInitializationStatus{}
 	var restoredControlPlaneInitialized *bool
 	if restored.Status.Initialization != nil {
 		restoredControlPlaneInitialized = restored.Status.Initialization.ControlPlaneInitialized
 	}
-	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Initialized, ok, restoredControlPlaneInitialized, &Initialization.ControlPlaneInitialized)
-	if !reflect.DeepEqual(Initialization, controlplanev1.KubeadmControlPlaneInitializationStatus{}) {
-		dst.Status.Initialization = &Initialization
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Initialized, ok, restoredControlPlaneInitialized, &initialization.ControlPlaneInitialized)
+	if !reflect.DeepEqual(initialization, controlplanev1.KubeadmControlPlaneInitializationStatus{}) {
+		dst.Status.Initialization = &initialization
 	}
 
 	if err := bootstrapv1alpha4.RestoreBoolIntentKubeadmConfigSpec(&src.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec, ok, &restored.Spec.KubeadmConfigSpec); err != nil {

@@ -76,16 +76,16 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover intent for bool values converted to *bool.
 	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.Paused, ok, restored.Spec.Paused, &dst.Spec.Paused)
 
-	Initialization := clusterv1.ClusterInitializationStatus{}
+	initialization := clusterv1.ClusterInitializationStatus{}
 	var restoredControlPlaneInitialized, restoredInfrastructureProvisioned *bool
 	if restored.Status.Initialization != nil {
 		restoredControlPlaneInitialized = restored.Status.Initialization.ControlPlaneInitialized
 		restoredInfrastructureProvisioned = restored.Status.Initialization.InfrastructureProvisioned
 	}
-	clusterv1.Convert_bool_To_Pointer_bool(src.Status.ControlPlaneReady, ok, restoredControlPlaneInitialized, &Initialization.ControlPlaneInitialized)
-	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &Initialization.InfrastructureProvisioned)
-	if !reflect.DeepEqual(Initialization, clusterv1.ClusterInitializationStatus{}) {
-		dst.Status.Initialization = &Initialization
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.ControlPlaneReady, ok, restoredControlPlaneInitialized, &initialization.ControlPlaneInitialized)
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &initialization.InfrastructureProvisioned)
+	if !reflect.DeepEqual(initialization, clusterv1.ClusterInitializationStatus{}) {
+		dst.Status.Initialization = &initialization
 	}
 	return nil
 }
@@ -147,7 +147,7 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 			var srcDefinition = &PatchDefinition{}
 			for _, p := range src.Spec.Patches {
 				if p.Name == patch.Name {
-					if len(p.Definitions) > j {
+					if len(p.Definitions) == len(patch.Definitions) {
 						srcDefinition = &p.Definitions[j]
 					}
 					break
@@ -159,7 +159,7 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 			var restoredPatchMatchControlPlane, restoredPatchMatchInfrastructureCluster *bool
 			for _, p := range restored.Spec.Patches {
 				if p.Name == patch.Name {
-					if len(p.Definitions) > j {
+					if len(p.Definitions) == len(patch.Definitions) {
 						restoredPatchMatchInfrastructureCluster = p.Definitions[j].Selector.MatchResources.InfrastructureCluster
 						restoredPatchMatchControlPlane = p.Definitions[j].Selector.MatchResources.ControlPlane
 					}
@@ -220,8 +220,10 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 
 		for j, definition := range variable.Definitions {
 			var srcDefinition *ClusterClassStatusVariableDefinition
-			if len(srcVariable.Definitions) > j {
-				srcDefinition = &srcVariable.Definitions[j]
+			for _, d := range srcVariable.Definitions {
+				if d.From == definition.From {
+					srcDefinition = &d
+				}
 			}
 			if srcDefinition == nil {
 				return fmt.Errorf("definition %d for variable %s not found in source data", j, variable.Name)
@@ -279,7 +281,7 @@ func restoreBoolIntentJSONSchemaProps(src *JSONSchemaProps, dst *clusterv1.JSONS
 	if src.AdditionalProperties != nil {
 		var restoredAdditionalPropertiesOpenAPIV3Schema *clusterv1.JSONSchemaProps
 		if restored != nil {
-			restoredAdditionalPropertiesOpenAPIV3Schema = restored.Not
+			restoredAdditionalPropertiesOpenAPIV3Schema = restored.AdditionalProperties
 		}
 		if err := restoreBoolIntentJSONSchemaProps(src.AdditionalProperties, dst.AdditionalProperties, hasRestored, restoredAdditionalPropertiesOpenAPIV3Schema); err != nil {
 			return err
@@ -288,7 +290,7 @@ func restoreBoolIntentJSONSchemaProps(src *JSONSchemaProps, dst *clusterv1.JSONS
 	if src.Items != nil {
 		var restoreItemsOpenAPIV3Schema *clusterv1.JSONSchemaProps
 		if restored != nil {
-			restoreItemsOpenAPIV3Schema = restored.Not
+			restoreItemsOpenAPIV3Schema = restored.Items
 		}
 		if err := restoreBoolIntentJSONSchemaProps(src.Items, dst.Items, hasRestored, restoreItemsOpenAPIV3Schema); err != nil {
 			return err
@@ -375,16 +377,16 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	// Recover intent for bool values converted to *bool.
-	Initialization := clusterv1.MachineInitializationStatus{}
+	initialization := clusterv1.MachineInitializationStatus{}
 	var restoredBootstrapDataSecretCreated, restoredInfrastructureProvisioned *bool
 	if restored.Status.Initialization != nil {
 		restoredBootstrapDataSecretCreated = restored.Status.Initialization.BootstrapDataSecretCreated
 		restoredInfrastructureProvisioned = restored.Status.Initialization.InfrastructureProvisioned
 	}
-	clusterv1.Convert_bool_To_Pointer_bool(src.Status.BootstrapReady, ok, restoredBootstrapDataSecretCreated, &Initialization.BootstrapDataSecretCreated)
-	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &Initialization.InfrastructureProvisioned)
-	if !reflect.DeepEqual(Initialization, clusterv1.MachineInitializationStatus{}) {
-		dst.Status.Initialization = &Initialization
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.BootstrapReady, ok, restoredBootstrapDataSecretCreated, &initialization.BootstrapDataSecretCreated)
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &initialization.InfrastructureProvisioned)
+	if !reflect.DeepEqual(initialization, clusterv1.MachineInitializationStatus{}) {
+		dst.Status.Initialization = &initialization
 	}
 
 	// Recover other values.
@@ -524,16 +526,16 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	// Recover intent for bool values converted to *bool.
-	Initialization := clusterv1.MachinePoolInitializationStatus{}
+	initialization := clusterv1.MachinePoolInitializationStatus{}
 	var restoredBootstrapDataSecretCreated, restoredInfrastructureProvisioned *bool
 	if restored.Status.Initialization != nil {
 		restoredBootstrapDataSecretCreated = restored.Status.Initialization.BootstrapDataSecretCreated
 		restoredInfrastructureProvisioned = restored.Status.Initialization.InfrastructureProvisioned
 	}
-	clusterv1.Convert_bool_To_Pointer_bool(src.Status.BootstrapReady, ok, restoredBootstrapDataSecretCreated, &Initialization.BootstrapDataSecretCreated)
-	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &Initialization.InfrastructureProvisioned)
-	if !reflect.DeepEqual(Initialization, clusterv1.MachinePoolInitializationStatus{}) {
-		dst.Status.Initialization = &Initialization
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.BootstrapReady, ok, restoredBootstrapDataSecretCreated, &initialization.BootstrapDataSecretCreated)
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &initialization.InfrastructureProvisioned)
+	if !reflect.DeepEqual(initialization, clusterv1.MachinePoolInitializationStatus{}) {
+		dst.Status.Initialization = &initialization
 	}
 
 	return nil

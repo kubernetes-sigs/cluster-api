@@ -694,7 +694,7 @@ type KubeadmControlPlaneInitializationStatus struct {
 	// the control plane is fully provisioned or not.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
 	// +optional
-	ControlPlaneInitialized bool `json:"controlPlaneInitialized,omitempty"`
+	ControlPlaneInitialized *bool `json:"controlPlaneInitialized,omitempty"`
 }
 
 // KubeadmControlPlaneDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.

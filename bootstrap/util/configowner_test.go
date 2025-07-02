@@ -58,7 +58,7 @@ func TestGetConfigOwner(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{
 					Initialization: &clusterv1.MachineInitializationStatus{
-						InfrastructureProvisioned: true,
+						InfrastructureProvisioned: ptr.To(true),
 					},
 				},
 			}
@@ -110,7 +110,7 @@ func TestGetConfigOwner(t *testing.T) {
 				},
 				Status: clusterv1.MachinePoolStatus{
 					Initialization: &clusterv1.MachinePoolInitializationStatus{
-						InfrastructureProvisioned: true,
+						InfrastructureProvisioned: ptr.To(true),
 					},
 				},
 			}
@@ -219,7 +219,7 @@ func TestHasNodeRefs(t *testing.T) {
 			},
 			Status: clusterv1.MachineStatus{
 				Initialization: &clusterv1.MachineInitializationStatus{
-					InfrastructureProvisioned: true,
+					InfrastructureProvisioned: ptr.To(true),
 				},
 				NodeRef: &clusterv1.MachineNodeReference{
 					Name: "node-0",

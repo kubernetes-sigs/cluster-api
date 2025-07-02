@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -99,6 +100,13 @@ func defaultDevClusterSpec(s *infrav1.DevClusterSpec) {
 	if s.Backend.Docker != nil {
 		if s.ControlPlaneEndpoint.Port == 0 {
 			s.ControlPlaneEndpoint.Port = 6443
+		}
+
+		for i, fd := range s.Backend.Docker.FailureDomains {
+			if fd.ControlPlane == nil {
+				fd.ControlPlane = ptr.To(false)
+			}
+			s.Backend.Docker.FailureDomains[i] = fd
 		}
 	}
 }

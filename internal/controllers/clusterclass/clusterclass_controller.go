@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -337,6 +338,7 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 					errs = append(errs, errors.Errorf("failed to convert variable %s to v1beta2", variable.Name))
 					continue
 				}
+				v.Schema.OpenAPIV3Schema = *dropFalsePtrBool(&v.Schema.OpenAPIV3Schema)
 				v1beta2Variables = append(v1beta2Variables, v)
 			}
 
@@ -381,7 +383,7 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 
 	variablesWithConflict := []string{}
 	for _, v := range clusterClass.Status.Variables {
-		if v.DefinitionsConflict {
+		if ptr.Deref(v.DefinitionsConflict, false) {
 			variablesWithConflict = append(variablesWithConflict, v.Name)
 		}
 	}
@@ -398,7 +400,7 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 func addNewStatusVariable(variable clusterv1.ClusterClassVariable, from string) *clusterv1.ClusterClassStatusVariable {
 	return &clusterv1.ClusterClassStatusVariable{
 		Name:                variable.Name,
-		DefinitionsConflict: false,
+		DefinitionsConflict: ptr.To(false),
 		Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 			{
 				From:                      from,
@@ -421,13 +423,56 @@ func addDefinitionToExistingStatusVariable(variable clusterv1.ClusterClassVariab
 
 	// If the new definition is different from any existing definition, set DefinitionsConflict to true.
 	// If definitions already conflict, no need to check.
-	if !combinedVariable.DefinitionsConflict {
+	if !ptr.Deref(combinedVariable.DefinitionsConflict, false) {
 		currentDefinition := combinedVariable.Definitions[0]
-		if currentDefinition.Required != newVariableDefinition.Required || !reflect.DeepEqual(currentDefinition.Schema, newVariableDefinition.Schema) || !reflect.DeepEqual(currentDefinition.DeprecatedV1Beta1Metadata, newVariableDefinition.DeprecatedV1Beta1Metadata) {
-			combinedVariable.DefinitionsConflict = true
+		if currentDefinition.Required != newVariableDefinition.Required ||
+			!reflect.DeepEqual(dropFalsePtrBool(&currentDefinition.Schema.OpenAPIV3Schema), dropFalsePtrBool(&newVariableDefinition.Schema.OpenAPIV3Schema)) ||
+			!reflect.DeepEqual(currentDefinition.DeprecatedV1Beta1Metadata, newVariableDefinition.DeprecatedV1Beta1Metadata) {
+			combinedVariable.DefinitionsConflict = ptr.To(true)
 		}
 	}
 	return combinedVariable
+}
+
+// dropFalsePtrBool drops false values from *bool properties, which are not relevant for the semantic of the variable.
+func dropFalsePtrBool(in *clusterv1.JSONSchemaProps) *clusterv1.JSONSchemaProps {
+	if in == nil {
+		return nil
+	}
+	ret := in.DeepCopy()
+
+	if !ptr.Deref(ret.UniqueItems, false) {
+		ret.UniqueItems = nil
+	}
+	if !ptr.Deref(ret.ExclusiveMaximum, false) {
+		ret.ExclusiveMaximum = nil
+	}
+	if !ptr.Deref(ret.ExclusiveMinimum, false) {
+		ret.ExclusiveMinimum = nil
+	}
+	if !ptr.Deref(ret.XPreserveUnknownFields, false) {
+		ret.XPreserveUnknownFields = nil
+	}
+	if !ptr.Deref(ret.XIntOrString, false) {
+		ret.XIntOrString = nil
+	}
+
+	for name, property := range ret.Properties {
+		ret.Properties[name] = *dropFalsePtrBool(&property)
+	}
+	ret.AdditionalProperties = dropFalsePtrBool(ret.AdditionalProperties)
+	ret.Items = dropFalsePtrBool(ret.Items)
+	for i, value := range ret.AllOf {
+		ret.AllOf[i] = *dropFalsePtrBool(&value)
+	}
+	for i, value := range ret.OneOf {
+		ret.OneOf[i] = *dropFalsePtrBool(&value)
+	}
+	for i, value := range ret.AnyOf {
+		ret.AnyOf[i] = *dropFalsePtrBool(&value)
+	}
+	ret.Not = dropFalsePtrBool(ret.Not)
+	return ret
 }
 
 func refString(ref *corev1.ObjectReference) string {

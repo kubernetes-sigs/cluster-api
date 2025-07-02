@@ -660,7 +660,6 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassStatusVariable(ref common.R
 					"definitionsConflict": {
 						SchemaProps: spec.SchemaProps{
 							Description: "definitionsConflict specifies whether or not there are conflicting definitions for a single variable name.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -993,7 +992,6 @@ func schema_cluster_api_api_core_v1beta2_ClusterInitializationStatus(ref common.
 					"infrastructureProvisioned": {
 						SchemaProps: spec.SchemaProps{
 							Description: "infrastructureProvisioned is true when the infrastructure provider reports that Cluster's infrastructure is fully provisioned. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -1001,7 +999,6 @@ func schema_cluster_api_api_core_v1beta2_ClusterInitializationStatus(ref common.
 					"controlPlaneInitialized": {
 						SchemaProps: spec.SchemaProps{
 							Description: "controlPlaneInitialized denotes when the control plane is functional enough to accept requests. This information is usually used as a signal for starting all the provisioning operations that depends on a functional API server, but do not require a full HA control plane to exists, like e.g. join worker Machines, install core addons like CNI, CPI, CSI etc. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after initialization is completed.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -3711,7 +3708,6 @@ func schema_cluster_api_api_core_v1beta2_MachineInitializationStatus(ref common.
 					"infrastructureProvisioned": {
 						SchemaProps: spec.SchemaProps{
 							Description: "infrastructureProvisioned is true when the infrastructure provider reports that Machine's infrastructure is fully provisioned. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -3719,7 +3715,6 @@ func schema_cluster_api_api_core_v1beta2_MachineInitializationStatus(ref common.
 					"bootstrapDataSecretCreated": {
 						SchemaProps: spec.SchemaProps{
 							Description: "bootstrapDataSecretCreated is true when the bootstrap provider reports that the Machine's boostrap secret is created. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -4041,7 +4036,6 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolInitializationStatus(ref com
 					"infrastructureProvisioned": {
 						SchemaProps: spec.SchemaProps{
 							Description: "infrastructureProvisioned is true when the infrastructure provider reports that MachinePool's infrastructure is fully provisioned. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -4049,7 +4043,6 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolInitializationStatus(ref com
 					"bootstrapDataSecretCreated": {
 						SchemaProps: spec.SchemaProps{
 							Description: "bootstrapDataSecretCreated is true when the bootstrap provider reports that the MachinePool's boostrap secret is created. NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning. The value of this field is never updated after provisioning is completed.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},

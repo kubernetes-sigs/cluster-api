@@ -17,10 +17,12 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -41,9 +43,26 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	if err != nil {
 		return err
 	}
+
+	// Recover intent for bool values converted to *bool.
+	initialization := bootstrapv1.KubeadmConfigInitializationStatus{}
+	var restoredBootstrapDataSecretCreated *bool
+	if restored.Status.Initialization != nil {
+		restoredBootstrapDataSecretCreated = restored.Status.Initialization.DataSecretCreated
+	}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredBootstrapDataSecretCreated, &initialization.DataSecretCreated)
+	if !reflect.DeepEqual(initialization, bootstrapv1.KubeadmConfigInitializationStatus{}) {
+		dst.Status.Initialization = &initialization
+	}
+	if err := RestoreBoolIntentKubeadmConfigSpec(&src.Spec, &dst.Spec, ok, &restored.Spec); err != nil {
+		return err
+	}
+
+	// Recover other values
 	if ok {
 		RestoreKubeadmConfigSpec(&restored.Spec, &dst.Spec)
 	}
+
 	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
 	src.Spec.ConvertTo(&dst.Spec)
 	return nil
@@ -63,6 +82,144 @@ func RestoreKubeadmConfigSpec(restored *bootstrapv1.KubeadmConfigSpec, dst *boot
 		}
 		dst.JoinConfiguration.Timeouts = restored.JoinConfiguration.Timeouts
 	}
+}
+
+func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1.KubeadmConfigSpec, hasRestored bool, restored *bootstrapv1.KubeadmConfigSpec) error {
+	if dst.JoinConfiguration != nil {
+		if dst.JoinConfiguration.Discovery.BootstrapToken != nil {
+			var restoredUnsafeSkipCAVerification *bool
+			if restored.JoinConfiguration != nil && restored.JoinConfiguration.Discovery.BootstrapToken != nil {
+				restoredUnsafeSkipCAVerification = restored.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification
+			}
+			clusterv1.Convert_bool_To_Pointer_bool(src.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification, hasRestored, restoredUnsafeSkipCAVerification, &dst.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification)
+		}
+
+		if dst.JoinConfiguration.Discovery.File != nil && dst.JoinConfiguration.Discovery.File.KubeConfig != nil {
+			if dst.JoinConfiguration.Discovery.File.KubeConfig.Cluster != nil {
+				var restoredInsecureSkipTLSVerify *bool
+				if restored.JoinConfiguration != nil && restored.JoinConfiguration.Discovery.File != nil && restored.JoinConfiguration.Discovery.File.KubeConfig != nil && restored.JoinConfiguration.Discovery.File.KubeConfig.Cluster != nil {
+					restoredInsecureSkipTLSVerify = restored.JoinConfiguration.Discovery.File.KubeConfig.Cluster.InsecureSkipTLSVerify
+				}
+				clusterv1.Convert_bool_To_Pointer_bool(src.JoinConfiguration.Discovery.File.KubeConfig.Cluster.InsecureSkipTLSVerify, hasRestored, restoredInsecureSkipTLSVerify, &dst.JoinConfiguration.Discovery.File.KubeConfig.Cluster.InsecureSkipTLSVerify)
+			}
+			if dst.JoinConfiguration.Discovery.File.KubeConfig.User.Exec != nil {
+				var restoredExecProvideClusterInfo *bool
+				if restored.JoinConfiguration != nil && restored.JoinConfiguration.Discovery.File != nil && restored.JoinConfiguration.Discovery.File.KubeConfig != nil && restored.JoinConfiguration.Discovery.File.KubeConfig.User.Exec != nil {
+					restoredExecProvideClusterInfo = restored.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.ProvideClusterInfo
+				}
+				clusterv1.Convert_bool_To_Pointer_bool(src.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.ProvideClusterInfo, hasRestored, restoredExecProvideClusterInfo, &dst.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.ProvideClusterInfo)
+			}
+		}
+	}
+
+	if dst.ClusterConfiguration != nil {
+		for i, volume := range dst.ClusterConfiguration.APIServer.ExtraVolumes {
+			var srcVolume *HostPathMount
+			if src.ClusterConfiguration != nil {
+				for _, v := range src.ClusterConfiguration.APIServer.ExtraVolumes {
+					if v.HostPath == volume.HostPath {
+						srcVolume = &v
+						break
+					}
+				}
+			}
+			if srcVolume == nil {
+				return fmt.Errorf("apiServer extraVolume with hostPath %q not found in source data", volume.HostPath)
+			}
+			var restoredVolumeReadOnly *bool
+			if restored.ClusterConfiguration != nil {
+				for _, v := range restored.ClusterConfiguration.APIServer.ExtraVolumes {
+					if v.HostPath == volume.HostPath {
+						restoredVolumeReadOnly = v.ReadOnly
+						break
+					}
+				}
+			}
+			clusterv1.Convert_bool_To_Pointer_bool(srcVolume.ReadOnly, hasRestored, restoredVolumeReadOnly, &volume.ReadOnly)
+			dst.ClusterConfiguration.APIServer.ExtraVolumes[i] = volume
+		}
+		for i, volume := range dst.ClusterConfiguration.ControllerManager.ExtraVolumes {
+			var srcVolume *HostPathMount
+			if src.ClusterConfiguration != nil {
+				for _, v := range src.ClusterConfiguration.ControllerManager.ExtraVolumes {
+					if v.HostPath == volume.HostPath {
+						srcVolume = &v
+						break
+					}
+				}
+			}
+			if srcVolume == nil {
+				return fmt.Errorf("controllerManager extraVolume with hostPath %q not found in source data", volume.HostPath)
+			}
+			var restoredVolumeReadOnly *bool
+			if restored.ClusterConfiguration != nil {
+				for _, v := range restored.ClusterConfiguration.ControllerManager.ExtraVolumes {
+					if v.HostPath == volume.HostPath {
+						restoredVolumeReadOnly = v.ReadOnly
+						break
+					}
+				}
+			}
+			clusterv1.Convert_bool_To_Pointer_bool(srcVolume.ReadOnly, hasRestored, restoredVolumeReadOnly, &volume.ReadOnly)
+			dst.ClusterConfiguration.ControllerManager.ExtraVolumes[i] = volume
+		}
+		for i, volume := range dst.ClusterConfiguration.Scheduler.ExtraVolumes {
+			var srcVolume *HostPathMount
+			if src.ClusterConfiguration != nil {
+				for _, v := range src.ClusterConfiguration.Scheduler.ExtraVolumes {
+					if v.HostPath == volume.HostPath {
+						srcVolume = &v
+						break
+					}
+				}
+			}
+			if srcVolume == nil {
+				return fmt.Errorf("scheduler extraVolume with hostPath %q not found in source data", volume.HostPath)
+			}
+			var restoredVolumeReadOnly *bool
+			if restored.ClusterConfiguration != nil {
+				for _, v := range restored.ClusterConfiguration.Scheduler.ExtraVolumes {
+					if v.HostPath == volume.HostPath {
+						restoredVolumeReadOnly = v.ReadOnly
+						break
+					}
+				}
+			}
+			clusterv1.Convert_bool_To_Pointer_bool(srcVolume.ReadOnly, hasRestored, restoredVolumeReadOnly, &volume.ReadOnly)
+			dst.ClusterConfiguration.Scheduler.ExtraVolumes[i] = volume
+		}
+	}
+
+	for i, file := range dst.Files {
+		var srcFile *File
+		for _, f := range src.Files {
+			if f.Path == file.Path {
+				srcFile = &f
+				break
+			}
+		}
+		if srcFile == nil {
+			return fmt.Errorf("file with path %q not found in source data", file.Path)
+		}
+		var restoredFileAppend *bool
+		for _, f := range restored.Files {
+			if f.Path == file.Path {
+				restoredFileAppend = f.Append
+				break
+			}
+		}
+		clusterv1.Convert_bool_To_Pointer_bool(srcFile.Append, hasRestored, restoredFileAppend, &file.Append)
+		dst.Files[i] = file
+	}
+
+	if dst.Ignition != nil && dst.Ignition.ContainerLinuxConfig != nil {
+		var restoredIgnitionStrict *bool
+		if restored.Ignition != nil && restored.Ignition.ContainerLinuxConfig != nil {
+			restoredIgnitionStrict = restored.Ignition.ContainerLinuxConfig.Strict
+		}
+		clusterv1.Convert_bool_To_Pointer_bool(src.Ignition.ContainerLinuxConfig.Strict, hasRestored, restoredIgnitionStrict, &dst.Ignition.ContainerLinuxConfig.Strict)
+	}
+	return nil
 }
 
 func (src *KubeadmConfigSpec) ConvertTo(dst *bootstrapv1.KubeadmConfigSpec) {
@@ -143,6 +300,12 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	if err != nil {
 		return err
 	}
+	// Recover intent for bool values converted to *bool.
+	if err := RestoreBoolIntentKubeadmConfigSpec(&src.Spec.Template.Spec, &dst.Spec.Template.Spec, ok, &restored.Spec.Template.Spec); err != nil {
+		return err
+	}
+
+	// Recover other values
 	if ok {
 		RestoreKubeadmConfigSpec(&restored.Spec.Template.Spec, &dst.Spec.Template.Spec)
 	}
@@ -195,7 +358,7 @@ func Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *boot
 
 	// Move initialization to old fields
 	if in.Initialization != nil {
-		out.Ready = in.Initialization.DataSecretCreated
+		out.Ready = ptr.Deref(in.Initialization.DataSecretCreated, false)
 	}
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
@@ -294,13 +457,7 @@ func Convert_v1beta1_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *Kube
 	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
 	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
 
-	// Move ready to Initialization
-	if in.Ready {
-		if out.Initialization == nil {
-			out.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
-		}
-		out.Initialization.DataSecretCreated = in.Ready
-	}
+	// Move ready to Initialization is implemented in ConvertTo
 	return nil
 }
 

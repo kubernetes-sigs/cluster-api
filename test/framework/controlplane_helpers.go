@@ -208,7 +208,7 @@ func AssertControlPlaneFailureDomains(ctx context.Context, input AssertControlPl
 	By("Checking all the control plane machines are in the expected failure domains")
 	controlPlaneFailureDomains := sets.Set[string]{}
 	for _, fd := range input.Cluster.Status.FailureDomains {
-		if fd.ControlPlane {
+		if ptr.Deref(fd.ControlPlane, false) {
 			controlPlaneFailureDomains.Insert(fd.Name)
 		}
 	}

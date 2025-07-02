@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
@@ -135,7 +136,7 @@ func matchesSelector(req *runtimehooksv1.GeneratePatchesRequestItem, templateVar
 	}
 
 	// Check if the request is for an InfrastructureCluster.
-	if selector.MatchResources.InfrastructureCluster {
+	if ptr.Deref(selector.MatchResources.InfrastructureCluster, false) {
 		// Cluster.spec.infrastructureRef holds the InfrastructureCluster.
 		if req.HolderReference.Kind == "Cluster" && req.HolderReference.FieldPath == "spec.infrastructureRef" {
 			return true
@@ -143,7 +144,7 @@ func matchesSelector(req *runtimehooksv1.GeneratePatchesRequestItem, templateVar
 	}
 
 	// Check if the request is for a ControlPlane or the InfrastructureMachineTemplate of a ControlPlane.
-	if selector.MatchResources.ControlPlane {
+	if ptr.Deref(selector.MatchResources.ControlPlane, false) {
 		// Cluster.spec.controlPlaneRef holds the ControlPlane.
 		if req.HolderReference.Kind == "Cluster" && req.HolderReference.FieldPath == "spec.controlPlaneRef" {
 			return true

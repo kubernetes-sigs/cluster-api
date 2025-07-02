@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -240,7 +241,7 @@ func (o *objectMover) checkProvisioningCompleted(ctx context.Context, graph *obj
 			return err
 		}
 
-		if clusterObj.Status.Initialization == nil || !clusterObj.Status.Initialization.InfrastructureProvisioned {
+		if clusterObj.Status.Initialization == nil || !ptr.Deref(clusterObj.Status.Initialization.InfrastructureProvisioned, false) {
 			errList = append(errList, errors.Errorf("cannot start the move operation while %q %s/%s is still provisioning the infrastructure", clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName()))
 			continue
 		}
@@ -251,7 +252,7 @@ func (o *objectMover) checkProvisioningCompleted(ctx context.Context, graph *obj
 			continue
 		}
 
-		if clusterObj.Spec.ControlPlaneRef != nil && clusterObj.Status.Initialization == nil || !clusterObj.Status.Initialization.ControlPlaneInitialized {
+		if clusterObj.Spec.ControlPlaneRef != nil && clusterObj.Status.Initialization == nil || !ptr.Deref(clusterObj.Status.Initialization.ControlPlaneInitialized, false) {
 			errList = append(errList, errors.Errorf("cannot start the move operation while the control plane for %q %s/%s is not yet initialized", clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName()))
 			continue
 		}

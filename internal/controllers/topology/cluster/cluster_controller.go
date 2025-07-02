@@ -30,6 +30,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -299,7 +300,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}()
 
 	// Return early if the Cluster is paused.
-	if cluster.Spec.Paused || annotations.HasPaused(cluster) {
+	if ptr.Deref(cluster.Spec.Paused, false) || annotations.HasPaused(cluster) {
 		return ctrl.Result{}, nil
 	}
 

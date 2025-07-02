@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -62,7 +63,7 @@ func newDefinitionsIndex(fldPath *field.Path, definitions []clusterv1.ClusterCla
 		}
 
 		// Check that the definitions have no conflict.
-		if definition.DefinitionsConflict {
+		if ptr.Deref(definition.DefinitionsConflict, false) {
 			errs = append(errs, errors.Errorf("variable %q has conflicting definitions", definition.Name))
 		}
 

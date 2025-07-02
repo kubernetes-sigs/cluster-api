@@ -318,7 +318,7 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Changing the object spec, status, and adding Ready=True condition")
-				obj.Spec.Paused = true
+				obj.Spec.Paused = ptr.To(true)
 				obj.Spec.ControlPlaneEndpoint.Host = "test://endpoint"
 				obj.Spec.ControlPlaneEndpoint.Port = 8443
 				obj.Status.Phase = "Provisioning"
@@ -354,7 +354,7 @@ func TestPatchHelper(t *testing.T) {
 						return false
 					}
 
-					return obj.Spec.Paused == objAfter.Spec.Paused &&
+					return ptr.Deref(obj.Spec.Paused, false) == ptr.Deref(objAfter.Spec.Paused, false) &&
 						obj.Spec.ControlPlaneEndpoint == objAfter.Spec.ControlPlaneEndpoint &&
 						obj.Status.Phase == objAfter.Status.Phase
 				}, timeout).Should(BeTrue(), cmp.Diff(obj, objAfter))
@@ -625,7 +625,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
-			obj.Spec.Paused = true
+			obj.Spec.Paused = ptr.To(true)
 			obj.Spec.InfrastructureRef = &clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:     "test-kind",
@@ -642,7 +642,7 @@ func TestPatchHelper(t *testing.T) {
 					return false
 				}
 
-				return objAfter.Spec.Paused &&
+				return ptr.Deref(objAfter.Spec.Paused, false) &&
 					cmp.Equal(obj.Spec.InfrastructureRef, objAfter.Spec.InfrastructureRef)
 			}, timeout).Should(BeTrue())
 		})
@@ -671,7 +671,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Updating the object status")
 			obj.Status.Initialization = &clusterv1.ClusterInitializationStatus{
-				InfrastructureProvisioned: true,
+				InfrastructureProvisioned: ptr.To(true),
 			}
 
 			t.Log("Patching the object")
@@ -710,7 +710,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
-			obj.Spec.Paused = true
+			obj.Spec.Paused = ptr.To(true)
 			obj.Spec.InfrastructureRef = &clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:     "test-kind",
@@ -719,7 +719,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Updating the object status")
 			obj.Status.Initialization = &clusterv1.ClusterInitializationStatus{
-				InfrastructureProvisioned: true,
+				InfrastructureProvisioned: ptr.To(true),
 			}
 
 			t.Log("Setting Ready condition")

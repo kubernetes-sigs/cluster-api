@@ -42,20 +42,20 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 		MinProperties:    schema.MinProperties,
 		MaxItems:         schema.MaxItems,
 		MinItems:         schema.MinItems,
-		UniqueItems:      schema.UniqueItems,
+		UniqueItems:      ptr.Deref(schema.UniqueItems, false),
 		Format:           schema.Format,
 		MaxLength:        schema.MaxLength,
 		MinLength:        schema.MinLength,
 		Pattern:          schema.Pattern,
-		ExclusiveMaximum: schema.ExclusiveMaximum,
-		ExclusiveMinimum: schema.ExclusiveMinimum,
-		XIntOrString:     schema.XIntOrString,
+		ExclusiveMaximum: ptr.Deref(schema.ExclusiveMaximum, false),
+		ExclusiveMinimum: ptr.Deref(schema.ExclusiveMinimum, false),
+		XIntOrString:     ptr.Deref(schema.XIntOrString, false),
 	}
 
 	// Only set XPreserveUnknownFields to true if it's true.
 	// apiextensions.JSONSchemaProps only allows setting XPreserveUnknownFields
 	// to true or undefined, false is forbidden.
-	if schema.XPreserveUnknownFields {
+	if ptr.Deref(schema.XPreserveUnknownFields, false) {
 		props.XPreserveUnknownFields = ptr.To(true)
 	}
 

@@ -48,7 +48,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			Namespace: "test-namespace",
 		},
 		Status: clusterv1.ClusterStatus{
-			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
+			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 		},
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{
@@ -68,7 +68,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			Namespace: "test-namespace",
 		},
 		Status: clusterv1.ClusterStatus{
-			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
+			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 		},
 		Spec: clusterv1.ClusterSpec{
 			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
@@ -92,7 +92,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			cluster:   &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "test-namespace"}},
 			expectErr: false,
 			check: func(g *GomegaWithT, in *clusterv1.Cluster) {
-				g.Expect(in.Status.Initialization != nil && in.Status.Initialization.InfrastructureProvisioned).To(BeTrue())
+				g.Expect(in.Status.Initialization != nil && ptr.Deref(in.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
 				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.InfrastructureReadyV1Beta1Condition)).To(BeTrue())
 			},
 		},
@@ -100,7 +100,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			name: "requeue if unable to get infrastructure ref and cluster did not yet reported infrastructure ready",
 			cluster: func() *clusterv1.Cluster {
 				c := cluster.DeepCopy()
-				c.Status.Initialization.InfrastructureProvisioned = false
+				c.Status.Initialization.InfrastructureProvisioned = ptr.To(false)
 				return c
 			}(),
 			expectErr:    false,
@@ -205,14 +205,14 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			check: func(g *GomegaWithT, in *clusterv1.Cluster) {
 				g.Expect(in.Spec.ControlPlaneEndpoint.Host).To(Equal("1.2.3.4"))
 				g.Expect(in.Spec.ControlPlaneEndpoint.Port).To(BeEquivalentTo(8443))
-				g.Expect(in.Status.Initialization != nil && in.Status.Initialization.InfrastructureProvisioned).To(BeTrue())
+				g.Expect(in.Status.Initialization != nil && ptr.Deref(in.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
 			},
 		},
 		{
 			name: "do not reconcile if infra config is marked for deletion",
 			cluster: func() *clusterv1.Cluster {
 				c := clusterNoEndpoint.DeepCopy()
-				c.Status.Initialization.InfrastructureProvisioned = false
+				c.Status.Initialization.InfrastructureProvisioned = ptr.To(false)
 				return c
 			}(),
 			infraRef: map[string]interface{}{
@@ -238,7 +238,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			check: func(g *GomegaWithT, in *clusterv1.Cluster) {
 				g.Expect(in.Spec.ControlPlaneEndpoint.Host).To(Equal(""))
 				g.Expect(in.Spec.ControlPlaneEndpoint.Port).To(BeEquivalentTo(0))
-				g.Expect(in.Status.Initialization != nil && in.Status.Initialization.InfrastructureProvisioned).To(BeFalse())
+				g.Expect(in.Status.Initialization != nil && ptr.Deref(in.Status.Initialization.InfrastructureProvisioned, false)).To(BeFalse())
 			},
 		},
 	}
@@ -294,7 +294,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			Namespace: "test-namespace",
 		},
 		Status: clusterv1.ClusterStatus{
-			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
+			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 		},
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{
@@ -314,7 +314,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			Namespace: "test-namespace",
 		},
 		Status: clusterv1.ClusterStatus{
-			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
+			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 		},
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
@@ -348,7 +348,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			name: "returns error if unable to get control plane ref and cluster already reported  control plane ready",
 			cluster: func() *clusterv1.Cluster {
 				c := cluster.DeepCopy()
-				c.Status.Initialization.ControlPlaneInitialized = true
+				c.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
 				return c
 			}(),
 			expectErr: true,
@@ -460,7 +460,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			},
 			expectErr: false,
 			check: func(g *GomegaWithT, in *clusterv1.Cluster) {
-				g.Expect(in.Status.Initialization.ControlPlaneInitialized).To(BeTrue())
+				g.Expect(ptr.Deref(in.Status.Initialization.ControlPlaneInitialized, false)).To(BeTrue())
 
 				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.ControlPlaneReadyV1Beta1Condition)).To(BeTrue())
 				g.Expect(v1beta1conditions.IsTrue(in, clusterv1.ControlPlaneInitializedV1Beta1Condition)).To(BeTrue())
@@ -470,7 +470,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			name: "do not allows to change control plane ready and control plane endpoint once set",
 			cluster: func() *clusterv1.Cluster {
 				c := cluster.DeepCopy()
-				c.Status.Initialization.ControlPlaneInitialized = true
+				c.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
 				return c
 			}(),
 			cpRef: map[string]interface{}{
@@ -496,7 +496,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			check: func(g *GomegaWithT, in *clusterv1.Cluster) {
 				g.Expect(in.Spec.ControlPlaneEndpoint.Host).To(Equal("1.2.3.4"))
 				g.Expect(in.Spec.ControlPlaneEndpoint.Port).To(BeEquivalentTo(8443))
-				g.Expect(in.Status.Initialization != nil && in.Status.Initialization.ControlPlaneInitialized).To(BeTrue())
+				g.Expect(in.Status.Initialization != nil && ptr.Deref(in.Status.Initialization.ControlPlaneInitialized, false)).To(BeTrue())
 			},
 		},
 		{
@@ -526,7 +526,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			check: func(g *GomegaWithT, in *clusterv1.Cluster) {
 				g.Expect(in.Spec.ControlPlaneEndpoint.Host).To(Equal(""))
 				g.Expect(in.Spec.ControlPlaneEndpoint.Port).To(BeEquivalentTo(0))
-				g.Expect(in.Status.Initialization != nil && in.Status.Initialization.ControlPlaneInitialized).To(BeFalse())
+				g.Expect(in.Status.Initialization != nil && ptr.Deref(in.Status.Initialization.ControlPlaneInitialized, false)).To(BeFalse())
 			},
 		},
 	}
@@ -668,7 +668,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 			Namespace: "test-namespace",
 		},
 		Status: clusterv1.ClusterStatus{
-			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true},
+			Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 		},
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{
@@ -686,7 +686,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 	newFailureDomain := []clusterv1.FailureDomain{
 		{
 			Name:         "newdomain",
-			ControlPlane: false,
+			ControlPlane: ptr.To(false),
 			Attributes: map[string]string{
 				"attribute1": "value1",
 			},
@@ -696,7 +696,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 	newFailureDomainUpdated := []clusterv1.FailureDomain{
 		{
 			Name:         "newdomain",
-			ControlPlane: false,
+			ControlPlane: ptr.To(false),
 			Attributes: map[string]string{
 				"attribute2": "value2",
 			},
@@ -709,7 +709,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 	oldFailureDomain := []clusterv1.FailureDomain{
 		{
 			Name:         "olddomain",
-			ControlPlane: false,
+			ControlPlane: ptr.To(false),
 			Attributes: map[string]string{
 				"attribute1": "value1",
 			},

@@ -446,7 +446,7 @@ type ContainerLinuxConfig struct {
 
 	// strict controls if AdditionalConfig should be strictly parsed. If so, warnings are treated as errors.
 	// +optional
-	Strict bool `json:"strict,omitempty"`
+	Strict *bool `json:"strict,omitempty"`
 }
 
 // KubeadmConfigStatus defines the observed state of KubeadmConfig.
@@ -485,7 +485,7 @@ type KubeadmConfigInitializationStatus struct {
 	// dataSecretCreated is true when the Machine's boostrap secret is created.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
 	// +optional
-	DataSecretCreated bool `json:"dataSecretCreated,omitempty"`
+	DataSecretCreated *bool `json:"dataSecretCreated,omitempty"`
 }
 
 // KubeadmConfigDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
@@ -633,7 +633,7 @@ type File struct {
 
 	// append specifies whether to append Content to existing file if Path exists.
 	// +optional
-	Append bool `json:"append,omitempty"`
+	Append *bool `json:"append,omitempty"`
 
 	// content is the actual content of the file.
 	// +optional

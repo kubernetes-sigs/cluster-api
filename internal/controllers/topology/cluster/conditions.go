@@ -22,6 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
@@ -48,9 +49,9 @@ func (r *Reconciler) reconcileConditions(s *scope.Scope, cluster *clusterv1.Clus
 //     topology cannot be considered fully reconciled.
 func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluster *clusterv1.Cluster, reconcileErr error) error {
 	// Mark TopologyReconciled as false if the Cluster is paused.
-	if cluster.Spec.Paused || annotations.HasPaused(cluster) {
+	if ptr.Deref(cluster.Spec.Paused, false) || annotations.HasPaused(cluster) {
 		var messages []string
-		if cluster.Spec.Paused {
+		if ptr.Deref(cluster.Spec.Paused, false) {
 			messages = append(messages, "Cluster spec.paused is set to true")
 		}
 		if annotations.HasPaused(cluster) {

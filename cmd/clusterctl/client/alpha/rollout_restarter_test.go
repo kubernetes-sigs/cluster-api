@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -80,7 +81,7 @@ func Test_ObjectRestarter(t *testing.T) {
 							Name:      "md-1",
 						},
 						Spec: clusterv1.MachineDeploymentSpec{
-							Paused: true,
+							Paused: ptr.To(true),
 						},
 					},
 				},

@@ -120,7 +120,7 @@ func TestWatches(t *testing.T) {
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 	testClusterOriginal := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 	g.Expect(env.Status().Patch(ctx, testCluster, testClusterOriginal)).To(Succeed())
 
 	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
@@ -257,7 +257,7 @@ func TestWatchesDelete(t *testing.T) {
 			// the machine immediately after creation.
 			// This avoids going through reconcileExternal, which adds watches
 			// for the provider machine and the bootstrap config objects.
-			Paused: true,
+			Paused: ptr.To(true),
 		},
 	}
 
@@ -319,7 +319,7 @@ func TestWatchesDelete(t *testing.T) {
 	g.Expect(env.Delete(ctx, machine)).To(Succeed())
 
 	// We unpause the cluster so the machine can be reconciled.
-	testCluster.Spec.Paused = false
+	testCluster.Spec.Paused = ptr.To(false)
 	g.Expect(env.Update(ctx, testCluster)).To(Succeed())
 
 	// Wait for reconciliation to happen.
@@ -425,7 +425,7 @@ func TestMachine_Reconcile(t *testing.T) {
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 	testClusterOriginal := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 	g.Expect(env.Status().Patch(ctx, testCluster, testClusterOriginal)).To(Succeed())
 
 	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
@@ -1031,7 +1031,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 		},
 		Status: clusterv1.ClusterStatus{
 			Initialization: &clusterv1.ClusterInitializationStatus{
-				InfrastructureProvisioned: true,
+				InfrastructureProvisioned: ptr.To(true),
 			},
 			Conditions: []metav1.Condition{
 				{
@@ -3094,7 +3094,7 @@ func TestNodeToMachine(t *testing.T) {
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 	testClusterOriginal := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
 	g.Expect(env.Status().Patch(ctx, testCluster, testClusterOriginal)).To(Succeed())
 
 	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())

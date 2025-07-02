@@ -187,8 +187,8 @@ func assertStatusVariables(actualClusterClass *clusterv1.ClusterClass) error {
 				continue
 			}
 			found = true
-			if statusVar.DefinitionsConflict {
-				return errors.Errorf("ClusterClass status %s variable DefinitionsConflict does not match. Expected %v , got %v", specVar.Name, false, statusVar.DefinitionsConflict)
+			if ptr.Deref(statusVar.DefinitionsConflict, false) {
+				return errors.Errorf("ClusterClass status %s variable DefinitionsConflict does not match. Expected %v , got %v", specVar.Name, false, *statusVar.DefinitionsConflict)
 			}
 			if len(statusVar.Definitions) != 1 {
 				return errors.Errorf("ClusterClass status has multiple definitions for variable %s. Expected a single definition", specVar.Name)
@@ -508,6 +508,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							},
 						},
 					},
+					DefinitionsConflict: ptr.To(false),
 				},
 				{
 					Name: "memory",
@@ -525,6 +526,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							},
 						},
 					},
+					DefinitionsConflict: ptr.To(false),
 				},
 			},
 		},
@@ -616,7 +618,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			want: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name:                "cpu",
-					DefinitionsConflict: false,
+					DefinitionsConflict: ptr.To(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: clusterv1.VariableDefinitionFromInline,
@@ -680,7 +682,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				},
 				{
 					Name:                "location",
-					DefinitionsConflict: false,
+					DefinitionsConflict: ptr.To(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "patch1",
@@ -710,7 +712,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				},
 				{
 					Name:                "memory",
-					DefinitionsConflict: false,
+					DefinitionsConflict: ptr.To(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: clusterv1.VariableDefinitionFromInline,
@@ -856,7 +858,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			want: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name:                "cpu",
-					DefinitionsConflict: false,
+					DefinitionsConflict: ptr.To(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "patch1",
@@ -869,7 +871,8 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 				},
 				{
-					Name: "httpProxy",
+					Name:                "httpProxy",
+					DefinitionsConflict: ptr.To(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "patch1",
@@ -893,7 +896,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				},
 				{
 					Name:                "location",
-					DefinitionsConflict: false,
+					DefinitionsConflict: ptr.To(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "patch1",
@@ -923,7 +926,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				},
 				{
 					Name:                "memory",
-					DefinitionsConflict: false,
+					DefinitionsConflict: ptr.To(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "patch1",

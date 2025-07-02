@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -437,7 +438,7 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 
 	// Return if infrastructure is not ready yet to avoid trying to open a connection when it cannot succeed.
 	// Requeue is not needed as there will be a new reconcile.Request when Cluster.status.initialization.infrastructureProvisioned is set.
-	if cluster.Status.Initialization == nil || !cluster.Status.Initialization.InfrastructureProvisioned {
+	if cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		log.V(6).Info("Can't connect yet, Cluster infrastructure is not provisioned")
 		return reconcile.Result{}, nil
 	}

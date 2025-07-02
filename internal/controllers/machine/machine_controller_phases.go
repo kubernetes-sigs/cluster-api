@@ -181,7 +181,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 		if m.Status.Initialization == nil {
 			m.Status.Initialization = &clusterv1.MachineInitializationStatus{}
 		}
-		m.Status.Initialization.BootstrapDataSecretCreated = true
+		m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 		v1beta1conditions.MarkTrue(m, clusterv1.BootstrapReadyV1Beta1Condition)
 		return ctrl.Result{}, nil
 	}
@@ -235,13 +235,13 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 		m.Spec.Bootstrap.DataSecretName = secretName
 	}
 
-	if m.Status.Initialization == nil || !m.Status.Initialization.BootstrapDataSecretCreated {
+	if m.Status.Initialization == nil || !ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false) {
 		log.Info("Bootstrap provider generated data secret", s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig), "Secret", klog.KRef(m.Namespace, *secretName))
 	}
 	if m.Status.Initialization == nil {
 		m.Status.Initialization = &clusterv1.MachineInitializationStatus{}
 	}
-	m.Status.Initialization.BootstrapDataSecretCreated = true
+	m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 	return ctrl.Result{}, nil
 }
 
@@ -262,7 +262,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 				return ctrl.Result{}, nil
 			}
 
-			if m.Status.Initialization != nil && m.Status.Initialization.InfrastructureProvisioned {
+			if m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false) {
 				// Infra object went missing after the machine was up and running
 				log.Error(err, "Machine infrastructure reference has been deleted after provisioning was completed, setting failure state")
 				if m.Status.Deprecated == nil {
@@ -298,7 +298,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	} else {
 		provisioned = *provisionedPtr
 	}
-	if provisioned && (m.Status.Initialization == nil || !m.Status.Initialization.InfrastructureProvisioned) {
+	if provisioned && (m.Status.Initialization == nil || !ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)) {
 		log.Info("Infrastructure provider has completed provisioning", s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 	}
 
@@ -314,7 +314,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// If the InfrastructureMachine is not provisioned (and it wasn't already provisioned before), return.
-	if !provisioned && (m.Status.Initialization == nil || !m.Status.Initialization.InfrastructureProvisioned) {
+	if !provisioned && (m.Status.Initialization == nil || !ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)) {
 		log.Info(fmt.Sprintf("Waiting for infrastructure provider to create machine infrastructure and set %s",
 			contract.InfrastructureMachine().Provisioned(contractVersion).Path().String()),
 			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
@@ -361,7 +361,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	if m.Status.Initialization == nil {
 		m.Status.Initialization = &clusterv1.MachineInitializationStatus{}
 	}
-	m.Status.Initialization.InfrastructureProvisioned = true
+	m.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	return ctrl.Result{}, nil
 }
 

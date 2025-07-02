@@ -24,8 +24,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -40,8 +42,9 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 
 	t.Run("for DockerClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &infrav1.DockerClusterTemplate{},
-		Spoke: &DockerClusterTemplate{},
+		Hub:         &infrav1.DockerClusterTemplate{},
+		Spoke:       &DockerClusterTemplate{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{DockerClusterTemplateFuzzFunc},
 	}))
 
 	t.Run("for DockerMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
@@ -62,8 +65,9 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 
 	t.Run("for DevClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &infrav1.DevClusterTemplate{},
-		Spoke: &DevClusterTemplate{},
+		Hub:         &infrav1.DevClusterTemplate{},
+		Spoke:       &DevClusterTemplate{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{DevClusterTemplateFuzzFunc},
 	}))
 
 	t.Run("for DevMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
@@ -81,6 +85,7 @@ func TestFuzzyConversion(t *testing.T) {
 func DockerClusterFuzzFunc(_ runtimeserializer.CodecFactory) []any {
 	return []any{
 		hubDockerClusterStatus,
+		hubFailureDomain,
 		spokeDockerClusterStatus,
 	}
 }
@@ -101,6 +106,14 @@ func hubDockerClusterStatus(in *infrav1.DockerClusterStatus, c randfill.Continue
 	}
 }
 
+func hubFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.ControlPlane == nil {
+		in.ControlPlane = ptr.To(false)
+	}
+}
+
 func spokeDockerClusterStatus(in *DockerClusterStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 
@@ -109,6 +122,12 @@ func spokeDockerClusterStatus(in *DockerClusterStatus, c randfill.Continue) {
 		if reflect.DeepEqual(in.V1Beta2, &DockerClusterV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
+	}
+}
+
+func DockerClusterTemplateFuzzFunc(_ runtimeserializer.CodecFactory) []any {
+	return []any{
+		hubFailureDomain,
 	}
 }
 
@@ -149,6 +168,7 @@ func spokeDockerMachineStatus(in *DockerMachineStatus, c randfill.Continue) {
 func DevClusterFuzzFunc(_ runtimeserializer.CodecFactory) []any {
 	return []any{
 		hubDevClusterStatus,
+		hubFailureDomain,
 		spokeDevClusterStatus,
 	}
 }
@@ -177,6 +197,12 @@ func spokeDevClusterStatus(in *DevClusterStatus, c randfill.Continue) {
 		if reflect.DeepEqual(in.V1Beta2, &DevClusterV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
+	}
+}
+
+func DevClusterTemplateFuzzFunc(_ runtimeserializer.CodecFactory) []any {
+	return []any{
+		hubFailureDomain,
 	}
 }
 

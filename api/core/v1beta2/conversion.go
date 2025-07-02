@@ -56,3 +56,19 @@ func ConvertFromSeconds(in *int32) *metav1.Duration {
 	}
 	return ptr.To(metav1.Duration{Duration: time.Duration(*in) * time.Second})
 }
+
+func Convert_bool_To_Pointer_bool(in bool, hasRestored bool, restoredIn *bool, out **bool) {
+	// If the value is false, convert to *false only if the value was *false before (we know it was intentionally set to false).
+	// In all the other cases we do not know if the value was intentionally set to false, so convert to nil.
+	if !in {
+		if hasRestored && restoredIn != nil && !*restoredIn {
+			*out = ptr.To(false)
+			return
+		}
+		*out = nil
+		return
+	}
+
+	// Otherwise, if the value is true, convert to *true.
+	*out = ptr.To(true)
+}

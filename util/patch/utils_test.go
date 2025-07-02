@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -39,7 +40,7 @@ func TestToUnstructured(t *testing.T) {
 				Namespace: "namespace-1",
 			},
 			Spec: clusterv1.ClusterSpec{
-				Paused: true,
+				Paused: ptr.To(true),
 			},
 		}
 		gvk := schema.GroupVersionKind{
@@ -56,7 +57,7 @@ func TestToUnstructured(t *testing.T) {
 
 		// Change a spec field and validate that it stays the same in the incoming object.
 		g.Expect(unstructured.SetNestedField(newObj.Object, false, "spec", "paused")).To(Succeed())
-		g.Expect(obj.Spec.Paused).To(BeTrue())
+		g.Expect(ptr.Deref(obj.Spec.Paused, false)).To(BeTrue())
 	})
 
 	t.Run("with an unstructured object", func(t *testing.T) {

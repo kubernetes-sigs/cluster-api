@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -594,8 +595,8 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 		},
 		Status: clusterv1.MachineStatus{
 			Initialization: &clusterv1.MachineInitializationStatus{
-				InfrastructureProvisioned:  true,
-				BootstrapDataSecretCreated: true,
+				InfrastructureProvisioned:  ptr.To(true),
+				BootstrapDataSecretCreated: ptr.To(true),
 			},
 			Phase: string(clusterv1.MachinePhaseRunning),
 			NodeRef: &clusterv1.MachineNodeReference{

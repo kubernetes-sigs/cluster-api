@@ -351,7 +351,7 @@ func hubClusterStatus(in *clusterv1.ClusterStatus, c randfill.Continue) {
 			in.FailureDomains = append(in.FailureDomains,
 				clusterv1.FailureDomain{
 					Name:         fmt.Sprintf("%d-%s", i, c.String(255)), // Ensure valid unique non-empty names.
-					ControlPlane: c.Bool(),
+					ControlPlane: ptr.To(c.Bool()),
 				},
 			)
 		}

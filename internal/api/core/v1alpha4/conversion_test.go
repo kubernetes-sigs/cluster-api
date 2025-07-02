@@ -233,7 +233,7 @@ func hubClusterStatus(in *clusterv1.ClusterStatus, c randfill.Continue) {
 			in.FailureDomains = append(in.FailureDomains,
 				clusterv1.FailureDomain{
 					Name:         fmt.Sprintf("%d-%s", i, c.String(255)), // Ensure valid unique non-empty names.
-					ControlPlane: c.Bool(),
+					ControlPlane: ptr.To(c.Bool()),
 				},
 			)
 		}
@@ -311,22 +311,42 @@ func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c randfill.Continue) {
 	// NOTE: We have to fuzz the individual fields manually,
 	// because we cannot call `FillNoCustom` as it would lead
 	// to an infinite recursion.
+	_ = fillHubJSONSchemaProps(in, c)
+
+	// Fill one level recursion.
+	in.AdditionalProperties = fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)
+	in.Properties = map[string]clusterv1.JSONSchemaProps{}
+	for range c.Intn(5) {
+		in.Properties[c.String(0)] = *fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)
+	}
+	in.Items = fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)
+	in.AllOf = []clusterv1.JSONSchemaProps{*fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)}
+	in.OneOf = []clusterv1.JSONSchemaProps{*fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)}
+	in.AnyOf = []clusterv1.JSONSchemaProps{*fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)}
+	in.Not = fillHubJSONSchemaProps(&clusterv1.JSONSchemaProps{}, c)
+}
+
+func fillHubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c randfill.Continue) *clusterv1.JSONSchemaProps {
 	in.Type = c.String(0)
-	for i := 0; i < c.Intn(10); i++ {
+	for range c.Intn(10) {
 		in.Required = append(in.Required, c.String(0))
 	}
-	in.MaxItems = ptr.To(c.Int63())
-	in.MinItems = ptr.To(c.Int63())
-	in.UniqueItems = c.Bool()
 	in.Format = c.String(0)
-	in.MaxLength = ptr.To(c.Int63())
-	in.MinLength = ptr.To(c.Int63())
 	in.Pattern = c.String(0)
-	in.Maximum = ptr.To(c.Int63())
-	in.Maximum = ptr.To(c.Int63())
-	in.ExclusiveMaximum = c.Bool()
-	in.Minimum = ptr.To(c.Int63())
-	in.ExclusiveMinimum = c.Bool()
+	if c.Bool() {
+		in.MaxItems = ptr.To(c.Int63())
+		in.MinItems = ptr.To(c.Int63())
+		in.MaxLength = ptr.To(c.Int63())
+		in.MinLength = ptr.To(c.Int63())
+		in.Maximum = ptr.To(c.Int63())
+		in.Maximum = ptr.To(c.Int63())
+		in.Minimum = ptr.To(c.Int63())
+		in.UniqueItems = ptr.To(c.Bool())
+		in.ExclusiveMaximum = ptr.To(c.Bool())
+		in.ExclusiveMinimum = ptr.To(c.Bool())
+		in.XPreserveUnknownFields = ptr.To(c.Bool())
+		in.XIntOrString = ptr.To(c.Bool())
+	}
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting valid values.
 	in.Enum = []apiextensionsv1.JSON{
@@ -336,18 +356,7 @@ func hubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c randfill.Continue) {
 	}
 	in.Default = &apiextensionsv1.JSON{Raw: []byte(strconv.FormatBool(c.Bool()))}
 
-	// We're using a copy of the current JSONSchemaProps,
-	// because we cannot recursively fuzz new schemas.
-	in2 := in.DeepCopy()
-	in.AdditionalProperties = in2
-
-	// We're using a copy of the current JSONSchemaProps,
-	// because we cannot recursively fuzz new schemas.
-	in.Properties = map[string]clusterv1.JSONSchemaProps{}
-	for i := 0; i < c.Intn(10); i++ {
-		in.Properties[c.String(0)] = *in2
-	}
-	in.Items = in2
+	return in
 }
 
 func spokeLocalObjectTemplate(in *LocalObjectTemplate, c randfill.Continue) {

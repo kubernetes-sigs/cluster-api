@@ -29,6 +29,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -300,7 +301,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 
 	templateExists := s.infrastructureTemplateExists && (md.Spec.Template.Spec.Bootstrap.ConfigRef == nil || s.bootstrapTemplateExists)
 
-	if md.Spec.Paused {
+	if ptr.Deref(md.Spec.Paused, false) {
 		return r.sync(ctx, md, s.machineSets, templateExists)
 	}
 

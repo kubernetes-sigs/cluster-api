@@ -72,3 +72,35 @@ func Convert_bool_To_Pointer_bool(in bool, hasRestored bool, restoredIn *bool, o
 	// Otherwise, if the value is true, convert to *true.
 	*out = ptr.To(true)
 }
+
+func Convert_int32_To_Pointer_int32(in int32, hasRestored bool, restoredIn *int32, out **int32) {
+	// If the value is 0, convert to *0 only if the value was *0 before (we know it was intentionally set to 0).
+	// In all the other cases we do not know if the value was intentionally set to 0, so convert to nil.
+	if in == 0 {
+		if hasRestored && restoredIn != nil && *restoredIn == 0 {
+			*out = ptr.To[int32](0)
+			return
+		}
+		*out = nil
+		return
+	}
+
+	// Otherwise, if the value is not 0, convert to *value.
+	*out = ptr.To(in)
+}
+
+func Convert_Duration_To_Pointer_int32(in metav1.Duration, hasRestored bool, restoredIn *int32, out **int32) {
+	// If the value is 0s, convert to *0 only if the value was *0 before (we know it was intentionally set to 0).
+	// In all the other cases we do not know if the value was intentionally set to 0, so convert to nil.
+	if in.Nanoseconds() == 0 {
+		if hasRestored && restoredIn != nil && *restoredIn == 0 {
+			*out = ptr.To[int32](0)
+			return
+		}
+		*out = nil
+		return
+	}
+
+	// Otherwise, if the value is not 0, convert to *value.
+	*out = ConvertToSeconds(&in)
+}

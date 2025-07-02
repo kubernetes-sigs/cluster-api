@@ -498,7 +498,7 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	}
 	retryPeriod := time.Duration(0)
 	if controlPlane.KCP.Spec.RemediationStrategy != nil {
-		retryPeriod = time.Duration(controlPlane.KCP.Spec.RemediationStrategy.RetryPeriodSeconds) * time.Second
+		retryPeriod = time.Duration(ptr.Deref(controlPlane.KCP.Spec.RemediationStrategy.RetryPeriodSeconds, 0)) * time.Second
 	}
 
 	// Gets the timestamp of the last remediation; if missing, default to a value

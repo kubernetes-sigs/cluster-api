@@ -2035,6 +2035,21 @@ func (in *MachineHealthCheckStatus) DeepCopyInto(out *MachineHealthCheckStatus) 
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.ExpectedMachines != nil {
+		in, out := &in.ExpectedMachines, &out.ExpectedMachines
+		*out = new(int32)
+		**out = **in
+	}
+	if in.CurrentHealthy != nil {
+		in, out := &in.CurrentHealthy, &out.CurrentHealthy
+		*out = new(int32)
+		**out = **in
+	}
+	if in.RemediationsAllowed != nil {
+		in, out := &in.RemediationsAllowed, &out.RemediationsAllowed
+		*out = new(int32)
+		**out = **in
+	}
 	if in.Targets != nil {
 		in, out := &in.Targets, &out.Targets
 		*out = make([]string, len(*in))

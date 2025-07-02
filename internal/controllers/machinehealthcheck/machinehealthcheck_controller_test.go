@@ -229,9 +229,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}, 5*time.Second, 100*time.Millisecond).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    2,
-			CurrentHealthy:      2,
-			RemediationsAllowed: 2,
+			ExpectedMachines:    ptr.To[int32](2),
+			CurrentHealthy:      ptr.To[int32](2),
+			RemediationsAllowed: ptr.To[int32](2),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -297,9 +297,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    2,
-			CurrentHealthy:      2,
-			RemediationsAllowed: 2,
+			ExpectedMachines:    ptr.To[int32](2),
+			CurrentHealthy:      ptr.To[int32](2),
+			RemediationsAllowed: ptr.To[int32](2),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -358,9 +358,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    2,
-			CurrentHealthy:      2,
-			RemediationsAllowed: 2,
+			ExpectedMachines:    ptr.To[int32](2),
+			CurrentHealthy:      ptr.To[int32](2),
+			RemediationsAllowed: ptr.To[int32](2),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -449,9 +449,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    4,
-			CurrentHealthy:      2,
-			RemediationsAllowed: 2,
+			ExpectedMachines:    ptr.To[int32](4),
+			CurrentHealthy:      ptr.To[int32](2),
+			RemediationsAllowed: ptr.To[int32](2),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -521,9 +521,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    3,
-			CurrentHealthy:      2,
-			RemediationsAllowed: 2,
+			ExpectedMachines:    ptr.To[int32](3),
+			CurrentHealthy:      ptr.To[int32](2),
+			RemediationsAllowed: ptr.To[int32](2),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -631,9 +631,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    3,
-			CurrentHealthy:      2,
-			RemediationsAllowed: 2,
+			ExpectedMachines:    ptr.To[int32](3),
+			CurrentHealthy:      ptr.To[int32](2),
+			RemediationsAllowed: ptr.To[int32](2),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -742,9 +742,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    3,
-			CurrentHealthy:      1,
-			RemediationsAllowed: 0,
+			ExpectedMachines:    ptr.To[int32](3),
+			CurrentHealthy:      ptr.To[int32](1),
+			RemediationsAllowed: ptr.To[int32](0),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -819,9 +819,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    3,
-			CurrentHealthy:      2,
-			RemediationsAllowed: 2,
+			ExpectedMachines:    ptr.To[int32](3),
+			CurrentHealthy:      ptr.To[int32](2),
+			RemediationsAllowed: ptr.To[int32](2),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -892,9 +892,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    3,
-			CurrentHealthy:      1,
-			RemediationsAllowed: 0,
+			ExpectedMachines:    ptr.To[int32](3),
+			CurrentHealthy:      ptr.To[int32](1),
+			RemediationsAllowed: ptr.To[int32](0),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -976,9 +976,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    3,
-			CurrentHealthy:      2,
-			RemediationsAllowed: 2,
+			ExpectedMachines:    ptr.To[int32](3),
+			CurrentHealthy:      ptr.To[int32](2),
+			RemediationsAllowed: ptr.To[int32](2),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -1051,9 +1051,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}, timeout, 100*time.Millisecond).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    3,
-			CurrentHealthy:      2,
-			RemediationsAllowed: 2,
+			ExpectedMachines:    ptr.To[int32](3),
+			CurrentHealthy:      ptr.To[int32](2),
+			RemediationsAllowed: ptr.To[int32](2),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -1123,9 +1123,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    3,
-			CurrentHealthy:      2,
-			RemediationsAllowed: 2,
+			ExpectedMachines:    ptr.To[int32](3),
+			CurrentHealthy:      ptr.To[int32](2),
+			RemediationsAllowed: ptr.To[int32](2),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -1187,9 +1187,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    3,
-			CurrentHealthy:      3,
-			RemediationsAllowed: 3,
+			ExpectedMachines:    ptr.To[int32](3),
+			CurrentHealthy:      ptr.To[int32](3),
+			RemediationsAllowed: ptr.To[int32](3),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -1249,9 +1249,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    1,
-			CurrentHealthy:      1,
-			RemediationsAllowed: 1,
+			ExpectedMachines:    ptr.To[int32](1),
+			CurrentHealthy:      ptr.To[int32](1),
+			RemediationsAllowed: ptr.To[int32](1),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -1296,10 +1296,11 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   1,
-			CurrentHealthy:     0,
-			ObservedGeneration: 1,
-			Targets:            targetMachines,
+			ExpectedMachines:    ptr.To[int32](1),
+			CurrentHealthy:      ptr.To[int32](0),
+			RemediationsAllowed: ptr.To[int32](0),
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
 					Conditions: clusterv1.Conditions{
@@ -1486,8 +1487,8 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:   1,
-			CurrentHealthy:     1,
+			ExpectedMachines:   ptr.To[int32](1),
+			CurrentHealthy:     ptr.To[int32](1),
 			ObservedGeneration: 1,
 			Targets:            targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -1536,9 +1537,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    1,
-			CurrentHealthy:      0,
-			RemediationsAllowed: 0,
+			ExpectedMachines:    ptr.To[int32](1),
+			CurrentHealthy:      ptr.To[int32](0),
+			RemediationsAllowed: ptr.To[int32](0),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -1626,9 +1627,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    1,
-			CurrentHealthy:      1,
-			RemediationsAllowed: 1,
+			ExpectedMachines:    ptr.To[int32](1),
+			CurrentHealthy:      ptr.To[int32](1),
+			RemediationsAllowed: ptr.To[int32](1),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -1673,9 +1674,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    1,
-			CurrentHealthy:      0,
-			RemediationsAllowed: 0,
+			ExpectedMachines:    ptr.To[int32](1),
+			CurrentHealthy:      ptr.To[int32](0),
+			RemediationsAllowed: ptr.To[int32](0),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -1784,9 +1785,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    1,
-			CurrentHealthy:      1,
-			RemediationsAllowed: 1,
+			ExpectedMachines:    ptr.To[int32](1),
+			CurrentHealthy:      ptr.To[int32](1),
+			RemediationsAllowed: ptr.To[int32](1),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -1831,9 +1832,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    1,
-			CurrentHealthy:      0,
-			RemediationsAllowed: 0,
+			ExpectedMachines:    ptr.To[int32](1),
+			CurrentHealthy:      ptr.To[int32](0),
+			RemediationsAllowed: ptr.To[int32](0),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -1878,9 +1879,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			}
 			return &mhc.Status
 		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
-			ExpectedMachines:    1,
-			CurrentHealthy:      1,
-			RemediationsAllowed: 1,
+			ExpectedMachines:    ptr.To[int32](1),
+			CurrentHealthy:      ptr.To[int32](1),
+			RemediationsAllowed: ptr.To[int32](1),
 			ObservedGeneration:  1,
 			Targets:             targetMachines,
 			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
@@ -2341,8 +2342,8 @@ func TestIsAllowedRemediation(t *testing.T) {
 					NodeStartupTimeoutSeconds: ptr.To(int32(0)),
 				},
 				Status: clusterv1.MachineHealthCheckStatus{
-					ExpectedMachines:   tc.expectedMachines,
-					CurrentHealthy:     tc.currentHealthy,
+					ExpectedMachines:   ptr.To(tc.expectedMachines),
+					CurrentHealthy:     ptr.To(tc.currentHealthy),
 					ObservedGeneration: tc.observedGeneration,
 				},
 			}
@@ -2407,7 +2408,7 @@ func TestGetMaxUnhealthy(t *testing.T) {
 					MaxUnhealthy: tc.maxUnhealthy,
 				},
 				Status: clusterv1.MachineHealthCheckStatus{
-					ExpectedMachines: tc.actualMachineCount,
+					ExpectedMachines: ptr.To(tc.actualMachineCount),
 				},
 			}
 

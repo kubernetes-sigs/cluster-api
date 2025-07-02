@@ -499,7 +499,22 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineHealthCheck)
 
-	return Convert_v1beta1_MachineHealthCheck_To_v1beta2_MachineHealthCheck(src, dst, nil)
+	if err := Convert_v1beta1_MachineHealthCheck_To_v1beta2_MachineHealthCheck(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &clusterv1.MachineHealthCheck{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	clusterv1.Convert_int32_To_Pointer_int32(src.Status.ExpectedMachines, ok, restored.Status.ExpectedMachines, &dst.Status.ExpectedMachines)
+	clusterv1.Convert_int32_To_Pointer_int32(src.Status.CurrentHealthy, ok, restored.Status.CurrentHealthy, &dst.Status.CurrentHealthy)
+	clusterv1.Convert_int32_To_Pointer_int32(src.Status.RemediationsAllowed, ok, restored.Status.RemediationsAllowed, &dst.Status.RemediationsAllowed)
+
+	return nil
 }
 
 func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
@@ -513,7 +528,8 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	dropEmptyStringsMachineHealthCheck(dst)
-	return nil
+
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {

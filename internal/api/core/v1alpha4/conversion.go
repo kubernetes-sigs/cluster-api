@@ -612,9 +612,19 @@ func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &clusterv1.MachineHealthCheck{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
+
+	clusterv1.Convert_int32_To_Pointer_int32(src.Status.ExpectedMachines, ok, restored.Status.ExpectedMachines, &dst.Status.ExpectedMachines)
+	clusterv1.Convert_int32_To_Pointer_int32(src.Status.CurrentHealthy, ok, restored.Status.CurrentHealthy, &dst.Status.CurrentHealthy)
+	clusterv1.Convert_int32_To_Pointer_int32(src.Status.RemediationsAllowed, ok, restored.Status.RemediationsAllowed, &dst.Status.RemediationsAllowed)
+
+	if !ok {
+		return nil
+	}
+
 	dst.Status.Conditions = restored.Status.Conditions
 
 	return nil

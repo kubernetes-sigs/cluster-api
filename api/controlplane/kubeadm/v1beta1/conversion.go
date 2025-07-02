@@ -83,6 +83,17 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec)
 	}
 
+	if src.Spec.RemediationStrategy != nil {
+		if dst.Spec.RemediationStrategy == nil {
+			dst.Spec.RemediationStrategy = &controlplanev1.RemediationStrategy{}
+		}
+		var restoredRetryPeriodSeconds *int32
+		if restored.Spec.RemediationStrategy != nil {
+			restoredRetryPeriodSeconds = restored.Spec.RemediationStrategy.RetryPeriodSeconds
+		}
+		clusterv1.Convert_Duration_To_Pointer_int32(src.Spec.RemediationStrategy.RetryPeriod, ok, restoredRetryPeriodSeconds, &dst.Spec.RemediationStrategy.RetryPeriodSeconds)
+	}
+
 	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
 	src.Spec.KubeadmConfigSpec.ConvertTo(&dst.Spec.KubeadmConfigSpec)
 	return nil
@@ -131,6 +142,17 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		bootstrapv1beta1.RestoreKubeadmConfigSpec(&restored.Spec.Template.Spec.KubeadmConfigSpec, &dst.Spec.Template.Spec.KubeadmConfigSpec)
+	}
+
+	if src.Spec.Template.Spec.RemediationStrategy != nil {
+		if dst.Spec.Template.Spec.RemediationStrategy == nil {
+			dst.Spec.Template.Spec.RemediationStrategy = &controlplanev1.RemediationStrategy{}
+		}
+		var restoredRetryPeriodSeconds *int32
+		if restored.Spec.Template.Spec.RemediationStrategy != nil {
+			restoredRetryPeriodSeconds = restored.Spec.Template.Spec.RemediationStrategy.RetryPeriodSeconds
+		}
+		clusterv1.Convert_Duration_To_Pointer_int32(src.Spec.Template.Spec.RemediationStrategy.RetryPeriod, ok, restoredRetryPeriodSeconds, &dst.Spec.Template.Spec.RemediationStrategy.RetryPeriodSeconds)
 	}
 
 	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
@@ -281,7 +303,7 @@ func Convert_v1beta1_RemediationStrategy_To_v1beta2_RemediationStrategy(in *Reme
 		return err
 	}
 	out.MinHealthyPeriodSeconds = clusterv1.ConvertToSeconds(in.MinHealthyPeriod)
-	out.RetryPeriodSeconds = ptr.Deref(clusterv1.ConvertToSeconds(&in.RetryPeriod), 0)
+	out.RetryPeriodSeconds = clusterv1.ConvertToSeconds(&in.RetryPeriod)
 	return nil
 }
 
@@ -290,7 +312,7 @@ func Convert_v1beta2_RemediationStrategy_To_v1beta1_RemediationStrategy(in *cont
 		return err
 	}
 	out.MinHealthyPeriod = clusterv1.ConvertFromSeconds(in.MinHealthyPeriodSeconds)
-	out.RetryPeriod = ptr.Deref(clusterv1.ConvertFromSeconds(&in.RetryPeriodSeconds), metav1.Duration{})
+	out.RetryPeriod = ptr.Deref(clusterv1.ConvertFromSeconds(in.RetryPeriodSeconds), metav1.Duration{})
 	return nil
 }
 

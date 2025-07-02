@@ -20,11 +20,11 @@ package v1beta1
 
 import (
 	"testing"
+	"time"
 
-	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/randfill"
 
@@ -81,76 +81,8 @@ func spokeTestResourceSpec(in *TestResourceSpec, c randfill.Continue) {
 	if in.PtrStringToString != nil && *in.PtrStringToString == "" {
 		in.PtrStringToString = nil
 	}
-}
 
-func TestConvert_int32_To_Pointer_int32(t *testing.T) {
-	testCases := []struct {
-		name        string
-		in          int32
-		hasRestored bool
-		restored    *int32
-		wantOut     *int32
-	}{
-		{
-			name:    "when applying v1beta1, 0 should be converted to nil",
-			in:      0,
-			wantOut: nil,
-		},
-		{
-			name:    "when applying v1beta1, value!=0 should be converted to *value",
-			in:      1,
-			wantOut: ptr.To[int32](1),
-		},
-		{
-			name:        "when doing round trip, 0 should be converted to nil if not previously explicitly set to 0 (previously set to nil)",
-			in:          0,
-			hasRestored: true,
-			restored:    nil,
-			wantOut:     nil,
-		},
-		{
-			name:        "when doing round trip, 0 should be converted to nil if not previously explicitly set to 0 (previously set to another value)",
-			in:          0,
-			hasRestored: true,
-			restored:    ptr.To[int32](1),
-			wantOut:     nil,
-		},
-		{
-			name:        "when doing round trip, 0 should be converted to 0 if previously explicitly set to 0",
-			in:          0,
-			hasRestored: true,
-			restored:    ptr.To[int32](0),
-			wantOut:     ptr.To[int32](0),
-		},
-		{
-			name:        "when doing round trip, value should be converted to *value (no matter of restored value is nil)",
-			in:          1,
-			hasRestored: true,
-			restored:    nil,
-			wantOut:     ptr.To[int32](1),
-		},
-		{
-			name:        "when doing round trip, value should be converted to *value (no matter of restored value is not 0)",
-			in:          1,
-			hasRestored: true,
-			restored:    ptr.To[int32](2),
-			wantOut:     ptr.To[int32](1),
-		},
-		{
-			name:        "when doing round trip, value should be converted to *value (no matter of restored value is 0)",
-			in:          1,
-			hasRestored: true,
-			restored:    ptr.To[int32](0),
-			wantOut:     ptr.To[int32](1),
-		},
-	}
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			var out *int32
-			Convert_int32_To_Pointer_int32(tt.in, tt.hasRestored, tt.restored, &out)
-			g.Expect(out).To(Equal(tt.wantOut))
-		})
+	if in.DurationToPtrInt32.Nanoseconds() != 0 {
+		in.DurationToPtrInt32 = metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second}
 	}
 }

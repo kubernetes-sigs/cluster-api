@@ -583,7 +583,7 @@ type RemediationStrategy struct {
 	// If not set, a retry will happen immediately.
 	// +optional
 	// +kubebuilder:validation:Minimum=0
-	RetryPeriodSeconds int32 `json:"retryPeriodSeconds,omitempty"`
+	RetryPeriodSeconds *int32 `json:"retryPeriodSeconds,omitempty"`
 
 	// minHealthyPeriodSeconds defines the duration after which KCP will consider any failure to a machine unrelated
 	// from the previous one. In this case the remediation is not considered a retry anymore, and thus the retry
@@ -740,14 +740,14 @@ type KubeadmControlPlaneV1Beta1DeprecatedStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
-	UpdatedReplicas int32 `json:"updatedReplicas"`
+	UpdatedReplicas int32 `json:"updatedReplicas"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 
 	// readyReplicas is the total number of fully running and ready control plane machines.
 	//
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
-	ReadyReplicas int32 `json:"readyReplicas"`
+	ReadyReplicas int32 `json:"readyReplicas"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 
 	// unavailableReplicas is the total number of unavailable machines targeted by this control plane.
 	// This is the total number of machines that are still required for
@@ -758,7 +758,7 @@ type KubeadmControlPlaneV1Beta1DeprecatedStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
-	UnavailableReplicas int32 `json:"unavailableReplicas"`
+	UnavailableReplicas int32 `json:"unavailableReplicas"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 }
 
 // LastRemediationStatus  stores info about last remediation performed.

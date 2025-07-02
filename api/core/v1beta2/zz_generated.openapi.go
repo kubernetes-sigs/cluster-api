@@ -3550,7 +3550,6 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckStatus(ref common.Ref
 					"expectedMachines": {
 						SchemaProps: spec.SchemaProps{
 							Description: "expectedMachines is the total number of machines counted by this machine health check",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -3558,7 +3557,6 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckStatus(ref common.Ref
 					"currentHealthy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "currentHealthy is the total number of healthy machines counted by this machine health check",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -3566,7 +3564,6 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckStatus(ref common.Ref
 					"remediationsAllowed": {
 						SchemaProps: spec.SchemaProps{
 							Description: "remediationsAllowed is the number of further remediations allowed by this machine health check before maxUnhealthy short circuiting will be applied",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

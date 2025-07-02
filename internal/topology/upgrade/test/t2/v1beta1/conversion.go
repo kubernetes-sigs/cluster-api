@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
@@ -44,24 +46,9 @@ func (src *TestResourceTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.Template.Spec.BoolToPtrBool, ok, restored.Spec.Template.Spec.BoolToPtrBool, &dst.Spec.Template.Spec.BoolToPtrBool)
-	Convert_int32_To_Pointer_int32(src.Spec.Template.Spec.Int32ToPtrInt32, ok, restored.Spec.Template.Spec.Int32ToPtrInt32, &dst.Spec.Template.Spec.Int32ToPtrInt32)
+	clusterv1.Convert_int32_To_Pointer_int32(src.Spec.Template.Spec.Int32ToPtrInt32, ok, restored.Spec.Template.Spec.Int32ToPtrInt32, &dst.Spec.Template.Spec.Int32ToPtrInt32)
+	clusterv1.Convert_Duration_To_Pointer_int32(src.Spec.Template.Spec.DurationToPtrInt32, ok, restored.Spec.Template.Spec.DurationToPtrInt32, &dst.Spec.Template.Spec.DurationToPtrInt32)
 	return nil
-}
-
-func Convert_int32_To_Pointer_int32(in int32, hasRestored bool, restoredIn *int32, out **int32) {
-	// If the value is 0, convert to *0 only if the value was *0 before (we know it was intentionally set to 0).
-	// In all the other cases we do not know if the value was intentionally set to 0, so convert to nil.
-	if in == 0 {
-		if hasRestored && restoredIn != nil && *restoredIn == 0 {
-			*out = ptr.To[int32](0)
-			return
-		}
-		*out = nil
-		return
-	}
-
-	// Otherwise, if the value is not 0, convert to *value.
-	*out = ptr.To(in)
 }
 
 func (dst *TestResourceTemplate) ConvertFrom(srcRaw conversion.Hub) error {
@@ -96,7 +83,8 @@ func (src *TestResource) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.BoolToPtrBool, ok, restored.Spec.BoolToPtrBool, &dst.Spec.BoolToPtrBool)
-	Convert_int32_To_Pointer_int32(src.Spec.Int32ToPtrInt32, ok, restored.Spec.Int32ToPtrInt32, &dst.Spec.Int32ToPtrInt32)
+	clusterv1.Convert_int32_To_Pointer_int32(src.Spec.Int32ToPtrInt32, ok, restored.Spec.Int32ToPtrInt32, &dst.Spec.Int32ToPtrInt32)
+	clusterv1.Convert_Duration_To_Pointer_int32(src.Spec.DurationToPtrInt32, ok, restored.Spec.DurationToPtrInt32, &dst.Spec.DurationToPtrInt32)
 	return nil
 }
 
@@ -112,4 +100,20 @@ func (dst *TestResource) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	return utilconversion.MarshalData(src, dst)
+}
+
+func Convert_v1beta1_TestResourceSpec_To_v1beta2_TestResourceSpec(in *TestResourceSpec, out *testv1.TestResourceSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_TestResourceSpec_To_v1beta2_TestResourceSpec(in, out, s); err != nil {
+		return err
+	}
+	out.DurationToPtrInt32 = clusterv1.ConvertToSeconds(&in.DurationToPtrInt32)
+	return nil
+}
+
+func Convert_v1beta2_TestResourceSpec_To_v1beta1_TestResourceSpec(in *testv1.TestResourceSpec, out *TestResourceSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_TestResourceSpec_To_v1beta1_TestResourceSpec(in, out, s); err != nil {
+		return err
+	}
+	out.DurationToPtrInt32 = ptr.Deref(clusterv1.ConvertFromSeconds(in.DurationToPtrInt32), metav1.Duration{})
+	return nil
 }

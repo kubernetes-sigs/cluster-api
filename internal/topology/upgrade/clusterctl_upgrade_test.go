@@ -65,6 +65,8 @@ const (
 	omittableFieldsMustNotBeSet = false
 	zeroMustBeSet               = true
 	zeroMustNotBeSet            = false
+	zeroSecondsMustBeSet        = true
+	zeroSecondsMustNotBeSet     = false
 )
 
 // allObjs can be used to look at all the objects / how they change across generation while debugging.
@@ -127,9 +129,10 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	g.Eventually(func() error {
 		cluster1Refs, err = getClusterTopologyReferences(cluster1, "v1beta1",
 			checkOmittableFromPatchesField(omittableFieldsMustNotBeSet), // The defaulting webhook drops the omittable field when using v1beta1.
-			checkPtrTypeToType(),                   // "" should never show up in the yaml ("" is not a valid value).
-			checkTypeToPtrType(),                   // zero or false should never show up due to omitempty (mutating webhook is dropping omitempty values).
-			checkTypeToOmitZeroType(zeroMustBeSet), // zero value should show up (no omitzero).
+			checkPtrTypeToType(),                          // "" should never show up in the yaml ("" is not a valid value).
+			checkTypeToPtrType(),                          // zero or false should never show up due to omitempty (mutating webhook is dropping omitempty values).
+			checkDurationToPtrInt32(zeroSecondsMustBeSet), // metav1.Duration is marshalled as 0s.
+			checkTypeToOmitZeroType(zeroMustBeSet),        // zero value should show up (no omitzero).
 		)
 		if err != nil {
 			return err
@@ -184,9 +187,10 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	g.Eventually(func() error {
 		cluster1RefsNew, err = getClusterTopologyReferences(cluster1, "v1beta2",
 			checkOmittableFromPatchesField(omittableFieldsMustBeSet), // The defaulting webhook does not drop the omittable field anymore when using v1beta2.
-			checkPtrTypeToType(),                      // "" should never show up in the yaml due to omitempty (we set to "" in conversion, but omitempty drops it from yaml).
-			checkTypeToPtrType(),                      // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
-			checkTypeToOmitZeroType(zeroMustNotBeSet), // zero value must not show up (omitzero through conversion).
+			checkPtrTypeToType(),                             // "" should never show up in the yaml due to omitempty (we set to "" in conversion, but omitempty drops it from yaml).
+			checkTypeToPtrType(),                             // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
+			checkDurationToPtrInt32(zeroSecondsMustNotBeSet), // 0 should never show up (we drop 0 on conversion, we assume implicitly set)
+			checkTypeToOmitZeroType(zeroMustNotBeSet),        // zero value must not show up (omitzero through conversion).
 		)
 		if err != nil {
 			return err
@@ -205,9 +209,10 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	g.Eventually(func() error {
 		cluster2Refs, err = getClusterTopologyReferences(cluster2, "v1beta2",
 			checkOmittableFromPatchesField(omittableFieldsMustNotBeSet), // The conversion webhook drops the omittable field when using v1beta1.
-			checkPtrTypeToType(),                      // "" should never show up in the yaml ("" is not a valid value).
-			checkTypeToPtrType(),                      // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
-			checkTypeToOmitZeroType(zeroMustNotBeSet), // zero value must not show up (omitzero through conversion, also not a valid value).
+			checkPtrTypeToType(),                             // "" should never show up in the yaml ("" is not a valid value).
+			checkTypeToPtrType(),                             // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
+			checkDurationToPtrInt32(zeroSecondsMustNotBeSet), // 0 should never show up (we drop 0 on conversion, we assume implicitly set)
+			checkTypeToOmitZeroType(zeroMustNotBeSet),        // zero value must not show up (omitzero through conversion, also not a valid value).
 		)
 		if err != nil {
 			return err
@@ -231,9 +236,10 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	g.Eventually(func() error {
 		cluster2RefsNew, err = getClusterTopologyReferences(cluster2, "v1beta2",
 			checkOmittableFromPatchesField(omittableFieldsMustBeSet), // The defaulting webhook do not drop anymore the omittable field when using v1beta2.
-			checkPtrTypeToType(),                      // "" should never show up in the yaml due to omitempty (also not a valid value).
-			checkTypeToPtrType(),                      // zero or false should never show up (it will show up if someone explicitly set zero or false)
-			checkTypeToOmitZeroType(zeroMustNotBeSet), // zero value must not show up (omitzero, also not a valid value).
+			checkPtrTypeToType(),                             // "" should never show up in the yaml due to omitempty (also not a valid value).
+			checkTypeToPtrType(),                             // zero or false should never show up (it will show up if someone explicitly set zero or false)
+			checkDurationToPtrInt32(zeroSecondsMustNotBeSet), // 0 should never show up (it will show up if someone explicitly sets 0)
+			checkTypeToOmitZeroType(zeroMustNotBeSet),        // zero value must not show up (omitzero, also not a valid value).
 		)
 		if err != nil {
 			return err
@@ -284,9 +290,10 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 		Spec: testt1v1beta1.TestResourceTemplateSpec{
 			Template: testt1v1beta1.TestResourceTemplateResource{
 				Spec: testt1v1beta1.TestResourceSpec{
-					BoolToPtrBool:     true,
-					PtrStringToString: ptr.To("Something"),
-					Int32ToPtrInt32:   int32(4),
+					BoolToPtrBool:      true,
+					PtrStringToString:  ptr.To("Something"),
+					Int32ToPtrInt32:    int32(4),
+					DurationToPtrInt32: metav1.Duration{Duration: 5 * time.Second},
 					StructWithOnlyOptionalFields: testt1v1beta1.StructWithOnlyOptionalFields{
 						A: "Something",
 					},
@@ -307,6 +314,7 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 					BoolToPtrBool:                false,
 					PtrStringToString:            nil,
 					Int32ToPtrInt32:              0,
+					DurationToPtrInt32:           metav1.Duration{},
 					StructWithOnlyOptionalFields: testt1v1beta1.StructWithOnlyOptionalFields{},
 				},
 			},
@@ -481,9 +489,10 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 		Spec: testt2v1beta2.TestResourceTemplateSpec{
 			Template: testt2v1beta2.TestResourceTemplateResource{
 				Spec: testt2v1beta2.TestResourceSpec{
-					BoolToPtrBool:     ptr.To(true),
-					PtrStringToString: "Something",
-					Int32ToPtrInt32:   ptr.To[int32](4),
+					BoolToPtrBool:      ptr.To(true),
+					PtrStringToString:  "Something",
+					Int32ToPtrInt32:    ptr.To[int32](4),
+					DurationToPtrInt32: ptr.To[int32](5),
 					StructWithOnlyOptionalFields: testt2v1beta2.StructWithOnlyOptionalFields{
 						A: "Something",
 					},
@@ -504,6 +513,7 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 				Spec: testt2v1beta2.TestResourceSpec{
 					BoolToPtrBool:                nil,
 					Int32ToPtrInt32:              nil,
+					DurationToPtrInt32:           nil,
 					StructWithOnlyOptionalFields: testt2v1beta2.StructWithOnlyOptionalFields{},
 				},
 			},
@@ -857,6 +867,36 @@ func checkTypeToPtrType() func(obj *unstructured.Unstructured) error {
 			}
 			if exists && !value2 {
 				return errors.New("expected to not contain a false boolToPtrBool field")
+			}
+		}
+		return nil
+	}
+}
+
+func checkDurationToPtrInt32(mustBeSet bool) func(obj *unstructured.Unstructured) error {
+	return func(obj *unstructured.Unstructured) error {
+		switch obj.GetKind() {
+		case "TestResource":
+			value, exists, err := unstructured.NestedFieldCopy(obj.Object, "spec", "durationToPtrInt32")
+			if err != nil {
+				return err
+			}
+			if !mustBeSet && exists && (reflect.DeepEqual(value, "0s") || reflect.DeepEqual(value, int64(0))) {
+				return errors.New("expected to not contain a 0s durationToPtrInt32 field")
+			}
+			if mustBeSet && !exists {
+				return errors.New("expected to contain a durationToPtrInt32 field")
+			}
+		case "TestResourceTemplate":
+			value, exists, err := unstructured.NestedFieldCopy(obj.Object, "spec", "template", "spec", "durationToPtrInt32")
+			if err != nil {
+				return err
+			}
+			if !mustBeSet && exists && (reflect.DeepEqual(value, "0s") || reflect.DeepEqual(value, int64(0))) {
+				return errors.New("expected to not contain a 0s durationToPtrInt32 field")
+			}
+			if mustBeSet && !exists {
+				return errors.New("expected to contain a durationToPtrInt32 field")
 			}
 		}
 		return nil

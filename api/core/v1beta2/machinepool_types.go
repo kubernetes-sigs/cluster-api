@@ -212,14 +212,14 @@ type MachinePoolV1Beta1DeprecatedStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
-	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
+	ReadyReplicas int32 `json:"readyReplicas,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 
 	// availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool.
 	//
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
-	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
+	AvailableReplicas int32 `json:"availableReplicas,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 
 	// unavailableReplicas is the total number of unavailable machine instances targeted by this machine pool.
 	// This is the total number of machine instances that are still required for
@@ -230,7 +230,7 @@ type MachinePoolV1Beta1DeprecatedStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
-	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"`
+	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 }
 
 // ANCHOR_END: MachinePoolStatus

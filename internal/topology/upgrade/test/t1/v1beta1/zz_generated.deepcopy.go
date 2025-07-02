@@ -143,6 +143,7 @@ func (in *TestResourceSpec) DeepCopyInto(out *TestResourceSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	out.DurationToPtrInt32 = in.DurationToPtrInt32
 	out.StructWithOnlyOptionalFields = in.StructWithOnlyOptionalFields
 }
 

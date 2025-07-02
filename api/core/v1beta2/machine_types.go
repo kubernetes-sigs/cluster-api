@@ -737,7 +737,7 @@ type Machine struct {
 
 	// spec is the desired state of Machine.
 	// +required
-	Spec MachineSpec `json:"spec"`
+	Spec MachineSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of Machine.
 	// +optional
 	Status MachineStatus `json:"status,omitempty,omitzero"`

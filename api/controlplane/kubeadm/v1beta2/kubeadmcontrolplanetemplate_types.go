@@ -24,7 +24,6 @@ import (
 )
 
 // KubeadmControlPlaneTemplateSpec defines the desired state of KubeadmControlPlaneTemplate.
-// +kubebuilder:validation:MinProperties=1
 type KubeadmControlPlaneTemplateSpec struct {
 	// template defines the desired state of KubeadmControlPlaneTemplate.
 	// +required

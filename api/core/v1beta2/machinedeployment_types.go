@@ -594,7 +594,7 @@ type MachineDeployment struct {
 
 	// spec is the desired state of MachineDeployment.
 	// +required
-	Spec MachineDeploymentSpec `json:"spec"`
+	Spec MachineDeploymentSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of MachineDeployment.
 	// +optional
 	Status MachineDeploymentStatus `json:"status,omitempty,omitzero"`

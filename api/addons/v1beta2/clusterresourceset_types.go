@@ -205,7 +205,7 @@ type ClusterResourceSet struct {
 
 	// spec is the desired state of ClusterResourceSet.
 	// +required
-	Spec ClusterResourceSetSpec `json:"spec"`
+	Spec ClusterResourceSetSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of ClusterResourceSet.
 	// +optional
 	Status ClusterResourceSetStatus `json:"status,omitempty,omitzero"`

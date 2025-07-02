@@ -7390,7 +7390,6 @@ spec:
                 minLength: 1
                 type: string
             required:
-            - kubeadmConfigSpec
             - machineTemplate
             - version
             type: object

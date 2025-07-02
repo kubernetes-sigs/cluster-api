@@ -282,7 +282,7 @@ type MachineHealthCheck struct {
 
 	// spec is the specification of machine health check policy
 	// +required
-	Spec MachineHealthCheckSpec `json:"spec"`
+	Spec MachineHealthCheckSpec `json:"spec,omitempty,omitzero"`
 
 	// status is the most recently observed status of MachineHealthCheck resource
 	// +optional

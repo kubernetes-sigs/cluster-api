@@ -82,7 +82,7 @@ type ClusterClass struct {
 
 	// spec is the desired state of ClusterClass.
 	// +required
-	Spec ClusterClassSpec `json:"spec"`
+	Spec ClusterClassSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of ClusterClass.
 	// +optional
 	Status ClusterClassStatus `json:"status,omitempty,omitzero"`

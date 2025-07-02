@@ -232,7 +232,7 @@ type ExtensionConfig struct {
 
 	// spec is the desired state of the ExtensionConfig.
 	// +required
-	Spec ExtensionConfigSpec `json:"spec"`
+	Spec ExtensionConfigSpec `json:"spec,omitempty,omitzero"`
 
 	// status is the current state of the ExtensionConfig
 	// +optional

@@ -128,7 +128,7 @@ type ClusterResourceSetBinding struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// spec is the desired state of ClusterResourceSetBinding.
 	// +required
-	Spec ClusterResourceSetBindingSpec `json:"spec"`
+	Spec ClusterResourceSetBindingSpec `json:"spec,omitempty,omitzero"`
 }
 
 // ANCHOR: ClusterResourceSetBindingSpec

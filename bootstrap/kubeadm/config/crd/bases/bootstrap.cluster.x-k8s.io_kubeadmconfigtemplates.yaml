@@ -3955,7 +3955,6 @@ spec:
             type: object
           spec:
             description: spec is the desired state of KubeadmConfigTemplate.
-            minProperties: 1
             properties:
               template:
                 description: template defines the desired state of KubeadmConfigTemplate.

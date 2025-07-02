@@ -23,7 +23,6 @@ import (
 )
 
 // KubeadmConfigTemplateSpec defines the desired state of KubeadmConfigTemplate.
-// +kubebuilder:validation:MinProperties=1
 type KubeadmConfigTemplateSpec struct {
 	// template defines the desired state of KubeadmConfigTemplate.
 	// +required

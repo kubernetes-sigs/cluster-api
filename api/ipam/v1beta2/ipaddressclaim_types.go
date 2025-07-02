@@ -121,7 +121,7 @@ type IPAddressClaim struct {
 
 	// spec is the desired state of IPAddressClaim.
 	// +required
-	Spec IPAddressClaimSpec `json:"spec"`
+	Spec IPAddressClaimSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of IPAddressClaim.
 	// +optional
 	Status IPAddressClaimStatus `json:"status,omitempty,omitzero"`

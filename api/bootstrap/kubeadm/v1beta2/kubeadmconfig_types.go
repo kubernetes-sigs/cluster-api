@@ -544,7 +544,7 @@ type KubeadmConfig struct {
 
 	// spec is the desired state of KubeadmConfig.
 	// +required
-	Spec KubeadmConfigSpec `json:"spec"`
+	Spec KubeadmConfigSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of KubeadmConfig.
 	// +optional
 	Status KubeadmConfigStatus `json:"status,omitempty,omitzero"`

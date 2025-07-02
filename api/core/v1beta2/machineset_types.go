@@ -448,7 +448,7 @@ type MachineSet struct {
 
 	// spec is the desired state of MachineSet.
 	// +required
-	Spec MachineSetSpec `json:"spec"`
+	Spec MachineSetSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of MachineSet.
 	// +optional
 	Status MachineSetStatus `json:"status,omitempty,omitzero"`

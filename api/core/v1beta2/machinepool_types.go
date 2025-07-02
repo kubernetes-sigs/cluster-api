@@ -345,7 +345,7 @@ type MachinePool struct {
 
 	// spec is the desired state of MachinePool.
 	// +required
-	Spec MachinePoolSpec `json:"spec"`
+	Spec MachinePoolSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of MachinePool.
 	// +optional
 	Status MachinePoolStatus `json:"status,omitempty,omitzero"`

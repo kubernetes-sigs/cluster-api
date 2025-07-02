@@ -103,7 +103,7 @@ type IPAddress struct {
 
 	// spec is the desired state of IPAddress.
 	// +required
-	Spec IPAddressSpec `json:"spec"`
+	Spec IPAddressSpec `json:"spec,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

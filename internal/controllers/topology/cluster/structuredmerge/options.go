@@ -17,6 +17,7 @@ limitations under the License.
 package structuredmerge
 
 import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -78,15 +79,26 @@ type HelperOptions struct {
 func newHelperOptions(target client.Object, opts ...HelperOption) *HelperOptions {
 	helperOptions := &HelperOptions{
 		FilterObjectInput: ssa.FilterObjectInput{
-			AllowedPaths: defaultAllowedPaths,
-			IgnorePaths:  []contract.Path{},
+			AllowedPaths:    defaultAllowedPaths,
+			IgnorePaths:     []contract.Path{},
+			DropEmptyStruct: false,
 		},
 	}
 	// Overwrite the allowedPaths for Cluster objects to prevent the topology controller
 	// to take ownership of fields it is not supposed to.
-	if _, ok := target.(*clusterv1.Cluster); ok {
+	switch target.(type) {
+	case *clusterv1.Cluster:
 		helperOptions.AllowedPaths = allowedPathsCluster
+		// NOTE: DropEmptyStruct is not required for the cluster, because even if it is converted to unstructured using the DefaultUnstructuredConverter,
+		// and it does not handle omitzero (yet), none of the allowedPaths is using omitzero.
+	case *unstructured.Unstructured:
+		// NOTE: DropEmptyStruct is not required for unstructured objects, because DefaultUnstructuredConverter is not called.
+	default:
+		helperOptions.DropEmptyStruct = true
+		// NOTE: DropEmptyStruct is required for typed objects, because they are converted to unstructured using the DefaultUnstructuredConverter,
+		// and it does not handle omitzero (yet).
 	}
+
 	helperOptions = helperOptions.ApplyOptions(opts)
 	return helperOptions
 }
@@ -108,4 +120,14 @@ type IgnorePaths []contract.Path
 // ApplyToHelper applies this configuration to the given helper options.
 func (i IgnorePaths) ApplyToHelper(opts *HelperOptions) {
 	opts.IgnorePaths = i
+}
+
+// DropEmptyStruct instruct the Helper to drop all fields with values equals to empty struct.
+// NOTE: This is required when using typed objects, because the DefaultUnstructuredConverter does
+// not handle omitzero (yet).
+type DropEmptyStruct bool
+
+// ApplyToHelper applies this configuration to the given helper options.
+func (i DropEmptyStruct) ApplyToHelper(opts *HelperOptions) {
+	opts.DropEmptyStruct = bool(i)
 }

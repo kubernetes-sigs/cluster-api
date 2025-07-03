@@ -199,3 +199,49 @@ func Test_filterIgnoredPaths(t *testing.T) {
 		})
 	}
 }
+
+func Test_filterDropEmptyStruct(t *testing.T) {
+	tests := []struct {
+		name      string
+		ctx       *FilterIntentInput
+		wantValue map[string]interface{}
+	}{
+		{
+			name: "Cleanup empty maps",
+			ctx: &FilterIntentInput{
+				Path: contract.Path{},
+				Value: map[string]interface{}{
+					"spec": map[string]interface{}{},
+				},
+				DropEmptyStruct: true,
+			},
+			wantValue: map[string]interface{}{
+				// we are filtering out spec.foo and then spec given that it is an empty map
+			},
+		},
+		{
+			name: "Cleanup empty nested maps",
+			ctx: &FilterIntentInput{
+				Path: contract.Path{},
+				Value: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"bar": map[string]interface{}{},
+					},
+				},
+				DropEmptyStruct: true,
+			},
+			wantValue: map[string]interface{}{
+				// we are filtering out spec.bar.foo and then spec given that it is an empty map
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			FilterIntent(tt.ctx)
+
+			g.Expect(tt.ctx.Value).To(BeComparableTo(tt.wantValue))
+		})
+	}
+}

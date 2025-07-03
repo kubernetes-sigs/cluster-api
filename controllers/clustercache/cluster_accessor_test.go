@@ -51,6 +51,11 @@ func TestConnect(t *testing.T) {
 			Name:      "test-cluster",
 			Namespace: metav1.NamespaceDefault,
 		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
+		},
 	}
 	clusterKey := client.ObjectKeyFromObject(testCluster)
 	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
@@ -147,6 +152,11 @@ func TestDisconnect(t *testing.T) {
 			Name:      "test-cluster",
 			Namespace: metav1.NamespaceDefault,
 		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
+		},
 	}
 	clusterKey := client.ObjectKeyFromObject(testCluster)
 	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
@@ -195,6 +205,11 @@ func TestHealthCheck(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-cluster",
 			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
 		},
 	}
 	clusterKey := client.ObjectKeyFromObject(testCluster)
@@ -306,6 +321,11 @@ func TestWatch(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-cluster",
 			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
 		},
 	}
 	clusterKey := client.ObjectKeyFromObject(testCluster)

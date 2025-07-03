@@ -6337,8 +6337,6 @@ spec:
                 minimum: 1
                 type: integer
             type: object
-        required:
-        - spec
         type: object
     served: true
     storage: true

@@ -64,7 +64,11 @@ func TestClusterReconciler(t *testing.T) {
 				GenerateName: "test1-",
 				Namespace:    ns.Name,
 			},
-			Spec: clusterv1.ClusterSpec{},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
+			},
 		}
 
 		// Create the Cluster object and expect the Reconcile and Deployment to be created
@@ -114,6 +118,11 @@ func TestClusterReconciler(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test2-",
 				Namespace:    ns.Name,
+			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
 			},
 		}
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
@@ -169,6 +178,11 @@ func TestClusterReconciler(t *testing.T) {
 				GenerateName: "test3-",
 				Namespace:    ns.Name,
 			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
+			},
 		}
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
@@ -215,6 +229,11 @@ func TestClusterReconciler(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test3-",
 				Namespace:    ns.Name,
+			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
 			},
 		}
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
@@ -263,6 +282,11 @@ func TestClusterReconciler(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test4-",
 				Namespace:    ns.Name,
+			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
 			},
 		}
 
@@ -319,6 +343,11 @@ func TestClusterReconciler(t *testing.T) {
 				GenerateName: "test5-",
 				Namespace:    ns.Name,
 			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
+			},
 		}
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
@@ -363,6 +392,11 @@ func TestClusterReconciler(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test6-",
 				Namespace:    ns.Name,
+			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
 			},
 		}
 

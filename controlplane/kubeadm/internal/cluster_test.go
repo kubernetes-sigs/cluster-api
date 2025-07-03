@@ -118,6 +118,11 @@ func TestGetWorkloadCluster(t *testing.T) {
 			Name:      "my-cluster",
 			Namespace: ns.Name,
 		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
+		},
 	}
 	g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())
 	defer func(do client.Object) {

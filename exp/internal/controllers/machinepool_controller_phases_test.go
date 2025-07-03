@@ -1350,7 +1350,11 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 		ns, err := env.CreateNamespace(ctx, "test-machinepool-machines")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		cluster := builder.Cluster(ns.Name, clusterName).Build()
+		cluster := builder.Cluster(ns.Name, clusterName).
+			WithClusterNetwork(&clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			}).
+			Build()
 		g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())
 
 		t.Run("Should do nothing if machines already exist", func(*testing.T) {
@@ -1718,6 +1722,11 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "machinepool-scale-zero-",
 			Namespace:    ns.Name,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
 		},
 	}
 	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())

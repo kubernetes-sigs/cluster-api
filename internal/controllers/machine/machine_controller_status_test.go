@@ -1905,6 +1905,11 @@ func TestReconcileMachinePhases(t *testing.T) {
 			Name:      "test-cluster",
 			Namespace: metav1.NamespaceDefault,
 		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
+		},
 	}
 
 	defaultMachine := clusterv1.Machine{

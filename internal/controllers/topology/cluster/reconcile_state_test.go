@@ -1092,6 +1092,9 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 
 func TestReconcileCluster(t *testing.T) {
 	cluster1 := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+		WithClusterNetwork(&clusterv1.ClusterNetwork{
+			ServiceDomain: "service.domain",
+		}).
 		Build()
 	cluster1WithReferences := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 		WithInfrastructureCluster(builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").
@@ -3451,7 +3454,13 @@ func TestReconcileState(t *testing.T) {
 	t.Run("Cluster get reconciled with infrastructure Ref only when reconcileInfrastructureCluster pass and reconcileControlPlane fails ", func(t *testing.T) {
 		g := NewWithT(t)
 
-		currentCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
+		currentCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+			WithClusterNetwork(
+				&clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
+			).
+			Build()
 
 		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
@@ -3501,7 +3510,13 @@ func TestReconcileState(t *testing.T) {
 	t.Run("Cluster get reconciled with both infrastructure Ref and control plane ref when both reconcileInfrastructureCluster and reconcileControlPlane pass", func(t *testing.T) {
 		g := NewWithT(t)
 
-		currentCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
+		currentCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+			WithClusterNetwork(
+				&clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
+			).
+			Build()
 
 		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()

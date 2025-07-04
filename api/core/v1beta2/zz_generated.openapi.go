@@ -574,6 +574,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassSpec(ref common.ReferenceCa
 						},
 					},
 				},
+				Required: []string{"infrastructure", "controlPlane"},
 			},
 		},
 		Dependencies: []string{

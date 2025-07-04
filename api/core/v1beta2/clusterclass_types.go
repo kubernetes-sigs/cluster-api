@@ -89,7 +89,6 @@ type ClusterClass struct {
 }
 
 // ClusterClassSpec describes the desired state of the ClusterClass.
-// +kubebuilder:validation:MinProperties=1
 type ClusterClassSpec struct {
 	// availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.
 	//
@@ -103,12 +102,12 @@ type ClusterClassSpec struct {
 
 	// infrastructure is a reference to a local struct that holds the details
 	// for provisioning the infrastructure cluster for the Cluster.
-	// +optional
+	// +required
 	Infrastructure InfrastructureClass `json:"infrastructure,omitempty,omitzero"`
 
 	// controlPlane is a reference to a local struct that holds the details
 	// for provisioning the Control Plane for the Cluster.
-	// +optional
+	// +required
 	ControlPlane ControlPlaneClass `json:"controlPlane,omitempty,omitzero"`
 
 	// workers describes the worker nodes for the cluster.

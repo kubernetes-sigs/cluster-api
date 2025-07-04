@@ -178,6 +178,11 @@ func TestPatchHelper(t *testing.T) {
 					GenerateName: "test-",
 					Namespace:    ns.Name,
 				},
+				Spec: clusterv1.ClusterSpec{
+					ClusterNetwork: &clusterv1.ClusterNetwork{
+						ServiceDomain: "service.domain",
+					},
+				},
 			}
 
 			t.Run("should mark it ready", func(t *testing.T) {
@@ -520,6 +525,11 @@ func TestPatchHelper(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test-",
 				Namespace:    ns.Name,
+			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
 			},
 		}
 
@@ -951,6 +961,11 @@ func TestPatchHelper(t *testing.T) {
 				GenerateName: "test-",
 				Namespace:    ns.Name,
 			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
+			},
 		}
 
 		machineSet := &clusterv1.MachineSet{
@@ -995,6 +1010,11 @@ func TestPatchHelper(t *testing.T) {
 				Name:       "test-cluster",
 				Namespace:  ns.Name,
 				Finalizers: []string{"block-deletion"},
+			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
 			},
 			Status: clusterv1.ClusterStatus{},
 		}

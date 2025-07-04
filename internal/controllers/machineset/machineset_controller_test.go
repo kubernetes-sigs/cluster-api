@@ -65,7 +65,17 @@ func TestMachineSetReconciler(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		t.Log("Creating the Cluster")
-		cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: ns.Name, Name: testClusterName}}
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ns.Name,
+				Name:      testClusterName,
+			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
+			},
+		}
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 
 		t.Log("Creating the Cluster Kubeconfig Secret")
@@ -1079,7 +1089,17 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		t.Log("Creating the Cluster")
-		cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: ns.Name, Name: testClusterName}}
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ns.Name,
+				Name:      testClusterName,
+			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
+			},
+		}
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 
 		t.Log("Creating the Cluster Kubeconfig Secret")

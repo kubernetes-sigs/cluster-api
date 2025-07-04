@@ -3367,6 +3367,7 @@ spec:
             properties:
               template:
                 description: template defines the desired state of KubeadmControlPlaneTemplate.
+                minProperties: 1
                 properties:
                   metadata:
                     description: |-
@@ -3399,6 +3400,7 @@ spec:
                         description: |-
                           kubeadmConfigSpec is a KubeadmConfigSpec
                           to use for initializing and joining machines to the control plane.
+                        minProperties: 1
                         properties:
                           bootCommands:
                             description: |-
@@ -5703,11 +5705,7 @@ spec:
                             - RollingUpdate
                             type: string
                         type: object
-                    required:
-                    - kubeadmConfigSpec
                     type: object
-                required:
-                - spec
                 type: object
             required:
             - template

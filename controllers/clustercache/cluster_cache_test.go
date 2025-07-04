@@ -57,6 +57,11 @@ func TestReconcile(t *testing.T) {
 			Name:      "test-cluster",
 			Namespace: metav1.NamespaceDefault,
 		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
+		},
 	}
 	clusterKey := client.ObjectKeyFromObject(testCluster)
 	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
@@ -731,6 +736,11 @@ func createCluster(g Gomega, testCluster testCluster) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testCluster.cluster.Name,
 			Namespace: testCluster.cluster.Namespace,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
 		},
 	}
 	g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())

@@ -2443,6 +2443,11 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 			GenerateName: "test-cluster-",
 			Namespace:    namespaceName,
 		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
+		},
 	}
 
 	g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())

@@ -120,8 +120,8 @@ type IPAddressClaim struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of IPAddressClaim.
-	// +optional
-	Spec IPAddressClaimSpec `json:"spec,omitempty"`
+	// +required
+	Spec IPAddressClaimSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of IPAddressClaim.
 	// +optional
 	Status IPAddressClaimStatus `json:"status,omitempty,omitzero"`

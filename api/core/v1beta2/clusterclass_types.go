@@ -81,14 +81,15 @@ type ClusterClass struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of ClusterClass.
-	// +optional
-	Spec ClusterClassSpec `json:"spec,omitempty"`
+	// +required
+	Spec ClusterClassSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of ClusterClass.
 	// +optional
 	Status ClusterClassStatus `json:"status,omitempty,omitzero"`
 }
 
 // ClusterClassSpec describes the desired state of the ClusterClass.
+// +kubebuilder:validation:MinProperties=1
 type ClusterClassSpec struct {
 	// availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.
 	//

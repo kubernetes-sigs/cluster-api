@@ -447,8 +447,8 @@ type MachineSet struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of MachineSet.
-	// +optional
-	Spec MachineSetSpec `json:"spec,omitempty"`
+	// +required
+	Spec MachineSetSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of MachineSet.
 	// +optional
 	Status MachineSetStatus `json:"status,omitempty,omitzero"`

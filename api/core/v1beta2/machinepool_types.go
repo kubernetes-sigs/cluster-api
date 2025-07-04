@@ -344,8 +344,8 @@ type MachinePool struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of MachinePool.
-	// +optional
-	Spec MachinePoolSpec `json:"spec,omitempty"`
+	// +required
+	Spec MachinePoolSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of MachinePool.
 	// +optional
 	Status MachinePoolStatus `json:"status,omitempty,omitzero"`

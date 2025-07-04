@@ -102,8 +102,8 @@ type IPAddress struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of IPAddress.
-	// +optional
-	Spec IPAddressSpec `json:"spec,omitempty"`
+	// +required
+	Spec IPAddressSpec `json:"spec,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

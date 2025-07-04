@@ -441,8 +441,8 @@ type KubeadmControlPlaneSpec struct {
 
 	// kubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
-	// +required
-	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
+	// +optional
+	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec,omitempty,omitzero"`
 
 	// rolloutBefore is a field to indicate a rollout should be performed
 	// if the specified criteria is met.
@@ -807,8 +807,8 @@ type KubeadmControlPlane struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of KubeadmControlPlane.
-	// +optional
-	Spec KubeadmControlPlaneSpec `json:"spec,omitempty"`
+	// +required
+	Spec KubeadmControlPlaneSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of KubeadmControlPlane.
 	// +optional
 	Status KubeadmControlPlaneStatus `json:"status,omitempty,omitzero"`

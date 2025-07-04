@@ -1377,6 +1377,8 @@ spec:
                 maxItems: 10000
                 type: array
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

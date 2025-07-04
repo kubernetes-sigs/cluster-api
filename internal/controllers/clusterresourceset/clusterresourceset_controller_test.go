@@ -106,7 +106,17 @@ metadata:
 		g.Expect(err).ToNot(HaveOccurred())
 
 		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
-		testCluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: ns.Name}}
+		testCluster = &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterName,
+				Namespace: ns.Name,
+			},
+			Spec: clusterv1.ClusterSpec{
+				ClusterNetwork: &clusterv1.ClusterNetwork{
+					ServiceDomain: "service.domain",
+				},
+			},
+		}
 
 		t.Log("Creating the Cluster")
 		g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())

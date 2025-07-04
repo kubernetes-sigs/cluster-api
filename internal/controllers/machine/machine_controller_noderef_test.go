@@ -238,6 +238,11 @@ func TestGetNode(t *testing.T) {
 			GenerateName: "test-get-node-",
 			Namespace:    ns.Name,
 		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
+		},
 	}
 
 	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
@@ -380,6 +385,11 @@ func TestNodeLabelSync(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-cluster",
 			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
 		},
 	}
 

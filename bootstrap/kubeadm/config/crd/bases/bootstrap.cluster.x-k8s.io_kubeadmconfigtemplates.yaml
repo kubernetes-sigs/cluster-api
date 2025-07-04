@@ -3958,6 +3958,7 @@ spec:
             properties:
               template:
                 description: template defines the desired state of KubeadmConfigTemplate.
+                minProperties: 1
                 properties:
                   metadata:
                     description: |-
@@ -3985,6 +3986,7 @@ spec:
                     type: object
                   spec:
                     description: spec is the desired state of KubeadmConfig.
+                    minProperties: 1
                     properties:
                       bootCommands:
                         description: |-

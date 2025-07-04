@@ -204,8 +204,8 @@ type ClusterResourceSet struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of ClusterResourceSet.
-	// +optional
-	Spec ClusterResourceSetSpec `json:"spec,omitempty"`
+	// +required
+	Spec ClusterResourceSetSpec `json:"spec,omitempty,omitzero"`
 	// status is the observed state of ClusterResourceSet.
 	// +optional
 	Status ClusterResourceSetStatus `json:"status,omitempty,omitzero"`

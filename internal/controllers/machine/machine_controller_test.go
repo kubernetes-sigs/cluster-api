@@ -104,6 +104,11 @@ func TestWatches(t *testing.T) {
 			GenerateName: "machine-reconcile-",
 			Namespace:    ns.Name,
 		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
+		},
 	}
 
 	node := &corev1.Node{
@@ -418,6 +423,11 @@ func TestMachine_Reconcile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "machine-reconcile-",
 			Namespace:    ns.Name,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
 		},
 	}
 
@@ -3069,6 +3079,11 @@ func TestNodeToMachine(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "machine-reconcile-",
 			Namespace:    ns.Name,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
 		},
 	}
 

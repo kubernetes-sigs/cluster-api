@@ -4117,6 +4117,7 @@ spec:
             type: object
           spec:
             description: spec is the desired state of KubeadmConfig.
+            minProperties: 1
             properties:
               bootCommands:
                 description: |-

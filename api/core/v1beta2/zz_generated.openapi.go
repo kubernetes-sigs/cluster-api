@@ -247,6 +247,7 @@ func schema_cluster_api_api_core_v1beta2_Cluster(ref common.ReferenceCallback) c
 						},
 					},
 				},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -326,6 +327,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClass(ref common.ReferenceCallba
 						},
 					},
 				},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -2208,6 +2210,7 @@ func schema_cluster_api_api_core_v1beta2_Machine(ref common.ReferenceCallback) c
 						},
 					},
 				},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -2315,6 +2318,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeployment(ref common.ReferenceC
 						},
 					},
 				},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -3275,6 +3279,7 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheck(ref common.Reference
 						},
 					},
 				},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -3858,6 +3863,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePool(ref common.ReferenceCallbac
 						},
 					},
 				},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -4576,6 +4582,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSet(ref common.ReferenceCallback
 						},
 					},
 				},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{

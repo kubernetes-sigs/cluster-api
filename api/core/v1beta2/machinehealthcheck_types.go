@@ -281,8 +281,8 @@ type MachineHealthCheck struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the specification of machine health check policy
-	// +optional
-	Spec MachineHealthCheckSpec `json:"spec,omitempty"`
+	// +required
+	Spec MachineHealthCheckSpec `json:"spec,omitempty,omitzero"`
 
 	// status is the most recently observed status of MachineHealthCheck resource
 	// +optional

@@ -78,7 +78,9 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeNodeRegistrationOptionsFuzzer,
 		spokeJoinControlPlanesFuzzer,
 		hubInitConfigurationFuzzer,
-		hubControlPlaneComponentFuzzer,
+		hubAPIServerFuzzer,
+		hubControllerManagerFuzzer,
+		hubSchedulerFuzzer,
 		hubLocalEtcdFuzzer,
 		hubNodeRegistrationOptionsFuzzer,
 		hubHostPathMountFuzzer,
@@ -170,7 +172,19 @@ func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
 	}
 }
 
-func hubControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c randfill.Continue) {
+func hubAPIServerFuzzer(obj *bootstrapv1.APIServer, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	obj.ExtraEnvs = nil
+}
+
+func hubControllerManagerFuzzer(obj *bootstrapv1.ControllerManager, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	obj.ExtraEnvs = nil
+}
+
+func hubSchedulerFuzzer(obj *bootstrapv1.Scheduler, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.ExtraEnvs = nil

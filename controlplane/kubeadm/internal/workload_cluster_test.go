@@ -520,23 +520,21 @@ func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 				kind: ClusterConfiguration
 				`),
 			newAPIServer: bootstrapv1.APIServer{
-				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-					ExtraArgs: []bootstrapv1.Arg{
-						{
-							Name:  "bar",
-							Value: "baz",
-						},
-						{
-							Name:  "someKey",
-							Value: "someVal",
-						},
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "bar",
+						Value: "baz",
 					},
-					ExtraVolumes: []bootstrapv1.HostPathMount{
-						{
-							Name:      "mount2",
-							HostPath:  "/bar/baz",
-							MountPath: "/foo/bar",
-						},
+					{
+						Name:  "someKey",
+						Value: "someVal",
+					},
+				},
+				ExtraVolumes: []bootstrapv1.HostPathMount{
+					{
+						Name:      "mount2",
+						HostPath:  "/bar/baz",
+						MountPath: "/foo/bar",
 					},
 				},
 			},
@@ -567,23 +565,21 @@ func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 				kind: ClusterConfiguration
 				`),
 			newAPIServer: bootstrapv1.APIServer{
-				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-					ExtraArgs: []bootstrapv1.Arg{
-						{
-							Name:  "bar",
-							Value: "baz",
-						},
-						{
-							Name:  "someKey",
-							Value: "someVal",
-						},
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "bar",
+						Value: "baz",
 					},
-					ExtraVolumes: []bootstrapv1.HostPathMount{
-						{
-							Name:      "mount2",
-							HostPath:  "/bar/baz",
-							MountPath: "/foo/bar",
-						},
+					{
+						Name:  "someKey",
+						Value: "someVal",
+					},
+				},
+				ExtraVolumes: []bootstrapv1.HostPathMount{
+					{
+						Name:      "mount2",
+						HostPath:  "/bar/baz",
+						MountPath: "/foo/bar",
 					},
 				},
 			},
@@ -655,23 +651,21 @@ func TestUpdateControllerManagerInKubeadmConfigMap(t *testing.T) {
 				kind: ClusterConfiguration
 				`),
 			newControllerManager: bootstrapv1.ControllerManager{
-				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-					ExtraArgs: []bootstrapv1.Arg{
-						{
-							Name:  "bar",
-							Value: "baz",
-						},
-						{
-							Name:  "someKey",
-							Value: "someVal",
-						},
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "bar",
+						Value: "baz",
 					},
-					ExtraVolumes: []bootstrapv1.HostPathMount{
-						{
-							Name:      "mount2",
-							HostPath:  "/bar/baz",
-							MountPath: "/foo/bar",
-						},
+					{
+						Name:  "someKey",
+						Value: "someVal",
+					},
+				},
+				ExtraVolumes: []bootstrapv1.HostPathMount{
+					{
+						Name:      "mount2",
+						HostPath:  "/bar/baz",
+						MountPath: "/foo/bar",
 					},
 				},
 			},
@@ -740,23 +734,21 @@ func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
 				kind: ClusterConfiguration
 				`),
 			newScheduler: bootstrapv1.Scheduler{
-				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-					ExtraArgs: []bootstrapv1.Arg{
-						{
-							Name:  "bar",
-							Value: "baz",
-						},
-						{
-							Name:  "someKey",
-							Value: "someVal",
-						},
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "bar",
+						Value: "baz",
 					},
-					ExtraVolumes: []bootstrapv1.HostPathMount{
-						{
-							Name:      "mount2",
-							HostPath:  "/bar/baz",
-							MountPath: "/foo/bar",
-						},
+					{
+						Name:  "someKey",
+						Value: "someVal",
+					},
+				},
+				ExtraVolumes: []bootstrapv1.HostPathMount{
+					{
+						Name:      "mount2",
+						HostPath:  "/bar/baz",
+						MountPath: "/foo/bar",
 					},
 				},
 			},

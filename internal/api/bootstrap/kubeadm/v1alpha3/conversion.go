@@ -399,26 +399,9 @@ func Convert_v1alpha3_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToke
 	return nil
 }
 
-func Convert_v1alpha3_ControlPlaneComponent_To_v1beta2_ControllerManager(in *ControlPlaneComponent, out *bootstrapv1.ControllerManager, s apimachineryconversion.Scope) error {
-	return Convert_v1alpha3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
-}
-
-func Convert_v1alpha3_ControlPlaneComponent_To_v1beta2_Scheduler(in *ControlPlaneComponent, out *bootstrapv1.Scheduler, s apimachineryconversion.Scope) error {
-	return Convert_v1alpha3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
-}
-
 func Convert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *KubeadmConfigSpec, s apimachineryconversion.Scope) error {
 	// KubeadmConfigSpec.Ignition does not exist in kubeadm v1alpha3 API.
 	return autoConvert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in, out, s)
-}
-
-func Convert_v1beta2_ControllerManager_To_v1alpha3_ControlPlaneComponent(in *bootstrapv1.ControllerManager, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
-
-	return Convert_v1beta2_ControlPlaneComponent_To_v1alpha3_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
-}
-
-func Convert_v1beta2_Scheduler_To_v1alpha3_ControlPlaneComponent(in *bootstrapv1.Scheduler, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
-	return Convert_v1beta2_ControlPlaneComponent_To_v1alpha3_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
 }
 
 func Convert_v1beta2_File_To_v1alpha3_File(in *bootstrapv1.File, out *File, s apimachineryconversion.Scope) error {

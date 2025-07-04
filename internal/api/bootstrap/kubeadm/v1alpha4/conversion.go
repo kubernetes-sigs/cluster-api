@@ -436,20 +436,42 @@ func Convert_v1beta2_FileDiscovery_To_v1alpha4_FileDiscovery(in *bootstrapv1.Fil
 	return autoConvert_v1beta2_FileDiscovery_To_v1alpha4_FileDiscovery(in, out, s)
 }
 
-func Convert_v1beta2_ControllerManager_To_v1alpha4_ControlPlaneComponent(in *bootstrapv1.ControllerManager, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+func Convert_v1beta2_APIServer_To_v1alpha4_APIServer(in *bootstrapv1.APIServer, out *APIServer, s apimachineryconversion.Scope) error {
+	// Following fields require a custom conversions.
+	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta1 API does not allow this use case.
+	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
+	if err := convert_v1beta2_ExtraVolumes_To_v1alpha4_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s); err != nil {
+		return nil
+	}
+	return autoConvert_v1beta2_APIServer_To_v1alpha4_APIServer(in, out, s)
+}
 
-	return Convert_v1beta2_ControlPlaneComponent_To_v1alpha4_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
+func Convert_v1beta2_ControllerManager_To_v1alpha4_ControlPlaneComponent(in *bootstrapv1.ControllerManager, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	// Following fields require a custom conversions.
+	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta1 API does not allow this use case.
+	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
+	return convert_v1beta2_ExtraVolumes_To_v1alpha4_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
 
 func Convert_v1beta2_Scheduler_To_v1alpha4_ControlPlaneComponent(in *bootstrapv1.Scheduler, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
-	return Convert_v1beta2_ControlPlaneComponent_To_v1alpha4_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
+	// Following fields require a custom conversions.
+	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta1 API does not allow this use case.
+	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
+	return convert_v1beta2_ExtraVolumes_To_v1alpha4_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
 
-func Convert_v1beta2_ControlPlaneComponent_To_v1alpha4_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
-	// ControlPlaneComponent.ExtraEnvs does not exist in v1alpha4 APIs.
-	// Following fields require a custom conversions.
-	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
-	return autoConvert_v1beta2_ControlPlaneComponent_To_v1alpha4_ControlPlaneComponent(in, out, s)
+func convert_v1beta2_ExtraVolumes_To_v1alpha4_ExtraVolumes(in *[]bootstrapv1.HostPathMount, out *[]HostPathMount, s apimachineryconversion.Scope) error {
+	if in != nil && len(*in) > 0 {
+		*out = make([]HostPathMount, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_HostPathMount_To_v1alpha4_HostPathMount(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		*out = nil
+	}
+	return nil
 }
 
 func Convert_v1beta2_LocalEtcd_To_v1alpha4_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apimachineryconversion.Scope) error {
@@ -476,11 +498,6 @@ func Convert_v1alpha4_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *Kub
 	return autoConvert_v1alpha4_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in, out, s)
 }
 
-func Convert_v1alpha4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *bootstrapv1.ControlPlaneComponent, s apimachineryconversion.Scope) error {
-	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
-	return autoConvert_v1alpha4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, out, s)
-}
-
 func Convert_v1alpha4_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstrapv1.LocalEtcd, s apimachineryconversion.Scope) error {
 	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
 	return autoConvert_v1alpha4_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
@@ -498,15 +515,35 @@ func Convert_v1alpha4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions
 
 func Convert_v1alpha4_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstrapv1.APIServer, s apimachineryconversion.Scope) error {
 	// TimeoutForControlPlane has been removed in v1beta2
+	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
+	if err := convert_v1alpha4_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s); err != nil {
+		return nil
+	}
 	return autoConvert_v1alpha4_APIServer_To_v1beta2_APIServer(in, out, s)
 }
 
 func Convert_v1alpha4_ControlPlaneComponent_To_v1beta2_ControllerManager(in *ControlPlaneComponent, out *bootstrapv1.ControllerManager, s apimachineryconversion.Scope) error {
-	return Convert_v1alpha4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
+	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
+	return convert_v1alpha4_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
 
 func Convert_v1alpha4_ControlPlaneComponent_To_v1beta2_Scheduler(in *ControlPlaneComponent, out *bootstrapv1.Scheduler, s apimachineryconversion.Scope) error {
-	return Convert_v1alpha4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
+	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
+	return convert_v1alpha4_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
+}
+
+func convert_v1alpha4_ExtraVolumes_To_v1beta2_ExtraVolumes(in *[]HostPathMount, out *[]bootstrapv1.HostPathMount, s apimachineryconversion.Scope) error {
+	if in != nil && len(*in) > 0 {
+		*out = make([]bootstrapv1.HostPathMount, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_HostPathMount_To_v1beta2_HostPathMount(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		*out = nil
+	}
+	return nil
 }
 
 func Convert_v1alpha4_Discovery_To_v1beta2_Discovery(in *Discovery, out *bootstrapv1.Discovery, s apimachineryconversion.Scope) error {

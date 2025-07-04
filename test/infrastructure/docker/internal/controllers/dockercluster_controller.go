@@ -195,6 +195,7 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 }
 
 func dockerClusterToDevCluster(dockerCluster *infrav1.DockerCluster) *infrav1.DevCluster {
+	// Carry over deprecated v1beta1 status if defined.
 	var v1Beta1Status *infrav1.DevClusterDeprecatedStatus
 	if dockerCluster.Status.Deprecated != nil && dockerCluster.Status.Deprecated.V1Beta1 != nil {
 		v1Beta1Status = &infrav1.DevClusterDeprecatedStatus{
@@ -232,6 +233,7 @@ func dockerClusterToDevCluster(dockerCluster *infrav1.DockerCluster) *infrav1.De
 }
 
 func devClusterToDockerCluster(devCluster *infrav1.DevCluster, dockerCluster *infrav1.DockerCluster) {
+	// Carry over deprecated v1beta1 status if defined.
 	var v1Beta1Status *infrav1.DockerClusterDeprecatedStatus
 	if devCluster.Status.Deprecated != nil && devCluster.Status.Deprecated.V1Beta1 != nil {
 		v1Beta1Status = &infrav1.DockerClusterDeprecatedStatus{

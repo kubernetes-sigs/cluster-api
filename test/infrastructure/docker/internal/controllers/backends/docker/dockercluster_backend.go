@@ -142,8 +142,7 @@ func (r *ClusterBackEndReconciler) ReconcileDelete(ctx context.Context, cluster 
 
 	// Set the LoadBalancerAvailableCondition reporting delete is started, and requeue in order to make
 	// this visible to the users.
-	// TODO (v1beta2): test for v1beta2 conditions
-	if v1beta1conditions.GetReason(dockerCluster, infrav1.LoadBalancerAvailableV1Beta1Condition) != clusterv1.DeletingV1Beta1Reason {
+	if conditions.GetReason(dockerCluster, infrav1.DevClusterDockerLoadBalancerAvailableCondition) != infrav1.DevClusterDockerLoadBalancerDeletingReason {
 		v1beta1conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableV1Beta1Condition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(dockerCluster, metav1.Condition{
 			Type:   infrav1.DevClusterDockerLoadBalancerAvailableCondition,

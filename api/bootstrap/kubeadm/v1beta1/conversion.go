@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"fmt"
 	"reflect"
+	"unsafe"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
@@ -375,18 +376,42 @@ func Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *boot
 	return nil
 }
 
+func Convert_v1beta2_APIServer_To_v1beta1_APIServer(in *bootstrapv1.APIServer, out *APIServer, s apimachineryconversion.Scope) error {
+	// Following fields require a custom conversions.
+	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
+	out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if err := convert_v1beta2_ExtraVolumes_To_v1beta1_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s); err != nil {
+		return err
+	}
+	return autoConvert_v1beta2_APIServer_To_v1beta1_APIServer(in, out, s)
+}
+
 func Convert_v1beta2_ControllerManager_To_v1beta1_ControlPlaneComponent(in *bootstrapv1.ControllerManager, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
-	return Convert_v1beta2_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
+	// Following fields require a custom conversions.
+	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
+	out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	return convert_v1beta2_ExtraVolumes_To_v1beta1_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
 
 func Convert_v1beta2_Scheduler_To_v1beta1_ControlPlaneComponent(in *bootstrapv1.Scheduler, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
-	return Convert_v1beta2_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
-}
-
-func Convert_v1beta2_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	// Following fields require a custom conversions.
 	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
-	return autoConvert_v1beta2_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(in, out, s)
+	out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	return convert_v1beta2_ExtraVolumes_To_v1beta1_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
+}
+
+func convert_v1beta2_ExtraVolumes_To_v1beta1_ExtraVolumes(in *[]bootstrapv1.HostPathMount, out *[]HostPathMount, s apimachineryconversion.Scope) error {
+	if in != nil && len(*in) > 0 {
+		*out = make([]HostPathMount, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_HostPathMount_To_v1beta1_HostPathMount(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		*out = nil
+	}
+	return nil
 }
 
 func Convert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apimachineryconversion.Scope) error {
@@ -416,15 +441,38 @@ func Convert_v1beta2_BootstrapToken_To_v1beta1_BootstrapToken(in *bootstrapv1.Bo
 
 func Convert_v1beta1_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstrapv1.APIServer, s apimachineryconversion.Scope) error {
 	// TimeoutForControlPlane has been removed in v1beta2
+	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
+	out.ExtraEnvs = *(*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if err := convert_v1beta1_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s); err != nil {
+		return err
+	}
 	return autoConvert_v1beta1_APIServer_To_v1beta2_APIServer(in, out, s)
 }
 
 func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControllerManager(in *ControlPlaneComponent, out *bootstrapv1.ControllerManager, s apimachineryconversion.Scope) error {
-	return Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
+	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
+	out.ExtraEnvs = *(*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	return convert_v1beta1_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
 
 func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_Scheduler(in *ControlPlaneComponent, out *bootstrapv1.Scheduler, s apimachineryconversion.Scope) error {
-	return Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
+	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
+	out.ExtraEnvs = *(*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	return convert_v1beta1_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
+}
+
+func convert_v1beta1_ExtraVolumes_To_v1beta2_ExtraVolumes(in *[]HostPathMount, out *[]bootstrapv1.HostPathMount, s apimachineryconversion.Scope) error {
+	if in != nil && len(*in) > 0 {
+		*out = make([]bootstrapv1.HostPathMount, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_HostPathMount_To_v1beta2_HostPathMount(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		*out = nil
+	}
+	return nil
 }
 
 func Convert_v1beta1_Discovery_To_v1beta2_Discovery(in *Discovery, out *bootstrapv1.Discovery, s apimachineryconversion.Scope) error {
@@ -439,11 +487,6 @@ func Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *KubeadmC
 
 func Convert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
 	return autoConvert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s)
-}
-
-func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in *ControlPlaneComponent, out *bootstrapv1.ControlPlaneComponent, s apimachineryconversion.Scope) error {
-	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
-	return autoConvert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, out, s)
 }
 
 func Convert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstrapv1.LocalEtcd, s apimachineryconversion.Scope) error {

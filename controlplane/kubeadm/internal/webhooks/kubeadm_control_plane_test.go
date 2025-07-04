@@ -488,42 +488,36 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 
 	apiServer := before.DeepCopy()
 	apiServer.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer = bootstrapv1.APIServer{
-		ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-			ExtraArgs: []bootstrapv1.Arg{
-				{
-					Name:  "foo",
-					Value: "bar",
-				},
+		ExtraArgs: []bootstrapv1.Arg{
+			{
+				Name:  "foo",
+				Value: "bar",
 			},
-			ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount1"}},
 		},
-		CertSANs: []string{"foo", "bar"},
+		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount1"}},
+		CertSANs:     []string{"foo", "bar"},
 	}
 
 	controllerManager := before.DeepCopy()
 	controllerManager.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager = bootstrapv1.ControllerManager{
-		ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-			ExtraArgs: []bootstrapv1.Arg{
-				{
-					Name:  "controller manager field",
-					Value: "controller manager value",
-				},
+		ExtraArgs: []bootstrapv1.Arg{
+			{
+				Name:  "controller manager field",
+				Value: "controller manager value",
 			},
-			ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
 		},
+		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
 	}
 
 	scheduler := before.DeepCopy()
 	scheduler.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler = bootstrapv1.Scheduler{
-		ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-			ExtraArgs: []bootstrapv1.Arg{
-				{
-					Name:  "scheduler field",
-					Value: "scheduler value",
-				},
+		ExtraArgs: []bootstrapv1.Arg{
+			{
+				Name:  "scheduler field",
+				Value: "scheduler value",
 			},
-			ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
 		},
+		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
 	}
 
 	dns := before.DeepCopy()

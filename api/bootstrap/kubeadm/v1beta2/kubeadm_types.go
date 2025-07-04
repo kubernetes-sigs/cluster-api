@@ -182,8 +182,44 @@ type ClusterConfiguration struct {
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
 }
 
-// ControlPlaneComponent holds settings common to control plane component of the cluster.
-type ControlPlaneComponent struct {
+// APIServer holds settings necessary for API server deployments in the cluster.
+// +kubebuilder:validation:MinProperties=1
+type APIServer struct {
+	// extraArgs is a list of args to pass to the control plane component.
+	// The arg name must match the command line flag name except without leading dash(es).
+	// Extra arguments will override existing default arguments set by kubeadm.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +listMapKey=value
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="extraArgs name must be unique"
+	ExtraArgs []Arg `json:"extraArgs,omitempty"`
+
+	// extraVolumes is an extra set of host volumes, mounted to the control plane component.
+	// +optional
+	// +kubebuilder:validation:MaxItems=100
+	ExtraVolumes []HostPathMount `json:"extraVolumes,omitempty"`
+
+	// extraEnvs is an extra set of environment variables to pass to the control plane component.
+	// Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
+	// This option takes effect only on Kubernetes >=1.31.0.
+	// +optional
+	// +kubebuilder:validation:MaxItems=100
+	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
+
+	// certSANs sets extra Subject Alternative Names for the API Server signing cert.
+	// +optional
+	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=253
+	CertSANs []string `json:"certSANs,omitempty"`
+}
+
+// ControllerManager holds settings necessary for controller-manager deployments in the cluster.
+// +kubebuilder:validation:MinProperties=1
+type ControllerManager struct {
 	// extraArgs is a list of args to pass to the control plane component.
 	// The arg name must match the command line flag name except without leading dash(es).
 	// Extra arguments will override existing default arguments set by kubeadm.
@@ -209,29 +245,32 @@ type ControlPlaneComponent struct {
 	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 }
 
-// APIServer holds settings necessary for API server deployments in the cluster.
-// +kubebuilder:validation:MinProperties=1
-type APIServer struct {
-	ControlPlaneComponent `json:",inline"`
-
-	// certSANs sets extra Subject Alternative Names for the API Server signing cert.
-	// +optional
-	// +kubebuilder:validation:MaxItems=100
-	// +kubebuilder:validation:items:MinLength=1
-	// +kubebuilder:validation:items:MaxLength=253
-	CertSANs []string `json:"certSANs,omitempty"`
-}
-
-// ControllerManager holds settings necessary for controller-manager deployments in the cluster.
-// +kubebuilder:validation:MinProperties=1
-type ControllerManager struct {
-	ControlPlaneComponent `json:",inline"`
-}
-
 // Scheduler holds settings necessary for scheduler deployments in the cluster.
 // +kubebuilder:validation:MinProperties=1
 type Scheduler struct {
-	ControlPlaneComponent `json:",inline"`
+	// extraArgs is a list of args to pass to the control plane component.
+	// The arg name must match the command line flag name except without leading dash(es).
+	// Extra arguments will override existing default arguments set by kubeadm.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +listMapKey=value
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="extraArgs name must be unique"
+	ExtraArgs []Arg `json:"extraArgs,omitempty"`
+
+	// extraVolumes is an extra set of host volumes, mounted to the control plane component.
+	// +optional
+	// +kubebuilder:validation:MaxItems=100
+	ExtraVolumes []HostPathMount `json:"extraVolumes,omitempty"`
+
+	// extraEnvs is an extra set of environment variables to pass to the control plane component.
+	// Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
+	// This option takes effect only on Kubernetes >=1.31.0.
+	// +optional
+	// +kubebuilder:validation:MaxItems=100
+	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 }
 
 // DNS defines the DNS addon that should be used in the cluster.

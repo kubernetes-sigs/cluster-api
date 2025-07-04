@@ -44,12 +44,10 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 						APIServer: bootstrapv1.APIServer{
-							ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-								ExtraArgs: []bootstrapv1.Arg{
-									{
-										Name:  "foo",
-										Value: "bar",
-									},
+							ExtraArgs: []bootstrapv1.Arg{
+								{
+									Name:  "foo",
+									Value: "bar",
 								},
 							},
 						},
@@ -97,12 +95,10 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(clusterConfiguration).To(Equal(&bootstrapv1.ClusterConfiguration{
 			APIServer: bootstrapv1.APIServer{
-				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-					ExtraArgs: []bootstrapv1.Arg{ // Extra args converted from old format to new format.
-						{
-							Name:  "foo",
-							Value: "bar",
-						},
+				ExtraArgs: []bootstrapv1.Arg{ // Extra args converted from old format to new format.
+					{
+						Name:  "foo",
+						Value: "bar",
 					},
 				},
 			},
@@ -115,12 +111,10 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(clusterConfiguration).To(Equal(&bootstrapv1.ClusterConfiguration{
 			APIServer: bootstrapv1.APIServer{
-				ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-					ExtraArgs: []bootstrapv1.Arg{
-						{
-							Name:  "foo",
-							Value: "bar",
-						},
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "foo",
+						Value: "bar",
 					},
 				},
 			},
@@ -285,32 +279,26 @@ func TestMatchClusterConfiguration(t *testing.T) {
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 						APIServer: bootstrapv1.APIServer{
-							ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-								ExtraArgs: []bootstrapv1.Arg{
-									{
-										Name:  "foo",
-										Value: "bar",
-									},
+							ExtraArgs: []bootstrapv1.Arg{
+								{
+									Name:  "foo",
+									Value: "bar",
 								},
 							},
 						},
 						ControllerManager: bootstrapv1.ControllerManager{
-							ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-								ExtraArgs: []bootstrapv1.Arg{
-									{
-										Name:  "foo",
-										Value: "bar",
-									},
+							ExtraArgs: []bootstrapv1.Arg{
+								{
+									Name:  "foo",
+									Value: "bar",
 								},
 							},
 						},
 						Scheduler: bootstrapv1.Scheduler{
-							ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-								ExtraArgs: []bootstrapv1.Arg{
-									{
-										Name:  "foo",
-										Value: "bar",
-									},
+							ExtraArgs: []bootstrapv1.Arg{
+								{
+									Name:  "foo",
+									Value: "bar",
 								},
 							},
 						},
@@ -1872,26 +1860,20 @@ func TestOmittableFieldsClusterConfiguration(t *testing.T) {
 					},
 				},
 				APIServer: bootstrapv1.APIServer{
-					ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-						ExtraArgs:    []bootstrapv1.Arg{},
-						ExtraVolumes: []bootstrapv1.HostPathMount{},
-						ExtraEnvs:    []bootstrapv1.EnvVar{},
-					},
-					CertSANs: []string{},
+					ExtraArgs:    []bootstrapv1.Arg{},
+					ExtraVolumes: []bootstrapv1.HostPathMount{},
+					ExtraEnvs:    []bootstrapv1.EnvVar{},
+					CertSANs:     []string{},
 				},
 				ControllerManager: bootstrapv1.ControllerManager{
-					ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-						ExtraArgs:    []bootstrapv1.Arg{},
-						ExtraVolumes: []bootstrapv1.HostPathMount{},
-						ExtraEnvs:    []bootstrapv1.EnvVar{},
-					},
+					ExtraArgs:    []bootstrapv1.Arg{},
+					ExtraVolumes: []bootstrapv1.HostPathMount{},
+					ExtraEnvs:    []bootstrapv1.EnvVar{},
 				},
 				Scheduler: bootstrapv1.Scheduler{
-					ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-						ExtraArgs:    []bootstrapv1.Arg{},
-						ExtraVolumes: []bootstrapv1.HostPathMount{},
-						ExtraEnvs:    []bootstrapv1.EnvVar{},
-					},
+					ExtraArgs:    []bootstrapv1.Arg{},
+					ExtraVolumes: []bootstrapv1.HostPathMount{},
+					ExtraEnvs:    []bootstrapv1.EnvVar{},
 				},
 				FeatureGates: map[string]bool{},
 			},
@@ -1910,26 +1892,20 @@ func TestOmittableFieldsClusterConfiguration(t *testing.T) {
 					},
 				},
 				APIServer: bootstrapv1.APIServer{
-					ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-						ExtraArgs:    nil,
-						ExtraVolumes: nil,
-						ExtraEnvs:    nil,
-					},
-					CertSANs: nil,
+					ExtraArgs:    nil,
+					ExtraVolumes: nil,
+					ExtraEnvs:    nil,
+					CertSANs:     nil,
 				},
 				ControllerManager: bootstrapv1.ControllerManager{
-					ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-						ExtraArgs:    nil,
-						ExtraVolumes: nil,
-						ExtraEnvs:    nil,
-					},
+					ExtraArgs:    nil,
+					ExtraVolumes: nil,
+					ExtraEnvs:    nil,
 				},
 				Scheduler: bootstrapv1.Scheduler{
-					ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
-						ExtraArgs:    nil,
-						ExtraVolumes: nil,
-						ExtraEnvs:    nil,
-					},
+					ExtraArgs:    nil,
+					ExtraVolumes: nil,
+					ExtraEnvs:    nil,
 				},
 				FeatureGates: nil,
 			},

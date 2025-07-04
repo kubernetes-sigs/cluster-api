@@ -399,6 +399,16 @@ func Convert_v1alpha3_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToke
 	return nil
 }
 
+func Convert_v1beta2_ClusterConfiguration_To_v1alpha3_ClusterConfiguration(in *bootstrapv1.ClusterConfiguration, out *ClusterConfiguration, s apimachineryconversion.Scope) error {
+	// ClusterConfiguration.Proxy does not exist in kubeadm v1alpha3 API.
+	return autoConvert_v1beta2_ClusterConfiguration_To_v1alpha3_ClusterConfiguration(in, out, s)
+}
+
+func Convert_v1beta2_DNS_To_v1alpha3_DNS(in *bootstrapv1.DNS, out *DNS, s apimachineryconversion.Scope) error {
+	// DNS.Disabled does not exist in kubeadm v1alpha3 API.
+	return autoConvert_v1beta2_DNS_To_v1alpha3_DNS(in, out, s)
+}
+
 func Convert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *KubeadmConfigSpec, s apimachineryconversion.Scope) error {
 	// KubeadmConfigSpec.Ignition does not exist in kubeadm v1alpha3 API.
 	return autoConvert_v1beta2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in, out, s)

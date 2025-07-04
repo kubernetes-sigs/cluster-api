@@ -59,6 +59,16 @@ func (dst *JoinConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 
 // Custom conversion from this API, kubeadm v1beta3, to the hub version, CABPK v1beta1.
 
+func Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta3_ClusterConfiguration(in *bootstrapv1.ClusterConfiguration, out *ClusterConfiguration, s apimachineryconversion.Scope) error {
+	// v1beta3 has no ClusterConfiguration.Proxy
+	return autoConvert_v1beta2_ClusterConfiguration_To_upstreamv1beta3_ClusterConfiguration(in, out, s)
+}
+
+func Convert_v1beta2_DNS_To_upstreamv1beta3_DNS(in *bootstrapv1.DNS, out *DNS, s apimachineryconversion.Scope) error {
+	// v1beta3 has no ClusterConfiguration.DNS.Disabled
+	return autoConvert_v1beta2_DNS_To_upstreamv1beta3_DNS(in, out, s)
+}
+
 func Convert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
 	return autoConvert_upstreamv1beta3_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s)
 }

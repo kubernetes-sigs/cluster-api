@@ -580,6 +580,15 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		controlplanev1.SkipCoreDNSAnnotation: "",
 	}
 
+	validUnsupportedCoreDNSVersionWithDisabledDNS := dns.DeepCopy()
+	validUnsupportedCoreDNSVersionWithDisabledDNS.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
+		ImageMeta: bootstrapv1.ImageMeta{
+			ImageRepository: "gcr.io/capi-test",
+			ImageTag:        "v99.99.99",
+		},
+		Disabled: ptr.To(true),
+	}
+
 	unsetCoreDNSToVersion := dns.DeepCopy()
 	unsetCoreDNSToVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
 		ImageMeta: bootstrapv1.ImageMeta{
@@ -895,6 +904,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			name:   "should succeed when upgrading to an unsupported version and KCP has skip annotation set",
 			before: dns,
 			kcp:    validUnsupportedCoreDNSVersionWithSkipAnnotation,
+		},
+		{
+			name:   "should succeed when upgrading to an unsupported version and KCP has DNS disabled",
+			before: dns,
+			kcp:    validUnsupportedCoreDNSVersionWithDisabledDNS,
 		},
 		{
 			name:      "should fail when using an invalid DNS build",

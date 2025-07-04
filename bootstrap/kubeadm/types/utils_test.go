@@ -191,6 +191,38 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 				"scheduler: {}\n",
 			wantErr: false,
 		},
+		{
+			name: "Allow to disable DNS or Proxy",
+			args: args{
+				capiObj: &bootstrapv1.ClusterConfiguration{
+					DNS: bootstrapv1.DNS{
+						Disabled: ptr.To(true),
+					},
+					Proxy: &bootstrapv1.Proxy{
+						Disabled: ptr.To(true),
+					},
+				},
+				version: semver.MustParse("1.31.0"),
+			},
+			want: "apiServer: {}\n" +
+				"apiVersion: kubeadm.k8s.io/v1beta4\n" +
+				"clusterName: mycluster\n" +
+				"controlPlaneEndpoint: myControlPlaneEndpoint:6443\n" +
+				"controllerManager: {}\n" +
+				"dns:\n" +
+				"  disabled: true\n" +
+				"etcd: {}\n" +
+				"kind: ClusterConfiguration\n" +
+				"kubernetesVersion: v1.31.0\n" +
+				"networking:\n" +
+				"  dnsDomain: myDNSDomain\n" +
+				"  podSubnet: myPodSubnet\n" +
+				"  serviceSubnet: myServiceSubnet\n" +
+				"proxy:\n" +
+				"  disabled: true\n" +
+				"scheduler: {}\n",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

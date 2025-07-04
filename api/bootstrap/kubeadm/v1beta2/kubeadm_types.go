@@ -181,6 +181,10 @@ type ClusterConfiguration struct {
 	// featureGates enabled by the user.
 	// +optional
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
+
+	// proxy defines the options for the proxy add-on installed in the cluster.
+	// +optional
+	Proxy *Proxy `json:"proxy,omitempty"`
 }
 
 // ControlPlaneComponent holds settings common to control plane component of the cluster.
@@ -226,6 +230,17 @@ type APIServer struct {
 type DNS struct {
 	// ImageMeta allows to customize the image used for the DNS component
 	ImageMeta `json:",inline"`
+
+	// disabled specifies whether to disable this addon in the cluster
+	// +optional
+	Disabled *bool `json:"disabled,omitempty"`
+}
+
+// Proxy defines the proxy addon that should be used in the cluster
+type Proxy struct {
+	// disabled specifies whether to disable this addon in the cluster
+	// +optional
+	Disabled *bool `json:"disabled,omitempty"`
 }
 
 // ImageMeta allows to customize the image used for components that are not

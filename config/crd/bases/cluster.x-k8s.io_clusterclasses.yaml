@@ -2847,7 +2847,6 @@ spec:
             type: object
           spec:
             description: spec is the desired state of ClusterClass.
-            minProperties: 1
             properties:
               availabilityGates:
                 description: |-
@@ -4568,6 +4567,9 @@ spec:
                     - class
                     x-kubernetes-list-type: map
                 type: object
+            required:
+            - controlPlane
+            - infrastructure
             type: object
           status:
             description: status is the observed state of ClusterClass.

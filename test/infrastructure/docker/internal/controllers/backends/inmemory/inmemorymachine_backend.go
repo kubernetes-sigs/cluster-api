@@ -242,8 +242,7 @@ func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Conte
 
 func (r *MachineBackendReconciler) reconcileNormalNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (_ ctrl.Result, retErr error) {
 	// No-op if the VM is not provisioned yet
-	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition) {
+	if !conditions.IsTrue(inMemoryMachine, infrav1.DevMachineInMemoryVMProvisionedCondition) {
 		conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryNodeProvisionedCondition,
 			Status: metav1.ConditionFalse,
@@ -280,8 +279,7 @@ func (r *MachineBackendReconciler) reconcileNormalNode(ctx context.Context, clus
 		}
 	}
 
-	// TODO (v1beta2): test for v1beta2 conditions
-	start := v1beta1conditions.Get(inMemoryMachine, infrav1.VMProvisionedCondition).LastTransitionTime
+	start := conditions.Get(inMemoryMachine, infrav1.DevMachineInMemoryVMProvisionedCondition).LastTransitionTime
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
 		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.NodeProvisionedCondition, infrav1.NodeWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
@@ -374,8 +372,7 @@ func (r *MachineBackendReconciler) reconcileNormalETCD(ctx context.Context, clus
 	}
 
 	// No-op if the VM is not provisioned yet
-	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition) {
+	if !conditions.IsTrue(inMemoryMachine, infrav1.DevMachineInMemoryVMProvisionedCondition) {
 		conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryEtcdProvisionedCondition,
 			Status: metav1.ConditionFalse,
@@ -385,8 +382,7 @@ func (r *MachineBackendReconciler) reconcileNormalETCD(ctx context.Context, clus
 	}
 
 	// No-op if the Node is not provisioned yet
-	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.NodeProvisionedCondition) {
+	if !conditions.IsTrue(inMemoryMachine, infrav1.DevMachineInMemoryNodeProvisionedCondition) {
 		conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryEtcdProvisionedCondition,
 			Status: metav1.ConditionFalse,
@@ -423,8 +419,7 @@ func (r *MachineBackendReconciler) reconcileNormalETCD(ctx context.Context, clus
 		}
 	}
 
-	// TODO (v1beta2): test for v1beta2 conditions
-	start := v1beta1conditions.Get(inMemoryMachine, infrav1.NodeProvisionedCondition).LastTransitionTime
+	start := conditions.Get(inMemoryMachine, infrav1.DevMachineInMemoryNodeProvisionedCondition).LastTransitionTime
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
 		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.EtcdProvisionedCondition, infrav1.EtcdWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
@@ -618,8 +613,7 @@ func (r *MachineBackendReconciler) reconcileNormalAPIServer(ctx context.Context,
 	}
 
 	// No-op if the VM is not provisioned yet
-	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.VMProvisionedCondition) {
+	if !conditions.IsTrue(inMemoryMachine, infrav1.DevMachineInMemoryVMProvisionedCondition) {
 		conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryAPIServerProvisionedCondition,
 			Status: metav1.ConditionFalse,
@@ -629,8 +623,7 @@ func (r *MachineBackendReconciler) reconcileNormalAPIServer(ctx context.Context,
 	}
 
 	// No-op if the Node is not provisioned yet
-	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.NodeProvisionedCondition) {
+	if !conditions.IsTrue(inMemoryMachine, infrav1.DevMachineInMemoryNodeProvisionedCondition) {
 		conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryAPIServerProvisionedCondition,
 			Status: metav1.ConditionFalse,
@@ -667,8 +660,7 @@ func (r *MachineBackendReconciler) reconcileNormalAPIServer(ctx context.Context,
 		}
 	}
 
-	// TODO (v1beta2): test for v1beta2 conditions
-	start := v1beta1conditions.Get(inMemoryMachine, infrav1.NodeProvisionedCondition).LastTransitionTime
+	start := conditions.Get(inMemoryMachine, infrav1.DevMachineInMemoryNodeProvisionedCondition).LastTransitionTime
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
 		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.APIServerProvisionedCondition, infrav1.APIServerWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
@@ -775,8 +767,7 @@ func (r *MachineBackendReconciler) reconcileNormalScheduler(ctx context.Context,
 	// specific behaviour for this component because they are not relevant for stress tests.
 	// As a current approximation, we create the scheduler as soon as the API server is provisioned;
 	// also, the scheduler is immediately marked as ready.
-	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.APIServerProvisionedCondition) {
+	if !conditions.IsTrue(inMemoryMachine, infrav1.DevMachineInMemoryAPIServerProvisionedCondition) {
 		return ctrl.Result{}, nil
 	}
 
@@ -823,8 +814,7 @@ func (r *MachineBackendReconciler) reconcileNormalControllerManager(ctx context.
 	// specific behaviour for this component because they are not relevant for stress tests.
 	// As a current approximation, we create the controller manager as soon as the API server is provisioned;
 	// also, the controller manager is immediately marked as ready.
-	// TODO (v1beta2): test for v1beta2 conditions
-	if !v1beta1conditions.IsTrue(inMemoryMachine, infrav1.APIServerProvisionedCondition) {
+	if !conditions.IsTrue(inMemoryMachine, infrav1.DevMachineInMemoryAPIServerProvisionedCondition) {
 		return ctrl.Result{}, nil
 	}
 

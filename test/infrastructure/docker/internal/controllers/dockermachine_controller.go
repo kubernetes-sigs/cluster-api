@@ -294,6 +294,7 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 }
 
 func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.DevMachine {
+	// Carry over deprecated v1beta1 status if defined.
 	var v1Beta1Status *infrav1.DevMachineDeprecatedStatus
 	if dockerMachine.Status.Deprecated != nil && dockerMachine.Status.Deprecated.V1Beta1 != nil {
 		v1Beta1Status = &infrav1.DevMachineDeprecatedStatus{
@@ -339,6 +340,7 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 }
 
 func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *infrav1.DockerMachine) {
+	// Carry over deprecated v1beta1 status if defined.
 	var v1Beta1Status *infrav1.DockerMachineDeprecatedStatus
 	if devMachine.Status.Deprecated != nil && devMachine.Status.Deprecated.V1Beta1 != nil {
 		v1Beta1Status = &infrav1.DockerMachineDeprecatedStatus{

@@ -174,6 +174,17 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 		)
 	}
 
+	if newObj.Spec.ClusterName != newObj.Spec.Template.Spec.ClusterName {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				specPath.Child("clusterName"),
+				newObj.Spec.ClusterName,
+				"spec.clusterName and spec.template.spec.clusterName must be set to the same value",
+			),
+		)
+	}
+
 	if newObj.Spec.Template.Spec.Version != "" {
 		if !version.KubeSemver.MatchString(newObj.Spec.Template.Spec.Version) {
 			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), newObj.Spec.Template.Spec.Version, "must be a valid semantic version"))

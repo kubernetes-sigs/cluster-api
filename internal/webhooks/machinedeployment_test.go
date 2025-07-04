@@ -43,7 +43,8 @@ func TestMachineDeploymentDefault(t *testing.T) {
 			ClusterName: "test-cluster",
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: "1.19.10",
+					ClusterName: "test-cluster",
+					Version:     "1.19.10",
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To("data-secret"),
 					},
@@ -154,7 +155,8 @@ func TestMachineDeploymentReferenceDefault(t *testing.T) {
 			ClusterName: "test-cluster",
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: "1.19.10",
+					ClusterName: "test-cluster",
+					Version:     "1.19.10",
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &clusterv1.ContractVersionedObjectReference{},
 					},
@@ -690,6 +692,7 @@ func TestMachineDeploymentClusterNameImmutable(t *testing.T) {
 					ClusterName: tt.newClusterName,
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
+							ClusterName: tt.newClusterName,
 							Bootstrap: clusterv1.Bootstrap{
 								DataSecretName: ptr.To("data-secret"),
 							},
@@ -703,6 +706,7 @@ func TestMachineDeploymentClusterNameImmutable(t *testing.T) {
 					ClusterName: tt.oldClusterName,
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
+							ClusterName: tt.oldClusterName,
 							Bootstrap: clusterv1.Bootstrap{
 								DataSecretName: ptr.To("data-secret"),
 							},
@@ -718,6 +722,56 @@ func TestMachineDeploymentClusterNameImmutable(t *testing.T) {
 			}
 
 			warnings, err := webhook.ValidateUpdate(ctx, oldMD, newMD)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(warnings).To(BeEmpty())
+		})
+	}
+}
+
+func TestMachineDeploymentClusterNamesEqual(t *testing.T) {
+	tests := []struct {
+		name                        string
+		specClusterName             string
+		specTemplateSpecClusterName string
+		expectErr                   bool
+	}{
+		{
+			name:                        "clusterName fields are set to the same value",
+			specClusterName:             "foo",
+			specTemplateSpecClusterName: "foo",
+			expectErr:                   false,
+		},
+		{
+			name:                        "clusterName fields are set to different values",
+			specClusterName:             "foo",
+			specTemplateSpecClusterName: "bar",
+			expectErr:                   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			ms := &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					ClusterName: tt.specClusterName,
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							ClusterName: tt.specTemplateSpecClusterName,
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To("data-secret"),
+							},
+						},
+					},
+				},
+			}
+
+			warnings, err := (&MachineDeployment{}).ValidateCreate(ctx, ms)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

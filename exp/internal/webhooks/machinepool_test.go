@@ -309,7 +309,8 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 					ClusterName: tt.newClusterName,
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
+							ClusterName: tt.newClusterName,
+							Bootstrap:   clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
 						},
 					},
 				},
@@ -320,7 +321,8 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 					ClusterName: tt.oldClusterName,
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
+							ClusterName: tt.oldClusterName,
+							Bootstrap:   clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
 						},
 					},
 				},
@@ -328,6 +330,56 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 
 			webhook := MachinePool{}
 			warnings, err := webhook.ValidateUpdate(ctx, oldMP, newMP)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(warnings).To(BeEmpty())
+		})
+	}
+}
+
+func TestMachinePoolClusterNamesEqual(t *testing.T) {
+	tests := []struct {
+		name                        string
+		specClusterName             string
+		specTemplateSpecClusterName string
+		expectErr                   bool
+	}{
+		{
+			name:                        "clusterName fields are set to the same value",
+			specClusterName:             "foo",
+			specTemplateSpecClusterName: "foo",
+			expectErr:                   false,
+		},
+		{
+			name:                        "clusterName fields are set to different values",
+			specClusterName:             "foo",
+			specTemplateSpecClusterName: "bar",
+			expectErr:                   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			ms := &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
+					ClusterName: tt.specClusterName,
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							ClusterName: tt.specTemplateSpecClusterName,
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To("data-secret"),
+							},
+						},
+					},
+				},
+			}
+
+			warnings, err := (&MachinePool{}).ValidateCreate(ctx, ms)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

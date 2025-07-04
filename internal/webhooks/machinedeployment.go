@@ -241,6 +241,17 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		)
 	}
 
+	if newMD.Spec.ClusterName != newMD.Spec.Template.Spec.ClusterName {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				specPath.Child("clusterName"),
+				newMD.Spec.ClusterName,
+				"spec.clusterName and spec.template.spec.clusterName must be set to the same value",
+			),
+		)
+	}
+
 	if newMD.Spec.Strategy != nil && newMD.Spec.Strategy.RollingUpdate != nil {
 		total := 1
 		if newMD.Spec.Replicas != nil {

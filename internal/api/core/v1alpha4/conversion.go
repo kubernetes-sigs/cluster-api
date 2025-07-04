@@ -785,7 +785,8 @@ func Convert_v1alpha4_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *Control
 		return err
 	}
 
-	return Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(&in.LocalObjectTemplate, &out.ClusterClassTemplate, s)
+	convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplateReference(&in.LocalObjectTemplate, &out.TemplateRef, s)
+	return nil
 }
 
 func Convert_v1beta2_InfrastructureClass_To_v1alpha4_LocalObjectTemplate(in *clusterv1.InfrastructureClass, out *LocalObjectTemplate, s apimachineryconversion.Scope) error {
@@ -793,7 +794,8 @@ func Convert_v1beta2_InfrastructureClass_To_v1alpha4_LocalObjectTemplate(in *clu
 		return nil
 	}
 
-	return Convert_v1beta2_ClusterClassTemplate_To_v1alpha4_LocalObjectTemplate(&in.ClusterClassTemplate, out, s)
+	Convert_v1beta2_ClusterClassTemplateReference_To_v1alpha4_LocalObjectTemplate(&in.TemplateRef, out, s)
+	return nil
 }
 
 func Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_InfrastructureClass(in *LocalObjectTemplate, out *clusterv1.InfrastructureClass, s apimachineryconversion.Scope) error {
@@ -801,7 +803,8 @@ func Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_InfrastructureClass(in *Loc
 		return nil
 	}
 
-	return Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(in, &out.ClusterClassTemplate, s)
+	convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplateReference(in, &out.TemplateRef, s)
+	return nil
 }
 
 func Convert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apimachineryconversion.Scope) error {
@@ -869,7 +872,8 @@ func Convert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *cluster
 		return err
 	}
 
-	return Convert_v1beta2_ClusterClassTemplate_To_v1alpha4_LocalObjectTemplate(&in.ClusterClassTemplate, &out.LocalObjectTemplate, s)
+	Convert_v1beta2_ClusterClassTemplateReference_To_v1alpha4_LocalObjectTemplate(&in.TemplateRef, &out.LocalObjectTemplate, s)
+	return nil
 }
 
 func Convert_v1alpha4_Topology_To_v1beta2_Topology(in *Topology, out *clusterv1.Topology, s apimachineryconversion.Scope) error {
@@ -1065,30 +1069,58 @@ func Convert_v1alpha4_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, out *c
 	return nil
 }
 
-func Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplate(in *LocalObjectTemplate, out *clusterv1.ClusterClassTemplate, _ apimachineryconversion.Scope) error {
-	if in.Ref == nil {
-		return nil
-	}
-
-	out.Ref = &clusterv1.ClusterClassTemplateReference{
-		Kind:       in.Ref.Kind,
-		Name:       in.Ref.Name,
-		APIVersion: in.Ref.APIVersion,
-	}
+func Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(in *LocalObjectTemplate, out *clusterv1.ControlPlaneClassMachineInfrastructureTemplate, s apimachineryconversion.Scope) error {
+	convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplateReference(in, &out.TemplateRef, s)
 	return nil
 }
 
-func Convert_v1beta2_ClusterClassTemplate_To_v1alpha4_LocalObjectTemplate(in *clusterv1.ClusterClassTemplate, out *LocalObjectTemplate, _ apimachineryconversion.Scope) error {
-	if in.Ref == nil {
-		return nil
+func Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_MachineDeploymentClassBootstrapTemplate(in *LocalObjectTemplate, out *clusterv1.MachineDeploymentClassBootstrapTemplate, s apimachineryconversion.Scope) error {
+	convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplateReference(in, &out.TemplateRef, s)
+	return nil
+}
+
+func Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_MachineDeploymentClassInfrastructureTemplate(in *LocalObjectTemplate, out *clusterv1.MachineDeploymentClassInfrastructureTemplate, s apimachineryconversion.Scope) error {
+	convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplateReference(in, &out.TemplateRef, s)
+	return nil
+}
+
+func convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplateReference(in *LocalObjectTemplate, out *clusterv1.ClusterClassTemplateReference, _ apimachineryconversion.Scope) {
+	if in == nil || in.Ref == nil {
+		return
 	}
 
-	out.Ref = &corev1.ObjectReference{
+	*out = clusterv1.ClusterClassTemplateReference{
 		Kind:       in.Ref.Kind,
 		Name:       in.Ref.Name,
 		APIVersion: in.Ref.APIVersion,
 	}
+}
+
+func Convert_v1beta2_ControlPlaneClassMachineInfrastructureTemplate_To_v1alpha4_LocalObjectTemplate(in *clusterv1.ControlPlaneClassMachineInfrastructureTemplate, out *LocalObjectTemplate, s apimachineryconversion.Scope) error {
+	Convert_v1beta2_ClusterClassTemplateReference_To_v1alpha4_LocalObjectTemplate(&in.TemplateRef, out, s)
 	return nil
+}
+
+func Convert_v1beta2_MachineDeploymentClassBootstrapTemplate_To_v1alpha4_LocalObjectTemplate(in *clusterv1.MachineDeploymentClassBootstrapTemplate, out *LocalObjectTemplate, s apimachineryconversion.Scope) error {
+	Convert_v1beta2_ClusterClassTemplateReference_To_v1alpha4_LocalObjectTemplate(&in.TemplateRef, out, s)
+	return nil
+}
+
+func Convert_v1beta2_MachineDeploymentClassInfrastructureTemplate_To_v1alpha4_LocalObjectTemplate(in *clusterv1.MachineDeploymentClassInfrastructureTemplate, out *LocalObjectTemplate, s apimachineryconversion.Scope) error {
+	Convert_v1beta2_ClusterClassTemplateReference_To_v1alpha4_LocalObjectTemplate(&in.TemplateRef, out, s)
+	return nil
+}
+
+func Convert_v1beta2_ClusterClassTemplateReference_To_v1alpha4_LocalObjectTemplate(in *clusterv1.ClusterClassTemplateReference, out *LocalObjectTemplate, _ apimachineryconversion.Scope) {
+	if in == nil {
+		return
+	}
+
+	out.Ref = &corev1.ObjectReference{
+		Kind:       in.Kind,
+		Name:       in.Name,
+		APIVersion: in.APIVersion,
+	}
 }
 
 // Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)

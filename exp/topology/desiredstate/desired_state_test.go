@@ -122,7 +122,7 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 
 		assertTemplateToObject(g, assertTemplateInput{
 			cluster:           scope.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.Infrastructure.Ref,
+			templateRef:       blueprint.ClusterClass.Spec.Infrastructure.TemplateRef,
 			template:          blueprint.InfrastructureClusterTemplate,
 			labels:            nil,
 			annotations:       nil,
@@ -150,7 +150,7 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 
 		assertTemplateToObject(g, assertTemplateInput{
 			cluster:           scope.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.Infrastructure.Ref,
+			templateRef:       blueprint.ClusterClass.Spec.Infrastructure.TemplateRef,
 			template:          blueprint.InfrastructureClusterTemplate,
 			labels:            nil,
 			annotations:       nil,
@@ -230,7 +230,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 		assertTemplateToTemplate(g, assertTemplateInput{
 			cluster:           scope.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
 			template:          blueprint.ControlPlane.InfrastructureMachineTemplate,
 			currentObjectName: "",
 			obj:               obj,
@@ -256,7 +256,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 		assertTemplateToTemplate(g, assertTemplateInput{
 			cluster:           scope.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
 			template:          blueprint.ControlPlane.InfrastructureMachineTemplate,
 			currentObjectName: "",
 			obj:               obj,
@@ -301,7 +301,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 		assertTemplateToTemplate(g, assertTemplateInput{
 			cluster:           s.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
 			template:          blueprint.ControlPlane.InfrastructureMachineTemplate,
 			currentObjectName: contract.ObjToRef(currentInfrastructureMachineTemplate).Name,
 			obj:               obj,
@@ -342,7 +342,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 		assertTemplateToTemplate(g, assertTemplateInput{
 			cluster:           s.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
 			template:          blueprint.ControlPlane.InfrastructureMachineTemplate,
 			currentObjectName: contract.ObjToRef(currentInfrastructureMachineTemplate).Name,
 			obj:               obj,
@@ -462,7 +462,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertTemplateToObject(g, assertTemplateInput{
 			cluster:           scope.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.TemplateRef,
 			template:          blueprint.ControlPlane.Template,
 			currentObjectName: "",
 			obj:               obj,
@@ -502,7 +502,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertTemplateToObject(g, assertTemplateInput{
 			cluster:           scope.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.TemplateRef,
 			template:          blueprint.ControlPlane.Template,
 			currentObjectName: "",
 			obj:               obj,
@@ -636,7 +636,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertTemplateToObject(g, assertTemplateInput{
 			cluster:           scope.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.TemplateRef,
 			template:          blueprint.ControlPlane.Template,
 			currentObjectName: "",
 			obj:               obj,
@@ -713,7 +713,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertTemplateToObject(g, assertTemplateInput{
 			cluster:           s.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.TemplateRef,
 			template:          controlPlaneTemplateWithoutMachineTemplate,
 			currentObjectName: "",
 			obj:               obj,
@@ -797,7 +797,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertTemplateToObject(g, assertTemplateInput{
 			cluster:           s.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.TemplateRef,
 			template:          controlPlaneTemplateWithoutMachineTemplate,
 			currentObjectName: "",
 			obj:               obj,
@@ -848,7 +848,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertTemplateToObject(g, assertTemplateInput{
 			cluster:           scope.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.Ref,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.TemplateRef,
 			template:          blueprint.ControlPlane.Template,
 			currentObjectName: scope.Current.Cluster.Spec.ControlPlaneRef.Name,
 			obj:               obj,
@@ -3054,7 +3054,7 @@ func TestTemplateToObject(t *testing.T) {
 
 		assertTemplateToObject(g, assertTemplateInput{
 			cluster: cluster,
-			templateRef: &clusterv1.ClusterClassTemplateReference{
+			templateRef: clusterv1.ClusterClassTemplateReference{
 				Kind:       fakeRef1.Kind,
 				Name:       fakeRef1.Name,
 				APIVersion: fakeRef1.APIVersion,
@@ -3079,7 +3079,7 @@ func TestTemplateToObject(t *testing.T) {
 		// ObjectMeta
 		assertTemplateToObject(g, assertTemplateInput{
 			cluster: cluster,
-			templateRef: &clusterv1.ClusterClassTemplateReference{
+			templateRef: clusterv1.ClusterClassTemplateReference{
 				Kind:       fakeRef1.Kind,
 				Name:       fakeRef1.Name,
 				APIVersion: fakeRef1.APIVersion,
@@ -3122,7 +3122,7 @@ func TestTemplateToTemplate(t *testing.T) {
 		g.Expect(obj).ToNot(BeNil())
 		assertTemplateToTemplate(g, assertTemplateInput{
 			cluster: cluster,
-			templateRef: &clusterv1.ClusterClassTemplateReference{
+			templateRef: clusterv1.ClusterClassTemplateReference{
 				Kind:       fakeRef1.Kind,
 				Name:       fakeRef1.Name,
 				APIVersion: fakeRef1.APIVersion,
@@ -3145,7 +3145,7 @@ func TestTemplateToTemplate(t *testing.T) {
 		g.Expect(obj).ToNot(BeNil())
 		assertTemplateToTemplate(g, assertTemplateInput{
 			cluster: cluster,
-			templateRef: &clusterv1.ClusterClassTemplateReference{
+			templateRef: clusterv1.ClusterClassTemplateReference{
 				Kind:       fakeRef1.Kind,
 				Name:       fakeRef1.Name,
 				APIVersion: fakeRef1.APIVersion,
@@ -3159,7 +3159,7 @@ func TestTemplateToTemplate(t *testing.T) {
 
 type assertTemplateInput struct {
 	cluster             *clusterv1.Cluster
-	templateRef         *clusterv1.ClusterClassTemplateReference
+	templateRef         clusterv1.ClusterClassTemplateReference
 	template            *unstructured.Unstructured
 	labels, annotations map[string]string
 	currentObjectName   string

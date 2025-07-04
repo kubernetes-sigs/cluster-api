@@ -131,7 +131,7 @@ type StructWithOnlyOptionalFields struct {
 // Note: infrastructureRef field is not required because this CRD is also used for non - control plane cases.
 type TestResourceMachineTemplateSpec struct {
 	// +optional
-	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// +optional
 	InfrastructureRef TestContractVersionedObjectReference `json:"infrastructureRef"`

@@ -161,6 +161,17 @@ func (webhook *MachineSet) ValidateDelete(_ context.Context, _ runtime.Object) (
 func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
 	var allErrs field.ErrorList
 	specPath := field.NewPath("spec")
+
+	if newMS.Spec.Template.Spec.Bootstrap.ConfigRef == nil && newMS.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
+		allErrs = append(
+			allErrs,
+			field.Required(
+				specPath.Child("template", "spec", "bootstrap"),
+				"expected either spec.template.spec.bootstrap.dataSecretName or spec.template.spec.bootstrap.configRef to be populated",
+			),
+		)
+	}
+
 	selector, err := metav1.LabelSelectorAsSelector(&newMS.Spec.Selector)
 	if err != nil {
 		allErrs = append(

@@ -365,6 +365,12 @@ func spokeLocalObjectTemplate(in *LocalObjectTemplate, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.Ref == nil {
+		in.Ref = &corev1.ObjectReference{
+			APIVersion: "fooAPIVersion",
+			Kind:       "fooKind",
+			Name:       "fooName",
+			Namespace:  "foo",
+		}
 		return
 	}
 

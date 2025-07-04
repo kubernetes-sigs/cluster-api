@@ -450,6 +450,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*ControlPlaneComponent)(nil), (*v1beta2.ControllerManager)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControllerManager(a.(*ControlPlaneComponent), b.(*v1beta2.ControllerManager), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*ControlPlaneComponent)(nil), (*v1beta2.Scheduler)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ControlPlaneComponent_To_v1beta2_Scheduler(a.(*ControlPlaneComponent), b.(*v1beta2.Scheduler), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*Discovery)(nil), (*v1beta2.Discovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Discovery_To_v1beta2_Discovery(a.(*Discovery), b.(*v1beta2.Discovery), scope)
 	}); err != nil {
@@ -500,6 +510,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.ControllerManager)(nil), (*ControlPlaneComponent)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ControllerManager_To_v1beta1_ControlPlaneComponent(a.(*v1beta2.ControllerManager), b.(*ControlPlaneComponent), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.InitConfiguration)(nil), (*InitConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_InitConfiguration_To_v1beta1_InitConfiguration(a.(*v1beta2.InitConfiguration), b.(*InitConfiguration), scope)
 	}); err != nil {
@@ -527,6 +542,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*corev1beta2.ObjectMeta)(nil), (*corev1beta1.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(a.(*corev1beta2.ObjectMeta), b.(*corev1beta1.ObjectMeta), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.Scheduler)(nil), (*ControlPlaneComponent)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_Scheduler_To_v1beta1_ControlPlaneComponent(a.(*v1beta2.Scheduler), b.(*ControlPlaneComponent), scope)
 	}); err != nil {
 		return err
 	}
@@ -660,10 +680,10 @@ func autoConvert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in
 	if err := Convert_v1beta1_APIServer_To_v1beta2_APIServer(&in.APIServer, &out.APIServer, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(&in.ControllerManager, &out.ControllerManager, s); err != nil {
+	if err := Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControllerManager(&in.ControllerManager, &out.ControllerManager, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(&in.Scheduler, &out.Scheduler, s); err != nil {
+	if err := Convert_v1beta1_ControlPlaneComponent_To_v1beta2_Scheduler(&in.Scheduler, &out.Scheduler, s); err != nil {
 		return err
 	}
 	if err := Convert_v1beta1_DNS_To_v1beta2_DNS(&in.DNS, &out.DNS, s); err != nil {
@@ -684,10 +704,10 @@ func autoConvert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in
 	if err := Convert_v1beta2_APIServer_To_v1beta1_APIServer(&in.APIServer, &out.APIServer, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta2_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(&in.ControllerManager, &out.ControllerManager, s); err != nil {
+	if err := Convert_v1beta2_ControllerManager_To_v1beta1_ControlPlaneComponent(&in.ControllerManager, &out.ControllerManager, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta2_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(&in.Scheduler, &out.Scheduler, s); err != nil {
+	if err := Convert_v1beta2_Scheduler_To_v1beta1_ControlPlaneComponent(&in.Scheduler, &out.Scheduler, s); err != nil {
 		return err
 	}
 	if err := Convert_v1beta2_DNS_To_v1beta1_DNS(&in.DNS, &out.DNS, s); err != nil {
@@ -1955,7 +1975,7 @@ func Convert_v1beta2_NTP_To_v1beta1_NTP(in *v1beta2.NTP, out *NTP, s conversion.
 func autoConvert_v1beta1_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *v1beta2.NodeRegistrationOptions, s conversion.Scope) error {
 	out.Name = in.Name
 	out.CRISocket = in.CRISocket
-	out.Taints = *(*[]corev1.Taint)(unsafe.Pointer(&in.Taints))
+	// WARNING: in.Taints requires manual conversion: inconvertible types ([]k8s.io/api/core/v1.Taint vs *[]k8s.io/api/core/v1.Taint)
 	// WARNING: in.KubeletExtraArgs requires manual conversion: inconvertible types (map[string]string vs []sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg)
 	out.IgnorePreflightErrors = *(*[]string)(unsafe.Pointer(&in.IgnorePreflightErrors))
 	out.ImagePullPolicy = corev1.PullPolicy(in.ImagePullPolicy)
@@ -1966,7 +1986,7 @@ func autoConvert_v1beta1_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOpti
 func autoConvert_v1beta2_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOptions(in *v1beta2.NodeRegistrationOptions, out *NodeRegistrationOptions, s conversion.Scope) error {
 	out.Name = in.Name
 	out.CRISocket = in.CRISocket
-	out.Taints = *(*[]corev1.Taint)(unsafe.Pointer(&in.Taints))
+	// WARNING: in.Taints requires manual conversion: inconvertible types (*[]k8s.io/api/core/v1.Taint vs []k8s.io/api/core/v1.Taint)
 	// WARNING: in.KubeletExtraArgs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg vs map[string]string)
 	out.IgnorePreflightErrors = *(*[]string)(unsafe.Pointer(&in.IgnorePreflightErrors))
 	out.ImagePullPolicy = string(in.ImagePullPolicy)

@@ -186,6 +186,10 @@ func hubNodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, 
 	c.FillNoCustom(obj)
 
 	obj.ImagePullSerial = nil
+
+	if obj.Taints != nil && *obj.Taints == nil {
+		obj.Taints = nil
+	}
 }
 
 func hubInitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c randfill.Continue) {

@@ -388,7 +388,7 @@ type MachineSpec struct {
 	// bootstrap is a reference to a local struct which encapsulates
 	// fields to configure the Machine’s bootstrapping mechanism.
 	// +required
-	Bootstrap Bootstrap `json:"bootstrap"`
+	Bootstrap Bootstrap `json:"bootstrap,omitempty,omitzero"`
 
 	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.

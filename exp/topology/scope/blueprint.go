@@ -93,7 +93,7 @@ type MachinePoolBlueprint struct {
 
 // HasControlPlaneInfrastructureMachine checks whether the clusterClass mandates the controlPlane has infrastructureMachines.
 func (b *ClusterBlueprint) HasControlPlaneInfrastructureMachine() bool {
-	return b.ClusterClass.Spec.ControlPlane.MachineInfrastructure != nil && b.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref != nil
+	return b.ClusterClass.Spec.ControlPlane.MachineInfrastructure != nil
 }
 
 // IsControlPlaneMachineHealthCheckEnabled returns true if a MachineHealthCheck should be created for the control plane.

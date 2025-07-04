@@ -317,7 +317,7 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 	log.Logf("Modifying the ControlPlaneTemplate of ClusterClass %s", klog.KObj(input.ClusterClass))
 
 	// Get ControlPlaneTemplate object.
-	controlPlaneTemplateRef := input.ClusterClass.Spec.ControlPlane.Ref
+	controlPlaneTemplateRef := &input.ClusterClass.Spec.ControlPlane.TemplateRef
 	controlPlaneTemplate, err := external.Get(ctx, mgmtClient, controlPlaneTemplateRef.ToObjectReference(input.ClusterClass.Namespace))
 	Expect(err).ToNot(HaveOccurred())
 
@@ -448,31 +448,29 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 
 	mgmtClient := input.ClusterProxy.GetClient()
 
-	for _, mdClass := range input.ClusterClass.Spec.Workers.MachineDeployments {
+	for i, mdClass := range input.ClusterClass.Spec.Workers.MachineDeployments {
 		// Only try to modify the BootstrapConfigTemplate if the MachineDeploymentClass is using a BootstrapConfigTemplate.
 		var newBootstrapConfigTemplateName string
-		if mdClass.Template.Bootstrap.Ref != nil {
-			log.Logf("Modifying the BootstrapConfigTemplate of MachineDeploymentClass %q of ClusterClass %s", mdClass.Class, klog.KObj(input.ClusterClass))
+		log.Logf("Modifying the BootstrapConfigTemplate of MachineDeploymentClass %q of ClusterClass %s", mdClass.Class, klog.KObj(input.ClusterClass))
 
-			// Retrieve BootstrapConfigTemplate object.
-			bootstrapConfigTemplateRef := mdClass.Template.Bootstrap.Ref.ToObjectReference(input.ClusterClass.Namespace)
-			bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef)
-			Expect(err).ToNot(HaveOccurred())
-			// Create a new BootstrapConfigTemplate object with a new name and ModifyBootstrapConfigTemplateFields set.
-			newBootstrapConfigTemplate := bootstrapConfigTemplate.DeepCopy()
-			newBootstrapConfigTemplateName = fmt.Sprintf("%s-%s", bootstrapConfigTemplateRef.Name, util.RandomString(6))
-			newBootstrapConfigTemplate.SetName(newBootstrapConfigTemplateName)
-			newBootstrapConfigTemplate.SetResourceVersion("")
-			for fieldPath, value := range input.ModifyBootstrapConfigTemplateFields {
-				Expect(unstructured.SetNestedField(newBootstrapConfigTemplate.Object, value, strings.Split(fieldPath, ".")...)).To(Succeed())
-			}
-			Expect(mgmtClient.Create(ctx, newBootstrapConfigTemplate)).To(Succeed())
+		// Retrieve BootstrapConfigTemplate object.
+		bootstrapConfigTemplateRef := mdClass.Template.Bootstrap.TemplateRef.ToObjectReference(input.ClusterClass.Namespace)
+		bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef)
+		Expect(err).ToNot(HaveOccurred())
+		// Create a new BootstrapConfigTemplate object with a new name and ModifyBootstrapConfigTemplateFields set.
+		newBootstrapConfigTemplate := bootstrapConfigTemplate.DeepCopy()
+		newBootstrapConfigTemplateName = fmt.Sprintf("%s-%s", bootstrapConfigTemplateRef.Name, util.RandomString(6))
+		newBootstrapConfigTemplate.SetName(newBootstrapConfigTemplateName)
+		newBootstrapConfigTemplate.SetResourceVersion("")
+		for fieldPath, value := range input.ModifyBootstrapConfigTemplateFields {
+			Expect(unstructured.SetNestedField(newBootstrapConfigTemplate.Object, value, strings.Split(fieldPath, ".")...)).To(Succeed())
 		}
+		Expect(mgmtClient.Create(ctx, newBootstrapConfigTemplate)).To(Succeed())
 
 		log.Logf("Modifying the InfrastructureMachineTemplate of MachineDeploymentClass %q of ClusterClass %s", mdClass.Class, klog.KObj(input.ClusterClass))
 
 		// Retrieve InfrastructureMachineTemplate object.
-		infrastructureMachineTemplateRef := mdClass.Template.Infrastructure.Ref.ToObjectReference(input.ClusterClass.Namespace)
+		infrastructureMachineTemplateRef := mdClass.Template.Infrastructure.TemplateRef.ToObjectReference(input.ClusterClass.Namespace)
 		infrastructureMachineTemplate, err := external.Get(ctx, mgmtClient, infrastructureMachineTemplateRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Create a new InfrastructureMachineTemplate object with a new name and ModifyInfrastructureMachineTemplateFields set.
@@ -488,10 +486,8 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 		// Patch the refs of the MachineDeploymentClass to reference the new templates.
 		patchHelper, err := patch.NewHelper(input.ClusterClass, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
-		if mdClass.Template.Bootstrap.Ref != nil {
-			mdClass.Template.Bootstrap.Ref.Name = newBootstrapConfigTemplateName
-		}
-		mdClass.Template.Infrastructure.Ref.Name = newInfrastructureMachineTemplateName
+		input.ClusterClass.Spec.Workers.MachineDeployments[i].Template.Bootstrap.TemplateRef.Name = newBootstrapConfigTemplateName
+		input.ClusterClass.Spec.Workers.MachineDeployments[i].Template.Infrastructure.TemplateRef.Name = newInfrastructureMachineTemplateName
 		Expect(patchHelper.Patch(ctx, input.ClusterClass)).To(Succeed())
 
 		log.Logf("Waiting for MachineDeployment rollout for MachineDeploymentClass %q to complete.", mdClass.Class)
@@ -516,19 +512,17 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 				// Verify that the fields from Cluster topology are set on the MachineDeployment.
 				assertMachineDeploymentTopologyFields(g, md, mdTopology)
 
-				if mdClass.Template.Bootstrap.Ref != nil {
-					// Get the corresponding BootstrapConfigTemplate.
-					bootstrapConfigTemplateRef := md.Spec.Template.Spec.Bootstrap.ConfigRef
-					bootstrapConfigTemplate, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, bootstrapConfigTemplateRef, md.Namespace)
-					g.Expect(err).ToNot(HaveOccurred())
+				// Get the corresponding BootstrapConfigTemplate.
+				bootstrapConfigTemplateRef := md.Spec.Template.Spec.Bootstrap.ConfigRef
+				bootstrapConfigTemplate, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, bootstrapConfigTemplateRef, md.Namespace)
+				g.Expect(err).ToNot(HaveOccurred())
 
-					// Verify that ModifyBootstrapConfigTemplateFields have been set.
-					for fieldPath, expectedValue := range input.ModifyBootstrapConfigTemplateFields {
-						currentValue, ok, err := unstructured.NestedFieldNoCopy(bootstrapConfigTemplate.Object, strings.Split(fieldPath, ".")...)
-						g.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to get field %q", fieldPath))
-						g.Expect(ok).To(BeTrue(), fmt.Sprintf("failed to get field %q", fieldPath))
-						g.Expect(currentValue).To(Equal(expectedValue), fmt.Sprintf("field %q should be equal", fieldPath))
-					}
+				// Verify that ModifyBootstrapConfigTemplateFields have been set.
+				for fieldPath, expectedValue := range input.ModifyBootstrapConfigTemplateFields {
+					currentValue, ok, err := unstructured.NestedFieldNoCopy(bootstrapConfigTemplate.Object, strings.Split(fieldPath, ".")...)
+					g.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to get field %q", fieldPath))
+					g.Expect(ok).To(BeTrue(), fmt.Sprintf("failed to get field %q", fieldPath))
+					g.Expect(currentValue).To(Equal(expectedValue), fmt.Sprintf("field %q should be equal", fieldPath))
 				}
 
 				// Get the corresponding InfrastructureMachineTemplate.
@@ -570,31 +564,29 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 
 	mgmtClient := input.ClusterProxy.GetClient()
 
-	for _, mpClass := range input.ClusterClass.Spec.Workers.MachinePools {
+	for i, mpClass := range input.ClusterClass.Spec.Workers.MachinePools {
 		// Only try to modify the BootstrapConfigTemplate if the MachinePoolClass is using a BootstrapConfigTemplate.
 		var newBootstrapConfigTemplateName string
-		if mpClass.Template.Bootstrap.Ref != nil {
-			log.Logf("Modifying the BootstrapConfigTemplate of MachinePoolClass %q of ClusterClass %s", mpClass.Class, klog.KObj(input.ClusterClass))
+		log.Logf("Modifying the BootstrapConfigTemplate of MachinePoolClass %q of ClusterClass %s", mpClass.Class, klog.KObj(input.ClusterClass))
 
-			// Retrieve BootstrapConfigTemplate object.
-			bootstrapConfigTemplateRef := mpClass.Template.Bootstrap.Ref.ToObjectReference(input.ClusterClass.Namespace)
-			bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef)
-			Expect(err).ToNot(HaveOccurred())
-			// Create a new BootstrapConfigTemplate object with a new name and ModifyBootstrapConfigTemplateFields set.
-			newBootstrapConfigTemplate := bootstrapConfigTemplate.DeepCopy()
-			newBootstrapConfigTemplateName = fmt.Sprintf("%s-%s", bootstrapConfigTemplateRef.Name, util.RandomString(6))
-			newBootstrapConfigTemplate.SetName(newBootstrapConfigTemplateName)
-			newBootstrapConfigTemplate.SetResourceVersion("")
-			for fieldPath, value := range input.ModifyBootstrapConfigTemplateFields {
-				Expect(unstructured.SetNestedField(newBootstrapConfigTemplate.Object, value, strings.Split(fieldPath, ".")...)).To(Succeed())
-			}
-			Expect(mgmtClient.Create(ctx, newBootstrapConfigTemplate)).To(Succeed())
+		// Retrieve BootstrapConfigTemplate object.
+		bootstrapConfigTemplateRef := mpClass.Template.Bootstrap.TemplateRef.ToObjectReference(input.ClusterClass.Namespace)
+		bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef)
+		Expect(err).ToNot(HaveOccurred())
+		// Create a new BootstrapConfigTemplate object with a new name and ModifyBootstrapConfigTemplateFields set.
+		newBootstrapConfigTemplate := bootstrapConfigTemplate.DeepCopy()
+		newBootstrapConfigTemplateName = fmt.Sprintf("%s-%s", bootstrapConfigTemplateRef.Name, util.RandomString(6))
+		newBootstrapConfigTemplate.SetName(newBootstrapConfigTemplateName)
+		newBootstrapConfigTemplate.SetResourceVersion("")
+		for fieldPath, value := range input.ModifyBootstrapConfigTemplateFields {
+			Expect(unstructured.SetNestedField(newBootstrapConfigTemplate.Object, value, strings.Split(fieldPath, ".")...)).To(Succeed())
 		}
+		Expect(mgmtClient.Create(ctx, newBootstrapConfigTemplate)).To(Succeed())
 
 		log.Logf("Modifying the InfrastructureMachinePoolTemplate of MachinePoolClass %q of ClusterClass %s", mpClass.Class, klog.KObj(input.ClusterClass))
 
 		// Retrieve InfrastructureMachineTemplate object.
-		infrastructureMachinePoolTemplateRef := mpClass.Template.Infrastructure.Ref.ToObjectReference(input.ClusterClass.Namespace)
+		infrastructureMachinePoolTemplateRef := mpClass.Template.Infrastructure.TemplateRef.ToObjectReference(input.ClusterClass.Namespace)
 		infrastructureMachinePoolTemplate, err := external.Get(ctx, mgmtClient, infrastructureMachinePoolTemplateRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Create a new InfrastructureMachinePoolTemplate object with a new name and ModifyInfrastructureMachinePoolTemplateFields set.
@@ -610,10 +602,8 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 		// Patch the refs of the MachinePoolClass to reference the new templates.
 		patchHelper, err := patch.NewHelper(input.ClusterClass, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
-		if mpClass.Template.Bootstrap.Ref != nil {
-			mpClass.Template.Bootstrap.Ref.Name = newBootstrapConfigTemplateName
-		}
-		mpClass.Template.Infrastructure.Ref.Name = newInfrastructureMachinePoolTemplateName
+		input.ClusterClass.Spec.Workers.MachinePools[i].Template.Bootstrap.TemplateRef.Name = newBootstrapConfigTemplateName
+		input.ClusterClass.Spec.Workers.MachinePools[i].Template.Infrastructure.TemplateRef.Name = newInfrastructureMachinePoolTemplateName
 		Expect(patchHelper.Patch(ctx, input.ClusterClass)).To(Succeed())
 
 		log.Logf("Waiting for MachinePool rollout for MachinePoolClass %q to complete.", mpClass.Class)
@@ -638,21 +628,19 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 				// Verify that the fields from Cluster topology are set on the MachinePool.
 				assertMachinePoolTopologyFields(g, mp, mpTopology)
 
-				if mpClass.Template.Bootstrap.Ref != nil {
-					// Get the corresponding BootstrapConfig object.
-					bootstrapConfigObjectRef := mp.Spec.Template.Spec.Bootstrap.ConfigRef
-					bootstrapConfigObject, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, bootstrapConfigObjectRef, mp.Namespace)
-					g.Expect(err).ToNot(HaveOccurred())
+				// Get the corresponding BootstrapConfig object.
+				bootstrapConfigObjectRef := mp.Spec.Template.Spec.Bootstrap.ConfigRef
+				bootstrapConfigObject, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, bootstrapConfigObjectRef, mp.Namespace)
+				g.Expect(err).ToNot(HaveOccurred())
 
-					// Verify that ModifyBootstrapConfigTemplateFields have been set and propagates to the BootstrapConfig.
-					for fieldPath, expectedValue := range input.ModifyBootstrapConfigTemplateFields {
-						// MachinePools have a BootstrapConfig, not a BootstrapConfigTemplate, so we need to convert the fieldPath so it can find it on the object.
-						fieldPath = strings.TrimPrefix(fieldPath, "spec.template.")
-						currentValue, ok, err := unstructured.NestedFieldNoCopy(bootstrapConfigObject.Object, strings.Split(fieldPath, ".")...)
-						g.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to get field %q", fieldPath))
-						g.Expect(ok).To(BeTrue(), fmt.Sprintf("failed to get field %q", fieldPath))
-						g.Expect(currentValue).To(Equal(expectedValue), fmt.Sprintf("field %q should be equal", fieldPath))
-					}
+				// Verify that ModifyBootstrapConfigTemplateFields have been set and propagates to the BootstrapConfig.
+				for fieldPath, expectedValue := range input.ModifyBootstrapConfigTemplateFields {
+					// MachinePools have a BootstrapConfig, not a BootstrapConfigTemplate, so we need to convert the fieldPath so it can find it on the object.
+					fieldPath = strings.TrimPrefix(fieldPath, "spec.template.")
+					currentValue, ok, err := unstructured.NestedFieldNoCopy(bootstrapConfigObject.Object, strings.Split(fieldPath, ".")...)
+					g.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to get field %q", fieldPath))
+					g.Expect(ok).To(BeTrue(), fmt.Sprintf("failed to get field %q", fieldPath))
+					g.Expect(currentValue).To(Equal(expectedValue), fmt.Sprintf("field %q should be equal", fieldPath))
 				}
 
 				// Get the corresponding InfrastructureMachinePoolTemplate.
@@ -793,20 +781,20 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 
 	// Copy ClusterClass templates to the new namespace
 	for i, mdClass := range newClusterClass.Spec.Workers.MachineDeployments {
-		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mdClass.Template.Infrastructure, input.ClusterClass.Namespace, input.ClusterClassNamespace)
-		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mdClass.Template.Bootstrap, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mdClass.Template.Infrastructure.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mdClass.Template.Bootstrap.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
 		newClusterClass.Spec.Workers.MachineDeployments[i] = mdClass
 	}
 
 	for i, mpClass := range newClusterClass.Spec.Workers.MachinePools {
-		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mpClass.Template.Infrastructure, input.ClusterClass.Namespace, input.ClusterClassNamespace)
-		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mpClass.Template.Bootstrap, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mpClass.Template.Infrastructure.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mpClass.Template.Bootstrap.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
 		newClusterClass.Spec.Workers.MachinePools[i] = mpClass
 	}
 
-	cloneTemplateAndUpdateRef(ctx, mgmtClient, newClusterClass.Spec.ControlPlane.MachineInfrastructure, input.ClusterClass.Namespace, input.ClusterClassNamespace)
-	cloneTemplateAndUpdateRef(ctx, mgmtClient, &newClusterClass.Spec.ControlPlane.ClusterClassTemplate, input.ClusterClass.Namespace, input.ClusterClassNamespace)
-	cloneTemplateAndUpdateRef(ctx, mgmtClient, &newClusterClass.Spec.Infrastructure.ClusterClassTemplate, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+	cloneTemplateAndUpdateRef(ctx, mgmtClient, &newClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+	cloneTemplateAndUpdateRef(ctx, mgmtClient, &newClusterClass.Spec.ControlPlane.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+	cloneTemplateAndUpdateRef(ctx, mgmtClient, &newClusterClass.Spec.Infrastructure.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
 
 	Expect(mgmtClient.Create(ctx, newClusterClass)).To(Succeed())
 
@@ -894,12 +882,8 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 }
 
 // cloneTemplateAndUpdateRef performs required modifications to avoid conflict, and create a copy of the referenced object, updating the ref in-place.
-func cloneTemplateAndUpdateRef(ctx context.Context, cl client.Client, template *clusterv1.ClusterClassTemplate, currentNamespace, targetNamespace string) {
-	if template == nil || template.Ref == nil {
-		return
-	}
-
-	templateObject, err := external.Get(ctx, cl, template.Ref.ToObjectReference(currentNamespace))
+func cloneTemplateAndUpdateRef(ctx context.Context, cl client.Client, templateRef *clusterv1.ClusterClassTemplateReference, currentNamespace, targetNamespace string) {
+	templateObject, err := external.Get(ctx, cl, templateRef.ToObjectReference(currentNamespace))
 	Expect(err).ToNot(HaveOccurred())
 	if targetNamespace != "" {
 		templateObject.SetNamespace(targetNamespace)
@@ -911,7 +895,7 @@ func cloneTemplateAndUpdateRef(ctx context.Context, cl client.Client, template *
 	templateObject.SetOwnerReferences(nil)
 	Expect(cl.Create(ctx, templateObject)).To(Succeed())
 
-	template.Ref = &clusterv1.ClusterClassTemplateReference{
+	*templateRef = clusterv1.ClusterClassTemplateReference{
 		Kind:       templateObject.GetKind(),
 		Name:       templateObject.GetName(),
 		APIVersion: templateObject.GetAPIVersion(),

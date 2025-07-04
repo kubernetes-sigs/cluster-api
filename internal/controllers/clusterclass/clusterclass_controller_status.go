@@ -52,7 +52,7 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 	if len(outdatedRefs) > 0 {
 		var msg []string
 		for _, outdatedRef := range outdatedRefs {
-			msg = append(msg, fmt.Sprintf("* Ref %q should be %q", refString(outdatedRef.Outdated), refString(outdatedRef.UpToDate)))
+			msg = append(msg, fmt.Sprintf("* templateRef %q should be %q", refString(outdatedRef.Outdated), refString(outdatedRef.UpToDate)))
 		}
 		v1beta1conditions.Set(clusterClass,
 			v1beta1conditions.FalseCondition(

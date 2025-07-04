@@ -418,6 +418,11 @@ func Convert_v1beta2_NodeRegistrationOptions_To_v1alpha4_NodeRegistrationOptions
 	// NodeRegistrationOptions.ImagePullPolicy does not exit in kubeadm v1alpha4 API.
 	// Following fields require a custom conversions.
 	out.KubeletExtraArgs = bootstrapv1.ConvertFromArgs(in.KubeletExtraArgs)
+	if in.Taints == nil {
+		out.Taints = nil
+	} else {
+		out.Taints = *in.Taints
+	}
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_v1alpha4_NodeRegistrationOptions(in, out, s)
 }
 
@@ -429,6 +434,15 @@ func Convert_v1beta2_KubeadmConfigTemplateResource_To_v1alpha4_KubeadmConfigTemp
 func Convert_v1beta2_FileDiscovery_To_v1alpha4_FileDiscovery(in *bootstrapv1.FileDiscovery, out *FileDiscovery, s apimachineryconversion.Scope) error {
 	// JoinConfiguration.Discovery.File.KubeConfig does not exist in v1alpha4 APIs.
 	return autoConvert_v1beta2_FileDiscovery_To_v1alpha4_FileDiscovery(in, out, s)
+}
+
+func Convert_v1beta2_ControllerManager_To_v1alpha4_ControlPlaneComponent(in *bootstrapv1.ControllerManager, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+
+	return Convert_v1beta2_ControlPlaneComponent_To_v1alpha4_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
+}
+
+func Convert_v1beta2_Scheduler_To_v1alpha4_ControlPlaneComponent(in *bootstrapv1.Scheduler, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	return Convert_v1beta2_ControlPlaneComponent_To_v1alpha4_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
 }
 
 func Convert_v1beta2_ControlPlaneComponent_To_v1alpha4_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
@@ -474,12 +488,25 @@ func Convert_v1alpha4_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstr
 
 func Convert_v1alpha4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
 	out.KubeletExtraArgs = bootstrapv1.ConvertToArgs(in.KubeletExtraArgs)
+	if in.Taints == nil {
+		out.Taints = nil
+	} else {
+		out.Taints = ptr.To(in.Taints)
+	}
 	return autoConvert_v1alpha4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
 }
 
 func Convert_v1alpha4_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstrapv1.APIServer, s apimachineryconversion.Scope) error {
 	// TimeoutForControlPlane has been removed in v1beta2
 	return autoConvert_v1alpha4_APIServer_To_v1beta2_APIServer(in, out, s)
+}
+
+func Convert_v1alpha4_ControlPlaneComponent_To_v1beta2_ControllerManager(in *ControlPlaneComponent, out *bootstrapv1.ControllerManager, s apimachineryconversion.Scope) error {
+	return Convert_v1alpha4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
+}
+
+func Convert_v1alpha4_ControlPlaneComponent_To_v1beta2_Scheduler(in *ControlPlaneComponent, out *bootstrapv1.Scheduler, s apimachineryconversion.Scope) error {
+	return Convert_v1alpha4_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
 }
 
 func Convert_v1alpha4_Discovery_To_v1beta2_Discovery(in *Discovery, out *bootstrapv1.Discovery, s apimachineryconversion.Scope) error {

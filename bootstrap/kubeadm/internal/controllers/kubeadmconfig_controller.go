@@ -722,8 +722,8 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	// Do not modify the KubeadmConfig in etcd as this is a temporary taint that will be dropped after the node
 	// is initialized by ClusterAPI.
 	joinConfiguration := scope.Config.Spec.JoinConfiguration.DeepCopy()
-	if !taints.HasTaint(joinConfiguration.NodeRegistration.Taints, clusterv1.NodeUninitializedTaint) {
-		joinConfiguration.NodeRegistration.Taints = append(joinConfiguration.NodeRegistration.Taints, clusterv1.NodeUninitializedTaint)
+	if !taints.HasTaint(ptr.Deref(joinConfiguration.NodeRegistration.Taints, []corev1.Taint{}), clusterv1.NodeUninitializedTaint) {
+		joinConfiguration.NodeRegistration.Taints = ptr.To(append(ptr.Deref(joinConfiguration.NodeRegistration.Taints, []corev1.Taint{}), clusterv1.NodeUninitializedTaint))
 	}
 
 	// NOTE: It is not required to provide in input ClusterConfiguration because only clusterConfiguration.APIServer.TimeoutForControlPlane

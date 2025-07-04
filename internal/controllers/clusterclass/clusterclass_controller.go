@@ -214,35 +214,18 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, s *scope) 
 	clusterClass := s.clusterClass
 
 	// Collect all the reference from the ClusterClass to templates.
-	refs := []*clusterv1.ClusterClassTemplateReference{}
-
-	if clusterClass.Spec.Infrastructure.Ref != nil {
-		refs = append(refs, clusterClass.Spec.Infrastructure.Ref)
+	refs := []clusterv1.ClusterClassTemplateReference{
+		clusterClass.Spec.Infrastructure.TemplateRef,
+		clusterClass.Spec.ControlPlane.TemplateRef,
 	}
-
-	if clusterClass.Spec.ControlPlane.Ref != nil {
-		refs = append(refs, clusterClass.Spec.ControlPlane.Ref)
+	if clusterClass.Spec.ControlPlane.MachineInfrastructure != nil {
+		refs = append(refs, clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef)
 	}
-	if clusterClass.Spec.ControlPlane.MachineInfrastructure != nil && clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref != nil {
-		refs = append(refs, clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref)
-	}
-
 	for _, mdClass := range clusterClass.Spec.Workers.MachineDeployments {
-		if mdClass.Template.Bootstrap.Ref != nil {
-			refs = append(refs, mdClass.Template.Bootstrap.Ref)
-		}
-		if mdClass.Template.Infrastructure.Ref != nil {
-			refs = append(refs, mdClass.Template.Infrastructure.Ref)
-		}
+		refs = append(refs, mdClass.Template.Bootstrap.TemplateRef, mdClass.Template.Infrastructure.TemplateRef)
 	}
-
 	for _, mpClass := range clusterClass.Spec.Workers.MachinePools {
-		if mpClass.Template.Bootstrap.Ref != nil {
-			refs = append(refs, mpClass.Template.Bootstrap.Ref)
-		}
-		if mpClass.Template.Infrastructure.Ref != nil {
-			refs = append(refs, mpClass.Template.Infrastructure.Ref)
-		}
+		refs = append(refs, mpClass.Template.Bootstrap.TemplateRef, mpClass.Template.Infrastructure.TemplateRef)
 	}
 
 	// Ensure all referenced objects are owned by the ClusterClass.
@@ -254,6 +237,11 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, s *scope) 
 	reconciledRefs := sets.Set[string]{}
 	outdatedRefs := []outdatedRef{}
 	for i := range refs {
+		// Skip empty refs.
+		if reflect.DeepEqual(refs[i], clusterv1.ClusterClassTemplateReference{}) {
+			continue
+		}
+
 		ref := refs[i].ToObjectReference(s.clusterClass.Namespace)
 		uniqueKey := uniqueObjectRefKey(ref)
 

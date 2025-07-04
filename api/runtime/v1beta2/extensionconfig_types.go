@@ -179,7 +179,6 @@ type ExtensionHandler struct {
 	// failurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client.
 	// Defaults to Fail if not set.
 	// +optional
-	// +kubebuilder:validation:Enum=Ignore;Fail
 	FailurePolicy *FailurePolicy `json:"failurePolicy,omitempty"`
 }
 
@@ -203,6 +202,7 @@ type GroupVersionHook struct {
 // The following type of errors are never ignored by FailurePolicy Ignore:
 // - Misconfigurations (e.g. incompatible types)
 // - Extension explicitly returns a Status Failure.
+// +kubebuilder:validation:Enum=Ignore;Fail
 type FailurePolicy string
 
 const (

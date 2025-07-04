@@ -41,6 +41,9 @@ func TestMachineSetDefault(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Version: "1.19.10",
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To("data-secret"),
+					},
 				},
 			},
 		},
@@ -61,6 +64,65 @@ func TestMachineSetDefault(t *testing.T) {
 	g.Expect(ms.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.MachineSetNameLabel, "test-ms"))
 	g.Expect(ms.Spec.Template.Labels).To(HaveKeyWithValue(clusterv1.MachineSetNameLabel, "test-ms"))
 	g.Expect(ms.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
+}
+
+func TestMachineSetBootstrapValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		bootstrap clusterv1.Bootstrap
+		expectErr bool
+	}{
+		{
+			name:      "should return error if configref and data are nil",
+			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: nil},
+			expectErr: true,
+		},
+		{
+			name:      "should not return error if dataSecretName is set",
+			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("test")},
+			expectErr: false,
+		},
+		{
+			name:      "should not return error if dataSecretName is set",
+			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("")},
+			expectErr: false,
+		},
+		{
+			name:      "should not return error if config ref is set",
+			bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}, DataSecretName: nil},
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			m := &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{Bootstrap: tt.bootstrap},
+					},
+				},
+			}
+			webhook := &MachineSet{}
+
+			if tt.expectErr {
+				warnings, err := webhook.ValidateCreate(ctx, m)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = webhook.ValidateUpdate(ctx, m, m)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			} else {
+				warnings, err := webhook.ValidateCreate(ctx, m)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = webhook.ValidateUpdate(ctx, m, m)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+	}
 }
 
 func TestCalculateMachineSetReplicas(t *testing.T) {
@@ -277,6 +339,11 @@ func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
 						ObjectMeta: clusterv1.ObjectMeta{
 							Labels: tt.labels,
 						},
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To("data-secret"),
+							},
+						},
 					},
 				},
 			}
@@ -329,12 +396,26 @@ func TestMachineSetClusterNameImmutable(t *testing.T) {
 			newMS := &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
 					ClusterName: tt.newClusterName,
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To("data-secret"),
+							},
+						},
+					},
 				},
 			}
 
 			oldMS := &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
 					ClusterName: tt.oldClusterName,
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To("data-secret"),
+							},
+						},
+					},
 				},
 			}
 
@@ -391,6 +472,9 @@ func TestMachineSetVersionValidation(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Version: tt.version,
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To("data-secret"),
+							},
 						},
 					},
 				},
@@ -577,6 +661,13 @@ func TestMachineSetMachineNamingStrategyValidation(t *testing.T) {
 			ms := &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
 					MachineNamingStrategy: &tt.machineNamingStrategy,
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To("data-secret"),
+							},
+						},
+					},
 				},
 			}
 

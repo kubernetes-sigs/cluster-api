@@ -91,6 +91,14 @@ func Convert_upstreamv1beta3_APIServer_To_v1beta2_APIServer(in *APIServer, out *
 	return autoConvert_upstreamv1beta3_APIServer_To_v1beta2_APIServer(in, out, s)
 }
 
+func Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControllerManager(in *ControlPlaneComponent, out *bootstrapv1.ControllerManager, s apimachineryconversion.Scope) error {
+	return Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
+}
+
+func Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_Scheduler(in *ControlPlaneComponent, out *bootstrapv1.Scheduler, s apimachineryconversion.Scope) error {
+	return Convert_upstreamv1beta3_ControlPlaneComponent_To_v1beta2_ControlPlaneComponent(in, &out.ControlPlaneComponent, s)
+}
+
 func Convert_upstreamv1beta3_Discovery_To_v1beta2_Discovery(in *Discovery, out *bootstrapv1.Discovery, s apimachineryconversion.Scope) error {
 	// Discovery.Timeout does not exist in CABPK, because CABPK aligns to upstreamV1Beta4.
 	return autoConvert_upstreamv1beta3_Discovery_To_v1beta2_Discovery(in, out, s)
@@ -108,6 +116,11 @@ func Convert_upstreamv1beta3_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *
 
 func Convert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
 	out.KubeletExtraArgs = bootstrapv1.ConvertToArgs(in.KubeletExtraArgs)
+	if in.Taints == nil {
+		out.Taints = nil
+	} else {
+		out.Taints = ptr.To(in.Taints)
+	}
 	return autoConvert_upstreamv1beta3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
 }
 
@@ -143,6 +156,14 @@ func Convert_v1beta2_FileDiscovery_To_upstreamv1beta3_FileDiscovery(in *bootstra
 	return autoConvert_v1beta2_FileDiscovery_To_upstreamv1beta3_FileDiscovery(in, out, s)
 }
 
+func Convert_v1beta2_ControllerManager_To_upstreamv1beta3_ControlPlaneComponent(in *bootstrapv1.ControllerManager, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	return Convert_v1beta2_ControlPlaneComponent_To_upstreamv1beta3_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
+}
+
+func Convert_v1beta2_Scheduler_To_upstreamv1beta3_ControlPlaneComponent(in *bootstrapv1.Scheduler, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	return Convert_v1beta2_ControlPlaneComponent_To_upstreamv1beta3_ControlPlaneComponent(&in.ControlPlaneComponent, out, s)
+}
+
 func Convert_v1beta2_ControlPlaneComponent_To_upstreamv1beta3_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	// ControlPlaneComponent.ExtraEnvs does not exist in kubeadm v1beta3, dropping this info.
 
@@ -167,6 +188,11 @@ func Convert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistration
 	// Following fields require a custom conversions.
 	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta3 API does not allow this use case.
 	out.KubeletExtraArgs = bootstrapv1.ConvertFromArgs(in.KubeletExtraArgs)
+	if in.Taints == nil {
+		out.Taints = nil
+	} else {
+		out.Taints = *in.Taints
+	}
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(in, out, s)
 }
 

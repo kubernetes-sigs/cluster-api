@@ -2149,7 +2149,7 @@ spec:
   - additionalPrinterColumns:
     - description: ClusterClass of this Cluster, empty if the Cluster is not using
         a ClusterClass
-      jsonPath: .spec.topology.class
+      jsonPath: .spec.topology.classRef.name
       name: ClusterClass
       type: string
     - description: Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed
@@ -2276,18 +2276,19 @@ spec:
               controlPlaneEndpoint:
                 description: controlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
+                minProperties: 1
                 properties:
                   host:
                     description: host is the hostname on which the API server is serving.
                     maxLength: 512
+                    minLength: 1
                     type: string
                   port:
                     description: port is the port on which the API server is serving.
                     format: int32
+                    maximum: 65535
+                    minimum: 1
                     type: integer
-                required:
-                - host
-                - port
                 type: object
               controlPlaneRef:
                 description: |-
@@ -2402,6 +2403,7 @@ spec:
                     type: object
                   controlPlane:
                     description: controlPlane describes the cluster control plane.
+                    minProperties: 1
                     properties:
                       machineHealthCheck:
                         description: |-
@@ -2540,6 +2542,7 @@ spec:
                           if the ControlPlaneTemplate referenced by the ClusterClass is machine based. If not, it
                           is applied only to the ControlPlane.
                           At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
+                        minProperties: 1
                         properties:
                           annotations:
                             additionalProperties:
@@ -2875,6 +2878,7 @@ spec:
                               description: |-
                                 metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
                                 At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
+                              minProperties: 1
                               properties:
                                 annotations:
                                   additionalProperties:
@@ -3155,6 +3159,7 @@ spec:
                               description: |-
                                 metadata is the metadata applied to the MachinePool.
                                 At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
+                              minProperties: 1
                               properties:
                                 annotations:
                                   additionalProperties:

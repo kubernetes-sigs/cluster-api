@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -70,6 +71,11 @@ func Convert_v1alpha3_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstr
 
 func Convert_v1alpha3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
 	out.KubeletExtraArgs = bootstrapv1.ConvertToArgs(in.KubeletExtraArgs)
+	if in.Taints == nil {
+		out.Taints = nil
+	} else {
+		out.Taints = ptr.To(in.Taints)
+	}
 	return autoConvert_v1alpha3_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
 }
 
@@ -116,6 +122,11 @@ func Convert_v1beta2_NodeRegistrationOptions_To_v1alpha3_NodeRegistrationOptions
 	// Following fields require a custom conversions.
 	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta1 API does not allow this use case.
 	out.KubeletExtraArgs = bootstrapv1.ConvertFromArgs(in.KubeletExtraArgs)
+	if in.Taints == nil {
+		out.Taints = nil
+	} else {
+		out.Taints = *in.Taints
+	}
 	return autoConvert_v1beta2_NodeRegistrationOptions_To_v1alpha3_NodeRegistrationOptions(in, out, s)
 }
 

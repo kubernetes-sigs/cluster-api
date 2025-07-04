@@ -159,8 +159,8 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 		allErrs = append(
 			allErrs,
 			field.Required(
-				specPath.Child("template", "spec", "bootstrap", "data"),
-				"expected either spec.bootstrap.dataSecretName or spec.bootstrap.configRef to be populated",
+				specPath.Child("template", "spec", "bootstrap"),
+				"expected either spec.template.spec.bootstrap.dataSecretName or spec.template.spec.bootstrap.configRef to be populated",
 			),
 		)
 	}

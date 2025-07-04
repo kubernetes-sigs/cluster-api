@@ -470,7 +470,7 @@ type ClusterSpec struct {
 
 	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
+	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty,omitzero"`
 
 	// controlPlaneRef is an optional reference to a provider-specific resource that holds
 	// the details for provisioning the Control Plane for a Cluster.
@@ -549,7 +549,7 @@ type Topology struct {
 
 	// controlPlane describes the cluster control plane.
 	// +optional
-	ControlPlane ControlPlaneTopology `json:"controlPlane,omitempty"`
+	ControlPlane ControlPlaneTopology `json:"controlPlane,omitempty,omitzero"`
 
 	// workers encapsulates the different constructs that form the worker nodes
 	// for the cluster.
@@ -591,13 +591,14 @@ type ClusterClassRef struct {
 }
 
 // ControlPlaneTopology specifies the parameters for the control plane nodes in the cluster.
+// +kubebuilder:validation:MinProperties=1
 type ControlPlaneTopology struct {
 	// metadata is the metadata applied to the ControlPlane and the Machines of the ControlPlane
 	// if the ControlPlaneTemplate referenced by the ClusterClass is machine based. If not, it
 	// is applied only to the ControlPlane.
 	// At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
 	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// replicas is the number of control plane nodes.
 	// If the value is nil, the ControlPlane object is created without the number of Replicas
@@ -675,7 +676,7 @@ type MachineDeploymentTopology struct {
 	// metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
 	// At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
 	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// class is the name of the MachineDeploymentClass used to create the set of worker nodes.
 	// This should match one of the deployment classes defined in the ClusterClass object
@@ -789,7 +790,7 @@ type MachinePoolTopology struct {
 	// metadata is the metadata applied to the MachinePool.
 	// At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
 	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// class is the name of the MachinePoolClass used to create the pool of worker nodes.
 	// This should match one of the deployment classes defined in the ClusterClass object
@@ -1139,16 +1140,19 @@ func (c *ClusterStatus) GetTypedPhase() ClusterPhase {
 // ANCHOR: APIEndpoint
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
+// +kubebuilder:validation:MinProperties=1
 type APIEndpoint struct {
 	// host is the hostname on which the API server is serving.
-	// TODO: Can't set MinLength=1 for now, because this struct is not always used in pointer fields so today we have cases where host is set to an empty string.
-	// +required
+	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	Host string `json:"host"`
+	Host string `json:"host,omitempty"`
 
 	// port is the port on which the API server is serving.
-	// +required
-	Port int32 `json:"port"`
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port,omitempty"`
 }
 
 // IsZero returns true if both host and port are zero values.
@@ -1172,7 +1176,7 @@ func (v APIEndpoint) String() string {
 // +kubebuilder:resource:path=clusters,shortName=cl,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="ClusterClass",type="string",JSONPath=".spec.topology.class",description="ClusterClass of this Cluster, empty if the Cluster is not using a ClusterClass"
+// +kubebuilder:printcolumn:name="ClusterClass",type="string",JSONPath=".spec.topology.classRef.name",description="ClusterClass of this Cluster, empty if the Cluster is not using a ClusterClass"
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Cluster"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.topology.version",description="Kubernetes version associated with this Cluster"

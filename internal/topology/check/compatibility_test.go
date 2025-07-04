@@ -185,69 +185,59 @@ func TestObjectsAreStrictlyCompatible(t *testing.T) {
 }
 
 func TestClusterClassTemplateAreCompatible(t *testing.T) {
-	template := clusterv1.ClusterClassTemplate{
-		Ref: &clusterv1.ClusterClassTemplateReference{
-			Name:       "foo",
-			Kind:       "bar",
-			APIVersion: "test.group.io/versionone",
-		},
+	templateRef := clusterv1.ClusterClassTemplateReference{
+		Name:       "foo",
+		Kind:       "bar",
+		APIVersion: "test.group.io/versionone",
 	}
-	compatibleNameChangeTemplate := clusterv1.ClusterClassTemplate{
-		Ref: &clusterv1.ClusterClassTemplateReference{
-			Name:       "newFoo",
-			Kind:       "bar",
-			APIVersion: "test.group.io/versionone",
-		},
+	compatibleNameChangeTemplateRef := clusterv1.ClusterClassTemplateReference{
+		Name:       "newFoo",
+		Kind:       "bar",
+		APIVersion: "test.group.io/versionone",
 	}
-	compatibleAPIVersionChangeTemplate := clusterv1.ClusterClassTemplate{
-		Ref: &clusterv1.ClusterClassTemplateReference{
-			Name:       "foo",
-			Kind:       "bar",
-			APIVersion: "test.group.io/versiontwo",
-		},
+	compatibleAPIVersionChangeTemplateRef := clusterv1.ClusterClassTemplateReference{
+		Name:       "foo",
+		Kind:       "bar",
+		APIVersion: "test.group.io/versiontwo",
 	}
-	incompatibleAPIGroupChangeTemplate := clusterv1.ClusterClassTemplate{
-		Ref: &clusterv1.ClusterClassTemplateReference{
-			Name:       "foo",
-			Kind:       "bar",
-			APIVersion: "production.group.io/versionone",
-		},
+	incompatibleAPIGroupChangeTemplateRef := clusterv1.ClusterClassTemplateReference{
+		Name:       "foo",
+		Kind:       "bar",
+		APIVersion: "production.group.io/versionone",
 	}
-	incompatibleAPIKindChangeTemplate := clusterv1.ClusterClassTemplate{
-		Ref: &clusterv1.ClusterClassTemplateReference{
-			Name:       "foo",
-			Kind:       "notabar",
-			APIVersion: "test.group.io/versionone",
-		},
+	incompatibleAPIKindChangeTemplateRef := clusterv1.ClusterClassTemplateReference{
+		Name:       "foo",
+		Kind:       "notabar",
+		APIVersion: "test.group.io/versionone",
 	}
 	tests := []struct {
 		name    string
-		current clusterv1.ClusterClassTemplate
-		desired clusterv1.ClusterClassTemplate
+		current clusterv1.ClusterClassTemplateReference
+		desired clusterv1.ClusterClassTemplateReference
 		wantErr bool
 	}{
 		{
 			name:    "Allow change to template name",
-			current: template,
-			desired: compatibleNameChangeTemplate,
+			current: templateRef,
+			desired: compatibleNameChangeTemplateRef,
 			wantErr: false,
 		},
 		{
 			name:    "Allow change to template APIVersion",
-			current: template,
-			desired: compatibleAPIVersionChangeTemplate,
+			current: templateRef,
+			desired: compatibleAPIVersionChangeTemplateRef,
 			wantErr: false,
 		},
 		{
 			name:    "Block change to template API Group",
-			current: template,
-			desired: incompatibleAPIGroupChangeTemplate,
+			current: templateRef,
+			desired: incompatibleAPIGroupChangeTemplateRef,
 			wantErr: true,
 		},
 		{
 			name:    "Block change to template API Kind",
-			current: template,
-			desired: incompatibleAPIKindChangeTemplate,
+			current: templateRef,
+			desired: incompatibleAPIKindChangeTemplateRef,
 			wantErr: true,
 		},
 	}
@@ -267,87 +257,76 @@ func TestClusterClassTemplateAreCompatible(t *testing.T) {
 func TestClusterClassTemplateIsValid(t *testing.T) {
 	pathPrefix := field.NewPath("this", "is", "a", "prefix")
 
-	validTemplate := &clusterv1.ClusterClassTemplate{
-		Ref: &clusterv1.ClusterClassTemplateReference{
-			Name:       "valid",
-			Kind:       "barTemplate",
-			APIVersion: "test.group.io/versionone",
-		},
+	validTemplateRef := clusterv1.ClusterClassTemplateReference{
+		Name:       "valid",
+		Kind:       "barTemplate",
+		APIVersion: "test.group.io/versionone",
 	}
 
-	nilTemplate := &clusterv1.ClusterClassTemplate{
-		Ref: nil,
+	emptyTemplateRef := clusterv1.ClusterClassTemplateReference{}
+
+	emptyNameTemplateRef := clusterv1.ClusterClassTemplateReference{
+		Name:       "",
+		Kind:       "barTemplate",
+		APIVersion: "test.group.io/versionone",
 	}
-	emptyNameTemplate := &clusterv1.ClusterClassTemplate{
-		Ref: &clusterv1.ClusterClassTemplateReference{
-			Name:       "",
-			Kind:       "barTemplate",
-			APIVersion: "test.group.io/versionone",
-		},
+	notTemplateKindTemplateRef := clusterv1.ClusterClassTemplateReference{
+		Name:       "foo",
+		Kind:       "bar",
+		APIVersion: "test.group.io/versionone",
 	}
-	notTemplateKindTemplate := &clusterv1.ClusterClassTemplate{
-		Ref: &clusterv1.ClusterClassTemplateReference{
-			Name:       "foo",
-			Kind:       "bar",
-			APIVersion: "test.group.io/versionone",
-		},
+	invalidAPIVersionTemplateRef := clusterv1.ClusterClassTemplateReference{
+		Name:       "foo",
+		Kind:       "barTemplate",
+		APIVersion: "this/has/too/many/slashes",
 	}
-	invalidAPIVersionTemplate := &clusterv1.ClusterClassTemplate{
-		Ref: &clusterv1.ClusterClassTemplateReference{
-			Name:       "foo",
-			Kind:       "barTemplate",
-			APIVersion: "this/has/too/many/slashes",
-		},
-	}
-	emptyAPIVersionTemplate := &clusterv1.ClusterClassTemplate{
-		Ref: &clusterv1.ClusterClassTemplateReference{
-			Name:       "foo",
-			Kind:       "barTemplate",
-			APIVersion: "",
-		},
+	emptyAPIVersionTemplateRef := clusterv1.ClusterClassTemplateReference{
+		Name:       "foo",
+		Kind:       "barTemplate",
+		APIVersion: "",
 	}
 
 	tests := []struct {
-		template *clusterv1.ClusterClassTemplate
-		name     string
-		wantErr  bool
+		templateRef clusterv1.ClusterClassTemplateReference
+		name        string
+		wantErr     bool
 	}{
 		{
-			name:     "No error with valid Template",
-			template: validTemplate,
-			wantErr:  false,
+			name:        "No error with valid Template",
+			templateRef: validTemplateRef,
+			wantErr:     false,
 		},
 
 		{
-			name:     "Invalid if ref is nil",
-			template: nilTemplate,
-			wantErr:  true,
+			name:        "Invalid if ref is nil",
+			templateRef: emptyTemplateRef,
+			wantErr:     true,
 		},
 		{
-			name:     "Invalid if name is empty",
-			template: emptyNameTemplate,
-			wantErr:  true,
+			name:        "Invalid if name is empty",
+			templateRef: emptyNameTemplateRef,
+			wantErr:     true,
 		},
 		{
-			name:     "Invalid if Kind doesn't have Template suffix",
-			template: notTemplateKindTemplate,
-			wantErr:  true,
+			name:        "Invalid if Kind doesn't have Template suffix",
+			templateRef: notTemplateKindTemplateRef,
+			wantErr:     true,
 		},
 		{
-			name:     "Invalid if apiVersion is not valid",
-			template: invalidAPIVersionTemplate,
-			wantErr:  true,
+			name:        "Invalid if apiVersion is not valid",
+			templateRef: invalidAPIVersionTemplateRef,
+			wantErr:     true,
 		},
 		{
-			name:     "Empty apiVersion is not valid",
-			template: emptyAPIVersionTemplate,
-			wantErr:  true,
+			name:        "Empty apiVersion is not valid",
+			templateRef: emptyAPIVersionTemplateRef,
+			wantErr:     true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			allErrs := ClusterClassTemplateIsValid(tt.template, pathPrefix)
+			allErrs := ClusterClassTemplateIsValid(tt.templateRef, pathPrefix)
 			if tt.wantErr {
 				g.Expect(allErrs).ToNot(BeEmpty())
 				return

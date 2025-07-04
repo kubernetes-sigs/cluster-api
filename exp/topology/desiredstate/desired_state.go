@@ -189,7 +189,7 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 // corresponding template defined in the blueprint.
 func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructured.Unstructured, error) {
 	template := s.Blueprint.InfrastructureClusterTemplate
-	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.Infrastructure.Ref.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
+	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.Infrastructure.TemplateRef.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
 	cluster := s.Current.Cluster
 	currentRef := cluster.Spec.InfrastructureRef
 
@@ -227,7 +227,7 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 // that should be referenced by the ControlPlane object.
 func (g *generator) computeControlPlaneInfrastructureMachineTemplate(ctx context.Context, s *scope.Scope) (*unstructured.Unstructured, error) {
 	template := s.Blueprint.ControlPlane.InfrastructureMachineTemplate
-	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
+	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
 	cluster := s.Current.Cluster
 
 	// Check if the current control plane object has a machineTemplate.infrastructureRef already defined.
@@ -272,7 +272,7 @@ func (g *generator) computeControlPlaneInfrastructureMachineTemplate(ctx context
 // corresponding template defined in the blueprint.
 func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, infrastructureMachineTemplate *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	template := s.Blueprint.ControlPlane.Template
-	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.ControlPlane.Ref.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
+	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.ControlPlane.TemplateRef.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
 	cluster := s.Current.Cluster
 	currentRef := cluster.Spec.ControlPlaneRef
 

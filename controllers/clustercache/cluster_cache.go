@@ -451,6 +451,7 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 
 	// Try to connect, if not connected.
 	connected := accessor.Connected(ctx)
+
 	if !connected {
 		lastConnectionCreationErrorTimestamp := accessor.GetLastConnectionCreationErrorTimestamp(ctx)
 
@@ -511,6 +512,16 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 					accessor.config.HealthProbe.Interval))
 				requeueAfterDurations = append(requeueAfterDurations, accessor.config.HealthProbe.Interval)
 			}
+		}
+
+		// Check if kubeconfig was updated
+		kubeconfigUpdated, err := accessor.KubeConfigUpdated(ctx)
+		if err != nil {
+			log.Error(err, "error checking if kubeconfig was updated")
+		} else if kubeconfigUpdated {
+			log.Info("Kubeconfig was updated, disconnecting to re-connect with the new kubeconfig")
+			accessor.Disconnect(ctx)
+			didDisconnect = true
 		}
 	}
 

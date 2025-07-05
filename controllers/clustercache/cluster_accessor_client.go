@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 type createConnectionResult struct {
@@ -46,6 +47,14 @@ type createConnectionResult struct {
 	RESTClient   *rest.RESTClient
 	CachedClient client.Client
 	Cache        *stoppableCache
+}
+
+func (ca *clusterAccessor) getKubeConfigSecret(ctx context.Context) (*corev1.Secret, error) {
+	kubeconfigSecret, err := secret.Get(ctx, ca.config.SecretClient, ca.cluster, secret.Kubeconfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting kubeconfig secret")
+	}
+	return kubeconfigSecret, nil
 }
 
 func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnectionResult, error) {

@@ -198,6 +198,12 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 			},
 		}, clusterResources)
 
+		Byf("Verify v1beta2 Available and Ready conditions (if exist) to be true for Cluster and Machines")
+		verifyV1Beta2Conditions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster.Name, clusterResources.Cluster.Namespace,
+			map[string]struct{}{
+				clusterv1.AvailableCondition: {}, clusterv1.ReadyCondition: {},
+			})
+
 		// Get all objects per deletion phase and the list of blocking objects.
 		var objectsPerPhase [][]client.Object
 		objectsPerPhase, blockingObjects = getDeletionPhaseObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, input.ClusterDeletionPhases)

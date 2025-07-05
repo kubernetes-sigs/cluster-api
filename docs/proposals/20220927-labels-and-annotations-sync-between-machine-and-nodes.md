@@ -35,7 +35,7 @@ superseded-by:
   - [Story 4](#story-4)
   - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
   - [Domains & prefixes](#domains--prefixes)
-    - [Synchronization of CAPI Labels and Annotatioins](#synchronization-of-capi-labels-and-annotatioins)
+    - [Synchronization of CAPI Labels and Annotations](#synchronization-of-capi-labels-and-annotations)
     - [Delay between Node Creation and Sync](#delay-between-node-creation-and-sync)
 - [Alternatives](#alternatives)
   - [Use KubeadmConfigTemplate capabilities](#use-kubeadmconfigtemplate-capabilities)

@@ -81,7 +81,7 @@ superseded-by:
 - **Managed Worker Node** - an individual Kubernetes worker node where the underlying compute (vm or bare-metal) is provisioned and managed by the service provider. This usually includes the joining of the newly provisioned node into a Managed Kubernetes cluster. The lifecycle is normally controlled via a higher level construct such as a Managed Node Group.
 - **Managed Node Group** - is a service that a service provider offers that automates the provisioning of managed worker nodes. Depending on the service provider this group of nodes could contain a fixed number of replicas or it might contain a dynamic pool of replicas that auto-scales up and down. Examples are Node Pools in GCP and EKS managed node groups.
 - **Cluster Infrastructure Provider (Infrastructure)** - an Infrastructure provider supplies whatever prerequisites are necessary for creating & running clusters such as networking, load balancers, firewall rules, and so on. ([docs](../book/src/developer/providers/contracts/infra-cluster.md))
-- **ControlPlane Provider (ControlPlane)** - a control plane provider instantiates a Kubernetes control plane consisting of k8s control plane components such as kube-apiserver, etcd, kube-scheduler and kube-controller-manager. ([docs](../book/src/developer/core/controllers/control-plane.md))
+- **ControlPlane Provider (ControlPlane)** - a control plane provider instantiates a Kubernetes control plane consisting of k8s control plane components such as kube-apiserver, etcd, kube-scheduler and kube-controller-manager. ([docs](../book/src/developer/providers/contracts/control-plane.md))
 - **MachineDeployment** - a MachineDeployment orchestrates deployments over a fleet of MachineSets, which is an immutable abstraction over Machines. ([docs](../book/src/developer/core/controllers/machine-deployment.md))
 - **MachinePool (experimental)** - a MachinePool is similar to a MachineDeployment in that they both define configuration and policy for how a set of machines are managed. While the MachineDeployment uses MachineSets to orchestrate updates to the Machines, MachinePool delegates the responsibility to a cloud provider specific resource such as AWS Auto Scale Groups, GCP Managed Instance Groups, and Azure Virtual Machine Scale Sets. ([docs](./20190919-machinepool-api.md))
 
@@ -229,7 +229,7 @@ So that I can eliminate the responsibility of owning and SREing the Control Plan
 
 #### GKE in CAPG
 
-- [Docs](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/main/docs/book/src/topics/gke/index.md)
+- [Docs](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/main/docs/book/src/topics/index.md)
 - Feature Status: Experimental
 - CRDs
   - GCPManagedControlPlane, GCPManagedCluster - provision GKE cluster
@@ -483,7 +483,7 @@ Some of the areas of change (this is not an exhaustive list):
 - A new "implementing managed kubernetes" guide that contains details about how to represent a managed Kubernetes service in CAPI. The content will be based on the recommendations from this proposal along with other considerations such as managed node and addon management.
 - Update the [Provider contracts documentation](../book/src/developer/providers/contracts/overview.md) to state that the same kind should not be used to satisfy 2 different provider contracts.
 - Update the [Cluster Infrastructure documentation](../book/src/developer/providers/contracts/infra-cluster.md) to provide guidance on how to populate the `controlPlaneEndpoint` in the scenario where the control plane creates the api server load balancer. We should include sample code.
-- Update the [Control Plane Controller](../book/src/developer/core/controllers/control-plane.md) diagram for managed k8s services case. The Control Plane reconcile needs to start when `InfrastructureReady` is true.
+- Update the [Control Plane Controller](../book/src/developer/providers/contracts/control-plane.md) diagram for managed k8s services case. The Control Plane reconcile needs to start when `InfrastructureReady` is true.
 - Updates based on the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-flexible-managed-k8s-endpoints.md).
 
 ## Other Considerations for CAPI

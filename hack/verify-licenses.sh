@@ -22,7 +22,7 @@ if [[ "${TRACE-0}" == "1" ]]; then
     set -o xtrace
 fi
 
-# This list is from https://github.com/cncf/foundation/blob/main/allowed-third-party-license-policy.md
+# This list is from https://github.com/cncf/foundation/blob/main/policies-guidance/allowed-third-party-license-policy.md
 CNCF_LICENSE_ALLOWLIST=Apache-2.0,MIT,BSD-2-Clause,SD-2-Clause-FreeBSD,BSD-3-Clause,ISC,Python-2.0,PostgreSQL,X11,Zlib
 
 VERSION=${1}

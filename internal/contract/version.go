@@ -140,7 +140,7 @@ func GetLatestContractAndAPIVersionFromContract(metadata metav1.Object, currentC
 		return contractVersion, kubeVersions[len(kubeVersions)-1], nil
 	}
 
-	return "", "", errors.Errorf("cannot find any versions matching contract versions %q for CRD %v as contract version label(s) are either missing or empty (see https://cluster-api.sigs.k8s.io/developer/providers/contracts.html#api-version-labels)", sortedCompatibleContractVersions, metadata.GetName())
+	return "", "", errors.Errorf("cannot find any versions matching contract versions %q for CRD %v as contract version label(s) are either missing or empty (see https://cluster-api.sigs.k8s.io/developer/providers/contracts/overview.html#api-version-labels)", sortedCompatibleContractVersions, metadata.GetName())
 }
 
 // GetContractVersionForVersion gets the contract version for an apiVersion from a CRD.

@@ -35,38 +35,71 @@ func Test_GetReleaseDetails(t *testing.T) {
 		err         string
 	}{
 		{
-			name:        "Correct RELEASE_TAG and RELEASE_DATE are set",
+			name:        "Correct RELEASE_TAG and RELEASE_DATE are set for alpha",
+			releaseTag:  "v1.7.0-alpha.0",
+			releaseDate: "2024-04-16",
+			want: releaseDetails{
+				ReleaseDate:      "Tuesday, 16th April 2024",
+				ReleaseTag:       "v1.7.0",
+				PreReleaseTag:    "v1.7.0-alpha.0",
+				ReleaseLink:      "https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-1.7.md#timeline",
+				ReleaseNotesLink: "https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.7.0-alpha.0",
+			},
+			expectErr: false,
+		},
+		{
+			name:        "Correct RELEASE_TAG and RELEASE_DATE are set for beta",
 			releaseTag:  "v1.7.0-beta.0",
 			releaseDate: "2024-04-16",
 			want: releaseDetails{
 				ReleaseDate:      "Tuesday, 16th April 2024",
 				ReleaseTag:       "v1.7.0",
-				BetaTag:          "v1.7.0-beta.0",
+				PreReleaseTag:    "v1.7.0-beta.0",
 				ReleaseLink:      "https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-1.7.md#timeline",
 				ReleaseNotesLink: "https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.7.0-beta.0",
 			},
 			expectErr: false,
 		},
 		{
-			name:        "RELEASE_TAG is not in the format ^v\\d+\\.\\d+\\.\\d+-beta\\.\\d+$",
+			name:        "Correct RELEASE_TAG and RELEASE_DATE are set for rc",
+			releaseTag:  "v1.7.0-rc.0",
+			releaseDate: "2024-04-16",
+			want: releaseDetails{
+				ReleaseDate:      "Tuesday, 16th April 2024",
+				ReleaseTag:       "v1.7.0",
+				PreReleaseTag:    "v1.7.0-rc.0",
+				ReleaseLink:      "https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-1.7.md#timeline",
+				ReleaseNotesLink: "https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.7.0-rc.0",
+			},
+			expectErr: false,
+		},
+		{
+			name:        "RELEASE_TAG is not in the correct format",
 			releaseTag:  "v1.7.0.1",
 			releaseDate: "2024-04-16",
 			expectErr:   true,
-			err:         "release tag must be in format `^v\\d+\\.\\d+\\.\\d+-beta\\.\\d+$` e.g. v1.7.0-beta.0",
+			err:         "release tag must be in format `^v\\d+\\.\\d+\\.\\d+-(alpha|beta|rc)\\.\\d+$` e.g. v1.7.0-beta.0",
 		},
 		{
 			name:        "RELEASE_TAG does not have prefix 'v' in its semver",
 			releaseTag:  "1.7.0-beta.0",
 			releaseDate: "2024-04-16",
 			expectErr:   true,
-			err:         "release tag must be in format `^v\\d+\\.\\d+\\.\\d+-beta\\.\\d+$` e.g. v1.7.0-beta.0",
+			err:         "release tag must be in format `^v\\d+\\.\\d+\\.\\d+-(alpha|beta|rc)\\.\\d+$` e.g. v1.7.0-beta.0",
 		},
 		{
 			name:        "RELEASE_TAG contains invalid Major.Minor.Patch SemVer",
 			releaseTag:  "v1.x.0-beta.0",
 			releaseDate: "2024-04-16",
 			expectErr:   true,
-			err:         "release tag must be in format `^v\\d+\\.\\d+\\.\\d+-beta\\.\\d+$` e.g. v1.7.0-beta.0",
+			err:         "release tag must be in format `^v\\d+\\.\\d+\\.\\d+-(alpha|beta|rc)\\.\\d+$` e.g. v1.7.0-beta.0",
+		},
+		{
+			name:        "RELEASE_TAG contains unsupported pre-release type",
+			releaseTag:  "v1.7.0-gamma.0",
+			releaseDate: "2024-04-16",
+			expectErr:   true,
+			err:         "release tag must be in format `^v\\d+\\.\\d+\\.\\d+-(alpha|beta|rc)\\.\\d+$` e.g. v1.7.0-beta.0",
 		},
 		{
 			name:        "invalid yyyy-dd-mm RELEASE_DATE entered",
@@ -104,7 +137,7 @@ func Test_GetReleaseDetails(t *testing.T) {
 			} else {
 				g.Expect(got.ReleaseDate).To(Equal(tt.want.ReleaseDate))
 				g.Expect(got.ReleaseTag).To(Equal(tt.want.ReleaseTag))
-				g.Expect(got.BetaTag).To(Equal(tt.want.BetaTag))
+				g.Expect(got.PreReleaseTag).To(Equal(tt.want.PreReleaseTag))
 				g.Expect(got.ReleaseLink).To(Equal(tt.want.ReleaseLink))
 			}
 		})

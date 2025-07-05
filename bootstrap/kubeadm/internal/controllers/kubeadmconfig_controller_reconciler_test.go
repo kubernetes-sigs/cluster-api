@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -63,7 +64,7 @@ func TestKubeadmConfigReconciler(t *testing.T) {
 				},
 			})
 			g.Expect(err).To(Succeed())
-			g.Expect(result.Requeue).To(BeFalse())
+			g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 		})
 	})
 }

@@ -37,7 +37,7 @@ spec:
           minReadySeconds: 5
           replicas: ${WORKER_MACHINE_COUNT}
           failureDomains:
-          - fd4
+            - name: fd4
     variables:
       - name: kubeadmControlPlaneMaxSurge
         value: "1"

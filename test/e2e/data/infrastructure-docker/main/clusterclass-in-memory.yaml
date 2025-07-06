@@ -109,11 +109,11 @@ spec:
       annotations:
     machineInfrastructure:
       ref:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        apiGroup: infrastructure.cluster.x-k8s.io
         kind: DevMachineTemplate
         name: in-memory-control-plane
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+      apiGroup: controlplane.cluster.x-k8s.io
       kind: KubeadmControlPlaneTemplate
       name: in-memory-control-plane
     machineHealthCheck:
@@ -126,7 +126,7 @@ spec:
           timeout: 300s
   infrastructure:
     ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      apiGroup: infrastructure.cluster.x-k8s.io
       kind: DevClusterTemplate
       name: in-memory-cluster
   workers:
@@ -135,12 +135,12 @@ spec:
         template:
           bootstrap:
             ref:
-              apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+              apiGroup: bootstrap.cluster.x-k8s.io
               kind: KubeadmConfigTemplate
               name: in-memory-default-worker-bootstraptemplate
           infrastructure:
             ref:
-              apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+              apiGroup: infrastructure.cluster.x-k8s.io
               kind: DevMachineTemplate
               name: in-memory-default-worker-machinetemplate
         machineHealthCheck:

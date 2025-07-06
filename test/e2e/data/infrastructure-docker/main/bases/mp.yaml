@@ -11,21 +11,21 @@ spec:
     spec:
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          apiGroup: bootstrap.cluster.x-k8s.io
           kind: KubeadmConfig
           name: "${CLUSTER_NAME}-mp-0-config"
       clusterName: '${CLUSTER_NAME}'
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        apiGroup: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DockerMachinePool
         name: "${CLUSTER_NAME}-dmp-0"
       version: "${KUBERNETES_VERSION}"
   failureDomains:
-    - fd4
-    - fd5
-    - fd6
-    - fd7
-    - fd8
+    - name: fd4
+    - name: fd5
+    - name: fd6
+    - name: fd7
+    - name: fd8
 ---
 # DockerMachinePool using default values referenced by the MachinePool
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2

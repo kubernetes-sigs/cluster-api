@@ -22,12 +22,12 @@ spec:
       cidrBlocks: ['${DOCKER_POD_CIDRS}']
     serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: DockerCluster
     name: '${CLUSTER_NAME}'
   controlPlaneRef:
     kind: KubeadmControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    apiGroup: controlplane.cluster.x-k8s.io
     name: "${CLUSTER_NAME}-control-plane"
 ---
 # DockerMachineTemplate object referenced by the KubeadmControlPlane object
@@ -50,7 +50,7 @@ spec:
   machineTemplate:
     infrastructureRef:
       kind: DockerMachineTemplate
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      apiGroup: infrastructure.cluster.x-k8s.io
       name: "${CLUSTER_NAME}-control-plane"
   kubeadmConfigSpec:
     clusterConfiguration:

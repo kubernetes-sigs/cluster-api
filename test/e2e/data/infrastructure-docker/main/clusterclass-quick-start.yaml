@@ -10,13 +10,13 @@ spec:
       annotations:
         ClusterClass.controlPlane.annotation: "ClusterClass.controlPlane.annotationValue"
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+      apiGroup: controlplane.cluster.x-k8s.io
       kind: KubeadmControlPlaneTemplate
       name: quick-start-control-plane
     machineInfrastructure:
       ref:
         kind: DockerMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        apiGroup: infrastructure.cluster.x-k8s.io
         name: quick-start-control-plane
     machineHealthCheck:
       maxUnhealthy: 100%
@@ -26,7 +26,7 @@ spec:
           timeout: 20s
   infrastructure:
     ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      apiGroup: infrastructure.cluster.x-k8s.io
       kind: DockerClusterTemplate
       name: quick-start-cluster
   workers:
@@ -40,12 +40,12 @@ spec:
             ClusterClass.machineDeployment.annotation: "ClusterClass.machineDeployment.annotationValue"
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+            apiGroup: bootstrap.cluster.x-k8s.io
             kind: KubeadmConfigTemplate
             name: quick-start-md-default-worker-bootstraptemplate
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            apiGroup: infrastructure.cluster.x-k8s.io
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
       machineHealthCheck:
@@ -61,12 +61,12 @@ spec:
             ClusterClass.machinePool.annotation: "ClusterClass.machinePool.annotationValue"
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+            apiGroup: bootstrap.cluster.x-k8s.io
             kind: KubeadmConfigTemplate
             name: quick-start-mp-default-worker-bootstraptemplate
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            apiGroup: infrastructure.cluster.x-k8s.io
             kind: DockerMachinePoolTemplate
             name: quick-start-default-worker-machinepooltemplate
   variables:

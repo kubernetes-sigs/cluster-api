@@ -22,7 +22,7 @@ spec:
       cidrBlocks: ['${DOCKER_POD_CIDRS}']
     serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: DockerCluster
     name: '${CLUSTER_NAME}'
 ---
@@ -60,9 +60,9 @@ spec:
   bootstrap:
     configRef:
       name: "${ CLUSTER_NAME }-control-plane-0"
-      apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+      apiGroup: bootstrap.cluster.x-k8s.io
       kind: KubeadmConfig
   infrastructureRef:
     name: "${ CLUSTER_NAME }-control-plane-0"
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: DockerMachine

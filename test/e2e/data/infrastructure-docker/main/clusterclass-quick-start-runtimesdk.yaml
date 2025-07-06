@@ -5,19 +5,19 @@ metadata:
 spec:
   controlPlane:
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+      apiGroup: controlplane.cluster.x-k8s.io
       kind: KubeadmControlPlaneTemplate
       name: quick-start-control-plane
     machineInfrastructure:
       ref:
         kind: DockerMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        apiGroup: infrastructure.cluster.x-k8s.io
         name: quick-start-control-plane
     namingStrategy:
       template: "{{ .cluster.name }}-cp-{{ .random }}"
   infrastructure:
     ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      apiGroup: infrastructure.cluster.x-k8s.io
       kind: DockerClusterTemplate
       name: quick-start-cluster
   infrastructureNamingStrategy:
@@ -30,12 +30,12 @@ spec:
       template:
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+            apiGroup: bootstrap.cluster.x-k8s.io
             kind: KubeadmConfigTemplate
             name: quick-start-default-worker-bootstraptemplate
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            apiGroup: infrastructure.cluster.x-k8s.io
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
     machinePools:
@@ -45,12 +45,12 @@ spec:
       template:
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+            apiGroup: bootstrap.cluster.x-k8s.io
             kind: KubeadmConfigTemplate
             name: quick-start-default-worker-bootstraptemplate
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            apiGroup: infrastructure.cluster.x-k8s.io
             kind: DockerMachinePoolTemplate
             name: quick-start-default-worker-machinepooltemplate
   patches:
@@ -99,10 +99,6 @@ spec:
           apiServer:
             # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
             certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
-        initConfiguration:
-          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
-        joinConfiguration:
-          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate

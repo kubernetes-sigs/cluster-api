@@ -133,8 +133,8 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 			// In this case recover the information from the existing v1beta1 condition, because we do not know if
 			// all commands succeeded.
 			if !conditions.Has(dockerMachine, infrav1.DevMachineDockerContainerBootstrapExecSucceededCondition) {
-				condition := conditions.Get(dockerMachine, infrav1.DevMachineDockerContainerBootstrapExecSucceededCondition)
-				if condition == nil || condition.Status == metav1.ConditionTrue {
+				condition := v1beta1conditions.Get(dockerMachine, infrav1.BootstrapExecSucceededV1Beta1Condition)
+				if condition == nil || condition.Status == corev1.ConditionTrue {
 					conditions.Set(dockerMachine, metav1.Condition{
 						Type:   infrav1.DevMachineDockerContainerBootstrapExecSucceededCondition,
 						Status: metav1.ConditionTrue,

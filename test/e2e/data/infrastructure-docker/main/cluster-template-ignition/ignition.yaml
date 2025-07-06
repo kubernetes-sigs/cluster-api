@@ -1,5 +1,5 @@
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
@@ -24,7 +24,7 @@ spec:
           cgroup-root: "/kubelet"
           runtime-cgroups: "/system.slice/containerd.service"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: "${CLUSTER_NAME}-md-0"

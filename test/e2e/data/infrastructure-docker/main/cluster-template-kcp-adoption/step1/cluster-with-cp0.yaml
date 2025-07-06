@@ -1,6 +1,6 @@
 ---
 # DockerCluster object referenced by the Cluster object
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerCluster
 metadata:
   name: '${CLUSTER_NAME}'
@@ -8,7 +8,7 @@ metadata:
 # Cluster object with
 # - No reference to the KubeadmControlPlane object
 # - the label cni=${CLUSTER_NAME}-crs-0, so the cluster can be selected by the ClusterResourceSet.
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: '${CLUSTER_NAME}'
@@ -22,19 +22,19 @@ spec:
       cidrBlocks: ['${DOCKER_POD_CIDRS}']
     serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: DockerCluster
     name: '${CLUSTER_NAME}'
 ---
 # DockerMachine referenced by the Machine cp0
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachine
 metadata:
   name: "${CLUSTER_NAME}-control-plane-0"
 spec: {}
 ---
 # KubeadmConfig referenced by the Machine cp0
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfig
 metadata:
   name: "${CLUSTER_NAME}-control-plane-0"
@@ -48,7 +48,7 @@ spec:
     nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ---
 # cp0 Machine
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Machine
 metadata:
   name: "${CLUSTER_NAME}-control-plane-0"
@@ -60,9 +60,9 @@ spec:
   bootstrap:
     configRef:
       name: "${ CLUSTER_NAME }-control-plane-0"
-      apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+      apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
       kind: KubeadmConfig
   infrastructureRef:
     name: "${ CLUSTER_NAME }-control-plane-0"
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: DockerMachine

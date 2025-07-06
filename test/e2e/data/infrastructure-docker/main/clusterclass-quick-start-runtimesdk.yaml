@@ -1,23 +1,23 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: quick-start-runtimesdk
 spec:
   controlPlane:
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: quick-start-control-plane
     machineInfrastructure:
       ref:
         kind: DockerMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         name: quick-start-control-plane
     namingStrategy:
       template: "{{ .cluster.name }}-cp-{{ .random }}"
   infrastructure:
     ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: DockerClusterTemplate
       name: quick-start-cluster
   infrastructureNamingStrategy:
@@ -30,12 +30,12 @@ spec:
       template:
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: quick-start-default-worker-bootstraptemplate
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
     machinePools:
@@ -45,12 +45,12 @@ spec:
       template:
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: quick-start-default-worker-bootstraptemplate
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: DockerMachinePoolTemplate
             name: quick-start-default-worker-machinepooltemplate
   patches:
@@ -60,7 +60,7 @@ spec:
       validateExtension: validate-topology.${EXTENSION_CONFIG_NAME:-"k8s-upgrade-with-runtimesdk"}
       discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:-"k8s-upgrade-with-runtimesdk"}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerClusterTemplate
 metadata:
   name: quick-start-cluster
@@ -86,7 +86,7 @@ spec:
           controlPlane: false
 ---
 kind: KubeadmControlPlaneTemplate
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: quick-start-control-plane
 spec:
@@ -104,7 +104,7 @@ spec:
         joinConfiguration:
           nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate
 metadata:
   name: quick-start-control-plane
@@ -116,7 +116,7 @@ spec:
         hostPath: "/var/run/docker.sock"
       preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate
 metadata:
   name: quick-start-default-worker-machinetemplate
@@ -128,7 +128,7 @@ spec:
         hostPath: "/var/run/docker.sock"
       preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachinePoolTemplate
 metadata:
   name: quick-start-default-worker-machinepooltemplate
@@ -141,7 +141,7 @@ spec:
           hostPath: "/var/run/docker.sock"
         preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: quick-start-default-worker-bootstraptemplate

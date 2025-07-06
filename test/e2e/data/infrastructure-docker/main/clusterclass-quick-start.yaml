@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: quick-start
@@ -10,13 +10,13 @@ spec:
       annotations:
         ClusterClass.controlPlane.annotation: "ClusterClass.controlPlane.annotationValue"
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: quick-start-control-plane
     machineInfrastructure:
       ref:
         kind: DockerMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         name: quick-start-control-plane
     machineHealthCheck:
       maxUnhealthy: 100%
@@ -26,7 +26,7 @@ spec:
           timeout: 20s
   infrastructure:
     ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: DockerClusterTemplate
       name: quick-start-cluster
   workers:
@@ -40,12 +40,12 @@ spec:
             ClusterClass.machineDeployment.annotation: "ClusterClass.machineDeployment.annotationValue"
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: quick-start-md-default-worker-bootstraptemplate
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
       machineHealthCheck:
@@ -61,12 +61,12 @@ spec:
             ClusterClass.machinePool.annotation: "ClusterClass.machinePool.annotationValue"
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: quick-start-mp-default-worker-bootstraptemplate
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: DockerMachinePoolTemplate
             name: quick-start-default-worker-machinepooltemplate
   variables:
@@ -166,7 +166,7 @@ spec:
   - name: lbImageRepository
     definitions:
     - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DockerClusterTemplate
         matchResources:
           infrastructureCluster: true
@@ -181,7 +181,7 @@ spec:
     description: "Sets tag to use for the etcd image in the KubeadmControlPlane."
     definitions:
     - selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
         matchResources:
           controlPlane: true
@@ -197,7 +197,7 @@ spec:
     description: "Sets tag to use for the etcd image in the KubeadmControlPlane."
     definitions:
     - selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
         matchResources:
           controlPlane: true
@@ -211,7 +211,7 @@ spec:
     description: "Sets the container image that is used for running dockerMachines for the controlPlane and default-worker machineDeployments."
     definitions:
       - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: DockerMachineTemplate
           matchResources:
             machineDeploymentClass:
@@ -224,7 +224,7 @@ spec:
               template: |
                 kindest/node:{{ .builtin.machineDeployment.version | replace "+" "_" }}
       - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: DockerMachineTemplate
           matchResources:
             controlPlane: true
@@ -235,7 +235,7 @@ spec:
               template: |
                 kindest/node:{{ .builtin.controlPlane.version | replace "+" "_" }}
       - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: DockerMachinePoolTemplate
           matchResources:
             machinePoolClass:
@@ -254,7 +254,7 @@ spec:
       and reduce load to public registries.
     definitions:
     - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DockerMachineTemplate
         matchResources:
           controlPlane: true
@@ -273,7 +273,7 @@ spec:
       and reduce load to public registries.
     definitions:
       - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: DockerMachinePoolTemplate
           matchResources:
             machinePoolClass:
@@ -289,7 +289,7 @@ spec:
     enabledIf: '{{ ne .kubeadmControlPlaneMaxSurge "" }}'
     definitions:
     - selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
         matchResources:
           controlPlane: true
@@ -302,7 +302,7 @@ spec:
     enabledIf: "{{ not .controlPlaneTaint }}"
     definitions:
     - selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
         matchResources:
           controlPlane: true
@@ -318,7 +318,7 @@ spec:
     description: "Configures kubelet to run with an external cloud provider for control plane nodes."
     definitions:
       - selector:
-          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta2
           kind: KubeadmControlPlaneTemplate
           matchResources:
             controlPlane: true
@@ -334,7 +334,7 @@ spec:
     description: "Configures kubelet to run with an external cloud provider for machineDeployment nodes."
     definitions:
       - selector:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
           kind: KubeadmConfigTemplate
           matchResources:
             machineDeploymentClass:
@@ -345,7 +345,7 @@ spec:
             path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cloud-provider"
             value: "external"
       - selector:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
           kind: KubeadmConfigTemplate
           matchResources:
             machinePoolClass:
@@ -360,7 +360,7 @@ spec:
     description: "Configures KCP to use IPv6 for its localAPIEndpoint."
     definitions:
       - selector:
-          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta2
           kind: KubeadmControlPlaneTemplate
           matchResources:
             controlPlane: true
@@ -373,7 +373,7 @@ spec:
     description: "Adds an admission configuration for PodSecurity to the kube-apiserver."
     definitions:
     - selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
         matchResources:
           controlPlane: true
@@ -419,7 +419,7 @@ spec:
     description: "Configures control plane components and kubelet to run at the log level specified in the variable `kubeControlPlaneLogLevel`."
     definitions:
       - selector:
-          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta2
           kind: KubeadmControlPlaneTemplate
           matchResources:
             controlPlane: true
@@ -441,7 +441,7 @@ spec:
     description: "Configures control plane kubelets to log at the level set in the variable `kubeletLogLevel`."
     definitions:
       - selector:
-          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta2
           kind: KubeadmControlPlaneTemplate
           matchResources:
             controlPlane: true
@@ -459,7 +459,7 @@ spec:
     description: "Configures worker kubelets to log at the level set in the variable `kubeletLogLevel`."
     definitions:
       - selector:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
           kind: KubeadmConfigTemplate
           matchResources:
             machineDeploymentClass:
@@ -471,7 +471,7 @@ spec:
             valueFrom:
               variable: kubeletLogLevel
       - selector:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
           kind: KubeadmConfigTemplate
           matchResources:
             machinePoolClass:
@@ -483,7 +483,7 @@ spec:
             valueFrom:
               variable: kubeletLogLevel
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerClusterTemplate
 metadata:
   name: quick-start-cluster
@@ -518,7 +518,7 @@ spec:
           controlPlane: false
 ---
 kind: KubeadmControlPlaneTemplate
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: quick-start-control-plane
   labels:
@@ -565,7 +565,7 @@ spec:
             kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider patch to work
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate
 metadata:
   name: quick-start-control-plane
@@ -586,7 +586,7 @@ spec:
         hostPath: "/var/run/docker.sock"
       preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate
 metadata:
   name: quick-start-default-worker-machinetemplate
@@ -607,7 +607,7 @@ spec:
         hostPath: "/var/run/docker.sock"
       preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachinePoolTemplate
 metadata:
   name: quick-start-default-worker-machinepooltemplate
@@ -629,7 +629,7 @@ spec:
           hostPath: "/var/run/docker.sock"
         preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: quick-start-md-default-worker-bootstraptemplate
@@ -650,7 +650,7 @@ spec:
           kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider to work
             eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: quick-start-mp-default-worker-bootstraptemplate

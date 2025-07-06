@@ -1,4 +1,4 @@
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DevClusterTemplate
 metadata:
   name: in-memory-cluster
@@ -8,7 +8,7 @@ spec:
       backend:
         inMemory: {}
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlaneTemplate
 metadata:
   name: in-memory-control-plane
@@ -34,7 +34,7 @@ spec:
             kubeletExtraArgs:
               eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DevMachineTemplate
 metadata:
   name: in-memory-control-plane
@@ -60,7 +60,7 @@ spec:
               startupDuration: "2s"
               startupJitter: "0.2"
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DevMachineTemplate
 metadata:
   name: in-memory-default-worker-machinetemplate
@@ -86,7 +86,7 @@ spec:
               startupDuration: "2s"
               startupJitter: "0.2"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: in-memory-default-worker-bootstraptemplate
@@ -99,7 +99,7 @@ spec:
           kubeletExtraArgs:
             eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: in-memory
@@ -109,11 +109,11 @@ spec:
       annotations:
     machineInfrastructure:
       ref:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DevMachineTemplate
         name: in-memory-control-plane
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: in-memory-control-plane
     machineHealthCheck:
@@ -126,7 +126,7 @@ spec:
           timeout: 300s
   infrastructure:
     ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: DevClusterTemplate
       name: in-memory-cluster
   workers:
@@ -135,12 +135,12 @@ spec:
         template:
           bootstrap:
             ref:
-              apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
               kind: KubeadmConfigTemplate
               name: in-memory-default-worker-bootstraptemplate
           infrastructure:
             ref:
-              apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
               kind: DevMachineTemplate
               name: in-memory-default-worker-machinetemplate
         machineHealthCheck:

@@ -5,7 +5,8 @@ metadata:
   name: '${CLUSTER_NAME}'
 spec:
   topology:
-    class: quick-start
+    classRef:
+      name: quick-start
     variables:
        - name: ipv6Primary
          value: true

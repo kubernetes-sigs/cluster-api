@@ -13,7 +13,8 @@ spec:
       cidrBlocks: ['${DOCKER_POD_CIDRS}']
     serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   topology:
-    class: "quick-start"
+    classRef:
+      name: "quick-start"
     version: "${KUBERNETES_VERSION}"
     controlPlane:
       metadata: {}

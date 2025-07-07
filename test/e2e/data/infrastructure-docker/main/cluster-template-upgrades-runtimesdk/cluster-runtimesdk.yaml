@@ -13,8 +13,9 @@ spec:
       cidrBlocks: ['${DOCKER_POD_CIDRS}']
     serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   topology:
-    class: "quick-start-runtimesdk"
-    classNamespace: '${CLUSTER_CLASS_NAMESPACE:-""}'
+    classRef:
+      name: "quick-start-runtimesdk"
+      namespace: '${CLUSTER_CLASS_NAMESPACE:-""}'
     version: "${KUBERNETES_VERSION}"
     controlPlane:
       metadata: {}

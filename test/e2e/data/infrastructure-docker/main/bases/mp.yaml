@@ -16,7 +16,7 @@ spec:
           name: "${CLUSTER_NAME}-mp-0-config"
       clusterName: '${CLUSTER_NAME}'
       infrastructureRef:
-        apiGroup: infrastructure.cluster.x-k8s.io/v1beta2
+        apiGroup: infrastructure.cluster.x-k8s.io
         kind: DockerMachinePool
         name: "${CLUSTER_NAME}-dmp-0"
       version: "${KUBERNETES_VERSION}"

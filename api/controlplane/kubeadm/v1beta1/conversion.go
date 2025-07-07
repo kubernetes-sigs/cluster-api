@@ -352,6 +352,22 @@ func Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(_ *c
 	return nil
 }
 
+func Convert_v1beta1_LastRemediationStatus_To_v1beta2_LastRemediationStatus(in *LastRemediationStatus, out *controlplanev1.LastRemediationStatus, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_LastRemediationStatus_To_v1beta2_LastRemediationStatus(in, out, s); err != nil {
+		return err
+	}
+	out.Time = in.Timestamp
+	return nil
+}
+
+func Convert_v1beta2_LastRemediationStatus_To_v1beta1_LastRemediationStatus(in *controlplanev1.LastRemediationStatus, out *LastRemediationStatus, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_LastRemediationStatus_To_v1beta1_LastRemediationStatus(in, out, s); err != nil {
+		return err
+	}
+	out.Timestamp = in.Time
+	return nil
+}
+
 func convertToContractVersionedObjectReference(ref *corev1.ObjectReference) (*clusterv1.ContractVersionedObjectReference, error) {
 	var apiGroup string
 	if ref.APIVersion != "" {

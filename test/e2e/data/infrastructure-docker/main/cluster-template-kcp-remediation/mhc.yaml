@@ -14,8 +14,8 @@ spec:
     matchLabels:
       cluster.x-k8s.io/control-plane: ""
       mhc-test: "fail"
-  nodeStartupTimeout: 30s
+  nodeStartupTimeoutSeconds: 30
   unhealthyConditions:
     - type: e2e.remediation.condition
       status: "False"
-      timeout: 10s
+      timeoutSeconds: 10

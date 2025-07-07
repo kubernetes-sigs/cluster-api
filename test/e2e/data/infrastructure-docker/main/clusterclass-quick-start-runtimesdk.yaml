@@ -4,20 +4,20 @@ metadata:
   name: quick-start-runtimesdk
 spec:
   controlPlane:
-    ref:
-      apiGroup: controlplane.cluster.x-k8s.io
+    templateRef:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: quick-start-control-plane
     machineInfrastructure:
-      ref:
+      templateRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DockerMachineTemplate
-        apiGroup: infrastructure.cluster.x-k8s.io
         name: quick-start-control-plane
     namingStrategy:
       template: "{{ .cluster.name }}-cp-{{ .random }}"
   infrastructure:
-    ref:
-      apiGroup: infrastructure.cluster.x-k8s.io
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: DockerClusterTemplate
       name: quick-start-cluster
   infrastructureNamingStrategy:
@@ -29,13 +29,13 @@ spec:
         template: "{{ .cluster.name }}-md-{{ .machineDeployment.topologyName }}-{{ .random }}"
       template:
         bootstrap:
-          ref:
-            apiGroup: bootstrap.cluster.x-k8s.io
+          templateRef:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: quick-start-default-worker-bootstraptemplate
         infrastructure:
-          ref:
-            apiGroup: infrastructure.cluster.x-k8s.io
+          templateRef:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
     machinePools:
@@ -44,13 +44,13 @@ spec:
         template: "{{ .cluster.name }}-mp-{{ .machinePool.topologyName }}-{{ .random }}"
       template:
         bootstrap:
-          ref:
-            apiGroup: bootstrap.cluster.x-k8s.io
+          templateRef:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: quick-start-default-worker-bootstraptemplate
         infrastructure:
-          ref:
-            apiGroup: infrastructure.cluster.x-k8s.io
+          templateRef:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: DockerMachinePoolTemplate
             name: quick-start-default-worker-machinepooltemplate
   patches:
@@ -93,7 +93,7 @@ spec:
   template:
     spec:
       machineTemplate:
-        nodeDrainTimeout: 1s
+        nodeDrainTimeoutSeconds: 1
       kubeadmConfigSpec:
         clusterConfiguration:
           apiServer:

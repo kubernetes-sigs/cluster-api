@@ -9,24 +9,24 @@ spec:
         ClusterClass.controlPlane.label: "ClusterClass.controlPlane.labelValue"
       annotations:
         ClusterClass.controlPlane.annotation: "ClusterClass.controlPlane.annotationValue"
-    ref:
-      apiGroup: controlplane.cluster.x-k8s.io
+    templateRef:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: quick-start-control-plane
     machineInfrastructure:
-      ref:
+      templateRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DockerMachineTemplate
-        apiGroup: infrastructure.cluster.x-k8s.io
         name: quick-start-control-plane
     machineHealthCheck:
       maxUnhealthy: 100%
       unhealthyConditions:
         - type: e2e.remediation.condition
           status: "False"
-          timeout: 20s
+          timeoutSeconds: 20
   infrastructure:
-    ref:
-      apiGroup: infrastructure.cluster.x-k8s.io
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: DockerClusterTemplate
       name: quick-start-cluster
   workers:
@@ -39,13 +39,13 @@ spec:
           annotations:
             ClusterClass.machineDeployment.annotation: "ClusterClass.machineDeployment.annotationValue"
         bootstrap:
-          ref:
-            apiGroup: bootstrap.cluster.x-k8s.io
+          templateRef:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: quick-start-md-default-worker-bootstraptemplate
         infrastructure:
-          ref:
-            apiGroup: infrastructure.cluster.x-k8s.io
+          templateRef:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
       machineHealthCheck:
@@ -60,13 +60,13 @@ spec:
           annotations:
             ClusterClass.machinePool.annotation: "ClusterClass.machinePool.annotationValue"
         bootstrap:
-          ref:
-            apiGroup: bootstrap.cluster.x-k8s.io
+          templateRef:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: quick-start-mp-default-worker-bootstraptemplate
         infrastructure:
-          ref:
-            apiGroup: infrastructure.cluster.x-k8s.io
+          templateRef:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: DockerMachinePoolTemplate
             name: quick-start-default-worker-machinepooltemplate
   variables:
@@ -541,7 +541,7 @@ spec:
             ControlPlaneTemplate.machineTemplate.label: "ControlPlaneTemplate.machineTemplate.labelValue"
           annotations:
             ControlPlaneTemplate.machineTemplate.annotation: "ControlPlaneTemplate.machineTemplate.annotationValue"
-        nodeDrainTimeout: 1s
+        nodeDrainTimeoutSeconds: 1
       kubeadmConfigSpec:
         clusterConfiguration:
           # extraArgs must be non-empty for control plane components to enable patches from ClusterClass to work.

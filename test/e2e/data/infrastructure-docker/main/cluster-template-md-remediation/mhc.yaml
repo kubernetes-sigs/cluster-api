@@ -15,4 +15,4 @@ spec:
   unhealthyConditions:
     - type: e2e.remediation.condition
       status: "False"
-      timeout: 10s
+      timeoutSeconds: 10

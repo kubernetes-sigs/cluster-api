@@ -105,28 +105,26 @@ metadata:
   name: in-memory
 spec:
   controlPlane:
-    metadata:
-      annotations:
     machineInfrastructure:
-      ref:
-        apiGroup: infrastructure.cluster.x-k8s.io
+      templateRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DevMachineTemplate
         name: in-memory-control-plane
-    ref:
-      apiGroup: controlplane.cluster.x-k8s.io
+    templateRef:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: in-memory-control-plane
     machineHealthCheck:
       unhealthyConditions:
         - type: Ready
-          status: Unknown
-          timeout: 300s
+          status: "Unknown"
+          timeoutSeconds: 300
         - type: Ready
           status: "False"
-          timeout: 300s
+          timeoutSeconds: 300
   infrastructure:
-    ref:
-      apiGroup: infrastructure.cluster.x-k8s.io
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: DevClusterTemplate
       name: in-memory-cluster
   workers:
@@ -134,23 +132,23 @@ spec:
       - class: default-worker
         template:
           bootstrap:
-            ref:
-              apiGroup: bootstrap.cluster.x-k8s.io
+            templateRef:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
               kind: KubeadmConfigTemplate
               name: in-memory-default-worker-bootstraptemplate
           infrastructure:
-            ref:
-              apiGroup: infrastructure.cluster.x-k8s.io
+            templateRef:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
               kind: DevMachineTemplate
               name: in-memory-default-worker-machinetemplate
         machineHealthCheck:
           unhealthyConditions:
             - type: Ready
-              status: Unknown
-              timeout: 300s
+              status: "Unknown"
+              timeoutSeconds: 300
             - type: Ready
               status: "False"
-              timeout: 300s
+              timeoutSeconds: 300
   patches:
     - name: test-patch
       external:

@@ -1351,9 +1351,8 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		cluster := builder.Cluster(ns.Name, clusterName).
-			WithClusterNetwork(&clusterv1.ClusterNetwork{
-				ServiceDomain: "service.domain",
-			}).
+			WithControlPlane(
+				builder.ControlPlane(ns.Name, "cp1").Build()).
 			Build()
 		g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())
 
@@ -1724,8 +1723,10 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			Namespace:    ns.Name,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				ServiceDomain: "service.domain",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
 			},
 		},
 	}

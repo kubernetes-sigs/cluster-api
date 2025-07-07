@@ -61,8 +61,10 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				Name:      "test-cluster",
 			},
 			Spec: clusterv1.ClusterSpec{
-				ClusterNetwork: &clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
+				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.ControlPlaneGroupVersion.Group,
+					Kind:     builder.GenericControlPlaneKind,
+					Name:     "cp1",
 				},
 			},
 		}
@@ -509,8 +511,10 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 				Name:      "test-cluster",
 			},
 			Spec: clusterv1.ClusterSpec{
-				ClusterNetwork: &clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
+				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.ControlPlaneGroupVersion.Group,
+					Kind:     builder.GenericControlPlaneKind,
+					Name:     "cp1",
 				},
 			},
 		}

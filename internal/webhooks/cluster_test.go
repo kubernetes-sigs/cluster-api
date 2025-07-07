@@ -1397,10 +1397,11 @@ func TestClusterValidation(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
 
 	tests := []struct {
-		name      string
-		in        *clusterv1.Cluster
-		old       *clusterv1.Cluster
-		expectErr bool
+		name         string
+		in           *clusterv1.Cluster
+		old          *clusterv1.Cluster
+		expectErr    bool
+		expectErrStr string
 	}{
 		{
 			name:      "should succeed when namespaces match",
@@ -1413,8 +1414,9 @@ func TestClusterValidation(t *testing.T) {
 				Build(),
 		},
 		{
-			name:      "fails if topology is set but feature flag is disabled",
-			expectErr: true,
+			name:         "fails if topology is set but feature flag is disabled",
+			expectErr:    true,
+			expectErrStr: "spec.topology: Forbidden: can be set only if the ClusterTopology feature flag is enabled",
 			in: builder.Cluster("fooNamespace", "cluster1").
 				WithInfrastructureCluster(
 					builder.InfrastructureClusterTemplate("fooNamespace", "infra1").Build()).
@@ -1424,9 +1426,18 @@ func TestClusterValidation(t *testing.T) {
 				Build(),
 		},
 		{
+			name:         "fails if none of spec.controlPlaneRef, spec.infrastructureRef or spec.topology is set",
+			expectErr:    true,
+			expectErrStr: "spec: Forbidden: one of spec.controlPlaneRef, spec.infrastructureRef or spec.topology must be set",
+			in: builder.Cluster("fooNamespace", "cluster1").
+				Build(),
+		},
+		{
 			name:      "pass with undefined CIDR ranges",
 			expectErr: false,
 			in: builder.Cluster("fooNamespace", "cluster1").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
 				WithClusterNetwork(&clusterv1.ClusterNetwork{
 					Services: &clusterv1.NetworkRanges{
 						CIDRBlocks: []string{},
@@ -1441,6 +1452,8 @@ func TestClusterValidation(t *testing.T) {
 			name:      "pass with nil CIDR ranges",
 			expectErr: false,
 			in: builder.Cluster("fooNamespace", "cluster1").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
 				WithClusterNetwork(&clusterv1.ClusterNetwork{
 					Services: &clusterv1.NetworkRanges{
 						CIDRBlocks: nil,
@@ -1455,6 +1468,8 @@ func TestClusterValidation(t *testing.T) {
 			name:      "pass with valid IPv4 CIDR ranges",
 			expectErr: false,
 			in: builder.Cluster("fooNamespace", "cluster1").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
 				WithClusterNetwork(&clusterv1.ClusterNetwork{
 					Services: &clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"10.10.10.10/24"},
@@ -1469,6 +1484,8 @@ func TestClusterValidation(t *testing.T) {
 			name:      "pass with valid IPv6 CIDR ranges",
 			expectErr: false,
 			in: builder.Cluster("fooNamespace", "cluster1").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
 				WithClusterNetwork(&clusterv1.ClusterNetwork{
 					Services: &clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64"},
@@ -1483,6 +1500,8 @@ func TestClusterValidation(t *testing.T) {
 			name:      "pass with valid dualstack CIDR ranges",
 			expectErr: false,
 			in: builder.Cluster("fooNamespace", "cluster1").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
 				WithClusterNetwork(&clusterv1.ClusterNetwork{
 					Services: &clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64", "10.10.10.10/24"},
@@ -1497,6 +1516,8 @@ func TestClusterValidation(t *testing.T) {
 			name:      "pass if multiple CIDR ranges of IPv4 are passed",
 			expectErr: false,
 			in: builder.Cluster("fooNamespace", "cluster1").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
 				WithClusterNetwork(&clusterv1.ClusterNetwork{
 					Services: &clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"10.10.10.10/24", "11.11.11.11/24"},
@@ -1508,6 +1529,8 @@ func TestClusterValidation(t *testing.T) {
 			name:      "pass if multiple CIDR ranges of IPv6 are passed",
 			expectErr: false,
 			in: builder.Cluster("fooNamespace", "cluster1").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
 				WithClusterNetwork(&clusterv1.ClusterNetwork{
 					Services: &clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"2002::1234:abcd:ffff:c0a8:101/64", "2004::1234:abcd:ffff:c0a8:101/64"},
@@ -1519,6 +1542,8 @@ func TestClusterValidation(t *testing.T) {
 			name:      "pass if too many cidr ranges are specified in the clusterNetwork pods field",
 			expectErr: false,
 			in: builder.Cluster("fooNamespace", "cluster1").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
 				WithClusterNetwork(&clusterv1.ClusterNetwork{
 					Pods: &clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"10.10.10.10/24", "11.11.11.11/24", "12.12.12.12/24"},
@@ -1527,9 +1552,12 @@ func TestClusterValidation(t *testing.T) {
 				Build(),
 		},
 		{
-			name:      "fails if service cidr ranges are not valid",
-			expectErr: true,
+			name:         "fails if service cidr ranges are not valid",
+			expectErr:    true,
+			expectErrStr: "[spec.clusterNetwork.services.cidrBlocks[0]: Invalid value: \"10.10.10.10\": invalid CIDR address: 10.10.10.10, spec.clusterNetwork.services.cidrBlocks[1]: Invalid value: \"11.11.11.11\": invalid CIDR address: 11.11.11.11]",
 			in: builder.Cluster("fooNamespace", "cluster1").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
 				WithClusterNetwork(&clusterv1.ClusterNetwork{
 					Services: &clusterv1.NetworkRanges{
 						// Invalid ranges: missing network suffix
@@ -1539,9 +1567,12 @@ func TestClusterValidation(t *testing.T) {
 				Build(),
 		},
 		{
-			name:      "fails if pod cidr ranges are not valid",
-			expectErr: true,
+			name:         "fails if pod cidr ranges are not valid",
+			expectErr:    true,
+			expectErrStr: "[spec.clusterNetwork.pods.cidrBlocks[0]: Invalid value: \"10.10.10.10\": invalid CIDR address: 10.10.10.10, spec.clusterNetwork.pods.cidrBlocks[1]: Invalid value: \"11.11.11.11\": invalid CIDR address: 11.11.11.11]",
 			in: builder.Cluster("fooNamespace", "cluster1").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
 				WithClusterNetwork(&clusterv1.ClusterNetwork{
 					Pods: &clusterv1.NetworkRanges{
 						// Invalid ranges: missing network suffix
@@ -1553,32 +1584,53 @@ func TestClusterValidation(t *testing.T) {
 		{
 			name:      "pass with name of under 63 characters",
 			expectErr: false,
-			in:        builder.Cluster("fooNamespace", "short-name").Build(),
+			in: builder.Cluster("fooNamespace", "short-name").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
+				Build(),
 		},
 		{
-			name:      "pass with _, -, . characters in name",
-			in:        builder.Cluster("fooNamespace", "thisNameContains.A_Non-Alphanumeric").Build(),
+			name: "pass with _, -, . characters in name",
+			in: builder.Cluster("fooNamespace", "thisNameContains.A_Non-Alphanumeric").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
+				Build(),
 			expectErr: false,
 		},
 		{
-			name:      "fails if cluster name is longer than 63 characters",
-			in:        builder.Cluster("fooNamespace", "thisNameIsReallyMuchLongerThanTheMaximumLengthOfSixtyThreeCharacters").Build(),
-			expectErr: true,
+			name: "fails if cluster name is longer than 63 characters",
+			in: builder.Cluster("fooNamespace", "thisNameIsReallyMuchLongerThanTheMaximumLengthOfSixtyThreeCharacters").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
+				Build(),
+			expectErr:    true,
+			expectErrStr: "must be a valid label value must be no more than 63 characters",
 		},
 		{
-			name:      "error when name starts with NonAlphanumeric character",
-			in:        builder.Cluster("fooNamespace", "-thisNameStartsWithANonAlphanumeric").Build(),
-			expectErr: true,
+			name: "error when name starts with NonAlphanumeric character",
+			in: builder.Cluster("fooNamespace", "-thisNameStartsWithANonAlphanumeric").WithControlPlane(
+				builder.ControlPlane("fooNamespace", "cp1").Build()).
+				Build(),
+			expectErr:    true,
+			expectErrStr: "must be a valid label value a valid label must be an empty string or consist of alphanumeric characters",
 		},
 		{
-			name:      "error when name ends with NonAlphanumeric character",
-			in:        builder.Cluster("fooNamespace", "thisNameEndsWithANonAlphanumeric.").Build(),
-			expectErr: true,
+			name: "error when name ends with NonAlphanumeric character",
+			in: builder.Cluster("fooNamespace", "thisNameEndsWithANonAlphanumeric.").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
+				Build(),
+			expectErr:    true,
+			expectErrStr: "must be a valid label value a valid label must be an empty string or consist of alphanumeric characters",
 		},
 		{
-			name:      "error when name contains invalid NonAlphanumeric character",
-			in:        builder.Cluster("fooNamespace", "thisNameContainsInvalid!@NonAlphanumerics").Build(),
-			expectErr: true,
+			name: "error when name contains invalid NonAlphanumeric character",
+			in: builder.Cluster("fooNamespace", "thisNameContainsInvalid!@NonAlphanumerics").
+				WithControlPlane(
+					builder.ControlPlane("fooNamespace", "cp1").Build()).
+				Build(),
+			expectErr:    true,
+			expectErrStr: "must be a valid label value a valid label must be an empty string or consist of alphanumeric characters",
 		},
 		{
 			name: "error when controlPlaneRef gets unset",
@@ -1588,7 +1640,8 @@ func TestClusterValidation(t *testing.T) {
 				WithControlPlane(
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
 				Build(),
-			expectErr: true,
+			expectErr:    true,
+			expectErrStr: "spec: Forbidden: one of spec.controlPlaneRef, spec.infrastructureRef or spec.topology must be set, spec.controlPlaneRef: Forbidden: cannot be removed",
 		},
 		{
 			name: "error when infrastructureRef gets unset",
@@ -1598,7 +1651,8 @@ func TestClusterValidation(t *testing.T) {
 				WithInfrastructureCluster(
 					builder.InfrastructureClusterTemplate("fooNamespace", "infra1").Build()).
 				Build(),
-			expectErr: true,
+			expectErr:    true,
+			expectErrStr: "spec.infrastructureRef: Forbidden: cannot be removed, spec: Forbidden: one of spec.controlPlaneRef, spec.infrastructureRef or spec.topology must be set",
 		},
 	}
 	for _, tt := range tests {
@@ -1612,6 +1666,8 @@ func TestClusterValidation(t *testing.T) {
 			g.Expect(warnings).To(BeEmpty())
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(tt.expectErrStr).ToNot(BeEmpty())
+				g.Expect(err.Error()).To(ContainSubstring(tt.expectErrStr))
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())

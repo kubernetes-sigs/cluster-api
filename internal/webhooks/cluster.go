@@ -195,6 +195,17 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 		)
 	}
 
+	if newCluster.Spec.ControlPlaneRef == nil && newCluster.Spec.InfrastructureRef == nil &&
+		newCluster.Spec.Topology == nil {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				specPath,
+				"one of spec.controlPlaneRef, spec.infrastructureRef or spec.topology must be set",
+			),
+		)
+	}
+
 	if newCluster.Spec.ControlPlaneRef == nil && oldCluster != nil && oldCluster.Spec.ControlPlaneRef != nil {
 		allErrs = append(
 			allErrs,
@@ -204,6 +215,7 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 			),
 		)
 	}
+
 	if newCluster.Spec.ClusterNetwork != nil {
 		// Ensure that the CIDR blocks defined under ClusterNetwork are valid.
 		if newCluster.Spec.ClusterNetwork.Pods != nil {

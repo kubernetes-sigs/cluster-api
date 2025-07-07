@@ -41,6 +41,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestConnect(t *testing.T) {
@@ -52,8 +53,10 @@ func TestConnect(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				ServiceDomain: "service.domain",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
 			},
 		},
 	}
@@ -153,8 +156,10 @@ func TestDisconnect(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				ServiceDomain: "service.domain",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
 			},
 		},
 	}
@@ -207,8 +212,10 @@ func TestHealthCheck(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				ServiceDomain: "service.domain",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
 			},
 		},
 	}
@@ -323,8 +330,10 @@ func TestWatch(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				ServiceDomain: "service.domain",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
 			},
 		},
 	}

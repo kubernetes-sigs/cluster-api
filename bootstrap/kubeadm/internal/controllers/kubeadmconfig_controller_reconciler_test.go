@@ -24,7 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -37,9 +36,8 @@ func TestKubeadmConfigReconciler(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			cluster := builder.Cluster(ns.Name, "cluster1").
-				WithClusterNetwork(&clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
-				}).
+				WithControlPlane(
+					builder.ControlPlane(ns.Name, "cp1").Build()).
 				Build()
 			g.Expect(env.Create(ctx, cluster)).To(Succeed())
 			machine := newWorkerMachineForCluster(cluster)

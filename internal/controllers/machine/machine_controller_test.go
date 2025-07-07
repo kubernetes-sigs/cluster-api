@@ -105,8 +105,10 @@ func TestWatches(t *testing.T) {
 			Namespace:    ns.Name,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				ServiceDomain: "service.domain",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
 			},
 		},
 	}
@@ -263,6 +265,11 @@ func TestWatchesDelete(t *testing.T) {
 			// This avoids going through reconcileExternal, which adds watches
 			// for the provider machine and the bootstrap config objects.
 			Paused: ptr.To(true),
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.InfrastructureGroupVersion.Group,
+				Kind:     builder.GenericInfrastructureClusterKind,
+				Name:     "infracluster1",
+			},
 		},
 	}
 
@@ -425,8 +432,10 @@ func TestMachine_Reconcile(t *testing.T) {
 			Namespace:    ns.Name,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				ServiceDomain: "service.domain",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
 			},
 		},
 	}
@@ -3081,8 +3090,10 @@ func TestNodeToMachine(t *testing.T) {
 			Namespace:    ns.Name,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				ServiceDomain: "service.domain",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
 			},
 		},
 	}

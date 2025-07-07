@@ -239,8 +239,10 @@ func TestGetNode(t *testing.T) {
 			Namespace:    ns.Name,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				ServiceDomain: "service.domain",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
 			},
 		},
 	}
@@ -387,8 +389,10 @@ func TestNodeLabelSync(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				ServiceDomain: "service.domain",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
 			},
 		},
 	}

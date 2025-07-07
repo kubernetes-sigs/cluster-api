@@ -1211,7 +1211,7 @@ Please visit the [KubeKey provider] for more information.
 In this example, we'll use the image for Kubernetes v1.32.1: 
 ```bash
 export NODE_VM_IMAGE_TEMPLATE="quay.io/capk/ubuntu-2404-container-disk:v1.32.1"
-export CAPK_GUEST_K8S_VERSION="${NODE_VM_IMAGE_TEMPLATE/:*/}"
+export CAPK_GUEST_K8S_VERSION="${NODE_VM_IMAGE_TEMPLATE/*:/}"
 export CRI_PATH="unix:///var/run/containerd/containerd.sock"
 ```
 Please visit the [KubeVirt project][KubeVirt provider] for more information.

@@ -142,7 +142,7 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 					Hook:       handler.RequestHook.Hook,
 				},
 				TimeoutSeconds: handler.TimeoutSeconds,
-				FailurePolicy:  (*runtimev1.FailurePolicy)(handler.FailurePolicy),
+				FailurePolicy:  runtimev1.FailurePolicy(ptr.Deref(handler.FailurePolicy, "")),
 			},
 		)
 	}
@@ -340,10 +340,10 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	if err != nil {
 		// If the error is errCallingExtensionHandler then apply failure policy to calculate
 		// the effective result of the operation.
-		ignore := *registration.FailurePolicy == runtimev1.FailurePolicyIgnore
+		ignore := registration.FailurePolicy == runtimev1.FailurePolicyIgnore
 		if _, ok := err.(errCallingExtensionHandler); ok && ignore {
 			// Update the response to a default success response and return.
-			log.Error(err, fmt.Sprintf("Ignoring error calling extension handler because of FailurePolicy %q", *registration.FailurePolicy))
+			log.Error(err, fmt.Sprintf("Ignoring error calling extension handler because of FailurePolicy %q", registration.FailurePolicy))
 			response.SetStatus(runtimehooksv1.ResponseStatusSuccess)
 			response.SetMessage("")
 			return nil

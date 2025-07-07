@@ -360,7 +360,7 @@ type MachineRollingUpdateDeployment struct {
 	// Valid values are "Random, "Newest", "Oldest"
 	// When no value is supplied, the default DeletePolicy of MachineSet is used
 	// +optional
-	DeletePolicy *MachineSetDeletePolicy `json:"deletePolicy,omitempty"`
+	DeletePolicy MachineSetDeletePolicy `json:"deletePolicy,omitempty"`
 }
 
 // ANCHOR_END: MachineRollingUpdateDeployment

@@ -393,7 +393,7 @@ func newTestMachineDeployment(replicas, statusReplicas, upToDateReplicas, availa
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: intOrStrPtr(0),
 					MaxSurge:       intOrStrPtr(1),
-					DeletePolicy:   ptr.To(clusterv1.OldestMachineSetDeletePolicy),
+					DeletePolicy:   clusterv1.OldestMachineSetDeletePolicy,
 				},
 			},
 		},
@@ -544,7 +544,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxSurge:       intOrStrPtr(1),
-					DeletePolicy:   ptr.To(clusterv1.RandomMachineSetDeletePolicy),
+					DeletePolicy:   clusterv1.RandomMachineSetDeletePolicy,
 					MaxUnavailable: intOrStrPtr(0),
 				},
 			},

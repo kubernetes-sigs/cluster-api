@@ -72,4 +72,12 @@ func spokeExtensionConfigStatus(in *ExtensionConfigStatus, c randfill.Continue) 
 			in.V1Beta2 = nil
 		}
 	}
+
+	for i, h := range in.Handlers {
+		if h.FailurePolicy != nil && *h.FailurePolicy == "" {
+			// &"" Is not a valid value for FailurePolicy as the enum validation enforces an enum value if FailurePolicy is set.
+			h.FailurePolicy = nil
+		}
+		in.Handlers[i] = h
+	}
 }

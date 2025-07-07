@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -104,6 +105,28 @@ func Convert_v1_Condition_To_v1beta1_Condition(in *metav1.Condition, out *cluste
 
 func Convert_v1beta1_Condition_To_v1_Condition(in *clusterv1beta1.Condition, out *metav1.Condition, s apimachineryconversion.Scope) error {
 	return clusterv1beta1.Convert_v1beta1_Condition_To_v1_Condition(in, out, s)
+}
+
+func Convert_v1alpha1_ExtensionHandler_To_v1beta2_ExtensionHandler(in *ExtensionHandler, out *runtimev1.ExtensionHandler, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha1_ExtensionHandler_To_v1beta2_ExtensionHandler(in, out, s); err != nil {
+		return err
+	}
+
+	if in.FailurePolicy != nil {
+		out.FailurePolicy = runtimev1.FailurePolicy(*in.FailurePolicy)
+	}
+	return nil
+}
+
+func Convert_v1beta2_ExtensionHandler_To_v1alpha1_ExtensionHandler(in *runtimev1.ExtensionHandler, out *ExtensionHandler, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_ExtensionHandler_To_v1alpha1_ExtensionHandler(in, out, s); err != nil {
+		return err
+	}
+
+	if in.FailurePolicy != "" {
+		out.FailurePolicy = ptr.To(FailurePolicy(in.FailurePolicy))
+	}
+	return nil
 }
 
 func dropEmptyStringsExtensionConfig(dst *ExtensionConfig) {

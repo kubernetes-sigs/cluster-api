@@ -201,6 +201,16 @@ func spokeCluster(in *Cluster, c randfill.Continue) {
 	}
 
 	dropEmptyStringsCluster(in)
+
+	if in.Spec.Topology != nil && in.Spec.Topology.Workers != nil {
+		for _, md := range in.Spec.Topology.Workers.MachineDeployments {
+			if md.Strategy != nil && md.Strategy.RollingUpdate != nil &&
+				md.Strategy.RollingUpdate.DeletePolicy != nil && *md.Strategy.RollingUpdate.DeletePolicy == "" {
+				// &"" Is not a valid value for DeletePolicy as the enum validation enforces an enum value if DeletePolicy is set.
+				md.Strategy.RollingUpdate.DeletePolicy = nil
+			}
+		}
+	}
 }
 
 func spokeClusterTopology(in *Topology, c randfill.Continue) {
@@ -323,6 +333,14 @@ func spokeClusterClass(in *ClusterClass, c randfill.Continue) {
 	in.Namespace = "foo"
 
 	dropEmptyStringsClusterClass(in)
+
+	for _, md := range in.Spec.Workers.MachineDeployments {
+		if md.Strategy != nil && md.Strategy.RollingUpdate != nil &&
+			md.Strategy.RollingUpdate.DeletePolicy != nil && *md.Strategy.RollingUpdate.DeletePolicy == "" {
+			// &"" Is not a valid value for DeletePolicy as the enum validation enforces an enum value if DeletePolicy is set.
+			md.Strategy.RollingUpdate.DeletePolicy = nil
+		}
+	}
 }
 
 func spokeClusterClassStatus(in *ClusterClassStatus, c randfill.Continue) {
@@ -585,6 +603,12 @@ func spokeMachineDeployment(in *MachineDeployment, c randfill.Continue) {
 	fillMachineSpec(&in.Spec.Template.Spec, c, in.Namespace)
 
 	dropEmptyStringsMachineSpec(&in.Spec.Template.Spec)
+
+	if in.Spec.Strategy != nil && in.Spec.Strategy.RollingUpdate != nil &&
+		in.Spec.Strategy.RollingUpdate.DeletePolicy != nil && *in.Spec.Strategy.RollingUpdate.DeletePolicy == "" {
+		// &"" Is not a valid value for DeletePolicy as the enum validation enforces an enum value if DeletePolicy is set.
+		in.Spec.Strategy.RollingUpdate.DeletePolicy = nil
+	}
 }
 
 func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) {

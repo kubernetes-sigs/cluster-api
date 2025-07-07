@@ -1661,6 +1661,26 @@ func Convert_v1beta2_ClusterClassTemplateReference_To_v1beta1_LocalObjectTemplat
 	}
 }
 
+func Convert_v1beta1_MachineRollingUpdateDeployment_To_v1beta2_MachineRollingUpdateDeployment(in *MachineRollingUpdateDeployment, out *clusterv1.MachineRollingUpdateDeployment, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_MachineRollingUpdateDeployment_To_v1beta2_MachineRollingUpdateDeployment(in, out, s); err != nil {
+		return err
+	}
+	if in.DeletePolicy != nil {
+		out.DeletePolicy = clusterv1.MachineSetDeletePolicy(*in.DeletePolicy)
+	}
+	return nil
+}
+
+func Convert_v1beta2_MachineRollingUpdateDeployment_To_v1beta1_MachineRollingUpdateDeployment(in *clusterv1.MachineRollingUpdateDeployment, out *MachineRollingUpdateDeployment, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_MachineRollingUpdateDeployment_To_v1beta1_MachineRollingUpdateDeployment(in, out, s); err != nil {
+		return err
+	}
+	if in.DeletePolicy != "" {
+		out.DeletePolicy = ptr.To(string(in.DeletePolicy))
+	}
+	return nil
+}
+
 func convertMachineSpecToContractVersionedObjectReference(src *MachineSpec, dst *clusterv1.MachineSpec) error {
 	infraRef, err := convertToContractVersionedObjectReference(&src.InfrastructureRef)
 	if err != nil {

@@ -541,8 +541,6 @@ func TestClient_CallExtension(t *testing.T) {
 			Name: "foo",
 		},
 	}
-	fpFail := runtimev1.FailurePolicyFail
-	fpIgnore := runtimev1.FailurePolicyIgnore
 
 	validExtensionHandlerWithFailPolicy := runtimev1.ExtensionConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -565,7 +563,7 @@ func TestClient_CallExtension(t *testing.T) {
 						Hook:       "FakeHook",
 					},
 					TimeoutSeconds: ptr.To[int32](1),
-					FailurePolicy:  &fpFail,
+					FailurePolicy:  runtimev1.FailurePolicyFail,
 				},
 			},
 		},
@@ -590,7 +588,7 @@ func TestClient_CallExtension(t *testing.T) {
 						Hook:       "FakeHook",
 					},
 					TimeoutSeconds: ptr.To[int32](1),
-					FailurePolicy:  &fpIgnore,
+					FailurePolicy:  runtimev1.FailurePolicyIgnore,
 				},
 			},
 		},
@@ -940,7 +938,6 @@ func TestClient_CallAllExtensions(t *testing.T) {
 			Name: "foo",
 		},
 	}
-	fpFail := runtimev1.FailurePolicyFail
 
 	extensionConfig := runtimev1.ExtensionConfig{
 		Spec: runtimev1.ExtensionConfigSpec{
@@ -960,7 +957,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 						Hook:       "FakeHook",
 					},
 					TimeoutSeconds: ptr.To[int32](1),
-					FailurePolicy:  &fpFail,
+					FailurePolicy:  runtimev1.FailurePolicyFail,
 				},
 				{
 					Name: "second-extension",
@@ -969,7 +966,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 						Hook:       "FakeHook",
 					},
 					TimeoutSeconds: ptr.To[int32](1),
-					FailurePolicy:  &fpFail,
+					FailurePolicy:  runtimev1.FailurePolicyFail,
 				},
 				{
 					Name: "third-extension",
@@ -978,7 +975,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 						Hook:       "FakeHook",
 					},
 					TimeoutSeconds: ptr.To[int32](1),
-					FailurePolicy:  &fpFail,
+					FailurePolicy:  runtimev1.FailurePolicyFail,
 				},
 			},
 		},

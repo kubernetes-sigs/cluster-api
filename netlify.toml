@@ -13,6 +13,12 @@
     status = 301
     force = true
 
+[[redirects]]
+    from = "https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-resource-set"
+    to = "https://cluster-api.sigs.k8s.io/developer/core/controllers/cluster-resource-set"
+    status = 301
+    force = true
+
 # HTTP-to-HTTPS rules
 [[redirects]]
     from = "http://main.cluster-api.sigs.k8s.io/*"

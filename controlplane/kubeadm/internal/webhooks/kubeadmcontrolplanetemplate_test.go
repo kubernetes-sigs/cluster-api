@@ -58,8 +58,6 @@ func TestKubeadmControlPlaneTemplateDefault(t *testing.T) {
 	g.Expect(webhook.Default(ctx, kcpTemplate)).To(Succeed())
 
 	g.Expect(kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.Format).To(Equal(bootstrapv1.CloudConfig))
-	g.Expect(kcpTemplate.Spec.Template.Spec.RolloutStrategy.Type).To(Equal(controlplanev1.RollingUpdateStrategyType))
-	g.Expect(kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
 }
 
 func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {

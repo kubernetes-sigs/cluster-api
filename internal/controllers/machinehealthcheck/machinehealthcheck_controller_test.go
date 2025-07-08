@@ -2279,7 +2279,7 @@ func TestIsAllowedRemediation(t *testing.T) {
 			maxUnhealthy:     nil,
 			expectedMachines: int32(3),
 			currentHealthy:   int32(0),
-			allowed:          false,
+			allowed:          true,
 		},
 		{
 			name:             "when maxUnhealthy is not an int or percentage",
@@ -2365,9 +2365,8 @@ func TestGetMaxUnhealthy(t *testing.T) {
 		{
 			name:                 "when maxUnhealthy is nil",
 			maxUnhealthy:         nil,
-			expectedMaxUnhealthy: 0,
+			expectedMaxUnhealthy: 7,
 			actualMachineCount:   7,
-			expectedErr:          errors.New("spec.maxUnhealthy must be set"),
 		},
 		{
 			name:                 "when maxUnhealthy is not an int or percentage",

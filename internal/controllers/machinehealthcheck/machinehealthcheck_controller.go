@@ -71,6 +71,10 @@ const (
 	totalTargetKeyLog      = "totalTarget"
 )
 
+var (
+	defaultMaxUnhealthy = intstr.FromString("100%")
+)
+
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;delete
@@ -251,16 +255,17 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		var message string
 
 		if m.Spec.UnhealthyRange == "" {
+			maxUnhealthyValue := ptr.To(ptr.Deref(m.Spec.MaxUnhealthy, defaultMaxUnhealthy)).String()
 			logger.V(3).Info(
 				"Short-circuiting remediation",
 				totalTargetKeyLog, totalTargets,
-				maxUnhealthyKeyLog, m.Spec.MaxUnhealthy,
+				maxUnhealthyKeyLog, maxUnhealthyValue,
 				unhealthyTargetsKeyLog, len(unhealthy),
 			)
 			message = fmt.Sprintf("Remediation is not allowed, the number of not started or unhealthy machines exceeds maxUnhealthy (total: %v, unhealthy: %v, maxUnhealthy: %v)",
 				totalTargets,
 				len(unhealthy),
-				m.Spec.MaxUnhealthy)
+				maxUnhealthyValue)
 		} else {
 			logger.V(3).Info(
 				"Short-circuiting remediation",
@@ -328,7 +333,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		logger.V(3).Info(
 			"Remediations are allowed",
 			totalTargetKeyLog, totalTargets,
-			maxUnhealthyKeyLog, m.Spec.MaxUnhealthy,
+			maxUnhealthyKeyLog, ptr.To(ptr.Deref(m.Spec.MaxUnhealthy, defaultMaxUnhealthy)).String(),
 			unhealthyTargetsKeyLog, len(unhealthy),
 		)
 	} else {
@@ -706,10 +711,7 @@ func getUnhealthyRange(mhc *clusterv1.MachineHealthCheck) (int, int, error) {
 }
 
 func getMaxUnhealthy(mhc *clusterv1.MachineHealthCheck) (int, error) {
-	if mhc.Spec.MaxUnhealthy == nil {
-		return 0, errors.New("spec.maxUnhealthy must be set")
-	}
-	maxUnhealthy, err := intstr.GetScaledValueFromIntOrPercent(mhc.Spec.MaxUnhealthy, int(ptr.Deref[int32](mhc.Status.ExpectedMachines, 0)), false)
+	maxUnhealthy, err := intstr.GetScaledValueFromIntOrPercent(ptr.To(ptr.Deref(mhc.Spec.MaxUnhealthy, defaultMaxUnhealthy)), int(ptr.Deref[int32](mhc.Status.ExpectedMachines, 0)), false)
 	if err != nil {
 		return 0, err
 	}

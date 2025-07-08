@@ -53,7 +53,6 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 	g.Expect(webhook.Default(ctx, mhc)).To(Succeed())
 
 	g.Expect(mhc.Labels[clusterv1.ClusterNameLabel]).To(Equal(mhc.Spec.ClusterName))
-	g.Expect(mhc.Spec.MaxUnhealthy.String()).To(Equal("100%"))
 	g.Expect(mhc.Spec.NodeStartupTimeoutSeconds).ToNot(BeNil())
 	g.Expect(*mhc.Spec.NodeStartupTimeoutSeconds).To(Equal(int32(10 * 60)))
 }

@@ -7,6 +7,7 @@ spec:
   topology:
     classRef:
       name: quick-start
+    version: "${KUBERNETES_VERSION}"
     variables:
        - name: ipv6Primary
          value: false

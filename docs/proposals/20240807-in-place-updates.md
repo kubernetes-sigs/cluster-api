@@ -106,6 +106,7 @@ Over time several improvement were made to Cluster API immutable rollouts:
 Even if the project continues to improve immutable rollouts, most probably there are and there will always be some remaining use cases where it is complex for users to perform immutable rollouts, or where users perceive immutable rollouts to be too disruptive to how they are used to manage machines in their organization:
 * More efficient updates (multiple instances) that don't require re-bootstrap. Re-bootstrapping a bare metal machine takes ~10-15 mins on average. Speed matters when you have 100s - 1000s of nodes to upgrade. For a common telco RAN use case, users can have 30000-ish nodes. Depending on the parallelism, that could take days / weeks to upgrade because of the re-bootstrap time.
 * Credentials rotation, e.g. rotating authorized keys for SSH.
+* Database workloads that use local storage and rely on application-level replication—rather than storage-level replication—can face significant downtime if recloning is required. In such cases, restoring a database may take hours and disrupt business continuity, compared to a simple reboot that takes just minutes (e.g. PostgreSQL clusters managed by CloudNativePG using local persistent volumes with storage classes like OpenEBS or TopoLVM).
 
 With this proposal, Cluster API provides a new extensibility point for users willing to implement their own specific solution for these problems by implementing an Update extension.
 

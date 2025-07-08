@@ -136,6 +136,10 @@ func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	if dst.Spec.ProviderID != nil && *dst.Spec.ProviderID == "" {
+		dst.Spec.ProviderID = nil
+	}
+
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
@@ -167,6 +171,10 @@ func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 
 	if err := Convert_v1beta2_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(src, dst, nil); err != nil {
 		return err
+	}
+
+	if dst.Spec.Template.Spec.ProviderID != nil && *dst.Spec.Template.Spec.ProviderID == "" {
+		dst.Spec.Template.Spec.ProviderID = nil
 	}
 
 	// Preserve Hub data on down-conversion except for metadata

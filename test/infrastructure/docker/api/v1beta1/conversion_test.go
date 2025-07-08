@@ -54,8 +54,9 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 
 	t.Run("for DockerMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &infrav1.DockerMachineTemplate{},
-		Spoke: &DockerMachineTemplate{},
+		Hub:         &infrav1.DockerMachineTemplate{},
+		Spoke:       &DockerMachineTemplate{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{DockerMachineTemplateFuzzFunc},
 	}))
 
 	t.Run("for DevCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
@@ -77,8 +78,9 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 
 	t.Run("for DevMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &infrav1.DevMachineTemplate{},
-		Spoke: &DevMachineTemplate{},
+		Hub:         &infrav1.DevMachineTemplate{},
+		Spoke:       &DevMachineTemplate{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{DevMachineTemplateFuzzFunc},
 	}))
 }
 
@@ -134,6 +136,7 @@ func DockerClusterTemplateFuzzFunc(_ runtimeserializer.CodecFactory) []any {
 func DockerMachineFuzzFunc(_ runtimeserializer.CodecFactory) []any {
 	return []any{
 		hubDockerMachineStatus,
+		spokeDockerMachineSpec,
 		spokeDockerMachineStatus,
 	}
 }
@@ -154,6 +157,14 @@ func hubDockerMachineStatus(in *infrav1.DockerMachineStatus, c randfill.Continue
 	}
 }
 
+func spokeDockerMachineSpec(in *DockerMachineSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.ProviderID != nil && *in.ProviderID == "" {
+		in.ProviderID = nil
+	}
+}
+
 func spokeDockerMachineStatus(in *DockerMachineStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 
@@ -162,6 +173,12 @@ func spokeDockerMachineStatus(in *DockerMachineStatus, c randfill.Continue) {
 		if reflect.DeepEqual(in.V1Beta2, &DockerMachineV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
+	}
+}
+
+func DockerMachineTemplateFuzzFunc(_ runtimeserializer.CodecFactory) []any {
+	return []any{
+		spokeDockerMachineSpec,
 	}
 }
 
@@ -209,6 +226,7 @@ func DevClusterTemplateFuzzFunc(_ runtimeserializer.CodecFactory) []any {
 func DevMachineFuzzFunc(_ runtimeserializer.CodecFactory) []any {
 	return []any{
 		hubDevMachineStatus,
+		spokeDevMachineSpec,
 		spokeDevMachineStatus,
 	}
 }
@@ -229,6 +247,14 @@ func hubDevMachineStatus(in *infrav1.DevMachineStatus, c randfill.Continue) {
 	}
 }
 
+func spokeDevMachineSpec(in *DevMachineSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.ProviderID != nil && *in.ProviderID == "" {
+		in.ProviderID = nil
+	}
+}
+
 func spokeDevMachineStatus(in *DevMachineStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 
@@ -237,5 +263,11 @@ func spokeDevMachineStatus(in *DevMachineStatus, c randfill.Continue) {
 		if reflect.DeepEqual(in.V1Beta2, &DevMachineV1Beta2Status{}) {
 			in.V1Beta2 = nil
 		}
+	}
+}
+
+func DevMachineTemplateFuzzFunc(_ runtimeserializer.CodecFactory) []any {
+	return []any{
+		spokeDevMachineSpec,
 	}
 }

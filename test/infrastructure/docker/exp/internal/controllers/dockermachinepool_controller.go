@@ -297,8 +297,8 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	// Derive providerIDList from the provider ID on each DockerMachine if it exists. The providerID is set by the DockerMachine controller.
 	dockerMachinePool.Spec.ProviderIDList = []string{}
 	for _, dockerMachine := range dockerMachineList.Items {
-		if dockerMachine.Spec.ProviderID != nil {
-			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *dockerMachine.Spec.ProviderID)
+		if dockerMachine.Spec.ProviderID != "" {
+			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, dockerMachine.Spec.ProviderID)
 		}
 	}
 	// Ensure the providerIDList is deterministic (getDockerMachines doesn't guarantee a specific order)

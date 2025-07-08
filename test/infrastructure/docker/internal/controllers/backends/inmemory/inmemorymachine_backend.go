@@ -227,7 +227,7 @@ func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Conte
 
 	// TODO: consider if to surface VM provisioned also on the cloud machine (currently it surfaces only on the inMemoryMachine)
 
-	inMemoryMachine.Spec.ProviderID = ptr.To(calculateProviderID(inMemoryMachine))
+	inMemoryMachine.Spec.ProviderID = calculateProviderID(inMemoryMachine)
 	inMemoryMachine.Status.Initialization = &infrav1.DevMachineInitializationStatus{
 		Provisioned: ptr.To(true),
 	}
@@ -1241,7 +1241,7 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding the step counter during the deletion process).
 	v1beta1conditions.SetSummary(inMemoryMachine,
 		v1beta1conditions.WithConditions(inMemoryMachineV1Beta1Conditions...),
-		v1beta1conditions.WithStepCounterIf(inMemoryMachine.DeletionTimestamp.IsZero() && inMemoryMachine.Spec.ProviderID == nil),
+		v1beta1conditions.WithStepCounterIf(inMemoryMachine.DeletionTimestamp.IsZero() && inMemoryMachine.Spec.ProviderID == ""),
 	)
 	if err := conditions.SetSummaryCondition(inMemoryMachine, inMemoryMachine, infrav1.DevMachineReadyCondition,
 		inMemoryMachineConditions,

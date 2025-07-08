@@ -1,4 +1,4 @@
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DevClusterTemplate
 metadata:
   name: in-memory-cluster
@@ -8,7 +8,7 @@ spec:
       backend:
         inMemory: {}
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlaneTemplate
 metadata:
   name: in-memory-control-plane
@@ -27,14 +27,16 @@ spec:
           nodeRegistration:
             criSocket: unix:///var/run/containerd/containerd.sock
             kubeletExtraArgs:
-              eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+              - name: eviction-hard
+                value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
         joinConfiguration:
           nodeRegistration:
             criSocket: unix:///var/run/containerd/containerd.sock
             kubeletExtraArgs:
-              eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+              - name: eviction-hard
+                value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DevMachineTemplate
 metadata:
   name: in-memory-control-plane
@@ -60,7 +62,7 @@ spec:
               startupDuration: "2s"
               startupJitter: "0.2"
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DevMachineTemplate
 metadata:
   name: in-memory-default-worker-machinetemplate
@@ -86,7 +88,7 @@ spec:
               startupDuration: "2s"
               startupJitter: "0.2"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: in-memory-default-worker-bootstraptemplate
@@ -97,9 +99,10 @@ spec:
         nodeRegistration:
           criSocket: unix:///var/run/containerd/containerd.sock
           kubeletExtraArgs:
-            eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+            - name: eviction-hard
+                value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: in-memory
@@ -108,25 +111,26 @@ spec:
     metadata:
       annotations:
     machineInfrastructure:
-      ref:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      templateRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DevMachineTemplate
         name: in-memory-control-plane
-    ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    templateRef:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: in-memory-control-plane
     machineHealthCheck:
-      unhealthyConditions:
+      maxUnhealthy: 100%
+      unhealthyNodeConditions:
         - type: Ready
           status: Unknown
-          timeout: 300s
+          timeoutSeconds: 300
         - type: Ready
           status: "False"
-          timeout: 300s
+          timeoutSeconds: 300
   infrastructure:
-    ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: DevClusterTemplate
       name: in-memory-cluster
   workers:
@@ -134,20 +138,21 @@ spec:
       - class: default-worker
         template:
           bootstrap:
-            ref:
-              apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            templateRef:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
               kind: KubeadmConfigTemplate
               name: in-memory-default-worker-bootstraptemplate
           infrastructure:
-            ref:
-              apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            templateRef:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
               kind: DevMachineTemplate
               name: in-memory-default-worker-machinetemplate
         machineHealthCheck:
-          unhealthyConditions:
+          maxUnhealthy: 100%
+          unhealthyNodeConditions:
             - type: Ready
               status: Unknown
-              timeout: 300s
+              timeoutSeconds: 300
             - type: Ready
               status: "False"
-              timeout: 300s
+              timeoutSeconds: 300

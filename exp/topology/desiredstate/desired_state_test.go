@@ -37,6 +37,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -50,6 +51,7 @@ import (
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -1185,6 +1187,22 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 							ObjectMeta: metav1.ObjectMeta{
 								Name:      "test-cluster",
 								Namespace: "test-ns",
+								// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
+								ManagedFields: []metav1.ManagedFieldsEntry{
+									{
+										APIVersion: builder.InfrastructureGroupVersion.String(),
+										Manager:    "manager",
+										Operation:  "op",
+										Time:       ptr.To(metav1.Now()),
+										FieldsType: "FieldsV1",
+										FieldsV1:   &metav1.FieldsV1{},
+									},
+								},
+								Annotations: map[string]string{
+									"fizz":                             "buzz",
+									corev1.LastAppliedConfigAnnotation: "should be cleaned up",
+									conversion.DataAnnotation:          "should be cleaned up",
+								},
 							},
 						},
 						ControlPlane: &scope.ControlPlaneState{Object: tt.controlPlaneObj},
@@ -1207,6 +1225,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 						beforeClusterUpgradeGVH: tt.hookResponse,
 					}).
+					WithCallAllExtensionValidations(validateCleanupCluster).
 					Build()
 
 				fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
@@ -1505,10 +1524,28 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 
+				// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
+				tt.s.Current.Cluster.SetManagedFields([]metav1.ManagedFieldsEntry{
+					{
+						APIVersion: builder.InfrastructureGroupVersion.String(),
+						Manager:    "manager",
+						Operation:  "op",
+						Time:       ptr.To(metav1.Now()),
+						FieldsType: "FieldsV1",
+						FieldsV1:   &metav1.FieldsV1{},
+					},
+				})
+				if tt.s.Current.Cluster.Annotations == nil {
+					tt.s.Current.Cluster.Annotations = map[string]string{}
+				}
+				tt.s.Current.Cluster.Annotations[corev1.LastAppliedConfigAnnotation] = "should be cleaned up"
+				tt.s.Current.Cluster.Annotations[conversion.DataAnnotation] = "should be cleaned up"
+
 				fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 						afterControlPlaneUpgradeGVH: tt.hookResponse,
 					}).
+					WithCallAllExtensionValidations(validateCleanupCluster).
 					WithCatalog(catalog).
 					Build()
 
@@ -3497,4 +3534,27 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
+}
+
+func validateCleanupCluster(req runtimehooksv1.RequestObject) error {
+	var cluster clusterv1beta1.Cluster
+	switch req := req.(type) {
+	case *runtimehooksv1.BeforeClusterUpgradeRequest:
+		cluster = req.Cluster
+	case *runtimehooksv1.AfterControlPlaneUpgradeRequest:
+		cluster = req.Cluster
+	default:
+		panic(fmt.Sprintf("unhandled request type %T", req))
+	}
+
+	if cluster.GetManagedFields() != nil {
+		panic("managedFields should have been cleaned up")
+	}
+	if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
+		panic("last-applied-configuration annotation should have been cleaned up")
+	}
+	if _, ok := cluster.Annotations[conversion.DataAnnotation]; ok {
+		panic("conversion annotation should have been cleaned up")
+	}
+	return nil
 }

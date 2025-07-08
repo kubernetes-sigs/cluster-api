@@ -19,8 +19,10 @@ package variables
 
 import (
 	"encoding/json"
+	"maps"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
@@ -29,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // Global returns variables that apply to all the templates, including user provided variables
@@ -68,7 +71,7 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, pat
 	if cluster.Labels != nil || cluster.Annotations != nil {
 		builtin.Cluster.Metadata = &clusterv1beta1.ObjectMeta{
 			Labels:      cluster.Labels,
-			Annotations: cluster.Annotations,
+			Annotations: cleanupAnnotations(cluster.Annotations),
 		}
 	}
 	if cluster.Spec.ClusterNetwork != nil {
@@ -136,7 +139,7 @@ func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructu
 	}
 	if cp.GetLabels() != nil || cp.GetAnnotations() != nil {
 		builtin.ControlPlane.Metadata = &clusterv1beta1.ObjectMeta{
-			Annotations: cp.GetAnnotations(),
+			Annotations: cleanupAnnotations(cp.GetAnnotations()),
 			Labels:      cp.GetLabels(),
 		}
 	}
@@ -192,7 +195,7 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 	}
 	if md.Labels != nil || md.Annotations != nil {
 		builtin.MachineDeployment.Metadata = &clusterv1beta1.ObjectMeta{
-			Annotations: md.Annotations,
+			Annotations: cleanupAnnotations(md.Annotations),
 			Labels:      md.Labels,
 		}
 	}
@@ -248,7 +251,7 @@ func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *clusterv1.Machin
 	}
 	if mp.Labels != nil || mp.Annotations != nil {
 		builtin.MachinePool.Metadata = &clusterv1beta1.ObjectMeta{
-			Annotations: mp.Annotations,
+			Annotations: cleanupAnnotations(mp.Annotations),
 			Labels:      mp.Labels,
 		}
 	}
@@ -287,4 +290,16 @@ func toVariable(name string, value interface{}) (*runtimehooksv1.Variable, error
 		Name:  name,
 		Value: apiextensionsv1.JSON{Raw: marshalledValue},
 	}, nil
+}
+
+func cleanupAnnotations(annotations map[string]string) map[string]string {
+	if annotations == nil {
+		return nil
+	}
+
+	// Optimize size of GeneratePatchesRequest and ValidateTopologyRequest by not sending the last-applied annotation.
+	annotations = maps.Clone(annotations)
+	delete(annotations, corev1.LastAppliedConfigAnnotation)
+	delete(annotations, conversion.DataAnnotation)
+	return annotations
 }

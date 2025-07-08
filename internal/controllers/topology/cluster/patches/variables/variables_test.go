@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -30,6 +31,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -65,11 +67,15 @@ func TestGlobal(t *testing.T) {
 			},
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        "cluster1",
-					Namespace:   metav1.NamespaceDefault,
-					UID:         types.UID(clusterUID),
-					Labels:      map[string]string{"foo": "bar"},
-					Annotations: map[string]string{"fizz": "buzz"},
+					Name:      "cluster1",
+					Namespace: metav1.NamespaceDefault,
+					UID:       types.UID(clusterUID),
+					Labels:    map[string]string{"foo": "bar"},
+					Annotations: map[string]string{
+						"fizz":                             "buzz",
+						corev1.LastAppliedConfigAnnotation: "should not be copied to builtin variables",
+						conversion.DataAnnotation:          "should not be copied to builtin variables",
+					},
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
@@ -461,7 +467,11 @@ func TestControlPlane(t *testing.T) {
 				WithReplicas(3).
 				WithVersion("v1.21.1").
 				WithLabels(map[string]string{"foo": "bar"}).
-				WithAnnotations(map[string]string{"fizz": "buzz"}).
+				WithAnnotations(map[string]string{
+					"fizz":                             "buzz",
+					corev1.LastAppliedConfigAnnotation: "should not be copied to builtin variables",
+					conversion.DataAnnotation:          "should not be copied to builtin variables",
+				}).
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
@@ -689,7 +699,11 @@ func TestMachineDeployment(t *testing.T) {
 				WithReplicas(3).
 				WithVersion("v1.21.1").
 				WithLabels(map[string]string{"foo": "bar"}).
-				WithAnnotations(map[string]string{"fizz": "buzz"}).
+				WithAnnotations(map[string]string{
+					"fizz":                             "buzz",
+					corev1.LastAppliedConfigAnnotation: "should not be copied to builtin variables",
+					conversion.DataAnnotation:          "should not be copied to builtin variables",
+				}).
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
@@ -1041,7 +1055,11 @@ func TestMachinePool(t *testing.T) {
 				WithReplicas(3).
 				WithVersion("v1.21.1").
 				WithLabels(map[string]string{"foo": "bar"}).
-				WithAnnotations(map[string]string{"fizz": "buzz"}).
+				WithAnnotations(map[string]string{
+					"fizz":                             "buzz",
+					corev1.LastAppliedConfigAnnotation: "should not be copied to builtin variables",
+					conversion.DataAnnotation:          "should not be copied to builtin variables",
+				}).
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{

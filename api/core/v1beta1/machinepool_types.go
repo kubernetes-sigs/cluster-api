@@ -108,6 +108,21 @@ type MachinePoolSpec struct {
 
 // ANCHOR_END: MachinePoolSpec
 
+// ANCHOR: MachinePoolStrategy
+
+// MachinePoolStrategy describes how to replace existing machines
+// with new ones.
+type MachinePoolStrategy struct {
+	// remediation controls the strategy of remediating unhealthy machines
+	// as marked by a MachineHealthCheck. This only applies to infrastructure
+	// providers supporting "MachinePool Machines". For other providers,
+	// no remediation is done.
+	// +optional
+	Remediation *RemediationStrategy `json:"remediation,omitempty"`
+}
+
+// ANCHOR_END: MachinePoolStrategy
+
 // ANCHOR: MachinePoolStatus
 
 // MachinePoolStatus defines the observed state of MachinePool.

@@ -25,7 +25,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/client/pkg/v3/logutil"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
@@ -33,12 +35,13 @@ import (
 )
 
 var (
-	subject *EtcdClientGenerator
+	subject             *EtcdClientGenerator
+	etcdClientLogger, _ = logutil.CreateDefaultZapLogger(zapcore.InfoLevel)
 )
 
 func TestNewEtcdClientGenerator(t *testing.T) {
 	g := NewWithT(t)
-	subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0, 0)
+	subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0, 0, etcdClientLogger)
 	g.Expect(subject.createClient).To(Not(BeNil()))
 }
 
@@ -90,7 +93,7 @@ func TestFirstAvailableNode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0, 0)
+			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0, 0, etcdClientLogger)
 			subject.createClient = tt.cc
 
 			client, err := subject.forFirstAvailableNode(ctx, tt.nodes)
@@ -212,7 +215,7 @@ func TestForLeader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0, 0)
+			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0, 0, etcdClientLogger)
 			subject.createClient = tt.cc
 
 			client, err := subject.forLeader(ctx, tt.nodes)

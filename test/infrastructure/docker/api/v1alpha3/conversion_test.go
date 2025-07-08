@@ -48,8 +48,9 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 
 	t.Run("for DockerMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &infrav1.DockerMachineTemplate{},
-		Spoke: &DockerMachineTemplate{},
+		Hub:         &infrav1.DockerMachineTemplate{},
+		Spoke:       &DockerMachineTemplate{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{DockerMachineTemplateFuzzFunc},
 	}))
 }
 
@@ -87,6 +88,7 @@ func hubFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
 func DockerMachineFuzzFunc(_ runtimeserializer.CodecFactory) []any {
 	return []any{
 		hubDockerMachineStatus,
+		spokeDockerMachineSpec,
 	}
 }
 
@@ -103,5 +105,19 @@ func hubDockerMachineStatus(in *infrav1.DockerMachineStatus, c randfill.Continue
 		if reflect.DeepEqual(in.Initialization, &infrav1.DockerMachineInitializationStatus{}) {
 			in.Initialization = nil
 		}
+	}
+}
+
+func spokeDockerMachineSpec(in *DockerMachineSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.ProviderID != nil && *in.ProviderID == "" {
+		in.ProviderID = nil
+	}
+}
+
+func DockerMachineTemplateFuzzFunc(_ runtimeserializer.CodecFactory) []any {
+	return []any{
+		spokeDockerMachineSpec,
 	}
 }

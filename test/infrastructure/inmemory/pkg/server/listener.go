@@ -37,7 +37,7 @@ import (
 // WorkloadClusterListener represents a listener for a workload cluster.
 type WorkloadClusterListener struct {
 	host string
-	port int
+	port int32
 
 	resourceGroup string
 
@@ -63,7 +63,7 @@ func (s *WorkloadClusterListener) Host() string {
 }
 
 // Port returns the port of a WorkloadClusterListener.
-func (s *WorkloadClusterListener) Port() int {
+func (s *WorkloadClusterListener) Port() int32 {
 	return s.port
 }
 

@@ -194,7 +194,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 
 func autoConvert_v1alpha3_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *v1beta2.APIEndpoint, s conversion.Scope) error {
 	out.Host = in.Host
-	out.Port = in.Port
+	out.Port = int32(in.Port)
 	return nil
 }
 
@@ -205,7 +205,7 @@ func Convert_v1alpha3_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *v
 
 func autoConvert_v1beta2_APIEndpoint_To_v1alpha3_APIEndpoint(in *v1beta2.APIEndpoint, out *APIEndpoint, s conversion.Scope) error {
 	out.Host = in.Host
-	out.Port = in.Port
+	out.Port = int(in.Port)
 	return nil
 }
 
@@ -415,7 +415,9 @@ func Convert_v1beta2_DockerMachineList_To_v1alpha3_DockerMachineList(in *v1beta2
 }
 
 func autoConvert_v1alpha3_DockerMachineSpec_To_v1beta2_DockerMachineSpec(in *DockerMachineSpec, out *v1beta2.DockerMachineSpec, s conversion.Scope) error {
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	if err := v1.Convert_Pointer_string_To_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
 	out.ExtraMounts = *(*[]v1beta2.Mount)(unsafe.Pointer(&in.ExtraMounts))
@@ -429,7 +431,9 @@ func Convert_v1alpha3_DockerMachineSpec_To_v1beta2_DockerMachineSpec(in *DockerM
 }
 
 func autoConvert_v1beta2_DockerMachineSpec_To_v1alpha3_DockerMachineSpec(in *v1beta2.DockerMachineSpec, out *DockerMachineSpec, s conversion.Scope) error {
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	if err := v1.Convert_string_To_Pointer_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
 	out.ExtraMounts = *(*[]Mount)(unsafe.Pointer(&in.ExtraMounts))

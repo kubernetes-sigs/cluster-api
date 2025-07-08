@@ -32,7 +32,9 @@ const (
 type DockerMachineSpec struct {
 	// ProviderID will be the container name in ProviderID format (docker:////<containername>)
 	// +optional
-	ProviderID *string `json:"providerID,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ProviderID string `json:"providerID,omitempty"`
 
 	// CustomImage allows customizing the container image that is used for
 	// running the machine

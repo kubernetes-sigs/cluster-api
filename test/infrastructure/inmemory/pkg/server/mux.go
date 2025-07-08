@@ -64,9 +64,9 @@ type WorkloadClustersMuxOption interface {
 
 // WorkloadClustersMuxOptions are options for the workload clusters mux.
 type WorkloadClustersMuxOptions struct {
-	MinPort   int
-	MaxPort   int
-	DebugPort int
+	MinPort   int32
+	MaxPort   int32
+	DebugPort int32
 }
 
 // ApplyOptions applies WorkloadClustersMuxOption to the current WorkloadClustersMuxOptions.
@@ -79,9 +79,9 @@ func (o *WorkloadClustersMuxOptions) ApplyOptions(opts []WorkloadClustersMuxOpti
 
 // CustomPorts allows to customize the ports used by the workload clusters mux.
 type CustomPorts struct {
-	MinPort   int
-	MaxPort   int
-	DebugPort int
+	MinPort   int32
+	MaxPort   int32
+	DebugPort int32
 }
 
 // Apply applies this configuration to the given WorkloadClustersMuxOptions.
@@ -98,9 +98,9 @@ func (c CustomPorts) Apply(options *WorkloadClustersMuxOptions) {
 // WorkloadClustersMux is also responsible for handling certificates for each of the above use cases.
 type WorkloadClustersMux struct {
 	host      string
-	minPort   int // TODO: move port management to a port range type
-	maxPort   int
-	portIndex int
+	minPort   int32 // TODO: move port management to a port range type
+	maxPort   int32
+	portIndex int32
 
 	manager inmemoryruntime.Manager // TODO: figure out if we can have a smaller interface (GetResourceGroup, GetSchema)
 
@@ -253,7 +253,7 @@ type HotRestartListener struct {
 	Cluster string
 	Name    string
 	Host    string
-	Port    int
+	Port    int32
 }
 
 // HotRestart tries to set up the mux according to an existing set of InMemoryClusters.
@@ -270,7 +270,7 @@ func (m *WorkloadClustersMux) HotRestart(listeners []HotRestartListener) error {
 		return errors.New("WorkloadClustersMux cannot be hot restarted when there are already initialized listeners")
 	}
 
-	ports := sets.Set[int]{}
+	ports := sets.Set[int32]{}
 	maxPort := m.minPort - 1
 	for _, l := range listeners {
 		if l.Host == "" {
@@ -322,7 +322,7 @@ func (m *WorkloadClustersMux) InitWorkloadClusterListener(wclName string) (*Work
 
 // initWorkloadClusterListenerWithPortLocked initializes a workload cluster listener.
 // Note: m.lock must be locked before calling this method.
-func (m *WorkloadClustersMux) initWorkloadClusterListenerWithPortLocked(wclName string, port int) *WorkloadClusterListener {
+func (m *WorkloadClustersMux) initWorkloadClusterListenerWithPortLocked(wclName string, port int32) *WorkloadClusterListener {
 	wcl := &WorkloadClusterListener{
 		scheme:                  m.manager.GetScheme(),
 		host:                    m.host,
@@ -643,7 +643,7 @@ func (m *WorkloadClustersMux) Shutdown(ctx context.Context) error {
 
 // getFreePortLocked gets a free port.
 // Note: m.lock must be locked before calling this method.
-func (m *WorkloadClustersMux) getFreePortLocked() (int, error) {
+func (m *WorkloadClustersMux) getFreePortLocked() (int32, error) {
 	port := m.portIndex
 	if port > m.maxPort {
 		return -1, errors.Errorf("no more free ports in the %d-%d range", m.minPort, m.maxPort)

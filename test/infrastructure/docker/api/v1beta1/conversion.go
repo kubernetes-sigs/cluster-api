@@ -99,6 +99,10 @@ func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	if dst.Spec.ProviderID != nil && *dst.Spec.ProviderID == "" {
+		dst.Spec.ProviderID = nil
+	}
+
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
@@ -115,7 +119,15 @@ func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerMachineTemplate)
 
-	return Convert_v1beta2_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(src, dst, nil)
+	if err := Convert_v1beta2_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	if dst.Spec.Template.Spec.ProviderID != nil && *dst.Spec.Template.Spec.ProviderID == "" {
+		dst.Spec.Template.Spec.ProviderID = nil
+	}
+
+	return nil
 }
 
 func (src *DevCluster) ConvertTo(dstRaw conversion.Hub) error {
@@ -185,6 +197,10 @@ func (dst *DevMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	if dst.Spec.ProviderID != nil && *dst.Spec.ProviderID == "" {
+		dst.Spec.ProviderID = nil
+	}
+
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
@@ -201,7 +217,15 @@ func (src *DevMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *DevMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DevMachineTemplate)
 
-	return Convert_v1beta2_DevMachineTemplate_To_v1beta1_DevMachineTemplate(src, dst, nil)
+	if err := Convert_v1beta2_DevMachineTemplate_To_v1beta1_DevMachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	if dst.Spec.Template.Spec.ProviderID != nil && *dst.Spec.Template.Spec.ProviderID == "" {
+		dst.Spec.Template.Spec.ProviderID = nil
+	}
+
+	return nil
 }
 
 func Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(in *clusterv1beta1.ObjectMeta, out *clusterv1.ObjectMeta, s apiconversion.Scope) error {

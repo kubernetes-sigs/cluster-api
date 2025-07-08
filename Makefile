@@ -549,7 +549,7 @@ generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversion
 # The tmp/sigs.k8s.io/cluster-api symlink is a workaround to make this target run outside of GOPATH
 .PHONY: generate-go-openapi
 generate-go-openapi: $(OPENAPI_GEN) ## Generate openapi go code for runtime SDK
-	@mkdir -p ./tmp/sigs.k8s.io; ln -s $(ROOT_DIR) ./tmp/sigs.k8s.io/; cd ./tmp; \
+	@mkdir -p ./tmp/sigs.k8s.io; rm -f ./tmp/sigs.k8s.io/cluster-api; ln -s $(ROOT_DIR) ./tmp/sigs.k8s.io/cluster-api; cd ./tmp; \
 	for pkg in "api/core/v1beta2" "api/core/v1beta1" "api/runtime/hooks/v1alpha1"; do \
 		(cd ../ && $(MAKE) clean-generated-openapi-definitions SRC_DIRS="./$${pkg}"); \
 		echo "** Generating openapi schema for types in ./$${pkg} **"; \

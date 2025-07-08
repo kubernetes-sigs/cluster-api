@@ -20,7 +20,7 @@ spec:
         name: quick-start-control-plane
     machineHealthCheck:
       maxUnhealthy: 100%
-      unhealthyConditions:
+      unhealthyNodeConditions:
         - type: e2e.remediation.condition
           status: "False"
           timeoutSeconds: 20
@@ -50,7 +50,7 @@ spec:
             name: quick-start-default-worker-machinetemplate
       machineHealthCheck:
         maxUnhealthy: 100%
-        # We are intentionally not setting the 'unhealthyConditions' here to test that the field is optional.
+        # We are intentionally not setting the 'unhealthyNodeConditions' here to test that the field is optional.
     machinePools:
     - class: default-worker
       template:
@@ -324,11 +324,15 @@ spec:
             controlPlane: true
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cloud-provider"
-            value: "external"
+            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs"
+            value:
+              name: "cloud-provider"
+              value: "external"
           - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/cloud-provider"
-            value: "external"
+            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs"
+            value:
+              name: "cloud-provider"
+              value: "external"
   - name: machineDeploymentExternalCloudProvider
     enabledIf: "{{ .externalCloudProvider }}"
     description: "Configures kubelet to run with an external cloud provider for machineDeployment nodes."
@@ -342,8 +346,10 @@ spec:
                 - '*-worker'
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cloud-provider"
-            value: "external"
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs"
+            value:
+              name: "cloud-provider"
+              value: "external"
       - selector:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
           kind: KubeadmConfigTemplate
@@ -353,8 +359,10 @@ spec:
                 - '*-worker'
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cloud-provider"
-            value: "external"
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs"
+            value:
+              name: "cloud-provider"
+              value: "external"
   - name: localEndpointIPv6
     enabledIf: "{{ .ipv6Primary }}"
     description: "Configures KCP to use IPv6 for its localAPIEndpoint."
@@ -447,13 +455,17 @@ spec:
             controlPlane: true
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/v"
-            valueFrom:
-              variable: kubeletLogLevel
+            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs"
+            value:
+              name: v
+              valueFrom:
+                value: kubeletLogLevel
           - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/v"
-            valueFrom:
-              variable: kubeletLogLevel
+            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs"
+            value:
+              name: v
+              valueFrom:
+                value: kubeletLogLevel
   - name: workerKubeletLogLevel
     enabledIf: "{{ if .kubeletLogLevel }}true{{end}}"
     description: "Configures worker kubelets to log at the level set in the variable `kubeletLogLevel`."
@@ -559,11 +571,13 @@ spec:
         initConfiguration:
           nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
             kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider patch to work
-              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+              name: eviction-hard
+              value: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
         joinConfiguration:
           nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
             kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider patch to work
-              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+              name: eviction-hard
+              value: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate
@@ -648,7 +662,8 @@ spec:
       joinConfiguration:
         nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
           kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider to work
-            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+            name: eviction-hard
+            value: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
@@ -669,4 +684,5 @@ spec:
       joinConfiguration:
         nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
           kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider to work
-            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+            name: eviction-hard
+            value: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'

@@ -44,4 +44,3 @@ metadata:
   name: "${CLUSTER_NAME}-mp-0-config"
 spec:
   joinConfiguration:
-    nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.

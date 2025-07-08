@@ -27,12 +27,14 @@ spec:
           nodeRegistration:
             criSocket: unix:///var/run/containerd/containerd.sock
             kubeletExtraArgs:
-              eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+              name: eviction-hard
+              value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
         joinConfiguration:
           nodeRegistration:
             criSocket: unix:///var/run/containerd/containerd.sock
             kubeletExtraArgs:
-              eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+              name: eviction-hard
+              value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DevMachineTemplate
@@ -97,7 +99,8 @@ spec:
         nodeRegistration:
           criSocket: unix:///var/run/containerd/containerd.sock
           kubeletExtraArgs:
-            eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+            name: eviction-hard
+            value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
@@ -152,5 +155,5 @@ spec:
   patches:
     - name: test-patch
       external:
-        generateExtension: generate-patches.${EXTENSION_CONFIG_NAME:-"scale"}
+        generatePatchesExtension: generate-patches.${EXTENSION_CONFIG_NAME:-"scale"}
         discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:-"scale"}

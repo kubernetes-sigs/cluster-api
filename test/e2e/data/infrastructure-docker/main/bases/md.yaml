@@ -23,7 +23,6 @@ spec:
   template:
     spec:
       joinConfiguration:
-        nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ---
 # MachineDeployment object
 apiVersion: cluster.x-k8s.io/v1beta2

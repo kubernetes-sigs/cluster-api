@@ -57,10 +57,6 @@ spec:
       apiServer:
         # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
         certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
-    initConfiguration:
-      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
-    joinConfiguration:
-      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
     files:
     - path: /wait-signal.sh
       content: |

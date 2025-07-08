@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -1727,17 +1728,17 @@ func validateCleanupCluster(req runtimehooksv1.RequestObject) error {
 	case *runtimehooksv1.BeforeClusterDeleteRequest:
 		cluster = req.Cluster
 	default:
-		panic(fmt.Sprintf("unhandled request type %T", req))
+		return fmt.Errorf("unhandled request type %T", req)
 	}
 
 	if cluster.GetManagedFields() != nil {
-		panic("managedFields should have been cleaned up")
+		return errors.New("managedFields should have been cleaned up")
 	}
 	if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
-		panic("last-applied-configuration annotation should have been cleaned up")
+		return errors.New("last-applied-configuration annotation should have been cleaned up")
 	}
 	if _, ok := cluster.Annotations[conversion.DataAnnotation]; ok {
-		panic("conversion annotation should have been cleaned up")
+		return errors.New("conversion annotation should have been cleaned up")
 	}
 	return nil
 }

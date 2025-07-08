@@ -18,6 +18,7 @@ package desiredstate
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -1557,6 +1558,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				}
 
 				_, err := r.computeControlPlaneVersion(ctx, tt.s)
+				if tt.wantErr {
+					g.Expect(err).To(HaveOccurred())
+				} else {
+					g.Expect(err).ToNot(HaveOccurred())
+				}
 
 				if tt.wantHookToBeCalled {
 					g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneUpgrade)).To(Equal(1), "Expected hook to be called once")
@@ -1565,7 +1571,6 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				}
 
 				g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, tt.s.Current.Cluster)).To(Equal(tt.wantIntentToCall))
-				g.Expect(err != nil).To(Equal(tt.wantErr))
 				if tt.wantHookToBeCalled && !tt.wantErr {
 					g.Expect(tt.s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade)).To(Equal(tt.wantHookToBlock))
 				}
@@ -3544,17 +3549,17 @@ func validateCleanupCluster(req runtimehooksv1.RequestObject) error {
 	case *runtimehooksv1.AfterControlPlaneUpgradeRequest:
 		cluster = req.Cluster
 	default:
-		panic(fmt.Sprintf("unhandled request type %T", req))
+		return fmt.Errorf("unhandled request type %T", req)
 	}
 
 	if cluster.GetManagedFields() != nil {
-		panic("managedFields should have been cleaned up")
+		return errors.New("managedFields should have been cleaned up")
 	}
 	if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
-		panic("last-applied-configuration annotation should have been cleaned up")
+		return errors.New("last-applied-configuration annotation should have been cleaned up")
 	}
 	if _, ok := cluster.Annotations[conversion.DataAnnotation]; ok {
-		panic("conversion annotation should have been cleaned up")
+		return errors.New("conversion annotation should have been cleaned up")
 	}
 	return nil
 }

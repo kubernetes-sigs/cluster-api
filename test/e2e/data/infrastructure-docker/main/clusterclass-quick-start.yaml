@@ -381,8 +381,10 @@ spec:
           controlPlane: true
       jsonPatches:
       - op: add
-        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/admission-control-config-file"
-        value: "/etc/kubernetes/kube-apiserver-admission-pss.yaml"
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
+        value:
+          name: admission-control-config-file
+          value: "/etc/kubernetes/kube-apiserver-admission-pss.yaml"
       - op: add
         path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraVolumes"
         value:
@@ -427,17 +429,23 @@ spec:
             controlPlane: true
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/v"
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
             valueFrom:
-              variable: kubeControlPlaneLogLevel
+              template: |
+                name: v
+                value: {{ .kubeControlPlaneLogLevel }}
           - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/v"
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/-"
             valueFrom:
-              variable: kubeControlPlaneLogLevel
+              template: |
+                name: v
+                value: {{ .kubeControlPlaneLogLevel }}
           - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/scheduler/extraArgs/v"
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/scheduler/extraArgs/-"
             valueFrom:
-              variable: kubeControlPlaneLogLevel
+              template: |
+                name: v
+                value: {{ .kubeControlPlaneLogLevel }}
   - name: controlPlaneKubeletLogLevel
     enabledIf: "{{ if .kubeletLogLevel }}true{{end}}"
     description: "Configures control plane kubelets to log at the level set in the variable `kubeletLogLevel`."
@@ -557,13 +565,16 @@ spec:
           # extraArgs must be non-empty for control plane components to enable patches from ClusterClass to work.
           controllerManager:
             extraArgs:
-              v: "0"
+              - name: v
+                value: "0"
           scheduler:
             extraArgs:
-              v: "0"
+              - name: v
+                value: "0"
           apiServer:
             extraArgs:
-              v: "0"
+              - name: v
+                value: "0"
             # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
             certSANs: [localhost, host.docker.internal, "::", "::1", "127.0.0.1", "0.0.0.0"]
         initConfiguration:

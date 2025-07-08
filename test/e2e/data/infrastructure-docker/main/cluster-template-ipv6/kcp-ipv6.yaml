@@ -15,10 +15,10 @@ spec:
         bindPort: 6443
       nodeRegistration:
         kubeletExtraArgs:
-          name: node-ip
-          value: "::"
+          - name: node-ip
+            value: "::"
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          name: node-ip
-          value: "::"
+          - name: node-ip
+            value: "::"

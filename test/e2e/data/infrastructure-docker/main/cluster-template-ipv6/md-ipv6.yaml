@@ -9,8 +9,10 @@ spec:
       initConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            node-ip: "::"
+            - name: node-ip
+              value: "::"
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            node-ip: "::"
+            - name: node-ip
+              value: "::"

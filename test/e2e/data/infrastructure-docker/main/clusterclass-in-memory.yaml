@@ -27,14 +27,14 @@ spec:
           nodeRegistration:
             criSocket: unix:///var/run/containerd/containerd.sock
             kubeletExtraArgs:
-              name: eviction-hard
-              value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+              - name: eviction-hard
+                value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
         joinConfiguration:
           nodeRegistration:
             criSocket: unix:///var/run/containerd/containerd.sock
             kubeletExtraArgs:
-              name: eviction-hard
-              value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+              - name: eviction-hard
+                value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DevMachineTemplate
@@ -99,8 +99,8 @@ spec:
         nodeRegistration:
           criSocket: unix:///var/run/containerd/containerd.sock
           kubeletExtraArgs:
-            name: eviction-hard
-            value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+            - name: eviction-hard
+              value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass

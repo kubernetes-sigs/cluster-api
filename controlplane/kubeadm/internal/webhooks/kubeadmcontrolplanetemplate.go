@@ -59,8 +59,6 @@ func (webhook *KubeadmControlPlaneTemplate) Default(_ context.Context, obj runti
 
 	k.Spec.Template.Spec.KubeadmConfigSpec.Default()
 
-	k.Spec.Template.Spec.RolloutStrategy = defaultRolloutStrategy(k.Spec.Template.Spec.RolloutStrategy)
-
 	return nil
 }
 

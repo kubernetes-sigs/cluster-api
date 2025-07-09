@@ -17,6 +17,7 @@ limitations under the License.
 package machineset
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"math"
@@ -825,7 +826,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 		}
 		return ctrl.Result{}, r.waitForMachineCreation(ctx, machineList)
 	case diff > 0:
-		log.Info(fmt.Sprintf("MachineSet is scaling down to %d replicas by deleting %d machines", *(ms.Spec.Replicas), diff), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "deletePolicy", ms.Spec.DeletePolicy)
+		log.Info(fmt.Sprintf("MachineSet is scaling down to %d replicas by deleting %d machines", *(ms.Spec.Replicas), diff), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "deletePolicy", cmp.Or(ms.Spec.DeletePolicy, clusterv1.RandomMachineSetDeletePolicy))
 
 		deletePriorityFunc, err := getDeletePriorityFunc(ms)
 		if err != nil {

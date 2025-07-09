@@ -103,10 +103,6 @@ func (webhook *MachineSet) Default(ctx context.Context, obj runtime.Object) erro
 	}
 	m.Spec.Replicas = ptr.To[int32](replicas)
 
-	if m.Spec.DeletePolicy == "" {
-		m.Spec.DeletePolicy = clusterv1.RandomMachineSetDeletePolicy
-	}
-
 	if m.Spec.Selector.MatchLabels == nil {
 		m.Spec.Selector.MatchLabels = make(map[string]string)
 	}

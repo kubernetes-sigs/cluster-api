@@ -3339,7 +3339,6 @@ func TestMergeMap(t *testing.T) {
 }
 
 func Test_computeMachineHealthCheck(t *testing.T) {
-	maxUnhealthyValue := intstr.FromString("100%")
 	mhcSpec := &clusterv1.MachineHealthCheckClass{
 		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
@@ -3382,8 +3381,6 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 			Selector: metav1.LabelSelector{MatchLabels: map[string]string{
 				"foo": "bar",
 			}},
-			// MaxUnhealthy is added by defaulting values using MachineHealthCheck.Default()
-			MaxUnhealthy: &maxUnhealthyValue,
 			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
 					Type:           corev1.NodeReady,

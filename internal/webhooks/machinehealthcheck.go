@@ -77,11 +77,6 @@ func (webhook *MachineHealthCheck) Default(_ context.Context, obj runtime.Object
 	}
 	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
-	if m.Spec.MaxUnhealthy == nil {
-		defaultMaxUnhealthy := intstr.FromString("100%")
-		m.Spec.MaxUnhealthy = &defaultMaxUnhealthy
-	}
-
 	if m.Spec.NodeStartupTimeoutSeconds == nil {
 		m.Spec.NodeStartupTimeoutSeconds = &clusterv1.DefaultNodeStartupTimeoutSeconds
 	}

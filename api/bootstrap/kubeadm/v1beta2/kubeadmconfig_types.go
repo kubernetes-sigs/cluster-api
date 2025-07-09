@@ -66,6 +66,7 @@ type KubeadmConfigSpec struct {
 
 	// files specifies extra files to be passed to user_data upon creation.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=200
 	Files []File `json:"files,omitempty"`
 
@@ -75,6 +76,7 @@ type KubeadmConfigSpec struct {
 
 	// mounts specifies a list of mount points to be setup.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	Mounts []MountPoints `json:"mounts,omitempty"`
 
@@ -110,6 +112,7 @@ type KubeadmConfigSpec struct {
 
 	// users specifies extra users to add
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	Users []User `json:"users,omitempty"`
 
@@ -795,11 +798,13 @@ type NTP struct {
 type DiskSetup struct {
 	// partitions specifies the list of the partitions to setup.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	Partitions []Partition `json:"partitions,omitempty"`
 
 	// filesystems specifies the list of file systems to setup.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	Filesystems []Filesystem `json:"filesystems,omitempty"`
 }

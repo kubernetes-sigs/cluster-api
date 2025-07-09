@@ -77,6 +77,7 @@ type InitConfiguration struct {
 	// bootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create.
 	// This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	BootstrapTokens []BootstrapToken `json:"bootstrapTokens,omitempty"`
 
@@ -200,6 +201,7 @@ type APIServer struct {
 
 	// extraVolumes is an extra set of host volumes, mounted to the control plane component.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	ExtraVolumes []HostPathMount `json:"extraVolumes,omitempty"`
 
@@ -207,6 +209,7 @@ type APIServer struct {
 	// Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
 	// This option takes effect only on Kubernetes >=1.31.0.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 
@@ -236,6 +239,7 @@ type ControllerManager struct {
 
 	// extraVolumes is an extra set of host volumes, mounted to the control plane component.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	ExtraVolumes []HostPathMount `json:"extraVolumes,omitempty"`
 
@@ -243,6 +247,7 @@ type ControllerManager struct {
 	// Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
 	// This option takes effect only on Kubernetes >=1.31.0.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 }
@@ -264,6 +269,7 @@ type Scheduler struct {
 
 	// extraVolumes is an extra set of host volumes, mounted to the control plane component.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	ExtraVolumes []HostPathMount `json:"extraVolumes,omitempty"`
 
@@ -271,6 +277,7 @@ type Scheduler struct {
 	// Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
 	// This option takes effect only on Kubernetes >=1.31.0.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 }
@@ -466,6 +473,7 @@ type LocalEtcd struct {
 	// Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
 	// This option takes effect only on Kubernetes >=1.31.0.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 
@@ -768,6 +776,7 @@ type KubeConfigAuthExec struct {
 	// are unioned with the host's environment, as well as variables client-go uses
 	// to pass argument to the plugin.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	Env []KubeConfigAuthExecEnv `json:"env,omitempty"`
 

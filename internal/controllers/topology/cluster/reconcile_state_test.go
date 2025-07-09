@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -48,6 +49,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
 	"sigs.k8s.io/cluster-api/internal/hooks"
@@ -1136,11 +1138,18 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 }
 
 func TestReconcileCluster(t *testing.T) {
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+
 	cluster1 := builder.Cluster(metav1.NamespaceDefault, "cluster1").
-		WithClusterNetwork(&clusterv1.ClusterNetwork{
-			ServiceDomain: "service.domain",
+		WithTopology(&clusterv1.Topology{
+			ClassRef: clusterv1.ClusterClassRef{
+				Name: "class1",
+			},
+			Version: "v1.30.0",
 		}).
 		Build()
+	// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
+	cluster1.Spec.Paused = ptr.To(true)
 	cluster1WithReferences := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 		WithInfrastructureCluster(builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").
 			Build()).
@@ -1189,6 +1198,16 @@ func TestReconcileCluster(t *testing.T) {
 				tt.current = prepareCluster(tt.current, namespace.GetName())
 			}
 
+			ict := builder.TestInfrastructureClusterTemplate(namespace.GetName(), "infra1").Build()
+			cpt := builder.TestControlPlaneTemplate(namespace.GetName(), "cp1").Build()
+			clusterClass := builder.ClusterClass(namespace.GetName(), "class1").
+				WithInfrastructureClusterTemplate(ict).
+				WithControlPlaneTemplate(cpt).
+				Build()
+			g.Expect(env.CreateAndWait(ctx, ict)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, cpt)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, clusterClass)).To(Succeed())
+
 			if tt.current != nil {
 				// NOTE: it is ok to use create given that the Cluster are created by user.
 				g.Expect(env.CreateAndWait(ctx, tt.current)).To(Succeed())
@@ -1220,6 +1239,7 @@ func TestReconcileCluster(t *testing.T) {
 			if tt.current != nil {
 				g.Expect(env.CleanupAndWait(ctx, tt.current)).To(Succeed())
 			}
+			g.Expect(env.CleanupAndWait(ctx, clusterClass, ict, cpt)).To(Succeed())
 		})
 	}
 }
@@ -3496,16 +3516,28 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 }
 
 func TestReconcileState(t *testing.T) {
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+
+	ict := builder.TestInfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()
+	cpt := builder.TestControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()
+	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
+		WithInfrastructureClusterTemplate(ict).
+		WithControlPlaneTemplate(cpt).
+		Build()
+
 	t.Run("Cluster get reconciled with infrastructure Ref only when reconcileInfrastructureCluster pass and reconcileControlPlane fails ", func(t *testing.T) {
 		g := NewWithT(t)
 
 		currentCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
-			WithClusterNetwork(
-				&clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
+			WithTopology(&clusterv1.Topology{
+				ClassRef: clusterv1.ClusterClassRef{
+					Name: "class1",
 				},
-			).
+				Version: "v1.30.0",
+			}).
 			Build()
+		// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
+		currentCluster.Spec.Paused = ptr.To(true)
 
 		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
@@ -3513,6 +3545,10 @@ func TestReconcileState(t *testing.T) {
 			WithInfrastructureCluster(infrastructureCluster).
 			WithControlPlane(controlPlane).
 			Build()
+
+		g.Expect(env.CreateAndWait(ctx, ict.DeepCopy())).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, cpt.DeepCopy())).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, clusterClass.DeepCopy())).To(Succeed())
 
 		// cluster requires a UID because reconcileClusterShim will create a cluster shim
 		// which has the cluster set as Owner in an OwnerReference.
@@ -3550,18 +3586,21 @@ func TestReconcileState(t *testing.T) {
 		g.Expect(got.Spec.InfrastructureRef).ToNot(BeNil())
 		g.Expect(got.Spec.ControlPlaneRef).To(BeNil())
 
-		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, currentCluster)).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, currentCluster, clusterClass, ict, cpt)).To(Succeed())
 	})
 	t.Run("Cluster get reconciled with both infrastructure Ref and control plane ref when both reconcileInfrastructureCluster and reconcileControlPlane pass", func(t *testing.T) {
 		g := NewWithT(t)
 
 		currentCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
-			WithClusterNetwork(
-				&clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
+			WithTopology(&clusterv1.Topology{
+				ClassRef: clusterv1.ClusterClassRef{
+					Name: "class1",
 				},
-			).
+				Version: "v1.30.0",
+			}).
 			Build()
+		// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
+		currentCluster.Spec.Paused = ptr.To(true)
 
 		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
@@ -3569,6 +3608,10 @@ func TestReconcileState(t *testing.T) {
 			WithInfrastructureCluster(infrastructureCluster).
 			WithControlPlane(controlPlane).
 			Build()
+
+		g.Expect(env.CreateAndWait(ctx, ict.DeepCopy())).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, cpt.DeepCopy())).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, clusterClass.DeepCopy())).To(Succeed())
 
 		// cluster requires a UID because reconcileClusterShim will create a cluster shim
 		// which has the cluster set as Owner in an OwnerReference.
@@ -3603,7 +3646,7 @@ func TestReconcileState(t *testing.T) {
 		g.Expect(got.Spec.InfrastructureRef).ToNot(BeNil())
 		g.Expect(got.Spec.ControlPlaneRef).ToNot(BeNil())
 
-		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, controlPlane, currentCluster)).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, controlPlane, currentCluster, clusterClass, ict, cpt)).To(Succeed())
 	})
 	t.Run("Cluster does not get reconciled when reconcileControlPlane fails and infrastructure Ref is set", func(t *testing.T) {
 		g := NewWithT(t)
@@ -3614,6 +3657,8 @@ func TestReconcileState(t *testing.T) {
 		currentCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 			WithInfrastructureCluster(infrastructureCluster).
 			Build()
+		// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
+		currentCluster.Spec.Paused = ptr.To(true)
 
 		desiredCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 			WithInfrastructureCluster(infrastructureCluster).

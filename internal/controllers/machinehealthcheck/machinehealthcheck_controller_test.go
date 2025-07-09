@@ -2444,8 +2444,10 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 			Namespace:    namespaceName,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				ServiceDomain: "service.domain",
+			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
 			},
 		},
 	}

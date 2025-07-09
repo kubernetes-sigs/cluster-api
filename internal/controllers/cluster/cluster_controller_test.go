@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -65,8 +66,10 @@ func TestClusterReconciler(t *testing.T) {
 				Namespace:    ns.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ClusterNetwork: &clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
+				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.ControlPlaneGroupVersion.Group,
+					Kind:     builder.GenericControlPlaneKind,
+					Name:     "cp1",
 				},
 			},
 		}
@@ -120,8 +123,10 @@ func TestClusterReconciler(t *testing.T) {
 				Namespace:    ns.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ClusterNetwork: &clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
+				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.ControlPlaneGroupVersion.Group,
+					Kind:     builder.GenericControlPlaneKind,
+					Name:     "cp1",
 				},
 			},
 		}
@@ -179,8 +184,10 @@ func TestClusterReconciler(t *testing.T) {
 				Namespace:    ns.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ClusterNetwork: &clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
+				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.ControlPlaneGroupVersion.Group,
+					Kind:     builder.GenericControlPlaneKind,
+					Name:     "cp1",
 				},
 			},
 		}
@@ -231,8 +238,10 @@ func TestClusterReconciler(t *testing.T) {
 				Namespace:    ns.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ClusterNetwork: &clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
+				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.ControlPlaneGroupVersion.Group,
+					Kind:     builder.GenericControlPlaneKind,
+					Name:     "cp1",
 				},
 			},
 		}
@@ -284,8 +293,10 @@ func TestClusterReconciler(t *testing.T) {
 				Namespace:    ns.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ClusterNetwork: &clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
+				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.ControlPlaneGroupVersion.Group,
+					Kind:     builder.GenericControlPlaneKind,
+					Name:     "cp1",
 				},
 			},
 		}
@@ -344,8 +355,10 @@ func TestClusterReconciler(t *testing.T) {
 				Namespace:    ns.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ClusterNetwork: &clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
+				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.ControlPlaneGroupVersion.Group,
+					Kind:     builder.GenericControlPlaneKind,
+					Name:     "cp1",
 				},
 			},
 		}
@@ -388,19 +401,30 @@ func TestClusterReconciler(t *testing.T) {
 	t.Run("Should successfully set ControlPlaneInitialized on the cluster object if controlplane is ready", func(t *testing.T) {
 		g := NewWithT(t)
 
+		ic := builder.InfrastructureCluster(ns.Name, "infracluster1").Build()
+		g.Expect(env.CreateAndWait(ctx, ic)).To(Succeed())
+		defer func() {
+			g.Expect(env.CleanupAndWait(ctx, ic)).To(Succeed())
+		}()
+		icOriginal := ic.DeepCopy()
+		g.Expect(contract.InfrastructureCluster().Provisioned("v1beta2").Set(ic, true)).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, ic, client.MergeFrom(icOriginal))).To(Succeed())
+
 		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test6-",
 				Namespace:    ns.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ClusterNetwork: &clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
+				InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.InfrastructureGroupVersion.Group,
+					Kind:     builder.GenericInfrastructureClusterKind,
+					Name:     "infracluster1",
 				},
 			},
 		}
-
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
 			err := env.Delete(ctx, cluster)

@@ -1206,6 +1206,11 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 			Host: "test.local",
 			Port: 9999,
 		},
+		InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			APIGroup: builder.InfrastructureGroupVersion.Group,
+			Kind:     builder.GenericInfrastructureClusterKind,
+			Name:     "infracluster1",
+		},
 	}
 	g.Expect(env.Create(ctx, cluster)).To(Succeed())
 	patchHelper, err := patch.NewHelper(cluster, env)
@@ -1423,6 +1428,11 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 			Host: "test.local",
 			Port: 9999,
 		},
+		InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			APIGroup: builder.InfrastructureGroupVersion.Group,
+			Kind:     builder.GenericInfrastructureClusterKind,
+			Name:     "infracluster1",
+		},
 	}
 
 	caCertificate := &secret.Certificate{
@@ -1457,7 +1467,7 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "GenericInfrastructureMachineTemplate",
+			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-foo",
@@ -1649,8 +1659,10 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 				Name:      "test-cluster",
 			},
 			Spec: clusterv1.ClusterSpec{
-				ClusterNetwork: &clusterv1.ClusterNetwork{
-					ServiceDomain: "service.domain",
+				InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: builder.InfrastructureGroupVersion.Group,
+					Kind:     builder.GenericInfrastructureClusterKind,
+					Name:     "infracluster1",
 				},
 			},
 		}

@@ -460,6 +460,7 @@ type MachinePoolClass struct {
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -655,6 +656,7 @@ type JSONSchemaProps struct {
 	// required specifies which fields of an object are required.
 	// NOTE: Can only be set if type is object.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=1000
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -1053,6 +1055,7 @@ type PatchSelectorMatch struct {
 type PatchSelectorMatchMachineDeploymentClass struct {
 	// names selects templates by class names.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -1064,6 +1067,7 @@ type PatchSelectorMatchMachineDeploymentClass struct {
 type PatchSelectorMatchMachinePoolClass struct {
 	// names selects templates by class names.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256

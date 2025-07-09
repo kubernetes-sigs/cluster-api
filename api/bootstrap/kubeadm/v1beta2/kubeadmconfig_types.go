@@ -82,6 +82,7 @@ type KubeadmConfigSpec struct {
 	// module. bootcmd will run on every boot, 'cloud-init-per' command can be used to make bootcmd run exactly
 	// once. This is typically run in the cloud-init.service systemd unit. This has no effect in Ignition.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=1000
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=10240
@@ -91,6 +92,7 @@ type KubeadmConfigSpec struct {
 	// With cloud-init, this is prepended to the runcmd module configuration, and is typically executed in
 	// the cloud-final.service systemd unit. In Ignition, this is prepended to /etc/kubeadm.sh.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=1000
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=10240
@@ -100,6 +102,7 @@ type KubeadmConfigSpec struct {
 	// With cloud-init, this is appended to the runcmd module configuration, and is typically executed in
 	// the cloud-final.service systemd unit. In Ignition, this is appended to /etc/kubeadm.sh.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=1000
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=10240
@@ -766,6 +769,7 @@ type User struct {
 
 	// sshAuthorizedKeys specifies a list of ssh authorized keys for the user
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=2048
@@ -776,6 +780,7 @@ type User struct {
 type NTP struct {
 	// servers specifies which NTP servers to use
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512
@@ -863,6 +868,7 @@ type Filesystem struct {
 
 	// extraOpts defined extra options to add to the command for creating the file system.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256

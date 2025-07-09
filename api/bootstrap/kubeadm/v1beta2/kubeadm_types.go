@@ -99,6 +99,7 @@ type InitConfiguration struct {
 	// The list of phases can be obtained with the "kubeadm init --help" command.
 	// This option takes effect only on Kubernetes >=1.22.0.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -211,6 +212,7 @@ type APIServer struct {
 
 	// certSANs sets extra Subject Alternative Names for the API Server signing cert.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=253
@@ -357,6 +359,7 @@ type NodeRegistrationOptions struct {
 	// ignorePreflightErrors provides a slice of pre-flight errors to be ignored when the current node is registered, e.g. 'IsPrivilegedUser,Swap'.
 	// Value 'all' ignores errors from all checks.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512
@@ -383,31 +386,38 @@ type BootstrapToken struct {
 	// Used for joining nodes in the cluster.
 	// +required
 	Token *BootstrapTokenString `json:"token"`
+
 	// description sets a human-friendly message why this token exists and what it's used
 	// for, so other administrators can know its purpose.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	Description string `json:"description,omitempty"`
+
 	// ttlSeconds defines the time to live for this token. Defaults to 24h.
 	// Expires and ttlSeconds are mutually exclusive.
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	TTLSeconds *int32 `json:"ttlSeconds,omitempty"`
+
 	// expires specifies the timestamp when this token expires. Defaults to being set
 	// dynamically at runtime based on the ttlSeconds. Expires and ttlSeconds are mutually exclusive.
 	// +optional
 	Expires *metav1.Time `json:"expires,omitempty"`
+
 	// usages describes the ways in which this token can be used. Can by default be used
 	// for establishing bidirectional trust, but that can be changed here.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
 	Usages []string `json:"usages,omitempty"`
+
 	// groups specifies the extra groups that this token will authenticate as when/if
 	// used for authentication
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -461,6 +471,7 @@ type LocalEtcd struct {
 
 	// serverCertSANs sets extra Subject Alternative Names for the etcd server signing cert.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=253
@@ -468,6 +479,7 @@ type LocalEtcd struct {
 
 	// peerCertSANs sets extra Subject Alternative Names for the etcd peer signing cert.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=253
@@ -479,6 +491,7 @@ type LocalEtcd struct {
 type ExternalEtcd struct {
 	// endpoints of etcd members. Required for ExternalEtcd.
 	// +required
+	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
@@ -538,6 +551,7 @@ type JoinConfiguration struct {
 	// The list of phases can be obtained with the "kubeadm init --help" command.
 	// This option takes effect only on Kubernetes >=1.22.0.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -606,6 +620,7 @@ type BootstrapTokenDiscovery struct {
 	// ASN.1. These hashes can be calculated using, for example, OpenSSL:
 	// openssl x509 -pubkey -in ca.crt openssl rsa -pubin -outform der 2>&/dev/null | openssl dgst -sha256 -hex
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512
@@ -743,6 +758,7 @@ type KubeConfigAuthExec struct {
 
 	// args is the arguments to pass to the command when executing it.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512

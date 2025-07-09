@@ -231,6 +231,7 @@ type MachineHealthCheckStatus struct {
 
 	// targets shows the current list of machines the machine health check is watching
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=10000
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=253

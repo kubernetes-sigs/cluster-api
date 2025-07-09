@@ -4130,6 +4130,7 @@ spec:
                   type: string
                 maxItems: 1000
                 type: array
+                x-kubernetes-list-type: atomic
               clusterConfiguration:
                 description: clusterConfiguration along with InitConfiguration are
                   the configurations necessary for the init command
@@ -4148,6 +4149,7 @@ spec:
                           type: string
                         maxItems: 100
                         type: array
+                        x-kubernetes-list-type: atomic
                       extraArgs:
                         description: |-
                           extraArgs is a list of args to pass to the control plane component.
@@ -4305,6 +4307,7 @@ spec:
                           type: object
                         maxItems: 100
                         type: array
+                        x-kubernetes-list-type: atomic
                       extraVolumes:
                         description: extraVolumes is an extra set of host volumes,
                           mounted to the control plane component.
@@ -4344,6 +4347,7 @@ spec:
                           type: object
                         maxItems: 100
                         type: array
+                        x-kubernetes-list-type: atomic
                     type: object
                   certificatesDir:
                     description: |-
@@ -4531,6 +4535,7 @@ spec:
                           type: object
                         maxItems: 100
                         type: array
+                        x-kubernetes-list-type: atomic
                       extraVolumes:
                         description: extraVolumes is an extra set of host volumes,
                           mounted to the control plane component.
@@ -4570,6 +4575,7 @@ spec:
                           type: object
                         maxItems: 100
                         type: array
+                        x-kubernetes-list-type: atomic
                     type: object
                   dns:
                     description: dns defines the options for the DNS add-on installed
@@ -4625,6 +4631,7 @@ spec:
                             maxItems: 50
                             minItems: 1
                             type: array
+                            x-kubernetes-list-type: atomic
                           keyFile:
                             description: |-
                               keyFile is an SSL key file used to secure etcd communication.
@@ -4808,6 +4815,7 @@ spec:
                               type: object
                             maxItems: 100
                             type: array
+                            x-kubernetes-list-type: atomic
                           imageRepository:
                             description: |-
                               imageRepository sets the container registry to pull images from.
@@ -4831,6 +4839,7 @@ spec:
                               type: string
                             maxItems: 100
                             type: array
+                            x-kubernetes-list-type: atomic
                           serverCertSANs:
                             description: serverCertSANs sets extra Subject Alternative
                               Names for the etcd server signing cert.
@@ -4840,6 +4849,7 @@ spec:
                               type: string
                             maxItems: 100
                             type: array
+                            x-kubernetes-list-type: atomic
                         type: object
                     type: object
                   featureGates:
@@ -5025,6 +5035,7 @@ spec:
                           type: object
                         maxItems: 100
                         type: array
+                        x-kubernetes-list-type: atomic
                       extraVolumes:
                         description: extraVolumes is an extra set of host volumes,
                           mounted to the control plane component.
@@ -5064,6 +5075,7 @@ spec:
                           type: object
                         maxItems: 100
                         type: array
+                        x-kubernetes-list-type: atomic
                     type: object
                 type: object
               diskSetup:
@@ -5090,6 +5102,7 @@ spec:
                             type: string
                           maxItems: 100
                           type: array
+                          x-kubernetes-list-type: atomic
                         filesystem:
                           description: filesystem specifies the file system type.
                           maxLength: 128
@@ -5126,6 +5139,7 @@ spec:
                       type: object
                     maxItems: 100
                     type: array
+                    x-kubernetes-list-type: atomic
                   partitions:
                     description: partitions specifies the list of the partitions to
                       setup.
@@ -5163,6 +5177,7 @@ spec:
                       type: object
                     maxItems: 100
                     type: array
+                    x-kubernetes-list-type: atomic
                 type: object
               files:
                 description: files specifies extra files to be passed to user_data
@@ -5237,6 +5252,7 @@ spec:
                   type: object
                 maxItems: 200
                 type: array
+                x-kubernetes-list-type: atomic
               format:
                 description: format specifies the output format of the bootstrap data
                 enum:
@@ -5299,6 +5315,7 @@ spec:
                             type: string
                           maxItems: 100
                           type: array
+                          x-kubernetes-list-type: atomic
                         token:
                           description: |-
                             token is used for establishing bidirectional trust between nodes and control-planes.
@@ -5321,11 +5338,13 @@ spec:
                             type: string
                           maxItems: 100
                           type: array
+                          x-kubernetes-list-type: atomic
                       required:
                       - token
                       type: object
                     maxItems: 100
                     type: array
+                    x-kubernetes-list-type: atomic
                   localAPIEndpoint:
                     description: |-
                       localAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
@@ -5374,6 +5393,7 @@ spec:
                           type: string
                         maxItems: 50
                         type: array
+                        x-kubernetes-list-type: atomic
                       imagePullPolicy:
                         description: |-
                           imagePullPolicy specifies the policy for image pulling
@@ -5502,6 +5522,7 @@ spec:
                       type: string
                     maxItems: 50
                     type: array
+                    x-kubernetes-list-type: atomic
                   timeouts:
                     description: timeouts holds various timeouts that apply to kubeadm
                       commands.
@@ -5625,6 +5646,7 @@ spec:
                               type: string
                             maxItems: 100
                             type: array
+                            x-kubernetes-list-type: atomic
                           token:
                             description: |-
                               token is a token used to validate cluster information
@@ -5749,6 +5771,7 @@ spec:
                                           type: string
                                         maxItems: 100
                                         type: array
+                                        x-kubernetes-list-type: atomic
                                       command:
                                         description: command to execute.
                                         maxLength: 1024
@@ -5782,6 +5805,7 @@ spec:
                                           type: object
                                         maxItems: 100
                                         type: array
+                                        x-kubernetes-list-type: atomic
                                       provideClusterInfo:
                                         description: |-
                                           provideClusterInfo determines whether or not to provide cluster information,
@@ -5840,6 +5864,7 @@ spec:
                           type: string
                         maxItems: 50
                         type: array
+                        x-kubernetes-list-type: atomic
                       imagePullPolicy:
                         description: |-
                           imagePullPolicy specifies the policy for image pulling
@@ -5968,6 +5993,7 @@ spec:
                       type: string
                     maxItems: 50
                     type: array
+                    x-kubernetes-list-type: atomic
                   timeouts:
                     description: timeouts holds various timeouts that apply to kubeadm
                       commands.
@@ -6033,6 +6059,7 @@ spec:
                   type: array
                 maxItems: 100
                 type: array
+                x-kubernetes-list-type: atomic
               ntp:
                 description: ntp specifies NTP configuration
                 properties:
@@ -6047,6 +6074,7 @@ spec:
                       type: string
                     maxItems: 100
                     type: array
+                    x-kubernetes-list-type: atomic
                 type: object
               postKubeadmCommands:
                 description: |-
@@ -6059,6 +6087,7 @@ spec:
                   type: string
                 maxItems: 1000
                 type: array
+                x-kubernetes-list-type: atomic
               preKubeadmCommands:
                 description: |-
                   preKubeadmCommands specifies extra commands to run before kubeadm runs.
@@ -6070,6 +6099,7 @@ spec:
                   type: string
                 maxItems: 1000
                 type: array
+                x-kubernetes-list-type: atomic
               users:
                 description: users specifies extra users to add
                 items:
@@ -6157,6 +6187,7 @@ spec:
                         type: string
                       maxItems: 100
                       type: array
+                      x-kubernetes-list-type: atomic
                     sudo:
                       description: sudo specifies a sudo role for the user
                       maxLength: 256
@@ -6167,6 +6198,7 @@ spec:
                   type: object
                 maxItems: 100
                 type: array
+                x-kubernetes-list-type: atomic
               verbosity:
                 description: |-
                   verbosity is the number for the kubeadm log level verbosity.

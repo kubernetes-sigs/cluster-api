@@ -1190,6 +1190,7 @@ spec:
                   type: object
                 maxItems: 100
                 type: array
+                x-kubernetes-list-type: atomic
               unhealthyRange:
                 description: |-
                   unhealthyRange specifies the range of unhealthy machines allowed.
@@ -1376,6 +1377,7 @@ spec:
                   type: string
                 maxItems: 10000
                 type: array
+                x-kubernetes-list-type: atomic
             type: object
         required:
         - spec

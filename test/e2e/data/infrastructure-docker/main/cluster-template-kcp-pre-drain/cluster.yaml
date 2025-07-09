@@ -7,7 +7,6 @@ spec:
   topology:
     classRef:
       name: quick-start
-    version: "${KUBERNETES_VERSION}"
     controlPlane:
       metadata:
         annotations:

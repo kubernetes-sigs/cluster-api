@@ -66,8 +66,7 @@ spec:
   template:
     spec:
       failureDomains:
-        -
-          name: fd1
+        - name: fd1
           controlPlane: true
         - name: fd2
           controlPlane: true

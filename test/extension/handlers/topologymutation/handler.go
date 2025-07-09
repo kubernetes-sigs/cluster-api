@@ -76,8 +76,6 @@ func NewExtensionHandlers() *ExtensionHandlers {
 			infrav1.GroupVersion,
 			bootstrapv1.GroupVersion,
 			bootstrapv1beta1.GroupVersion,
-			infraexpv1beta1.GroupVersion,
-			infraexpv1.GroupVersion,
 			controlplanev1beta1.GroupVersion,
 			controlplanev1.GroupVersion,
 		),

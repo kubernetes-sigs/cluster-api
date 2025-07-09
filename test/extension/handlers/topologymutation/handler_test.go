@@ -349,7 +349,7 @@ func TestHandler_GeneratePatches(t *testing.T) {
 				},
 				Items: []runtimehooksv1.GeneratePatchesResponseItem{
 					responseItem("1", `[
-						{"op":"add","path":"/spec","value":{"template": {"spec":{"rolloutStrategy": {"rollingUpdate":{"maxSurge":3}}}}}}
+{"op":"add","path":"/spec","value":{"template": {"spec":{"rolloutStrategy": {"rollingUpdate":{"maxSurge":3}}}}}}
 ]`),
 					responseItem("2", `[
 {"op":"add","path":"/spec/template/spec/customImage","value":"kindest/node:v1.23.0"}

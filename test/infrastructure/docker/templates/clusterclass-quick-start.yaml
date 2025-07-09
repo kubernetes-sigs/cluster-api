@@ -14,7 +14,6 @@ spec:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         name: quick-start-control-plane
     machineHealthCheck:
-      maxUnhealthy: 100%
       unhealthyNodeConditions:
         - type: Ready
           status: Unknown
@@ -42,7 +41,6 @@ spec:
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
       machineHealthCheck:
-        maxUnhealthy: 100%
         unhealthyNodeConditions:
           - type: Ready
             status: Unknown

@@ -120,7 +120,6 @@ spec:
       kind: KubeadmControlPlaneTemplate
       name: in-memory-control-plane
     machineHealthCheck:
-      maxUnhealthy: 100%
       unhealthyNodeConditions:
         - type: Ready
           status: Unknown
@@ -148,7 +147,6 @@ spec:
               kind: DevMachineTemplate
               name: in-memory-default-worker-machinetemplate
         machineHealthCheck:
-          maxUnhealthy: 100%
           unhealthyNodeConditions:
             - type: Ready
               status: Unknown

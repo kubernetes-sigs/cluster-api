@@ -433,19 +433,19 @@ spec:
             valueFrom:
               template: |
                 name: v
-                value: {{ .kubeControlPlaneLogLevel }}
+                value: "{{ .kubeControlPlaneLogLevel }}"
           - op: add
             path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/-"
             valueFrom:
               template: |
                 name: v
-                value: {{ .kubeControlPlaneLogLevel }}
+                value: "{{ .kubeControlPlaneLogLevel }}"
           - op: add
             path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/scheduler/extraArgs/-"
             valueFrom:
               template: |
                 name: v
-                value: {{ .kubeControlPlaneLogLevel }}
+                value: "{{ .kubeControlPlaneLogLevel }}"
   - name: controlPlaneKubeletLogLevel
     enabledIf: "{{ if .kubeletLogLevel }}true{{end}}"
     description: "Configures control plane kubelets to log at the level set in the variable `kubeletLogLevel`."

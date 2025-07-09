@@ -428,20 +428,20 @@ spec:
           matchResources:
             controlPlane: true
         jsonPatches:
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
+          - op: replace
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/0"
             valueFrom:
               template: |
                 name: v
                 value: "{{ .kubeControlPlaneLogLevel }}"
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/-"
+          - op: replace
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/0"
             valueFrom:
               template: |
                 name: v
                 value: "{{ .kubeControlPlaneLogLevel }}"
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/scheduler/extraArgs/-"
+          - op: replace
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/scheduler/extraArgs/0"
             valueFrom:
               template: |
                 name: v
@@ -456,14 +456,14 @@ spec:
           matchResources:
             controlPlane: true
         jsonPatches:
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/-"
+          - op: replace
+            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/0"
             valueFrom:
               template: |
                 name: v
                 value: "{{ .kubeletLogLevel }}"
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/-"
+          - op: replace
+            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/0"
             valueFrom:
               template: |
                 name: v
@@ -480,8 +480,8 @@ spec:
               names:
                 - '*-worker'
         jsonPatches:
-          - op: add
-            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/-"
+          - op: replace
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/0"
             valueFrom:
               template: |
                 name: v
@@ -494,8 +494,8 @@ spec:
               names:
                 - '*-worker'
         jsonPatches:
-          - op: add
-            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/-"
+          - op: replace
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/0"
             valueFrom:
               template: |
                 name: v

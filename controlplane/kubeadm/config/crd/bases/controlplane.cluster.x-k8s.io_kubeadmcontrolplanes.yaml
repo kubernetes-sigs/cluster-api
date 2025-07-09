@@ -7615,15 +7615,15 @@ spec:
                       A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.
                     format: int32
                     type: integer
-                  timestamp:
-                    description: timestamp is when last remediation happened. It is
-                      represented in RFC3339 form and is in UTC.
+                  time:
+                    description: time is when last remediation happened. It is represented
+                      in RFC3339 form and is in UTC.
                     format: date-time
                     type: string
                 required:
                 - machine
                 - retryCount
-                - timestamp
+                - time
                 type: object
               observedGeneration:
                 description: observedGeneration is the latest generation observed

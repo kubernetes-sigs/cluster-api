@@ -514,7 +514,7 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	// Once we get here we already know that there was a last remediation for the Machine.
 	// If the current remediation is happening before minHealthyPeriod is expired, then KCP considers this
 	// as a remediation for the same previously unhealthy machine.
-	// NOTE: If someone/something changes the RemediationForAnnotation on Machines (e.g. changes the Timestamp),
+	// NOTE: If someone/something changes the RemediationForAnnotation on Machines (e.g. changes the lastRemediation time),
 	// this could potentially lead to executing more retries than expected, but this is considered acceptable in such a case.
 	var retryForSameMachineInProgress bool
 	if lastRemediationTime.Add(minHealthyPeriod).After(reconciliationTime) {
@@ -700,7 +700,7 @@ func (r *RemediationData) Marshal() (string, error) {
 func (r *RemediationData) ToStatus() *controlplanev1.LastRemediationStatus {
 	return &controlplanev1.LastRemediationStatus{
 		Machine:    r.Machine,
-		Timestamp:  r.Timestamp,
+		Time:       r.Timestamp,
 		RetryCount: int32(r.RetryCount),
 	}
 }

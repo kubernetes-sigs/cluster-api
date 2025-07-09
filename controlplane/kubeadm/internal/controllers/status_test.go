@@ -2053,7 +2053,7 @@ func TestKubeadmControlPlaneReconciler_setLastRemediation(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Status.LastRemediation).ToNot(BeNil())
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(r1.Machine))
-		g.Expect(controlPlane.KCP.Status.LastRemediation.Timestamp.Time).To(BeTemporally("==", r1.Timestamp.Time), cmp.Diff(controlPlane.KCP.Status.LastRemediation.Timestamp.Time, r1.Timestamp.Time))
+		g.Expect(controlPlane.KCP.Status.LastRemediation.Time.Time).To(BeTemporally("==", r1.Timestamp.Time), cmp.Diff(controlPlane.KCP.Status.LastRemediation.Time.Time, r1.Timestamp.Time))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(r1.RetryCount)))
 	})
 	t.Run("Remediation completed, get data from past remediation", func(t *testing.T) {
@@ -2085,7 +2085,7 @@ func TestKubeadmControlPlaneReconciler_setLastRemediation(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Status.LastRemediation).ToNot(BeNil())
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(r2.Machine))
-		g.Expect(controlPlane.KCP.Status.LastRemediation.Timestamp.Time).To(BeTemporally("==", r2.Timestamp.Time), cmp.Diff(controlPlane.KCP.Status.LastRemediation.Timestamp.Time, r2.Timestamp.Time))
+		g.Expect(controlPlane.KCP.Status.LastRemediation.Time.Time).To(BeTemporally("==", r2.Timestamp.Time), cmp.Diff(controlPlane.KCP.Status.LastRemediation.Time.Time, r2.Timestamp.Time))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(r2.RetryCount)))
 	})
 }

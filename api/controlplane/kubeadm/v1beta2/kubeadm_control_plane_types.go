@@ -772,9 +772,9 @@ type LastRemediationStatus struct {
 	// +kubebuilder:validation:MaxLength=253
 	Machine string `json:"machine"`
 
-	// timestamp is when last remediation happened. It is represented in RFC3339 form and is in UTC.
+	// time is when last remediation happened. It is represented in RFC3339 form and is in UTC.
 	// +required
-	Timestamp metav1.Time `json:"timestamp"`
+	Time metav1.Time `json:"time"`
 
 	// retryCount used to keep track of remediation retry for the last remediated machine.
 	// A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.

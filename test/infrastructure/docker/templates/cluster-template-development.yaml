@@ -13,7 +13,6 @@ spec:
   topology:
     class: quick-start
     controlPlane:
-      metadata: {}
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     variables:
     - name: imageRepository

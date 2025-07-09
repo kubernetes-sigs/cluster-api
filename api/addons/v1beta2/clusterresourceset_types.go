@@ -64,6 +64,7 @@ type ClusterResourceSetSpec struct {
 
 	// resources is a list of Secrets/ConfigMaps where each contains 1 or more resources to be applied to remote clusters.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	Resources []ResourceRef `json:"resources,omitempty"`
 

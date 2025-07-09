@@ -57,6 +57,7 @@ type ResourceSetBinding struct {
 
 	// resources is a list of resources that the ClusterResourceSet has.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	Resources []ResourceBinding `json:"resources,omitempty"`
 }
@@ -137,6 +138,7 @@ type ClusterResourceSetBinding struct {
 type ClusterResourceSetBindingSpec struct {
 	// bindings is a list of ClusterResourceSets and their resources.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	Bindings []*ResourceSetBinding `json:"bindings,omitempty"`
 

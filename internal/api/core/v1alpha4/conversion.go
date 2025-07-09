@@ -1123,10 +1123,28 @@ func Convert_v1beta2_ClusterClassTemplateReference_To_v1alpha4_LocalObjectTempla
 	}
 }
 
-// Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)
-
 func Convert_v1alpha4_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in *MachinePoolSpec, out *clusterv1.MachinePoolSpec, s apimachineryconversion.Scope) error {
 	return autoConvert_v1alpha4_MachinePoolSpec_To_v1beta2_MachinePoolSpec(in, out, s)
+}
+
+func Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1beta2_MachineRollingUpdateDeployment(in *MachineRollingUpdateDeployment, out *clusterv1.MachineRollingUpdateDeployment, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha4_MachineRollingUpdateDeployment_To_v1beta2_MachineRollingUpdateDeployment(in, out, s); err != nil {
+		return err
+	}
+	if in.DeletePolicy != nil {
+		out.DeletePolicy = clusterv1.MachineSetDeletePolicy(*in.DeletePolicy)
+	}
+	return nil
+}
+
+func Convert_v1beta2_MachineRollingUpdateDeployment_To_v1alpha4_MachineRollingUpdateDeployment(in *clusterv1.MachineRollingUpdateDeployment, out *MachineRollingUpdateDeployment, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_MachineRollingUpdateDeployment_To_v1alpha4_MachineRollingUpdateDeployment(in, out, s); err != nil {
+		return err
+	}
+	if in.DeletePolicy != "" {
+		out.DeletePolicy = ptr.To(string(in.DeletePolicy))
+	}
+	return nil
 }
 
 func convertMachineSpecToContractVersionedObjectReference(src *MachineSpec, dst *clusterv1.MachineSpec) error {

@@ -80,7 +80,7 @@ type ExtensionRegistration struct {
 	TimeoutSeconds *int32
 
 	// FailurePolicy defines how failures in calls to the RuntimeExtension should be handled by a client.
-	FailurePolicy *runtimev1.FailurePolicy
+	FailurePolicy runtimev1.FailurePolicy
 
 	// Settings captures additional information sent in call to the RuntimeExtensions.
 	Settings map[string]string

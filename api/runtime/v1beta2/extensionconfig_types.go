@@ -179,7 +179,7 @@ type ExtensionHandler struct {
 	// failurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client.
 	// Defaults to Fail if not set.
 	// +optional
-	FailurePolicy *FailurePolicy `json:"failurePolicy,omitempty"`
+	FailurePolicy FailurePolicy `json:"failurePolicy,omitempty"`
 }
 
 // GroupVersionHook defines the runtime hook when the ExtensionHandler is called.

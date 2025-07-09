@@ -124,6 +124,7 @@ type MachinePoolStatus struct {
 
 	// nodeRefs will point to the corresponding Nodes if it they exist.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=10000
 	NodeRefs []corev1.ObjectReference `json:"nodeRefs,omitempty"`
 

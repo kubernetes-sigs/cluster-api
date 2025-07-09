@@ -303,6 +303,7 @@ type MachineAddress struct {
 
 // MachineAddresses is a slice of MachineAddress items to be used by infrastructure providers.
 // +kubebuilder:validation:MaxItems=32
+// +listType=atomic
 type MachineAddresses []MachineAddress
 
 // ObjectMeta is metadata that all persisted resources must have, which includes all objects

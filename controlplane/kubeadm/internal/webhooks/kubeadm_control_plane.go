@@ -88,23 +88,19 @@ func defaultKubeadmControlPlaneSpec(s *controlplanev1.KubeadmControlPlaneSpec) {
 }
 
 func defaultRolloutStrategy(rolloutStrategy *controlplanev1.RolloutStrategy) *controlplanev1.RolloutStrategy {
-	ios1 := intstr.FromInt(1)
-
 	if rolloutStrategy == nil {
 		rolloutStrategy = &controlplanev1.RolloutStrategy{}
 	}
 
 	// Enforce RollingUpdate strategy and default MaxSurge if not set.
-	if rolloutStrategy != nil {
-		if len(rolloutStrategy.Type) == 0 {
-			rolloutStrategy.Type = controlplanev1.RollingUpdateStrategyType
+	if len(rolloutStrategy.Type) == 0 {
+		rolloutStrategy.Type = controlplanev1.RollingUpdateStrategyType
+	}
+	if rolloutStrategy.Type == controlplanev1.RollingUpdateStrategyType {
+		if rolloutStrategy.RollingUpdate == nil {
+			rolloutStrategy.RollingUpdate = &controlplanev1.RollingUpdate{}
 		}
-		if rolloutStrategy.Type == controlplanev1.RollingUpdateStrategyType {
-			if rolloutStrategy.RollingUpdate == nil {
-				rolloutStrategy.RollingUpdate = &controlplanev1.RollingUpdate{}
-			}
-			rolloutStrategy.RollingUpdate.MaxSurge = intstr.ValueOrDefault(rolloutStrategy.RollingUpdate.MaxSurge, ios1)
-		}
+		rolloutStrategy.RollingUpdate.MaxSurge = intstr.ValueOrDefault(rolloutStrategy.RollingUpdate.MaxSurge, intstr.FromInt32(1))
 	}
 
 	return rolloutStrategy
@@ -422,8 +418,8 @@ func validateRolloutStrategy(rolloutStrategy *controlplanev1.RolloutStrategy, re
 		)
 	}
 
-	ios1 := intstr.FromInt(1)
-	ios0 := intstr.FromInt(0)
+	ios1 := intstr.FromInt32(1)
+	ios0 := intstr.FromInt32(0)
 
 	if rolloutStrategy.RollingUpdate.MaxSurge.IntValue() == ios0.IntValue() && (replicas != nil && *replicas < int32(3)) {
 		allErrs = append(

@@ -22,6 +22,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -109,6 +110,19 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateUpdate(ctx context.Context, 
 	}
 	if err := webhook.Default(ctx, newK); err != nil {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new KubeadmControlPlaneTemplate: failed to default new object: %v", err))
+	}
+
+	// In Cluster API < v1.11 the RolloutStrategy field was defaulted.
+	// The defaulting was dropped with Cluster API v1.11.
+	// To ensure users can still apply their KubeadmControlPlaneTemplate over pre-existing KubeadmControlPlaneTemplate
+	// without setting rolloutStrategy we allow transitions from the old default value to unset.
+	if newK.Spec.Template.Spec.RolloutStrategy == nil &&
+		oldK.Spec.Template.Spec.RolloutStrategy != nil &&
+		oldK.Spec.Template.Spec.RolloutStrategy.Type == controlplanev1.RollingUpdateStrategyType &&
+		oldK.Spec.Template.Spec.RolloutStrategy.RollingUpdate != nil &&
+		oldK.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge != nil &&
+		*oldK.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge == intstr.FromInt32(1) {
+		newK.Spec.Template.Spec.RolloutStrategy = oldK.Spec.Template.Spec.RolloutStrategy
 	}
 
 	equal, diff, err := compare.Diff(oldK.Spec.Template.Spec, newK.Spec.Template.Spec)

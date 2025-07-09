@@ -122,11 +122,11 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 			m.Spec.Strategy.RollingUpdate = &clusterv1.MachineRollingUpdateDeployment{}
 		}
 		if m.Spec.Strategy.RollingUpdate.MaxSurge == nil {
-			ios1 := intstr.FromInt(1)
+			ios1 := intstr.FromInt32(1)
 			m.Spec.Strategy.RollingUpdate.MaxSurge = &ios1
 		}
 		if m.Spec.Strategy.RollingUpdate.MaxUnavailable == nil {
-			ios0 := intstr.FromInt(0)
+			ios0 := intstr.FromInt32(0)
 			m.Spec.Strategy.RollingUpdate.MaxUnavailable = &ios0
 		}
 	}

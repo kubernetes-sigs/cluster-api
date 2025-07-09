@@ -354,9 +354,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 	goodMaxUnavailablePercentage := intstr.FromString("0%")
 	goodMaxInFlightPercentage := intstr.FromString("20%")
 
-	goodMaxSurgeInt := intstr.FromInt(1)
-	goodMaxUnavailableInt := intstr.FromInt(0)
-	goodMaxInFlightInt := intstr.FromInt(5)
+	goodMaxSurgeInt := intstr.FromInt32(1)
+	goodMaxUnavailableInt := intstr.FromInt32(0)
+	goodMaxInFlightInt := intstr.FromInt32(5)
 	tests := []struct {
 		name                  string
 		md                    *clusterv1.MachineDeployment

@@ -461,13 +461,13 @@ spec:
             valueFrom:
               template: |
                 name: v
-                value: {{ .kubeletLogLevel }}
+                value: "{{ .kubeletLogLevel }}"
           - op: add
             path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/-"
             valueFrom:
               template: |
                 name: v
-                value: {{ .kubeletLogLevel }}
+                value: "{{ .kubeletLogLevel }}"
   - name: workerKubeletLogLevel
     enabledIf: "{{ if .kubeletLogLevel }}true{{end}}"
     description: "Configures worker kubelets to log at the level set in the variable `kubeletLogLevel`."
@@ -485,7 +485,7 @@ spec:
             valueFrom:
               template: |
                 name: v
-                value: {{ .kubeletLogLevel }}
+                value: "{{ .kubeletLogLevel }}"
       - selector:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
           kind: KubeadmConfigTemplate
@@ -499,7 +499,7 @@ spec:
             valueFrom:
               template: |
                 name: v
-                value: {{ .kubeletLogLevel }}
+                value: "{{ .kubeletLogLevel }}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerClusterTemplate

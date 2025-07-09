@@ -424,20 +424,20 @@ spec:
           matchResources:
             controlPlane: true
         jsonPatches:
-          - op: replace
-            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/0"
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
             valueFrom:
               template: |
                 name: v
                 value: "{{ .kubeControlPlaneLogLevel }}"
-          - op: replace
-            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/0"
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/-"
             valueFrom:
               template: |
                 name: v
                 value: "{{ .kubeControlPlaneLogLevel }}"
-          - op: replace
-            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/scheduler/extraArgs/0"
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/scheduler/extraArgs/-"
             valueFrom:
               template: |
                 name: v
@@ -452,14 +452,14 @@ spec:
           matchResources:
             controlPlane: true
         jsonPatches:
-          - op: replace
-            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/0"
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/-"
             valueFrom:
               template: |
                 name: v
                 value: "{{ .kubeletLogLevel }}"
-          - op: replace
-            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/0"
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/-"
             valueFrom:
               template: |
                 name: v
@@ -476,8 +476,8 @@ spec:
               names:
                 - '*-worker'
         jsonPatches:
-          - op: replace
-            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/0"
+          - op: add
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/-"
             valueFrom:
               template: |
                 name: v
@@ -490,8 +490,8 @@ spec:
               names:
                 - '*-worker'
         jsonPatches:
-          - op: replace
-            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/0"
+          - op: add
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/-"
             valueFrom:
               template: |
                 name: v
@@ -558,19 +558,6 @@ spec:
         nodeDrainTimeoutSeconds: 1
       kubeadmConfigSpec:
         clusterConfiguration:
-          # extraArgs must be non-empty for control plane components to enable patches from ClusterClass to work.
-          controllerManager:
-            extraArgs:
-              - name: v
-                value: "0"
-          scheduler:
-            extraArgs:
-              - name: v
-                value: "0"
-          apiServer:
-            extraArgs:
-              - name: v
-                value: "0"
             # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
             certSANs: [localhost, host.docker.internal, "::", "::1", "127.0.0.1", "0.0.0.0"]
         initConfiguration:

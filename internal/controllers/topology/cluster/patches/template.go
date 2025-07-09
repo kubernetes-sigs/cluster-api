@@ -21,6 +21,7 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +33,7 @@ import (
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
+	"sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // unstructuredDecoder is used to decode byte arrays into Unstructured objects.
@@ -71,7 +73,7 @@ func (t *requestItemBuilder) WithHolder(object client.Object, gvk schema.GroupVe
 }
 
 // uuidGenerator is defined as a package variable to enable changing it during testing.
-var uuidGenerator func() types.UID = uuid.NewUUID
+var uuidGenerator = uuid.NewUUID
 
 // Build builds a GeneratePatchesRequestItem.
 func (t *requestItemBuilder) Build() (*runtimehooksv1.GeneratePatchesRequestItem, error) {
@@ -79,6 +81,8 @@ func (t *requestItemBuilder) Build() (*runtimehooksv1.GeneratePatchesRequestItem
 		HolderReference: t.holder,
 		UID:             uuidGenerator(),
 	}
+
+	cleanupUnstructured(t.template)
 
 	jsonObj, err := json.Marshal(t.template)
 	if err != nil {
@@ -91,6 +95,16 @@ func (t *requestItemBuilder) Build() (*runtimehooksv1.GeneratePatchesRequestItem
 	}
 
 	return tpl, nil
+}
+
+func cleanupUnstructured(template *unstructured.Unstructured) {
+	// Optimize size of GeneratePatchesRequest and ValidateTopologyRequest by not sending managedFields and some specific annotations.
+	template.SetManagedFields(nil)
+	if annotations := template.GetAnnotations(); annotations != nil {
+		delete(annotations, corev1.LastAppliedConfigAnnotation)
+		delete(annotations, conversion.DataAnnotation)
+		template.SetAnnotations(annotations)
+	}
 }
 
 // getTemplateAsUnstructured is a utility func that returns a template matching the holderKind, holderFieldPath

@@ -19,11 +19,13 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"maps"
 	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -58,6 +60,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -434,7 +437,7 @@ func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.S
 		}
 
 		hookRequest := &runtimehooksv1.BeforeClusterCreateRequest{
-			Cluster: *v1beta1Cluster,
+			Cluster: *cleanupCluster(v1beta1Cluster),
 		}
 		hookResponse := &runtimehooksv1.BeforeClusterCreateResponse{}
 		if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterCreate, s.Current.Cluster, hookRequest, hookResponse); err != nil {
@@ -527,7 +530,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 			}
 
 			hookRequest := &runtimehooksv1.BeforeClusterDeleteRequest{
-				Cluster: *v1beta1Cluster,
+				Cluster: *cleanupCluster(v1beta1Cluster),
 			}
 			hookResponse := &runtimehooksv1.BeforeClusterDeleteResponse{}
 			if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterDelete, cluster, hookRequest, hookResponse); err != nil {
@@ -545,4 +548,20 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+func cleanupCluster(cluster *clusterv1beta1.Cluster) *clusterv1beta1.Cluster {
+	// Optimize size of Cluster by not sending status, the managedFields and some specific annotations.
+	cluster.SetManagedFields(nil)
+
+	// The conversion that we run before calling cleanupCluster does not clone annotations
+	// So we have to do it here to not modify the original Cluster.
+	if cluster.Annotations != nil {
+		annotations := maps.Clone(cluster.Annotations)
+		delete(annotations, corev1.LastAppliedConfigAnnotation)
+		delete(annotations, conversion.DataAnnotation)
+		cluster.Annotations = annotations
+	}
+	cluster.Status = clusterv1beta1.ClusterStatus{}
+	return cluster
 }

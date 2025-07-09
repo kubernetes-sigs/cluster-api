@@ -20,6 +20,7 @@ package desiredstate
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -52,6 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // Generator is a generator to generate the desired state.
@@ -535,7 +537,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 
 				// Call all the registered extension for the hook.
 				hookRequest := &runtimehooksv1.AfterControlPlaneUpgradeRequest{
-					Cluster:           *v1beta1Cluster,
+					Cluster:           *cleanupCluster(v1beta1Cluster),
 					KubernetesVersion: desiredVersion,
 				}
 				hookResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{}
@@ -608,7 +610,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 		}
 
 		hookRequest := &runtimehooksv1.BeforeClusterUpgradeRequest{
-			Cluster:               *v1beta1Cluster,
+			Cluster:               *cleanupCluster(v1beta1Cluster),
 			FromKubernetesVersion: *currentVersion,
 			ToKubernetesVersion:   desiredVersion,
 		}
@@ -1477,4 +1479,20 @@ func getOwnerReferenceFrom(obj, owner client.Object) *metav1.OwnerReference {
 		}
 	}
 	return nil
+}
+
+func cleanupCluster(cluster *clusterv1beta1.Cluster) *clusterv1beta1.Cluster {
+	// Optimize size of Cluster by not sending status, the managedFields and some specific annotations.
+	cluster.SetManagedFields(nil)
+
+	// The conversion that we run before calling cleanupCluster does not clone annotations
+	// So we have to do it here to not modify the original Cluster.
+	if cluster.Annotations != nil {
+		annotations := maps.Clone(cluster.Annotations)
+		delete(annotations, corev1.LastAppliedConfigAnnotation)
+		delete(annotations, conversion.DataAnnotation)
+		cluster.Annotations = annotations
+	}
+	cluster.Status = clusterv1beta1.ClusterStatus{}
+	return cluster
 }

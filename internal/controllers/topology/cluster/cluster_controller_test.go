@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -33,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -44,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -557,11 +560,29 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
+			tt.cluster.SetManagedFields([]metav1.ManagedFieldsEntry{
+				{
+					APIVersion: builder.InfrastructureGroupVersion.String(),
+					Manager:    "manager",
+					Operation:  "op",
+					Time:       ptr.To(metav1.Now()),
+					FieldsType: "FieldsV1",
+					FieldsV1:   &metav1.FieldsV1{},
+				},
+			})
+			if tt.cluster.Annotations == nil {
+				tt.cluster.Annotations = map[string]string{}
+			}
+			tt.cluster.Annotations[corev1.LastAppliedConfigAnnotation] = "should be cleaned up"
+			tt.cluster.Annotations[conversion.DataAnnotation] = "should be cleaned up"
+
 			fakeClient := fake.NewClientBuilder().WithObjects(tt.cluster).Build()
 			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					beforeClusterDeleteGVH: tt.hookResponse,
 				}).
+				WithCallAllExtensionValidations(validateCleanupCluster).
 				WithCatalog(catalog).
 				Build()
 
@@ -712,6 +733,7 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					gvh: tt.hookResponse,
 				}).
+				WithCallAllExtensionValidations(validateCleanupCluster).
 				Build()
 
 			r := &Reconciler{
@@ -719,7 +741,26 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 			}
 			s := &scope.Scope{
 				Current: &scope.ClusterState{
-					Cluster: &clusterv1.Cluster{},
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
+							ManagedFields: []metav1.ManagedFieldsEntry{
+								{
+									APIVersion: builder.InfrastructureGroupVersion.String(),
+									Manager:    "manager",
+									Operation:  "op",
+									Time:       ptr.To(metav1.Now()),
+									FieldsType: "FieldsV1",
+									FieldsV1:   &metav1.FieldsV1{},
+								},
+							},
+							Annotations: map[string]string{
+								"fizz":                             "buzz",
+								corev1.LastAppliedConfigAnnotation: "should be cleaned up",
+								conversion.DataAnnotation:          "should be cleaned up",
+							},
+						},
+					},
 				},
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			}
@@ -1673,4 +1714,31 @@ func TestClusterClassToCluster(t *testing.T) {
 			g.Expect(requests).To(ConsistOf(tt.expected))
 		})
 	}
+}
+
+func validateCleanupCluster(req runtimehooksv1.RequestObject) error {
+	var cluster clusterv1beta1.Cluster
+	switch req := req.(type) {
+	case *runtimehooksv1.BeforeClusterCreateRequest:
+		cluster = req.Cluster
+	case *runtimehooksv1.AfterControlPlaneInitializedRequest:
+		cluster = req.Cluster
+	case *runtimehooksv1.AfterClusterUpgradeRequest:
+		cluster = req.Cluster
+	case *runtimehooksv1.BeforeClusterDeleteRequest:
+		cluster = req.Cluster
+	default:
+		return fmt.Errorf("unhandled request type %T", req)
+	}
+
+	if cluster.GetManagedFields() != nil {
+		return errors.New("managedFields should have been cleaned up")
+	}
+	if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
+		return errors.New("last-applied-configuration annotation should have been cleaned up")
+	}
+	if _, ok := cluster.Annotations[conversion.DataAnnotation]; ok {
+		return errors.New("conversion annotation should have been cleaned up")
+	}
+	return nil
 }

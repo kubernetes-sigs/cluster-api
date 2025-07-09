@@ -58,6 +58,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
+	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -438,10 +439,28 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			}
 
+			// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
+			tt.cluster.SetManagedFields([]metav1.ManagedFieldsEntry{
+				{
+					APIVersion: builder.InfrastructureGroupVersion.String(),
+					Manager:    "manager",
+					Operation:  "op",
+					Time:       ptr.To(metav1.Now()),
+					FieldsType: "FieldsV1",
+					FieldsV1:   &metav1.FieldsV1{},
+				},
+			})
+			if tt.cluster.Annotations == nil {
+				tt.cluster.Annotations = map[string]string{}
+			}
+			tt.cluster.Annotations[corev1.LastAppliedConfigAnnotation] = "should be cleaned up"
+			tt.cluster.Annotations[conversion.DataAnnotation] = "should be cleaned up"
+
 			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					afterControlPlaneInitializedGVH: tt.hookResponse,
 				}).
+				WithCallAllExtensionValidations(validateCleanupCluster).
 				WithCatalog(catalog).
 				Build()
 
@@ -454,6 +473,11 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 			}
 
 			err := r.callAfterControlPlaneInitialized(ctx, s)
+			if tt.wantError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
 
 			if tt.wantHookToBeCalled {
 				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneInitialized)).To(Equal(1), "Expected hook to be called once")
@@ -462,7 +486,6 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 			}
 
 			g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneInitialized, tt.cluster)).To(Equal(tt.wantMarked))
-			g.Expect(err != nil).To(Equal(tt.wantError))
 		})
 	}
 }
@@ -1060,10 +1083,28 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
+			tt.s.Current.Cluster.SetManagedFields([]metav1.ManagedFieldsEntry{
+				{
+					APIVersion: builder.InfrastructureGroupVersion.String(),
+					Manager:    "manager",
+					Operation:  "op",
+					Time:       ptr.To(metav1.Now()),
+					FieldsType: "FieldsV1",
+					FieldsV1:   &metav1.FieldsV1{},
+				},
+			})
+			if tt.s.Current.Cluster.Annotations == nil {
+				tt.s.Current.Cluster.Annotations = map[string]string{}
+			}
+			tt.s.Current.Cluster.Annotations[corev1.LastAppliedConfigAnnotation] = "should be cleaned up"
+			tt.s.Current.Cluster.Annotations[conversion.DataAnnotation] = "should be cleaned up"
+
 			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					afterClusterUpgradeGVH: tt.hookResponse,
 				}).
+				WithCallAllExtensionValidations(validateCleanupCluster).
 				WithCatalog(catalog).
 				Build()
 
@@ -1077,6 +1118,11 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			}
 
 			err := r.callAfterClusterUpgrade(ctx, tt.s)
+			if tt.wantError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
 
 			if tt.wantHookToBeCalled {
 				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterClusterUpgrade)).To(Equal(1), "Expected hook to be called once")
@@ -1085,7 +1131,6 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			}
 
 			g.Expect(hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, tt.s.Current.Cluster)).To(Equal(tt.wantMarked))
-			g.Expect(err != nil).To(Equal(tt.wantError))
 		})
 	}
 }

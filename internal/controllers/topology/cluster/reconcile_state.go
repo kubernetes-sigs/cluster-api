@@ -203,7 +203,7 @@ func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *sc
 
 			// The control plane is initialized for the first time. Call all the registered extensions for the hook.
 			hookRequest := &runtimehooksv1.AfterControlPlaneInitializedRequest{
-				Cluster: *v1beta1Cluster,
+				Cluster: *cleanupCluster(v1beta1Cluster),
 			}
 			hookResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{}
 			if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterControlPlaneInitialized, s.Current.Cluster, hookRequest, hookResponse); err != nil {
@@ -256,7 +256,7 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 
 			// Everything is stable and the cluster can be considered fully upgraded.
 			hookRequest := &runtimehooksv1.AfterClusterUpgradeRequest{
-				Cluster:           *v1beta1Cluster,
+				Cluster:           *cleanupCluster(v1beta1Cluster),
 				KubernetesVersion: s.Current.Cluster.Spec.Topology.Version,
 			}
 			hookResponse := &runtimehooksv1.AfterClusterUpgradeResponse{}

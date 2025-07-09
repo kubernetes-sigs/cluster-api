@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 
@@ -225,6 +226,36 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 		warnings, err := webhook.ValidateUpdate(ctx, oldKCPTemplate, newKCPTemplate)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(err.Error()).To(ContainSubstring("KubeadmControlPlaneTemplate spec.template.spec field is immutable"))
+		g.Expect(warnings).To(BeEmpty())
+	})
+	t.Run("update KubeadmControlPlaneTemplate should pass when transitioning from the previously defaulted rolloutStrategy to an unset rolloutStrategy", func(t *testing.T) {
+		g := NewWithT(t)
+		oldKCPTemplate := &controlplanev1.KubeadmControlPlaneTemplate{
+			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
+				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
+					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
+						RolloutStrategy: &controlplanev1.RolloutStrategy{
+							Type: controlplanev1.RollingUpdateStrategyType,
+							RollingUpdate: &controlplanev1.RollingUpdate{
+								MaxSurge: ptr.To(intstr.FromInt32(1)),
+							},
+						},
+					},
+				},
+			},
+		}
+		newKCPTemplate := &controlplanev1.KubeadmControlPlaneTemplate{
+			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
+				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
+					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
+						RolloutStrategy: nil,
+					},
+				},
+			},
+		}
+		webhook := &KubeadmControlPlaneTemplate{}
+		warnings, err := webhook.ValidateUpdate(ctx, oldKCPTemplate, newKCPTemplate)
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(warnings).To(BeEmpty())
 	})
 }

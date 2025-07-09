@@ -148,7 +148,7 @@ func TestMain(m *testing.M) {
 
 func intOrStrPtr(i int32) *intstr.IntOrString {
 	// FromInt takes an int that must not be greater than int32...
-	res := intstr.FromInt(int(i))
+	res := intstr.FromInt32(i)
 	return &res
 }
 

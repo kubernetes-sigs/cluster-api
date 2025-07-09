@@ -719,7 +719,7 @@ func TestNewMSNewReplicas(t *testing.T) {
 		strategyType  clusterv1.MachineDeploymentStrategyType
 		depReplicas   int32
 		newMSReplicas int32
-		maxSurge      int
+		maxSurge      int32
 		expected      int32
 	}{
 		{
@@ -745,14 +745,8 @@ func TestNewMSNewReplicas(t *testing.T) {
 			*(newDeployment.Spec.Replicas) = test.depReplicas
 			newDeployment.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{Type: test.strategyType}
 			newDeployment.Spec.Strategy.RollingUpdate = &clusterv1.MachineRollingUpdateDeployment{
-				MaxUnavailable: func(i int) *intstr.IntOrString {
-					x := intstr.FromInt(i)
-					return &x
-				}(1),
-				MaxSurge: func(i int) *intstr.IntOrString {
-					x := intstr.FromInt(i)
-					return &x
-				}(test.maxSurge),
+				MaxUnavailable: ptr.To(intstr.FromInt32(1)),
+				MaxSurge:       ptr.To(intstr.FromInt32(test.maxSurge)),
 			}
 			*(newRC.Spec.Replicas) = test.newMSReplicas
 			ms, err := NewMSNewReplicas(&newDeployment, []*clusterv1.MachineSet{&rs5}, *newRC.Spec.Replicas)
@@ -769,8 +763,8 @@ func TestDeploymentComplete(t *testing.T) {
 				Replicas: &desired,
 				Strategy: &clusterv1.MachineDeploymentStrategy{
 					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
-						MaxUnavailable: func(i int) *intstr.IntOrString { x := intstr.FromInt(i); return &x }(int(maxUnavailable)),
-						MaxSurge:       func(i int) *intstr.IntOrString { x := intstr.FromInt(i); return &x }(int(maxSurge)),
+						MaxUnavailable: ptr.To(intstr.FromInt32(maxUnavailable)),
+						MaxSurge:       ptr.To(intstr.FromInt32(maxSurge)),
 					},
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 				},
@@ -847,7 +841,7 @@ func TestMaxUnavailable(t *testing.T) {
 				Replicas: func(i int32) *int32 { return &i }(replicas),
 				Strategy: &clusterv1.MachineDeploymentStrategy{
 					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
-						MaxSurge:       func(i int) *intstr.IntOrString { x := intstr.FromInt(i); return &x }(int(1)),
+						MaxSurge:       ptr.To(intstr.FromInt32(1)),
 						MaxUnavailable: &maxUnavailable,
 					},
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
@@ -862,22 +856,22 @@ func TestMaxUnavailable(t *testing.T) {
 	}{
 		{
 			name:       "maxUnavailable less than replicas",
-			deployment: deployment(10, intstr.FromInt(5)),
+			deployment: deployment(10, intstr.FromInt32(5)),
 			expected:   int32(5),
 		},
 		{
 			name:       "maxUnavailable equal replicas",
-			deployment: deployment(10, intstr.FromInt(10)),
+			deployment: deployment(10, intstr.FromInt32(10)),
 			expected:   int32(10),
 		},
 		{
 			name:       "maxUnavailable greater than replicas",
-			deployment: deployment(5, intstr.FromInt(10)),
+			deployment: deployment(5, intstr.FromInt32(10)),
 			expected:   int32(5),
 		},
 		{
 			name:       "maxUnavailable with replicas is 0",
-			deployment: deployment(0, intstr.FromInt(10)),
+			deployment: deployment(0, intstr.FromInt32(10)),
 			expected:   int32(0),
 		},
 		{
@@ -938,8 +932,8 @@ func TestAnnotationUtils(t *testing.T) {
 func TestComputeMachineSetAnnotations(t *testing.T) {
 	deployment := generateDeployment("nginx")
 	deployment.Spec.Replicas = ptr.To[int32](3)
-	maxSurge := intstr.FromInt(1)
-	maxUnavailable := intstr.FromInt(0)
+	maxSurge := intstr.FromInt32(1)
+	maxUnavailable := intstr.FromInt32(0)
 	deployment.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{
 		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 		RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{

@@ -15,7 +15,6 @@ spec:
   topology:
     classRef:
       name: "quick-start-runtimesdk"
-      namespace: '${CLUSTER_CLASS_NAMESPACE:-""}'
     version: "${KUBERNETES_VERSION}"
     controlPlane:
       nodeDeletionTimeoutSeconds: 30

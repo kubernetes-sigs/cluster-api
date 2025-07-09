@@ -27,6 +27,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+	"go.etcd.io/etcd/client/pkg/v3/logutil"
+	"go.uber.org/zap/zapcore"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -96,6 +98,7 @@ var (
 	clusterCacheConcurrency         int
 	etcdDialTimeout                 time.Duration
 	etcdCallTimeout                 time.Duration
+	etcdLogLevel                    string
 	useDeprecatedInfraMachineNaming bool
 )
 
@@ -183,6 +186,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.DurationVar(&etcdCallTimeout, "etcd-call-timeout-duration", etcd.DefaultCallTimeout,
 		"Duration that the etcd client waits at most for read and write operations to etcd.")
+
+	fs.StringVar(&etcdLogLevel, "etcd-client-log-level", zapcore.InfoLevel.String(),
+		"Logging level for etcd client. Possible values are: debug, info, warn, error, dpanic, panic, fatal.")
 
 	fs.BoolVar(&useDeprecatedInfraMachineNaming, "use-deprecated-infra-machine-naming", false,
 		"Use the deprecated naming convention for infra machines where they are named after the InfraMachineTemplate.")
@@ -389,6 +395,16 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	zapLogLevel, err := zapcore.ParseLevel(etcdLogLevel)
+	if err != nil {
+		setupLog.Error(err, "Unable to parse etcd log level")
+		os.Exit(1)
+	}
+	etcdLogger, err := logutil.CreateDefaultZapLogger(zapLogLevel)
+	if err != nil {
+		setupLog.Error(err, "unable to create etcd logger")
+		os.Exit(1)
+	}
 	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
 		Client:                       mgr.GetClient(),
 		SecretCachingClient:          secretCachingClient,
@@ -396,6 +412,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		WatchFilterValue:             watchFilterValue,
 		EtcdDialTimeout:              etcdDialTimeout,
 		EtcdCallTimeout:              etcdCallTimeout,
+		EtcdLogger:                   etcdLogger,
 		RemoteConditionsGracePeriod:  remoteConditionsGracePeriod,
 		DeprecatedInfraMachineNaming: useDeprecatedInfraMachineNaming,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {

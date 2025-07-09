@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -43,7 +44,7 @@ type clientCreator func(ctx context.Context, endpoint string) (*etcd.Client, err
 var errEtcdNodeConnection = errors.New("failed to connect to etcd node")
 
 // NewEtcdClientGenerator returns a new etcdClientGenerator instance.
-func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcdDialTimeout, etcdCallTimeout time.Duration) *EtcdClientGenerator {
+func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcdDialTimeout, etcdCallTimeout time.Duration, etcdLogger *zap.Logger) *EtcdClientGenerator {
 	ecg := &EtcdClientGenerator{restConfig: restConfig, tlsConfig: tlsConfig}
 
 	ecg.createClient = func(ctx context.Context, endpoint string) (*etcd.Client, error) {
@@ -59,6 +60,7 @@ func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcd
 			TLSConfig:   tlsConfig,
 			DialTimeout: etcdDialTimeout,
 			CallTimeout: etcdCallTimeout,
+			Logger:      etcdLogger,
 		})
 	}
 

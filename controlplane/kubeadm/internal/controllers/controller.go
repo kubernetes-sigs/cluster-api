@@ -25,6 +25,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -85,6 +86,7 @@ type KubeadmControlPlaneReconciler struct {
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
+	EtcdLogger      *zap.Logger
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -147,6 +149,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 			ClusterCache:        r.ClusterCache,
 			EtcdDialTimeout:     r.EtcdDialTimeout,
 			EtcdCallTimeout:     r.EtcdCallTimeout,
+			EtcdLogger:          r.EtcdLogger,
 		}
 	}
 

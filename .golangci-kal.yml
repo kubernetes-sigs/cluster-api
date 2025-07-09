@@ -27,6 +27,7 @@ linters:
                                  # having the `omitempty` value in their `json` tag where appropriate.
               - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
               - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
+              - "ssatags" # Ensure array fields have the appropriate listType markers
               - "statusoptional" # Ensure all first children within status should be optional.
               - "statussubresource" # All root objects that have a `status` field should have a status subresource.
               - "uniquemarkers" # Ensure that types and fields do not contain more than a single definition of a marker that should only be present once.
@@ -44,19 +45,21 @@ linters:
               isFirstField: Warn # Require conditions to be the first field in the status struct.
               usePatchStrategy: Forbid # Require conditions to be the first field in the status struct.
               useProtobuf: Forbid # We don't use protobuf, so protobuf tags are not required.
-            optionalFields:
+            optionalfields:
               pointers:
                 preference: WhenRequired # Always | WhenRequired # Whether to always require pointers, or only when required. Defaults to `Always`.
                 policy: SuggestFix # SuggestFix | Warn # The policy for pointers in optional fields. Defaults to `SuggestFix`.
               omitempty:
                 policy: SuggestFix # SuggestFix | Warn | Ignore # The policy for omitempty in optional fields. Defaults to `SuggestFix`.
-          # jsonTags:
+          # jsontags:
           #   jsonTagRegex: "^[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)*$" # The default regex is appropriate for our use case.
-          # optionalOrRequired:
+          # optionalorrequired:
           #   preferredOptionalMarker: optional | kubebuilder:validation:Optional # The preferred optional marker to use, fixes will suggest to use this marker. Defaults to `optional`.
           #   preferredRequiredMarker: required | kubebuilder:validation:Required # The preferred required marker to use, fixes will suggest to use this marker. Defaults to `required`.
-          # requiredFields:
+          # requiredfields:
           #   pointerPolicy: Warn | SuggestFix # Defaults to `SuggestFix`. We want our required fields to not be pointers.
+#          ssatags:
+#            listTypeSetUsage: Warn | Ignore # The policy for listType=set usage on object arrays. Defaults to `Warn`.
 
   exclusions:
     generated: strict
@@ -83,21 +86,31 @@ linters:
       text: "Conditions field must be a slice of metav1.Condition"
       linters:
         - kubeapilinter
+    - path: "api/addons/v1beta2|api/bootstrap/kubeadm/v1beta2|api/controlplane/kubeadm/v1beta2|api/core/v1beta2|api/ipam/v1beta2|api/runtime/v1beta2"
+      text: "ssatags: Conditions should have a listType marker for proper Server-Side Apply behavior"
+      linters:
+        - kubeapilinter
     - path: "api/core/v1beta2"
       text: "field Conditions type Conditions must have a maximum items, add kubebuilder:validation:MaxItems marker"
       linters:
         - kubeapilinter
 
     ## Excludes for current clusterctl v1alpha3 and Runtime Hooks v1alpha1 apiVersions (can be fixed once we bump their apiVersion).
+    # Note: The types in api/runtime/hooks/v1alpha1 are not CRDs, so e.g. SSA markers don't make sense there.
     - path: "cmd/clusterctl/api/v1alpha3|api/runtime/hooks/v1alpha1"
-      text: "optionalfields|maxlength"
+      text: "optionalfields|maxlength|ssatags"
       linters:
         - kubeapilinter
 
     ## Excludes for JSONSchemaProps
-    # controller-gen does not allow to add MaxItems to Schemaless fields
+    # controller-gen does not allow to add MaxItems to Schemaless fields: https://github.com/kubernetes-sigs/kube-api-linter/issues/120
     - path: "api/core/v1beta2/clusterclass_types.go"
       text: "maxlength: field (AllOf|OneOf|AnyOf) must have a maximum items, add kubebuilder:validation:MaxItems marker"
+      linters:
+        - kubeapilinter
+    # controller-gen does not allow to add listType to Schemaless fields: https://github.com/kubernetes-sigs/kube-api-linter/issues/120
+    - path: "api/core/v1beta2/clusterclass_types.go"
+      text: "ssatags: (AllOf|OneOf|AnyOf) should have a listType marker for proper Server-Side Apply behavior"
       linters:
         - kubeapilinter
     # We want to align to the JSON tags of the CustomResourceDefinition fields.

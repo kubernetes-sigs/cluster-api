@@ -982,6 +982,12 @@ test-test-extension-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integra
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.test_extension.xml --raw-command cat $(ARTIFACTS)/junit.test_extension.stdout
 	exit $$(cat $(ARTIFACTS)/junit.test_extension.exitcode)
 
+.PHONY: test-framework-junit
+test-framework-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report for the test extension
+	cd $(E2E_FRAMEWORK_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.test_framework.exitcode) | tee $(ARTIFACTS)/junit.test_framework.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.test_framework.xml --raw-command cat $(ARTIFACTS)/junit.test_framework.stdout
+	exit $$(cat $(ARTIFACTS)/junit.test_framework.exitcode)
+
 .PHONY: test-e2e
 test-e2e: $(GINKGO) generate-e2e-templates ## Run the end-to-end tests
 	$(GINKGO) -v --trace --tags=e2e \

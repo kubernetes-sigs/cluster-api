@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: '${CLUSTER_NAME}'
@@ -13,17 +13,17 @@ spec:
       cidrBlocks: ['${DOCKER_POD_CIDRS}']
     serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   topology:
-    class: "quick-start"
+    classRef:
+      name: "quick-start"
     version: "${KUBERNETES_VERSION}"
     controlPlane:
-      metadata: {}
-      nodeDeletionTimeout: "30s"
+      nodeDeletionTimeoutSeconds: 30
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     workers:
       machineDeployments:
         - class: "default-worker"
           name: "md-0"
-          nodeDeletionTimeout: "30s"
+          nodeDeletionTimeoutSeconds: 30
           failureDomain: fd4
           metadata:
             annotations:
@@ -32,7 +32,7 @@ spec:
       machinePools:
         - class: "default-worker"
           name: "mp-0"
-          nodeDeletionTimeout: "30s"
+          nodeDeletionTimeoutSeconds: 30
           failureDomains:
           - fd4
     variables:

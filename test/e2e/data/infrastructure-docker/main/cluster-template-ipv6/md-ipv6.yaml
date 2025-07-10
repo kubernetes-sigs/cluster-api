@@ -1,5 +1,5 @@
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: "${CLUSTER_NAME}-md-0"
@@ -9,8 +9,10 @@ spec:
       initConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            node-ip: "::"
+            - name: node-ip
+              value: "::"
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            node-ip: "::"
+            - name: node-ip
+              value: "::"

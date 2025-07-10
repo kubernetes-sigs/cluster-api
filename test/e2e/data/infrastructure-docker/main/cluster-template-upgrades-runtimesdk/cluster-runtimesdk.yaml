@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: '${CLUSTER_NAME}'
@@ -13,31 +13,31 @@ spec:
       cidrBlocks: ['${DOCKER_POD_CIDRS}']
     serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   topology:
-    class: "quick-start-runtimesdk"
-    classNamespace: '${CLUSTER_CLASS_NAMESPACE:-""}'
+    classRef:
+      name: "quick-start-runtimesdk"
+      namespace: '${CLUSTER_CLASS_NAMESPACE:-${NAMESPACE}}'
     version: "${KUBERNETES_VERSION}"
     controlPlane:
-      metadata: {}
-      nodeDeletionTimeout: "30s"
+      nodeDeletionTimeoutSeconds: 30
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     workers:
       machineDeployments:
         - class: "default-worker"
           name: "md-0"
-          nodeDeletionTimeout: "30s"
-          nodeVolumeDetachTimeout: "5m"
+          nodeDeletionTimeoutSeconds: 30
+          nodeVolumeDetachTimeoutSeconds: 300
           minReadySeconds: 5
           replicas: ${WORKER_MACHINE_COUNT}
           failureDomain: fd4
       machinePools:
         - class: "default-worker"
           name: "mp-0"
-          nodeDeletionTimeout: "30s"
-          nodeVolumeDetachTimeout: "5m"
+          nodeDeletionTimeoutSeconds: 30
+          nodeVolumeDetachTimeoutSeconds: 300
           minReadySeconds: 5
           replicas: ${WORKER_MACHINE_COUNT}
           failureDomains:
-          - fd4
+            - fd4
     variables:
       - name: kubeadmControlPlaneMaxSurge
         value: "1"

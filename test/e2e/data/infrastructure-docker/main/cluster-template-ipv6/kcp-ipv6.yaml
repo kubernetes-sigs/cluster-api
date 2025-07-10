@@ -1,6 +1,6 @@
 ---
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
@@ -15,8 +15,10 @@ spec:
         bindPort: 6443
       nodeRegistration:
         kubeletExtraArgs:
-          node-ip: "::"
+          - name: node-ip
+            value: "::"
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          node-ip: "::"
+          - name: node-ip
+            value: "::"

@@ -1,5 +1,5 @@
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
@@ -10,21 +10,29 @@ spec:
         # We have to set the criSocket to containerd as kubeadm defaults to docker runtime if both containerd and docker sockets are found
         criSocket: unix:///var/run/containerd/containerd.sock
         kubeletExtraArgs:
-          eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-          fail-swap-on: "false"
-          cgroup-root: "/kubelet"
-          runtime-cgroups: "/system.slice/containerd.service"
+          - name: eviction-hard
+            value: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          - name: fail-swap-on
+            value: "false"
+          - name: cgroup-root
+            value: "/kubelet"
+          - name: runtime-cgroups
+            value: "/system.slice/containerd.service"
     joinConfiguration:
       nodeRegistration:
         # We have to set the criSocket to containerd as kubeadm defaults to docker runtime if both containerd and docker sockets are found
         criSocket: unix:///var/run/containerd/containerd.sock
         kubeletExtraArgs:
-          eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-          fail-swap-on: "false"
-          cgroup-root: "/kubelet"
-          runtime-cgroups: "/system.slice/containerd.service"
+          - name: eviction-hard
+            value: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          - name: fail-swap-on
+            value: "false"
+          - name: cgroup-root
+            value: "/kubelet"
+          - name: runtime-cgroups
+            value: "/system.slice/containerd.service"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: "${CLUSTER_NAME}-md-0"
@@ -47,7 +55,11 @@ spec:
           # We have to set the criSocket to containerd as kubeadm defaults to docker runtime if both containerd and docker sockets are found
           criSocket: unix:///var/run/containerd/containerd.sock
           kubeletExtraArgs:
-            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-            fail-swap-on: "false"
-            cgroup-root: "/kubelet"
-            runtime-cgroups: "/system.slice/containerd.service"
+            - name: eviction-hard
+              value: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+            - name: fail-swap-on
+              value: "false"
+            - name: cgroup-root
+              value: "/kubelet"
+            - name: runtime-cgroups
+              value: "/system.slice/containerd.service"

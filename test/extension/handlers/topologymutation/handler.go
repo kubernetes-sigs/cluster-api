@@ -34,12 +34,16 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
 	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	infraexpv1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
@@ -58,15 +62,22 @@ type ExtensionHandlers struct {
 func NewExtensionHandlers() *ExtensionHandlers {
 	scheme := runtime.NewScheme()
 	_ = infrav1beta1.AddToScheme(scheme)
+	_ = infrav1.AddToScheme(scheme)
 	_ = infraexpv1beta1.AddToScheme(scheme)
+	_ = infraexpv1.AddToScheme(scheme)
 	_ = bootstrapv1beta1.AddToScheme(scheme)
+	_ = bootstrapv1.AddToScheme(scheme)
 	_ = controlplanev1beta1.AddToScheme(scheme)
+	_ = controlplanev1.AddToScheme(scheme)
 	return &ExtensionHandlers{
 		// Add the apiGroups being handled to the decoder
 		decoder: serializer.NewCodecFactory(scheme).UniversalDecoder(
 			infrav1beta1.GroupVersion,
+			infrav1.GroupVersion,
+			bootstrapv1.GroupVersion,
 			bootstrapv1beta1.GroupVersion,
 			controlplanev1beta1.GroupVersion,
+			controlplanev1.GroupVersion,
 		),
 	}
 }
@@ -86,19 +97,19 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 	topologymutation.WalkTemplates(ctx, h.decoder, req, resp, func(ctx context.Context, obj runtime.Object, variables map[string]apiextensionsv1.JSON, _ runtimehooksv1.HolderReference) error {
 		log := ctrl.LoggerFrom(ctx)
 
-		switch obj := obj.(type) {
-		case *infrav1beta1.DockerClusterTemplate:
+		switch obj.(type) {
+		case *infrav1beta1.DockerClusterTemplate, *infrav1.DockerClusterTemplate:
 			if err := patchDockerClusterTemplate(ctx, obj, variables); err != nil {
 				log.Error(err, "Error patching DockerClusterTemplate")
 				return errors.Wrap(err, "error patching DockerClusterTemplate")
 			}
-		case *controlplanev1beta1.KubeadmControlPlaneTemplate:
+		case *controlplanev1beta1.KubeadmControlPlaneTemplate, *controlplanev1.KubeadmControlPlaneTemplate:
 			err := patchKubeadmControlPlaneTemplate(ctx, obj, variables)
 			if err != nil {
 				log.Error(err, "Error patching KubeadmControlPlaneTemplate")
 				return errors.Wrapf(err, "error patching KubeadmControlPlaneTemplate")
 			}
-		case *bootstrapv1beta1.KubeadmConfigTemplate:
+		case *bootstrapv1beta1.KubeadmConfigTemplate, *bootstrapv1.KubeadmConfigTemplate:
 			// NOTE: KubeadmConfigTemplate could be linked to one or more of the existing MachineDeployment class;
 			// the patchKubeadmConfigTemplate func shows how to implement patches only for KubeadmConfigTemplates
 			// linked to a specific MachineDeployment class; another option is to check the holderRef value and call
@@ -107,7 +118,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 				log.Error(err, "Error patching KubeadmConfigTemplate")
 				return errors.Wrap(err, "error patching KubeadmConfigTemplate")
 			}
-		case *infrav1beta1.DockerMachineTemplate:
+		case *infrav1beta1.DockerMachineTemplate, *infrav1.DockerMachineTemplate:
 			// NOTE: DockerMachineTemplate could be linked to the ControlPlane or one or more of the existing MachineDeployment class;
 			// the patchDockerMachineTemplate func shows how to implement different patches for DockerMachineTemplate
 			// linked to ControlPlane or for DockerMachineTemplate linked to MachineDeployment classes; another option
@@ -116,7 +127,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 				log.Error(err, "Error patching DockerMachineTemplate")
 				return errors.Wrap(err, "error patching DockerMachineTemplate")
 			}
-		case *infraexpv1beta1.DockerMachinePoolTemplate:
+		case *infraexpv1beta1.DockerMachinePoolTemplate, *infraexpv1.DockerMachinePoolTemplate:
 			if err := patchDockerMachinePoolTemplate(ctx, obj, variables); err != nil {
 				log.Error(err, "Error patching DockerMachinePoolTemplate")
 				return errors.Wrap(err, "error patching DockerMachinePoolTemplate")
@@ -129,7 +140,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 // patchDockerClusterTemplate patches the DockerClusterTemplate.
 // It sets the LoadBalancer.ImageRepository if the imageRepository variable is provided.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav1beta1.DockerClusterTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchDockerClusterTemplate(_ context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	imageRepo, err := topologymutation.GetStringVariable(templateVariables, "imageRepository")
 	if err != nil {
 		if topologymutation.IsNotFoundError(err) {
@@ -138,7 +149,17 @@ func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav
 		return errors.Wrap(err, "could not set DockerClusterTemplate loadBalancer imageRepository")
 	}
 
-	dockerClusterTemplate.Spec.Template.Spec.LoadBalancer.ImageRepository = imageRepo
+	dockerClusterTemplateV1Beta1, ok := obj.(*infrav1beta1.DockerClusterTemplate)
+	if ok {
+		dockerClusterTemplateV1Beta1.Spec.Template.Spec.LoadBalancer.ImageRepository = imageRepo
+		return nil
+	}
+
+	dockerClusterTemplate, ok := obj.(*infrav1.DockerClusterTemplate)
+	if ok {
+		dockerClusterTemplate.Spec.Template.Spec.LoadBalancer.ImageRepository = imageRepo
+		return nil
+	}
 
 	return nil
 }
@@ -146,7 +167,7 @@ func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav
 // patchKubeadmControlPlaneTemplate patches the ControlPlaneTemplate.
 // It sets the RolloutStrategy.RollingUpdate.MaxSurge if the kubeadmControlPlaneMaxSurge is provided.
 // NOTE: RolloutStrategy.RollingUpdate.MaxSurge patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlplanev1beta1.KubeadmControlPlaneTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// 1) Patch RolloutStrategy RollingUpdate MaxSurge with the value from the Cluster Topology variable.
@@ -162,18 +183,35 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlp
 	// This has to be converted to IntOrString type.
 	kubeadmControlPlaneMaxSurgeIntOrString := intstrutil.Parse(kcpControlPlaneMaxSurge)
 	log.Info(fmt.Sprintf("Setting KubeadmControlPlaneMaxSurge to %q", kubeadmControlPlaneMaxSurgeIntOrString.String()))
-	if kcpTemplate.Spec.Template.Spec.RolloutStrategy == nil {
-		kcpTemplate.Spec.Template.Spec.RolloutStrategy = &controlplanev1beta1.RolloutStrategy{}
+
+	kcpTemplateV1Beta1, ok := obj.(*controlplanev1beta1.KubeadmControlPlaneTemplate)
+	if ok {
+		if kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy == nil {
+			kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy = &controlplanev1beta1.RolloutStrategy{}
+		}
+		if kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy.RollingUpdate == nil {
+			kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy.RollingUpdate = &controlplanev1beta1.RollingUpdate{}
+		}
+		kcpTemplateV1Beta1.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
+		return nil
 	}
-	if kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate == nil {
-		kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate = &controlplanev1beta1.RollingUpdate{}
+
+	kcpTemplate, ok := obj.(*controlplanev1.KubeadmControlPlaneTemplate)
+	if ok {
+		if kcpTemplate.Spec.Template.Spec.RolloutStrategy == nil {
+			kcpTemplate.Spec.Template.Spec.RolloutStrategy = &controlplanev1.RolloutStrategy{}
+		}
+		if kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate == nil {
+			kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate = &controlplanev1.RollingUpdate{}
+		}
+		kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
 	}
-	kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
+
 	return nil
 }
 
 // patchKubeadmConfigTemplate patches the ControlPlaneTemplate.
-func patchKubeadmConfigTemplate(_ context.Context, _ *bootstrapv1beta1.KubeadmConfigTemplate, _ map[string]apiextensionsv1.JSON) error {
+func patchKubeadmConfigTemplate(_ context.Context, _ runtime.Object, _ map[string]apiextensionsv1.JSON) error {
 	return nil
 }
 
@@ -182,7 +220,7 @@ func patchKubeadmConfigTemplate(_ context.Context, _ *bootstrapv1beta1.KubeadmCo
 // the DockerMachineTemplate belongs to.
 // NOTE: this patch is not required anymore after the introduction of the kind mapper in kind, however we keep it
 // as example of version aware patches.
-func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infrav1beta1.DockerMachineTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchDockerMachineTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If the DockerMachineTemplate belongs to the ControlPlane, set the images using the ControlPlane version.
@@ -203,7 +241,16 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 		kindMapping := kind.GetMapping(semVer, "")
 
 		log.Info(fmt.Sprintf("Setting control plane custom image to %q", kindMapping.Image))
-		dockerMachineTemplate.Spec.Template.Spec.CustomImage = kindMapping.Image
+
+		dockerMachineTemplateV1Beta1, ok := obj.(*infrav1beta1.DockerMachineTemplate)
+		if ok {
+			dockerMachineTemplateV1Beta1.Spec.Template.Spec.CustomImage = kindMapping.Image
+		}
+
+		dockerMachineTemplate, ok := obj.(*infrav1.DockerMachineTemplate)
+		if ok {
+			dockerMachineTemplate.Spec.Template.Spec.CustomImage = kindMapping.Image
+		}
 		// return early if we have successfully patched a control plane dockerMachineTemplate
 		return nil
 	}
@@ -229,7 +276,16 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 	kindMapping := kind.GetMapping(semVer, "")
 
 	log.Info(fmt.Sprintf("Setting MachineDeployment customImage to %q", kindMapping.Image))
-	dockerMachineTemplate.Spec.Template.Spec.CustomImage = kindMapping.Image
+
+	dockerMachineTemplateV1Beta1, ok := obj.(*infrav1beta1.DockerMachineTemplate)
+	if ok {
+		dockerMachineTemplateV1Beta1.Spec.Template.Spec.CustomImage = kindMapping.Image
+	}
+
+	dockerMachineTemplate, ok := obj.(*infrav1.DockerMachineTemplate)
+	if ok {
+		dockerMachineTemplate.Spec.Template.Spec.CustomImage = kindMapping.Image
+	}
 	return nil
 }
 
@@ -237,7 +293,7 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 // It sets the CustomImage to an image for the version in use by the MachinePool.
 // NOTE: this patch is not required anymore after the introduction of the kind mapper in kind, however we keep it
 // as example of version aware patches.
-func patchDockerMachinePoolTemplate(ctx context.Context, dockerMachinePoolTemplate *infraexpv1beta1.DockerMachinePoolTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchDockerMachinePoolTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If the DockerMachinePoolTemplate belongs to a MachinePool, set the images the MachinePool version.
@@ -261,7 +317,17 @@ func patchDockerMachinePoolTemplate(ctx context.Context, dockerMachinePoolTempla
 	kindMapping := kind.GetMapping(semVer, "")
 
 	log.Info(fmt.Sprintf("Setting MachinePool customImage to %q", kindMapping.Image))
-	dockerMachinePoolTemplate.Spec.Template.Spec.Template.CustomImage = kindMapping.Image
+
+	dockerMachinePoolTemplateV1Beta1, ok := obj.(*infraexpv1beta1.DockerMachinePoolTemplate)
+	if ok {
+		dockerMachinePoolTemplateV1Beta1.Spec.Template.Spec.Template.CustomImage = kindMapping.Image
+	}
+
+	dockerMachinePoolTemplate, ok := obj.(*infraexpv1.DockerMachinePoolTemplate)
+	if ok {
+		dockerMachinePoolTemplate.Spec.Template.Spec.Template.CustomImage = kindMapping.Image
+	}
+
 	return nil
 }
 

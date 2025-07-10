@@ -1,6 +1,6 @@
 ---
 # DockerCluster object referenced by the Cluster object
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerCluster
 metadata:
   name: '${CLUSTER_NAME}'
@@ -8,7 +8,7 @@ metadata:
 # Cluster object with
 # - Reference to the KubeadmControlPlane object
 # - the label cni=${CLUSTER_NAME}-crs-0, so the cluster can be selected by the ClusterResourceSet.
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: '${CLUSTER_NAME}'
@@ -22,16 +22,16 @@ spec:
       cidrBlocks: ['${DOCKER_POD_CIDRS}']
     serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: DockerCluster
     name: '${CLUSTER_NAME}'
   controlPlaneRef:
     kind: KubeadmControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    apiGroup: controlplane.cluster.x-k8s.io
     name: "${CLUSTER_NAME}-control-plane"
 ---
 # DockerMachineTemplate object referenced by the KubeadmControlPlane object
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
@@ -42,7 +42,7 @@ spec:
 ---
 # KubeadmControlPlane referenced by the Cluster
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
@@ -50,17 +50,13 @@ spec:
   machineTemplate:
     infrastructureRef:
       kind: DockerMachineTemplate
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiGroup: infrastructure.cluster.x-k8s.io
       name: "${CLUSTER_NAME}-control-plane"
   kubeadmConfigSpec:
     clusterConfiguration:
       apiServer:
         # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
         certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
-    initConfiguration:
-      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
-    joinConfiguration:
-      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
     files:
     - path: /wait-signal.sh
       content: |

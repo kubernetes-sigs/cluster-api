@@ -4054,6 +4054,7 @@ spec:
                             is ready)
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
                           format: int32
+                          minimum: 0
                           type: integer
                         namingStrategy:
                           description: namingStrategy allows changing the naming pattern
@@ -4396,6 +4397,7 @@ spec:
                             is ready)
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
                           format: int32
+                          minimum: 0
                           type: integer
                         namingStrategy:
                           description: namingStrategy allows changing the naming pattern

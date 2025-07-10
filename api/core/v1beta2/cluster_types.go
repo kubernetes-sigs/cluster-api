@@ -739,6 +739,7 @@ type MachineDeploymentTopology struct {
 	// Defaults to 0 (machine will be considered available as soon as it
 	// is ready)
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
 	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
@@ -842,6 +843,7 @@ type MachinePoolTopology struct {
 	// Defaults to 0 (machine will be considered available as soon as it
 	// is ready)
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
 	// replicas is the number of nodes belonging to this pool.

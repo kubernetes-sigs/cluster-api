@@ -108,8 +108,6 @@ metadata:
   name: in-memory
 spec:
   controlPlane:
-    metadata:
-      annotations:
     machineInfrastructure:
       templateRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2

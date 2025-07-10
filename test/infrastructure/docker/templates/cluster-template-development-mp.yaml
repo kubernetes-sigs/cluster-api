@@ -11,7 +11,8 @@ spec:
       cidrBlocks: ${POD_CIDR:=["192.168.0.0/16"]}
     serviceDomain: ${SERVICE_DOMAIN:="cluster.local"}
   topology:
-    class: quick-start
+    classRef:
+      name: quick-start
     controlPlane:
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     variables:

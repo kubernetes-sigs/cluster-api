@@ -463,10 +463,6 @@ func dropFalsePtrBool(in *clusterv1.JSONSchemaProps) *clusterv1.JSONSchemaProps 
 	return ret
 }
 
-func refString(ref *corev1.ObjectReference) string {
-	return fmt.Sprintf("%s %s/%s", ref.GroupVersionKind().String(), ref.Namespace, ref.Name)
-}
-
 func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *clusterv1.ClusterClass, ref *corev1.ObjectReference) error {
 	obj, err := external.Get(ctx, r.Client, ref)
 	if err != nil {

@@ -40,6 +40,12 @@ func (dst *ExtensionConfig) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	dropEmptyStringsExtensionConfig(dst)
+	for i, h := range dst.Status.Handlers {
+		if h.TimeoutSeconds != nil && *h.TimeoutSeconds == 0 {
+			h.TimeoutSeconds = nil
+		}
+		dst.Status.Handlers[i] = h
+	}
 	return nil
 }
 

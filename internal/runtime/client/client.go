@@ -141,7 +141,7 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 					APIVersion: handler.RequestHook.APIVersion,
 					Hook:       handler.RequestHook.Hook,
 				},
-				TimeoutSeconds: handler.TimeoutSeconds,
+				TimeoutSeconds: ptr.Deref(handler.TimeoutSeconds, 0),
 				FailurePolicy:  runtimev1.FailurePolicy(ptr.Deref(handler.FailurePolicy, "")),
 			},
 		)
@@ -305,8 +305,8 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 
 	log.V(4).Info(fmt.Sprintf("Calling extension handler %q", name))
 	timeoutDuration := runtimehooksv1.DefaultHandlersTimeoutSeconds * time.Second
-	if registration.TimeoutSeconds != nil {
-		timeoutDuration = time.Duration(*registration.TimeoutSeconds) * time.Second
+	if registration.TimeoutSeconds != 0 {
+		timeoutDuration = time.Duration(registration.TimeoutSeconds) * time.Second
 	}
 
 	// Prepare the request by merging the settings in the registration with the settings in the request.

@@ -336,7 +336,9 @@ func autoConvert_v1alpha1_ExtensionHandler_To_v1beta2_ExtensionHandler(in *Exten
 	if err := Convert_v1alpha1_GroupVersionHook_To_v1beta2_GroupVersionHook(&in.RequestHook, &out.RequestHook, s); err != nil {
 		return err
 	}
-	out.TimeoutSeconds = (*int32)(unsafe.Pointer(in.TimeoutSeconds))
+	if err := v1.Convert_Pointer_int32_To_int32(&in.TimeoutSeconds, &out.TimeoutSeconds, s); err != nil {
+		return err
+	}
 	// WARNING: in.FailurePolicy requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/runtime/v1alpha1.FailurePolicy vs sigs.k8s.io/cluster-api/api/runtime/v1beta2.FailurePolicy)
 	return nil
 }
@@ -346,7 +348,9 @@ func autoConvert_v1beta2_ExtensionHandler_To_v1alpha1_ExtensionHandler(in *v1bet
 	if err := Convert_v1beta2_GroupVersionHook_To_v1alpha1_GroupVersionHook(&in.RequestHook, &out.RequestHook, s); err != nil {
 		return err
 	}
-	out.TimeoutSeconds = (*int32)(unsafe.Pointer(in.TimeoutSeconds))
+	if err := v1.Convert_int32_To_Pointer_int32(&in.TimeoutSeconds, &out.TimeoutSeconds, s); err != nil {
+		return err
+	}
 	// WARNING: in.FailurePolicy requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/runtime/v1beta2.FailurePolicy vs *sigs.k8s.io/cluster-api/api/runtime/v1alpha1.FailurePolicy)
 	return nil
 }

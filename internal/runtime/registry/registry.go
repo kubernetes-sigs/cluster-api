@@ -77,7 +77,7 @@ type ExtensionRegistration struct {
 	ClientConfig runtimev1.ClientConfig
 
 	// TimeoutSeconds is the timeout duration used for calls to the RuntimeExtension.
-	TimeoutSeconds *int32
+	TimeoutSeconds int32
 
 	// FailurePolicy defines how failures in calls to the RuntimeExtension should be handled by a client.
 	FailurePolicy runtimev1.FailurePolicy

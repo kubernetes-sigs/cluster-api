@@ -495,7 +495,6 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
 	// computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
 	//
-	// NOTE: This field is considered only for computing v1beta2 conditions.
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType

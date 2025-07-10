@@ -49,15 +49,15 @@ import (
 
 // mandatoryMachineReadinessGates are readinessGates KCP enforces to be set on machine it owns.
 var mandatoryMachineReadinessGates = []clusterv1.MachineReadinessGate{
-	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition)},
-	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition)},
-	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition)},
+	{ConditionType: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition},
+	{ConditionType: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition},
+	{ConditionType: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition},
 }
 
 // etcdMandatoryMachineReadinessGates are readinessGates KCP enforces to be set on machine it owns if etcd is managed.
 var etcdMandatoryMachineReadinessGates = []clusterv1.MachineReadinessGate{
-	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition)},
-	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition)},
+	{ConditionType: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition},
+	{ConditionType: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition},
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {

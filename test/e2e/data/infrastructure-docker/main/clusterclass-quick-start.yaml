@@ -384,9 +384,6 @@ spec:
           controlPlane: true
       jsonPatches:
       - op: add
-        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer"
-        value: {}
-      - op: add
         path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs"
         value:
           - name: admission-control-config-file
@@ -423,7 +420,6 @@ spec:
                       runtimeClasses: []
                       namespaces: [kube-system]
               path: /etc/kubernetes/kube-apiserver-admission-pss.yaml
-    enabledIf: '{{ semverCompare ">= v1.24-0" .builtin.controlPlane.version }}'
   - name: controlPlaneLogLevel
     enabledIf: "{{ if .kubeControlPlaneLogLevel }}true{{end}}"
     description: "Configures control plane components and kubelet to run at the log level specified in the variable `kubeControlPlaneLogLevel`."
@@ -435,10 +431,10 @@ spec:
             controlPlane: true
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs"
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
             valueFrom:
               template: |
-                - name: v
+                  name: v
                   value: "{{ .kubeControlPlaneLogLevel }}"
           - op: add
             path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager"
@@ -472,13 +468,13 @@ spec:
             path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/-"
             valueFrom:
               template: |
-                - name: v
+                  name: v
                   value: "{{ .kubeletLogLevel }}"
           - op: add
             path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/-"
             valueFrom:
               template: |
-                - name: v
+                  name: v
                   value: "{{ .kubeletLogLevel }}"
   - name: workerKubeletLogLevel
     enabledIf: "{{ if .kubeletLogLevel }}true{{end}}"
@@ -510,7 +506,7 @@ spec:
             path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/-"
             valueFrom:
               template: |
-                - name: v
+                  name: v
                   value: "{{ .kubeletLogLevel }}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -574,6 +570,7 @@ spec:
         nodeDrainTimeoutSeconds: 1
       kubeadmConfigSpec:
         clusterConfiguration:
+          apiServer:
             # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
             certSANs: [localhost, host.docker.internal, "::", "::1", "127.0.0.1", "0.0.0.0"]
         initConfiguration:

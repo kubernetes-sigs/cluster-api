@@ -427,6 +427,7 @@ type MachineSpec struct {
 	// minReadySeconds is the minimum number of seconds for which a Machine should be ready before considering it available.
 	// Defaults to 0 (Machine will be considered available as soon as the Machine is ready)
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
 	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.

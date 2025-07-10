@@ -2906,6 +2906,7 @@ spec:
                                 Defaults to 0 (machine will be considered available as soon as it
                                 is ready)
                               format: int32
+                              minimum: 0
                               type: integer
                             name:
                               description: |-
@@ -3187,6 +3188,7 @@ spec:
                                 Defaults to 0 (machine will be considered available as soon as it
                                 is ready)
                               format: int32
+                              minimum: 0
                               type: integer
                             name:
                               description: |-

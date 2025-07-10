@@ -438,8 +438,8 @@ spec:
             path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs"
             valueFrom:
               template: |
-                name: v
-                value: "{{ .kubeControlPlaneLogLevel }}"
+                - name: v
+                  value: "{{ .kubeControlPlaneLogLevel }}"
           - op: add
             path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager"
             value: {}
@@ -447,8 +447,8 @@ spec:
             path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs"
             valueFrom:
               template: |
-                name: v
-                value: "{{ .kubeControlPlaneLogLevel }}"
+                - name: v
+                  value: "{{ .kubeControlPlaneLogLevel }}"
           - op: add
             path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/scheduler"
             value: {}
@@ -456,8 +456,8 @@ spec:
             path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/scheduler/extraArgs"
             valueFrom:
               template: |
-                name: v
-                value: "{{ .kubeControlPlaneLogLevel }}"
+                - name: v
+                  value: "{{ .kubeControlPlaneLogLevel }}"
   - name: controlPlaneKubeletLogLevel
     enabledIf: "{{ if .kubeletLogLevel }}true{{end}}"
     description: "Configures control plane kubelets to log at the level set in the variable `kubeletLogLevel`."
@@ -472,14 +472,14 @@ spec:
             path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/-"
             valueFrom:
               template: |
-                name: v
-                value: "{{ .kubeletLogLevel }}"
+                - name: v
+                  value: "{{ .kubeletLogLevel }}"
           - op: add
             path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/-"
             valueFrom:
               template: |
-                name: v
-                value: "{{ .kubeletLogLevel }}"
+                - name: v
+                  value: "{{ .kubeletLogLevel }}"
   - name: workerKubeletLogLevel
     enabledIf: "{{ if .kubeletLogLevel }}true{{end}}"
     description: "Configures worker kubelets to log at the level set in the variable `kubeletLogLevel`."
@@ -510,8 +510,8 @@ spec:
             path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/-"
             valueFrom:
               template: |
-                name: v
-                value: "{{ .kubeletLogLevel }}"
+                - name: v
+                  value: "{{ .kubeletLogLevel }}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerClusterTemplate

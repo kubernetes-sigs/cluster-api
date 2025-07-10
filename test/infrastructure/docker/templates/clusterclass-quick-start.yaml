@@ -204,10 +204,10 @@ spec:
           controlPlane: true
       jsonPatches:
       - op: add
-        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs"
         value:
-          name: admission-control-config-file
-          value: "/etc/kubernetes/kube-apiserver-admission-pss.yaml"
+          - name: admission-control-config-file
+            value: "/etc/kubernetes/kube-apiserver-admission-pss.yaml"
       - op: add
         path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraVolumes"
         value:
@@ -226,7 +226,7 @@ spec:
                 plugins:
                 - name: PodSecurity
                   configuration:
-                    apiVersion: pod-security.admission.config.k8s.io/v1{{ if semverCompare "< v1.25" .builtin.controlPlane.version }}beta1{{ end }}
+                    apiVersion: pod-security.admission.config.k8s.io/v1{{ if semverCompare "< v1.25-0" .builtin.controlPlane.version }}beta1{{ end }}
                     kind: PodSecurityConfiguration
                     defaults:
                       enforce: "{{ .podSecurityStandard.enforce }}"

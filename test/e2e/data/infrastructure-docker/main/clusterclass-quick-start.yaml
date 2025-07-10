@@ -47,6 +47,7 @@ spec:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
+      # We are intentionally not setting the 'unhealthyConditions' here to test that the field is optional.
     machinePools:
     - class: default-worker
       template:
@@ -383,10 +384,13 @@ spec:
           controlPlane: true
       jsonPatches:
       - op: add
-        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer"
+        value: {}
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs"
         value:
-          name: admission-control-config-file
-          value: "/etc/kubernetes/kube-apiserver-admission-pss.yaml"
+          - name: admission-control-config-file
+            value: "/etc/kubernetes/kube-apiserver-admission-pss.yaml"
       - op: add
         path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraVolumes"
         value:

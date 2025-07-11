@@ -797,3 +797,62 @@ func getCounterMetric(metricFamilyName, controllerName string) (float64, error) 
 
 	return 0, fmt.Errorf("failed to find %q metric", metricFamilyName)
 }
+
+func TestReconcile_KubeconfigSecretResourceVersionChange(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-kubeconfig-rv",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+	clusterKey := client.ObjectKeyFromObject(testCluster)
+	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
+	defer func() { g.Expect(client.IgnoreNotFound(env.CleanupAndWait(ctx, testCluster))).To(Succeed()) }()
+
+	opts := Options{
+		SecretClient: env.GetClient(),
+		Client: ClientOptions{
+			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
+			Timeout:   10 * time.Second,
+		},
+		Cache: CacheOptions{
+			Indexes: []CacheOptionsIndex{NodeProviderIDIndex},
+		},
+	}
+	accessorConfig := buildClusterAccessorConfig(env.GetScheme(), opts, nil)
+	cc := &clusterCache{
+		client:                env.GetAPIReader(),
+		clusterAccessorConfig: accessorConfig,
+		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
+		cacheCtx:              context.Background(),
+	}
+
+	// Set Cluster.Status.InfrastructureReady == true
+	patch := client.MergeFrom(testCluster.DeepCopy())
+	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: true}
+	g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
+
+	// Create kubeconfig Secret
+	kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
+	g.Expect(env.CreateAndWait(ctx, kubeconfigSecret)).To(Succeed())
+	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
+
+	// Initial reconcile to connect
+	res, err := cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res.RequeueAfter).To(BeNumerically(">=", accessorConfig.HealthProbe.Interval-2*time.Second))
+	g.Expect(cc.getClusterAccessor(clusterKey).Connected(ctx)).To(BeTrue())
+
+	// Simulate kubeconfig Secret update (resourceVersion change)
+	kubeconfigSecret.Data["dummy"] = []byte("changed")
+	g.Expect(env.Update(ctx, kubeconfigSecret)).To(Succeed())
+
+	// Reconcile again, should detect update and disconnect
+	_ = cc.getClusterAccessor(clusterKey) // ensure accessor is present
+	res, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(cc.getClusterAccessor(clusterKey).Connected(ctx)).To(BeFalse())
+}

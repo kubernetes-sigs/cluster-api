@@ -18,6 +18,7 @@ package v1alpha4
 
 import (
 	"maps"
+	"reflect"
 	"slices"
 	"sort"
 
@@ -41,18 +42,37 @@ func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &infrav1.DockerCluster{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
 
-	if restored.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef != nil {
-		dst.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef = restored.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef
+	// Recover intent for bool values converted to *bool.
+	initialization := infrav1.DockerClusterInitializationStatus{}
+	restoredDockerClusterProvisioned := restored.Status.Initialization.Provisioned
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredDockerClusterProvisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, infrav1.DockerClusterInitializationStatus{}) {
+		dst.Status.Initialization = initialization
 	}
 
-	dst.Status.Conditions = restored.Status.Conditions
-	dst.Status.Initialization = restored.Status.Initialization
+	if ok {
+		RestoreDockerClusterSpec(&restored.Spec, &dst.Spec)
+	}
+
+	RestoreDockerClusterStatus(&restored.Status, &dst.Status)
 
 	return nil
+}
+
+func RestoreDockerClusterSpec(restored *infrav1.DockerClusterSpec, dst *infrav1.DockerClusterSpec) {
+	if restored.LoadBalancer.CustomHAProxyConfigTemplateRef != nil {
+		dst.LoadBalancer.CustomHAProxyConfigTemplateRef = restored.LoadBalancer.CustomHAProxyConfigTemplateRef
+	}
+}
+
+func RestoreDockerClusterStatus(restored *infrav1.DockerClusterStatus, dst *infrav1.DockerClusterStatus) {
+	// Restore fields added in v1beta2.
+	dst.Conditions = restored.Conditions
 }
 
 func (dst *DockerCluster) ConvertFrom(srcRaw conversion.Hub) error {
@@ -62,11 +82,7 @@ func (dst *DockerCluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	if err := utilconversion.MarshalData(src, dst); err != nil {
-		return err
-	}
-
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -78,17 +94,25 @@ func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &infrav1.DockerClusterTemplate{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
 
-	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
-
-	if restored.Spec.Template.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef != nil {
-		dst.Spec.Template.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef = restored.Spec.Template.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef
+	if ok {
+		RestoreDockerClusterTemplateSpec(&restored.Spec, &dst.Spec)
 	}
 
 	return nil
+}
+
+func RestoreDockerClusterTemplateSpec(restored *infrav1.DockerClusterTemplateSpec, dst *infrav1.DockerClusterTemplateSpec) {
+	// Restore fields added in v1beta2.
+	dst.Template.ObjectMeta = restored.Template.ObjectMeta
+
+	if restored.Template.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef != nil {
+		dst.Template.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef = restored.Template.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef
+	}
 }
 
 func (dst *DockerClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
@@ -98,12 +122,7 @@ func (dst *DockerClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	// Preserve Hub data on down-conversion except for metadata
-	if err := utilconversion.MarshalData(src, dst); err != nil {
-		return err
-	}
-
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
@@ -115,18 +134,38 @@ func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &infrav1.DockerMachine{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
 
-	if restored.Spec.BootstrapTimeout != nil {
-		dst.Spec.BootstrapTimeout = restored.Spec.BootstrapTimeout
+	// Recover intent for bool values converted to *bool.
+	initialization := infrav1.DockerMachineInitializationStatus{}
+	restoredDockerMachineProvisioned := restored.Status.Initialization.Provisioned
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredDockerMachineProvisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, infrav1.DockerMachineInitializationStatus{}) {
+		dst.Status.Initialization = initialization
 	}
 
-	dst.Status.Conditions = restored.Status.Conditions
-	dst.Status.Initialization = restored.Status.Initialization
+	if ok {
+		RestoreDockerMachineSpec(&restored.Spec, &dst.Spec)
+	}
+
+	RestoreDockerMachineStatus(&restored.Status, &dst.Status)
 
 	return nil
+}
+
+func RestoreDockerMachineSpec(restored *infrav1.DockerMachineSpec, dst *infrav1.DockerMachineSpec) {
+	// Restore fields added in v1beta2.
+	if restored.BootstrapTimeout != nil {
+		dst.BootstrapTimeout = restored.BootstrapTimeout
+	}
+}
+
+func RestoreDockerMachineStatus(restored *infrav1.DockerMachineStatus, dst *infrav1.DockerMachineStatus) {
+	// Restore fields added in v1beta2.
+	dst.Conditions = restored.Conditions
 }
 
 func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
@@ -140,11 +179,7 @@ func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.ProviderID = nil
 	}
 
-	if err := utilconversion.MarshalData(src, dst); err != nil {
-		return err
-	}
-
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -156,14 +191,25 @@ func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Manually restore data.
 	restored := &infrav1.DockerMachineTemplate{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
 
-	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
-	dst.Spec.Template.Spec.BootstrapTimeout = restored.Spec.Template.Spec.BootstrapTimeout
+	if ok {
+		RestoreDockerMachineTemplateSpec(&restored.Spec, &dst.Spec)
+	}
 
 	return nil
+}
+
+func RestoreDockerMachineTemplateSpec(restored *infrav1.DockerMachineTemplateSpec, dst *infrav1.DockerMachineTemplateSpec) {
+	// Restore fields added in v1beta2.
+	dst.Template.ObjectMeta = restored.Template.ObjectMeta
+
+	if restored.Template.Spec.BootstrapTimeout != nil {
+		dst.Template.Spec.BootstrapTimeout = restored.Template.Spec.BootstrapTimeout
+	}
 }
 
 func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
@@ -177,12 +223,7 @@ func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.ProviderID = nil
 	}
 
-	// Preserve Hub data on down-conversion except for metadata
-	if err := utilconversion.MarshalData(src, dst); err != nil {
-		return err
-	}
-
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func Convert_v1beta2_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(in *infrav1.DockerClusterTemplateResource, out *DockerClusterTemplateResource, s apiconversion.Scope) error {
@@ -215,9 +256,7 @@ func Convert_v1beta2_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(in *inf
 		clusterv1alpha4.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1alpha4_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 	}
 
-	if in.Initialization.Provisioned != nil {
-		out.Ready = *in.Initialization.Provisioned
-	}
+	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
 
 	// Move FailureDomains
 	if in.FailureDomains != nil {
@@ -245,9 +284,7 @@ func Convert_v1beta2_DockerMachineStatus_To_v1alpha4_DockerMachineStatus(in *inf
 		clusterv1alpha4.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1alpha4_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 	}
 
-	if in.Initialization.Provisioned != nil {
-		out.Ready = *in.Initialization.Provisioned
-	}
+	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
 
 	return nil
 }
@@ -292,10 +329,6 @@ func Convert_v1alpha4_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *Doc
 		clusterv1alpha4.Convert_v1alpha4_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 
-	if in.Ready {
-		out.Initialization.Provisioned = ptr.To(in.Ready)
-	}
-
 	return nil
 }
 
@@ -312,10 +345,6 @@ func Convert_v1alpha4_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *Doc
 		out.Deprecated = &infrav1.DockerClusterDeprecatedStatus{}
 		out.Deprecated.V1Beta1 = &infrav1.DockerClusterV1Beta1DeprecatedStatus{}
 		clusterv1alpha4.Convert_v1alpha4_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
-	}
-
-	if in.Ready {
-		out.Initialization.Provisioned = ptr.To(in.Ready)
 	}
 
 	// Move FailureDomains

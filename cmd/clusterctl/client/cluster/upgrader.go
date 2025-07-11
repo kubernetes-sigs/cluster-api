@@ -18,7 +18,7 @@ package cluster
 
 import (
 	"context"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -398,8 +398,11 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 
 	// Ensure Providers are updated in the following order: Core, Bootstrap, ControlPlane, Infrastructure.
 	providers := upgradePlan.Providers
-	sort.Slice(providers, func(a, b int) bool {
-		return providers[a].GetProviderType().Order() < providers[b].GetProviderType().Order()
+	slices.SortFunc(providers, func(a, b UpgradeItem) int {
+		if a.GetProviderType().Order() < b.GetProviderType().Order() {
+			return -1
+		}
+		return 1
 	})
 
 	if opts.EnableCRDStorageVersionMigration {

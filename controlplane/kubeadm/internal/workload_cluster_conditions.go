@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -356,24 +357,27 @@ func getNodeNamesSortedByLastKnownEtcdHealth(nodes *corev1.NodeList, machines co
 
 	// Sort by nodes by last known etcd member health.
 	nodeNames := eligibleNodes.UnsortedList()
-	sort.Slice(nodeNames, func(i, j int) bool {
-		iCondition := nodeEtcdHealthyCondition[nodeNames[i]]
-		jCondition := nodeEtcdHealthyCondition[nodeNames[j]]
+	slices.SortFunc(nodeNames, func(i, j string) int {
+		iCondition := nodeEtcdHealthyCondition[i]
+		jCondition := nodeEtcdHealthyCondition[j]
 
 		// Nodes with last known etcd healthy members goes first, because most likely we can connect to them again.
 		// NOTE: This isn't always true, it is a best effort assumption (e.g. kubelet might have issues preventing connection to an healthy member to be established).
 		if iCondition.Status == metav1.ConditionTrue && jCondition.Status != metav1.ConditionTrue {
-			return true
+			return -1
 		}
 		if iCondition.Status != metav1.ConditionTrue && jCondition.Status == metav1.ConditionTrue {
-			return false
+			return 1
 		}
 
 		// Note: we are not making assumption on the chances to connect when last known etcd health is FALSE and UNKNOWN.
 
 		// Otherwise pick randomly one of the nodes to avoid trying to connect always to the same nodes first.
 		// Note: the list originate from set.UnsortedList which internally uses a Map, and we consider this enough as a randomizer.
-		return i < j
+		if i < j {
+			return -1
+		}
+		return 1
 	})
 	return nodeNames
 }

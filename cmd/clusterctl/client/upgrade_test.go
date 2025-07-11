@@ -18,7 +18,7 @@ package client
 
 import (
 	"context"
-	"sort"
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -288,11 +288,17 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 
 			g.Expect(c.List(ctx, gotProviders)).To(Succeed())
 
-			sort.Slice(gotProviders.Items, func(i, j int) bool {
-				return gotProviders.Items[i].Name < gotProviders.Items[j].Name
+			slices.SortFunc(gotProviders.Items, func(i, j clusterctlv1.Provider) int {
+				if i.Name < j.Name {
+					return -1
+				}
+				return 1
 			})
-			sort.Slice(tt.wantProviders.Items, func(i, j int) bool {
-				return tt.wantProviders.Items[i].Name < tt.wantProviders.Items[j].Name
+			slices.SortFunc(tt.wantProviders.Items, func(i, j clusterctlv1.Provider) int {
+				if i.Name < j.Name {
+					return -1
+				}
+				return 1
 			})
 			for i := range gotProviders.Items {
 				tt.wantProviders.Items[i].ResourceVersion = gotProviders.Items[i].ResourceVersion

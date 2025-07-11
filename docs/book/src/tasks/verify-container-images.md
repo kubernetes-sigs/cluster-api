@@ -2,7 +2,7 @@
 
 ## Requirements 
 You will need to have the following tools installed:
-- cosign [(install guide)](https://docs.sigstore.dev/system_config/installation/)
+- cosign [(install guide)](https://docs.sigstore.dev/cosign/system_config/installation/)
 - jq [(download jq)](https://stedolan.github.io/jq/download/)
 
 ## CAPI Images

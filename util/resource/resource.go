@@ -18,7 +18,7 @@ limitations under the License.
 package resource
 
 import (
-	"sort"
+	"slices"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -64,8 +64,11 @@ func priorityLess(o1, o2 unstructured.Unstructured) bool {
 func SortForCreate(resources []unstructured.Unstructured) []unstructured.Unstructured {
 	ret := make([]unstructured.Unstructured, len(resources))
 	copy(ret, resources)
-	sort.SliceStable(ret, func(i, j int) bool {
-		return priorityLess(ret[i], ret[j])
+	slices.SortStableFunc(ret, func(i, j unstructured.Unstructured) int {
+		if priorityLess(i, j) {
+			return -1
+		}
+		return 1
 	})
 
 	return ret

@@ -1070,9 +1070,12 @@ func aggregateConditionsFromMachinesToKCP(input aggregateConditionsFromMachinesT
 		messageIndex = append(messageIndex, m)
 	}
 
-	sort.SliceStable(messageIndex, func(i, j int) bool {
-		return len(messageMap[messageIndex[i]]) > len(messageMap[messageIndex[j]]) ||
-			(len(messageMap[messageIndex[i]]) == len(messageMap[messageIndex[j]]) && strings.Join(messageMap[messageIndex[i]], ",") < strings.Join(messageMap[messageIndex[j]], ","))
+	slices.SortStableFunc(messageIndex, func(i, j string) int {
+		if len(messageMap[i]) > len(messageMap[j]) ||
+			(len(messageMap[i]) == len(messageMap[j]) && strings.Join(messageMap[i], ",") < strings.Join(messageMap[j], ",")) {
+			return -1
+		}
+		return 1
 	})
 
 	// Build the message

@@ -27,7 +27,6 @@ import (
 	"regexp"
 	"runtime"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -367,17 +366,20 @@ func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClie
 	}
 
 	// Sort parsed versions by semantic version order.
-	sort.SliceStable(versionCandidates, func(i, j int) bool {
+	slices.SortStableFunc(versionCandidates, func(i, j semver.Version) int {
 		// Prioritize pre-release versions over releases. For example v2.0.0-alpha > v1.0.0
 		// If both are pre-releases, sort by semantic version order as usual.
-		if len(versionCandidates[i].Pre) == 0 && len(versionCandidates[j].Pre) > 0 {
-			return false
+		if len(i.Pre) == 0 && len(j.Pre) > 0 {
+			return 1
 		}
-		if len(versionCandidates[j].Pre) == 0 && len(versionCandidates[i].Pre) > 0 {
-			return true
+		if len(j.Pre) == 0 && len(i.Pre) > 0 {
+			return -1
 		}
 
-		return versionCandidates[j].LT(versionCandidates[i])
+		if j.LT(i) {
+			return -1
+		}
+		return 1
 	})
 
 	// Limit the number of searchable versions by 5.

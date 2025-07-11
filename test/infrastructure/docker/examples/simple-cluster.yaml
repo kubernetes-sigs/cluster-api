@@ -1,5 +1,5 @@
 # Creates a cluster with one control-plane node and one worker node
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: my-cluster
@@ -12,23 +12,21 @@ spec:
       cidrBlocks: ["192.168.0.0/16"]
     serviceDomain: cluster.local
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    apiGroup: controlplane.cluster.x-k8s.io
     kind: KubeadmControlPlane
     name: controlplane
-    namespace: default
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: DockerCluster
     name: my-cluster
-    namespace: default
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerCluster
 metadata:
   name: my-cluster
   namespace: default
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlane
 metadata:
   name: controlplane
@@ -38,10 +36,9 @@ spec:
   version: v1.34.0-beta.0
   machineTemplate:
     infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiGroup: infrastructure.cluster.x-k8s.io
       kind: DockerMachineTemplate
       name: controlplane
-      namespace: default
   kubeadmConfigSpec:
     clusterConfiguration:
       apiServer:
@@ -58,7 +55,7 @@ spec:
         kubeletExtraArgs:
           eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate
 metadata:
   name: controlplane
@@ -67,7 +64,7 @@ spec:
   template:
     spec: {}
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment
 metadata:
   name: worker-md-0
@@ -84,17 +81,15 @@ spec:
       clusterName: my-cluster
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiGroup: bootstrap.cluster.x-k8s.io
           kind: KubeadmConfigTemplate
           name: worker
-          namespace: default
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiGroup: infrastructure.cluster.x-k8s.io
         kind: DockerMachineTemplate
         name: worker
-        namespace: default
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate
 metadata:
   name: worker
@@ -103,7 +98,7 @@ spec:
   template:
     spec: {}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: worker

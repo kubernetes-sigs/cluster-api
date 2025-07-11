@@ -17,7 +17,7 @@ limitations under the License.
 package conditions
 
 import (
-	"sort"
+	"slices"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -124,19 +124,23 @@ func getConditionGroups(conditions []localizedCondition) conditionGroups {
 	}
 
 	// sort groups by priority
-	sort.Sort(groups)
+	slices.SortFunc(groups, groups.SortFunc)
 
 	// sorts conditions in the TopGroup so we ensure predictable result for merge strategies.
 	// condition are sorted using the same lexicographic order used by Set; in case two conditions
 	// have the same type, condition are sorted using according to the alphabetical order of the source object name.
 	if len(groups) > 0 {
-		sort.Slice(groups[0].conditions, func(i, j int) bool {
-			a := groups[0].conditions[i]
-			b := groups[0].conditions[j]
-			if a.Type != b.Type {
-				return lexicographicLess(a.Condition, b.Condition)
+		slices.SortFunc(groups[0].conditions, func(i, j localizedCondition) int {
+			if i.Type != j.Type {
+				if lexicographicLess(i.Condition, j.Condition) {
+					return -1
+				}
+				return 1
 			}
-			return a.GetName() < b.GetName()
+			if i.GetName() < j.GetName() {
+				return -1
+			}
+			return 1
 		})
 	}
 
@@ -147,16 +151,11 @@ func getConditionGroups(conditions []localizedCondition) conditionGroups {
 // merged into a single condition. ConditionGroups can be sorted by mergePriority.
 type conditionGroups []conditionGroup
 
-func (g conditionGroups) Len() int {
-	return len(g)
-}
-
-func (g conditionGroups) Less(i, j int) bool {
-	return g[i].mergePriority() < g[j].mergePriority()
-}
-
-func (g conditionGroups) Swap(i, j int) {
-	g[i], g[j] = g[j], g[i]
+func (g conditionGroups) SortFunc(i, j conditionGroup) int {
+	if i.mergePriority() < j.mergePriority() {
+		return -1
+	}
+	return 1
 }
 
 // TopGroup returns the condition group with the highest mergePriority.

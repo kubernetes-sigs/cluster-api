@@ -20,7 +20,7 @@ package failuredomains
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -35,40 +35,48 @@ type failureDomainAggregation struct {
 }
 type failureDomainAggregations []failureDomainAggregation
 
-// Len is the number of elements in the collection.
-func (f failureDomainAggregations) Len() int {
-	return len(f)
-}
+const (
+	ascending = iota
+	descending
+)
 
-// Less reports whether the element with
-// index i should sort before the element with index j.
-func (f failureDomainAggregations) Less(i, j int) bool {
+func (f failureDomainAggregations) SortFunc(i, j failureDomainAggregation, order int) int {
 	// If a failure domain has less priority machines then the other, it goes first
-	if f[i].countPriority < f[j].countPriority {
-		return true
+	if i.countPriority < j.countPriority {
+		if order == ascending {
+			return -1
+		}
+		return 1
 	}
-	if f[i].countPriority > f[j].countPriority {
-		return false
+	if i.countPriority > j.countPriority {
+		if order == ascending {
+			return 1
+		}
+		return -1
 	}
 
 	// If a failure domain has the same number of priority machines then the other,
 	// use the number of overall machines to pick which one goes first.
-	if f[i].countAll < f[j].countAll {
-		return true
+	if i.countAll < j.countAll {
+		if order == ascending {
+			return -1
+		}
+		return 1
 	}
-	if f[i].countAll > f[j].countAll {
-		return false
+	if i.countAll > j.countAll {
+		if order == ascending {
+			return 1
+		}
+		return -1
 	}
 
 	// If both failure domain have the same number of priority machines and overall machines, we keep the order
 	// in the list which ensure a certain degree of randomness because the list originates from a map.
 	// This helps to spread machines e.g. when concurrently working on many clusters.
-	return i < j
-}
-
-// Swap swaps the elements with indexes i and j.
-func (f failureDomainAggregations) Swap(i, j int) {
-	f[i], f[j] = f[j], f[i]
+	if order == ascending {
+		return 1
+	}
+	return -1
 }
 
 // PickMost returns the failure domain from which we have to delete a control plane machine, which is the failure domain with most machines and at least one eligible machine in it.
@@ -77,7 +85,9 @@ func PickMost(ctx context.Context, failureDomains []clusterv1.FailureDomain, all
 	if len(aggregations) == 0 {
 		return ""
 	}
-	sort.Sort(sort.Reverse(aggregations))
+	slices.SortFunc(aggregations, func(i, j failureDomainAggregation) int {
+		return aggregations.SortFunc(i, j, descending)
+	})
 	if len(aggregations) > 0 && aggregations[0].countPriority > 0 {
 		return aggregations[0].id
 	}
@@ -97,7 +107,9 @@ func PickFewest(ctx context.Context, failureDomains []clusterv1.FailureDomain, a
 	if len(aggregations) == 0 {
 		return ""
 	}
-	sort.Sort(aggregations)
+	slices.SortFunc(aggregations, func(i, j failureDomainAggregation) int {
+		return aggregations.SortFunc(i, j, ascending)
+	})
 	return aggregations[0].id
 }
 

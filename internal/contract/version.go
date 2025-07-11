@@ -19,7 +19,7 @@ package contract
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -123,7 +123,9 @@ func GetLatestContractAndAPIVersionFromContract(metadata metav1.Object, currentC
 	labels := metadata.GetLabels()
 
 	sortedCompatibleContractVersions := kubeAwareAPIVersions(GetCompatibleVersions(currentContractVersion).UnsortedList())
-	sort.Sort(sort.Reverse(sortedCompatibleContractVersions))
+	slices.SortFunc(sortedCompatibleContractVersions, func(i, j string) int {
+		return sortedCompatibleContractVersions.SortFunc(i, j, descending)
+	})
 
 	for _, contractVersion := range sortedCompatibleContractVersions {
 		contractGroupVersion := fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, contractVersion)
@@ -136,7 +138,9 @@ func GetLatestContractAndAPIVersionFromContract(metadata metav1.Object, currentC
 
 		// Pick the latest version in the slice and validate it.
 		kubeVersions := kubeAwareAPIVersions(strings.Split(supportedVersions, "_"))
-		sort.Sort(kubeVersions)
+		slices.SortFunc(kubeVersions, func(i, j string) int {
+			return kubeVersions.SortFunc(i, j, ascending)
+		})
 		return contractVersion, kubeVersions[len(kubeVersions)-1], nil
 	}
 
@@ -188,8 +192,20 @@ func GetGKMetadata(ctx context.Context, c client.Reader, gk schema.GroupKind) (*
 // versions. e.g. v2, v1, v1beta2, v1beta1, v1alpha1.
 type kubeAwareAPIVersions []string
 
-func (k kubeAwareAPIVersions) Len() int      { return len(k) }
-func (k kubeAwareAPIVersions) Swap(i, j int) { k[i], k[j] = k[j], k[i] }
-func (k kubeAwareAPIVersions) Less(i, j int) bool {
-	return k8sversion.CompareKubeAwareVersionStrings(k[i], k[j]) < 0
+const (
+	ascending = iota
+	descending
+)
+
+func (k kubeAwareAPIVersions) SortFunc(i, j string, order int) int {
+	if k8sversion.CompareKubeAwareVersionStrings(i, j) < 0 {
+		if order == ascending {
+			return -1
+		}
+		return 1
+	}
+	if order == ascending {
+		return 1
+	}
+	return -1
 }

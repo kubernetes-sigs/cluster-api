@@ -1195,7 +1195,7 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 			},
 			Spec: addonsv1.ClusterResourceSetBindingSpec{
 				ClusterName: cluster.Name,
-				Bindings: []*addonsv1.ResourceSetBinding{
+				Bindings: []addonsv1.ResourceSetBinding{
 					{
 						ClusterResourceSetName: crs.Name,
 					},
@@ -1219,7 +1219,7 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 			ClusterResourceSetName: crs.Name,
 			Resources:              []addonsv1.ResourceBinding{},
 		}
-		binding.Spec.Bindings = append(binding.Spec.Bindings, &resourceSetBinding)
+		binding.Spec.Bindings = append(binding.Spec.Bindings, resourceSetBinding)
 
 		// creates map entries for each cluster/resource of type Secret
 		for _, secret := range f.secrets {

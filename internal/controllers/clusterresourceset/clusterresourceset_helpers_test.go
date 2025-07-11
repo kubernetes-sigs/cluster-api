@@ -51,7 +51,7 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 			Name:      testClusterWithBinding.Name,
 		},
 		Spec: addonsv1.ClusterResourceSetBindingSpec{
-			Bindings: []*addonsv1.ResourceSetBinding{
+			Bindings: []addonsv1.ResourceSetBinding{
 				{
 					ClusterResourceSetName: "test-clusterResourceSet",
 					Resources: []addonsv1.ResourceBinding{

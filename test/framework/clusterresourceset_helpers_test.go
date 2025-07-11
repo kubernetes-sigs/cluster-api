@@ -51,7 +51,7 @@ func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 		name: "CRSB with no matching bindings",
 		inputCRSB: &addonsv1.ClusterResourceSetBinding{
 			Spec: addonsv1.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1.ResourceSetBinding{
+				Bindings: []addonsv1.ResourceSetBinding{
 					{ClusterResourceSetName: "bar"},
 				},
 			},
@@ -62,7 +62,7 @@ func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 		name: "CRSB with single matching bindings",
 		inputCRSB: &addonsv1.ClusterResourceSetBinding{
 			Spec: addonsv1.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1.ResourceSetBinding{
+				Bindings: []addonsv1.ResourceSetBinding{
 					{ClusterResourceSetName: "foo"},
 				},
 			},
@@ -73,7 +73,7 @@ func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 		name: "CRSB with multiple bindings with match at index 0",
 		inputCRSB: &addonsv1.ClusterResourceSetBinding{
 			Spec: addonsv1.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1.ResourceSetBinding{
+				Bindings: []addonsv1.ResourceSetBinding{
 					{ClusterResourceSetName: "foo"},
 					{ClusterResourceSetName: "bar"},
 				},
@@ -85,7 +85,7 @@ func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 		name: "CRSB with multiple bindings with match at index 1",
 		inputCRSB: &addonsv1.ClusterResourceSetBinding{
 			Spec: addonsv1.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1.ResourceSetBinding{
+				Bindings: []addonsv1.ResourceSetBinding{
 					{ClusterResourceSetName: "bar"},
 					{ClusterResourceSetName: "foo"},
 				},
@@ -97,7 +97,7 @@ func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 		name: "CRSB with multiple bindings with match at middle index",
 		inputCRSB: &addonsv1.ClusterResourceSetBinding{
 			Spec: addonsv1.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1.ResourceSetBinding{
+				Bindings: []addonsv1.ResourceSetBinding{
 					{ClusterResourceSetName: "bar"},
 					{ClusterResourceSetName: "foo"},
 					{ClusterResourceSetName: "baz"},
@@ -110,7 +110,7 @@ func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 		name: "CRSB with multiple bindings with match at last index",
 		inputCRSB: &addonsv1.ClusterResourceSetBinding{
 			Spec: addonsv1.ClusterResourceSetBindingSpec{
-				Bindings: []*addonsv1.ResourceSetBinding{
+				Bindings: []addonsv1.ResourceSetBinding{
 					{ClusterResourceSetName: "bar"},
 					{ClusterResourceSetName: "baz"},
 					{ClusterResourceSetName: "foo"},

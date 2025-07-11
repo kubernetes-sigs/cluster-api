@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -1602,17 +1602,23 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 //   - Machines failing to come up first because
 //     there is a chance that they are not hosting any workloads (minimize disruption).
 func sortMachinesToRemediate(machines []*clusterv1.Machine) {
-	sort.SliceStable(machines, func(i, j int) bool {
-		if annotations.HasRemediateMachine(machines[i]) && !annotations.HasRemediateMachine(machines[j]) {
-			return true
+	slices.SortStableFunc(machines, func(i, j *clusterv1.Machine) int {
+		if annotations.HasRemediateMachine(i) && !annotations.HasRemediateMachine(j) {
+			return -1
 		}
-		if !annotations.HasRemediateMachine(machines[i]) && annotations.HasRemediateMachine(machines[j]) {
-			return false
+		if !annotations.HasRemediateMachine(i) && annotations.HasRemediateMachine(j) {
+			return 1
 		}
 		// Use newest (and Name) as a tie-breaker criteria.
-		if machines[i].CreationTimestamp.Equal(&machines[j].CreationTimestamp) {
-			return machines[i].Name < machines[j].Name
+		if i.CreationTimestamp.Equal(&j.CreationTimestamp) {
+			if i.Name < j.Name {
+				return -1
+			}
+			return 1
 		}
-		return machines[i].CreationTimestamp.After(machines[j].CreationTimestamp.Time)
+		if i.CreationTimestamp.After(j.CreationTimestamp.Time) {
+			return -1
+		}
+		return 1
 	})
 }

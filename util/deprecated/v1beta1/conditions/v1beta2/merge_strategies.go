@@ -327,11 +327,14 @@ func sortConditions(conditions []ConditionWithOwnerInfo, orderedConditionTypes [
 		conditionOrder[conditionType] = i
 	}
 
-	sort.SliceStable(conditions, func(i, j int) bool {
+	slices.SortStableFunc(conditions, func(i, j ConditionWithOwnerInfo) int {
 		// Sort by condition order (user defined, useful when computing summary of different conditions from the same object)
-		return conditionOrder[conditions[i].Type] < conditionOrder[conditions[j].Type] ||
+		if conditionOrder[i.Type] < conditionOrder[j.Type] ||
 			// If same condition order, sort by last transition time (useful when computing aggregation of the same conditions from different objects)
-			(conditionOrder[conditions[i].Type] == conditionOrder[conditions[j].Type] && conditions[i].LastTransitionTime.Before(&conditions[j].LastTransitionTime))
+			(conditionOrder[i.Type] == conditionOrder[j.Type] && i.LastTransitionTime.Before(&j.LastTransitionTime)) {
+			return -1
+		}
+		return 1
 	})
 }
 
@@ -463,8 +466,11 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 			messageIndex = append(messageIndex, m)
 		}
 
-		sort.SliceStable(messageIndex, func(i, j int) bool {
-			return sortMessage(messageIndex[i], messageIndex[j], messageMustGoFirst, messagePriorityMap, messageObjMapForKind)
+		slices.SortStableFunc(messageIndex, func(i, j string) int {
+			if sortMessage(i, j, messageMustGoFirst, messagePriorityMap, messageObjMapForKind) {
+				return -1
+			}
+			return 1
 		})
 
 		// Pick the first n messages, decrement n.

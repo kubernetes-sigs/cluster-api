@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"sort"
+	"slices"
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
@@ -339,10 +339,13 @@ func (r *DockerMachinePoolReconciler) propagateMachineDeleteAnnotation(ctx conte
 // orderByDeleteMachineAnnotation will sort DockerMachines with the clusterv1.DeleteMachineAnnotation to the front of the list.
 // It will preserve the existing order of the list otherwise so that it respects the existing delete priority otherwise.
 func orderByDeleteMachineAnnotation(machines []infrav1.DockerMachine) []infrav1.DockerMachine {
-	sort.SliceStable(machines, func(i, _ int) bool {
-		_, iHasAnnotation := machines[i].Annotations[clusterv1.DeleteMachineAnnotation]
+	slices.SortStableFunc(machines, func(i, _ infrav1.DockerMachine) int {
+		_, iHasAnnotation := i.Annotations[clusterv1.DeleteMachineAnnotation]
 
-		return iHasAnnotation
+		if iHasAnnotation {
+			return -1
+		}
+		return 1
 	})
 
 	return machines

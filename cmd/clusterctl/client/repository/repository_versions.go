@@ -18,7 +18,7 @@ package repository
 
 import (
 	"context"
-	"sort"
+	"slices"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -114,17 +114,20 @@ func latestPatchRelease(ctx context.Context, repo Repository, major, minor *int3
 	}
 
 	// Sort parsed versions by semantic version order.
-	sort.SliceStable(versionCandidates, func(i, j int) bool {
+	slices.SortStableFunc(versionCandidates, func(i, j *version.Version) int {
 		// Prioritize release versions over pre-releases. For example v1.0.0 > v2.0.0-alpha
 		// If both are pre-releases, sort by semantic version order as usual.
-		if versionCandidates[j].PreRelease() == "" && versionCandidates[i].PreRelease() != "" {
-			return false
+		if j.PreRelease() == "" && i.PreRelease() != "" {
+			return 1
 		}
-		if versionCandidates[i].PreRelease() == "" && versionCandidates[j].PreRelease() != "" {
-			return true
+		if i.PreRelease() == "" && j.PreRelease() != "" {
+			return -1
 		}
 
-		return versionCandidates[j].LessThan(versionCandidates[i])
+		if j.LessThan(i) {
+			return -1
+		}
+		return 1
 	})
 
 	// Limit the number of searchable versions by 5.

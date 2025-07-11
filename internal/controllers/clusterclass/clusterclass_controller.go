@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -364,8 +364,11 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 	// Alphabetically sort the variables by name. This ensures no unnecessary updates to the ClusterClass status.
 	// Note: Definitions in `statusVarList[i].Definitions` have a stable order as they are added in a deterministic order
 	// and are always held in an array.
-	sort.SliceStable(statusVarList, func(i, j int) bool {
-		return statusVarList[i].Name < statusVarList[j].Name
+	slices.SortStableFunc(statusVarList, func(i, j clusterv1.ClusterClassStatusVariable) int {
+		if i.Name < j.Name {
+			return -1
+		}
+		return 1
 	})
 	clusterClass.Status.Variables = statusVarList
 

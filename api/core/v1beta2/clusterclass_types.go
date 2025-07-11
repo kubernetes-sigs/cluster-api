@@ -204,7 +204,6 @@ type ControlPlaneClass struct {
 	// This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
 	// computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
 	//
-	// NOTE: This field is considered only for computing v1beta2 conditions.
 	// NOTE: If a Cluster defines a custom list of readinessGates for the control plane,
 	// such list overrides readinessGates defined in this field.
 	// NOTE: Specific control plane provider implementations might automatically extend the list of readinessGates;
@@ -335,7 +334,6 @@ type MachineDeploymentClass struct {
 	// This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
 	// computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
 	//
-	// NOTE: This field is considered only for computing v1beta2 conditions.
 	// NOTE: If a Cluster defines a custom list of readinessGates for a MachineDeployment using this MachineDeploymentClass,
 	// such list overrides readinessGates defined in this field.
 	// +optional

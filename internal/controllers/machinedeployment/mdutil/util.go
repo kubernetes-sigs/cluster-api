@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -42,64 +42,93 @@ import (
 	"sigs.k8s.io/cluster-api/util/conversion"
 )
 
-// MachineSetsByDecreasingReplicas sorts the list of MachineSets in decreasing order of replicas,
-// using creation time (ascending order) and name (alphabetical) as tie breakers.
-type MachineSetsByDecreasingReplicas []*clusterv1.MachineSet
+// Sort functions in this file, use these constants to determine the sorting order.
+const (
+	// Used to sort elements in Ascending order.
+	// Also used in cases, where the order is from older to newer occurrences.
+	ASCENDING = iota
 
-func (o MachineSetsByDecreasingReplicas) Len() int      { return len(o) }
-func (o MachineSetsByDecreasingReplicas) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
-func (o MachineSetsByDecreasingReplicas) Less(i, j int) bool {
-	if o[i].Spec.Replicas == nil {
-		return false
-	}
-	if o[j].Spec.Replicas == nil {
-		return true
-	}
-	if *o[i].Spec.Replicas == *o[j].Spec.Replicas {
-		if o[i].CreationTimestamp.Equal(&o[j].CreationTimestamp) {
-			return o[i].Name < o[j].Name
+	// Used to sort elements in Descending order.
+	// Also used in cases, where the order is from newer to older occurrences.
+	DESCENDING
+)
+
+// SortByCreationTimestamp sorts a list of MachineSet by creation timestamp, using their names as a tie breaker.
+func SortByCreationTimestamp(a, b *clusterv1.MachineSet, order int) int {
+	if b.CreationTimestamp.Equal(&a.CreationTimestamp) {
+		if b.Name > a.Name {
+			if order == ASCENDING {
+				return -1
+			}
+			return 1
+		} else if b.Name < a.Name {
+			if order == ASCENDING {
+				return 1
+			}
+			return -1
 		}
-		return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
+		return 0
 	}
-	return *o[i].Spec.Replicas > *o[j].Spec.Replicas
+	if a.CreationTimestamp.Before(&b.CreationTimestamp) {
+		if order == ASCENDING {
+			return -1
+		}
+		return 1
+	} else if b.CreationTimestamp.Before(&a.CreationTimestamp) {
+		if order == ASCENDING {
+			return 1
+		}
+		return -1
+	}
+	return 0
 }
 
-// MachineSetsByCreationTimestamp sorts a list of MachineSet by creation timestamp, using their names as a tie breaker.
-type MachineSetsByCreationTimestamp []*clusterv1.MachineSet
-
-func (o MachineSetsByCreationTimestamp) Len() int      { return len(o) }
-func (o MachineSetsByCreationTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
-func (o MachineSetsByCreationTimestamp) Less(i, j int) bool {
-	if o[i].CreationTimestamp.Equal(&o[j].CreationTimestamp) {
-		return o[i].Name < o[j].Name
+// SortBySize sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tie breaker.
+// By using the creation timestamp, this sorts from old to new machine sets if order is ASCENDING or new to old machine sets if order is DESCENDING.
+func SortBySize(a, b *clusterv1.MachineSet, order int) int {
+	if *(a.Spec.Replicas) == *(b.Spec.Replicas) {
+		if order == ASCENDING {
+			if a.CreationTimestamp.Before(&b.CreationTimestamp) {
+				return -1
+			}
+			return 1
+		}
+		if b.CreationTimestamp.Before(&a.CreationTimestamp) {
+			return -1
+		}
+		return 1
 	}
-	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
+	if *(a.Spec.Replicas) > *(b.Spec.Replicas) {
+		return -1
+	}
+	return 1
 }
 
-// MachineSetsBySizeOlder sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tie breaker.
-// By using the creation timestamp, this sorts from old to new machine sets.
-type MachineSetsBySizeOlder []*clusterv1.MachineSet
-
-func (o MachineSetsBySizeOlder) Len() int      { return len(o) }
-func (o MachineSetsBySizeOlder) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
-func (o MachineSetsBySizeOlder) Less(i, j int) bool {
-	if *(o[i].Spec.Replicas) == *(o[j].Spec.Replicas) {
-		return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
+// SortByDecreasingReplicas sorts the list of MachineSets in decreasing order of replicas,
+// using creation time (ascending order) and name (alphabetical) as tie breakers.
+func SortByDecreasingReplicas(a, b *clusterv1.MachineSet) int {
+	if a.Spec.Replicas == nil {
+		return 1
 	}
-	return *(o[i].Spec.Replicas) > *(o[j].Spec.Replicas)
-}
-
-// MachineSetsBySizeNewer sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tie breaker.
-// By using the creation timestamp, this sorts from new to old machine sets.
-type MachineSetsBySizeNewer []*clusterv1.MachineSet
-
-func (o MachineSetsBySizeNewer) Len() int      { return len(o) }
-func (o MachineSetsBySizeNewer) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
-func (o MachineSetsBySizeNewer) Less(i, j int) bool {
-	if *(o[i].Spec.Replicas) == *(o[j].Spec.Replicas) {
-		return o[j].CreationTimestamp.Before(&o[i].CreationTimestamp)
+	if b.Spec.Replicas == nil {
+		return -1
 	}
-	return *(o[i].Spec.Replicas) > *(o[j].Spec.Replicas)
+	if *a.Spec.Replicas == *b.Spec.Replicas {
+		if a.CreationTimestamp.Equal(&b.CreationTimestamp) {
+			if a.Name < b.Name {
+				return -1
+			}
+			return 1
+		}
+		if a.CreationTimestamp.Before(&b.CreationTimestamp) {
+			return -1
+		}
+		return 1
+	}
+	if *a.Spec.Replicas > *b.Spec.Replicas {
+		return -1
+	}
+	return 1
 }
 
 // SetDeploymentRevision updates the revision for a deployment.
@@ -256,7 +285,9 @@ func FindOneActiveOrLatest(newMS *clusterv1.MachineSet, oldMSs []*clusterv1.Mach
 		return nil
 	}
 
-	sort.Sort(sort.Reverse(MachineSetsByCreationTimestamp(oldMSs)))
+	slices.SortFunc(oldMSs, func(a, b *clusterv1.MachineSet) int {
+		return SortByCreationTimestamp(a, b, DESCENDING)
+	})
 	allMSs := FilterActiveMachineSets(append(oldMSs, newMS))
 
 	switch len(allMSs) {
@@ -467,7 +498,7 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 	// having more than one new MachineSets that have the same template,
 	// see https://github.com/kubernetes/kubernetes/issues/40415
 	// We deterministically choose the oldest new MachineSet with matching template hash.
-	sort.Sort(MachineSetsByDecreasingReplicas(msList))
+	slices.SortFunc(msList, SortByDecreasingReplicas)
 
 	var matchingMachineSets []*clusterv1.MachineSet
 	var diffs []string

@@ -28,7 +28,7 @@ limitations under the License.
 package collections
 
 import (
-	"sort"
+	"slices"
 
 	"github.com/blang/semver/v4"
 
@@ -44,53 +44,68 @@ type Machines map[string]*clusterv1.Machine
 // machines with no version are placed lower in the order.
 type machinesByVersion []*clusterv1.Machine
 
-func (v machinesByVersion) Len() int      { return len(v) }
-func (v machinesByVersion) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
-func (v machinesByVersion) Less(i, j int) bool {
-	vi, _ := semver.ParseTolerant(v[i].Spec.Version)
-	vj, _ := semver.ParseTolerant(v[j].Spec.Version)
+func (v machinesByVersion) SortFunc(i, j *clusterv1.Machine) int {
+	vi, _ := semver.ParseTolerant(i.Spec.Version)
+	vj, _ := semver.ParseTolerant(j.Spec.Version)
 	comp := version.Compare(vi, vj, version.WithBuildTags())
 	if comp == 0 {
-		return v[i].Name < v[j].Name
+		if i.Name < j.Name {
+			return -1
+		}
+		return 1
 	}
-	return comp == -1
+	if comp == -1 {
+		return -1
+	}
+	return 1
 }
 
 // machinesByCreationTimestamp sorts a list of Machine by creation timestamp, using their names as a tie breaker.
 type machinesByCreationTimestamp []*clusterv1.Machine
 
-func (o machinesByCreationTimestamp) Len() int      { return len(o) }
-func (o machinesByCreationTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
-func (o machinesByCreationTimestamp) Less(i, j int) bool {
-	if o[i].CreationTimestamp.Equal(&o[j].CreationTimestamp) {
-		return o[i].Name < o[j].Name
+func (o machinesByCreationTimestamp) SortFunc(i, j *clusterv1.Machine) int {
+	if i.CreationTimestamp.Equal(&j.CreationTimestamp) {
+		if i.Name < j.Name {
+			return -1
+		}
+		return 1
 	}
-	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
+	if i.CreationTimestamp.Before(&j.CreationTimestamp) {
+		return -1
+	}
+	return 1
 }
 
 // machinesByDeletionTimestamp sorts a list of Machines by deletion timestamp, using their names as a tie breaker.
 // Machines without DeletionTimestamp go after machines with this field set.
 type machinesByDeletionTimestamp []*clusterv1.Machine
 
-func (o machinesByDeletionTimestamp) Len() int      { return len(o) }
-func (o machinesByDeletionTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
-func (o machinesByDeletionTimestamp) Less(i, j int) bool {
-	if o[i].DeletionTimestamp == nil && o[j].DeletionTimestamp == nil {
-		return o[i].Name < o[j].Name
+func (o machinesByDeletionTimestamp) SortFunc(i, j *clusterv1.Machine) int {
+	if i.DeletionTimestamp == nil && j.DeletionTimestamp == nil {
+		if i.Name < j.Name {
+			return -1
+		}
+		return 1
 	}
 
-	if o[i].DeletionTimestamp == nil {
-		return false
+	if i.DeletionTimestamp == nil {
+		return 1
 	}
 
-	if o[j].DeletionTimestamp == nil {
-		return true
+	if j.DeletionTimestamp == nil {
+		return -1
 	}
 
-	if o[i].DeletionTimestamp.Equal(o[j].DeletionTimestamp) {
-		return o[i].Name < o[j].Name
+	if i.DeletionTimestamp.Equal(j.DeletionTimestamp) {
+		if i.Name < j.Name {
+			return -1
+		}
+		return 1
 	}
-	return o[i].DeletionTimestamp.Before(o[j].DeletionTimestamp)
+	if i.DeletionTimestamp.Before(j.DeletionTimestamp) {
+		return -1
+	}
+	return 1
 }
 
 // New creates an empty Machines.
@@ -157,7 +172,7 @@ func (s Machines) SortedByCreationTimestamp() []*clusterv1.Machine {
 	for _, value := range s {
 		res = append(res, value)
 	}
-	sort.Sort(res)
+	slices.SortFunc(res, res.SortFunc)
 	return res
 }
 
@@ -167,7 +182,7 @@ func (s Machines) SortedByDeletionTimestamp() []*clusterv1.Machine {
 	for _, value := range s {
 		res = append(res, value)
 	}
-	sort.Sort(res)
+	slices.SortFunc(res, res.SortFunc)
 	return res
 }
 
@@ -266,7 +281,7 @@ func (s Machines) sortedByVersion() []*clusterv1.Machine {
 	for _, value := range s {
 		res = append(res, value)
 	}
-	sort.Sort(res)
+	slices.SortFunc(res, res.SortFunc)
 	return res
 }
 

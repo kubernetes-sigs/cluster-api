@@ -18,7 +18,7 @@ package machineset
 
 import (
 	"math"
-	"sort"
+	"slices"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -94,16 +94,20 @@ type sortableMachines struct {
 	priority deletePriorityFunc
 }
 
-func (m sortableMachines) Len() int      { return len(m.machines) }
-func (m sortableMachines) Swap(i, j int) { m.machines[i], m.machines[j] = m.machines[j], m.machines[i] }
-func (m sortableMachines) Less(i, j int) bool {
-	priorityI, priorityJ := m.priority(m.machines[i]), m.priority(m.machines[j])
+func (m sortableMachines) SortFunc(i, j *clusterv1.Machine) int {
+	priorityI, priorityJ := m.priority(i), m.priority(j)
 	if priorityI == priorityJ {
 		// In cases where the priority is identical, it should be ensured that the same machine order is returned each time.
 		// Ordering by name is a simple way to do this.
-		return m.machines[i].Name < m.machines[j].Name
+		if i.Name < j.Name {
+			return -1
+		}
+		return 1
 	}
-	return priorityJ < priorityI // high to low
+	if priorityJ < priorityI { // high to low
+		return -1
+	}
+	return 1
 }
 
 func getMachinesToDeletePrioritized(filteredMachines []*clusterv1.Machine, diff int, fun deletePriorityFunc) []*clusterv1.Machine {
@@ -117,7 +121,7 @@ func getMachinesToDeletePrioritized(filteredMachines []*clusterv1.Machine, diff 
 		machines: filteredMachines,
 		priority: fun,
 	}
-	sort.Sort(sortable)
+	slices.SortFunc(sortable.machines, sortable.SortFunc)
 
 	return sortable.machines[:diff]
 }

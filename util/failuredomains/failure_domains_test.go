@@ -17,7 +17,7 @@ limitations under the License.
 package failuredomains
 
 import (
-	"sort"
+	"slices"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -870,7 +870,9 @@ func TestFailureDomainAggregationsSort(t *testing.T) {
 		{id: "fd4", countPriority: 1, countAll: 5},
 	}
 
-	sort.Sort(aggregations)
+	slices.SortFunc(aggregations, func(i, j failureDomainAggregation) int {
+		return aggregations.SortFunc(i, j, ascending)
+	})
 
 	// the result should be sorted so the fd with less priority machines are first,
 	// the number of overall machine should be used if the number of priority machines is equal,

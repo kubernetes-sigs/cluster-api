@@ -1011,8 +1011,6 @@ type ClusterStatus struct {
 
 // ClusterInitializationStatus provides observations of the Cluster initialization process.
 // NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
-
-// ClusterInitializationStatus provides observations of the Cluster initialization process.
 type ClusterInitializationStatus struct {
 	// infrastructureProvisioned is true when the infrastructure provider reports that Cluster's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.

@@ -81,6 +81,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubHostPathMountFuzzer,
 		hubBootstrapTokenDiscoveryFuzzer,
 		hubNodeRegistrationOptionsFuzzer,
+		hubClusterConfigurationFuzzer,
 	}
 }
 
@@ -99,8 +100,9 @@ func spokeClusterConfigurationFuzzer(obj *ClusterConfiguration, c randfill.Conti
 
 	obj.Proxy = Proxy{}
 	obj.EncryptionAlgorithm = ""
-	obj.CACertificateValidityPeriod = nil
-	obj.CertificateValidityPeriod = nil
+
+	obj.CertificateValidityPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()%24+1) * time.Hour * 24})
+	obj.CACertificateValidityPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()%24+1) * time.Hour * 24})
 
 	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
 	obj.Networking.ServiceSubnet = ""
@@ -208,4 +210,11 @@ func hubNodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, 
 	if obj.Taints != nil && *obj.Taints == nil {
 		obj.Taints = nil
 	}
+}
+
+func hubClusterConfigurationFuzzer(obj *bootstrapv1.ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	obj.CertificateValidityPeriodDays %= 24
+	obj.CACertificateValidityPeriodDays %= 24
 }

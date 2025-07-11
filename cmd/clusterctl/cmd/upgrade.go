@@ -17,11 +17,12 @@ limitations under the License.
 package cmd
 
 import (
-	"sort"
+	"slices"
 
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 var upgradeCmd = &cobra.Command{
@@ -41,16 +42,22 @@ func init() {
 }
 
 func sortUpgradeItems(plan client.UpgradePlan) {
-	sort.Slice(plan.Providers, func(i, j int) bool {
-		return plan.Providers[i].Type < plan.Providers[j].Type ||
-			(plan.Providers[i].Type == plan.Providers[j].Type && plan.Providers[i].Name < plan.Providers[j].Name) ||
-			(plan.Providers[i].Type == plan.Providers[j].Type && plan.Providers[i].Name == plan.Providers[j].Name && plan.Providers[i].Namespace < plan.Providers[j].Namespace)
+	slices.SortFunc(plan.Providers, func(i, j cluster.UpgradeItem) int {
+		if i.Type < j.Type ||
+			(i.Type == j.Type && i.Name < j.Name) ||
+			(i.Type == j.Type && i.Name == j.Name && i.Namespace < j.Namespace) {
+			return -1
+		}
+		return 1
 	})
 }
 
 func sortUpgradePlans(upgradePlans []client.UpgradePlan) {
-	sort.Slice(upgradePlans, func(i, j int) bool {
-		return upgradePlans[i].Contract < upgradePlans[j].Contract
+	slices.SortFunc(upgradePlans, func(i, j client.UpgradePlan) int {
+		if i.Contract < j.Contract {
+			return -1
+		}
+		return 1
 	})
 }
 

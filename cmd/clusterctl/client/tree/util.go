@@ -18,7 +18,7 @@ package tree
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,8 +116,11 @@ func GetOtherV1Beta1Conditions(obj client.Object) []*clusterv1.Condition {
 			conditions = append(conditions, &c)
 		}
 	}
-	sort.Slice(conditions, func(i, j int) bool {
-		return conditions[i].Type < conditions[j].Type
+	slices.SortFunc(conditions, func(i, j *clusterv1.Condition) int {
+		if i.Type < j.Type {
+			return -1
+		}
+		return 1
 	})
 	return conditions
 }

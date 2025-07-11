@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -480,8 +481,11 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 
 			msg := ""
 			allObjects := messageObjMapForKind[m]
-			sort.Slice(allObjects, func(i, j int) bool {
-				return sortObj(allObjects[i], allObjects[j], cpMachines)
+			slices.SortFunc(allObjects, func(i, j string) int {
+				if sortObj(i, j, cpMachines) {
+					return -1
+				}
+				return 1
 			})
 			switch {
 			case len(allObjects) == 0:

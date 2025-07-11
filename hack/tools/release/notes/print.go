@@ -21,6 +21,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -174,10 +175,13 @@ REPLACE ME: A couple sentences describing the deprecation, including links to do
 			}
 		default:
 			fmt.Println("## " + key)
-			sort.Slice(mergeslice, func(i int, j int) bool {
-				str1 := strings.ToLower(mergeslice[i])
-				str2 := strings.ToLower(mergeslice[j])
-				return str1 < str2
+			slices.SortFunc(mergeslice, func(i, j string) int {
+				str1 := strings.ToLower(i)
+				str2 := strings.ToLower(j)
+				if str1 < str2 {
+					return -1
+				}
+				return 1
 			})
 
 			for _, merge := range mergeslice {

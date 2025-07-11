@@ -18,7 +18,7 @@ package config
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -36,14 +36,20 @@ func Test_providers_List(t *testing.T) {
 	}
 
 	defaults := p.defaults()
-	sort.Slice(defaults, func(i, j int) bool {
-		return defaults[i].Less(defaults[j])
+	slices.SortFunc(defaults, func(i, j Provider) int {
+		if i.Less(j) {
+			return -1
+		}
+		return 1
 	})
 
 	defaultsAndZZZ := append(defaults, NewProvider("zzz", "https://zzz/infrastructure-components.yaml", "InfrastructureProvider"))
 	// AddonProviders are at the end of the list so we want to make sure this InfrastructureProvider is before the AddonProviders.
-	sort.Slice(defaultsAndZZZ, func(i, j int) bool {
-		return defaultsAndZZZ[i].Less(defaultsAndZZZ[j])
+	slices.SortFunc(defaultsAndZZZ, func(i, j Provider) int {
+		if i.Less(j) {
+			return -1
+		}
+		return 1
 	})
 
 	defaultsWithOverride := append([]Provider{}, defaults...)

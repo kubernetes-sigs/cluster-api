@@ -19,7 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -90,8 +90,11 @@ func (i *providerInstaller) Add(components repository.Components) {
 	i.installQueue = append(i.installQueue, components)
 
 	// Ensure Providers are installed in the following order: Core, Bootstrap, ControlPlane, Infrastructure.
-	sort.Slice(i.installQueue, func(a, b int) bool {
-		return i.installQueue[a].Type().Order() < i.installQueue[b].Type().Order()
+	slices.SortFunc(i.installQueue, func(a, b repository.Components) int {
+		if a.Type().Order() < b.Type().Order() {
+			return -1
+		}
+		return 1
 	})
 }
 

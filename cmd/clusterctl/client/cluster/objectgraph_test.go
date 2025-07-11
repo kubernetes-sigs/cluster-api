@@ -19,7 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -2574,8 +2574,11 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			gb.setTenants()
 
 			gotClusters := gb.getClusters()
-			sort.Slice(gotClusters, func(i, j int) bool {
-				return gotClusters[i].identity.UID < gotClusters[j].identity.UID
+			slices.SortFunc(gotClusters, func(i, j *node) int {
+				if i.identity.UID < j.identity.UID {
+					return -1
+				}
+				return 1
 			})
 
 			g.Expect(gotClusters).To(HaveLen(len(tt.wantClusters)))
@@ -2673,8 +2676,11 @@ func Test_objectGraph_setCRSTenants(t *testing.T) {
 			gb.setTenants()
 
 			gotCRSs := gb.getCRSs()
-			sort.Slice(gotCRSs, func(i, j int) bool {
-				return gotCRSs[i].identity.UID < gotCRSs[j].identity.UID
+			slices.SortFunc(gotCRSs, func(i, j *node) int {
+				if i.identity.UID < j.identity.UID {
+					return -1
+				}
+				return 1
 			})
 
 			g.Expect(gotCRSs).To(HaveLen(len(tt.wantCRSs)))
@@ -2738,8 +2744,11 @@ func Test_objectGraph_setGlobalIdentityTenants(t *testing.T) {
 					gotIdentity = append(gotIdentity, n)
 				}
 			}
-			sort.Slice(gotIdentity, func(i, j int) bool {
-				return gotIdentity[i].identity.UID < gotIdentity[j].identity.UID
+			slices.SortFunc(gotIdentity, func(i, j *node) int {
+				if i.identity.UID < j.identity.UID {
+					return -1
+				}
+				return 1
 			})
 			g.Expect(gotIdentity).To(HaveLen(len(tt.wantIdentity)))
 

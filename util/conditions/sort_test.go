@@ -17,7 +17,7 @@ limitations under the License.
 package conditions
 
 import (
-	"sort"
+	"slices"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -39,8 +39,11 @@ func TestDefaultSortLessFunc(t *testing.T) {
 		{Type: "C!"},
 	}
 
-	sort.Slice(conditions, func(i, j int) bool {
-		return defaultSortLessFunc(conditions[i], conditions[j])
+	slices.SortFunc(conditions, func(i, j metav1.Condition) int {
+		if defaultSortLessFunc(i, j) {
+			return -1
+		}
+		return 1
 	})
 
 	g.Expect(conditions).To(Equal([]metav1.Condition{

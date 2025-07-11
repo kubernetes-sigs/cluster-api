@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
-	"sort"
+	"slices"
 )
 
 func (*KubeadmConfig) Hub()         {}
@@ -38,11 +38,17 @@ func ConvertToArgs(in map[string]string) []Arg {
 	for k, v := range in {
 		args = append(args, Arg{Name: k, Value: v})
 	}
-	sort.Slice(args, func(i, j int) bool {
-		if args[i].Name == args[j].Name {
-			return args[i].Value < args[j].Value
+	slices.SortFunc(args, func(i, j Arg) int {
+		if i.Name == j.Name {
+			if i.Value < j.Value {
+				return 1
+			}
+			return -1
 		}
-		return args[i].Name < args[j].Name
+		if i.Name < j.Name {
+			return 1
+		}
+		return -1
 	})
 	return args
 }

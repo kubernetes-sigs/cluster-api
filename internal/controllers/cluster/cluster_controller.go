@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -666,8 +667,11 @@ func (c *clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) 
 		for _, m := range c.UnsortedList() {
 			l.Items = append(l.Items, *m)
 		}
-		sort.Slice(l.Items, func(i, j int) bool {
-			return l.Items[i].Name < l.Items[j].Name
+		slices.SortFunc(l.Items, func(i, j clusterv1.Machine) int {
+			if i.Name < j.Name {
+				return -1
+			}
+			return 1
 		})
 		return l
 	}

@@ -20,7 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -393,8 +393,11 @@ func getMachineToBeRemediated(unhealthyMachines collections.Machines, isEtcdMana
 		return machinesToBeRemediated[0]
 	}
 
-	sort.Slice(machinesToBeRemediated, func(i, j int) bool {
-		return pickMachineToBeRemediated(machinesToBeRemediated[i], machinesToBeRemediated[j], isEtcdManaged)
+	slices.SortFunc(machinesToBeRemediated, func(i, j *clusterv1.Machine) int {
+		if pickMachineToBeRemediated(i, j, isEtcdManaged) {
+			return -1
+		}
+		return 1
 	})
 	return machinesToBeRemediated[0]
 }

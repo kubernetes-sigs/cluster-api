@@ -18,7 +18,7 @@ package conditions
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -70,8 +70,11 @@ func Set(to Setter, condition *clusterv1.Condition) {
 	}
 
 	// Sorts conditions for convenience of the consumer, i.e. kubectl.
-	sort.Slice(conditions, func(i, j int) bool {
-		return lexicographicLess(&conditions[i], &conditions[j])
+	slices.SortFunc(conditions, func(i, j clusterv1.Condition) int {
+		if lexicographicLess(&i, &j) {
+			return -1
+		}
+		return 1
 	})
 
 	to.SetConditions(conditions)
@@ -118,8 +121,11 @@ func SetWithCustomLastTransitionTime(to Setter, condition *clusterv1.Condition) 
 	}
 
 	// Sorts conditions for convenience of the consumer, i.e. kubectl.
-	sort.Slice(conditions, func(i, j int) bool {
-		return lexicographicLess(&conditions[i], &conditions[j])
+	slices.SortFunc(conditions, func(i, j clusterv1.Condition) int {
+		if lexicographicLess(&i, &j) {
+			return -1
+		}
+		return 1
 	})
 
 	to.SetConditions(conditions)

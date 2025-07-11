@@ -23,7 +23,6 @@ import (
 	"maps"
 	"math"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 
@@ -193,8 +192,11 @@ func (d *Helper) getMatchingMachineDrainRules(ctx context.Context, cluster *clus
 	}
 
 	// Sort MachineDrainRules alphabetically (so we don't have to do it later for every Pod in machineDrainRulesFilter).
-	sort.Slice(matchingMachineDrainRules, func(i, j int) bool {
-		return matchingMachineDrainRules[i].Name < matchingMachineDrainRules[j].Name
+	slices.SortFunc(matchingMachineDrainRules, func(i, j *clusterv1.MachineDrainRule) int {
+		if i.Name < j.Name {
+			return -1
+		}
+		return 1
 	})
 	return matchingMachineDrainRules, nil
 }
@@ -268,9 +270,12 @@ func (d *Helper) EvictPods(ctx context.Context, podDeleteList *PodDeleteList) Ev
 
 	// Sort podDeleteList, this is important so we always deterministically evict Pods and build the EvictionResult.
 	// Otherwise the condition could change with every single reconcile even if nothing changes on the Node.
-	sort.Slice(podDeleteList.items, func(i, j int) bool {
-		return fmt.Sprintf("%s/%s", podDeleteList.items[i].Pod.GetNamespace(), podDeleteList.items[i].Pod.GetName()) <
-			fmt.Sprintf("%s/%s", podDeleteList.items[j].Pod.GetNamespace(), podDeleteList.items[j].Pod.GetName())
+	slices.SortFunc(podDeleteList.items, func(i, j PodDelete) int {
+		if fmt.Sprintf("%s/%s", i.Pod.GetNamespace(), i.Pod.GetName()) <
+			fmt.Sprintf("%s/%s", j.Pod.GetNamespace(), j.Pod.GetName()) {
+			return -1
+		}
+		return 1
 	})
 
 	// Get the minimum order of all existing Pods.

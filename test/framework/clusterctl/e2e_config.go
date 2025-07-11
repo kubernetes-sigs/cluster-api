@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -877,11 +878,14 @@ func (c *E2EConfig) getVersions(provider string, contract string) []string {
 		}
 	}
 
-	sort.Slice(versions, func(i, j int) bool {
+	slices.SortFunc(versions, func(i, j string) int {
 		// NOTE: Ignoring errors because the validity of the format is ensured by Validation.
-		vI, _ := version.ParseSemantic(versions[i])
-		vJ, _ := version.ParseSemantic(versions[j])
-		return vI.LessThan(vJ)
+		vI, _ := version.ParseSemantic(i)
+		vJ, _ := version.ParseSemantic(j)
+		if vI.LessThan(vJ) {
+			return -1
+		}
+		return 1
 	})
 	return versions
 }

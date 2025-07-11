@@ -115,7 +115,10 @@ As a developer of an add-ons orchestration solution:
 * **Before a Cluster is Created** I want to automatically check if enough disk space is available for allocation to the cluster for persistent storage of collected metrics values.
 * **After the Control Plane** **is Initialized** I want to automatically install a metrics database and associated add-ons in the workload cluster.
 * **Before the Cluster is Upgraded** I want to install a new version of the metrics database with a new version of the custom metrics apiservice to interact directly with the Kubernetes apiserver.
-* **After the ControlPlane is Upgraded** I want to automatically check that the new version of the custom metrics apiservice is working and correctly fulfilled by my metrics database.
+* **Before the ControlPlane is Upgraded** I want to install a new version of the metrics database with a new version of the custom metrics apiservice to interact directly with the Kubernetes apiserver.
+* **After the ControlPlane is Upgraded** I want to install new versions of metrics collectors to each upgraded node in the cluster.
+* **Before workers are Upgraded** I want to install a new version of the metrics database with a new version of the custom metrics apiservice to interact directly with the Kubernetes apiserver.
+* **After workers are Upgraded** I want to install new versions of metrics collectors to each upgraded node in the cluster
 * **After the Cluster is Upgraded** I want to install new versions of metrics collectors to each upgraded node in the cluster.
 * **Before the Cluster is Deleted** I want to automatically back up persistent volumes used by the metrics database.
 
@@ -123,10 +126,258 @@ As a developer of an add-ons orchestration solution:
 
 Below is a description for the Runtime Hooks introduced by this proposal.
 
-![runtime-hooks](images/runtime-hooks/runtime-hooks.png)
+![runtime-hooks](images/lifecycle-hooks/lifecycle-hooks.png)
 
 The remainder of this section has been moved to the Cluster API [book](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-lifecycle-hooks.md#definitions)
 to avoid duplication.
+
+Note: Following change will be applied to the hooks with the ongoing work for [Chained and efficient upgrades](); the 
+documentation in the book will be aligned as soon as the work completes:
+
+#### BeforeClusterCreate (modified)
+
+Request message will be extended with the info about the upgrade plane. e.g.
+
+##### Example Request:
+```yaml
+apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
+kind: BeforeClusterUpgradeRequest
+settings: <Runtime Extension settings>
+cluster:
+  apiVersion: cluster.x-k8s.io/v1beta1
+  kind: Cluster
+  metadata:
+   name: test-cluster
+   namespace: test-ns
+  spec:
+   ...
+  status:
+   ...
+fromKubernetesVersion: "v1.30.0"
+toKubernetesVersion: "v1.33.0"
+upgradePlan:
+  controlPlane:
+  - v1.30.0
+  - v1.31.0
+  - v1.32.3
+  - v1.33.0
+  workers:
+  - v1.32.3
+  - v1.33.0
+```
+
+####  BeforeControlPlaneUpgrade (new hook)
+
+This hook is called before a new version is propagated to the control plane object. Runtime Extension implementers
+can use this hook to execute pre-upgrade add-on tasks and block upgrades of the ControlPlane.
+
+Note:
+- When an upgrade is starting, BeforeControlPlaneUpgrade will be called after BeforeClusterUpgrade is completed.
+- When an upgrade is in progress BeforeControlPlaneUpgrade will be called for each intermediate version that will
+  be applied to the control plane (instead BeforeClusterUpgrade will be called only once at the beginning of the upgrade).
+
+##### Example Request:
+
+```yaml
+apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
+kind: BeforeControlPlaneUpgradeRequest
+settings: <Runtime Extension settings>
+cluster:
+  apiVersion: cluster.x-k8s.io/v1beta1
+  kind: Cluster
+  metadata:
+   name: test-cluster
+   namespace: test-ns
+  spec:
+   ...
+  status:
+   ...
+fromKubernetesVersion: "v1.30.0"
+toKubernetesVersion: "v1.33.0"
+upgradePlan:
+  controlPlane:
+  - v1.30.0
+  - v1.31.0
+  - v1.32.3
+  - v1.33.0
+  workers:
+  - v1.32.3
+  - v1.33.0
+```
+
+Note: The upgrade plan in the request contains only missing steps to reach the target version.
+
+##### Example Response:
+
+```yaml
+apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
+kind: BeforeControlPlaneUpgradeResponse
+status: Success # or Failure
+message: "error message if status == Failure"
+retryAfterSeconds: 10
+```
+
+For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
+
+####  AfterControlPlaneUpgrade (modified)
+
+This hook is called after the control plane has been upgraded to the version specified in `spec.topology.version`
+or to an intermediate version in the upgrade plan and:
+- if workers upgrade can be skipped for this version, immediately before the next intermediate version is applied to the control plane
+- if workers upgrade must be performed for this version, immediately before the new version is going to be propagated to the MachineDeployments of the Cluster.
+
+Runtime Extension implementers can use this hook to execute post-upgrade add-on tasks and block upgrades to the next
+version of the control plane or to workers until everything is ready.
+
+Note: While the MachineDeployments upgrade is blocked changes made to existing MachineDeployments and creating new MachineDeployments
+will be delayed while the object is waiting for upgrade. Example: modifying MachineDeployments (think scale up),
+or creating new MachineDeployments will be delayed until the target MachineDeployment is ready to pick up the upgrade.
+This ensures that the MachineDeployments do not perform a rollout prematurely while waiting to be rolled out again for the version upgrade (no double rollouts).
+This also ensures that any version specific changes are only pushed to the underlying objects also at the correct version.
+
+##### Example Request:
+
+```yaml
+apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
+kind: AfterControlPlaneUpgradeRequest
+settings: <Runtime Extension settings>
+cluster:
+  apiVersion: cluster.x-k8s.io/v1beta1
+  kind: Cluster
+  metadata:
+   name: test-cluster
+   namespace: test-ns
+  spec:
+   ...
+  status:
+   ...
+kubernetesVersion: "v1.30.0"
+upgradePlan:
+  controlPlane:
+    - v1.31.0
+    - v1.32.3
+    - v1.33.0
+  workers:
+    - v1.32.3
+    - v1.33.0
+```
+
+Note: The upgrade plan in the request contains only missing steps to reach the target version, if any.
+
+##### Example Response:
+
+```yaml
+apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
+kind: AfterControlPlaneUpgradeResponse
+status: Success # or Failure
+message: "error message if status == Failure"
+retryAfterSeconds: 10
+```
+
+For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
+
+####  BeforeWorkersUpgrade (new hook)
+
+This hook is called before a new version is propagated to workers. Runtime Extension implementers
+can use this hook to execute pre-upgrade add-on tasks and block upgrades of Workers.
+
+Note:
+- This hook will be called only if workers upgrade must be performed for an intermediate version of of a chained upgrade
+  or when upgrading to the target `spec.topology.version`.
+
+##### Example Request:
+
+```yaml
+apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
+kind: BeforeWorkersUpgradeRequest
+settings: <Runtime Extension settings>
+cluster:
+  apiVersion: cluster.x-k8s.io/v1beta1
+  kind: Cluster
+  metadata:
+   name: test-cluster
+   namespace: test-ns
+  spec:
+   ...
+  status:
+   ...
+fromKubernetesVersion: "v1.30.0"
+toKubernetesVersion: "v1.33.0"
+upgradePlan:
+  controlPlane:
+  - v1.30.0
+  - v1.31.0
+  - v1.32.3
+  - v1.33.0
+  workers:
+  - v1.32.3
+  - v1.33.0
+```
+
+Note: The upgrade plan in the request contains only missing steps to reach the target version.
+
+##### Example Response:
+
+```yaml
+apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
+kind: BeforeControlPlaneUpgradeResponse
+status: Success # or Failure
+message: "error message if status == Failure"
+retryAfterSeconds: 10
+```
+
+For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
+
+####  AfterWorkersUpgrade (new hook)
+
+This hook is called after all the workers have been upgraded to the version specified in `spec.topology.version`
+or to an intermediate version in the upgrade plan, and:
+- if the upgrade plan is completed and the entire cluster is at `spec.topology.version`, immediately before calling the AfterClusterUpgrade hook
+- if the upgrade plan is not complete and the entrire cluster is now at one of the intermediate versions, immediately before calling BeforeControlPlaneUpgrade hook for the next intermediate step
+
+Runtime Extension implementers can use this hook to execute post-upgrade add-on tasks; if the upgrade plan is not completed,
+this hook allows to block upgrades to the next version of the control plane until everything is ready.
+
+##### Example Request:
+
+```yaml
+apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
+kind: AfterWorkersRequest
+settings: <Runtime Extension settings>
+cluster:
+  apiVersion: cluster.x-k8s.io/v1beta1
+  kind: Cluster
+  metadata:
+   name: test-cluster
+   namespace: test-ns
+  spec:
+   ...
+  status:
+   ...
+kubernetesVersion: "v1.30.0"
+upgradePlan:
+  controlPlane:
+    - v1.31.0
+    - v1.32.3
+    - v1.33.0
+  workers:
+    - v1.32.3
+    - v1.33.0
+```
+
+Note: The upgrade plan in the request contains only missing steps to reach the target version, if any.
+
+##### Example Response:
+
+```yaml
+apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
+kind: AfterControlPlaneUpgradeResponse
+status: Success # or Failure
+message: "error message if status == Failure"
+retryAfterSeconds: 10
+```
+
+Note: retryAfterSeconds is ignored when workers version is equal to `spec.topology.version`.
 
 ###  Runtime Extensions developer guide
 
@@ -210,6 +461,7 @@ See [upgrade strategy](#upgrade-strategy).
 * [x] 2022-04-04: Opened corresponding [issue](https://github.com/kubernetes-sigs/cluster-api/issues/6374)
 * [x] 2022-04-06: Presented proposal at a [community meeting]
 * [x] 2022-04-14: Opened proposal PR
+* [x] 2025-05-13: Added runtime hooks for chained upgrades; see [proposal: Chained and efficient upgrades for Clusters with managed topologies](20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md)
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI/edit#heading=h.pxsq37pzkbdq

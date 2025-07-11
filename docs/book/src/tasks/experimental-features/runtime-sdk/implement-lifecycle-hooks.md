@@ -69,8 +69,6 @@ message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
 
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
 (*) The objects which are part of a Cluster topology are the infrastructure Cluster, the Control Plane, the 
 MachineDeployments and the templates derived from the ClusterClass.
 
@@ -108,8 +106,6 @@ kind: AfterControlPlaneInitializedResponse
 status: Success # or Failure
 message: "error message if status == Failure"
 ```
-
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
 
 ###  BeforeClusterUpgrade
 
@@ -152,8 +148,6 @@ status: Success # or Failure
 message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
-
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
 
 (*) Under normal circumstances `spec.topology.version` gets propagated to the control plane immediately; however 
   if previous upgrades or worker machine rollouts are still in progress, the system waits for those operations 
@@ -201,8 +195,6 @@ message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
 
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
 ###  AfterClusterUpgrade
 
 This hook is called after the Cluster, control plane and workers have been upgraded to the version specified in 
@@ -237,8 +229,6 @@ status: Success # or Failure
 message: "error message if status == Failure"
 ```
 
-For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/proposals/images/runtime-hooks/runtime-hooks-openapi.yaml).
-
 ###  BeforeClusterDelete
 
 This hook is called after the Cluster deletion has been triggered by the user and immediately before the topology
@@ -272,13 +262,3 @@ status: Success # or Failure
 message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
-
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
-<script>
-// openSwaggerUI calculates the absolute URL of the RuntimeSDK YAML file and opens Swagger UI.
-function openSwaggerUI() {
-  var schemaURL = new URL("runtime-sdk-openapi.yaml", document.baseURI).href
-  window.open("https://editor.swagger.io/?url=" + schemaURL)
-}
-</script>

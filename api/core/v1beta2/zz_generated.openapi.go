@@ -993,7 +993,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterInitializationStatus(ref common.
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterInitializationStatus provides observations of the Cluster initialization process.",
+				Description: "ClusterInitializationStatus provides observations of the Cluster initialization process. NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"infrastructureProvisioned": {

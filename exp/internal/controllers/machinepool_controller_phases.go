@@ -321,7 +321,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 		return ctrl.Result{}, kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to reconcile Machines for MachinePool %s", klog.KObj(mp)), errors.Wrapf(getNodeRefsErr, "failed to get nodeRefs for MachinePool %s", klog.KObj(mp))})
 	}
 
-	if mp.Status.Initialization == nil && !ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
+	if mp.Status.Initialization == nil || !ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
 		log.Info("Infrastructure provider is not yet ready", infraConfig.GetKind(), klog.KObj(infraConfig))
 		return ctrl.Result{}, nil
 	}

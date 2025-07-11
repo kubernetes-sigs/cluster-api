@@ -339,19 +339,21 @@ spec:
                       controlPlaneEndpoint:
                         description: ControlPlaneEndpoint represents the endpoint
                           used to communicate with the control plane.
+                        minProperties: 1
                         properties:
                           host:
-                            description: Host is the hostname on which the API server
+                            description: host is the hostname on which the API server
                               is serving.
+                            maxLength: 512
+                            minLength: 1
                             type: string
                           port:
-                            description: |-
-                              Port is the port on which the API server is serving.
-                              Defaults to 6443 if not set.
+                            description: port is the port on which the API server
+                              is serving.
+                            format: int32
+                            maximum: 65535
+                            minimum: 1
                             type: integer
-                        required:
-                        - host
-                        - port
                         type: object
                       failureDomains:
                         description: |-

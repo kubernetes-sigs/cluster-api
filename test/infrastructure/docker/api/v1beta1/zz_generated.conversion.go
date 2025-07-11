@@ -555,7 +555,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 
 func autoConvert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *v1beta2.APIEndpoint, s conversion.Scope) error {
 	out.Host = in.Host
-	out.Port = in.Port
+	out.Port = int32(in.Port)
 	return nil
 }
 
@@ -566,7 +566,7 @@ func Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *v1
 
 func autoConvert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(in *v1beta2.APIEndpoint, out *APIEndpoint, s conversion.Scope) error {
 	out.Host = in.Host
-	out.Port = in.Port
+	out.Port = int(in.Port)
 	return nil
 }
 
@@ -1014,7 +1014,9 @@ func Convert_v1beta2_DevMachineList_To_v1beta1_DevMachineList(in *v1beta2.DevMac
 }
 
 func autoConvert_v1beta1_DevMachineSpec_To_v1beta2_DevMachineSpec(in *DevMachineSpec, out *v1beta2.DevMachineSpec, s conversion.Scope) error {
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	if err := v1.Convert_Pointer_string_To_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
 	if err := Convert_v1beta1_DevMachineBackendSpec_To_v1beta2_DevMachineBackendSpec(&in.Backend, &out.Backend, s); err != nil {
 		return err
 	}
@@ -1027,7 +1029,9 @@ func Convert_v1beta1_DevMachineSpec_To_v1beta2_DevMachineSpec(in *DevMachineSpec
 }
 
 func autoConvert_v1beta2_DevMachineSpec_To_v1beta1_DevMachineSpec(in *v1beta2.DevMachineSpec, out *DevMachineSpec, s conversion.Scope) error {
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	if err := v1.Convert_string_To_Pointer_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
 	if err := Convert_v1beta2_DevMachineBackendSpec_To_v1beta1_DevMachineBackendSpec(&in.Backend, &out.Backend, s); err != nil {
 		return err
 	}
@@ -1618,7 +1622,9 @@ func Convert_v1beta2_DockerMachineList_To_v1beta1_DockerMachineList(in *v1beta2.
 }
 
 func autoConvert_v1beta1_DockerMachineSpec_To_v1beta2_DockerMachineSpec(in *DockerMachineSpec, out *v1beta2.DockerMachineSpec, s conversion.Scope) error {
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	if err := v1.Convert_Pointer_string_To_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
 	out.ExtraMounts = *(*[]v1beta2.Mount)(unsafe.Pointer(&in.ExtraMounts))
@@ -1633,7 +1639,9 @@ func Convert_v1beta1_DockerMachineSpec_To_v1beta2_DockerMachineSpec(in *DockerMa
 }
 
 func autoConvert_v1beta2_DockerMachineSpec_To_v1beta1_DockerMachineSpec(in *v1beta2.DockerMachineSpec, out *DockerMachineSpec, s conversion.Scope) error {
-	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	if err := v1.Convert_string_To_Pointer_string(&in.ProviderID, &out.ProviderID, s); err != nil {
+		return err
+	}
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
 	out.ExtraMounts = *(*[]Mount)(unsafe.Pointer(&in.ExtraMounts))

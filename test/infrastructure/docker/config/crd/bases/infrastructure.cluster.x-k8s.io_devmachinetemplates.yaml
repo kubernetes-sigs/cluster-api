@@ -472,6 +472,8 @@ spec:
                       providerID:
                         description: providerID used to link this machine with the
                           node hosted on it.
+                        maxLength: 512
+                        minLength: 1
                         type: string
                     required:
                     - backend

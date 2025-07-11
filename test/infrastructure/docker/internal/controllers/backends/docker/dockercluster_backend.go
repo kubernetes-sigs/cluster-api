@@ -60,7 +60,7 @@ func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster 
 	externalLoadBalancer, err := docker.NewLoadBalancer(ctx, cluster,
 		dockerCluster.Spec.Backend.Docker.LoadBalancer.ImageRepository,
 		dockerCluster.Spec.Backend.Docker.LoadBalancer.ImageTag,
-		strconv.Itoa(dockerCluster.Spec.ControlPlaneEndpoint.Port))
+		strconv.Itoa(int(dockerCluster.Spec.ControlPlaneEndpoint.Port)))
 	if err != nil {
 		v1beta1conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableV1Beta1Condition, infrav1.LoadBalancerProvisioningFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(dockerCluster, metav1.Condition{
@@ -127,7 +127,7 @@ func (r *ClusterBackEndReconciler) ReconcileDelete(ctx context.Context, cluster 
 	externalLoadBalancer, err := docker.NewLoadBalancer(ctx, cluster,
 		dockerCluster.Spec.Backend.Docker.LoadBalancer.ImageRepository,
 		dockerCluster.Spec.Backend.Docker.LoadBalancer.ImageTag,
-		strconv.Itoa(dockerCluster.Spec.ControlPlaneEndpoint.Port))
+		strconv.Itoa(int(dockerCluster.Spec.ControlPlaneEndpoint.Port)))
 	if err != nil {
 		v1beta1conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableV1Beta1Condition, infrav1.LoadBalancerProvisioningFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		conditions.Set(dockerCluster, metav1.Condition{

@@ -813,6 +813,7 @@ type MachinePoolTopology struct {
 	// failureDomains is the list of failure domains the machine pool will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -943,6 +944,7 @@ type ClusterNetwork struct {
 type NetworkRanges struct {
 	// cidrBlocks is a list of CIDR blocks.
 	// +required
+	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=43

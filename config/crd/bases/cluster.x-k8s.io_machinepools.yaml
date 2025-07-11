@@ -1678,6 +1678,7 @@ spec:
                   type: string
                 maxItems: 100
                 type: array
+                x-kubernetes-list-type: atomic
               providerIDList:
                 description: |-
                   providerIDList are the identification IDs of machine instances provided by the provider.
@@ -1688,6 +1689,7 @@ spec:
                   type: string
                 maxItems: 10000
                 type: array
+                x-kubernetes-list-type: atomic
               replicas:
                 description: |-
                   replicas is the number of desired machines. Defaults to 1.
@@ -2187,6 +2189,7 @@ spec:
                   x-kubernetes-map-type: atomic
                 maxItems: 10000
                 type: array
+                x-kubernetes-list-type: atomic
               observedGeneration:
                 description: observedGeneration is the latest generation observed
                   by the controller.

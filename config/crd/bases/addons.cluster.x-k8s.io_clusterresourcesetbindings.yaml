@@ -392,11 +392,13 @@ spec:
                         type: object
                       maxItems: 100
                       type: array
+                      x-kubernetes-list-type: atomic
                   required:
                   - clusterResourceSetName
                   type: object
                 maxItems: 100
                 type: array
+                x-kubernetes-list-type: atomic
               clusterName:
                 description: clusterName is the name of the Cluster this binding applies
                   to.

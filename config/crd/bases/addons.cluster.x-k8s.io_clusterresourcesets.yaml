@@ -718,6 +718,7 @@ spec:
                   type: object
                 maxItems: 100
                 type: array
+                x-kubernetes-list-type: atomic
               strategy:
                 description: strategy is the strategy to be used during applying resources.
                   Defaults to ApplyOnce. This field is immutable.

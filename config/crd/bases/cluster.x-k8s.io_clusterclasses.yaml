@@ -2998,6 +2998,7 @@ spec:
                           type: object
                         maxItems: 100
                         type: array
+                        x-kubernetes-list-type: atomic
                       unhealthyRange:
                         description: |-
                           unhealthyRange specifies the range of unhealthy machines allowed.
@@ -3349,6 +3350,7 @@ spec:
                               type: object
                             maxItems: 100
                             type: array
+                            x-kubernetes-list-type: atomic
                           selector:
                             description: selector defines on which templates the patch
                               should be applied.
@@ -3397,6 +3399,7 @@ spec:
                                           type: string
                                         maxItems: 100
                                         type: array
+                                        x-kubernetes-list-type: atomic
                                     type: object
                                   machinePoolClass:
                                     description: |-
@@ -3412,6 +3415,7 @@ spec:
                                           type: string
                                         maxItems: 100
                                         type: array
+                                        x-kubernetes-list-type: atomic
                                     type: object
                                 type: object
                             required:
@@ -3425,6 +3429,7 @@ spec:
                         type: object
                       maxItems: 100
                       type: array
+                      x-kubernetes-list-type: atomic
                     description:
                       description: description is a human-readable description of
                         this patch.
@@ -3483,6 +3488,7 @@ spec:
                   type: object
                 maxItems: 1000
                 type: array
+                x-kubernetes-list-type: atomic
               variables:
                 description: |-
                   variables defines the variables which can be configured
@@ -3577,6 +3583,7 @@ spec:
                                 x-kubernetes-preserve-unknown-fields: true
                               maxItems: 100
                               type: array
+                              x-kubernetes-list-type: atomic
                             example:
                               description: example is an example for this variable.
                               x-kubernetes-preserve-unknown-fields: true
@@ -3695,6 +3702,7 @@ spec:
                                 type: string
                               maxItems: 1000
                               type: array
+                              x-kubernetes-list-type: atomic
                             type:
                               description: |-
                                 type is the type of the variable.
@@ -3896,6 +3904,7 @@ spec:
                   type: object
                 maxItems: 1000
                 type: array
+                x-kubernetes-list-type: atomic
               workers:
                 description: |-
                   workers describes the worker nodes for the cluster.
@@ -4033,6 +4042,7 @@ spec:
                                 type: object
                               maxItems: 100
                               type: array
+                              x-kubernetes-list-type: atomic
                             unhealthyRange:
                               description: |-
                                 unhealthyRange specifies the range of unhealthy machines allowed.
@@ -4389,6 +4399,7 @@ spec:
                             type: string
                           maxItems: 100
                           type: array
+                          x-kubernetes-list-type: atomic
                         minReadySeconds:
                           description: |-
                             minReadySeconds is the minimum number of seconds for which a newly created machine pool should
@@ -4813,6 +4824,7 @@ spec:
                                       x-kubernetes-preserve-unknown-fields: true
                                     maxItems: 100
                                     type: array
+                                    x-kubernetes-list-type: atomic
                                   example:
                                     description: example is an example for this variable.
                                     x-kubernetes-preserve-unknown-fields: true
@@ -4931,6 +4943,7 @@ spec:
                                       type: string
                                     maxItems: 1000
                                     type: array
+                                    x-kubernetes-list-type: atomic
                                   type:
                                     description: |-
                                       type is the type of the variable.
@@ -5141,6 +5154,7 @@ spec:
                         type: object
                       maxItems: 100
                       type: array
+                      x-kubernetes-list-type: atomic
                     definitionsConflict:
                       description: definitionsConflict specifies whether or not there
                         are conflicting definitions for a single variable name.
@@ -5156,6 +5170,7 @@ spec:
                   type: object
                 maxItems: 1000
                 type: array
+                x-kubernetes-list-type: atomic
             type: object
         required:
         - spec

@@ -17,4 +17,3 @@ metadata:
 spec:
   controlPlaneEndpoint:
     port: 7777
-    host: ""

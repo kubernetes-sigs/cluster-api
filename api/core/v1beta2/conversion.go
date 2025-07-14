@@ -104,26 +104,3 @@ func Convert_Duration_To_Pointer_int32(in metav1.Duration, hasRestored bool, res
 	// Otherwise, if the value is not 0, convert to *value.
 	*out = ConvertToSeconds(&in)
 }
-
-// ConvertToDays takes *metav1.Duration and returns a *int32.
-// Durations longer than MaxInt32 are capped.
-// NOTE: this is a util function intended only for usage in API conversions.
-func ConvertToDays(in *metav1.Duration) *int32 {
-	if in == nil {
-		return nil
-	}
-	hours := math.Trunc(in.Hours())
-	if hours > math.MaxInt32 {
-		return ptr.To[int32](math.MaxInt32)
-	}
-	return ptr.To(int32(hours / 24))
-}
-
-// ConvertFromDays takes *int32 and returns a *metav1.Duration.
-// NOTE: this is a util function intended only for usage in API conversions.
-func ConvertFromDays(in *int32) *metav1.Duration {
-	if in == nil {
-		return nil
-	}
-	return ptr.To(metav1.Duration{Duration: time.Duration(*in) * time.Hour * 24})
-}

@@ -337,6 +337,8 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 							ImageTag:        "1.6.5",
 						},
 					},
+					CertificateValidityPeriodDays:   365,
+					CACertificateValidityPeriodDays: 365,
 				},
 				JoinConfiguration: &bootstrapv1.JoinConfiguration{
 					NodeRegistration: bootstrapv1.NodeRegistrationOptions{

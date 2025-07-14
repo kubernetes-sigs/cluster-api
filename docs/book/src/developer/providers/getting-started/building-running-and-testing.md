@@ -140,7 +140,7 @@ You best watch the Kubernetes pods with something like `k9s -A` or `watch kubect
 Let's try our cluster out. We'll make some simple YAML:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: hello-mailgun
@@ -149,7 +149,7 @@ spec:
     pods:
       cidrBlocks: ["192.168.0.0/16"]
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: MailgunCluster
     name: hello-mailgun
 ---

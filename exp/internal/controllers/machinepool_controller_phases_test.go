@@ -705,7 +705,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		r.reconcilePhase(machinePool)
 		g.Expect(*machinePool.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("secret-data-new"))
-		g.Expect(machinePool.Status.Initialization != nil && ptr.Deref(machinePool.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeTrue())
+		g.Expect(ptr.Deref(machinePool.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeTrue())
 		g.Expect(machinePool.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePoolPhaseRunning))
 	})
 
@@ -807,7 +807,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		// The old secret should still be used, as the new bootstrap config is not marked ready
 		g.Expect(*machinePool.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
-		g.Expect(machinePool.Status.Initialization != nil && ptr.Deref(machinePool.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeFalse())
+		g.Expect(ptr.Deref(machinePool.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeFalse())
 
 		// There is no phase defined for "changing to new bootstrap config", so it should still be `Running` the
 		// old configuration
@@ -873,7 +873,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			},
 			expectError: false,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
-				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeTrue())
+				g.Expect(ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeTrue())
 				g.Expect(m.Spec.Template.Spec.Bootstrap.DataSecretName).ToNot(BeNil())
 				g.Expect(*m.Spec.Template.Spec.Bootstrap.DataSecretName).To(ContainSubstring("secret-data"))
 			},
@@ -896,7 +896,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			},
 			expectError: true,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
-				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeFalse())
+				g.Expect(ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeFalse())
 				g.Expect(m.Spec.Template.Spec.Bootstrap.DataSecretName).To(BeNil())
 			},
 		},
@@ -915,7 +915,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			expectError:  false,
 			expectResult: ctrl.Result{},
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
-				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeFalse())
+				g.Expect(ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeFalse())
 			},
 		},
 		{
@@ -932,7 +932,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			},
 			expectError: true,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
-				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeFalse())
+				g.Expect(ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeFalse())
 			},
 		},
 		{
@@ -986,14 +986,14 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					},
 				},
 				Status: clusterv1.MachinePoolStatus{
-					Initialization: &clusterv1.MachinePoolInitializationStatus{
+					Initialization: clusterv1.MachinePoolInitializationStatus{
 						BootstrapDataSecretCreated: ptr.To(true),
 					},
 				},
 			},
 			expectError: false,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
-				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeTrue())
+				g.Expect(ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeTrue())
 				g.Expect(*m.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
 			},
 		},
@@ -1029,14 +1029,14 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					},
 				},
 				Status: clusterv1.MachinePoolStatus{
-					Initialization: &clusterv1.MachinePoolInitializationStatus{
+					Initialization: clusterv1.MachinePoolInitializationStatus{
 						BootstrapDataSecretCreated: ptr.To(true),
 					},
 				},
 			},
 			expectError: false,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
-				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeTrue())
+				g.Expect(ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeTrue())
 				g.Expect(*m.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("data"))
 			},
 		},
@@ -1077,7 +1077,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					},
 				},
 				Status: clusterv1.MachinePoolStatus{
-					Initialization: &clusterv1.MachinePoolInitializationStatus{
+					Initialization: clusterv1.MachinePoolInitializationStatus{
 						BootstrapDataSecretCreated: ptr.To(false),
 					},
 				},
@@ -1085,7 +1085,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			expectError:  false,
 			expectResult: ctrl.Result{},
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
-				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeFalse())
+				g.Expect(ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false)).To(BeFalse())
 			},
 		},
 	}
@@ -1207,7 +1207,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			expectError:   false,
 			expectChanged: true,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
-				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
 			},
 		},
 		{
@@ -1237,7 +1237,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					},
 				},
 				Status: clusterv1.MachinePoolStatus{
-					Initialization: &clusterv1.MachinePoolInitializationStatus{
+					Initialization: clusterv1.MachinePoolInitializationStatus{
 						InfrastructureProvisioned:  ptr.To(true),
 						BootstrapDataSecretCreated: ptr.To(true),
 					},
@@ -1286,7 +1286,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			expectError:        false,
 			expectRequeueAfter: false,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
-				g.Expect(m.Status.Initialization != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
 				g.Expect(m.Status.Deprecated.V1Beta1.ReadyReplicas).To(Equal(int32(0)))
 				g.Expect(m.Status.Deprecated.V1Beta1.AvailableReplicas).To(Equal(int32(0)))
 				g.Expect(m.Status.Deprecated.V1Beta1.UnavailableReplicas).To(Equal(int32(0)))

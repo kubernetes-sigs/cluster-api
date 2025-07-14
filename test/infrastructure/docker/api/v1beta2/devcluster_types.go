@@ -124,7 +124,7 @@ type DevClusterStatus struct {
 	// initialization provides observations of the DevCluster initialization process.
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
 	// +optional
-	Initialization *DevClusterInitializationStatus `json:"initialization,omitempty"`
+	Initialization DevClusterInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// failureDomains is a list of failure domain objects synced from the infrastructure provider.
 	// It don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
@@ -142,6 +142,7 @@ type DevClusterStatus struct {
 }
 
 // DevClusterInitializationStatus provides observations of the DevCluster initialization process.
+// +kubebuilder:validation:MinProperties=1
 type DevClusterInitializationStatus struct {
 	// provisioned is true when the infrastructure provider reports that the Cluster's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.

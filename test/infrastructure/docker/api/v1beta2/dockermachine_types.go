@@ -95,7 +95,7 @@ type DockerMachineStatus struct {
 	// initialization provides observations of the DockerMachine initialization process.
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
-	Initialization *DockerMachineInitializationStatus `json:"initialization,omitempty"`
+	Initialization DockerMachineInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// LoadBalancerConfigured denotes that the machine has been
 	// added to the load balancer
@@ -112,6 +112,7 @@ type DockerMachineStatus struct {
 }
 
 // DockerMachineInitializationStatus provides observations of the DockerMachine initialization process.
+// +kubebuilder:validation:MinProperties=1
 type DockerMachineInitializationStatus struct {
 	// provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.

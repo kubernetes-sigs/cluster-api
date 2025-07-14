@@ -957,11 +957,7 @@ func (in *KubeadmConfigStatus) DeepCopyInto(out *KubeadmConfigStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Initialization != nil {
-		in, out := &in.Initialization, &out.Initialization
-		*out = new(KubeadmConfigInitializationStatus)
-		(*in).DeepCopyInto(*out)
-	}
+	in.Initialization.DeepCopyInto(&out.Initialization)
 	if in.Deprecated != nil {
 		in, out := &in.Deprecated, &out.Deprecated
 		*out = new(KubeadmConfigDeprecatedStatus)

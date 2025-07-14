@@ -633,11 +633,7 @@ func (in *ClusterStatus) DeepCopyInto(out *ClusterStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Initialization != nil {
-		in, out := &in.Initialization, &out.Initialization
-		*out = new(ClusterInitializationStatus)
-		(*in).DeepCopyInto(*out)
-	}
+	in.Initialization.DeepCopyInto(&out.Initialization)
 	if in.ControlPlane != nil {
 		in, out := &in.ControlPlane, &out.ControlPlane
 		*out = new(ClusterControlPlaneStatus)
@@ -2486,11 +2482,7 @@ func (in *MachinePoolStatus) DeepCopyInto(out *MachinePoolStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Initialization != nil {
-		in, out := &in.Initialization, &out.Initialization
-		*out = new(MachinePoolInitializationStatus)
-		(*in).DeepCopyInto(*out)
-	}
+	in.Initialization.DeepCopyInto(&out.Initialization)
 	if in.NodeRefs != nil {
 		in, out := &in.NodeRefs, &out.NodeRefs
 		*out = make([]corev1.ObjectReference, len(*in))
@@ -2915,11 +2907,7 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Initialization != nil {
-		in, out := &in.Initialization, &out.Initialization
-		*out = new(MachineInitializationStatus)
-		(*in).DeepCopyInto(*out)
-	}
+	in.Initialization.DeepCopyInto(&out.Initialization)
 	if in.NodeRef != nil {
 		in, out := &in.NodeRef, &out.NodeRef
 		*out = new(MachineNodeReference)

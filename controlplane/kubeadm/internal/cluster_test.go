@@ -134,7 +134,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 	patch := client.MergeFrom(cluster.DeepCopy())
-	cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
+	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 	// Create kubeconfig secret

@@ -53,7 +53,7 @@ func ClusterCreateInfraProvisioned(scheme *runtime.Scheme, logger logr.Logger) p
 			}
 
 			// Only need to trigger a reconcile if the Cluster infrastructure is provisioned.
-			if c.Status.Initialization != nil && ptr.Deref(c.Status.Initialization.InfrastructureProvisioned, false) {
+			if ptr.Deref(c.Status.Initialization.InfrastructureProvisioned, false) {
 				log.V(6).Info("Cluster infrastructure is ready, allowing further processing")
 				return true
 			}
@@ -116,7 +116,7 @@ func ClusterUpdateInfraProvisioned(scheme *runtime.Scheme, logger logr.Logger) p
 
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
 
-			if (oldCluster.Status.Initialization == nil || !ptr.Deref(oldCluster.Status.Initialization.InfrastructureProvisioned, false)) && (newCluster.Status.Initialization != nil && ptr.Deref(newCluster.Status.Initialization.InfrastructureProvisioned, false)) {
+			if !ptr.Deref(oldCluster.Status.Initialization.InfrastructureProvisioned, false) && ptr.Deref(newCluster.Status.Initialization.InfrastructureProvisioned, false) {
 				log.V(6).Info("Cluster infrastructure became ready, allowing further processing")
 				return true
 			}

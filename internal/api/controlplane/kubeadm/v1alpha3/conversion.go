@@ -82,13 +82,10 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Recover intent for bool values converted to *bool.
 	initialization := controlplanev1.KubeadmControlPlaneInitializationStatus{}
-	var restoredControlPlaneInitialized *bool
-	if restored.Status.Initialization != nil {
-		restoredControlPlaneInitialized = restored.Status.Initialization.ControlPlaneInitialized
-	}
+	restoredControlPlaneInitialized := restored.Status.Initialization.ControlPlaneInitialized
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Initialized, ok, restoredControlPlaneInitialized, &initialization.ControlPlaneInitialized)
 	if !reflect.DeepEqual(initialization, controlplanev1.KubeadmControlPlaneInitializationStatus{}) {
-		dst.Status.Initialization = &initialization
+		dst.Status.Initialization = initialization
 	}
 
 	if err := bootstrapv1alpha3.RestoreBoolIntentKubeadmConfigSpec(&src.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec, ok, &restored.Spec.KubeadmConfigSpec); err != nil {
@@ -163,9 +160,7 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	// Move ControlPlaneInitialized to old fields, rebuild ready
-	if src.Status.Initialization != nil {
-		dst.Status.Initialized = ptr.Deref(src.Status.Initialization.ControlPlaneInitialized, false)
-	}
+	dst.Status.Initialized = ptr.Deref(src.Status.Initialization.ControlPlaneInitialized, false)
 	dst.Status.Ready = dst.Status.ReadyReplicas > 0
 
 	// Convert timeouts moved from one struct to another.

@@ -209,11 +209,7 @@ func (in *DevClusterStatus) DeepCopyInto(out *DevClusterStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Initialization != nil {
-		in, out := &in.Initialization, &out.Initialization
-		*out = new(DevClusterInitializationStatus)
-		(*in).DeepCopyInto(*out)
-	}
+	in.Initialization.DeepCopyInto(&out.Initialization)
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
 		*out = make([]corev1beta2.FailureDomain, len(*in))
@@ -521,11 +517,7 @@ func (in *DevMachineStatus) DeepCopyInto(out *DevMachineStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Initialization != nil {
-		in, out := &in.Initialization, &out.Initialization
-		*out = new(DevMachineInitializationStatus)
-		(*in).DeepCopyInto(*out)
-	}
+	in.Initialization.DeepCopyInto(&out.Initialization)
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
 		*out = make([]corev1beta2.MachineAddress, len(*in))
@@ -822,11 +814,7 @@ func (in *DockerClusterStatus) DeepCopyInto(out *DockerClusterStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Initialization != nil {
-		in, out := &in.Initialization, &out.Initialization
-		*out = new(DockerClusterInitializationStatus)
-		(*in).DeepCopyInto(*out)
-	}
+	in.Initialization.DeepCopyInto(&out.Initialization)
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
 		*out = make([]corev1beta2.FailureDomain, len(*in))
@@ -1169,11 +1157,7 @@ func (in *DockerMachineStatus) DeepCopyInto(out *DockerMachineStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Initialization != nil {
-		in, out := &in.Initialization, &out.Initialization
-		*out = new(DockerMachineInitializationStatus)
-		(*in).DeepCopyInto(*out)
-	}
+	in.Initialization.DeepCopyInto(&out.Initialization)
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
 		*out = make([]corev1beta2.MachineAddress, len(*in))

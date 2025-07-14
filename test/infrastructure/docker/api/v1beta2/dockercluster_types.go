@@ -98,7 +98,7 @@ type DockerClusterStatus struct {
 	// initialization provides observations of the DockerCluster initialization process.
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
 	// +optional
-	Initialization *DockerClusterInitializationStatus `json:"initialization,omitempty"`
+	Initialization DockerClusterInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// failureDomains is a list of failure domain objects synced from the infrastructure provider.
 	// It don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
@@ -116,6 +116,7 @@ type DockerClusterStatus struct {
 }
 
 // DockerClusterInitializationStatus provides observations of the DockerCluster initialization process.
+// +kubebuilder:validation:MinProperties=1
 type DockerClusterInitializationStatus struct {
 	// provisioned is true when the infrastructure provider reports that the Cluster's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.

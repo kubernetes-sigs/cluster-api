@@ -288,7 +288,7 @@ type MachineStatus struct {
     // The value of those fields is never updated after provisioning is completed.
     // Use conditions to monitor the operational state of the Machine.
     // +optional
-    Initialization *MachineInitializationStatus `json:"initialization,omitempty"`
+    Initialization MachineInitializationStatus `json:"initialization,omitempty,omitzero"`
     
     // Conditions represent the observations of a Machine's current state.
     // +optional
@@ -302,6 +302,7 @@ type MachineStatus struct {
 }
 
 // MachineInitializationStatus provides observations of the Machine initialization process.
+// +kubebuilder:validation:MinProperties=1
 type MachineInitializationStatus struct {
 
     // BootstrapDataSecretCreated is true when the bootstrap provider reports that the Machine's boostrap secret is created.
@@ -731,7 +732,7 @@ type ClusterStatus struct {
     // The value of those fields is never updated after provisioning is completed.
     // Use conditions to monitor the operational state of the Cluster's BootstrapSecret.
     // +optional
-    Initialization *ClusterInitializationStatus `json:"initialization,omitempty"`
+    Initialization ClusterInitializationStatus `json:"initialization,omitempty,omitzero"`
     
     // Represents the observations of a Cluster's current state.
     // +optional
@@ -752,6 +753,7 @@ type ClusterStatus struct {
 }
 
 // ClusterInitializationStatus provides observations of the Cluster initialization process.
+// +kubebuilder:validation:MinProperties=1
 type ClusterInitializationStatus struct {
 
     // InfrastructureProvisioned is true when the infrastructure provider reports that Cluster's infrastructure is fully provisioned.
@@ -1109,7 +1111,7 @@ type MachinePoolStatus struct {
     // The value of those fields is never updated after provisioning is completed.
     // Use conditions to monitor the operational state of the MachinePool.
     // +optional
-    Initialization *MachinePoolInitializationStatus `json:"initialization,omitempty"`
+    Initialization MachinePoolInitializationStatus `json:"initialization,omitempty,omitzero"`
     
     // Conditions represent the observations of a MachinePool's current state.
     // +optional
@@ -1123,6 +1125,7 @@ type MachinePoolStatus struct {
 }
 
 // MachinePoolInitializationStatus provides observations of the MachinePool initialization process.
+// +kubebuilder:validation:MinProperties=1
 type MachinePoolInitializationStatus struct {
 
     // BootstrapDataSecretCreated is true when the bootstrap provider reports that the MachinePool's boostrap data secret is created.
@@ -1372,7 +1375,7 @@ type KubeadmControlPlaneStatus struct {
     // The value of those fields is never updated after provisioning is completed.
     // Use conditions to monitor the operational state of the Cluster.
     // +optional
-    Initialization *KubeadmControlPlaneInitializationStatus `json:"initialization,omitempty"`
+    Initialization KubeadmControlPlaneInitializationStatus `json:"initialization,omitempty,omitzero"`
     
     // Conditions represent the observations of a ControlPlane's current state.
     // +optional
@@ -1398,6 +1401,7 @@ type KubeadmControlPlaneStatus struct {
 }
 
 // KubeadmControlPlaneInitializationStatus provides observations of the ControlPlane initialization process.
+// +kubebuilder:validation:MinProperties=1
 type KubeadmControlPlaneInitializationStatus struct {
 	
     // controlPlaneInitialized is true when the control plane provider reports that the Kubernetes control plane is initialized; 

@@ -168,6 +168,10 @@ linters:
         # CAPI utils
         - pkg: sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1
           alias: v1beta1conditions
+        - pkg: sigs.k8s.io/cluster-api/util/conditions
+          alias: ""
+        - pkg: sigs.k8s.io/cluster-api/util/patch
+          alias: ""
         - pkg: sigs.k8s.io/cluster-api/internal/topology/names
           alias: topologynames
         # CAPD

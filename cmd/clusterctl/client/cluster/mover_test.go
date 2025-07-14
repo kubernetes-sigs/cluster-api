@@ -1461,7 +1461,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(false)},
+							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(false)},
 							Conditions: []metav1.Condition{
 								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 							},
@@ -1485,7 +1485,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 						},
 					},
 				},
@@ -1506,7 +1506,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 							Conditions: []metav1.Condition{
 								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionFalse},
 							},
@@ -1533,7 +1533,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{},
 						},
 						Status: clusterv1.ClusterStatus{
-							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 							Conditions: []metav1.Condition{
 								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 							},
@@ -1558,7 +1558,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							UID:       "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 							Conditions: []metav1.Condition{
 								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 							},
@@ -1604,7 +1604,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							UID:       "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true), ControlPlaneInitialized: ptr.To(true)},
+							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true), ControlPlaneInitialized: ptr.To(true)},
 							Conditions: []metav1.Condition{
 								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 							},

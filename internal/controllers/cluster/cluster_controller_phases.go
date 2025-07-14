@@ -139,9 +139,6 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	if s.cluster.Spec.InfrastructureRef == nil {
 		// if the cluster is not deleted, and the cluster is not using a ClusterClass, mark the infrastructure as ready to unblock other provisioning workflows.
 		if s.cluster.DeletionTimestamp.IsZero() {
-			if cluster.Status.Initialization == nil {
-				cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
-			}
 			cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 			v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
 		}
@@ -159,7 +156,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 				return ctrl.Result{}, nil
 			}
 
-			if cluster.Status.Initialization != nil && ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
+			if ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
 				// Infra object went missing after the cluster was up and running
 				return ctrl.Result{}, errors.Errorf("%s has been deleted after being provisioned", cluster.Spec.InfrastructureRef.Kind)
 			}
@@ -185,7 +182,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	} else {
 		provisioned = *provisionedPtr
 	}
-	if provisioned && (cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false)) {
+	if provisioned && !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		log.Info("Infrastructure provider has completed provisioning", cluster.Spec.InfrastructureRef.Kind, klog.KObj(s.infraCluster))
 	}
 
@@ -205,7 +202,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// If the InfrastructureCluster is not provisioned (and it wasn't already provisioned before), return.
-	if !provisioned && (cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false)) {
+	if !provisioned && !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		log.V(3).Info("Infrastructure provider is not ready yet")
 		return ctrl.Result{}, nil
 	}
@@ -235,11 +232,8 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// Only record the event if the status has changed
-	if cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
+	if !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		r.recorder.Eventf(cluster, corev1.EventTypeNormal, "InfrastructureReady", "Cluster %s InfrastructureProvisioned is now True", cluster.Name)
-	}
-	if cluster.Status.Initialization == nil {
-		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
 	}
 	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 
@@ -266,7 +260,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 				return ctrl.Result{}, nil
 			}
 
-			if cluster.Status.Initialization != nil && ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
+			if ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
 				// Control plane went missing after the cluster was up and running
 				return ctrl.Result{}, errors.Errorf("%s has been deleted after being initialized", cluster.Spec.ControlPlaneRef.Kind)
 			}
@@ -292,7 +286,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	} else {
 		initialized = *initializedPtr
 	}
-	if initialized && (cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false)) {
+	if initialized && !ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
 		log.Info("ControlPlane has completed initialization", cluster.Spec.ControlPlaneRef.Kind, klog.KObj(s.controlPlane))
 	}
 
@@ -321,7 +315,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	}
 
 	// If the control plane is not ready (and it wasn't ready before), return early.
-	if !initialized && (cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false)) {
+	if !initialized && !ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
 		log.V(3).Info("Control Plane is not initialized yet")
 		return ctrl.Result{}, nil
 	}
@@ -340,11 +334,8 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	}
 
 	// Only record the event if the status has changed
-	if cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
+	if !ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
 		r.recorder.Eventf(cluster, corev1.EventTypeNormal, "ControlPlaneInitialized", "Cluster %s ControlPlaneInitialized is now True", cluster.Name)
-	}
-	if cluster.Status.Initialization == nil {
-		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
 	}
 	cluster.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
 

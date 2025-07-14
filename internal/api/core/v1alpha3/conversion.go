@@ -102,15 +102,12 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.Paused, ok, restored.Spec.Paused, &dst.Spec.Paused)
 
 	initialization := clusterv1.ClusterInitializationStatus{}
-	var restoredControlPlaneInitialized, restoredInfrastructureProvisioned *bool
-	if restored.Status.Initialization != nil {
-		restoredControlPlaneInitialized = restored.Status.Initialization.ControlPlaneInitialized
-		restoredInfrastructureProvisioned = restored.Status.Initialization.InfrastructureProvisioned
-	}
+	restoredControlPlaneInitialized := restored.Status.Initialization.ControlPlaneInitialized
+	restoredInfrastructureProvisioned := restored.Status.Initialization.InfrastructureProvisioned
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.ControlPlaneReady, ok, restoredControlPlaneInitialized, &initialization.ControlPlaneInitialized)
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &initialization.InfrastructureProvisioned)
 	if !reflect.DeepEqual(initialization, clusterv1.ClusterInitializationStatus{}) {
-		dst.Status.Initialization = &initialization
+		dst.Status.Initialization = initialization
 	}
 
 	for i, fd := range dst.Status.FailureDomains {
@@ -187,10 +184,8 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	// Move initialization to old fields
-	if src.Status.Initialization != nil {
-		dst.Status.ControlPlaneReady = ptr.Deref(src.Status.Initialization.ControlPlaneInitialized, false)
-		dst.Status.InfrastructureReady = ptr.Deref(src.Status.Initialization.InfrastructureProvisioned, false)
-	}
+	dst.Status.ControlPlaneReady = ptr.Deref(src.Status.Initialization.ControlPlaneInitialized, false)
+	dst.Status.InfrastructureReady = ptr.Deref(src.Status.Initialization.InfrastructureProvisioned, false)
 
 	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
@@ -235,15 +230,12 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Recover intent for bool values converted to *bool.
 	initialization := clusterv1.MachineInitializationStatus{}
-	var restoredBootstrapDataSecretCreated, restoredInfrastructureProvisioned *bool
-	if restored.Status.Initialization != nil {
-		restoredBootstrapDataSecretCreated = restored.Status.Initialization.BootstrapDataSecretCreated
-		restoredInfrastructureProvisioned = restored.Status.Initialization.InfrastructureProvisioned
-	}
+	restoredBootstrapDataSecretCreated := restored.Status.Initialization.BootstrapDataSecretCreated
+	restoredInfrastructureProvisioned := restored.Status.Initialization.InfrastructureProvisioned
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.BootstrapReady, ok, restoredBootstrapDataSecretCreated, &initialization.BootstrapDataSecretCreated)
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &initialization.InfrastructureProvisioned)
 	if !reflect.DeepEqual(initialization, clusterv1.MachineInitializationStatus{}) {
-		dst.Status.Initialization = &initialization
+		dst.Status.Initialization = initialization
 	}
 
 	// Recover other values
@@ -288,10 +280,8 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	// Move initialization to old fields
-	if src.Status.Initialization != nil {
-		dst.Status.BootstrapReady = ptr.Deref(src.Status.Initialization.BootstrapDataSecretCreated, false)
-		dst.Status.InfrastructureReady = ptr.Deref(src.Status.Initialization.InfrastructureProvisioned, false)
-	}
+	dst.Status.BootstrapReady = ptr.Deref(src.Status.Initialization.BootstrapDataSecretCreated, false)
+	dst.Status.InfrastructureReady = ptr.Deref(src.Status.Initialization.InfrastructureProvisioned, false)
 
 	dropEmptyStringsMachineSpec(&dst.Spec)
 
@@ -611,15 +601,12 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Recover intent for bool values converted to *bool.
 	initialization := clusterv1.MachinePoolInitializationStatus{}
-	var restoredBootstrapDataSecretCreated, restoredInfrastructureProvisioned *bool
-	if restored.Status.Initialization != nil {
-		restoredBootstrapDataSecretCreated = restored.Status.Initialization.BootstrapDataSecretCreated
-		restoredInfrastructureProvisioned = restored.Status.Initialization.InfrastructureProvisioned
-	}
+	restoredBootstrapDataSecretCreated := restored.Status.Initialization.BootstrapDataSecretCreated
+	restoredInfrastructureProvisioned := restored.Status.Initialization.InfrastructureProvisioned
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.BootstrapReady, ok, restoredBootstrapDataSecretCreated, &initialization.BootstrapDataSecretCreated)
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &initialization.InfrastructureProvisioned)
 	if !reflect.DeepEqual(initialization, clusterv1.MachinePoolInitializationStatus{}) {
-		dst.Status.Initialization = &initialization
+		dst.Status.Initialization = initialization
 	}
 
 	// Recover other values
@@ -671,10 +658,8 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	// Move initialization to old fields
-	if src.Status.Initialization != nil {
-		dst.Status.BootstrapReady = ptr.Deref(src.Status.Initialization.BootstrapDataSecretCreated, false)
-		dst.Status.InfrastructureReady = ptr.Deref(src.Status.Initialization.InfrastructureProvisioned, false)
-	}
+	dst.Status.BootstrapReady = ptr.Deref(src.Status.Initialization.BootstrapDataSecretCreated, false)
+	dst.Status.InfrastructureReady = ptr.Deref(src.Status.Initialization.InfrastructureProvisioned, false)
 
 	dst.Spec.MinReadySeconds = src.Spec.Template.Spec.MinReadySeconds
 

@@ -120,7 +120,7 @@ type MachinePoolStatus struct {
 	// initialization provides observations of the MachinePool initialization process.
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.
 	// +optional
-	Initialization *MachinePoolInitializationStatus `json:"initialization,omitempty"`
+	Initialization MachinePoolInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// nodeRefs will point to the corresponding Nodes if it they exist.
 	// +optional
@@ -161,6 +161,7 @@ type MachinePoolStatus struct {
 
 // MachinePoolInitializationStatus provides observations of the MachinePool initialization process.
 // NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.
+// +kubebuilder:validation:MinProperties=1
 type MachinePoolInitializationStatus struct {
 	// infrastructureProvisioned is true when the infrastructure provider reports that MachinePool's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.

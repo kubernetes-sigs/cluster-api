@@ -684,9 +684,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object status")
-			obj.Status.Initialization = &clusterv1.ClusterInitializationStatus{
-				InfrastructureProvisioned: ptr.To(true),
-			}
+			obj.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -732,9 +730,7 @@ func TestPatchHelper(t *testing.T) {
 			}
 
 			t.Log("Updating the object status")
-			obj.Status.Initialization = &clusterv1.ClusterInitializationStatus{
-				InfrastructureProvisioned: ptr.To(true),
-			}
+			obj.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 
 			t.Log("Setting Ready condition")
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})

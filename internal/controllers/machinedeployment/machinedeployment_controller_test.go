@@ -75,7 +75,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
+		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 		cluster.Status.Deprecated = &clusterv1.ClusterDeprecatedStatus{
 			V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 				Conditions: clusterv1.Conditions{

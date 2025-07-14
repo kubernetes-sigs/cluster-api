@@ -57,7 +57,7 @@ func TestGetConfigOwner(t *testing.T) {
 					Version: "v1.19.6",
 				},
 				Status: clusterv1.MachineStatus{
-					Initialization: &clusterv1.MachineInitializationStatus{
+					Initialization: clusterv1.MachineInitializationStatus{
 						InfrastructureProvisioned: ptr.To(true),
 					},
 				},
@@ -109,7 +109,7 @@ func TestGetConfigOwner(t *testing.T) {
 					},
 				},
 				Status: clusterv1.MachinePoolStatus{
-					Initialization: &clusterv1.MachinePoolInitializationStatus{
+					Initialization: clusterv1.MachinePoolInitializationStatus{
 						InfrastructureProvisioned: ptr.To(true),
 					},
 				},
@@ -218,7 +218,7 @@ func TestHasNodeRefs(t *testing.T) {
 				Namespace: metav1.NamespaceDefault,
 			},
 			Status: clusterv1.MachineStatus{
-				Initialization: &clusterv1.MachineInitializationStatus{
+				Initialization: clusterv1.MachineInitializationStatus{
 					InfrastructureProvisioned: ptr.To(true),
 				},
 				NodeRef: &clusterv1.MachineNodeReference{

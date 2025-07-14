@@ -292,7 +292,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 	}
 	switch {
 	// Wait for the infrastructure to be provisioned.
-	case (cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false)):
+	case !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false):
 		log.Info("Cluster infrastructure is not ready, waiting")
 		v1beta1conditions.MarkFalse(config, bootstrapv1.DataSecretAvailableV1Beta1Condition, bootstrapv1.WaitingForClusterInfrastructureV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(scope.Config, metav1.Condition{
@@ -304,10 +304,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 		return ctrl.Result{}, nil
 	// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
 	// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
-	case configOwner.DataSecretName() != nil && (config.Status.Initialization == nil || !ptr.Deref(config.Status.Initialization.DataSecretCreated, false) || config.Status.DataSecretName == ""):
-		if config.Status.Initialization == nil {
-			config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
-		}
+	case configOwner.DataSecretName() != nil && (!ptr.Deref(config.Status.Initialization.DataSecretCreated, false) || config.Status.DataSecretName == ""):
 		config.Status.Initialization.DataSecretCreated = ptr.To(true)
 		config.Status.DataSecretName = *configOwner.DataSecretName()
 		v1beta1conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableV1Beta1Condition)
@@ -324,7 +321,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 		return ctrl.Result{}, nil
 	// Status is ready means a config has been generated.
 	// This also solves the upgrade scenario to a version which includes v1beta2 to ensure v1beta2 conditions are properly set.
-	case config.Status.Initialization != nil && ptr.Deref(config.Status.Initialization.DataSecretCreated, false):
+	case ptr.Deref(config.Status.Initialization.DataSecretCreated, false):
 		// Based on existing code paths status.Ready is only true if status.dataSecretName is set
 		// So we can assume that the DataSecret is available.
 		v1beta1conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableV1Beta1Condition)
@@ -1399,9 +1396,6 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 		}
 	}
 	scope.Config.Status.DataSecretName = secret.Name
-	if scope.Config.Status.Initialization == nil {
-		scope.Config.Status.Initialization = &bootstrapv1.KubeadmConfigInitializationStatus{}
-	}
 	scope.Config.Status.Initialization.DataSecretCreated = ptr.To(true)
 	v1beta1conditions.MarkTrue(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition)
 	conditions.Set(scope.Config, metav1.Condition{

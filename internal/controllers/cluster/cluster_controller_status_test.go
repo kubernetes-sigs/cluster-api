@@ -71,7 +71,7 @@ func TestSetPhases(t *testing.T) {
 					Name: "test-cluster",
 				},
 				Status: clusterv1.ClusterStatus{
-					Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
@@ -94,7 +94,7 @@ func TestSetPhases(t *testing.T) {
 					},
 				},
 				Status: clusterv1.ClusterStatus{
-					Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 				},
 			},
 
@@ -114,7 +114,7 @@ func TestSetPhases(t *testing.T) {
 					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{},
 				},
 				Status: clusterv1.ClusterStatus{
-					Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}, // Note, this is automatically set when there is no cluster infrastructure (no-op).
+					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}, // Note, this is automatically set when there is no cluster infrastructure (no-op).
 				},
 			},
 
@@ -129,7 +129,7 @@ func TestSetPhases(t *testing.T) {
 					Finalizers:        []string{clusterv1.ClusterFinalizer},
 				},
 				Status: clusterv1.ClusterStatus{
-					Initialization: &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
@@ -3035,18 +3035,12 @@ func (r infrastructureRef) ApplyToCluster(c *clusterv1.Cluster) {
 type infrastructureProvisioned bool
 
 func (r infrastructureProvisioned) ApplyToCluster(c *clusterv1.Cluster) {
-	if c.Status.Initialization == nil {
-		c.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
-	}
 	c.Status.Initialization.InfrastructureProvisioned = ptr.To(bool(r))
 }
 
 type controlPlaneInitialized bool
 
 func (r controlPlaneInitialized) ApplyToCluster(c *clusterv1.Cluster) {
-	if c.Status.Initialization == nil {
-		c.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
-	}
 	c.Status.Initialization.ControlPlaneInitialized = ptr.To(bool(r))
 }
 

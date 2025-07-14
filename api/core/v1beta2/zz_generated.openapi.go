@@ -993,7 +993,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterInitializationStatus(ref common.
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterInitializationStatus provides observations of the Cluster initialization process.",
+				Description: "ClusterInitializationStatus provides observations of the Cluster initialization process. NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"infrastructureProvisioned": {
@@ -1215,6 +1215,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterStatus(ref common.ReferenceCallb
 					"initialization": {
 						SchemaProps: spec.SchemaProps{
 							Description: "initialization provides observations of the Cluster initialization process. NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterInitializationStatus"),
 						},
 					},
@@ -4374,6 +4375,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref common.ReferenceC
 					"initialization": {
 						SchemaProps: spec.SchemaProps{
 							Description: "initialization provides observations of the MachinePool initialization process. NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolInitializationStatus"),
 						},
 					},
@@ -5190,6 +5192,7 @@ func schema_cluster_api_api_core_v1beta2_MachineStatus(ref common.ReferenceCallb
 					"initialization": {
 						SchemaProps: spec.SchemaProps{
 							Description: "initialization provides observations of the Machine initialization process. NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineInitializationStatus"),
 						},
 					},

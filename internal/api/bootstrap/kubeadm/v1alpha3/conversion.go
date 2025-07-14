@@ -60,13 +60,10 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Recover intent for bool values converted to *bool.
 	initialization := bootstrapv1.KubeadmConfigInitializationStatus{}
-	var restoredBootstrapDataSecretCreated *bool
-	if restored.Status.Initialization != nil {
-		restoredBootstrapDataSecretCreated = restored.Status.Initialization.DataSecretCreated
-	}
+	restoredBootstrapDataSecretCreated := restored.Status.Initialization.DataSecretCreated
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredBootstrapDataSecretCreated, &initialization.DataSecretCreated)
 	if !reflect.DeepEqual(initialization, bootstrapv1.KubeadmConfigInitializationStatus{}) {
-		dst.Status.Initialization = &initialization
+		dst.Status.Initialization = initialization
 	}
 	if err := RestoreBoolIntentKubeadmConfigSpec(&src.Spec, &dst.Spec, ok, &restored.Spec); err != nil {
 		return err
@@ -299,9 +296,7 @@ func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	// Move initialization to old fields
-	if src.Status.Initialization != nil {
-		dst.Status.Ready = ptr.Deref(src.Status.Initialization.DataSecretCreated, false)
-	}
+	dst.Status.Ready = ptr.Deref(src.Status.Initialization.DataSecretCreated, false)
 
 	// Convert timeouts moved from one struct to another.
 	dst.Spec.ConvertFrom(&src.Spec)

@@ -127,13 +127,6 @@ func hubMachineStatus(in *clusterv1.MachineStatus, c randfill.Continue) {
 			in.Deprecated = nil
 		}
 	}
-
-	// Drop empty structs with only omit empty fields.
-	if in.Initialization != nil {
-		if reflect.DeepEqual(in.Initialization, &clusterv1.MachineInitializationStatus{}) {
-			in.Initialization = nil
-		}
-	}
 }
 
 func spokeMachine(in *Machine, c randfill.Continue) {
@@ -344,13 +337,6 @@ func hubClusterStatus(in *clusterv1.ClusterStatus, c randfill.Continue) {
 		}
 	}
 
-	// Drop empty structs with only omit empty fields.
-	if in.Initialization != nil {
-		if reflect.DeepEqual(in.Initialization, &clusterv1.ClusterInitializationStatus{}) {
-			in.Initialization = nil
-		}
-	}
-
 	if len(in.FailureDomains) > 0 {
 		in.FailureDomains = nil // Remove all pre-existing potentially invalid FailureDomains
 		for i := range c.Int31n(20) {
@@ -461,13 +447,6 @@ func hubMachinePoolStatus(in *clusterv1.MachinePoolStatus, c randfill.Continue) 
 	}
 	if in.Deprecated.V1Beta1 == nil {
 		in.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
-	}
-
-	// Drop empty structs with only omit empty fields.
-	if in.Initialization != nil {
-		if reflect.DeepEqual(in.Initialization, &clusterv1.MachinePoolInitializationStatus{}) {
-			in.Initialization = nil
-		}
 	}
 
 	// nil becomes &0 after hub => spoke => hub conversion

@@ -65,13 +65,10 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Recover intent for bool values converted to *bool.
 	initialization := controlplanev1.KubeadmControlPlaneInitializationStatus{}
-	var restoredControlPlaneInitialized *bool
-	if restored.Status.Initialization != nil {
-		restoredControlPlaneInitialized = restored.Status.Initialization.ControlPlaneInitialized
-	}
+	restoredControlPlaneInitialized := restored.Status.Initialization.ControlPlaneInitialized
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Initialized, ok, restoredControlPlaneInitialized, &initialization.ControlPlaneInitialized)
 	if !reflect.DeepEqual(initialization, controlplanev1.KubeadmControlPlaneInitializationStatus{}) {
-		dst.Status.Initialization = &initialization
+		dst.Status.Initialization = initialization
 	}
 
 	if err := bootstrapv1beta1.RestoreBoolIntentKubeadmConfigSpec(&src.Spec.KubeadmConfigSpec, &dst.Spec.KubeadmConfigSpec, ok, &restored.Spec.KubeadmConfigSpec); err != nil {
@@ -201,9 +198,7 @@ func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneSta
 	}
 
 	// Move initialized to ControlPlaneInitialized, rebuild ready
-	if in.Initialization != nil {
-		out.Initialized = ptr.Deref(in.Initialization.ControlPlaneInitialized, false)
-	}
+	out.Initialized = ptr.Deref(in.Initialization.ControlPlaneInitialized, false)
 	out.Ready = out.ReadyReplicas > 0
 
 	// Move new conditions (v1beta2) and replica counter to the v1beta2 field.

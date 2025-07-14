@@ -159,7 +159,7 @@ linters:
         - kubeapilinter
     # KAL does not handle omitzero correctly yet: https://github.com/kubernetes-sigs/kube-api-linter/pull/115
     - path: "api/.*"
-      text: "optionalfields: field Status is optional and should (be a pointer|have the omitempty tag)"
+      text: "optionalfields: field (Status|Initialization) is optional and should (be a pointer|have the omitempty tag)"
       linters:
         - kubeapilinter
     - path: "api/bootstrap/kubeadm/v1beta2"

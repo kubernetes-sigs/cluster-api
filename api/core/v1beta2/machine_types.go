@@ -513,7 +513,7 @@ type MachineStatus struct {
 	// initialization provides observations of the Machine initialization process.
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
-	Initialization *MachineInitializationStatus `json:"initialization,omitempty"`
+	Initialization MachineInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// nodeRef will point to the corresponding Node if it exists.
 	// +optional
@@ -571,6 +571,7 @@ type MachineNodeReference struct {
 
 // MachineInitializationStatus provides observations of the Machine initialization process.
 // NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+// +kubebuilder:validation:MinProperties=1
 type MachineInitializationStatus struct {
 	// infrastructureProvisioned is true when the infrastructure provider reports that Machine's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate provisioning.

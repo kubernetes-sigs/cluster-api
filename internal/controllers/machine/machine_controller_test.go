@@ -127,7 +127,7 @@ func TestWatches(t *testing.T) {
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 	testClusterOriginal := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
+	testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	g.Expect(env.Status().Patch(ctx, testCluster, testClusterOriginal)).To(Succeed())
 
 	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
@@ -444,7 +444,7 @@ func TestMachine_Reconcile(t *testing.T) {
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 	testClusterOriginal := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
+	testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	g.Expect(env.Status().Patch(ctx, testCluster, testClusterOriginal)).To(Succeed())
 
 	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
@@ -1049,7 +1049,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Status: clusterv1.ClusterStatus{
-			Initialization: &clusterv1.ClusterInitializationStatus{
+			Initialization: clusterv1.ClusterInitializationStatus{
 				InfrastructureProvisioned: ptr.To(true),
 			},
 			Conditions: []metav1.Condition{
@@ -3120,7 +3120,7 @@ func TestNodeToMachine(t *testing.T) {
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 	testClusterOriginal := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
+	testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	g.Expect(env.Status().Patch(ctx, testCluster, testClusterOriginal)).To(Succeed())
 
 	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())

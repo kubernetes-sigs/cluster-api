@@ -201,7 +201,7 @@ func Convert_v1beta2_DockerClusterStatus_To_v1alpha3_DockerClusterStatus(in *inf
 		clusterv1alpha3.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1alpha3_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 	}
 
-	if in.Initialization != nil && in.Initialization.Provisioned != nil {
+	if in.Initialization.Provisioned != nil {
 		out.Ready = *in.Initialization.Provisioned
 	}
 
@@ -231,7 +231,7 @@ func Convert_v1beta2_DockerMachineStatus_To_v1alpha3_DockerMachineStatus(in *inf
 		clusterv1alpha3.Convert_v1beta2_Deprecated_V1Beta1_Conditions_To_v1alpha3_Conditions(&in.Deprecated.V1Beta1.Conditions, &out.Conditions)
 	}
 
-	if in.Initialization != nil && in.Initialization.Provisioned != nil {
+	if in.Initialization.Provisioned != nil {
 		out.Ready = *in.Initialization.Provisioned
 	}
 
@@ -263,10 +263,6 @@ func Convert_v1alpha3_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *Doc
 		clusterv1alpha3.Convert_v1alpha3_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
 	}
 
-	if out.Initialization == nil {
-		out.Initialization = &infrav1.DockerMachineInitializationStatus{}
-	}
-
 	if in.Ready {
 		out.Initialization.Provisioned = ptr.To(in.Ready)
 	}
@@ -287,10 +283,6 @@ func Convert_v1alpha3_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *Doc
 		out.Deprecated = &infrav1.DockerClusterDeprecatedStatus{}
 		out.Deprecated.V1Beta1 = &infrav1.DockerClusterV1Beta1DeprecatedStatus{}
 		clusterv1alpha3.Convert_v1alpha3_Conditions_To_v1beta2_Deprecated_V1Beta1_Conditions(&in.Conditions, &out.Deprecated.V1Beta1.Conditions)
-	}
-
-	if out.Initialization == nil {
-		out.Initialization = &infrav1.DockerClusterInitializationStatus{}
 	}
 
 	if in.Ready {

@@ -470,7 +470,7 @@ type KubeadmConfigStatus struct {
 	// initialization provides observations of the KubeadmConfig initialization process.
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
-	Initialization *KubeadmConfigInitializationStatus `json:"initialization,omitempty"`
+	Initialization KubeadmConfigInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// dataSecretName is the name of the secret that stores the bootstrap data script.
 	// +optional
@@ -489,6 +489,7 @@ type KubeadmConfigStatus struct {
 }
 
 // KubeadmConfigInitializationStatus provides observations of the KubeadmConfig initialization process.
+// +kubebuilder:validation:MinProperties=1
 type KubeadmConfigInitializationStatus struct {
 	// dataSecretCreated is true when the Machine's boostrap secret is created.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.

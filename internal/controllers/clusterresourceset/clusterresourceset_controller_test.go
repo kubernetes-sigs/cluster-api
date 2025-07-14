@@ -127,7 +127,7 @@ metadata:
 		g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(testCluster.DeepCopy())
-		testCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}
+		testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 		g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
 
 		g.Eventually(func(g Gomega) {

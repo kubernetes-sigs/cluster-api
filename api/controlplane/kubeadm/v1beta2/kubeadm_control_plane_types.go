@@ -637,7 +637,7 @@ type KubeadmControlPlaneStatus struct {
 	// initialization provides observations of the KubeadmControlPlane initialization process.
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
-	Initialization *KubeadmControlPlaneInitializationStatus `json:"initialization,omitempty"`
+	Initialization KubeadmControlPlaneInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// selector is the label selector in string format to avoid introspection
 	// by clients, and is used to provide the CRD-based integration for the
@@ -688,6 +688,7 @@ type KubeadmControlPlaneStatus struct {
 }
 
 // KubeadmControlPlaneInitializationStatus provides observations of the KubeadmControlPlane initialization process.
+// +kubebuilder:validation:MinProperties=1
 type KubeadmControlPlaneInitializationStatus struct {
 	// controlPlaneInitialized is true when the KubeadmControlPlane provider reports that the Kubernetes control plane is initialized;
 	// A control plane is considered initialized when it can accept requests, no matter if this happens before

@@ -93,7 +93,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	}
 
 	// Check if the infrastructure is ready, otherwise return and wait for the cluster object to be updated
-	if cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
+	if !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		v1beta1conditions.MarkFalse(inMemoryMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(inMemoryMachine, metav1.Condition{
 			Type:   infrav1.DevMachineInMemoryVMProvisionedCondition,
@@ -228,9 +228,7 @@ func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Conte
 	// TODO: consider if to surface VM provisioned also on the cloud machine (currently it surfaces only on the inMemoryMachine)
 
 	inMemoryMachine.Spec.ProviderID = calculateProviderID(inMemoryMachine)
-	inMemoryMachine.Status.Initialization = &infrav1.DevMachineInitializationStatus{
-		Provisioned: ptr.To(true),
-	}
+	inMemoryMachine.Status.Initialization.Provisioned = ptr.To(true)
 	v1beta1conditions.MarkTrue(inMemoryMachine, infrav1.VMProvisionedCondition)
 	conditions.Set(inMemoryMachine, metav1.Condition{
 		Type:   infrav1.DevMachineInMemoryVMProvisionedCondition,

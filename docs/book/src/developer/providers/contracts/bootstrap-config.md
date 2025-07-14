@@ -238,13 +238,14 @@ type FooConfigStatus struct {
     // initialization provides observations of the FooConfig initialization process.
     // NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
     // +optional
-    Initialization *FooConfigInitializationStatus `json:"initialization,omitempty"`
+    Initialization FooConfigInitializationStatus `json:"initialization,omitempty,omitzero"`
     
     // See other rules for more details about mandatory/optional fields in BootstrapConfig status.
     // Other fields SHOULD be added based on the needs of your provider.
 }
 
 // FooConfigInitializationStatus provides observations of the FooConfig initialization process.
+// +kubebuilder:validation:MinProperties=1
 type FooConfigInitializationStatus struct {
     // dataSecretCreated is true when the Machine's boostrap secret is created.
     // NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.

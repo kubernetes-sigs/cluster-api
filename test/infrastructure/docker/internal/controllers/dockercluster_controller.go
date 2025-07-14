@@ -205,13 +205,6 @@ func dockerClusterToDevCluster(dockerCluster *infrav1.DockerCluster) *infrav1.De
 		}
 	}
 
-	var initialization *infrav1.DevClusterInitializationStatus
-	if dockerCluster.Status.Initialization != nil && dockerCluster.Status.Initialization.Provisioned != nil {
-		initialization = &infrav1.DevClusterInitializationStatus{
-			Provisioned: dockerCluster.Status.Initialization.Provisioned,
-		}
-	}
-
 	return &infrav1.DevCluster{
 		ObjectMeta: dockerCluster.ObjectMeta,
 		Spec: infrav1.DevClusterSpec{
@@ -224,7 +217,9 @@ func dockerClusterToDevCluster(dockerCluster *infrav1.DockerCluster) *infrav1.De
 			},
 		},
 		Status: infrav1.DevClusterStatus{
-			Initialization: initialization,
+			Initialization: infrav1.DevClusterInitializationStatus{
+				Provisioned: dockerCluster.Status.Initialization.Provisioned,
+			},
 			FailureDomains: dockerCluster.Status.FailureDomains,
 			Conditions:     dockerCluster.Status.Conditions,
 			Deprecated:     v1Beta1Status,
@@ -243,18 +238,13 @@ func devClusterToDockerCluster(devCluster *infrav1.DevCluster, dockerCluster *in
 		}
 	}
 
-	var initialization *infrav1.DockerClusterInitializationStatus
-	if devCluster.Status.Initialization != nil && devCluster.Status.Initialization.Provisioned != nil {
-		initialization = &infrav1.DockerClusterInitializationStatus{
-			Provisioned: devCluster.Status.Initialization.Provisioned,
-		}
-	}
-
 	dockerCluster.ObjectMeta = devCluster.ObjectMeta
 	dockerCluster.Spec.ControlPlaneEndpoint = devCluster.Spec.ControlPlaneEndpoint
 	dockerCluster.Spec.FailureDomains = devCluster.Spec.Backend.Docker.FailureDomains
 	dockerCluster.Spec.LoadBalancer = devCluster.Spec.Backend.Docker.LoadBalancer
-	dockerCluster.Status.Initialization = initialization
+	dockerCluster.Status.Initialization = infrav1.DockerClusterInitializationStatus{
+		Provisioned: devCluster.Status.Initialization.Provisioned,
+	}
 	dockerCluster.Status.FailureDomains = devCluster.Status.FailureDomains
 	dockerCluster.Status.Conditions = devCluster.Status.Conditions
 	dockerCluster.Status.Deprecated = v1Beta1Status

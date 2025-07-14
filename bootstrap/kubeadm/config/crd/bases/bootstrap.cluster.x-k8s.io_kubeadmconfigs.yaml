@@ -6365,6 +6365,7 @@ spec:
                 description: |-
                   initialization provides observations of the KubeadmConfig initialization process.
                   NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+                minProperties: 1
                 properties:
                   dataSecretCreated:
                     description: |-

@@ -3506,6 +3506,7 @@ spec:
                 description: |-
                   initialization provides observations of the Cluster initialization process.
                   NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
+                minProperties: 1
                 properties:
                   controlPlaneInitialized:
                     description: |-

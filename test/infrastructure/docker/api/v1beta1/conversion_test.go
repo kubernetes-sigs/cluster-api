@@ -100,12 +100,6 @@ func hubDockerClusterStatus(in *infrav1.DockerClusterStatus, c randfill.Continue
 			in.Deprecated = nil
 		}
 	}
-
-	if in.Initialization != nil {
-		if reflect.DeepEqual(in.Initialization, &infrav1.DockerClusterInitializationStatus{}) {
-			in.Initialization = nil
-		}
-	}
 }
 
 func hubFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
@@ -147,12 +141,6 @@ func hubDockerMachineStatus(in *infrav1.DockerMachineStatus, c randfill.Continue
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.DockerMachineV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
-		}
-	}
-
-	if in.Initialization != nil {
-		if reflect.DeepEqual(in.Initialization, &infrav1.DockerMachineInitializationStatus{}) {
-			in.Initialization = nil
 		}
 	}
 }
@@ -198,12 +186,6 @@ func hubDevClusterStatus(in *infrav1.DevClusterStatus, c randfill.Continue) {
 			in.Deprecated = nil
 		}
 	}
-
-	if in.Initialization != nil {
-		if reflect.DeepEqual(in.Initialization, &infrav1.DevClusterInitializationStatus{}) {
-			in.Initialization = nil
-		}
-	}
 }
 
 func spokeDevClusterStatus(in *DevClusterStatus, c randfill.Continue) {
@@ -237,12 +219,6 @@ func hubDevMachineStatus(in *infrav1.DevMachineStatus, c randfill.Continue) {
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.DevMachineV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
-		}
-	}
-
-	if in.Initialization != nil {
-		if reflect.DeepEqual(in.Initialization, &infrav1.DevMachineInitializationStatus{}) {
-			in.Initialization = nil
 		}
 	}
 }

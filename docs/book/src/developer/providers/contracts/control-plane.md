@@ -554,13 +554,14 @@ type FooControlPlaneStatus struct {
     // initialization provides observations of the FooControlPlane initialization process.
     // NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
     // +optional
-    Initialization *FooControlPlaneInitializationStatus `json:"initialization,omitempty"`
+    Initialization FooControlPlaneInitializationStatus `json:"initialization,omitempty,omitzero"`
     
     // See other rules for more details about mandatory/optional fields in ControlPlane status.
     // Other fields SHOULD be added based on the needs of your provider.
 }
 
 // FooControlPlaneInitializationStatus provides observations of the FooControlPlane initialization process.
+// +kubebuilder:validation:MinProperties=1
 type FooControlPlaneInitializationStatus struct {
     // controlPlaneInitialized is true when the control plane provider reports that the Kubernetes control plane is initialized; 
     // usually a control plane is considered initialized when it can accept requests, no matter if this happens before 

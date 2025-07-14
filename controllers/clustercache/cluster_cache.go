@@ -438,7 +438,7 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 
 	// Return if infrastructure is not ready yet to avoid trying to open a connection when it cannot succeed.
 	// Requeue is not needed as there will be a new reconcile.Request when Cluster.status.initialization.infrastructureProvisioned is set.
-	if cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
+	if !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		log.V(6).Info("Can't connect yet, Cluster infrastructure is not provisioned")
 		return reconcile.Result{}, nil
 	}

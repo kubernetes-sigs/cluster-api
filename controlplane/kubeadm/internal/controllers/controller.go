@@ -249,7 +249,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			// resync (by default 10 minutes).
 			// The alternative solution would be to watch the control plane nodes in the Cluster - similar to how the
 			// MachineSet and MachineHealthCheck controllers watch the nodes under their control.
-			if kcp.Status.Initialization == nil || !ptr.Deref(kcp.Status.Initialization.ControlPlaneInitialized, false) {
+			if !ptr.Deref(kcp.Status.Initialization.ControlPlaneInitialized, false) {
 				res = ctrl.Result{RequeueAfter: 20 * time.Second}
 			}
 
@@ -280,7 +280,7 @@ func (r *KubeadmControlPlaneReconciler) initControlPlaneScope(ctx context.Contex
 	log := ctrl.LoggerFrom(ctx)
 
 	// Return early if the cluster is not yet in a state where control plane machines exists
-	if cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) || !cluster.Spec.ControlPlaneEndpoint.IsValid() {
+	if !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) || !cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		controlPlane, err := internal.NewControlPlane(ctx, r.managementCluster, r.Client, cluster, kcp, collections.Machines{})
 		if err != nil {
 			log.Error(err, "Failed to initialize control plane scope")
@@ -374,7 +374,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	}
 
 	// Wait for the cluster infrastructure to be ready before creating machines
-	if controlPlane.Cluster.Status.Initialization == nil || !ptr.Deref(controlPlane.Cluster.Status.Initialization.InfrastructureProvisioned, false) {
+	if !ptr.Deref(controlPlane.Cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		// Note: in future we might want to move this inside reconcileControlPlaneAndMachinesConditions.
 		conditions.Set(controlPlane.KCP, metav1.Condition{
 			Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
@@ -889,7 +889,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 	// the same check. We don't use the ControlPlaneInitialized condition from the Cluster here because KCP
 	// Reconcile does (currently) not get triggered from condition changes to the Cluster object.
 	controlPlaneInitialized := conditions.Get(controlPlane.KCP, controlplanev1.KubeadmControlPlaneInitializedCondition)
-	if controlPlane.KCP.Status.Initialization == nil || !ptr.Deref(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized, false) ||
+	if !ptr.Deref(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized, false) ||
 		controlPlaneInitialized == nil || controlPlaneInitialized.Status != metav1.ConditionTrue {
 		// Overwrite conditions to InspectionFailed.
 		setConditionsToUnknown(setConditionsToUnknownInput{
@@ -1228,7 +1228,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context
 	}
 
 	// Return if KCP is not yet initialized (no API server to contact for checking certificate expiration).
-	if controlPlane.KCP.Status.Initialization == nil || !ptr.Deref(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized, false) {
+	if !ptr.Deref(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized, false) {
 		return nil
 	}
 

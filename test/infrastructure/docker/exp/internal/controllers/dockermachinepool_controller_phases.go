@@ -201,8 +201,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	for i := range orderedDockerMachines {
 		dockerMachine := orderedDockerMachines[i]
 		// TODO (v1beta2): test for v1beta2 conditions
-		initialization := dockerMachine.Status.Initialization
-		if initialization != nil && ptr.Deref(initialization.Provisioned, false) || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyV1Beta1Condition) {
+		if ptr.Deref(dockerMachine.Status.Initialization.Provisioned, false) || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyV1Beta1Condition) {
 			totalReadyMachines++
 		}
 	}
@@ -387,11 +386,10 @@ func (r *DockerMachinePoolReconciler) getDeletionCandidates(ctx context.Context,
 			return nil, nil, errors.Errorf("failed to find externalMachine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
 		}
 
-		initialization := dockerMachine.Status.Initialization
 		// TODO (v1beta2): test for v1beta2 conditions
 		if !isMachineMatchingInfrastructureSpec(ctx, externalMachine, machinePool, dockerMachinePool) {
 			outdatedMachines = append(outdatedMachines, dockerMachine)
-		} else if initialization != nil && ptr.Deref(initialization.Provisioned, false) || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyV1Beta1Condition) {
+		} else if ptr.Deref(dockerMachine.Status.Initialization.Provisioned, false) || v1beta1conditions.IsTrue(&dockerMachine, clusterv1.ReadyV1Beta1Condition) {
 			readyMatchingMachines = append(readyMatchingMachines, dockerMachine)
 		}
 	}

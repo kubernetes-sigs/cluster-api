@@ -174,13 +174,6 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 		in.Deprecated.V1Beta1 = &controlplanev1.KubeadmControlPlaneV1Beta1DeprecatedStatus{}
 	}
 
-	// Drop empty structs with only omit empty fields.
-	if in.Initialization != nil {
-		if reflect.DeepEqual(in.Initialization, &controlplanev1.KubeadmControlPlaneInitializationStatus{}) {
-			in.Initialization = nil
-		}
-	}
-
 	// nil becomes &0 after hub => spoke => hub conversion
 	// This is acceptable as usually Replicas is set and controllers using older apiVersions are not writing MachineSet status.
 	if in.Replicas == nil {

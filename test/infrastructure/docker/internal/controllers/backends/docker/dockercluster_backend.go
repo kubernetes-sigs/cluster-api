@@ -104,9 +104,7 @@ func (r *ClusterBackEndReconciler) ReconcileNormal(ctx context.Context, cluster 
 	}
 
 	// Mark the dockerCluster ready
-	dockerCluster.Status.Initialization = &infrav1.DevClusterInitializationStatus{
-		Provisioned: ptr.To(true),
-	}
+	dockerCluster.Status.Initialization.Provisioned = ptr.To(true)
 	v1beta1conditions.MarkTrue(dockerCluster, infrav1.LoadBalancerAvailableV1Beta1Condition)
 	conditions.Set(dockerCluster, metav1.Condition{
 		Type:   infrav1.DevClusterDockerLoadBalancerAvailableCondition,

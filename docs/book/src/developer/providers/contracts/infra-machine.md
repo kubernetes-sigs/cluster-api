@@ -297,13 +297,14 @@ type FooMachineStatus struct {
     // initialization provides observations of the FooMachine initialization process.
     // NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
     // +optional
-    Initialization *FooMachineInitializationStatus `json:"initialization,omitempty"`
+    Initialization FooMachineInitializationStatus `json:"initialization,omitempty,omitzero"`
     
     // See other rules for more details about mandatory/optional fields in InfraMachine status.
     // Other fields SHOULD be added based on the needs of your provider.
 }
 
 // FooMachineInitializationStatus provides observations of the FooMachine initialization process.
+// +kubebuilder:validation:MinProperties=1
 type FooMachineInitializationStatus struct {
 	// provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.

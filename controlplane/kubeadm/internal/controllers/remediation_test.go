@@ -293,7 +293,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -575,7 +575,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					},
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -607,7 +607,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Replicas: utilptr.To[int32](3),
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -639,7 +639,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Replicas: utilptr.To(int32(3)),
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -672,7 +672,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Replicas: utilptr.To(int32(3)),
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -705,7 +705,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Replicas: utilptr.To[int32](3),
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -752,7 +752,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Replicas: utilptr.To[int32](5),
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -799,7 +799,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(false),
 					},
 				},
@@ -851,7 +851,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(false),
 					},
 				},
@@ -945,7 +945,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -1000,7 +1000,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -1055,7 +1055,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -1111,7 +1111,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -1167,7 +1167,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -1223,7 +1223,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -1270,7 +1270,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(false),
 					},
 				},
@@ -1380,7 +1380,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 					Version:  "v1.19.1",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(false),
 					},
 				},
@@ -1493,7 +1493,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 					},
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},
@@ -1609,7 +1609,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 					},
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
-					Initialization: &controlplanev1.KubeadmControlPlaneInitializationStatus{
+					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 						ControlPlaneInitialized: utilptr.To(true),
 					},
 				},

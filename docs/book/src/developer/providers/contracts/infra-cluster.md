@@ -332,13 +332,14 @@ type FooClusterStatus struct {
     // initialization provides observations of the FooCluster initialization process.
     // NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
     // +optional
-    Initialization *FooClusterInitializationStatus `json:"initialization,omitempty"`
+    Initialization FooClusterInitializationStatus `json:"initialization,omitempty,omitzero"`
     
     // See other rules for more details about mandatory/optional fields in InfraCluster status.
     // Other fields SHOULD be added based on the needs of your provider.
 }
 
 // FooClusterInitializationStatus provides observations of the FooCluster initialization process.
+// +kubebuilder:validation:MinProperties=1
 type FooClusterInitializationStatus struct {
 	// provisioned is true when the infrastructure provider reports that the Cluster's infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.

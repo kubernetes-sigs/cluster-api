@@ -594,7 +594,7 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			Initialization: &clusterv1.MachineInitializationStatus{
+			Initialization: clusterv1.MachineInitializationStatus{
 				InfrastructureProvisioned:  ptr.To(true),
 				BootstrapDataSecretCreated: ptr.To(true),
 			},

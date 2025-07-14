@@ -241,10 +241,6 @@ func Convert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevCluster
 		return err
 	}
 
-	if out.Initialization == nil {
-		out.Initialization = &infrav1.DevClusterInitializationStatus{}
-	}
-
 	if in.Ready {
 		out.Initialization.Provisioned = ptr.To(in.Ready)
 	}
@@ -293,7 +289,7 @@ func Convert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in *infrav1.De
 		return err
 	}
 
-	if in.Initialization != nil && in.Initialization.Provisioned != nil {
+	if in.Initialization.Provisioned != nil {
 		out.Ready = *in.Initialization.Provisioned
 	}
 
@@ -331,10 +327,6 @@ func Convert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in *DevMachine
 		return err
 	}
 
-	if out.Initialization == nil {
-		out.Initialization = &infrav1.DevMachineInitializationStatus{}
-	}
-
 	if in.Ready {
 		out.Initialization.Provisioned = ptr.To(in.Ready)
 	}
@@ -369,7 +361,7 @@ func Convert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *infrav1.De
 		return err
 	}
 
-	if in.Initialization != nil && in.Initialization.Provisioned != nil {
+	if in.Initialization.Provisioned != nil {
 		out.Ready = *in.Initialization.Provisioned
 	}
 
@@ -396,10 +388,6 @@ func Convert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *infrav1.De
 func Convert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *DockerClusterStatus, out *infrav1.DockerClusterStatus, s apiconversion.Scope) error {
 	if err := autoConvert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in, out, s); err != nil {
 		return err
-	}
-
-	if out.Initialization == nil {
-		out.Initialization = &infrav1.DockerClusterInitializationStatus{}
 	}
 
 	if in.Ready {
@@ -450,7 +438,7 @@ func Convert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *infr
 		return err
 	}
 
-	if in.Initialization != nil && in.Initialization.Provisioned != nil {
+	if in.Initialization.Provisioned != nil {
 		out.Ready = *in.Initialization.Provisioned
 	}
 
@@ -488,10 +476,6 @@ func Convert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *Dock
 		return err
 	}
 
-	if out.Initialization == nil {
-		out.Initialization = &infrav1.DockerMachineInitializationStatus{}
-	}
-
 	if in.Ready {
 		out.Initialization.Provisioned = ptr.To(in.Ready)
 	}
@@ -526,7 +510,7 @@ func Convert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *infr
 		return err
 	}
 
-	if in.Initialization != nil && in.Initialization.Provisioned != nil {
+	if in.Initialization.Provisioned != nil {
 		out.Ready = *in.Initialization.Provisioned
 	}
 

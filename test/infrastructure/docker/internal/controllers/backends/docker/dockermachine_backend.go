@@ -70,7 +70,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	}
 
 	// Check if the infrastructure is ready, otherwise return and wait for the cluster object to be updated
-	if cluster.Status.Initialization == nil || !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
+	if !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		log.Info("Waiting for DockerCluster Controller to create cluster infrastructure")
 		v1beta1conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedV1Beta1Condition, infrav1.WaitingForClusterInfrastructureV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		conditions.Set(dockerMachine, metav1.Condition{
@@ -118,9 +118,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	if dockerMachine.Spec.ProviderID != "" {
 		// ensure ready state is set.
 		// This is required after move, because status is not moved to the target cluster.
-		dockerMachine.Status.Initialization = &infrav1.DevMachineInitializationStatus{
-			Provisioned: ptr.To(true),
-		}
+		dockerMachine.Status.Initialization.Provisioned = ptr.To(true)
 
 		if externalMachine.Exists() {
 			v1beta1conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedV1Beta1Condition)
@@ -362,9 +360,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	}
 	// Set ProviderID so the Cluster API Machine Controller can pull it
 	dockerMachine.Spec.ProviderID = externalMachine.ProviderID()
-	dockerMachine.Status.Initialization = &infrav1.DevMachineInitializationStatus{
-		Provisioned: ptr.To(true),
-	}
+	dockerMachine.Status.Initialization.Provisioned = ptr.To(true)
 
 	return ctrl.Result{}, nil
 }

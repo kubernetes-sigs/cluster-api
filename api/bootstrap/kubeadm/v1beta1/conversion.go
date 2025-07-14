@@ -47,13 +47,10 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Recover intent for bool values converted to *bool.
 	initialization := bootstrapv1.KubeadmConfigInitializationStatus{}
-	var restoredBootstrapDataSecretCreated *bool
-	if restored.Status.Initialization != nil {
-		restoredBootstrapDataSecretCreated = restored.Status.Initialization.DataSecretCreated
-	}
+	restoredBootstrapDataSecretCreated := restored.Status.Initialization.DataSecretCreated
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredBootstrapDataSecretCreated, &initialization.DataSecretCreated)
 	if !reflect.DeepEqual(initialization, bootstrapv1.KubeadmConfigInitializationStatus{}) {
-		dst.Status.Initialization = &initialization
+		dst.Status.Initialization = initialization
 	}
 	if err := RestoreBoolIntentKubeadmConfigSpec(&src.Spec, &dst.Spec, ok, &restored.Spec); err != nil {
 		return err
@@ -363,9 +360,7 @@ func Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *boot
 	}
 
 	// Move initialization to old fields
-	if in.Initialization != nil {
-		out.Ready = ptr.Deref(in.Initialization.DataSecretCreated, false)
-	}
+	out.Ready = ptr.Deref(in.Initialization.DataSecretCreated, false)
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
 	if in.Conditions == nil {

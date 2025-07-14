@@ -304,13 +304,6 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 		}
 	}
 
-	var initialization *infrav1.DevMachineInitializationStatus
-	if dockerMachine.Status.Initialization != nil && dockerMachine.Status.Initialization.Provisioned != nil {
-		initialization = &infrav1.DevMachineInitializationStatus{
-			Provisioned: dockerMachine.Status.Initialization.Provisioned,
-		}
-	}
-
 	return &infrav1.DevMachine{
 		ObjectMeta: dockerMachine.ObjectMeta,
 		Spec: infrav1.DevMachineSpec{
@@ -326,10 +319,12 @@ func dockerMachineToDevMachine(dockerMachine *infrav1.DockerMachine) *infrav1.De
 			},
 		},
 		Status: infrav1.DevMachineStatus{
-			Initialization: initialization,
-			Addresses:      dockerMachine.Status.Addresses,
-			Conditions:     dockerMachine.Status.Conditions,
-			Deprecated:     v1Beta1Status,
+			Initialization: infrav1.DevMachineInitializationStatus{
+				Provisioned: dockerMachine.Status.Initialization.Provisioned,
+			},
+			Addresses:  dockerMachine.Status.Addresses,
+			Conditions: dockerMachine.Status.Conditions,
+			Deprecated: v1Beta1Status,
 			Backend: &infrav1.DevMachineBackendStatus{
 				Docker: &infrav1.DockerMachineBackendStatus{
 					LoadBalancerConfigured: dockerMachine.Status.LoadBalancerConfigured,
@@ -350,13 +345,6 @@ func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *in
 		}
 	}
 
-	var initialization *infrav1.DockerMachineInitializationStatus
-	if devMachine.Status.Initialization != nil && devMachine.Status.Initialization.Provisioned != nil {
-		initialization = &infrav1.DockerMachineInitializationStatus{
-			Provisioned: devMachine.Status.Initialization.Provisioned,
-		}
-	}
-
 	dockerMachine.ObjectMeta = devMachine.ObjectMeta
 	dockerMachine.Spec.ProviderID = devMachine.Spec.ProviderID
 	dockerMachine.Spec.CustomImage = devMachine.Spec.Backend.Docker.CustomImage
@@ -364,7 +352,9 @@ func devMachineToDockerMachine(devMachine *infrav1.DevMachine, dockerMachine *in
 	dockerMachine.Spec.ExtraMounts = devMachine.Spec.Backend.Docker.ExtraMounts
 	dockerMachine.Spec.Bootstrapped = devMachine.Spec.Backend.Docker.Bootstrapped
 	dockerMachine.Spec.BootstrapTimeout = devMachine.Spec.Backend.Docker.BootstrapTimeout
-	dockerMachine.Status.Initialization = initialization
+	dockerMachine.Status.Initialization = infrav1.DockerMachineInitializationStatus{
+		Provisioned: devMachine.Status.Initialization.Provisioned,
+	}
 	dockerMachine.Status.Addresses = devMachine.Status.Addresses
 	dockerMachine.Status.Conditions = devMachine.Status.Conditions
 	dockerMachine.Status.Deprecated = v1Beta1Status

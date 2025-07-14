@@ -128,6 +128,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((**ResourceSetBinding)(nil), (*v1beta2.ResourceSetBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_Pointer_v1alpha3_ResourceSetBinding_To_v1beta2_ResourceSetBinding(a.(**ResourceSetBinding), b.(*v1beta2.ResourceSetBinding), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1.Condition)(nil), (*corev1alpha3.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1_Condition_To_v1alpha3_Condition(a.(*v1.Condition), b.(*corev1alpha3.Condition), scope)
 	}); err != nil {
@@ -145,6 +150,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.ClusterResourceSetStatus)(nil), (*ClusterResourceSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ClusterResourceSetStatus_To_v1alpha3_ClusterResourceSetStatus(a.(*v1beta2.ClusterResourceSetStatus), b.(*ClusterResourceSetStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.ResourceSetBinding)(nil), (**ResourceSetBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ResourceSetBinding_To_Pointer_v1alpha3_ResourceSetBinding(a.(*v1beta2.ResourceSetBinding), b.(**ResourceSetBinding), scope)
 	}); err != nil {
 		return err
 	}
@@ -252,7 +262,17 @@ func Convert_v1beta2_ClusterResourceSetBindingList_To_v1alpha3_ClusterResourceSe
 }
 
 func autoConvert_v1alpha3_ClusterResourceSetBindingSpec_To_v1beta2_ClusterResourceSetBindingSpec(in *ClusterResourceSetBindingSpec, out *v1beta2.ClusterResourceSetBindingSpec, s conversion.Scope) error {
-	out.Bindings = *(*[]*v1beta2.ResourceSetBinding)(unsafe.Pointer(&in.Bindings))
+	if in.Bindings != nil {
+		in, out := &in.Bindings, &out.Bindings
+		*out = make([]v1beta2.ResourceSetBinding, len(*in))
+		for i := range *in {
+			if err := Convert_Pointer_v1alpha3_ResourceSetBinding_To_v1beta2_ResourceSetBinding(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Bindings = nil
+	}
 	return nil
 }
 
@@ -262,7 +282,17 @@ func Convert_v1alpha3_ClusterResourceSetBindingSpec_To_v1beta2_ClusterResourceSe
 }
 
 func autoConvert_v1beta2_ClusterResourceSetBindingSpec_To_v1alpha3_ClusterResourceSetBindingSpec(in *v1beta2.ClusterResourceSetBindingSpec, out *ClusterResourceSetBindingSpec, s conversion.Scope) error {
-	out.Bindings = *(*[]*ResourceSetBinding)(unsafe.Pointer(&in.Bindings))
+	if in.Bindings != nil {
+		in, out := &in.Bindings, &out.Bindings
+		*out = make([]*ResourceSetBinding, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_ResourceSetBinding_To_Pointer_v1alpha3_ResourceSetBinding(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Bindings = nil
+	}
 	// WARNING: in.ClusterName requires manual conversion: does not exist in peer-type
 	return nil
 }

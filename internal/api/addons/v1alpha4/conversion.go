@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -118,6 +120,21 @@ func Convert_v1beta2_ClusterResourceSetBindingSpec_To_v1alpha4_ClusterResourceSe
 func Convert_v1beta2_ClusterResourceSetStatus_To_v1alpha4_ClusterResourceSetStatus(in *addonsv1.ClusterResourceSetStatus, out *ClusterResourceSetStatus, s apimachineryconversion.Scope) error {
 	// V1Beta2 was added in v1beta1
 	return autoConvert_v1beta2_ClusterResourceSetStatus_To_v1alpha4_ClusterResourceSetStatus(in, out, s)
+}
+
+func Convert_Pointer_v1alpha4_ResourceSetBinding_To_v1beta2_ResourceSetBinding(in **ResourceSetBinding, out *addonsv1.ResourceSetBinding, s apimachineryconversion.Scope) error {
+	if in == nil || *in == nil {
+		return nil
+	}
+	return autoConvert_v1alpha4_ResourceSetBinding_To_v1beta2_ResourceSetBinding(*in, out, s)
+}
+
+func Convert_v1beta2_ResourceSetBinding_To_Pointer_v1alpha4_ResourceSetBinding(in *addonsv1.ResourceSetBinding, out **ResourceSetBinding, s apimachineryconversion.Scope) error {
+	if in == nil || reflect.DeepEqual(*in, addonsv1.ResourceSetBinding{}) {
+		return nil
+	}
+	*out = &ResourceSetBinding{}
+	return autoConvert_v1beta2_ResourceSetBinding_To_v1alpha4_ResourceSetBinding(in, *out, s)
 }
 
 // Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)

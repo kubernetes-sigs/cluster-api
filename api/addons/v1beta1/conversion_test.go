@@ -39,8 +39,9 @@ func TestFuzzyConversion(t *testing.T) {
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{ClusterResourceSetFuzzFuncs},
 	}))
 	t.Run("for ClusterResourceSetBinding", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &addonsv1.ClusterResourceSetBinding{},
-		Spoke: &ClusterResourceSetBinding{},
+		Hub:         &addonsv1.ClusterResourceSetBinding{},
+		Spoke:       &ClusterResourceSetBinding{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{ClusterResourceSetBindingFuzzFuncs},
 	}))
 }
 
@@ -67,6 +68,23 @@ func spokeClusterResourceSetStatus(in *ClusterResourceSetStatus, c randfill.Cont
 	if in.V1Beta2 != nil {
 		if reflect.DeepEqual(in.V1Beta2, &ClusterResourceSetV1Beta2Status{}) {
 			in.V1Beta2 = nil
+		}
+	}
+}
+
+func ClusterResourceSetBindingFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		hubClusterResourceSetStatus,
+		spokeClusterResourceSetBindingSpec,
+	}
+}
+
+func spokeClusterResourceSetBindingSpec(in *ClusterResourceSetBindingSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	for i, b := range in.Bindings {
+		if b != nil && reflect.DeepEqual(*b, ResourceSetBinding{}) {
+			in.Bindings[i] = nil
 		}
 	}
 }

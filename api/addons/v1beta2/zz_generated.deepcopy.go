@@ -116,13 +116,9 @@ func (in *ClusterResourceSetBindingSpec) DeepCopyInto(out *ClusterResourceSetBin
 	*out = *in
 	if in.Bindings != nil {
 		in, out := &in.Bindings, &out.Bindings
-		*out = make([]*ResourceSetBinding, len(*in))
+		*out = make([]ResourceSetBinding, len(*in))
 		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(ResourceSetBinding)
-				(*in).DeepCopyInto(*out)
-			}
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 }

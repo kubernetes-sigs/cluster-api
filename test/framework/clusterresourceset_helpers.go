@@ -169,7 +169,7 @@ func getResourceSetBindingForClusterResourceSet(
 	}
 	for _, binding := range clusterResourceSetBinding.Spec.Bindings {
 		if binding.ClusterResourceSetName == clusterResourceSet.Name {
-			return binding
+			return &binding
 		}
 	}
 	return nil

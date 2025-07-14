@@ -50,9 +50,12 @@ func setRefVersionsUpToDateCondition(_ context.Context, clusterClass *clusterv1.
 	}
 
 	if len(outdatedRefs) > 0 {
-		var msg []string
+		var msg = []string{
+			"The following templateRefs are not using the latest apiVersion:",
+		}
 		for _, outdatedRef := range outdatedRefs {
-			msg = append(msg, fmt.Sprintf("* templateRef %q should be %q", refString(outdatedRef.Outdated), refString(outdatedRef.UpToDate)))
+			msg = append(msg, fmt.Sprintf("* %s %s: current: %s, latest: %s", outdatedRef.Outdated.Kind, outdatedRef.Outdated.Name,
+				outdatedRef.Outdated.GroupVersionKind().Version, outdatedRef.UpToDate.GroupVersionKind().Version))
 		}
 		v1beta1conditions.Set(clusterClass,
 			v1beta1conditions.FalseCondition(

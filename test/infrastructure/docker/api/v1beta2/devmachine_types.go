@@ -243,7 +243,9 @@ const (
 type DevMachineSpec struct {
 	// providerID used to link this machine with the node hosted on it.
 	// +optional
-	ProviderID *string `json:"providerID,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ProviderID string `json:"providerID,omitempty"`
 
 	// backend defines backends for a DevMachine.
 	// +required

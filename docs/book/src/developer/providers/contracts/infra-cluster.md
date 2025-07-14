@@ -221,6 +221,46 @@ in the InfraCluster resource.
 type FooClusterSpec struct {
     // controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
     // +optional
+    ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty,omitzero"`
+    
+    // See other rules for more details about mandatory/optional fields in InfraCluster spec.
+    // Other fields SHOULD be added based on the needs of your provider.
+}
+
+// APIEndpoint represents a reachable Kubernetes API endpoint.
+// +kubebuilder:validation:MinProperties=1
+type APIEndpoint struct {
+    // host is the hostname on which the API server is serving.
+    // +optional
+    // +kubebuilder:validation:MinLength=1
+    // +kubebuilder:validation:MaxLength=512
+    Host string `json:"host,omitempty"`
+
+    // port is the port on which the API server is serving.
+    // +optional
+    // +kubebuilder:validation:Minimum=1
+    // +kubebuilder:validation:Maximum=65535
+    Port int32 `json:"port,omitempty"`
+}
+```
+
+Once `spec.controlPlaneEndpoint` is set on the InfraCluster resource and the [InfraCluster initialization completed],
+the Cluster controller will surface this info in Cluster's `spec.controlPlaneEndpoint`.
+
+If instead you are developing an infrastructure provider which is NOT responsible to provide a control plane endpoint,
+the implementer should exit reconciliation until it sees Cluster's `spec.controlPlaneEndpoint` populated.
+
+<aside class="note warning">
+
+<h1>Compatibility with the deprecated v1beta1 contract</h1>
+
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+
+```go
+type FooClusterSpec struct {
+    // controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+    // +optional
     ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
     
     // See other rules for more details about mandatory/optional fields in InfraCluster spec.
@@ -237,11 +277,7 @@ type APIEndpoint struct {
 }
 ```
 
-Once `spec.controlPlaneEndpoint` is set on the InfraCluster resource and the [InfraCluster initialization completed],
-the Cluster controller will surface this info in Cluster's `spec.controlPlaneEndpoint`.
-
-If instead you are developing an infrastructure provider which is NOT responsible to provide a control plane endpoint,
-the implementer should exit reconciliation until it sees Cluster's `spec.controlPlaneEndpoint` populated.
+</aside>
 
 ### InfraCluster: failure domains
 

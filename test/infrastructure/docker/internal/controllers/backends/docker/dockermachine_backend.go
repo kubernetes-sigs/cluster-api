@@ -115,7 +115,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	}
 
 	// if the machine is already provisioned, return
-	if dockerMachine.Spec.ProviderID != nil {
+	if dockerMachine.Spec.ProviderID != "" {
 		// ensure ready state is set.
 		// This is required after move, because status is not moved to the target cluster.
 		dockerMachine.Status.Initialization = &infrav1.DevMachineInitializationStatus{
@@ -361,8 +361,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 	// Set ProviderID so the Cluster API Machine Controller can pull it
-	providerID := externalMachine.ProviderID()
-	dockerMachine.Spec.ProviderID = &providerID
+	dockerMachine.Spec.ProviderID = externalMachine.ProviderID()
 	dockerMachine.Status.Initialization = &infrav1.DevMachineInitializationStatus{
 		Provisioned: ptr.To(true),
 	}
@@ -399,7 +398,7 @@ func (r *MachineBackendReconciler) getExternalObjects(ctx context.Context, clust
 	externalLoadBalancer, err := docker.NewLoadBalancer(ctx, cluster,
 		imageRepository,
 		imageTag,
-		strconv.Itoa(dockerCluster.Spec.ControlPlaneEndpoint.Port))
+		strconv.Itoa(int(dockerCluster.Spec.ControlPlaneEndpoint.Port)))
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
 	}
@@ -463,7 +462,7 @@ func (r *MachineBackendReconciler) PatchDevMachine(ctx context.Context, patchHel
 			infrav1.ContainerProvisionedV1Beta1Condition,
 			infrav1.BootstrapExecSucceededV1Beta1Condition,
 		),
-		v1beta1conditions.WithStepCounterIf(dockerMachine.DeletionTimestamp.IsZero() && dockerMachine.Spec.ProviderID == nil),
+		v1beta1conditions.WithStepCounterIf(dockerMachine.DeletionTimestamp.IsZero() && dockerMachine.Spec.ProviderID == ""),
 	)
 	if err := conditions.SetSummaryCondition(dockerMachine, dockerMachine, infrav1.DevMachineReadyCondition,
 		conditions.ForConditionTypes{

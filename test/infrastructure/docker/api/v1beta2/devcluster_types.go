@@ -72,7 +72,7 @@ const (
 type DevClusterSpec struct {
 	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty,omitzero"`
 
 	// backend defines backends for a DevCluster.
 	// +required

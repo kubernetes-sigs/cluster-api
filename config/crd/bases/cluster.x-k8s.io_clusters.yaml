@@ -2249,6 +2249,7 @@ spec:
                           type: string
                         maxItems: 100
                         type: array
+                        x-kubernetes-list-type: atomic
                     required:
                     - cidrBlocks
                     type: object
@@ -2269,6 +2270,7 @@ spec:
                           type: string
                         maxItems: 100
                         type: array
+                        x-kubernetes-list-type: atomic
                     required:
                     - cidrBlocks
                     type: object
@@ -2523,6 +2525,7 @@ spec:
                               type: object
                             maxItems: 100
                             type: array
+                            x-kubernetes-list-type: atomic
                           unhealthyRange:
                             description: |-
                               unhealthyRange specifies the range of unhealthy machines allowed.
@@ -2860,6 +2863,7 @@ spec:
                                     type: object
                                   maxItems: 100
                                   type: array
+                                  x-kubernetes-list-type: atomic
                                 unhealthyRange:
                                   description: |-
                                     unhealthyRange specifies the range of unhealthy machines allowed.
@@ -3153,6 +3157,7 @@ spec:
                                 type: string
                               maxItems: 100
                               type: array
+                              x-kubernetes-list-type: atomic
                             metadata:
                               description: |-
                                 metadata is the metadata applied to the MachinePool.

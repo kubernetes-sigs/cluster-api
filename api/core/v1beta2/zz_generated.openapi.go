@@ -438,6 +438,11 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassPatch(ref common.ReferenceC
 						},
 					},
 					"definitions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "definitions define inline patches. Note: Patches will be applied in the order of the array. Note: Exactly one of Definitions or External must be set.",
 							Type:        []string{"array"},
@@ -546,6 +551,11 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassSpec(ref common.ReferenceCa
 						},
 					},
 					"variables": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "variables defines the variables which can be configured in the Cluster topology and are then used in patches.",
 							Type:        []string{"array"},
@@ -560,6 +570,11 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassSpec(ref common.ReferenceCa
 						},
 					},
 					"patches": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "patches defines the patches which are applied to customize referenced templates of a ClusterClass. Note: Patches will be applied in the order of the array.",
 							Type:        []string{"array"},
@@ -612,6 +627,11 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassStatus(ref common.Reference
 						},
 					},
 					"variables": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "variables is a list of ClusterClassStatusVariable that are defined for the ClusterClass.",
 							Type:        []string{"array"},
@@ -669,6 +689,11 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassStatusVariable(ref common.R
 						},
 					},
 					"definitions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "definitions is a list of definitions for a variable.",
 							Type:        []string{"array"},
@@ -1958,6 +1983,11 @@ func schema_cluster_api_api_core_v1beta2_JSONSchemaProps(ref common.ReferenceCal
 						},
 					},
 					"required": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "required specifies which fields of an object are required. NOTE: Can only be set if type is object.",
 							Type:        []string{"array"},
@@ -2063,6 +2093,11 @@ func schema_cluster_api_api_core_v1beta2_JSONSchemaProps(ref common.ReferenceCal
 						},
 					},
 					"enum": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "enum is the list of valid values of the variable. NOTE: Can be set for all types.",
 							Type:        []string{"array"},
@@ -3346,6 +3381,11 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckClass(ref common.Refe
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"unhealthyNodeConditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "unhealthyNodeConditions contains a list of conditions that determine whether a node is considered unhealthy. The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
 							Type:        []string{"array"},
@@ -3526,6 +3566,11 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckSpec(ref common.Refer
 						},
 					},
 					"unhealthyNodeConditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "unhealthyNodeConditions contains a list of conditions that determine whether a node is considered unhealthy. The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
 							Type:        []string{"array"},
@@ -3632,6 +3677,11 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckStatus(ref common.Ref
 						},
 					},
 					"targets": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "targets shows the current list of machines the machine health check is watching",
 							Type:        []string{"array"},
@@ -3675,6 +3725,11 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckTopology(ref common.R
 						},
 					},
 					"unhealthyNodeConditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "unhealthyNodeConditions contains a list of conditions that determine whether a node is considered unhealthy. The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
 							Type:        []string{"array"},
@@ -3945,6 +4000,11 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCa
 						},
 					},
 					"failureDomains": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "failureDomains is the list of failure domains the MachinePool should be attached to. Must match a key in the FailureDomains map stored on the cluster object. NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
 							Type:        []string{"array"},
@@ -4234,6 +4294,11 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolSpec(ref common.ReferenceCal
 						},
 					},
 					"providerIDList": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "providerIDList are the identification IDs of machine instances provided by the provider. This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.",
 							Type:        []string{"array"},
@@ -4249,6 +4314,11 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolSpec(ref common.ReferenceCal
 						},
 					},
 					"failureDomains": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "failureDomains is the list of failure domains this MachinePool should be attached to.",
 							Type:        []string{"array"},
@@ -4308,6 +4378,11 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref common.ReferenceC
 						},
 					},
 					"nodeRefs": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "nodeRefs will point to the corresponding Nodes if it they exist.",
 							Type:        []string{"array"},
@@ -4408,6 +4483,11 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref common.Referenc
 						},
 					},
 					"failureDomains": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "failureDomains is the list of failure domains the machine pool will be created in. Must match a key in the FailureDomains map stored on the cluster object.",
 							Type:        []string{"array"},
@@ -5266,6 +5346,11 @@ func schema_cluster_api_api_core_v1beta2_NetworkRanges(ref common.ReferenceCallb
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"cidrBlocks": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "cidrBlocks is a list of CIDR blocks.",
 							Type:        []string{"array"},
@@ -5347,6 +5432,11 @@ func schema_cluster_api_api_core_v1beta2_PatchDefinition(ref common.ReferenceCal
 						},
 					},
 					"jsonPatches": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "jsonPatches defines the patches which should be applied on the templates matching the selector. Note: Patches will be applied in the order of the array.",
 							Type:        []string{"array"},
@@ -5457,6 +5547,11 @@ func schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachineDeploymentClas
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"names": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "names selects templates by class names.",
 							Type:        []string{"array"},
@@ -5485,6 +5580,11 @@ func schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachinePoolClass(ref 
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"names": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "names selects templates by class names.",
 							Type:        []string{"array"},

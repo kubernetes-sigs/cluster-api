@@ -1759,6 +1759,7 @@ spec:
                   type: object
                 maxItems: 32
                 type: array
+                x-kubernetes-list-type: atomic
               certificatesExpiryDate:
                 description: |-
                   certificatesExpiryDate is the expiry date of the machine certificates.

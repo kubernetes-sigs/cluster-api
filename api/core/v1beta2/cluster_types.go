@@ -639,7 +639,6 @@ type ControlPlaneTopology struct {
 	//
 	// If this field is not defined, readinessGates from the corresponding ControlPlaneClass will be used, if any.
 	//
-	// NOTE: This field is considered only for computing v1beta2 conditions.
 	// NOTE: Specific control plane provider implementations might automatically extend the list of readinessGates;
 	// e.g. the kubeadm control provider adds ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
 	// +optional
@@ -749,7 +748,6 @@ type MachineDeploymentTopology struct {
 	//
 	// If this field is not defined, readinessGates from the corresponding MachineDeploymentClass will be used, if any.
 	//
-	// NOTE: This field is considered only for computing v1beta2 conditions.
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType

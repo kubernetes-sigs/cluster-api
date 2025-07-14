@@ -458,7 +458,6 @@ const (
 // ANCHOR: ClusterSpec
 
 // ClusterSpec defines the desired state of Cluster.
-// +kubebuilder:validation:MinProperties=1
 type ClusterSpec struct {
 	// paused can be used to prevent controllers from processing the Cluster and all its associated objects.
 	// +optional

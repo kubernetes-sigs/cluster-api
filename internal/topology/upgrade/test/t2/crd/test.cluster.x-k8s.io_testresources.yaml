@@ -39,6 +39,8 @@ spec:
           spec:
             description: TestResourceSpec defines the resource spec.
             properties:
+              boolRemoved:
+                type: boolean
               boolToPtrBool:
                 type: boolean
               durationToPtrInt32:

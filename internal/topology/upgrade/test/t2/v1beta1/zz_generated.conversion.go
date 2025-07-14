@@ -307,6 +307,7 @@ func autoConvert_v1beta1_TestResourceSpec_To_v1beta2_TestResourceSpec(in *TestRe
 		return err
 	}
 	// WARNING: in.DurationToPtrInt32 requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Duration vs *int32)
+	// WARNING: in.BoolRemoved requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta1_StructWithOnlyOptionalFields_To_v1beta2_StructWithOnlyOptionalFields(&in.StructWithOnlyOptionalFields, &out.StructWithOnlyOptionalFields, s); err != nil {
 		return err
 	}

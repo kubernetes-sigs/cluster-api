@@ -85,4 +85,7 @@ func spokeTestResourceSpec(in *TestResourceSpec, c randfill.Continue) {
 	if in.DurationToPtrInt32.Nanoseconds() != 0 {
 		in.DurationToPtrInt32 = metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second}
 	}
+
+	// Drop BoolRemoved as we intentionally don't preserve it.
+	in.BoolRemoved = false
 }

@@ -294,6 +294,8 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 					PtrStringToString:  ptr.To("Something"),
 					Int32ToPtrInt32:    int32(4),
 					DurationToPtrInt32: metav1.Duration{Duration: 5 * time.Second},
+					// Note: BoolRemoved tests if the removal of KubeadmConfig UseExperimentalRetryJoin triggers rollouts.
+					BoolRemoved: true,
 					StructWithOnlyOptionalFields: testt1v1beta1.StructWithOnlyOptionalFields{
 						A: "Something",
 					},

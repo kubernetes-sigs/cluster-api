@@ -77,11 +77,11 @@ func TestGetClusterIPFamily(t *testing.T) {
 	clusterWithNetwork := func(podCIDRs, serviceCIDRs []string) *clusterv1.Cluster {
 		return &clusterv1.Cluster{
 			Spec: clusterv1.ClusterSpec{
-				ClusterNetwork: &clusterv1.ClusterNetwork{
-					Pods: &clusterv1.NetworkRanges{
+				ClusterNetwork: clusterv1.ClusterNetwork{
+					Pods: clusterv1.NetworkRanges{
 						CIDRBlocks: podCIDRs,
 					},
-					Services: &clusterv1.NetworkRanges{
+					Services: clusterv1.NetworkRanges{
 						CIDRBlocks: serviceCIDRs,
 					},
 				},

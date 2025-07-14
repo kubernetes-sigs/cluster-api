@@ -162,15 +162,8 @@ func RuntimeInto(ctx context.Context, runtime Runtime) context.Context {
 
 // GetClusterIPFamily returns a ClusterIPFamily based on the Cluster provided.
 func GetClusterIPFamily(c *clusterv1.Cluster) (ClusterIPFamily, error) {
-	var podCIDRs, serviceCIDRs []string
-	if c.Spec.ClusterNetwork != nil {
-		if c.Spec.ClusterNetwork.Pods != nil {
-			podCIDRs = c.Spec.ClusterNetwork.Pods.CIDRBlocks
-		}
-		if c.Spec.ClusterNetwork.Services != nil {
-			serviceCIDRs = c.Spec.ClusterNetwork.Services.CIDRBlocks
-		}
-	}
+	podCIDRs := c.Spec.ClusterNetwork.Pods.CIDRBlocks
+	serviceCIDRs := c.Spec.ClusterNetwork.Services.CIDRBlocks
 	if len(podCIDRs) == 0 && len(serviceCIDRs) == 0 {
 		return IPv4IPFamily, nil
 	}

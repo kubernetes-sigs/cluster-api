@@ -72,16 +72,16 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 		// Make sure to copy the metadata from the blueprint, which is later layered
 		// with the additional metadata defined in the Cluster's topology section
 		// for the MachineDeployment that is created or updated.
-		machineDeploymentClass.Template.Metadata.DeepCopyInto(&machineDeploymentBlueprint.Metadata)
+		machineDeploymentClass.Metadata.DeepCopyInto(&machineDeploymentBlueprint.Metadata)
 
 		// Get the infrastructure machine template.
-		machineDeploymentBlueprint.InfrastructureMachineTemplate, err = r.getReference(ctx, machineDeploymentClass.Template.Infrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
+		machineDeploymentBlueprint.InfrastructureMachineTemplate, err = r.getReference(ctx, machineDeploymentClass.Infrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get infrastructure machine template for ClusterClass %s, MachineDeployment class %q", klog.KObj(blueprint.ClusterClass), machineDeploymentClass.Class)
 		}
 
 		// Get the bootstrap config template.
-		machineDeploymentBlueprint.BootstrapTemplate, err = r.getReference(ctx, machineDeploymentClass.Template.Bootstrap.TemplateRef.ToObjectReference(clusterClass.Namespace))
+		machineDeploymentBlueprint.BootstrapTemplate, err = r.getReference(ctx, machineDeploymentClass.Bootstrap.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get bootstrap config template for ClusterClass %s, MachineDeployment class %q", klog.KObj(blueprint.ClusterClass), machineDeploymentClass.Class)
 		}
@@ -101,16 +101,16 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 		// Make sure to copy the metadata from the blueprint, which is later layered
 		// with the additional metadata defined in the Cluster's topology section
 		// for the MachinePool that is created or updated.
-		machinePoolClass.Template.Metadata.DeepCopyInto(&machinePoolBlueprint.Metadata)
+		machinePoolClass.Metadata.DeepCopyInto(&machinePoolBlueprint.Metadata)
 
 		// Get the InfrastructureMachinePoolTemplate.
-		machinePoolBlueprint.InfrastructureMachinePoolTemplate, err = r.getReference(ctx, machinePoolClass.Template.Infrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
+		machinePoolBlueprint.InfrastructureMachinePoolTemplate, err = r.getReference(ctx, machinePoolClass.Infrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get InfrastructureMachinePoolTemplate for ClusterClass %s, MachinePool class %q", klog.KObj(blueprint.ClusterClass), machinePoolClass.Class)
 		}
 
 		// Get the bootstrap config template.
-		machinePoolBlueprint.BootstrapTemplate, err = r.getReference(ctx, machinePoolClass.Template.Bootstrap.TemplateRef.ToObjectReference(clusterClass.Namespace))
+		machinePoolBlueprint.BootstrapTemplate, err = r.getReference(ctx, machinePoolClass.Bootstrap.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get bootstrap config for ClusterClass %s, MachinePool class %q", klog.KObj(blueprint.ClusterClass), machinePoolClass.Class)
 		}

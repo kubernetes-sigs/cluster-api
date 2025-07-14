@@ -153,10 +153,10 @@ func (b *ClusterBlueprint) MachineDeploymentMachineHealthCheckClass(md *clusterv
 
 // HasMachineDeployments checks whether the topology has MachineDeployments.
 func (b *ClusterBlueprint) HasMachineDeployments() bool {
-	return b.Topology.Workers != nil && len(b.Topology.Workers.MachineDeployments) > 0
+	return len(b.Topology.Workers.MachineDeployments) > 0
 }
 
 // HasMachinePools checks whether the topology has MachinePools.
 func (b *ClusterBlueprint) HasMachinePools() bool {
-	return b.Topology.Workers != nil && len(b.Topology.Workers.MachinePools) > 0
+	return len(b.Topology.Workers.MachinePools) > 0
 }

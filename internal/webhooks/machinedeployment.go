@@ -104,10 +104,6 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 		m.Spec.Selector.MatchLabels = make(map[string]string)
 	}
 
-	if m.Spec.Strategy == nil {
-		m.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{}
-	}
-
 	if m.Spec.Strategy.Type == "" {
 		m.Spec.Strategy.Type = clusterv1.RollingUpdateMachineDeploymentStrategyType
 	}
@@ -118,9 +114,6 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 
 	// Default RollingUpdate strategy only if strategy type is RollingUpdate.
 	if m.Spec.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
-		if m.Spec.Strategy.RollingUpdate == nil {
-			m.Spec.Strategy.RollingUpdate = &clusterv1.MachineRollingUpdateDeployment{}
-		}
 		if m.Spec.Strategy.RollingUpdate.MaxSurge == nil {
 			ios1 := intstr.FromInt32(1)
 			m.Spec.Strategy.RollingUpdate.MaxSurge = &ios1
@@ -252,47 +245,38 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		)
 	}
 
-	if newMD.Spec.Strategy != nil && newMD.Spec.Strategy.RollingUpdate != nil {
-		total := 1
-		if newMD.Spec.Replicas != nil {
-			total = int(*newMD.Spec.Replicas)
-		}
+	total := 1
+	if newMD.Spec.Replicas != nil {
+		total = int(*newMD.Spec.Replicas)
+	}
 
-		if newMD.Spec.Strategy.RollingUpdate.MaxSurge != nil {
-			if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.RollingUpdate.MaxSurge, total, true); err != nil {
-				allErrs = append(
-					allErrs,
-					field.Invalid(specPath.Child("strategy", "rollingUpdate", "maxSurge"),
-						newMD.Spec.Strategy.RollingUpdate.MaxSurge, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
-				)
-			}
-		}
-
-		if newMD.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-			if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.RollingUpdate.MaxUnavailable, total, true); err != nil {
-				allErrs = append(
-					allErrs,
-					field.Invalid(specPath.Child("strategy", "rollingUpdate", "maxUnavailable"),
-						newMD.Spec.Strategy.RollingUpdate.MaxUnavailable, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
-				)
-			}
+	if newMD.Spec.Strategy.RollingUpdate.MaxSurge != nil {
+		if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.RollingUpdate.MaxSurge, total, true); err != nil {
+			allErrs = append(
+				allErrs,
+				field.Invalid(specPath.Child("strategy", "rollingUpdate", "maxSurge"),
+					newMD.Spec.Strategy.RollingUpdate.MaxSurge, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+			)
 		}
 	}
 
-	if newMD.Spec.Strategy != nil && newMD.Spec.Strategy.Remediation != nil {
-		total := 1
-		if newMD.Spec.Replicas != nil {
-			total = int(*newMD.Spec.Replicas)
+	if newMD.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
+		if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.RollingUpdate.MaxUnavailable, total, true); err != nil {
+			allErrs = append(
+				allErrs,
+				field.Invalid(specPath.Child("strategy", "rollingUpdate", "maxUnavailable"),
+					newMD.Spec.Strategy.RollingUpdate.MaxUnavailable, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+			)
 		}
+	}
 
-		if newMD.Spec.Strategy.Remediation.MaxInFlight != nil {
-			if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.Remediation.MaxInFlight, total, true); err != nil {
-				allErrs = append(
-					allErrs,
-					field.Invalid(specPath.Child("strategy", "remediation", "maxInFlight"),
-						newMD.Spec.Strategy.Remediation.MaxInFlight.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
-				)
-			}
+	if newMD.Spec.Strategy.Remediation.MaxInFlight != nil {
+		if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.Remediation.MaxInFlight, total, true); err != nil {
+			allErrs = append(
+				allErrs,
+				field.Invalid(specPath.Child("strategy", "remediation", "maxInFlight"),
+					newMD.Spec.Strategy.Remediation.MaxInFlight.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+			)
 		}
 	}
 

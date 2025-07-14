@@ -76,12 +76,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate":        schema_cluster_api_api_core_v1beta2_MachineDeploymentClassBootstrapTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate":   schema_cluster_api_api_core_v1beta2_MachineDeploymentClassInfrastructureTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy":           schema_cluster_api_api_core_v1beta2_MachineDeploymentClassNamingStrategy(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassTemplate":                 schema_cluster_api_api_core_v1beta2_MachineDeploymentClassTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeprecatedStatus":              schema_cluster_api_api_core_v1beta2_MachineDeploymentDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentList":                          schema_cluster_api_api_core_v1beta2_MachineDeploymentList(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentSpec":                          schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStatus":                        schema_cluster_api_api_core_v1beta2_MachineDeploymentStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy":                      schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate":         schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategyRollingUpdate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopology":                      schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentV1Beta1DeprecatedStatus":       schema_cluster_api_api_core_v1beta2_MachineDeploymentV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables":                     schema_cluster_api_api_core_v1beta2_MachineDeploymentVariables(ref),
@@ -110,7 +110,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate":              schema_cluster_api_api_core_v1beta2_MachinePoolClassBootstrapTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate":         schema_cluster_api_api_core_v1beta2_MachinePoolClassInfrastructureTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy":                 schema_cluster_api_api_core_v1beta2_MachinePoolClassNamingStrategy(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassTemplate":                       schema_cluster_api_api_core_v1beta2_MachinePoolClassTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolDeprecatedStatus":                    schema_cluster_api_api_core_v1beta2_MachinePoolDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolInitializationStatus":                schema_cluster_api_api_core_v1beta2_MachinePoolInitializationStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolList":                                schema_cluster_api_api_core_v1beta2_MachinePoolList(ref),
@@ -120,7 +119,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolV1Beta1DeprecatedStatus":             schema_cluster_api_api_core_v1beta2_MachinePoolV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables":                           schema_cluster_api_api_core_v1beta2_MachinePoolVariables(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate":                           schema_cluster_api_api_core_v1beta2_MachineReadinessGate(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineRollingUpdateDeployment":                 schema_cluster_api_api_core_v1beta2_MachineRollingUpdateDeployment(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSet":                                     schema_cluster_api_api_core_v1beta2_MachineSet(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeprecatedStatus":                     schema_cluster_api_api_core_v1beta2_MachineSetDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetList":                                 schema_cluster_api_api_core_v1beta2_MachineSetList(ref),
@@ -1084,12 +1082,14 @@ func schema_cluster_api_api_core_v1beta2_ClusterNetwork(ref common.ReferenceCall
 					"services": {
 						SchemaProps: spec.SchemaProps{
 							Description: "services is the network ranges from which service VIPs are allocated.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.NetworkRanges"),
 						},
 					},
 					"pods": {
 						SchemaProps: spec.SchemaProps{
 							Description: "pods is the network ranges from which Pod networks are allocated.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.NetworkRanges"),
 						},
 					},
@@ -1125,6 +1125,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterSpec(ref common.ReferenceCallbac
 					"clusterNetwork": {
 						SchemaProps: spec.SchemaProps{
 							Description: "clusterNetwork represents the cluster network configuration.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterNetwork"),
 						},
 					},
@@ -1601,7 +1602,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref common.Referen
 					},
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "replicas is the number of control plane nodes. If the value is nil, the ControlPlane object is created without the number of Replicas and it's assumed that the control plane controller does not implement support for this field. When specified against a control plane provider that lacks support for this field, this value will be ignored.",
+							Description: "replicas is the number of control plane nodes. If the value is not set, the ControlPlane object is created without the number of Replicas and it's assumed that the control plane controller does not implement support for this field. When specified against a control plane provider that lacks support for this field, this value will be ignored.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -1658,6 +1659,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref common.Referen
 					"variables": {
 						SchemaProps: spec.SchemaProps{
 							Description: "variables can be used to customize the ControlPlane through patches.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables"),
 						},
 					},
@@ -2374,6 +2376,13 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 				Description: "MachineDeploymentClass serves as a template to define a set of worker nodes of the cluster provisioned using the `ClusterClass`.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment. At runtime this metadata is merged with the corresponding metadata from the topology.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"),
+						},
+					},
 					"class": {
 						SchemaProps: spec.SchemaProps{
 							Description: "class denotes a type of worker node present in the cluster, this name MUST be unique within a ClusterClass and can be referenced in the Cluster to create a managed MachineDeployment.",
@@ -2382,11 +2391,18 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 							Format:      "",
 						},
 					},
-					"template": {
+					"bootstrap": {
 						SchemaProps: spec.SchemaProps{
-							Description: "template is a local struct containing a collection of templates for creation of MachineDeployment objects representing a set of worker nodes.",
+							Description: "bootstrap contains the bootstrap template reference to be used for the creation of worker Machines.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassTemplate"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate"),
+						},
+					},
+					"infrastructure": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructure contains the infrastructure template reference to be used for the creation of worker Machines.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate"),
 						},
 					},
 					"machineHealthCheck": {
@@ -2461,15 +2477,16 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 					"strategy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "strategy is the deployment strategy to use to replace existing machines with new ones. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy"),
 						},
 					},
 				},
-				Required: []string{"class", "template"},
+				Required: []string{"class", "bootstrap", "infrastructure"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -2536,43 +2553,6 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassNamingStrategy(re
 				},
 			},
 		},
-	}
-}
-
-func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassTemplate(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentClassTemplate defines how a MachineDeployment generated from a MachineDeploymentClass should look like.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment. At runtime this metadata is merged with the corresponding metadata from the topology.",
-							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"),
-						},
-					},
-					"bootstrap": {
-						SchemaProps: spec.SchemaProps{
-							Description: "bootstrap contains the bootstrap template reference to be used for the creation of worker Machines.",
-							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate"),
-						},
-					},
-					"infrastructure": {
-						SchemaProps: spec.SchemaProps{
-							Description: "infrastructure contains the infrastructure template reference to be used for the creation of worker Machines.",
-							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate"),
-						},
-					},
-				},
-				Required: []string{"bootstrap", "infrastructure"},
-			},
-		},
-		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -2693,6 +2673,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 					"strategy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "strategy is the deployment strategy to use to replace existing machines with new ones.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy"),
 						},
 					},
@@ -2827,12 +2808,14 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategy(ref common.Re
 					"rollingUpdate": {
 						SchemaProps: spec.SchemaProps{
 							Description: "rollingUpdate is the rolling update config params. Present only if MachineDeploymentStrategyType = RollingUpdate.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineRollingUpdateDeployment"),
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate"),
 						},
 					},
 					"remediation": {
 						SchemaProps: spec.SchemaProps{
 							Description: "remediation controls the strategy of remediating unhealthy machines and how remediating operations should occur during the lifecycle of the dependant MachineSets.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.RemediationStrategy"),
 						},
 					},
@@ -2840,7 +2823,41 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategy(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineRollingUpdateDeployment", "sigs.k8s.io/cluster-api/api/core/v1beta2.RemediationStrategy"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate", "sigs.k8s.io/cluster-api/api/core/v1beta2.RemediationStrategy"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategyRollingUpdate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentStrategyRollingUpdate is used to control the desired behavior of rolling update.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"maxUnavailable": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxUnavailable is the maximum number of machines that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). Absolute number is calculated from percentage by rounding down. This can not be 0 if MaxSurge is 0. Defaults to 0. Example: when this is set to 30%, the old MachineSet can be scaled down to 70% of desired machines immediately when the rolling update starts. Once new machines are ready, old MachineSet can be scaled down further, followed by scaling up the new MachineSet, ensuring that the total number of machines available at all times during the update is at least 70% of desired machines.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+					"maxSurge": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxSurge is the maximum number of machines that can be scheduled above the desired number of machines. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is calculated from percentage by rounding up. Defaults to 1. Example: when this is set to 30%, the new MachineSet can be scaled up immediately when the rolling update starts, such that the total number of old and new machines do not exceed 130% of desired machines. Once old machines have been killed, new MachineSet can be scaled up further, ensuring that total number of machines running at any time during the update is at most 130% of desired machines.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+					"deletePolicy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling. Valid values are \"Random, \"Newest\", \"Oldest\" When no value is supplied, the default DeletePolicy of MachineSet is used",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
 	}
 }
 
@@ -2947,12 +2964,14 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 					"strategy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "strategy is the deployment strategy to use to replace existing machines with new ones.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy"),
 						},
 					},
 					"variables": {
 						SchemaProps: spec.SchemaProps{
 							Description: "variables can be used to customize the MachineDeployment through patches.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables"),
 						},
 					},
@@ -3985,6 +4004,13 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCa
 				Description: "MachinePoolClass serves as a template to define a pool of worker nodes of the cluster provisioned using `ClusterClass`.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "metadata is the metadata applied to the MachinePool. At runtime this metadata is merged with the corresponding metadata from the topology.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"),
+						},
+					},
 					"class": {
 						SchemaProps: spec.SchemaProps{
 							Description: "class denotes a type of machine pool present in the cluster, this name MUST be unique within a ClusterClass and can be referenced in the Cluster to create a managed MachinePool.",
@@ -3993,11 +4019,18 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCa
 							Format:      "",
 						},
 					},
-					"template": {
+					"bootstrap": {
 						SchemaProps: spec.SchemaProps{
-							Description: "template is a local struct containing a collection of templates for creation of MachinePools objects representing a pool of worker nodes.",
+							Description: "bootstrap contains the bootstrap template reference to be used for the creation of the Machines in the MachinePool.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassTemplate"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate"),
+						},
+					},
+					"infrastructure": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructure contains the infrastructure template reference to be used for the creation of the MachinePool.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate"),
 						},
 					},
 					"failureDomains": {
@@ -4055,11 +4088,11 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCa
 						},
 					},
 				},
-				Required: []string{"class", "template"},
+				Required: []string{"class", "bootstrap", "infrastructure"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassTemplate"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -4126,43 +4159,6 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClassNamingStrategy(ref comm
 				},
 			},
 		},
-	}
-}
-
-func schema_cluster_api_api_core_v1beta2_MachinePoolClassTemplate(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MachinePoolClassTemplate defines how a MachinePool generated from a MachinePoolClass should look like.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "metadata is the metadata applied to the MachinePool. At runtime this metadata is merged with the corresponding metadata from the topology.",
-							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"),
-						},
-					},
-					"bootstrap": {
-						SchemaProps: spec.SchemaProps{
-							Description: "bootstrap contains the bootstrap template reference to be used for the creation of the Machines in the MachinePool.",
-							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate"),
-						},
-					},
-					"infrastructure": {
-						SchemaProps: spec.SchemaProps{
-							Description: "infrastructure contains the infrastructure template reference to be used for the creation of the MachinePool.",
-							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate"),
-						},
-					},
-				},
-				Required: []string{"bootstrap", "infrastructure"},
-			},
-		},
-		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -4542,6 +4538,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref common.Referenc
 					"variables": {
 						SchemaProps: spec.SchemaProps{
 							Description: "variables can be used to customize the MachinePool through patches.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables"),
 						},
 					},
@@ -4681,40 +4678,6 @@ func schema_cluster_api_api_core_v1beta2_MachineReadinessGate(ref common.Referen
 				Required: []string{"conditionType"},
 			},
 		},
-	}
-}
-
-func schema_cluster_api_api_core_v1beta2_MachineRollingUpdateDeployment(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MachineRollingUpdateDeployment is used to control the desired behavior of rolling update.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"maxUnavailable": {
-						SchemaProps: spec.SchemaProps{
-							Description: "maxUnavailable is the maximum number of machines that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). Absolute number is calculated from percentage by rounding down. This can not be 0 if MaxSurge is 0. Defaults to 0. Example: when this is set to 30%, the old MachineSet can be scaled down to 70% of desired machines immediately when the rolling update starts. Once new machines are ready, old MachineSet can be scaled down further, followed by scaling up the new MachineSet, ensuring that the total number of machines available at all times during the update is at least 70% of desired machines.",
-							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
-						},
-					},
-					"maxSurge": {
-						SchemaProps: spec.SchemaProps{
-							Description: "maxSurge is the maximum number of machines that can be scheduled above the desired number of machines. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is calculated from percentage by rounding up. Defaults to 1. Example: when this is set to 30%, the new MachineSet can be scaled up immediately when the rolling update starts, such that the total number of old and new machines do not exceed 130% of desired machines. Once old machines have been killed, new MachineSet can be scaled up further, ensuring that total number of machines running at any time during the update is at most 130% of desired machines.",
-							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
-						},
-					},
-					"deletePolicy": {
-						SchemaProps: spec.SchemaProps{
-							Description: "deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling. Valid values are \"Random, \"Newest\", \"Oldest\" When no value is supplied, the default DeletePolicy of MachineSet is used",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
 	}
 }
 
@@ -5661,6 +5624,7 @@ func schema_cluster_api_api_core_v1beta2_Topology(ref common.ReferenceCallback) 
 					"workers": {
 						SchemaProps: spec.SchemaProps{
 							Description: "workers encapsulates the different constructs that form the worker nodes for the cluster.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersTopology"),
 						},
 					},

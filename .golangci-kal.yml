@@ -43,7 +43,7 @@ linters:
           lintersConfig:
             conditions:
               isFirstField: Warn # Require conditions to be the first field in the status struct.
-              usePatchStrategy: Forbid # Require conditions to be the first field in the status struct.
+              usePatchStrategy: Forbid # Forbid patchStrategy markers on the Conditions field.
               useProtobuf: Forbid # We don't use protobuf, so protobuf tags are not required.
             optionalfields:
               pointers:
@@ -171,11 +171,15 @@ linters:
       linters:
         - kubeapilinter
     - path: "api/core/v1beta2/cluster_types.go"
-      text: "optionalfields: field (ControlPlaneEndpoint|ControlPlane|Metadata) is optional and should (be a pointer|have the omitempty tag)"
+      text: "optionalfields: field (ClusterNetwork|Services|Pods|ControlPlaneEndpoint|ControlPlane|Workers|Metadata|Variables|Strategy) is optional and should (be a pointer|have the omitempty tag)"
       linters:
         - kubeapilinter
     - path: "api/core/v1beta2/clusterclass_types.go"
-      text: "optionalfields: field (Workers|Metadata|ControlPlane|Infrastructure|DeprecatedV1Beta1Metadata) is optional and should (be a pointer|have the omitempty tag)"
+      text: "optionalfields: field (Workers|Metadata|ControlPlane|Strategy|Infrastructure|DeprecatedV1Beta1Metadata) is optional and should (be a pointer|have the omitempty tag)"
+      linters:
+        - kubeapilinter
+    - path: "api/core/v1beta2/machinedeployment_types.go"
+      text: "optionalfields: field (Strategy|RollingUpdate|Remediation) is optional and should (be a pointer|have the omitempty tag)"
       linters:
         - kubeapilinter
     - path: "api/ipam/v1beta2/ipaddressclaim_types.go"
@@ -184,7 +188,7 @@ linters:
         - kubeapilinter
     # KAL does not handle enum markers on enum types yet: https://github.com/kubernetes-sigs/kube-api-linter/issues/113
     - path: ".*"
-      text: "optionalfields: field (Format|Encoding|Type|DeletePolicy|FailurePolicy) is optional and (should be a pointer|has a valid zero value)"
+      text: "optionalfields: field (Polarity|Format|Encoding|Type|DeletePolicy|FailurePolicy) is optional and (should be a pointer|has a valid zero value)"
       linters:
         - kubeapilinter
 

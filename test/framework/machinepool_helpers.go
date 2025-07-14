@@ -219,7 +219,6 @@ func ScaleMachinePoolTopologyAndWait(ctx context.Context, input ScaleMachinePool
 	Expect(ctx).NotTo(BeNil(), "ctx is required for ScaleMachinePoolTopologyAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ScaleMachinePoolTopologyAndWait")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling ScaleMachinePoolTopologyAndWait")
-	Expect(input.Cluster.Spec.Topology.Workers).ToNot(BeNil(), "Invalid argument. input.Cluster must have MachinePool topologies")
 	Expect(input.Cluster.Spec.Topology.Workers.MachinePools).NotTo(BeEmpty(), "Invalid argument. input.Cluster must have at least one MachinePool topology")
 
 	mpTopology := input.Cluster.Spec.Topology.Workers.MachinePools[0]

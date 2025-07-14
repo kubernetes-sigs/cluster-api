@@ -195,13 +195,15 @@ func spokeCluster(in *Cluster, c randfill.Continue) {
 
 	dropEmptyStringsCluster(in)
 
-	if in.Spec.Topology != nil && in.Spec.Topology.Workers != nil {
-		for _, md := range in.Spec.Topology.Workers.MachineDeployments {
-			if md.Strategy != nil && md.Strategy.RollingUpdate != nil &&
-				md.Strategy.RollingUpdate.DeletePolicy != nil && *md.Strategy.RollingUpdate.DeletePolicy == "" {
-				// &"" Is not a valid value for DeletePolicy as the enum validation enforces an enum value if DeletePolicy is set.
-				md.Strategy.RollingUpdate.DeletePolicy = nil
-			}
+	if in.Spec.ClusterNetwork != nil {
+		if in.Spec.ClusterNetwork.Services != nil && reflect.DeepEqual(in.Spec.ClusterNetwork.Services, &NetworkRanges{}) {
+			in.Spec.ClusterNetwork.Services = nil
+		}
+		if in.Spec.ClusterNetwork.Pods != nil && reflect.DeepEqual(in.Spec.ClusterNetwork.Pods, &NetworkRanges{}) {
+			in.Spec.ClusterNetwork.Pods = nil
+		}
+		if reflect.DeepEqual(in.Spec.ClusterNetwork, &ClusterNetwork{}) {
+			in.Spec.ClusterNetwork = nil
 		}
 	}
 }
@@ -211,6 +213,10 @@ func spokeClusterTopology(in *Topology, c randfill.Continue) {
 
 	// RolloutAfter was unused and has been removed in v1beta2.
 	in.RolloutAfter = nil
+
+	if in.Workers != nil && reflect.DeepEqual(in.Workers, &WorkersTopology{}) {
+		in.Workers = nil
+	}
 }
 
 func spokeClusterStatus(in *ClusterStatus, c randfill.Continue) {
@@ -326,14 +332,6 @@ func spokeClusterClass(in *ClusterClass, c randfill.Continue) {
 	in.Namespace = "foo"
 
 	dropEmptyStringsClusterClass(in)
-
-	for _, md := range in.Spec.Workers.MachineDeployments {
-		if md.Strategy != nil && md.Strategy.RollingUpdate != nil &&
-			md.Strategy.RollingUpdate.DeletePolicy != nil && *md.Strategy.RollingUpdate.DeletePolicy == "" {
-			// &"" Is not a valid value for DeletePolicy as the enum validation enforces an enum value if DeletePolicy is set.
-			md.Strategy.RollingUpdate.DeletePolicy = nil
-		}
-	}
 }
 
 func spokeClusterClassStatus(in *ClusterClassStatus, c randfill.Continue) {
@@ -589,12 +587,6 @@ func spokeMachineDeployment(in *MachineDeployment, c randfill.Continue) {
 	fillMachineSpec(&in.Spec.Template.Spec, c, in.Namespace)
 
 	dropEmptyStringsMachineSpec(&in.Spec.Template.Spec)
-
-	if in.Spec.Strategy != nil && in.Spec.Strategy.RollingUpdate != nil &&
-		in.Spec.Strategy.RollingUpdate.DeletePolicy != nil && *in.Spec.Strategy.RollingUpdate.DeletePolicy == "" {
-		// &"" Is not a valid value for DeletePolicy as the enum validation enforces an enum value if DeletePolicy is set.
-		in.Spec.Strategy.RollingUpdate.DeletePolicy = nil
-	}
 }
 
 func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) {
@@ -605,6 +597,24 @@ func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) 
 
 	// Drop RevisionHistoryLimit as we intentionally don't preserve it.
 	in.RevisionHistoryLimit = nil
+
+	if in.Strategy != nil {
+		if in.Strategy.RollingUpdate != nil {
+			if in.Strategy.RollingUpdate.DeletePolicy != nil && *in.Strategy.RollingUpdate.DeletePolicy == "" {
+				// &"" Is not a valid value for DeletePolicy as the enum validation enforces an enum value if DeletePolicy is set.
+				in.Strategy.RollingUpdate.DeletePolicy = nil
+			}
+			if reflect.DeepEqual(in.Strategy.RollingUpdate, &MachineRollingUpdateDeployment{}) {
+				in.Strategy.RollingUpdate = nil
+			}
+		}
+		if in.Strategy.Remediation != nil && reflect.DeepEqual(in.Strategy.Remediation, &RemediationStrategy{}) {
+			in.Strategy.Remediation = nil
+		}
+		if reflect.DeepEqual(in.Strategy, &MachineDeploymentStrategy{}) {
+			in.Strategy = nil
+		}
+	}
 }
 
 func spokeMachineDeploymentStatus(in *MachineDeploymentStatus, c randfill.Continue) {
@@ -726,6 +736,10 @@ func spokeControlPlaneTopology(in *ControlPlaneTopology, c randfill.Continue) {
 	if in.NodeDeletionTimeout != nil {
 		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
+
+	if in.Variables != nil && reflect.DeepEqual(in.Variables, &ControlPlaneVariables{}) {
+		in.Variables = nil
+	}
 }
 
 func spokeMachineDeploymentTopology(in *MachineDeploymentTopology, c randfill.Continue) {
@@ -740,6 +754,26 @@ func spokeMachineDeploymentTopology(in *MachineDeploymentTopology, c randfill.Co
 	if in.NodeDeletionTimeout != nil {
 		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
+	if in.Variables != nil && reflect.DeepEqual(in.Variables, &MachineDeploymentVariables{}) {
+		in.Variables = nil
+	}
+	if in.Strategy != nil {
+		if in.Strategy.RollingUpdate != nil {
+			if in.Strategy.RollingUpdate.DeletePolicy != nil && *in.Strategy.RollingUpdate.DeletePolicy == "" {
+				// &"" Is not a valid value for DeletePolicy as the enum validation enforces an enum value if DeletePolicy is set.
+				in.Strategy.RollingUpdate.DeletePolicy = nil
+			}
+			if reflect.DeepEqual(in.Strategy.RollingUpdate, &MachineRollingUpdateDeployment{}) {
+				in.Strategy.RollingUpdate = nil
+			}
+		}
+		if in.Strategy.Remediation != nil && reflect.DeepEqual(in.Strategy.Remediation, &RemediationStrategy{}) {
+			in.Strategy.Remediation = nil
+		}
+		if reflect.DeepEqual(in.Strategy, &MachineDeploymentStrategy{}) {
+			in.Strategy = nil
+		}
+	}
 }
 
 func spokeMachinePoolTopology(in *MachinePoolTopology, c randfill.Continue) {
@@ -753,6 +787,9 @@ func spokeMachinePoolTopology(in *MachinePoolTopology, c randfill.Continue) {
 	}
 	if in.NodeDeletionTimeout != nil {
 		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.Variables != nil && reflect.DeepEqual(in.Variables, &MachinePoolVariables{}) {
+		in.Variables = nil
 	}
 }
 
@@ -789,6 +826,23 @@ func spokeMachineDeploymentClass(in *MachineDeploymentClass, c randfill.Continue
 	}
 	if in.NodeDeletionTimeout != nil {
 		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.Strategy != nil {
+		if in.Strategy.RollingUpdate != nil {
+			if in.Strategy.RollingUpdate.DeletePolicy != nil && *in.Strategy.RollingUpdate.DeletePolicy == "" {
+				// &"" Is not a valid value for DeletePolicy as the enum validation enforces an enum value if DeletePolicy is set.
+				in.Strategy.RollingUpdate.DeletePolicy = nil
+			}
+			if reflect.DeepEqual(in.Strategy.RollingUpdate, &MachineRollingUpdateDeployment{}) {
+				in.Strategy.RollingUpdate = nil
+			}
+		}
+		if in.Strategy.Remediation != nil && reflect.DeepEqual(in.Strategy.Remediation, &RemediationStrategy{}) {
+			in.Strategy.Remediation = nil
+		}
+		if reflect.DeepEqual(in.Strategy, &MachineDeploymentStrategy{}) {
+			in.Strategy = nil
+		}
 	}
 }
 

@@ -125,9 +125,9 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 					// verify that all original MachineSets have been deleted.
 					MatchLabels: labels,
 				},
-				Strategy: &clusterv1.MachineDeploymentStrategy{
+				Strategy: clusterv1.MachineDeploymentStrategy{
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+					RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 						MaxUnavailable: intOrStrPtr(0),
 						MaxSurge:       intOrStrPtr(1),
 						DeletePolicy:   clusterv1.OldestMachineSetDeletePolicy,
@@ -560,9 +560,9 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 				// We're using the same labels for spec.selector and spec.template.labels.
 				MatchLabels: labels,
 			},
-			Strategy: &clusterv1.MachineDeploymentStrategy{
+			Strategy: clusterv1.MachineDeploymentStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 					MaxUnavailable: intOrStrPtr(0),
 					MaxSurge:       intOrStrPtr(1),
 					DeletePolicy:   clusterv1.OldestMachineSetDeletePolicy,

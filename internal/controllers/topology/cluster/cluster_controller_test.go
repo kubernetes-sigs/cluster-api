@@ -312,9 +312,9 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 	patchHelper, err := patch.NewHelper(clusterClass, env.Client)
 	g.Expect(err).ToNot(HaveOccurred())
 	// Change the infrastructureMachineTemplateName for the first of our MachineDeployments and update in the API.
-	clusterClass.Spec.Workers.MachineDeployments[0].Template.Infrastructure.TemplateRef.Name = infrastructureMachineTemplateName2
+	clusterClass.Spec.Workers.MachineDeployments[0].Infrastructure.TemplateRef.Name = infrastructureMachineTemplateName2
 	// Change the infrastructureMachinePoolTemplateName for the first of our MachinePools and update in the API.
-	clusterClass.Spec.Workers.MachinePools[0].Template.Infrastructure.TemplateRef.Name = infrastructureMachinePoolTemplateName2
+	clusterClass.Spec.Workers.MachinePools[0].Infrastructure.TemplateRef.Name = infrastructureMachinePoolTemplateName2
 	g.Expect(patchHelper.Patch(ctx, clusterClass)).To(Succeed())
 
 	g.Eventually(func(g Gomega) error {
@@ -322,8 +322,8 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 		// This is necessary as sometimes the cache can take a little time to update.
 		class := &clusterv1.ClusterClass{}
 		g.Expect(env.Get(ctx, actualCluster.GetClassKey(), class)).To(Succeed())
-		g.Expect(class.Spec.Workers.MachineDeployments[0].Template.Infrastructure.TemplateRef.Name).To(Equal(infrastructureMachineTemplateName2))
-		g.Expect(class.Spec.Workers.MachinePools[0].Template.Infrastructure.TemplateRef.Name).To(Equal(infrastructureMachinePoolTemplateName2))
+		g.Expect(class.Spec.Workers.MachineDeployments[0].Infrastructure.TemplateRef.Name).To(Equal(infrastructureMachineTemplateName2))
+		g.Expect(class.Spec.Workers.MachinePools[0].Infrastructure.TemplateRef.Name).To(Equal(infrastructureMachinePoolTemplateName2))
 
 		// For each cluster check that the clusterClass changes have been correctly reconciled.
 		for _, name := range []string{clusterName1, clusterName2} {

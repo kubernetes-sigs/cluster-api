@@ -133,17 +133,16 @@ spec:
   workers:
     machineDeployments:
       - class: default-worker
-        template:
-          bootstrap:
-            templateRef:
-              apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-              kind: KubeadmConfigTemplate
-              name: in-memory-default-worker-bootstraptemplate
-          infrastructure:
-            templateRef:
-              apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-              kind: DevMachineTemplate
-              name: in-memory-default-worker-machinetemplate
+        bootstrap:
+          templateRef:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+            kind: KubeadmConfigTemplate
+            name: in-memory-default-worker-bootstraptemplate
+        infrastructure:
+          templateRef:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            kind: DevMachineTemplate
+            name: in-memory-default-worker-machinetemplate
         machineHealthCheck:
           unhealthyConditions:
             - type: Ready

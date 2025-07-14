@@ -27,32 +27,30 @@ spec:
     - class: default-worker
       namingStrategy:
         template: "{{ .cluster.name }}-md-{{ .machineDeployment.topologyName }}-{{ .random }}"
-      template:
-        bootstrap:
-          templateRef:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-            kind: KubeadmConfigTemplate
-            name: quick-start-default-worker-bootstraptemplate
-        infrastructure:
-          templateRef:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-            kind: DockerMachineTemplate
-            name: quick-start-default-worker-machinetemplate
+      bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: quick-start-default-worker-bootstraptemplate
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: DockerMachineTemplate
+          name: quick-start-default-worker-machinetemplate
     machinePools:
     - class: default-worker
       namingStrategy:
         template: "{{ .cluster.name }}-mp-{{ .machinePool.topologyName }}-{{ .random }}"
-      template:
-        bootstrap:
-          templateRef:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-            kind: KubeadmConfigTemplate
-            name: quick-start-default-worker-bootstraptemplate
-        infrastructure:
-          templateRef:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-            kind: DockerMachinePoolTemplate
-            name: quick-start-default-worker-machinepooltemplate
+      bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: quick-start-default-worker-bootstraptemplate
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: DockerMachinePoolTemplate
+          name: quick-start-default-worker-machinepooltemplate
   patches:
   - name: test-patch
     external:

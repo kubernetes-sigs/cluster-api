@@ -532,16 +532,16 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 		}
 
 		for _, mdClass := range cc.Spec.Workers.MachineDeployments {
-			_, err = o.fetchRef(ctx, discoveryBackoff, mdClass.Template.Infrastructure.TemplateRef.ToObjectReference(cc.Namespace))
+			_, err = o.fetchRef(ctx, discoveryBackoff, mdClass.Infrastructure.TemplateRef.ToObjectReference(cc.Namespace))
 			errs = append(errs, err)
-			_, err = o.fetchRef(ctx, discoveryBackoff, mdClass.Template.Bootstrap.TemplateRef.ToObjectReference(cc.Namespace))
+			_, err = o.fetchRef(ctx, discoveryBackoff, mdClass.Bootstrap.TemplateRef.ToObjectReference(cc.Namespace))
 			errs = append(errs, err)
 		}
 
 		for _, mpClass := range cc.Spec.Workers.MachinePools {
-			_, err = o.fetchRef(ctx, discoveryBackoff, mpClass.Template.Infrastructure.TemplateRef.ToObjectReference(cc.Namespace))
+			_, err = o.fetchRef(ctx, discoveryBackoff, mpClass.Infrastructure.TemplateRef.ToObjectReference(cc.Namespace))
 			errs = append(errs, err)
-			_, err = o.fetchRef(ctx, discoveryBackoff, mpClass.Template.Bootstrap.TemplateRef.ToObjectReference(cc.Namespace))
+			_, err = o.fetchRef(ctx, discoveryBackoff, mpClass.Bootstrap.TemplateRef.ToObjectReference(cc.Namespace))
 			errs = append(errs, err)
 		}
 

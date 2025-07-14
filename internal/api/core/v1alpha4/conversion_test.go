@@ -264,6 +264,18 @@ func spokeCluster(in *Cluster, c randfill.Continue) {
 		in.Spec.InfrastructureRef.ResourceVersion = ""
 		in.Spec.InfrastructureRef.FieldPath = ""
 	}
+
+	if in.Spec.ClusterNetwork != nil {
+		if in.Spec.ClusterNetwork.Services != nil && reflect.DeepEqual(in.Spec.ClusterNetwork.Services, &NetworkRanges{}) {
+			in.Spec.ClusterNetwork.Services = nil
+		}
+		if in.Spec.ClusterNetwork.Pods != nil && reflect.DeepEqual(in.Spec.ClusterNetwork.Pods, &NetworkRanges{}) {
+			in.Spec.ClusterNetwork.Pods = nil
+		}
+		if reflect.DeepEqual(in.Spec.ClusterNetwork, &ClusterNetwork{}) {
+			in.Spec.ClusterNetwork = nil
+		}
+	}
 }
 
 func spokeClusterTopology(in *Topology, c randfill.Continue) {
@@ -271,6 +283,10 @@ func spokeClusterTopology(in *Topology, c randfill.Continue) {
 
 	// RolloutAfter was unused and has been removed in v1beta2.
 	in.RolloutAfter = nil
+
+	if in.Workers != nil && reflect.DeepEqual(in.Workers, &WorkersTopology{}) {
+		in.Workers = nil
+	}
 }
 
 func ClusterClassFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
@@ -433,12 +449,6 @@ func spokeMachineDeployment(in *MachineDeployment, c randfill.Continue) {
 	fillMachineSpec(&in.Spec.Template.Spec, c, in.Namespace)
 
 	dropEmptyStringsMachineSpec(&in.Spec.Template.Spec)
-
-	if in.Spec.Strategy != nil && in.Spec.Strategy.RollingUpdate != nil &&
-		in.Spec.Strategy.RollingUpdate.DeletePolicy != nil && *in.Spec.Strategy.RollingUpdate.DeletePolicy == "" {
-		// &"" Is not a valid value for DeletePolicy as the enum validation enforces an enum value if DeletePolicy is set.
-		in.Spec.Strategy.RollingUpdate.DeletePolicy = nil
-	}
 }
 
 func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) {
@@ -449,6 +459,21 @@ func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) 
 
 	// Drop RevisionHistoryLimit as we intentionally don't preserve it.
 	in.RevisionHistoryLimit = nil
+
+	if in.Strategy != nil {
+		if in.Strategy.RollingUpdate != nil {
+			if in.Strategy.RollingUpdate.DeletePolicy != nil && *in.Strategy.RollingUpdate.DeletePolicy == "" {
+				// &"" Is not a valid value for DeletePolicy as the enum validation enforces an enum value if DeletePolicy is set.
+				in.Strategy.RollingUpdate.DeletePolicy = nil
+			}
+			if reflect.DeepEqual(in.Strategy.RollingUpdate, &MachineRollingUpdateDeployment{}) {
+				in.Strategy.RollingUpdate = nil
+			}
+		}
+		if reflect.DeepEqual(in.Strategy, &MachineDeploymentStrategy{}) {
+			in.Strategy = nil
+		}
+	}
 }
 
 func MachineHealthCheckFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {

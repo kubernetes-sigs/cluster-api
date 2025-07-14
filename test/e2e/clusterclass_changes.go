@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 
@@ -454,7 +455,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 		log.Logf("Modifying the BootstrapConfigTemplate of MachineDeploymentClass %q of ClusterClass %s", mdClass.Class, klog.KObj(input.ClusterClass))
 
 		// Retrieve BootstrapConfigTemplate object.
-		bootstrapConfigTemplateRef := mdClass.Template.Bootstrap.TemplateRef.ToObjectReference(input.ClusterClass.Namespace)
+		bootstrapConfigTemplateRef := mdClass.Bootstrap.TemplateRef.ToObjectReference(input.ClusterClass.Namespace)
 		bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Create a new BootstrapConfigTemplate object with a new name and ModifyBootstrapConfigTemplateFields set.
@@ -470,7 +471,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 		log.Logf("Modifying the InfrastructureMachineTemplate of MachineDeploymentClass %q of ClusterClass %s", mdClass.Class, klog.KObj(input.ClusterClass))
 
 		// Retrieve InfrastructureMachineTemplate object.
-		infrastructureMachineTemplateRef := mdClass.Template.Infrastructure.TemplateRef.ToObjectReference(input.ClusterClass.Namespace)
+		infrastructureMachineTemplateRef := mdClass.Infrastructure.TemplateRef.ToObjectReference(input.ClusterClass.Namespace)
 		infrastructureMachineTemplate, err := external.Get(ctx, mgmtClient, infrastructureMachineTemplateRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Create a new InfrastructureMachineTemplate object with a new name and ModifyInfrastructureMachineTemplateFields set.
@@ -486,8 +487,8 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 		// Patch the refs of the MachineDeploymentClass to reference the new templates.
 		patchHelper, err := patch.NewHelper(input.ClusterClass, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
-		input.ClusterClass.Spec.Workers.MachineDeployments[i].Template.Bootstrap.TemplateRef.Name = newBootstrapConfigTemplateName
-		input.ClusterClass.Spec.Workers.MachineDeployments[i].Template.Infrastructure.TemplateRef.Name = newInfrastructureMachineTemplateName
+		input.ClusterClass.Spec.Workers.MachineDeployments[i].Bootstrap.TemplateRef.Name = newBootstrapConfigTemplateName
+		input.ClusterClass.Spec.Workers.MachineDeployments[i].Infrastructure.TemplateRef.Name = newInfrastructureMachineTemplateName
 		Expect(patchHelper.Patch(ctx, input.ClusterClass)).To(Succeed())
 
 		log.Logf("Waiting for MachineDeployment rollout for MachineDeploymentClass %q to complete.", mdClass.Class)
@@ -570,7 +571,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 		log.Logf("Modifying the BootstrapConfigTemplate of MachinePoolClass %q of ClusterClass %s", mpClass.Class, klog.KObj(input.ClusterClass))
 
 		// Retrieve BootstrapConfigTemplate object.
-		bootstrapConfigTemplateRef := mpClass.Template.Bootstrap.TemplateRef.ToObjectReference(input.ClusterClass.Namespace)
+		bootstrapConfigTemplateRef := mpClass.Bootstrap.TemplateRef.ToObjectReference(input.ClusterClass.Namespace)
 		bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Create a new BootstrapConfigTemplate object with a new name and ModifyBootstrapConfigTemplateFields set.
@@ -586,7 +587,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 		log.Logf("Modifying the InfrastructureMachinePoolTemplate of MachinePoolClass %q of ClusterClass %s", mpClass.Class, klog.KObj(input.ClusterClass))
 
 		// Retrieve InfrastructureMachineTemplate object.
-		infrastructureMachinePoolTemplateRef := mpClass.Template.Infrastructure.TemplateRef.ToObjectReference(input.ClusterClass.Namespace)
+		infrastructureMachinePoolTemplateRef := mpClass.Infrastructure.TemplateRef.ToObjectReference(input.ClusterClass.Namespace)
 		infrastructureMachinePoolTemplate, err := external.Get(ctx, mgmtClient, infrastructureMachinePoolTemplateRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Create a new InfrastructureMachinePoolTemplate object with a new name and ModifyInfrastructureMachinePoolTemplateFields set.
@@ -602,8 +603,8 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 		// Patch the refs of the MachinePoolClass to reference the new templates.
 		patchHelper, err := patch.NewHelper(input.ClusterClass, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
-		input.ClusterClass.Spec.Workers.MachinePools[i].Template.Bootstrap.TemplateRef.Name = newBootstrapConfigTemplateName
-		input.ClusterClass.Spec.Workers.MachinePools[i].Template.Infrastructure.TemplateRef.Name = newInfrastructureMachinePoolTemplateName
+		input.ClusterClass.Spec.Workers.MachinePools[i].Bootstrap.TemplateRef.Name = newBootstrapConfigTemplateName
+		input.ClusterClass.Spec.Workers.MachinePools[i].Infrastructure.TemplateRef.Name = newInfrastructureMachinePoolTemplateName
 		Expect(patchHelper.Patch(ctx, input.ClusterClass)).To(Succeed())
 
 		log.Logf("Waiting for MachinePool rollout for MachinePoolClass %q to complete.", mpClass.Class)
@@ -691,7 +692,7 @@ func assertMachineDeploymentTopologyFields(g Gomega, md clusterv1.MachineDeploym
 		g.Expect(md.Spec.Template.Spec.MinReadySeconds).To(Equal(mdTopology.MinReadySeconds))
 	}
 
-	if mdTopology.Strategy != nil {
+	if !reflect.DeepEqual(mdTopology.Strategy, clusterv1.MachineDeploymentStrategy{}) {
 		g.Expect(md.Spec.Strategy).To(BeComparableTo(mdTopology.Strategy))
 	}
 
@@ -772,23 +773,23 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 	newClusterClass.SetResourceVersion("")
 
 	for i, mdClass := range newClusterClass.Spec.Workers.MachineDeployments {
-		if mdClass.Template.Metadata.Labels == nil {
-			mdClass.Template.Metadata.Labels = map[string]string{}
+		if mdClass.Metadata.Labels == nil {
+			mdClass.Metadata.Labels = map[string]string{}
 		}
-		mdClass.Template.Metadata.Labels[testWorkerLabelName] = mdClass.Class
+		mdClass.Metadata.Labels[testWorkerLabelName] = mdClass.Class
 		newClusterClass.Spec.Workers.MachineDeployments[i] = mdClass
 	}
 
 	// Copy ClusterClass templates to the new namespace
 	for i, mdClass := range newClusterClass.Spec.Workers.MachineDeployments {
-		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mdClass.Template.Infrastructure.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
-		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mdClass.Template.Bootstrap.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mdClass.Infrastructure.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mdClass.Bootstrap.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
 		newClusterClass.Spec.Workers.MachineDeployments[i] = mdClass
 	}
 
 	for i, mpClass := range newClusterClass.Spec.Workers.MachinePools {
-		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mpClass.Template.Infrastructure.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
-		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mpClass.Template.Bootstrap.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mpClass.Infrastructure.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+		cloneTemplateAndUpdateRef(ctx, mgmtClient, &mpClass.Bootstrap.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
 		newClusterClass.Spec.Workers.MachinePools[i] = mpClass
 	}
 

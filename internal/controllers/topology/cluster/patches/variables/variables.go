@@ -74,25 +74,23 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, pat
 			Annotations: cleanupAnnotations(cluster.Annotations),
 		}
 	}
-	if cluster.Spec.ClusterNetwork != nil {
-		if cluster.Spec.ClusterNetwork.ServiceDomain != "" {
-			if builtin.Cluster.Network == nil {
-				builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{}
-			}
-			builtin.Cluster.Network.ServiceDomain = &cluster.Spec.ClusterNetwork.ServiceDomain
+	if cluster.Spec.ClusterNetwork.ServiceDomain != "" {
+		if builtin.Cluster.Network == nil {
+			builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{}
 		}
-		if cluster.Spec.ClusterNetwork.Services != nil && cluster.Spec.ClusterNetwork.Services.CIDRBlocks != nil {
-			if builtin.Cluster.Network == nil {
-				builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{}
-			}
-			builtin.Cluster.Network.Services = cluster.Spec.ClusterNetwork.Services.CIDRBlocks
+		builtin.Cluster.Network.ServiceDomain = &cluster.Spec.ClusterNetwork.ServiceDomain
+	}
+	if cluster.Spec.ClusterNetwork.Services.CIDRBlocks != nil {
+		if builtin.Cluster.Network == nil {
+			builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{}
 		}
-		if cluster.Spec.ClusterNetwork.Pods != nil && cluster.Spec.ClusterNetwork.Pods.CIDRBlocks != nil {
-			if builtin.Cluster.Network == nil {
-				builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{}
-			}
-			builtin.Cluster.Network.Pods = cluster.Spec.ClusterNetwork.Pods.CIDRBlocks
+		builtin.Cluster.Network.Services = cluster.Spec.ClusterNetwork.Services.CIDRBlocks
+	}
+	if cluster.Spec.ClusterNetwork.Pods.CIDRBlocks != nil {
+		if builtin.Cluster.Network == nil {
+			builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{}
 		}
+		builtin.Cluster.Network.Pods = cluster.Spec.ClusterNetwork.Pods.CIDRBlocks
 	}
 
 	// Add builtin variables derived from the cluster object.
@@ -110,12 +108,10 @@ func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructu
 	variables := []runtimehooksv1.Variable{}
 
 	// Add variables overrides for the ControlPlane.
-	if cpTopology.Variables != nil {
-		for _, variable := range cpTopology.Variables.Overrides {
-			// Add the variable if it has a definition from this patch in the ClusterClass.
-			if _, ok := patchVariableDefinitions[variable.Name]; ok {
-				variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
-			}
+	for _, variable := range cpTopology.Variables.Overrides {
+		// Add the variable if it has a definition from this patch in the ClusterClass.
+		if _, ok := patchVariableDefinitions[variable.Name]; ok {
+			variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
 		}
 	}
 
@@ -172,12 +168,10 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 	variables := []runtimehooksv1.Variable{}
 
 	// Add variables overrides for the MachineDeployment.
-	if mdTopology.Variables != nil {
-		for _, variable := range mdTopology.Variables.Overrides {
-			// Add the variable if it has a definition from this patch in the ClusterClass.
-			if _, ok := patchVariableDefinitions[variable.Name]; ok {
-				variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
-			}
+	for _, variable := range mdTopology.Variables.Overrides {
+		// Add the variable if it has a definition from this patch in the ClusterClass.
+		if _, ok := patchVariableDefinitions[variable.Name]; ok {
+			variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
 		}
 	}
 
@@ -228,12 +222,10 @@ func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *clusterv1.Machin
 	variables := []runtimehooksv1.Variable{}
 
 	// Add variables overrides for the MachinePool.
-	if mpTopology.Variables != nil {
-		for _, variable := range mpTopology.Variables.Overrides {
-			// Add the variable if it has a definition from this patch in the ClusterClass.
-			if _, ok := patchVariableDefinitions[variable.Name]; ok {
-				variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
-			}
+	for _, variable := range mpTopology.Variables.Overrides {
+		// Add the variable if it has a definition from this patch in the ClusterClass.
+		if _, ok := patchVariableDefinitions[variable.Name]; ok {
+			variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
 		}
 	}
 

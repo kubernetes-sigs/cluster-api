@@ -632,7 +632,6 @@ func ScaleAndWaitMachineDeploymentTopology(ctx context.Context, input ScaleAndWa
 	Expect(ctx).NotTo(BeNil(), "ctx is required for ScaleAndWaitMachineDeployment")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ScaleAndWaitMachineDeployment")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling ScaleAndWaitMachineDeployment")
-	Expect(input.Cluster.Spec.Topology.Workers).ToNot(BeNil(), "Invalid argument. input.Cluster must have MachineDeployment topologies")
 	Expect(input.Cluster.Spec.Topology.Workers.MachineDeployments).NotTo(BeEmpty(), "Invalid argument. input.Cluster must have at least one MachineDeployment topology")
 
 	mdTopology := input.Cluster.Spec.Topology.Workers.MachineDeployments[0]

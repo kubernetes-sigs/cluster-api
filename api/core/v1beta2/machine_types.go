@@ -446,6 +446,7 @@ type MachineSpec struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
@@ -486,7 +487,6 @@ type MachineReadinessGate struct {
 	// When omitted, the default behaviour will be Positive.
 	// A positive polarity means that the condition should report a true status under normal conditions.
 	// A negative polarity means that the condition should report a false status under normal conditions.
-	// +kubebuilder:validation:Enum=Positive;Negative
 	// +optional
 	Polarity ConditionPolarity `json:"polarity,omitempty"`
 }

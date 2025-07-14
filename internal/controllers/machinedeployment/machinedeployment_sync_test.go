@@ -264,9 +264,9 @@ func TestScaleMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxUnavailable: intOrStrPtr(0),
 							MaxSurge:       intOrStrPtr(2),
 						},
@@ -293,9 +293,9 @@ func TestScaleMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxUnavailable: intOrStrPtr(0),
 							MaxSurge:       intOrStrPtr(2),
 						},
@@ -322,9 +322,9 @@ func TestScaleMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxUnavailable: intOrStrPtr(0),
 							MaxSurge:       intOrStrPtr(2),
 						},
@@ -388,9 +388,9 @@ func newTestMachineDeployment(replicas, statusReplicas, upToDateReplicas, availa
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
 			Replicas: &replicas,
-			Strategy: &clusterv1.MachineDeploymentStrategy{
+			Strategy: clusterv1.MachineDeploymentStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 					MaxUnavailable: intOrStrPtr(0),
 					MaxSurge:       intOrStrPtr(1),
 					DeletePolicy:   clusterv1.OldestMachineSetDeletePolicy,
@@ -540,9 +540,9 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: "test-cluster",
 			Replicas:    ptr.To[int32](3),
-			Strategy: &clusterv1.MachineDeploymentStrategy{
+			Strategy: clusterv1.MachineDeploymentStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 					MaxSurge:       intOrStrPtr(1),
 					DeletePolicy:   clusterv1.RandomMachineSetDeletePolicy,
 					MaxUnavailable: intOrStrPtr(0),
@@ -707,9 +707,9 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 	t.Run("should compute the updated MachineSet when no old MachineSets exists (", func(t *testing.T) {
 		// Set rollout strategy to "OnDelete".
 		deployment := deployment.DeepCopy()
-		deployment.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{
+		deployment.Spec.Strategy = clusterv1.MachineDeploymentStrategy{
 			Type:          clusterv1.OnDeleteMachineDeploymentStrategyType,
-			RollingUpdate: nil,
+			RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{},
 		}
 
 		uniqueID := apirand.String(5)

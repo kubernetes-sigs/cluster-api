@@ -71,7 +71,6 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	g.Expect(md.Labels[clusterv1.ClusterNameLabel]).To(Equal(md.Spec.ClusterName))
 
 	g.Expect(md.Spec.Replicas).To(Equal(ptr.To[int32](1)))
-	g.Expect(md.Spec.Strategy).ToNot(BeNil())
 
 	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.MachineDeploymentNameLabel, "test-md"))
 	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(clusterv1.MachineDeploymentNameLabel, "test-md"))
@@ -79,7 +78,6 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, "test-cluster"))
 
 	g.Expect(md.Spec.Strategy.Type).To(Equal(clusterv1.RollingUpdateMachineDeploymentStrategyType))
-	g.Expect(md.Spec.Strategy.RollingUpdate).ToNot(BeNil())
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()).To(Equal(1))
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()).To(Equal(0))
 
@@ -433,7 +431,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			labels:    map[string]string{"foo": "bar"},
 			strategy: clusterv1.MachineDeploymentStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 					MaxUnavailable: &goodMaxUnavailableInt,
 					MaxSurge:       &badMaxSurge,
 				},
@@ -446,7 +444,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			labels:    map[string]string{"foo": "bar"},
 			strategy: clusterv1.MachineDeploymentStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 					MaxUnavailable: &badMaxUnavailable,
 					MaxSurge:       &goodMaxSurgeInt,
 				},
@@ -458,7 +456,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
 			strategy: clusterv1.MachineDeploymentStrategy{
-				Remediation: &clusterv1.RemediationStrategy{
+				Remediation: clusterv1.RemediationStrategy{
 					MaxInFlight: &badMaxInFlight,
 				},
 			},
@@ -469,7 +467,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
 			strategy: clusterv1.MachineDeploymentStrategy{
-				Remediation: &clusterv1.RemediationStrategy{
+				Remediation: clusterv1.RemediationStrategy{
 					MaxInFlight: &goodMaxInFlightPercentage,
 				},
 			},
@@ -480,7 +478,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
 			strategy: clusterv1.MachineDeploymentStrategy{
-				Remediation: &clusterv1.RemediationStrategy{
+				Remediation: clusterv1.RemediationStrategy{
 					MaxInFlight: &goodMaxInFlightInt,
 				},
 			},
@@ -492,7 +490,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			labels:    map[string]string{"foo": "bar"},
 			strategy: clusterv1.MachineDeploymentStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 					MaxUnavailable: &goodMaxUnavailableInt,
 					MaxSurge:       &goodMaxSurgeInt,
 				},
@@ -505,7 +503,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			labels:    map[string]string{"foo": "bar"},
 			strategy: clusterv1.MachineDeploymentStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 					MaxUnavailable: &goodMaxUnavailablePercentage,
 					MaxSurge:       &goodMaxSurgePercentage,
 				},
@@ -544,7 +542,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 					Name: tt.mdName,
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Strategy: &tt.strategy,
+					Strategy: tt.strategy,
 					Selector: metav1.LabelSelector{
 						MatchLabels: tt.selectors,
 					},

@@ -97,6 +97,7 @@ type ClusterClassSpec struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	AvailabilityGates []ClusterAvailabilityGate `json:"availabilityGates,omitempty"`
 
@@ -213,6 +214,7 @@ type ControlPlaneClass struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 }
@@ -270,6 +272,11 @@ type WorkersClass struct {
 // MachineDeploymentClass serves as a template to define a set of worker nodes of the cluster
 // provisioned using the `ClusterClass`.
 type MachineDeploymentClass struct {
+	// metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
+	// At runtime this metadata is merged with the corresponding metadata from the topology.
+	// +optional
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
+
 	// class denotes a type of worker node present in the cluster,
 	// this name MUST be unique within a ClusterClass and can be referenced
 	// in the Cluster to create a managed MachineDeployment.
@@ -278,10 +285,15 @@ type MachineDeploymentClass struct {
 	// +kubebuilder:validation:MaxLength=256
 	Class string `json:"class"`
 
-	// template is a local struct containing a collection of templates for creation of
-	// MachineDeployment objects representing a set of worker nodes.
+	// bootstrap contains the bootstrap template reference to be used
+	// for the creation of worker Machines.
 	// +required
-	Template MachineDeploymentClassTemplate `json:"template"`
+	Bootstrap MachineDeploymentClassBootstrapTemplate `json:"bootstrap"`
+
+	// infrastructure contains the infrastructure template reference to be used
+	// for the creation of worker Machines.
+	// +required
+	Infrastructure MachineDeploymentClassInfrastructureTemplate `json:"infrastructure"`
 
 	// machineHealthCheck defines a MachineHealthCheck for this MachineDeploymentClass.
 	// +optional
@@ -341,6 +353,7 @@ type MachineDeploymentClass struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
@@ -348,26 +361,7 @@ type MachineDeploymentClass struct {
 	// new ones.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	// +optional
-	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
-}
-
-// MachineDeploymentClassTemplate defines how a MachineDeployment generated from a MachineDeploymentClass
-// should look like.
-type MachineDeploymentClassTemplate struct {
-	// metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
-	// At runtime this metadata is merged with the corresponding metadata from the topology.
-	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
-
-	// bootstrap contains the bootstrap template reference to be used
-	// for the creation of worker Machines.
-	// +required
-	Bootstrap MachineDeploymentClassBootstrapTemplate `json:"bootstrap"`
-
-	// infrastructure contains the infrastructure template reference to be used
-	// for the creation of worker Machines.
-	// +required
-	Infrastructure MachineDeploymentClassInfrastructureTemplate `json:"infrastructure"`
+	Strategy MachineDeploymentStrategy `json:"strategy,omitempty,omitzero"`
 }
 
 // MachineDeploymentClassNamingStrategy defines the naming strategy for machine deployment objects.
@@ -387,6 +381,7 @@ type MachineDeploymentClassNamingStrategy struct {
 }
 
 // MachineHealthCheckClass defines a MachineHealthCheck for a group of Machines.
+// +kubebuilder:validation:MinProperties=1
 type MachineHealthCheckClass struct {
 	// unhealthyNodeConditions contains a list of conditions that determine
 	// whether a node is considered unhealthy. The conditions are combined in a
@@ -394,6 +389,7 @@ type MachineHealthCheckClass struct {
 	//
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	UnhealthyNodeConditions []UnhealthyNodeCondition `json:"unhealthyNodeConditions,omitempty"`
 
@@ -444,6 +440,11 @@ type MachineHealthCheckClass struct {
 // MachinePoolClass serves as a template to define a pool of worker nodes of the cluster
 // provisioned using `ClusterClass`.
 type MachinePoolClass struct {
+	// metadata is the metadata applied to the MachinePool.
+	// At runtime this metadata is merged with the corresponding metadata from the topology.
+	// +optional
+	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
+
 	// class denotes a type of machine pool present in the cluster,
 	// this name MUST be unique within a ClusterClass and can be referenced
 	// in the Cluster to create a managed MachinePool.
@@ -452,10 +453,15 @@ type MachinePoolClass struct {
 	// +kubebuilder:validation:MaxLength=256
 	Class string `json:"class"`
 
-	// template is a local struct containing a collection of templates for creation of
-	// MachinePools objects representing a pool of worker nodes.
+	// bootstrap contains the bootstrap template reference to be used
+	// for the creation of the Machines in the MachinePool.
 	// +required
-	Template MachinePoolClassTemplate `json:"template"`
+	Bootstrap MachinePoolClassBootstrapTemplate `json:"bootstrap"`
+
+	// infrastructure contains the infrastructure template reference to be used
+	// for the creation of the MachinePool.
+	// +required
+	Infrastructure MachinePoolClassInfrastructureTemplate `json:"infrastructure"`
 
 	// failureDomains is the list of failure domains the MachinePool should be attached to.
 	// Must match a key in the FailureDomains map stored on the cluster object.
@@ -502,25 +508,6 @@ type MachinePoolClass struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
-}
-
-// MachinePoolClassTemplate defines how a MachinePool generated from a MachinePoolClass
-// should look like.
-type MachinePoolClassTemplate struct {
-	// metadata is the metadata applied to the MachinePool.
-	// At runtime this metadata is merged with the corresponding metadata from the topology.
-	// +optional
-	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
-
-	// bootstrap contains the bootstrap template reference to be used
-	// for the creation of the Machines in the MachinePool.
-	// +required
-	Bootstrap MachinePoolClassBootstrapTemplate `json:"bootstrap"`
-
-	// infrastructure contains the infrastructure template reference to be used
-	// for the creation of the MachinePool.
-	// +required
-	Infrastructure MachinePoolClassInfrastructureTemplate `json:"infrastructure"`
 }
 
 // MachinePoolClassNamingStrategy defines the naming strategy for machine pool objects.

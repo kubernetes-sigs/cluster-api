@@ -39,7 +39,7 @@ type ClusterBuilder struct {
 	topology              *clusterv1.Topology
 	infrastructureCluster *unstructured.Unstructured
 	controlPlane          *unstructured.Unstructured
-	network               *clusterv1.ClusterNetwork
+	network               clusterv1.ClusterNetwork
 }
 
 // Cluster returns a ClusterBuilder with the given name and namespace.
@@ -51,7 +51,7 @@ func Cluster(namespace, name string) *ClusterBuilder {
 }
 
 // WithClusterNetwork sets the ClusterNetwork for the ClusterBuilder.
-func (c *ClusterBuilder) WithClusterNetwork(clusterNetwork *clusterv1.ClusterNetwork) *ClusterBuilder {
+func (c *ClusterBuilder) WithClusterNetwork(clusterNetwork clusterv1.ClusterNetwork) *ClusterBuilder {
 	c.network = clusterNetwork
 	return c
 }
@@ -116,7 +116,7 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 // ClusterTopologyBuilder contains the fields needed to build a testable ClusterTopology.
 type ClusterTopologyBuilder struct {
 	class, classNamespace string
-	workers               *clusterv1.WorkersTopology
+	workers               clusterv1.WorkersTopology
 	version               string
 	controlPlaneReplicas  int32
 	controlPlaneMHC       *clusterv1.MachineHealthCheckTopology
@@ -127,7 +127,7 @@ type ClusterTopologyBuilder struct {
 // ClusterTopology returns a ClusterTopologyBuilder.
 func ClusterTopology() *ClusterTopologyBuilder {
 	return &ClusterTopologyBuilder{
-		workers: &clusterv1.WorkersTopology{},
+		workers: clusterv1.WorkersTopology{},
 	}
 }
 
@@ -202,7 +202,7 @@ func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 	}
 
 	if len(c.controlPlaneVariables) > 0 {
-		t.ControlPlane.Variables = &clusterv1.ControlPlaneVariables{
+		t.ControlPlane.Variables = clusterv1.ControlPlaneVariables{
 			Overrides: c.controlPlaneVariables,
 		}
 	}
@@ -270,7 +270,7 @@ func (m *MachineDeploymentTopologyBuilder) Build() clusterv1.MachineDeploymentTo
 	}
 
 	if len(m.variables) > 0 {
-		md.Variables = &clusterv1.MachineDeploymentVariables{
+		md.Variables = clusterv1.MachineDeploymentVariables{
 			Overrides: m.variables,
 		}
 	}
@@ -328,7 +328,7 @@ func (m *MachinePoolTopologyBuilder) Build() clusterv1.MachinePoolTopology {
 	}
 
 	if len(m.variables) > 0 {
-		mp.Variables = &clusterv1.MachinePoolVariables{
+		mp.Variables = clusterv1.MachinePoolVariables{
 			Overrides: m.variables,
 		}
 	}
@@ -555,7 +555,7 @@ type MachineDeploymentClassBuilder struct {
 	nodeVolumeDetachTimeout       *int32
 	nodeDeletionTimeout           *int32
 	minReadySeconds               *int32
-	strategy                      *clusterv1.MachineDeploymentStrategy
+	strategy                      clusterv1.MachineDeploymentStrategy
 	namingStrategy                *clusterv1.MachineDeploymentClassNamingStrategy
 }
 
@@ -633,7 +633,7 @@ func (m *MachineDeploymentClassBuilder) WithMinReadySeconds(t *int32) *MachineDe
 }
 
 // WithStrategy sets the Strategy for the MachineDeploymentClassBuilder.
-func (m *MachineDeploymentClassBuilder) WithStrategy(s *clusterv1.MachineDeploymentStrategy) *MachineDeploymentClassBuilder {
+func (m *MachineDeploymentClassBuilder) WithStrategy(s clusterv1.MachineDeploymentStrategy) *MachineDeploymentClassBuilder {
 	m.strategy = s
 	return m
 }
@@ -648,18 +648,16 @@ func (m *MachineDeploymentClassBuilder) WithNamingStrategy(n *clusterv1.MachineD
 func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClass {
 	obj := &clusterv1.MachineDeploymentClass{
 		Class: m.class,
-		Template: clusterv1.MachineDeploymentClassTemplate{
-			Metadata: clusterv1.ObjectMeta{
-				Labels:      m.labels,
-				Annotations: m.annotations,
-			},
+		Metadata: clusterv1.ObjectMeta{
+			Labels:      m.labels,
+			Annotations: m.annotations,
 		},
 	}
 	if m.bootstrapTemplate != nil {
-		obj.Template.Bootstrap.TemplateRef = objToClusterClassTemplateRef(m.bootstrapTemplate)
+		obj.Bootstrap.TemplateRef = objToClusterClassTemplateRef(m.bootstrapTemplate)
 	}
 	if m.infrastructureMachineTemplate != nil {
-		obj.Template.Infrastructure.TemplateRef = objToClusterClassTemplateRef(m.infrastructureMachineTemplate)
+		obj.Infrastructure.TemplateRef = objToClusterClassTemplateRef(m.infrastructureMachineTemplate)
 	}
 	if m.machineHealthCheckClass != nil {
 		obj.MachineHealthCheck = m.machineHealthCheckClass
@@ -682,9 +680,7 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 	if m.minReadySeconds != nil {
 		obj.MinReadySeconds = m.minReadySeconds
 	}
-	if m.strategy != nil {
-		obj.Strategy = m.strategy
-	}
+	obj.Strategy = m.strategy
 	if m.namingStrategy != nil {
 		obj.NamingStrategy = m.namingStrategy
 	}
@@ -777,18 +773,16 @@ func (m *MachinePoolClassBuilder) WithNamingStrategy(n *clusterv1.MachinePoolCla
 func (m *MachinePoolClassBuilder) Build() *clusterv1.MachinePoolClass {
 	obj := &clusterv1.MachinePoolClass{
 		Class: m.class,
-		Template: clusterv1.MachinePoolClassTemplate{
-			Metadata: clusterv1.ObjectMeta{
-				Labels:      m.labels,
-				Annotations: m.annotations,
-			},
+		Metadata: clusterv1.ObjectMeta{
+			Labels:      m.labels,
+			Annotations: m.annotations,
 		},
 	}
 	if m.bootstrapTemplate != nil {
-		obj.Template.Bootstrap.TemplateRef = objToClusterClassTemplateRef(m.bootstrapTemplate)
+		obj.Bootstrap.TemplateRef = objToClusterClassTemplateRef(m.bootstrapTemplate)
 	}
 	if m.infrastructureMachinePoolTemplate != nil {
-		obj.Template.Infrastructure.TemplateRef = objToClusterClassTemplateRef(m.infrastructureMachinePoolTemplate)
+		obj.Infrastructure.TemplateRef = objToClusterClassTemplateRef(m.infrastructureMachinePoolTemplate)
 	}
 	if m.failureDomains != nil {
 		obj.FailureDomains = m.failureDomains

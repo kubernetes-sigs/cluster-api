@@ -153,8 +153,8 @@ func getCluster() *clusterv1.Cluster {
 			Namespace: "namespace-name-test",
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				Pods: &clusterv1.NetworkRanges{
+			ClusterNetwork: clusterv1.ClusterNetwork{
+				Pods: clusterv1.NetworkRanges{
 					CIDRBlocks: []string{"192.168.0.0/16"},
 				},
 			},
@@ -167,7 +167,7 @@ func getCluster() *clusterv1.Cluster {
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](1),
 				},
-				Workers: &clusterv1.WorkersTopology{
+				Workers: clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
 							Name: "md-test1",
@@ -288,9 +288,9 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 	// MachineDeployments.
 	for _, machineDeploymentClass := range s.Blueprint.ClusterClass.Spec.Workers.MachineDeployments {
 		machineDeploymentBlueprint := &scope.MachineDeploymentBlueprint{}
-		machineDeploymentClass.Template.Metadata.DeepCopyInto(&machineDeploymentBlueprint.Metadata)
-		machineDeploymentBlueprint.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Template.Infrastructure.TemplateRef))
-		machineDeploymentBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Template.Bootstrap.TemplateRef))
+		machineDeploymentClass.Metadata.DeepCopyInto(&machineDeploymentBlueprint.Metadata)
+		machineDeploymentBlueprint.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Infrastructure.TemplateRef))
+		machineDeploymentBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Bootstrap.TemplateRef))
 		if machineDeploymentClass.MachineHealthCheck != nil {
 			machineDeploymentBlueprint.MachineHealthCheck = machineDeploymentClass.MachineHealthCheck
 		}
@@ -300,9 +300,9 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 	// MachinePools.
 	for _, machinePoolClass := range s.Blueprint.ClusterClass.Spec.Workers.MachinePools {
 		machinePoolBlueprint := &scope.MachinePoolBlueprint{}
-		machinePoolClass.Template.Metadata.DeepCopyInto(&machinePoolBlueprint.Metadata)
-		machinePoolBlueprint.InfrastructureMachinePoolTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machinePoolClass.Template.Infrastructure.TemplateRef))
-		machinePoolBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machinePoolClass.Template.Bootstrap.TemplateRef))
+		machinePoolClass.Metadata.DeepCopyInto(&machinePoolBlueprint.Metadata)
+		machinePoolBlueprint.InfrastructureMachinePoolTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machinePoolClass.Infrastructure.TemplateRef))
+		machinePoolBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machinePoolClass.Bootstrap.TemplateRef))
 		s.Blueprint.MachinePools[machinePoolClass.Class] = machinePoolBlueprint
 	}
 

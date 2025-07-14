@@ -131,9 +131,9 @@ func Test_setAvailableCondition(t *testing.T) {
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: ptr.To(int32(5)),
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxSurge:       ptr.To(intstr.FromInt32(1)),
 							MaxUnavailable: ptr.To(intstr.FromInt32(0)),
 						},
@@ -153,9 +153,9 @@ func Test_setAvailableCondition(t *testing.T) {
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: ptr.To(int32(5)),
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxSurge:       ptr.To(intstr.FromInt32(1)),
 							MaxUnavailable: ptr.To(intstr.FromInt32(1)),
 						},
@@ -175,9 +175,9 @@ func Test_setAvailableCondition(t *testing.T) {
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: ptr.To(int32(5)),
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxSurge:       ptr.To(intstr.FromInt32(1)),
 							MaxUnavailable: ptr.To(intstr.FromInt32(1)),
 						},
@@ -201,9 +201,9 @@ func Test_setAvailableCondition(t *testing.T) {
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: ptr.To(int32(5)),
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxSurge:       ptr.To(intstr.FromInt32(1)),
 							MaxUnavailable: ptr.To(intstr.FromInt32(1)),
 						},

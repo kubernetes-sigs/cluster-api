@@ -17,18 +17,18 @@ infrastructure object.
 
 ```yaml
 kind: DockerCluster
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-cluster-docker
 ---
 kind: Cluster
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 metadata:
   name: my-cluster
 spec:
   infrastructureRef:
     kind: DockerCluster
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiGroup: infrastructure.cluster.x-k8s.io
     name: my-cluster-docker
 ```
 

@@ -92,7 +92,7 @@ a target [management cluster] on the selected [infrastructure provider].
    ```bash
    cat > kind-cluster-with-extramounts.yaml <<EOF
    kind: Cluster
-   apiVersion: kind.x-k8s.io/v1alpha4
+   apiVersion: kind.x-k8s.io/v1beta2
    networking:
      ipFamily: dual
    nodes:
@@ -127,7 +127,7 @@ a target [management cluster] on the selected [infrastructure provider].
    ```bash
    cat <<EOF > kind-config.yaml
    kind: Cluster
-   apiVersion: kind.x-k8s.io/v1alpha4
+   apiVersion: kind.x-k8s.io/v1beta2
    networking:
    # the default CNI will not be installed
      disableDefaultCNI: true

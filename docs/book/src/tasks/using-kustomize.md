@@ -123,7 +123,7 @@ Add the following content to the `namereference.yaml` transformer configuration:
 ```yaml
 - kind: Cluster
   group: cluster.x-k8s.io
-  version: v1alpha3
+  version: v1beta2
   fieldSpecs:
   - path: spec/clusterName
     kind: MachineDeployment

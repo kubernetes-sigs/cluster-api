@@ -36,39 +36,34 @@ metadata:
   name: docker-clusterclass-v0.1.0
 spec:
   controlPlane:
-    ref:
+    templateRef:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: docker-clusterclass-v0.1.0
-      namespace: default
     machineInfrastructure:
-      ref:
+      templateRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DockerMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         name: docker-clusterclass-v0.1.0
-        namespace: default
   infrastructure:
-    ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: DockerClusterTemplate
       name: docker-clusterclass-v0.1.0-control-plane
-      namespace: default
   workers:
     machineDeployments:
     - class: default-worker
       template:
         bootstrap:
-          ref:
+          templateRef:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: docker-clusterclass-v0.1.0-default-worker
-            namespace: default
         infrastructure:
-          ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          templateRef:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: DockerMachineTemplate
             name: docker-clusterclass-v0.1.0-default-worker
-            namespace: default
 ```
 
 The following example shows a Cluster using this ClusterClass. In this case a `KubeadmControlPlane` 
@@ -144,13 +139,13 @@ spec:
     - class: default-worker
       template:
         bootstrap:
-          ref:
+          templateRef:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: quick-start-default-worker-bootstraptemplate
         infrastructure:
-          ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          templateRef:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: DockerMachinePoolTemplate
             name: quick-start-default-worker-machinepooltemplate
 ```

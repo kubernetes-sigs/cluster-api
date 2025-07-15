@@ -30,36 +30,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
-
-func TestKubeadmControlPlaneTemplateDefault(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
-	g := NewWithT(t)
-
-	kcpTemplate := &controlplanev1.KubeadmControlPlaneTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foo",
-		},
-		Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
-			Template: controlplanev1.KubeadmControlPlaneTemplateResource{
-				Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
-					MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
-						NodeDrainTimeoutSeconds: ptr.To(int32(10)),
-					},
-				},
-			},
-		},
-	}
-	updateDefaultingValidationKCPTemplate := kcpTemplate.DeepCopy()
-	updateDefaultingValidationKCPTemplate.Spec.Template.Spec.MachineTemplate.NodeDrainTimeoutSeconds = ptr.To(int32(20))
-	webhook := &KubeadmControlPlaneTemplate{}
-	t.Run("for KubeadmControlPlaneTemplate", util.CustomDefaultValidateTest(ctx, updateDefaultingValidationKCPTemplate, webhook))
-	g.Expect(webhook.Default(ctx, kcpTemplate)).To(Succeed())
-
-	g.Expect(kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.Format).To(Equal(bootstrapv1.CloudConfig))
-}
 
 func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)

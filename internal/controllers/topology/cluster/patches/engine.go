@@ -18,6 +18,7 @@ limitations under the License.
 package patches
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"runtime/debug"
@@ -464,12 +465,26 @@ func applyPatchToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatche
 			return errors.Wrap(err, "failed to apply patch: error decoding json patch (RFC6902)")
 		}
 
+		if len(jsonPatch) == 0 {
+			// Return if there are no patches, nothing to do.
+			// If the requestItem.Object does not have a spec and we don't have a patch that adds one,
+			// patchTemplateSpec below would fail, so let's return early.
+			return nil
+		}
+
 		patchedTemplate, err = jsonPatch.Apply(requestItem.Object.Raw)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to apply patch with uid %q: error applying json patch (RFC6902)", requestItem.UID), "patch", string(patch.Patch))
 			return errors.Wrap(err, "failed to apply patch: error applying json patch (RFC6902)")
 		}
 	case runtimehooksv1.JSONMergePatchType:
+		if len(patch.Patch) == 0 || bytes.Equal(patch.Patch, []byte("{}")) {
+			// Return if there are no patches, nothing to do.
+			// If the requestItem.Object does not have a spec and we don't have a patch that adds one,
+			// patchTemplateSpec below would fail, so let's return early.
+			return nil
+		}
+
 		log.V(5).Info("Accumulating JSON merge patch", "patch", string(patch.Patch))
 		patchedTemplate, err = jsonpatch.MergePatch(requestItem.Object.Raw, patch.Patch)
 		if err != nil {

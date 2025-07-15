@@ -93,7 +93,7 @@ func (webhook *DevMachineTemplate) ValidateUpdate(ctx context.Context, oldRaw ru
 	}
 
 	var allErrs field.ErrorList
-	if !topology.ShouldSkipImmutabilityChecks(req, newObj) {
+	if !topology.IsDryRunRequest(req, newObj) {
 		equal, diff, err := compare.Diff(oldObj.Spec.Template.Spec, newObj.Spec.Template.Spec)
 		if err != nil {
 			return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new DevMachineTemplate: %v", err))

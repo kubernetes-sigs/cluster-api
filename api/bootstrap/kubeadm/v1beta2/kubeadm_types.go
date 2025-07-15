@@ -375,7 +375,7 @@ type NodeRegistrationOptions struct {
 	// imagePullPolicy specifies the policy for image pulling
 	// during kubeadm "init" and "join" operations. The value of
 	// this field must be one of "Always", "IfNotPresent" or
-	// "Never". Defaults to "IfNotPresent".
+	// "Never". Defaults to "IfNotPresent" if not set.
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	// +optional
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`

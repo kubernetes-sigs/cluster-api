@@ -27,6 +27,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/defaulting"
+	"sigs.k8s.io/cluster-api/util/topology"
 )
 
 func (webhook *KubeadmConfigTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -44,13 +46,22 @@ func (webhook *KubeadmConfigTemplate) SetupWebhookWithManager(mgr ctrl.Manager) 
 type KubeadmConfigTemplate struct{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *KubeadmConfigTemplate) Default(_ context.Context, obj runtime.Object) error {
+func (webhook *KubeadmConfigTemplate) Default(ctx context.Context, obj runtime.Object) error {
 	c, ok := obj.(*bootstrapv1.KubeadmConfigTemplate)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmConfigTemplate but got a %T", obj))
 	}
 
-	c.Spec.Template.Spec.Default()
+	req, err := admission.RequestFromContext(ctx)
+	if err != nil {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected an admission.Request inside context: %v", err))
+	}
+
+	if topology.IsDryRunRequest(req, c) {
+		// In case of dry-run requests from the topology controller, apply defaults from older versions of CAPI
+		// so we do not trigger rollouts when dealing with objects created before dropping those defaults.
+		defaulting.ApplyPreviousKubeadmConfigDefaults(&c.Spec.Template.Spec)
+	}
 
 	return nil
 }

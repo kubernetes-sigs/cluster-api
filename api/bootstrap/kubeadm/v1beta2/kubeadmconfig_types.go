@@ -120,7 +120,8 @@ type KubeadmConfigSpec struct {
 	// +optional
 	NTP *NTP `json:"ntp,omitempty"`
 
-	// format specifies the output format of the bootstrap data
+	// format specifies the output format of the bootstrap data.
+	// Defaults to cloud-config if not set.
 	// +optional
 	Format Format `json:"format,omitempty"`
 
@@ -132,28 +133,6 @@ type KubeadmConfigSpec struct {
 	// ignition contains Ignition specific configuration.
 	// +optional
 	Ignition *IgnitionSpec `json:"ignition,omitempty"`
-}
-
-// Default defaults a KubeadmConfigSpec.
-func (c *KubeadmConfigSpec) Default() {
-	if c.Format == "" {
-		c.Format = CloudConfig
-	}
-	if c.InitConfiguration != nil && c.InitConfiguration.NodeRegistration.ImagePullPolicy == "" {
-		c.InitConfiguration.NodeRegistration.ImagePullPolicy = "IfNotPresent"
-	}
-	if c.JoinConfiguration != nil && c.JoinConfiguration.NodeRegistration.ImagePullPolicy == "" {
-		c.JoinConfiguration.NodeRegistration.ImagePullPolicy = "IfNotPresent"
-	}
-	if c.JoinConfiguration != nil && c.JoinConfiguration.Discovery.File != nil {
-		if kfg := c.JoinConfiguration.Discovery.File.KubeConfig; kfg != nil {
-			if kfg.User.Exec != nil {
-				if kfg.User.Exec.APIVersion == "" {
-					kfg.User.Exec.APIVersion = "client.authentication.k8s.io/v1"
-				}
-			}
-		}
-	}
 }
 
 // Validate ensures the KubeadmConfigSpec is valid.

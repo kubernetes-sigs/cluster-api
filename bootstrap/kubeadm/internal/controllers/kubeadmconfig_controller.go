@@ -1053,10 +1053,14 @@ func (r *KubeadmConfigReconciler) resolveDiscoveryKubeConfig(cfg *bootstrapv1.Fi
 		}
 	}
 	if cfg.KubeConfig.User.Exec != nil {
+		apiVersion := cfg.KubeConfig.User.Exec.APIVersion
+		if apiVersion == "" {
+			apiVersion = "client.authentication.k8s.io/v1"
+		}
 		user.Exec = &clientcmdv1.ExecConfig{
 			Command:            cfg.KubeConfig.User.Exec.Command,
 			Args:               cfg.KubeConfig.User.Exec.Args,
-			APIVersion:         cfg.KubeConfig.User.Exec.APIVersion,
+			APIVersion:         apiVersion,
 			ProvideClusterInfo: ptr.Deref(cfg.KubeConfig.User.Exec.ProvideClusterInfo, false),
 			InteractiveMode:    "Never",
 		}
@@ -1356,6 +1360,11 @@ func (r *KubeadmConfigReconciler) computeClusterConfigurationAndAdditionalData(c
 func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope *Scope, data []byte) error {
 	log := ctrl.LoggerFrom(ctx)
 
+	format := scope.Config.Spec.Format
+	if format == "" {
+		format = bootstrapv1.CloudConfig
+	}
+
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      scope.Config.Name,
@@ -1375,7 +1384,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 		},
 		Data: map[string][]byte{
 			"value":  data,
-			"format": []byte(scope.Config.Spec.Format),
+			"format": []byte(format),
 		},
 		Type: clusterv1.ClusterSecretType,
 	}

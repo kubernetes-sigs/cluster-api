@@ -21,8 +21,10 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -40,10 +42,23 @@ func TestKubeadmConfigTemplateDefault(t *testing.T) {
 	updateDefaultingKubeadmConfigTemplate := kubeadmConfigTemplate.DeepCopy()
 	updateDefaultingKubeadmConfigTemplate.Spec.Template.Spec.Verbosity = ptr.To[int32](4)
 	webhook := &KubeadmConfigTemplate{}
-	t.Run("for KubeadmConfigTemplate", util.CustomDefaultValidateTest(ctx, updateDefaultingKubeadmConfigTemplate, webhook))
+	t.Run("for KubeadmConfigTemplate", util.CustomDefaultValidateTest(admission.NewContextWithRequest(ctx, admission.Request{}), updateDefaultingKubeadmConfigTemplate, webhook))
 
+	// Expect no defaulting.
+	original := kubeadmConfigTemplate.DeepCopy()
+	g.Expect(webhook.Default(admission.NewContextWithRequest(ctx, admission.Request{}), kubeadmConfigTemplate)).To(Succeed())
+	g.Expect(kubeadmConfigTemplate).To(BeComparableTo(original))
+
+	// Expect defaulting for dry-run request.
+	ctx = admission.NewContextWithRequest(ctx, admission.Request{
+		AdmissionRequest: admissionv1.AdmissionRequest{
+			DryRun: ptr.To(true),
+		},
+	})
+	kubeadmConfigTemplate.Annotations = map[string]string{
+		clusterv1.TopologyDryRunAnnotation: "",
+	}
 	g.Expect(webhook.Default(ctx, kubeadmConfigTemplate)).To(Succeed())
-
 	g.Expect(kubeadmConfigTemplate.Spec.Template.Spec.Format).To(Equal(bootstrapv1.CloudConfig))
 }
 

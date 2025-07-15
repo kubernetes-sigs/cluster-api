@@ -195,7 +195,8 @@ func copySpec(in copySpecInput) error {
 	// Get spec from src.
 	srcSpec, found, err := unstructured.NestedFieldNoCopy(in.src.Object, strings.Split(in.srcSpecPath, ".")...)
 	if !found {
-		return errors.Errorf("missing field %q in %s %s", in.srcSpecPath, in.src.GetKind(), klog.KObj(in.src))
+		// Return if srcSpecPath does not exist in src, nothing to do.
+		return nil
 	} else if err != nil {
 		return errors.Wrapf(err, "failed to get field %q from %s %s", in.srcSpecPath, in.src.GetKind(), klog.KObj(in.src))
 	}

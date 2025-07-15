@@ -27,42 +27,9 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
 
 var ctx = ctrl.SetupSignalHandler()
-
-func TestKubeadmConfigDefault(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
-	g := NewWithT(t)
-
-	kubeadmConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foo",
-		},
-		Spec: bootstrapv1.KubeadmConfigSpec{},
-	}
-	updateDefaultingKubeadmConfig := kubeadmConfig.DeepCopy()
-	updateDefaultingKubeadmConfig.Spec.Verbosity = ptr.To[int32](4)
-	webhook := &KubeadmConfig{}
-	t.Run("for KubeadmConfig", util.CustomDefaultValidateTest(ctx, updateDefaultingKubeadmConfig, webhook))
-
-	g.Expect(webhook.Default(ctx, kubeadmConfig)).To(Succeed())
-
-	g.Expect(kubeadmConfig.Spec.Format).To(Equal(bootstrapv1.CloudConfig))
-
-	ignitionKubeadmConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foo",
-		},
-		Spec: bootstrapv1.KubeadmConfigSpec{
-			Format: bootstrapv1.Ignition,
-		},
-	}
-	g.Expect(webhook.Default(ctx, ignitionKubeadmConfig)).To(Succeed())
-	g.Expect(ignitionKubeadmConfig.Spec.Format).To(Equal(bootstrapv1.Ignition))
-}
 
 func TestKubeadmConfigValidate(t *testing.T) {
 	cases := map[string]struct {

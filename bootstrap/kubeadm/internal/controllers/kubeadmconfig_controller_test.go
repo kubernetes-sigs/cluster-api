@@ -827,7 +827,8 @@ func TestBootstrapDataFormat(t *testing.T) {
 			clusterInitialized: true,
 		},
 		{
-			name: "Empty format field",
+			name:   "Empty format field",
+			format: bootstrapv1.CloudConfig,
 		},
 	}
 
@@ -2315,8 +2316,7 @@ func TestKubeadmConfigReconciler_ResolveDiscoveryFileKubeConfig(t *testing.T) {
 								KubeConfig: &bootstrapv1.FileDiscoveryKubeConfig{
 									User: bootstrapv1.KubeConfigUser{
 										Exec: &bootstrapv1.KubeConfigAuthExec{
-											APIVersion: "client.authentication.k8s.io/v1",
-											Command:    "/usr/bin/bootstrap",
+											Command: "/usr/bin/bootstrap",
 											Env: []bootstrapv1.KubeConfigAuthExecEnv{
 												{Name: "ENV_TEST", Value: "value"},
 											},

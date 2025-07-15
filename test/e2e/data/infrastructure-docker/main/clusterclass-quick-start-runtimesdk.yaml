@@ -139,7 +139,3 @@ apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: quick-start-default-worker-bootstraptemplate
-spec:
-  template:
-    spec:
-      joinConfiguration:

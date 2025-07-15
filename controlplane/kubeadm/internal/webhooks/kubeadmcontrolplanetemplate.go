@@ -30,6 +30,7 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/defaulting"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 )
@@ -37,31 +38,16 @@ import (
 func (webhook *KubeadmControlPlaneTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&controlplanev1.KubeadmControlPlaneTemplate{}).
-		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-controlplane-cluster-x-k8s-io-v1beta2-kubeadmcontrolplanetemplate,mutating=false,failurePolicy=fail,groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanetemplates,versions=v1beta2,name=validation.kubeadmcontrolplanetemplate.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-controlplane-cluster-x-k8s-io-v1beta2-kubeadmcontrolplanetemplate,mutating=true,failurePolicy=fail,groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanetemplates,versions=v1beta2,name=default.kubeadmcontrolplanetemplate.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 // KubeadmControlPlaneTemplate implements a validation and defaulting webhook for KubeadmControlPlaneTemplate.
 type KubeadmControlPlaneTemplate struct{}
 
 var _ webhook.CustomValidator = &KubeadmControlPlaneTemplate{}
-var _ webhook.CustomDefaulter = &KubeadmControlPlaneTemplate{}
-
-// Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *KubeadmControlPlaneTemplate) Default(_ context.Context, obj runtime.Object) error {
-	k, ok := obj.(*controlplanev1.KubeadmControlPlaneTemplate)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmControlPlaneTemplate but got a %T", obj))
-	}
-
-	k.Spec.Template.Spec.KubeadmConfigSpec.Default()
-
-	return nil
-}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *KubeadmControlPlaneTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
@@ -92,7 +78,7 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateCreate(_ context.Context, ob
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *KubeadmControlPlaneTemplate) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (webhook *KubeadmControlPlaneTemplate) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
 	oldK, ok := oldObj.(*controlplanev1.KubeadmControlPlaneTemplate)
@@ -105,12 +91,10 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateUpdate(ctx context.Context, 
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmControlPlaneTemplate but got a %T", newObj))
 	}
 
-	if err := webhook.Default(ctx, oldK); err != nil {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new KubeadmControlPlaneTemplate: failed to default old object: %v", err))
-	}
-	if err := webhook.Default(ctx, newK); err != nil {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new KubeadmControlPlaneTemplate: failed to default new object: %v", err))
-	}
+	// Apply defaults from older versions of CAPI so the following checks do not report differences when
+	// dealing with objects created before dropping those defaults.
+	defaulting.ApplyPreviousKubeadmConfigDefaults(&oldK.Spec.Template.Spec.KubeadmConfigSpec)
+	defaulting.ApplyPreviousKubeadmConfigDefaults(&newK.Spec.Template.Spec.KubeadmConfigSpec)
 
 	// In Cluster API < v1.11 the RolloutStrategy field was defaulted.
 	// The defaulting was dropped with Cluster API v1.11.

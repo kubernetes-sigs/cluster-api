@@ -19,10 +19,6 @@ apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: "${CLUSTER_NAME}-md-0"
-spec:
-  template:
-    spec:
-      joinConfiguration:
 ---
 # MachineDeployment object
 apiVersion: cluster.x-k8s.io/v1beta2

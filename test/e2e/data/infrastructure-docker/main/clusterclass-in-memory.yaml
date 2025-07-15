@@ -12,29 +12,7 @@ apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlaneTemplate
 metadata:
   name: in-memory-control-plane
-spec:
-  template:
-    spec:
-      kubeadmConfigSpec:
-        clusterConfiguration:
-          apiServer:
-            certSANs:
-              - localhost
-              - 127.0.0.1
-              - 0.0.0.0
-              - host.docker.internal
-        initConfiguration:
-          nodeRegistration:
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
-              - name: eviction-hard
-                value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
-        joinConfiguration:
-          nodeRegistration:
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
-              - name: eviction-hard
-                value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+# Note: Intentionally using an empty object here to verify the Cluster topology controller can handle it.
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DevMachineTemplate
@@ -92,15 +70,7 @@ apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: in-memory-default-worker-bootstraptemplate
-spec:
-  template:
-    spec:
-      joinConfiguration:
-        nodeRegistration:
-          criSocket: unix:///var/run/containerd/containerd.sock
-          kubeletExtraArgs:
-            - name: eviction-hard
-              value: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+# Note: Intentionally using an empty object here to verify the Cluster topology controller can handle it.
 ---
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass

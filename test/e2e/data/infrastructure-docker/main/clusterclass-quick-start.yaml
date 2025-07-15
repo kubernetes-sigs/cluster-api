@@ -46,7 +46,7 @@ spec:
           apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: DockerMachineTemplate
           name: quick-start-default-worker-machinetemplate
-      # We are intentionally not setting the 'unhealthyConditions' here to test that the field is optional.
+      # We are intentionally not setting the 'unhealthyNodeConditions' here to test that the field is optional.
     machinePools:
     - class: default-worker
       metadata:

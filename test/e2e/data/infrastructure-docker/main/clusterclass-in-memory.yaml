@@ -118,7 +118,7 @@ spec:
       kind: KubeadmControlPlaneTemplate
       name: in-memory-control-plane
     machineHealthCheck:
-      unhealthyConditions:
+      unhealthyNodeConditions:
         - type: Ready
           status: "Unknown"
           timeoutSeconds: 300
@@ -144,7 +144,7 @@ spec:
             kind: DevMachineTemplate
             name: in-memory-default-worker-machinetemplate
         machineHealthCheck:
-          unhealthyConditions:
+          unhealthyNodeConditions:
             - type: Ready
               status: "Unknown"
               timeoutSeconds: 300

@@ -78,7 +78,7 @@ The following challenges have been identified through various iterations:
 - Define how labels and annotations propagate from ClusterClass to KubeadmControlPlane/MachineDeployments and ultimately to Machines.
 - Define how to prevent that label and annotation propagation triggers unnecessary rollouts.
 
-The first point is being addressed by [Label Sync Between Machine and underlying Kubernetes Nodes](./20220927-label-sync-between-machine-and-nodes.md),
+The first point is being addressed by [Label Sync Between Machine and underlying Kubernetes Nodes](./20220927-labels-and-annotations-sync-between-machine-and-nodes.md),
 while this document tackles the remaining two points.
 
 During a preliminary exploration we identified that the two above challenges apply also to other fields impacting only Kubernetes objects or
@@ -135,7 +135,7 @@ As a cluster admin/user, I would like to set autoscaler labels for MachineDeploy
 
 ### Metadata propagation
 
-The following schema represent how metadata propagation works today (also documented in [book](https://cluster-api.sigs.k8s.io/developer/architecture/controllers/metadata-propagation.html)).
+The following schema represent how metadata propagation works today (also documented in [book](https://cluster-api.sigs.k8s.io/reference/api/metadata-propagation)).
 
 ![Figure 1](./images/in-place-propagation/current-state.jpg)
 
@@ -147,14 +147,14 @@ Following paragraphs provide more details about the proposed changes.
 
 #### 1. Label Sync Between Machine and underlying Kubernetes Nodes
 
-As discussed in [Label Sync Between Machine and underlying Kubernetes Nodes](./20220927-label-sync-between-machine-and-nodes.md) we are propagating only
+As discussed in [Label Sync Between Machine and underlying Kubernetes Nodes](./20220927-labels-and-annotations-sync-between-machine-and-nodes.md) we are propagating only
 labels with a well-known prefix or a well-known domain from the Machine to the corresponding Kubernetes Node.
 
 #### 2. Labels/Annotations always reconciled
 
 All the labels/annotations previously set only on creation are now going to be always reconciled;
 in order to prevent unnecessary rollouts, metadata propagation should happen in-place;
-see [in-place propagation](#in-place-propagation) down in this document for more details. 
+see [in-place propagation](#in-place-propagation) down in this document for more details.
 
 Note: As of today the topology controller already propagates ClusterClass and Cluster topology metadata changes in-place when possible
 in order to avoid unnecessary template rotation with the consequent Machine rollout; we do not foresee changes to this logic.

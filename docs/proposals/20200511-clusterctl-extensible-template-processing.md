@@ -70,7 +70,7 @@ Some templating tools that can be used to manage your templates.
   * Kubernetes Library: https://github.com/dhall-lang/dhall-kubernetes
 * Helm Template
   * Doc: https://helm.sh/docs/helm/helm_template/
-  * Code: https://github.com/helm/helm/blob/main/cmd/helm/template.go
+  * Code: https://github.com/helm/helm/blob/main/pkg/cmd/template.go
 
 
 ## Summary

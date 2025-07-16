@@ -168,7 +168,7 @@ on the Kubernetes RBAC model. Questions you may want to answer include:
 
 * Does this proposal implement security controls or require the need to do so?
   * If so, consider describing the different roles and permissions with tables.
-* Are their adequate security warnings where appropriate (see https://adam.shostack.org/ReederEtAl_NEATatMicrosoft.pdf for guidance).
+* Are their adequate security warnings where appropriate (see https://shostack.org/files/papers/ReederEtAl_NEATatMicrosoft.pdf for guidance).
 * Are regex expressions going to be used, and are their appropriate defenses against DOS.
 * Is any sensitive data being stored in a secret, and only exists for as long as necessary?
 

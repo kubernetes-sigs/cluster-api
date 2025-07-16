@@ -114,9 +114,6 @@ potentially dangerous changes on those objects.
 
 </aside>
 
-For additional info see [compatibility rules](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210526-cluster-class-and-managed-topologies.md#clusterclass-compatibility)
-defined in the ClusterClass proposal.
-
 ## Planning ClusterClass changes
 
 Some general notes that can help you to understand what you should

@@ -53,7 +53,7 @@ and instructions for signing it [can be found here](https://git.k8s.io/community
 If you're new to the project and want to help, but don't know where to start, we have a semi-curated list of issues that
 should not need deep knowledge of the system. [Have a look and see if anything sounds
 interesting](https://github.com/kubernetes-sigs/cluster-api/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22).
-Before starting to work on the issue, make sure that it doesn't have a [lifecycle/active](https://github.com/kubernetes-sigs/cluster-api/labels/lifecycle%2Factive) label. If the issue has been assigned, reach out to the assignee.
+Before starting to work on the issue, make sure that it doesn't have a `lifecycle/active` label. If the issue has been assigned, reach out to the assignee.
 Alternatively, read some docs on other controllers and try to write your own, file and fix any/all issues that
 come up, including gaps in documentation!
 
@@ -375,7 +375,7 @@ breaking change might be a fix for a behavioral bug that was released in an init
 
 ## Dependency Licence Management
 
-Cluster API follows the [license policy of the CNCF](https://github.com/cncf/foundation/blob/main/allowed-third-party-license-policy.md). This sets limits on which
+Cluster API follows the [license policy of the CNCF](https://github.com/cncf/foundation/blob/main/policies-guidance/allowed-third-party-license-policy.md). This sets limits on which
 licenses dependencies and other artifacts use. For go dependencies only dependencies listed in the `go.mod` are considered dependencies. This is in line with [how dependencies are reviewed in Kubernetes](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/vendor.md#reviewing-and-approving-dependency-changes).
 
 ## API conventions

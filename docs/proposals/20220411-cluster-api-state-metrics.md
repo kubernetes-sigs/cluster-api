@@ -393,7 +393,7 @@ The initial plan is to add kube-state-metrics as to the `./hack/observability` d
 [Mercedes-Benz]: https://opensource.mercedes-benz.com/
 [OpenMetrics]: https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md
 [metrics umbrella issue #1477]: https://github.com/kubernetes-sigs/cluster-api/issues/1477
-[corresponding section in the cluster-api docs]: https://cluster-api.sigs.k8s.io/developer/crd-relationships.html#worker-machines-relationships
+[corresponding section in the cluster-api docs]: https://cluster-api.sigs.k8s.io/reference/api/crd-relationships#worker-machines-relationships
 [Deployment]: https://github.com/kubernetes/kube-state-metrics/blob/main/docs/metrics/workload/deployment-metrics.md
 [ReplicaSet]: https://github.com/kubernetes/kube-state-metrics/blob/main/docs/metrics/workload/replicaset-metrics.md
 [Pod]: https://github.com/kubernetes/kube-state-metrics/blob/main/docs/metrics/workload/pod-metrics.md
@@ -403,7 +403,7 @@ The initial plan is to add kube-state-metrics as to the `./hack/observability` d
 [2]: https://github.com/kubernetes/kube-state-metrics/blob/master/pkg/customresource/registry_factory.go#L29
 [3]: https://github.com/kubernetes/kube-state-metrics/blob/master/pkg/app/server.go
 [4]: https://github.com/kubernetes/kube-state-metrics/issues/457
-[machine phases]: https://github.com/kubernetes-sigs/cluster-api/blob/main/api/v1beta1/machine_phase_types.go
-[cluster phases]: https://github.com/kubernetes-sigs/cluster-api/blob/main/api/v1beta1/cluster_phase_types.go
+[machine phases]: https://github.com/kubernetes-sigs/cluster-api/blob/main/api/core/v1beta1/machine_phase_types.go
+[cluster phases]: https://github.com/kubernetes-sigs/cluster-api/blob/main/api/core/v1beta1/cluster_phase_types.go
 [machinedeployment phases]: https://github.com/kubernetes-sigs/cluster-api/blob/07c0a4809361927b15cde2747b34142b7c7ead15/api/v1beta1/machinedeployment_types.go#L222-L224
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI

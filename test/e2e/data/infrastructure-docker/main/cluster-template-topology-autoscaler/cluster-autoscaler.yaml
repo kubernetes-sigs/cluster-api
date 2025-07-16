@@ -17,13 +17,15 @@ spec:
       name: "quick-start"
     version: "${KUBERNETES_VERSION}"
     controlPlane:
-      nodeDeletionTimeoutSeconds: 30
+      deletion:
+        nodeDeletionTimeoutSeconds: 30
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     workers:
       machineDeployments:
         - class: "default-worker"
           name: "md-0"
-          nodeDeletionTimeoutSeconds: 30
+          deletion:
+            nodeDeletionTimeoutSeconds: 30
           failureDomain: fd4
           metadata:
             annotations:
@@ -32,7 +34,8 @@ spec:
       machinePools:
         - class: "default-worker"
           name: "mp-0"
-          nodeDeletionTimeoutSeconds: 30
+          deletion:
+            nodeDeletionTimeoutSeconds: 30
           failureDomains:
           - fd4
     variables:

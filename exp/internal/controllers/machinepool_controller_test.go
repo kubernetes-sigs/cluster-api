@@ -410,8 +410,10 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:     builder.TestInfrastructureMachinePoolKind,
 								Name:     "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 							},
-							Bootstrap:                  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-							NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							Deletion: clusterv1.MachineDeletionSpec{
+								NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
+							},
 						},
 					},
 					ProviderIDList: []string{"aws:///us-test-2a/i-013ab00756982217f"},
@@ -472,8 +474,10 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:     builder.TestInfrastructureMachinePoolKind,
 								Name:     "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 							},
-							Bootstrap:                  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-							NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							Deletion: clusterv1.MachineDeletionSpec{
+								NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
+							},
 						},
 					},
 					ProviderIDList: []string{"aws:///us-test-2a/i-013ab00756982217f"},
@@ -534,8 +538,10 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:     builder.TestInfrastructureMachinePoolKind,
 								Name:     "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 							},
-							Bootstrap:                  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-							NodeDeletionTimeoutSeconds: ptr.To(int32(10)), // timeout passed
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							Deletion: clusterv1.MachineDeletionSpec{
+								NodeDeletionTimeoutSeconds: ptr.To(int32(10)), // timeout passed
+							},
 						},
 					},
 					ProviderIDList: []string{"aws:///us-test-2a/i-013ab00756982217f"},
@@ -671,7 +677,9 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							NodeDeletionTimeoutSeconds: ptr.To(int32(0)),
+							Deletion: clusterv1.MachineDeletionSpec{
+								NodeDeletionTimeoutSeconds: ptr.To(int32(0)),
+							},
 						},
 					},
 				},
@@ -689,7 +697,9 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							NodeDeletionTimeoutSeconds: ptr.To(int32(60)),
+							Deletion: clusterv1.MachineDeletionSpec{
+								NodeDeletionTimeoutSeconds: ptr.To(int32(60)),
+							},
 						},
 					},
 				},
@@ -707,7 +717,9 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							NodeDeletionTimeoutSeconds: ptr.To(int32(10)),
+							Deletion: clusterv1.MachineDeletionSpec{
+								NodeDeletionTimeoutSeconds: ptr.To(int32(10)),
+							},
 						},
 					},
 				},

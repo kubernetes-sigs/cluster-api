@@ -352,9 +352,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1beta1_KubeadmCo
 		return err
 	}
 	out.ReadinessGates = *(*[]corev1beta1.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -581,9 +579,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta1_K
 	if err := Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	return nil
 }
 

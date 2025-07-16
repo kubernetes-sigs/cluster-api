@@ -403,9 +403,9 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	}
 
 	// If it is required to manage the NodeDrainTimeoutSeconds for the control plane, set the corresponding field.
-	nodeDrainTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.NodeDrainTimeoutSeconds
-	if s.Blueprint.Topology.ControlPlane.NodeDrainTimeoutSeconds != nil {
-		nodeDrainTimeout = s.Blueprint.Topology.ControlPlane.NodeDrainTimeoutSeconds
+	nodeDrainTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.Deletion.NodeDrainTimeoutSeconds
+	if s.Blueprint.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds != nil {
+		nodeDrainTimeout = s.Blueprint.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds
 	}
 	if nodeDrainTimeout != nil {
 		if contractVersion == "v1beta1" {
@@ -420,9 +420,9 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	}
 
 	// If it is required to manage the NodeVolumeDetachTimeoutSeconds for the control plane, set the corresponding field.
-	nodeVolumeDetachTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.NodeVolumeDetachTimeoutSeconds
-	if s.Blueprint.Topology.ControlPlane.NodeVolumeDetachTimeoutSeconds != nil {
-		nodeVolumeDetachTimeout = s.Blueprint.Topology.ControlPlane.NodeVolumeDetachTimeoutSeconds
+	nodeVolumeDetachTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds
+	if s.Blueprint.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds != nil {
+		nodeVolumeDetachTimeout = s.Blueprint.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds
 	}
 	if nodeVolumeDetachTimeout != nil {
 		if contractVersion == "v1beta1" {
@@ -437,9 +437,9 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	}
 
 	// If it is required to manage the NodeDeletionTimeoutSeconds for the control plane, set the corresponding field.
-	nodeDeletionTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.NodeDeletionTimeoutSeconds
-	if s.Blueprint.Topology.ControlPlane.NodeDeletionTimeoutSeconds != nil {
-		nodeDeletionTimeout = s.Blueprint.Topology.ControlPlane.NodeDeletionTimeoutSeconds
+	nodeDeletionTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.Deletion.NodeDeletionTimeoutSeconds
+	if s.Blueprint.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds != nil {
+		nodeDeletionTimeout = s.Blueprint.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds
 	}
 	if nodeDeletionTimeout != nil {
 		if contractVersion == "v1beta1" {
@@ -805,19 +805,19 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		failureDomain = machineDeploymentTopology.FailureDomain
 	}
 
-	nodeDrainTimeout := machineDeploymentClass.NodeDrainTimeoutSeconds
-	if machineDeploymentTopology.NodeDrainTimeoutSeconds != nil {
-		nodeDrainTimeout = machineDeploymentTopology.NodeDrainTimeoutSeconds
+	nodeDrainTimeout := machineDeploymentClass.Deletion.NodeDrainTimeoutSeconds
+	if machineDeploymentTopology.Deletion.NodeDrainTimeoutSeconds != nil {
+		nodeDrainTimeout = machineDeploymentTopology.Deletion.NodeDrainTimeoutSeconds
 	}
 
-	nodeVolumeDetachTimeout := machineDeploymentClass.NodeVolumeDetachTimeoutSeconds
-	if machineDeploymentTopology.NodeVolumeDetachTimeoutSeconds != nil {
-		nodeVolumeDetachTimeout = machineDeploymentTopology.NodeVolumeDetachTimeoutSeconds
+	nodeVolumeDetachTimeout := machineDeploymentClass.Deletion.NodeVolumeDetachTimeoutSeconds
+	if machineDeploymentTopology.Deletion.NodeVolumeDetachTimeoutSeconds != nil {
+		nodeVolumeDetachTimeout = machineDeploymentTopology.Deletion.NodeVolumeDetachTimeoutSeconds
 	}
 
-	nodeDeletionTimeout := machineDeploymentClass.NodeDeletionTimeoutSeconds
-	if machineDeploymentTopology.NodeDeletionTimeoutSeconds != nil {
-		nodeDeletionTimeout = machineDeploymentTopology.NodeDeletionTimeoutSeconds
+	nodeDeletionTimeout := machineDeploymentClass.Deletion.NodeDeletionTimeoutSeconds
+	if machineDeploymentTopology.Deletion.NodeDeletionTimeoutSeconds != nil {
+		nodeDeletionTimeout = machineDeploymentTopology.Deletion.NodeDeletionTimeoutSeconds
 	}
 
 	readinessGates := machineDeploymentClass.ReadinessGates
@@ -853,16 +853,18 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 			Strategy:    strategy,
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					ClusterName:                    s.Current.Cluster.Name,
-					Version:                        version,
-					Bootstrap:                      clusterv1.Bootstrap{ConfigRef: desiredBootstrapTemplateRef},
-					InfrastructureRef:              *desiredInfraMachineTemplateRef,
-					FailureDomain:                  failureDomain,
-					NodeDrainTimeoutSeconds:        nodeDrainTimeout,
-					NodeVolumeDetachTimeoutSeconds: nodeVolumeDetachTimeout,
-					NodeDeletionTimeoutSeconds:     nodeDeletionTimeout,
-					ReadinessGates:                 readinessGates,
-					MinReadySeconds:                minReadySeconds,
+					ClusterName:       s.Current.Cluster.Name,
+					Version:           version,
+					Bootstrap:         clusterv1.Bootstrap{ConfigRef: desiredBootstrapTemplateRef},
+					InfrastructureRef: *desiredInfraMachineTemplateRef,
+					FailureDomain:     failureDomain,
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDrainTimeoutSeconds:        nodeDrainTimeout,
+						NodeVolumeDetachTimeoutSeconds: nodeVolumeDetachTimeout,
+						NodeDeletionTimeoutSeconds:     nodeDeletionTimeout,
+					},
+					ReadinessGates:  readinessGates,
+					MinReadySeconds: minReadySeconds,
 				},
 			},
 		},
@@ -1125,19 +1127,19 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 		failureDomains = machinePoolTopology.FailureDomains
 	}
 
-	nodeDrainTimeout := machinePoolClass.NodeDrainTimeoutSeconds
-	if machinePoolTopology.NodeDrainTimeoutSeconds != nil {
-		nodeDrainTimeout = machinePoolTopology.NodeDrainTimeoutSeconds
+	nodeDrainTimeout := machinePoolClass.Deletion.NodeDrainTimeoutSeconds
+	if machinePoolTopology.Deletion.NodeDrainTimeoutSeconds != nil {
+		nodeDrainTimeout = machinePoolTopology.Deletion.NodeDrainTimeoutSeconds
 	}
 
-	nodeVolumeDetachTimeout := machinePoolClass.NodeVolumeDetachTimeoutSeconds
-	if machinePoolTopology.NodeVolumeDetachTimeoutSeconds != nil {
-		nodeVolumeDetachTimeout = machinePoolTopology.NodeVolumeDetachTimeoutSeconds
+	nodeVolumeDetachTimeout := machinePoolClass.Deletion.NodeVolumeDetachTimeoutSeconds
+	if machinePoolTopology.Deletion.NodeVolumeDetachTimeoutSeconds != nil {
+		nodeVolumeDetachTimeout = machinePoolTopology.Deletion.NodeVolumeDetachTimeoutSeconds
 	}
 
-	nodeDeletionTimeout := machinePoolClass.NodeDeletionTimeoutSeconds
-	if machinePoolTopology.NodeDeletionTimeoutSeconds != nil {
-		nodeDeletionTimeout = machinePoolTopology.NodeDeletionTimeoutSeconds
+	nodeDeletionTimeout := machinePoolClass.Deletion.NodeDeletionTimeoutSeconds
+	if machinePoolTopology.Deletion.NodeDeletionTimeoutSeconds != nil {
+		nodeDeletionTimeout = machinePoolTopology.Deletion.NodeDeletionTimeoutSeconds
 	}
 
 	// Compute the MachinePool object.
@@ -1168,14 +1170,16 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 			FailureDomains: failureDomains,
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					ClusterName:                    s.Current.Cluster.Name,
-					Version:                        version,
-					Bootstrap:                      clusterv1.Bootstrap{ConfigRef: desiredBootstrapConfigRef},
-					InfrastructureRef:              *desiredInfraMachinePoolRef,
-					NodeDrainTimeoutSeconds:        nodeDrainTimeout,
-					NodeVolumeDetachTimeoutSeconds: nodeVolumeDetachTimeout,
-					NodeDeletionTimeoutSeconds:     nodeDeletionTimeout,
-					MinReadySeconds:                minReadySeconds,
+					ClusterName:       s.Current.Cluster.Name,
+					Version:           version,
+					Bootstrap:         clusterv1.Bootstrap{ConfigRef: desiredBootstrapConfigRef},
+					InfrastructureRef: *desiredInfraMachinePoolRef,
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDrainTimeoutSeconds:        nodeDrainTimeout,
+						NodeVolumeDetachTimeoutSeconds: nodeVolumeDetachTimeout,
+						NodeDeletionTimeoutSeconds:     nodeDeletionTimeout,
+					},
+					MinReadySeconds: minReadySeconds,
 				},
 			},
 		},

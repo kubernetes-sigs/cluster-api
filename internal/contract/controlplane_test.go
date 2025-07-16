@@ -332,6 +332,70 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(found).To(BeTrue())
 		g.Expect(durationString).To(Equal(expectedDurationString))
 	})
+
+	t.Run("Manages spec.machineTemplate.nodeDrainTimeoutSeconds", func(t *testing.T) {
+		g := NewWithT(t)
+
+		duration := int32(125)
+		g.Expect(ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Path()).To(Equal(Path{"spec", "machineTemplate", "deletion", "nodeDrainTimeoutSeconds"}))
+
+		err := ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Set(obj, duration)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal(duration))
+
+		// Check that the literal string value of the duration is correctly formatted.
+		gotDuration, found, err := unstructured.NestedInt64(obj.UnstructuredContent(), "spec", "machineTemplate", "deletion", "nodeDrainTimeoutSeconds")
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(found).To(BeTrue())
+		g.Expect(gotDuration).To(Equal(int64(duration)))
+	})
+
+	t.Run("Manages spec.machineTemplate.nodeVolumeDetachTimeoutSeconds", func(t *testing.T) {
+		g := NewWithT(t)
+
+		duration := int32(130)
+		g.Expect(ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Path()).To(Equal(Path{"spec", "machineTemplate", "deletion", "nodeVolumeDetachTimeoutSeconds"}))
+
+		err := ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Set(obj, duration)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal(duration))
+
+		// Check that the literal string value of the duration is correctly formatted.
+		gotDuration, found, err := unstructured.NestedInt64(obj.UnstructuredContent(), "spec", "machineTemplate", "deletion", "nodeVolumeDetachTimeoutSeconds")
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(found).To(BeTrue())
+		g.Expect(gotDuration).To(Equal(int64(duration)))
+	})
+
+	t.Run("Manages spec.machineTemplate.nodeDeletionTimeoutSeconds", func(t *testing.T) {
+		g := NewWithT(t)
+
+		duration := int32(125)
+		g.Expect(ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Path()).To(Equal(Path{"spec", "machineTemplate", "deletion", "nodeDeletionTimeoutSeconds"}))
+
+		err := ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Set(obj, duration)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal(duration))
+
+		// Check that the literal string value of the duration is correctly formatted.
+		gotDuration, found, err := unstructured.NestedInt64(obj.UnstructuredContent(), "spec", "machineTemplate", "deletion", "nodeDeletionTimeoutSeconds")
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(found).To(BeTrue())
+		g.Expect(gotDuration).To(Equal(int64(duration)))
+	})
+
 	t.Run("Manages spec.machineTemplate.readinessGates", func(t *testing.T) {
 		g := NewWithT(t)
 

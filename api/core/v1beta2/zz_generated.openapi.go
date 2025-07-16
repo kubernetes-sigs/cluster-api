@@ -57,9 +57,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.Condition":                                      schema_cluster_api_api_core_v1beta2_Condition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference":               schema_cluster_api_api_core_v1beta2_ContractVersionedObjectReference(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClass":                              schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec":           schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate": schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy":                schema_cluster_api_api_core_v1beta2_ControlPlaneClassNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopology":                           schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyMachineDeletionSpec":        schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyMachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables":                          schema_cluster_api_api_core_v1beta2_ControlPlaneVariables(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ExternalPatchDefinition":                        schema_cluster_api_api_core_v1beta2_ExternalPatchDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain":                                  schema_cluster_api_api_core_v1beta2_FailureDomain(ref),
@@ -70,11 +72,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.JSONSchemaProps":                                schema_cluster_api_api_core_v1beta2_JSONSchemaProps(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.Machine":                                        schema_cluster_api_api_core_v1beta2_Machine(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineAddress":                                 schema_cluster_api_api_core_v1beta2_MachineAddress(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeletionSpec":                            schema_cluster_api_api_core_v1beta2_MachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeletionStatus":                          schema_cluster_api_api_core_v1beta2_MachineDeletionStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeployment":                              schema_cluster_api_api_core_v1beta2_MachineDeployment(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClass":                         schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate":        schema_cluster_api_api_core_v1beta2_MachineDeploymentClassBootstrapTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate":   schema_cluster_api_api_core_v1beta2_MachineDeploymentClassInfrastructureTemplate(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec":      schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy":           schema_cluster_api_api_core_v1beta2_MachineDeploymentClassNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeprecatedStatus":              schema_cluster_api_api_core_v1beta2_MachineDeploymentDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentList":                          schema_cluster_api_api_core_v1beta2_MachineDeploymentList(ref),
@@ -83,6 +87,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy":                      schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate":         schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategyRollingUpdate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopology":                      schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyMachineDeletionSpec":   schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyMachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentV1Beta1DeprecatedStatus":       schema_cluster_api_api_core_v1beta2_MachineDeploymentV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables":                     schema_cluster_api_api_core_v1beta2_MachineDeploymentVariables(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeprecatedStatus":                        schema_cluster_api_api_core_v1beta2_MachineDeprecatedStatus(ref),
@@ -109,6 +114,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClass":                               schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate":              schema_cluster_api_api_core_v1beta2_MachinePoolClassBootstrapTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate":         schema_cluster_api_api_core_v1beta2_MachinePoolClassInfrastructureTemplate(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassMachineDeletionSpec":            schema_cluster_api_api_core_v1beta2_MachinePoolClassMachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy":                 schema_cluster_api_api_core_v1beta2_MachinePoolClassNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolDeprecatedStatus":                    schema_cluster_api_api_core_v1beta2_MachinePoolDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolInitializationStatus":                schema_cluster_api_api_core_v1beta2_MachinePoolInitializationStatus(ref),
@@ -116,6 +122,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolSpec":                                schema_cluster_api_api_core_v1beta2_MachinePoolSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolStatus":                              schema_cluster_api_api_core_v1beta2_MachinePoolStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopology":                            schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopologyMachineDeletionSpec":         schema_cluster_api_api_core_v1beta2_MachinePoolTopologyMachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolV1Beta1DeprecatedStatus":             schema_cluster_api_api_core_v1beta2_MachinePoolV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables":                           schema_cluster_api_api_core_v1beta2_MachinePoolVariables(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate":                           schema_cluster_api_api_core_v1beta2_MachineReadinessGate(ref),
@@ -1491,25 +1498,11 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy"),
 						},
 					},
-					"nodeDrainTimeoutSeconds": {
+					"deletion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology.",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeVolumeDetachTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. NOTE: This value can be overridden while defining a Cluster.Topology.",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeDeletionTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology.",
-							Type:        []string{"integer"},
-							Format:      "int32",
+							Description: "deletion contains configuration options for Machine deletion.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec"),
 						},
 					},
 					"readinessGates": {
@@ -1539,7 +1532,41 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineDeletionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneClassMachineDeletionSpec contains configuration options for Machine deletion.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"nodeDrainTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeVolumeDetachTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. NOTE: This value can be overridden while defining a Cluster.Topology.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeDeletionTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -1613,25 +1640,11 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref common.Referen
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckTopology"),
 						},
 					},
-					"nodeDrainTimeoutSeconds": {
+					"deletion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeVolumeDetachTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeDeletionTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
-							Type:        []string{"integer"},
-							Format:      "int32",
+							Description: "deletion contains configuration options for Machine deletion.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyMachineDeletionSpec"),
 						},
 					},
 					"readinessGates": {
@@ -1667,7 +1680,41 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref common.Referen
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyMachineDeletionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneTopologyMachineDeletionSpec contains configuration options for Machine deletion.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"nodeDrainTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeVolumeDetachTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeDeletionTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -2291,6 +2338,40 @@ func schema_cluster_api_api_core_v1beta2_MachineAddress(ref common.ReferenceCall
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_MachineDeletionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeletionSpec contains configuration options for Machine deletion.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"nodeDrainTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeVolumeDetachTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeDeletionTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_MachineDeletionStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -2424,25 +2505,11 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy"),
 						},
 					},
-					"nodeDrainTimeoutSeconds": {
+					"deletion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeVolumeDetachTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeDeletionTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
-							Type:        []string{"integer"},
-							Format:      "int32",
+							Description: "deletion contains configuration options for Machine deletion.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec"),
 						},
 					},
 					"minReadySeconds": {
@@ -2486,7 +2553,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -2533,6 +2600,40 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassInfrastructureTem
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineDeletionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentClassMachineDeletionSpec contains configuration options for Machine deletion.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"nodeDrainTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeVolumeDetachTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeDeletionTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -2911,25 +3012,11 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckTopology"),
 						},
 					},
-					"nodeDrainTimeoutSeconds": {
+					"deletion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeVolumeDetachTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeDeletionTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
-							Type:        []string{"integer"},
-							Format:      "int32",
+							Description: "deletion contains configuration options for Machine deletion.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyMachineDeletionSpec"),
 						},
 					},
 					"minReadySeconds": {
@@ -2980,7 +3067,41 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyMachineDeletionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentTopologyMachineDeletionSpec contains configuration options for Machine deletion.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"nodeDrainTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeVolumeDetachTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeDeletionTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -4059,25 +4180,11 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCa
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy"),
 						},
 					},
-					"nodeDrainTimeoutSeconds": {
+					"deletion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeVolumeDetachTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeDeletionTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine Pool is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
-							Type:        []string{"integer"},
-							Format:      "int32",
+							Description: "deletion contains configuration options for Machine deletion.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassMachineDeletionSpec"),
 						},
 					},
 					"minReadySeconds": {
@@ -4092,7 +4199,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -4139,6 +4246,40 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClassInfrastructureTemplate(
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachinePoolClassMachineDeletionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePoolClassMachineDeletionSpec contains configuration options for Machine deletion.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"nodeDrainTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeVolumeDetachTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeDeletionTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine Pool is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -4500,25 +4641,11 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref common.Referenc
 							},
 						},
 					},
-					"nodeDrainTimeoutSeconds": {
+					"deletion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeVolumeDetachTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeDeletionTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the MachinePool hosts after the MachinePool is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
-							Type:        []string{"integer"},
-							Format:      "int32",
+							Description: "deletion contains configuration options for Machine deletion.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopologyMachineDeletionSpec"),
 						},
 					},
 					"minReadySeconds": {
@@ -4547,7 +4674,41 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref common.Referenc
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolTopologyMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachinePoolTopologyMachineDeletionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePoolTopologyMachineDeletionSpec contains configuration options for Machine deletion.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"nodeDrainTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeVolumeDetachTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeDeletionTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the MachinePool hosts after the MachinePool is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -5093,25 +5254,11 @@ func schema_cluster_api_api_core_v1beta2_MachineSpec(ref common.ReferenceCallbac
 							},
 						},
 					},
-					"nodeDrainTimeoutSeconds": {
+					"deletion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeVolumeDetachTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"nodeDeletionTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
-							Type:        []string{"integer"},
-							Format:      "int32",
+							Description: "deletion contains configuration options for Machine deletion.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeletionSpec"),
 						},
 					},
 				},
@@ -5119,7 +5266,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSpec(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.Bootstrap", "sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.Bootstrap", "sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate"},
 	}
 }
 

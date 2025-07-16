@@ -96,8 +96,8 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	if ok {
 		dst.Spec.MachineTemplate.ObjectMeta = restored.Spec.MachineTemplate.ObjectMeta
 		dst.Spec.MachineTemplate.ReadinessGates = restored.Spec.MachineTemplate.ReadinessGates
-		dst.Spec.MachineTemplate.NodeDeletionTimeoutSeconds = restored.Spec.MachineTemplate.NodeDeletionTimeoutSeconds
-		dst.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds = restored.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds
+		dst.Spec.MachineTemplate.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.MachineTemplate.Deletion.NodeDeletionTimeoutSeconds
+		dst.Spec.MachineTemplate.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.MachineTemplate.Deletion.NodeVolumeDetachTimeoutSeconds
 		dst.Spec.RolloutBefore = restored.Spec.RolloutBefore
 
 		if restored.Spec.RemediationStrategy != nil {
@@ -174,7 +174,7 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, s apimachineryconversion.Scope) error {
 	out.UpgradeAfter = in.RolloutAfter
-	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.MachineTemplate.NodeDrainTimeoutSeconds)
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.MachineTemplate.Deletion.NodeDrainTimeoutSeconds)
 	return autoConvert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in, out, s)
 }
 
@@ -186,7 +186,7 @@ func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1alpha3_KubeadmControlPlaneSt
 
 func Convert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(in *KubeadmControlPlaneSpec, out *controlplanev1.KubeadmControlPlaneSpec, s apimachineryconversion.Scope) error {
 	out.RolloutAfter = in.UpgradeAfter
-	out.MachineTemplate.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.MachineTemplate.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
 	return autoConvert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(in, out, s)
 }
 

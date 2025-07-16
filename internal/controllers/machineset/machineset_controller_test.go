@@ -142,10 +142,12 @@ func TestMachineSetReconciler(t *testing.T) {
 					Kind:     "GenericInfrastructureMachineTemplate",
 					Name:     "ms-template",
 				},
-				NodeDrainTimeoutSeconds:        duration10m,
-				NodeDeletionTimeoutSeconds:     duration10m,
-				NodeVolumeDetachTimeoutSeconds: duration10m,
-				MinReadySeconds:                ptr.To[int32](0),
+				Deletion: clusterv1.MachineDeletionSpec{
+					NodeDrainTimeoutSeconds:        duration10m,
+					NodeDeletionTimeoutSeconds:     duration10m,
+					NodeVolumeDetachTimeoutSeconds: duration10m,
+				},
+				MinReadySeconds: ptr.To[int32](0),
 			},
 		}
 
@@ -368,7 +370,7 @@ func TestMachineSetReconciler(t *testing.T) {
 		t.Log("Updating NodeDrainTimeoutSeconds on MachineSet")
 		patchHelper, err := patch.NewHelper(instance, env)
 		g.Expect(err).ToNot(HaveOccurred())
-		instance.Spec.Template.Spec.NodeDrainTimeoutSeconds = duration5m
+		instance.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = duration5m
 		g.Expect(patchHelper.Patch(ctx, instance)).Should(Succeed())
 
 		t.Log("Verifying new NodeDrainTimeoutSeconds value is set on Machines")
@@ -378,10 +380,10 @@ func TestMachineSetReconciler(t *testing.T) {
 			}
 			// All the machines should have the new NodeDrainTimeoutValue
 			for _, m := range machines.Items {
-				if m.Spec.NodeDrainTimeoutSeconds == nil {
+				if m.Spec.Deletion.NodeDrainTimeoutSeconds == nil {
 					return false
 				}
-				if *m.Spec.NodeDrainTimeoutSeconds != *duration5m {
+				if *m.Spec.Deletion.NodeDrainTimeoutSeconds != *duration5m {
 					return false
 				}
 			}
@@ -1398,9 +1400,9 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	}
 	readinessGates := []clusterv1.MachineReadinessGate{{ConditionType: "foo"}}
 	ms.Spec.Template.Spec.ReadinessGates = readinessGates
-	ms.Spec.Template.Spec.NodeDrainTimeoutSeconds = duration10s
-	ms.Spec.Template.Spec.NodeDeletionTimeoutSeconds = duration10s
-	ms.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = duration10s
+	ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = duration10s
+	ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = duration10s
+	ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration10s
 	ms.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](10)
 	s = &scope{
 		machineSet: ms,
@@ -1419,17 +1421,17 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		// Verify Annotations
 		g.Expect(updatedInPlaceMutatingMachine.Annotations).Should(Equal(ms.Spec.Template.Annotations))
 		// Verify Node timeout values
-		g.Expect(updatedInPlaceMutatingMachine.Spec.NodeDrainTimeoutSeconds).Should(And(
+		g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(And(
 			Not(BeNil()),
-			HaveValue(Equal(*ms.Spec.Template.Spec.NodeDrainTimeoutSeconds)),
+			HaveValue(Equal(*ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds)),
 		))
-		g.Expect(updatedInPlaceMutatingMachine.Spec.NodeDeletionTimeoutSeconds).Should(And(
+		g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(And(
 			Not(BeNil()),
-			HaveValue(Equal(*ms.Spec.Template.Spec.NodeDeletionTimeoutSeconds)),
+			HaveValue(Equal(*ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds)),
 		))
-		g.Expect(updatedInPlaceMutatingMachine.Spec.NodeVolumeDetachTimeoutSeconds).Should(And(
+		g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(And(
 			Not(BeNil()),
-			HaveValue(Equal(*ms.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds)),
+			HaveValue(Equal(*ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)),
 		))
 		g.Expect(updatedInPlaceMutatingMachine.Spec.MinReadySeconds).Should(And(
 			Not(BeNil()),
@@ -1483,16 +1485,16 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		// Verify in-place mutable fields are still the same.
 		g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))
 		g.Expect(updatedDeletingMachine.Annotations).Should(Equal(deletingMachine.Annotations))
-		g.Expect(updatedDeletingMachine.Spec.NodeDrainTimeoutSeconds).Should(Equal(deletingMachine.Spec.NodeDrainTimeoutSeconds))
-		g.Expect(updatedDeletingMachine.Spec.NodeDeletionTimeoutSeconds).Should(Equal(deletingMachine.Spec.NodeDeletionTimeoutSeconds))
-		g.Expect(updatedDeletingMachine.Spec.NodeVolumeDetachTimeoutSeconds).Should(Equal(deletingMachine.Spec.NodeVolumeDetachTimeoutSeconds))
+		g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(deletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds))
+		g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(deletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds))
+		g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(deletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
 		g.Expect(updatedDeletingMachine.Spec.MinReadySeconds).Should(Equal(deletingMachine.Spec.MinReadySeconds))
 	}, 5*time.Second).Should(Succeed())
 
 	// Verify in-place mutable fields are updated on the deleting machine
-	ms.Spec.Template.Spec.NodeDrainTimeoutSeconds = duration11s
-	ms.Spec.Template.Spec.NodeDeletionTimeoutSeconds = duration11s
-	ms.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = duration11s
+	ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = duration11s
+	ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = duration11s
+	ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration11s
 	ms.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](11)
 	s = &scope{
 		machineSet: ms,
@@ -1505,17 +1507,17 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
 	// Verify Node timeout values
-	g.Expect(updatedDeletingMachine.Spec.NodeDrainTimeoutSeconds).Should(And(
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(And(
 		Not(BeNil()),
-		HaveValue(Equal(*ms.Spec.Template.Spec.NodeDrainTimeoutSeconds)),
+		HaveValue(Equal(*ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds)),
 	))
-	g.Expect(updatedDeletingMachine.Spec.NodeDeletionTimeoutSeconds).Should(And(
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(And(
 		Not(BeNil()),
-		HaveValue(Equal(*ms.Spec.Template.Spec.NodeDeletionTimeoutSeconds)),
+		HaveValue(Equal(*ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds)),
 	))
-	g.Expect(updatedDeletingMachine.Spec.NodeVolumeDetachTimeoutSeconds).Should(And(
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(And(
 		Not(BeNil()),
-		HaveValue(Equal(*ms.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds)),
+		HaveValue(Equal(*ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)),
 	))
 	g.Expect(updatedDeletingMachine.Spec.MinReadySeconds).Should(And(
 		Not(BeNil()),
@@ -2331,10 +2333,12 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 							Kind:     builder.GenericInfrastructureMachineTemplateKind,
 							Name:     "ms-template",
 						},
-						NodeDrainTimeoutSeconds:        duration10m,
-						NodeDeletionTimeoutSeconds:     duration10m,
-						NodeVolumeDetachTimeoutSeconds: duration10m,
-						MinReadySeconds:                ptr.To[int32](10),
+						Deletion: clusterv1.MachineDeletionSpec{
+							NodeDrainTimeoutSeconds:        duration10m,
+							NodeDeletionTimeoutSeconds:     duration10m,
+							NodeVolumeDetachTimeoutSeconds: duration10m,
+						},
+						MinReadySeconds: ptr.To[int32](10),
 					},
 				},
 			},
@@ -2482,10 +2486,12 @@ func TestComputeDesiredMachine(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &bootstrapRef,
 			},
-			NodeDrainTimeoutSeconds:        duration10s,
-			NodeVolumeDetachTimeoutSeconds: duration10s,
-			NodeDeletionTimeoutSeconds:     duration10s,
-			MinReadySeconds:                ptr.To[int32](10),
+			Deletion: clusterv1.MachineDeletionSpec{
+				NodeDrainTimeoutSeconds:        duration10s,
+				NodeVolumeDetachTimeoutSeconds: duration10s,
+				NodeDeletionTimeoutSeconds:     duration10s,
+			},
+			MinReadySeconds: ptr.To[int32](10),
 		},
 	}
 
@@ -2501,12 +2507,14 @@ func TestComputeDesiredMachine(t *testing.T) {
 			Finalizers:  []string{clusterv1.MachineFinalizer},
 		},
 		Spec: clusterv1.MachineSpec{
-			ClusterName:                    testClusterName,
-			Version:                        "v1.25.3",
-			NodeDrainTimeoutSeconds:        duration10s,
-			NodeVolumeDetachTimeoutSeconds: duration10s,
-			NodeDeletionTimeoutSeconds:     duration10s,
-			MinReadySeconds:                ptr.To[int32](10),
+			ClusterName: testClusterName,
+			Version:     "v1.25.3",
+			Deletion: clusterv1.MachineDeletionSpec{
+				NodeDrainTimeoutSeconds:        duration10s,
+				NodeVolumeDetachTimeoutSeconds: duration10s,
+				NodeDeletionTimeoutSeconds:     duration10s,
+			},
+			MinReadySeconds: ptr.To[int32](10),
 		},
 	}
 
@@ -2531,9 +2539,9 @@ func TestComputeDesiredMachine(t *testing.T) {
 		Name:     "bootstrap-config-1",
 		APIGroup: clusterv1.GroupVersionBootstrap.Group,
 	}
-	existingMachine.Spec.NodeDrainTimeoutSeconds = duration5s
-	existingMachine.Spec.NodeDeletionTimeoutSeconds = duration5s
-	existingMachine.Spec.NodeVolumeDetachTimeoutSeconds = duration5s
+	existingMachine.Spec.Deletion.NodeDrainTimeoutSeconds = duration5s
+	existingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = duration5s
+	existingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration5s
 	existingMachine.Spec.MinReadySeconds = ptr.To[int32](5)
 
 	expectedUpdatedMachine := skeletonMachine.DeepCopy()

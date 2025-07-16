@@ -1825,9 +1825,7 @@ func autoConvert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *v1be
 	} else {
 		out.NamingStrategy = nil
 	}
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	return nil
 }
@@ -1892,9 +1890,7 @@ func autoConvert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in
 	} else {
 		out.MachineHealthCheck = nil
 	}
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	// WARNING: in.Variables requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables vs *sigs.k8s.io/cluster-api/api/core/v1beta1.ControlPlaneVariables)
 	return nil
@@ -2424,9 +2420,7 @@ func autoConvert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClas
 	} else {
 		out.NamingStrategy = nil
 	}
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	// WARNING: in.Strategy requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy vs *sigs.k8s.io/cluster-api/api/core/v1beta1.MachineDeploymentStrategy)
@@ -2655,9 +2649,7 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentT
 	} else {
 		out.MachineHealthCheck = nil
 	}
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	// WARNING: in.Strategy requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy vs *sigs.k8s.io/cluster-api/api/core/v1beta1.MachineDeploymentStrategy)
@@ -3210,9 +3202,7 @@ func autoConvert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(in *v1beta
 	} else {
 		out.NamingStrategy = nil
 	}
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	return nil
 }
@@ -3397,9 +3387,7 @@ func autoConvert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(in *
 	out.Class = in.Class
 	out.Name = in.Name
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.Variables requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables vs *sigs.k8s.io/cluster-api/api/core/v1beta1.MachinePoolVariables)
@@ -3673,9 +3661,7 @@ func autoConvert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in *v1beta2.MachineS
 	}
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	return nil
 }
 

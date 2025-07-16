@@ -468,9 +468,9 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 	}
 
 	// Set other in-place mutable fields
-	desiredMachine.Spec.NodeDrainTimeoutSeconds = kcp.Spec.MachineTemplate.NodeDrainTimeoutSeconds
-	desiredMachine.Spec.NodeDeletionTimeoutSeconds = kcp.Spec.MachineTemplate.NodeDeletionTimeoutSeconds
-	desiredMachine.Spec.NodeVolumeDetachTimeoutSeconds = kcp.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds
+	desiredMachine.Spec.Deletion.NodeDrainTimeoutSeconds = kcp.Spec.MachineTemplate.Deletion.NodeDrainTimeoutSeconds
+	desiredMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = kcp.Spec.MachineTemplate.Deletion.NodeDeletionTimeoutSeconds
+	desiredMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = kcp.Spec.MachineTemplate.Deletion.NodeVolumeDetachTimeoutSeconds
 
 	// Note: We intentionally don't set "minReadySeconds" on Machines because we consider it enough to have machine availability driven by readiness of control plane components.
 	if existingMachine != nil {

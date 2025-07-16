@@ -70,8 +70,8 @@ func (webhook *Machine) Default(_ context.Context, obj runtime.Object) error {
 		m.Spec.Version = normalizedVersion
 	}
 
-	if m.Spec.NodeDeletionTimeoutSeconds == nil {
-		m.Spec.NodeDeletionTimeoutSeconds = ptr.To(defaultNodeDeletionTimeoutSeconds)
+	if m.Spec.Deletion.NodeDeletionTimeoutSeconds == nil {
+		m.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(defaultNodeDeletionTimeoutSeconds)
 	}
 
 	return nil

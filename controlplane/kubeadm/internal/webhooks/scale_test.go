@@ -58,7 +58,9 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 					Kind:     "UnknownInfraMachine",
 					Name:     "infraTemplate",
 				},
-				NodeDrainTimeoutSeconds: ptr.To(int32(1)),
+				Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+					NodeDrainTimeoutSeconds: ptr.To(int32(1)),
+				},
 			},
 			Replicas: ptr.To[int32](1),
 			RolloutStrategy: &controlplanev1.RolloutStrategy{

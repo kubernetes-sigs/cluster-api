@@ -134,16 +134,16 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 				dst.Spec.Topology.ControlPlane.MachineHealthCheck = restored.Spec.Topology.ControlPlane.MachineHealthCheck
 			}
 
-			if restored.Spec.Topology.ControlPlane.NodeDrainTimeoutSeconds != nil {
-				dst.Spec.Topology.ControlPlane.NodeDrainTimeoutSeconds = restored.Spec.Topology.ControlPlane.NodeDrainTimeoutSeconds
+			if restored.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds != nil {
+				dst.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds = restored.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds
 			}
 
-			if restored.Spec.Topology.ControlPlane.NodeVolumeDetachTimeoutSeconds != nil {
-				dst.Spec.Topology.ControlPlane.NodeVolumeDetachTimeoutSeconds = restored.Spec.Topology.ControlPlane.NodeVolumeDetachTimeoutSeconds
+			if restored.Spec.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds != nil {
+				dst.Spec.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds
 			}
 
-			if restored.Spec.Topology.ControlPlane.NodeDeletionTimeoutSeconds != nil {
-				dst.Spec.Topology.ControlPlane.NodeDeletionTimeoutSeconds = restored.Spec.Topology.ControlPlane.NodeDeletionTimeoutSeconds
+			if restored.Spec.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds != nil {
+				dst.Spec.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds
 			}
 			dst.Spec.Topology.ControlPlane.ReadinessGates = restored.Spec.Topology.ControlPlane.ReadinessGates
 
@@ -151,9 +151,9 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 				dst.Spec.Topology.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Topology.Workers.MachineDeployments[i].FailureDomain
 				dst.Spec.Topology.Workers.MachineDeployments[i].Variables = restored.Spec.Topology.Workers.MachineDeployments[i].Variables
 				dst.Spec.Topology.Workers.MachineDeployments[i].ReadinessGates = restored.Spec.Topology.Workers.MachineDeployments[i].ReadinessGates
-				dst.Spec.Topology.Workers.MachineDeployments[i].NodeDrainTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].NodeDrainTimeoutSeconds
-				dst.Spec.Topology.Workers.MachineDeployments[i].NodeVolumeDetachTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].NodeVolumeDetachTimeoutSeconds
-				dst.Spec.Topology.Workers.MachineDeployments[i].NodeDeletionTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].NodeDeletionTimeoutSeconds
+				dst.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDrainTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDrainTimeoutSeconds
+				dst.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeVolumeDetachTimeoutSeconds
+				dst.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDeletionTimeoutSeconds
 				dst.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds = restored.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds
 				dst.Spec.Topology.Workers.MachineDeployments[i].Strategy = restored.Spec.Topology.Workers.MachineDeployments[i].Strategy
 				dst.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck = restored.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck
@@ -248,9 +248,9 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.ControlPlane.ReadinessGates = restored.Spec.ControlPlane.ReadinessGates
 	dst.Spec.ControlPlane.NamingStrategy = restored.Spec.ControlPlane.NamingStrategy
 	dst.Spec.Infrastructure.NamingStrategy = restored.Spec.Infrastructure.NamingStrategy
-	dst.Spec.ControlPlane.NodeDrainTimeoutSeconds = restored.Spec.ControlPlane.NodeDrainTimeoutSeconds
-	dst.Spec.ControlPlane.NodeVolumeDetachTimeoutSeconds = restored.Spec.ControlPlane.NodeVolumeDetachTimeoutSeconds
-	dst.Spec.ControlPlane.NodeDeletionTimeoutSeconds = restored.Spec.ControlPlane.NodeDeletionTimeoutSeconds
+	dst.Spec.ControlPlane.Deletion.NodeDrainTimeoutSeconds = restored.Spec.ControlPlane.Deletion.NodeDrainTimeoutSeconds
+	dst.Spec.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds
+	dst.Spec.ControlPlane.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.ControlPlane.Deletion.NodeDeletionTimeoutSeconds
 	dst.Spec.Workers.MachinePools = restored.Spec.Workers.MachinePools
 
 	for i := range restored.Spec.Workers.MachineDeployments {
@@ -258,9 +258,9 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Workers.MachineDeployments[i].ReadinessGates = restored.Spec.Workers.MachineDeployments[i].ReadinessGates
 		dst.Spec.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Workers.MachineDeployments[i].FailureDomain
 		dst.Spec.Workers.MachineDeployments[i].NamingStrategy = restored.Spec.Workers.MachineDeployments[i].NamingStrategy
-		dst.Spec.Workers.MachineDeployments[i].NodeDrainTimeoutSeconds = restored.Spec.Workers.MachineDeployments[i].NodeDrainTimeoutSeconds
-		dst.Spec.Workers.MachineDeployments[i].NodeVolumeDetachTimeoutSeconds = restored.Spec.Workers.MachineDeployments[i].NodeVolumeDetachTimeoutSeconds
-		dst.Spec.Workers.MachineDeployments[i].NodeDeletionTimeoutSeconds = restored.Spec.Workers.MachineDeployments[i].NodeDeletionTimeoutSeconds
+		dst.Spec.Workers.MachineDeployments[i].Deletion.NodeDrainTimeoutSeconds = restored.Spec.Workers.MachineDeployments[i].Deletion.NodeDrainTimeoutSeconds
+		dst.Spec.Workers.MachineDeployments[i].Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Workers.MachineDeployments[i].Deletion.NodeVolumeDetachTimeoutSeconds
+		dst.Spec.Workers.MachineDeployments[i].Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Workers.MachineDeployments[i].Deletion.NodeDeletionTimeoutSeconds
 		dst.Spec.Workers.MachineDeployments[i].MinReadySeconds = restored.Spec.Workers.MachineDeployments[i].MinReadySeconds
 		dst.Spec.Workers.MachineDeployments[i].Strategy = restored.Spec.Workers.MachineDeployments[i].Strategy
 	}
@@ -331,9 +331,9 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	if ok {
 		dst.Spec.MinReadySeconds = restored.Spec.MinReadySeconds
 		dst.Spec.ReadinessGates = restored.Spec.ReadinessGates
-		dst.Spec.NodeDeletionTimeoutSeconds = restored.Spec.NodeDeletionTimeoutSeconds
+		dst.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Deletion.NodeDeletionTimeoutSeconds
 		dst.Status.CertificatesExpiryDate = restored.Status.CertificatesExpiryDate
-		dst.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.NodeVolumeDetachTimeoutSeconds
+		dst.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 		dst.Status.Deletion = restored.Status.Deletion
 		dst.Status.Conditions = restored.Status.Conditions
 	}
@@ -421,8 +421,8 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
-	dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
-	dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
+	dst.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
+	dst.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 	dst.Status.Conditions = restored.Status.Conditions
 	dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
 	dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
@@ -518,8 +518,8 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
-		dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
-		dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
+		dst.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
+		dst.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 		dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
 		dst.Spec.Strategy.Remediation = restored.Spec.Strategy.Remediation
 
@@ -692,8 +692,8 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
-		dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
-		dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
+		dst.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
+		dst.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 		dst.Status.Conditions = restored.Status.Conditions
 		dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
 		dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
@@ -792,7 +792,7 @@ func Convert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in *clusterv1.MachineSp
 	if err := autoConvert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in, out, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDrainTimeoutSeconds)
 	return nil
 }
 
@@ -1184,7 +1184,7 @@ func Convert_v1alpha4_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, out *c
 	if err := autoConvert_v1alpha4_MachineSpec_To_v1beta2_MachineSpec(in, out, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
 	return nil
 }
 

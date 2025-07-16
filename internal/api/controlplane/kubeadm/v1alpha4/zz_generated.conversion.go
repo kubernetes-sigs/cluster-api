@@ -289,9 +289,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmC
 		return err
 	}
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	return nil
 }
 

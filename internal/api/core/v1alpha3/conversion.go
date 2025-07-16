@@ -247,8 +247,8 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	if ok {
 		dst.Spec.MinReadySeconds = restored.Spec.MinReadySeconds
 		dst.Spec.ReadinessGates = restored.Spec.ReadinessGates
-		dst.Spec.NodeDeletionTimeoutSeconds = restored.Spec.NodeDeletionTimeoutSeconds
-		dst.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.NodeVolumeDetachTimeoutSeconds
+		dst.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Deletion.NodeDeletionTimeoutSeconds
+		dst.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 		dst.Status.NodeInfo = restored.Status.NodeInfo
 		dst.Status.CertificatesExpiryDate = restored.Status.CertificatesExpiryDate
 		dst.Status.Deletion = restored.Status.Deletion
@@ -334,8 +334,8 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
-	dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
-	dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
+	dst.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
+	dst.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 	if restored.Status.Deprecated != nil && restored.Status.Deprecated.V1Beta1 != nil {
 		dst.Status.Deprecated.V1Beta1.Conditions = restored.Status.Deprecated.V1Beta1.Conditions
 	}
@@ -433,8 +433,8 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		}
 
 		dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
-		dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
-		dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
+		dst.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
+		dst.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 		dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
 		if restored.Status.Deprecated != nil && restored.Status.Deprecated.V1Beta1 != nil {
 			dst.Status.Deprecated.V1Beta1.Conditions = restored.Status.Deprecated.V1Beta1.Conditions
@@ -607,8 +607,8 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
-		dst.Spec.Template.Spec.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.NodeDeletionTimeoutSeconds
-		dst.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds
+		dst.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
+		dst.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 		dst.Status.Conditions = restored.Status.Conditions
 		dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
 		dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
@@ -862,7 +862,7 @@ func Convert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in *clusterv1.MachineSp
 	if err := autoConvert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in, out, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDrainTimeoutSeconds)
 	return nil
 }
 
@@ -1003,7 +1003,7 @@ func Convert_v1alpha3_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, out *c
 	if err := autoConvert_v1alpha3_MachineSpec_To_v1beta2_MachineSpec(in, out, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
 	return nil
 }
 

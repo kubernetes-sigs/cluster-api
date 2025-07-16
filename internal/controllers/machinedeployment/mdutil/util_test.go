@@ -89,7 +89,9 @@ func generateDeployment(image string) clusterv1.MachineDeployment {
 					Labels: machineLabels,
 				},
 				Spec: clusterv1.MachineSpec{
-					NodeDrainTimeoutSeconds: ptr.To(int32(10)),
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDrainTimeoutSeconds: ptr.To(int32(10)),
+					},
 				},
 			},
 		},
@@ -178,13 +180,15 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 			Annotations: map[string]string{"a1": "v1"},
 		},
 		Spec: clusterv1.MachineSpec{
-			NodeDrainTimeoutSeconds:        ptr.To(int32(10)),
-			NodeDeletionTimeoutSeconds:     ptr.To(int32(10)),
-			NodeVolumeDetachTimeoutSeconds: ptr.To(int32(10)),
-			ClusterName:                    "cluster1",
-			Version:                        "v1.25.0",
-			FailureDomain:                  "failure-domain1",
-			MinReadySeconds:                ptr.To[int32](10),
+			Deletion: clusterv1.MachineDeletionSpec{
+				NodeDrainTimeoutSeconds:        ptr.To(int32(10)),
+				NodeDeletionTimeoutSeconds:     ptr.To(int32(10)),
+				NodeVolumeDetachTimeoutSeconds: ptr.To(int32(10)),
+			},
+			ClusterName:     "cluster1",
+			Version:         "v1.25.0",
+			FailureDomain:   "failure-domain1",
+			MinReadySeconds: ptr.To[int32](10),
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Name:     "infra1",
 				Kind:     "InfrastructureMachineTemplate",
@@ -216,9 +220,9 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 
 	machineTemplateWithDifferentInPlaceMutableSpecFields := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "foo"}}
-	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeDrainTimeoutSeconds = ptr.To(int32(20))
-	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeDeletionTimeoutSeconds = ptr.To(int32(20))
-	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(20))
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(20))
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(int32(20))
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(20))
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.MinReadySeconds = ptr.To[int32](20)
 
 	machineTemplateWithDifferentClusterName := machineTemplate.DeepCopy()
@@ -392,7 +396,7 @@ func TestFindNewMachineSet(t *testing.T) {
 	matchingMSHigherReplicas.Spec.Replicas = ptr.To[int32](2)
 
 	matchingMSDiffersInPlaceMutableFields := generateMS(deployment)
-	matchingMSDiffersInPlaceMutableFields.Spec.Template.Spec.NodeDrainTimeoutSeconds = ptr.To(int32(20))
+	matchingMSDiffersInPlaceMutableFields.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(20))
 
 	oldMS := generateMS(deployment)
 	oldMS.Spec.Template.Spec.InfrastructureRef.Name = "old-infra-ref"

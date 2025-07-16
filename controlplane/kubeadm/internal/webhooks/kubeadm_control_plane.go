@@ -218,9 +218,9 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		{spec, "machineTemplate", "infrastructureRef", "apiGroup"},
 		{spec, "machineTemplate", "infrastructureRef", "name"},
 		{spec, "machineTemplate", "infrastructureRef", "kind"},
-		{spec, "machineTemplate", "nodeDrainTimeoutSeconds"},
-		{spec, "machineTemplate", "nodeVolumeDetachTimeoutSeconds"},
-		{spec, "machineTemplate", "nodeDeletionTimeoutSeconds"},
+		{spec, "machineTemplate", "deletion", "nodeDrainTimeoutSeconds"},
+		{spec, "machineTemplate", "deletion", "nodeVolumeDetachTimeoutSeconds"},
+		{spec, "machineTemplate", "deletion", "nodeDeletionTimeoutSeconds"},
 		// spec
 		{spec, "replicas"},
 		{spec, "version"},

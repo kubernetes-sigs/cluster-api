@@ -616,7 +616,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's node: %v", deleteNodeErr)
 
 			// If the node deletion timeout is not expired yet, requeue the Machine for reconciliation.
-			if m.Spec.NodeDeletionTimeoutSeconds == nil || *m.Spec.NodeDeletionTimeoutSeconds == 0 || m.DeletionTimestamp.Add(time.Duration(*m.Spec.NodeDeletionTimeoutSeconds)*time.Second).After(time.Now()) {
+			if m.Spec.Deletion.NodeDeletionTimeoutSeconds == nil || *m.Spec.Deletion.NodeDeletionTimeoutSeconds == 0 || m.DeletionTimestamp.Add(time.Duration(*m.Spec.Deletion.NodeDeletionTimeoutSeconds)*time.Second).After(time.Now()) {
 				s.deletingReason = clusterv1.MachineDeletingDeletingNodeReason
 				s.deletingMessage = "Error deleting Node, please check controller logs for errors"
 				return ctrl.Result{}, deleteNodeErr
@@ -677,7 +677,7 @@ func (r *Reconciler) isNodeVolumeDetachingAllowed(m *clusterv1.Machine) bool {
 
 func (r *Reconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
 	// if the NodeDrainTimeoutSeconds type is not set by user
-	if machine.Status.Deletion == nil || machine.Spec.NodeDrainTimeoutSeconds == nil || *machine.Spec.NodeDrainTimeoutSeconds <= 0 {
+	if machine.Status.Deletion == nil || machine.Spec.Deletion.NodeDrainTimeoutSeconds == nil || *machine.Spec.Deletion.NodeDrainTimeoutSeconds <= 0 {
 		return false
 	}
 
@@ -688,7 +688,7 @@ func (r *Reconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
 
 	now := time.Now()
 	diff := now.Sub(machine.Status.Deletion.NodeDrainStartTime.Time)
-	return diff.Seconds() >= float64(*machine.Spec.NodeDrainTimeoutSeconds)
+	return diff.Seconds() >= float64(*machine.Spec.Deletion.NodeDrainTimeoutSeconds)
 }
 
 // nodeVolumeDetachTimeoutExceeded returns False if either NodeVolumeDetachTimeoutSeconds is set to nil or <=0 OR
@@ -696,7 +696,7 @@ func (r *Reconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
 // since the WaitForNodeVolumeDetachStartTime.
 func (r *Reconciler) nodeVolumeDetachTimeoutExceeded(machine *clusterv1.Machine) bool {
 	// if the NodeVolumeDetachTimeoutSeconds type is not set by user
-	if machine.Status.Deletion == nil || machine.Spec.NodeVolumeDetachTimeoutSeconds == nil || *machine.Spec.NodeVolumeDetachTimeoutSeconds <= 0 {
+	if machine.Status.Deletion == nil || machine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds == nil || *machine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds <= 0 {
 		return false
 	}
 
@@ -707,7 +707,7 @@ func (r *Reconciler) nodeVolumeDetachTimeoutExceeded(machine *clusterv1.Machine)
 
 	now := time.Now()
 	diff := now.Sub(machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Time)
-	return diff.Seconds() >= float64(*machine.Spec.NodeVolumeDetachTimeoutSeconds)
+	return diff.Seconds() >= float64(*machine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)
 }
 
 // isDeleteNodeAllowed returns nil only if the Machine's NodeRef is not nil

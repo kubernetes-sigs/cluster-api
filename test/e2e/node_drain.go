@@ -168,9 +168,9 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			ClusterProxy: input.BootstrapClusterProxy,
 			Cluster:      cluster,
 			ModifyControlPlaneTopology: func(topology *clusterv1.ControlPlaneTopology) {
-				topology.NodeDrainTimeoutSeconds = ptr.To(int32(0))
+				topology.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(0))
 				if input.VerifyNodeVolumeDetach {
-					topology.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(0))
+					topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(0))
 				}
 				if topology.Metadata.Labels == nil {
 					topology.Metadata.Labels = map[string]string{}
@@ -183,9 +183,9 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			ClusterProxy: input.BootstrapClusterProxy,
 			Cluster:      cluster,
 			ModifyMachineDeploymentTopology: func(topology *clusterv1.MachineDeploymentTopology) {
-				topology.NodeDrainTimeoutSeconds = ptr.To(int32(0))
+				topology.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(0))
 				if input.VerifyNodeVolumeDetach {
-					topology.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(0))
+					topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(0))
 				}
 				if topology.Metadata.Labels == nil {
 					topology.Metadata.Labels = map[string]string{}
@@ -584,8 +584,8 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			ClusterProxy: input.BootstrapClusterProxy,
 			Cluster:      cluster,
 			ModifyControlPlaneTopology: func(topology *clusterv1.ControlPlaneTopology) {
-				topology.NodeDrainTimeoutSeconds = drainTimeout
-				topology.NodeVolumeDetachTimeoutSeconds = drainTimeout
+				topology.Deletion.NodeDrainTimeoutSeconds = drainTimeout
+				topology.Deletion.NodeVolumeDetachTimeoutSeconds = drainTimeout
 			},
 			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 		})
@@ -812,7 +812,7 @@ func unblockNodeVolumeDetachmentFunc(waitControlPlaneIntervals, waitWorkerNodeIn
 			ClusterProxy: bootstrapClusterProxy,
 			Cluster:      cluster,
 			ModifyControlPlaneTopology: func(topology *clusterv1.ControlPlaneTopology) {
-				topology.NodeVolumeDetachTimeoutSeconds = nodeVolumeDetachTimeout
+				topology.Deletion.NodeVolumeDetachTimeoutSeconds = nodeVolumeDetachTimeout
 			},
 			WaitForControlPlane: waitControlPlaneIntervals,
 		})
@@ -820,7 +820,7 @@ func unblockNodeVolumeDetachmentFunc(waitControlPlaneIntervals, waitWorkerNodeIn
 			ClusterProxy: bootstrapClusterProxy,
 			Cluster:      cluster,
 			ModifyMachineDeploymentTopology: func(topology *clusterv1.MachineDeploymentTopology) {
-				topology.NodeVolumeDetachTimeoutSeconds = nodeVolumeDetachTimeout
+				topology.Deletion.NodeVolumeDetachTimeoutSeconds = nodeVolumeDetachTimeout
 			},
 			WaitForMachineDeployments: waitWorkerNodeIntervals,
 		})

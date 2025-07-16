@@ -179,6 +179,30 @@ type ControlPlaneClass struct {
 	// +optional
 	NamingStrategy *ControlPlaneClassNamingStrategy `json:"namingStrategy,omitempty"`
 
+	// deletion contains configuration options for Machine deletion.
+	// +optional
+	Deletion ControlPlaneClassMachineDeletionSpec `json:"deletion,omitempty,omitzero"`
+
+	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+	//
+	// This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
+	// computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
+	//
+	// NOTE: If a Cluster defines a custom list of readinessGates for the control plane,
+	// such list overrides readinessGates defined in this field.
+	// NOTE: Specific control plane provider implementations might automatically extend the list of readinessGates;
+	// e.g. the kubeadm control provider adds ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
+	// +optional
+	// +listType=map
+	// +listMapKey=conditionType
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
+	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
+}
+
+// ControlPlaneClassMachineDeletionSpec contains configuration options for Machine deletion.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneClassMachineDeletionSpec struct {
 	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
@@ -201,22 +225,6 @@ type ControlPlaneClass struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
-
-	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
-	//
-	// This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
-	// computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
-	//
-	// NOTE: If a Cluster defines a custom list of readinessGates for the control plane,
-	// such list overrides readinessGates defined in this field.
-	// NOTE: Specific control plane provider implementations might automatically extend the list of readinessGates;
-	// e.g. the kubeadm control provider adds ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
-	// +optional
-	// +listType=map
-	// +listMapKey=conditionType
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=32
-	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 }
 
 // ControlPlaneClassNamingStrategy defines the naming strategy for control plane objects.
@@ -311,28 +319,9 @@ type MachineDeploymentClass struct {
 	// +optional
 	NamingStrategy *MachineDeploymentClassNamingStrategy `json:"namingStrategy,omitempty"`
 
-	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
-	// The default value is 0, meaning that the node can be drained without any time limitations.
-	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
-	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// deletion contains configuration options for Machine deletion.
 	// +optional
-	// +kubebuilder:validation:Minimum=0
-	NodeDrainTimeoutSeconds *int32 `json:"nodeDrainTimeoutSeconds,omitempty"`
-
-	// nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
-	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
-	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
-	// +optional
-	// +kubebuilder:validation:Minimum=0
-	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
-
-	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
-	// Defaults to 10 seconds.
-	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
-	// +optional
-	// +kubebuilder:validation:Minimum=0
-	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
+	Deletion MachineDeploymentClassMachineDeletionSpec `json:"deletion,omitempty,omitzero"`
 
 	// minReadySeconds is the minimum number of seconds for which a newly created machine should
 	// be ready.
@@ -362,6 +351,33 @@ type MachineDeploymentClass struct {
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	// +optional
 	Strategy MachineDeploymentStrategy `json:"strategy,omitempty,omitzero"`
+}
+
+// MachineDeploymentClassMachineDeletionSpec contains configuration options for Machine deletion.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentClassMachineDeletionSpec struct {
+	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
+	// The default value is 0, meaning that the node can be drained without any time limitations.
+	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	NodeDrainTimeoutSeconds *int32 `json:"nodeDrainTimeoutSeconds,omitempty"`
+
+	// nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
+	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
+
+	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
+	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// Defaults to 10 seconds.
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
 }
 
 // MachineDeploymentClassNamingStrategy defines the naming strategy for machine deployment objects.
@@ -477,6 +493,23 @@ type MachinePoolClass struct {
 	// +optional
 	NamingStrategy *MachinePoolClassNamingStrategy `json:"namingStrategy,omitempty"`
 
+	// deletion contains configuration options for Machine deletion.
+	// +optional
+	Deletion MachinePoolClassMachineDeletionSpec `json:"deletion,omitempty,omitzero"`
+
+	// minReadySeconds is the minimum number of seconds for which a newly created machine pool should
+	// be ready.
+	// Defaults to 0 (machine will be considered available as soon as it
+	// is ready)
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
+}
+
+// MachinePoolClassMachineDeletionSpec contains configuration options for Machine deletion.
+// +kubebuilder:validation:MinProperties=1
+type MachinePoolClassMachineDeletionSpec struct {
 	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
@@ -499,15 +532,6 @@ type MachinePoolClass struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
-
-	// minReadySeconds is the minimum number of seconds for which a newly created machine pool should
-	// be ready.
-	// Defaults to 0 (machine will be considered available as soon as it
-	// is ready)
-	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
-	// +optional
-	// +kubebuilder:validation:Minimum=0
-	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 }
 
 // MachinePoolClassNamingStrategy defines the naming strategy for machine pool objects.

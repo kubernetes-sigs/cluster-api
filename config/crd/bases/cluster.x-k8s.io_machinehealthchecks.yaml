@@ -1189,6 +1189,7 @@ spec:
                   - type
                   type: object
                 maxItems: 100
+                minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
               unhealthyRange:

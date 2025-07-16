@@ -1326,18 +1326,14 @@ func (r *KubeadmConfigReconciler) computeClusterConfigurationAndAdditionalData(c
 	data.ClusterName = ptr.To(cluster.Name)
 
 	// Use ClusterNetwork settings, if defined
-	if cluster.Spec.ClusterNetwork != nil {
-		if cluster.Spec.ClusterNetwork.ServiceDomain != "" {
-			data.DNSDomain = ptr.To(cluster.Spec.ClusterNetwork.ServiceDomain)
-		}
-		if cluster.Spec.ClusterNetwork.Services != nil &&
-			len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
-			data.ServiceSubnet = ptr.To(cluster.Spec.ClusterNetwork.Services.String())
-		}
-		if cluster.Spec.ClusterNetwork.Pods != nil &&
-			len(cluster.Spec.ClusterNetwork.Pods.CIDRBlocks) > 0 {
-			data.PodSubnet = ptr.To(cluster.Spec.ClusterNetwork.Pods.String())
-		}
+	if cluster.Spec.ClusterNetwork.ServiceDomain != "" {
+		data.DNSDomain = ptr.To(cluster.Spec.ClusterNetwork.ServiceDomain)
+	}
+	if len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
+		data.ServiceSubnet = ptr.To(cluster.Spec.ClusterNetwork.Services.String())
+	}
+	if len(cluster.Spec.ClusterNetwork.Pods.CIDRBlocks) > 0 {
+		data.PodSubnet = ptr.To(cluster.Spec.ClusterNetwork.Pods.String())
 	}
 
 	// Use Version from machine, if defined

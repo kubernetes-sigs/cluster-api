@@ -84,11 +84,11 @@ func TestGlobal(t *testing.T) {
 						},
 						Version: "v1.21.1",
 					},
-					ClusterNetwork: &clusterv1.ClusterNetwork{
-						Services: &clusterv1.NetworkRanges{
+					ClusterNetwork: clusterv1.ClusterNetwork{
+						Services: clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"10.10.10.1/24"},
 						},
-						Pods: &clusterv1.NetworkRanges{
+						Pods: clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"11.10.10.1/24"},
 						},
 						ServiceDomain: "cluster.local",
@@ -163,11 +163,11 @@ func TestGlobal(t *testing.T) {
 						},
 						Version: "v1.21.1",
 					},
-					ClusterNetwork: &clusterv1.ClusterNetwork{
-						Services: &clusterv1.NetworkRanges{
+					ClusterNetwork: clusterv1.ClusterNetwork{
+						Services: clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"10.10.10.1/24"},
 						},
-						Pods: &clusterv1.NetworkRanges{
+						Pods: clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"11.10.10.1/24"},
 						},
 						ServiceDomain: "cluster.local",
@@ -242,11 +242,11 @@ func TestGlobal(t *testing.T) {
 						},
 						Version: "v1.21.1",
 					},
-					ClusterNetwork: &clusterv1.ClusterNetwork{
-						Services: &clusterv1.NetworkRanges{
+					ClusterNetwork: clusterv1.ClusterNetwork{
+						Services: clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"10.10.10.1/24"},
 						},
-						Pods: &clusterv1.NetworkRanges{
+						Pods: clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"11.10.10.1/24"},
 						},
 					},
@@ -319,9 +319,9 @@ func TestGlobal(t *testing.T) {
 						},
 						Version: "v1.21.1",
 					},
-					ClusterNetwork: &clusterv1.ClusterNetwork{
-						Services:      nil,
-						Pods:          &clusterv1.NetworkRanges{},
+					ClusterNetwork: clusterv1.ClusterNetwork{
+						Services:      clusterv1.NetworkRanges{},
+						Pods:          clusterv1.NetworkRanges{},
 						ServiceDomain: "cluster.local",
 					},
 				},
@@ -392,7 +392,7 @@ func TestGlobal(t *testing.T) {
 						},
 						Version: "v1.21.1",
 					},
-					ClusterNetwork: nil,
+					ClusterNetwork: clusterv1.ClusterNetwork{},
 				},
 			},
 			want: []runtimehooksv1.Variable{
@@ -450,7 +450,7 @@ func TestControlPlane(t *testing.T) {
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
 				Replicas: ptr.To[int32](3),
-				Variables: &clusterv1.ControlPlaneVariables{
+				Variables: clusterv1.ControlPlaneVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -499,7 +499,7 @@ func TestControlPlane(t *testing.T) {
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
 				Replicas: ptr.To[int32](3),
-				Variables: &clusterv1.ControlPlaneVariables{
+				Variables: clusterv1.ControlPlaneVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -569,7 +569,7 @@ func TestControlPlane(t *testing.T) {
 			name:                        "Should calculate ControlPlane variables, replicas not set",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
-				Variables: &clusterv1.ControlPlaneVariables{
+				Variables: clusterv1.ControlPlaneVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -609,7 +609,7 @@ func TestControlPlane(t *testing.T) {
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
 				Replicas: ptr.To[int32](3),
-				Variables: &clusterv1.ControlPlaneVariables{
+				Variables: clusterv1.ControlPlaneVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -682,7 +682,7 @@ func TestMachineDeployment(t *testing.T) {
 				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
 				Class:    "md-class",
-				Variables: &clusterv1.MachineDeploymentVariables{
+				Variables: clusterv1.MachineDeploymentVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -738,7 +738,7 @@ func TestMachineDeployment(t *testing.T) {
 				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
 				Class:    "md-class",
-				Variables: &clusterv1.MachineDeploymentVariables{
+				Variables: clusterv1.MachineDeploymentVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -814,7 +814,7 @@ func TestMachineDeployment(t *testing.T) {
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Name:  "md-topology",
 				Class: "md-class",
-				Variables: &clusterv1.MachineDeploymentVariables{
+				Variables: clusterv1.MachineDeploymentVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -858,7 +858,7 @@ func TestMachineDeployment(t *testing.T) {
 				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
 				Class:    "md-class",
-				Variables: &clusterv1.MachineDeploymentVariables{
+				Variables: clusterv1.MachineDeploymentVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -910,7 +910,7 @@ func TestMachineDeployment(t *testing.T) {
 				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
 				Class:    "md-class",
-				Variables: &clusterv1.MachineDeploymentVariables{
+				Variables: clusterv1.MachineDeploymentVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -960,7 +960,7 @@ func TestMachineDeployment(t *testing.T) {
 				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
 				Class:    "md-class",
-				Variables: &clusterv1.MachineDeploymentVariables{
+				Variables: clusterv1.MachineDeploymentVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -1038,7 +1038,7 @@ func TestMachinePool(t *testing.T) {
 				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
 				Class:    "mp-class",
-				Variables: &clusterv1.MachinePoolVariables{
+				Variables: clusterv1.MachinePoolVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -1094,7 +1094,7 @@ func TestMachinePool(t *testing.T) {
 				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
 				Class:    "mp-class",
-				Variables: &clusterv1.MachinePoolVariables{
+				Variables: clusterv1.MachinePoolVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -1170,7 +1170,7 @@ func TestMachinePool(t *testing.T) {
 			mpTopology: &clusterv1.MachinePoolTopology{
 				Name:  "mp-topology",
 				Class: "mp-class",
-				Variables: &clusterv1.MachinePoolVariables{
+				Variables: clusterv1.MachinePoolVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -1214,7 +1214,7 @@ func TestMachinePool(t *testing.T) {
 				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
 				Class:    "mp-class",
-				Variables: &clusterv1.MachinePoolVariables{
+				Variables: clusterv1.MachinePoolVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -1266,7 +1266,7 @@ func TestMachinePool(t *testing.T) {
 				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
 				Class:    "mp-class",
-				Variables: &clusterv1.MachinePoolVariables{
+				Variables: clusterv1.MachinePoolVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -1316,7 +1316,7 @@ func TestMachinePool(t *testing.T) {
 				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
 				Class:    "mp-class",
-				Variables: &clusterv1.MachinePoolVariables{
+				Variables: clusterv1.MachinePoolVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",

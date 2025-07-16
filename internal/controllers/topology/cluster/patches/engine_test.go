@@ -1085,12 +1085,12 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 		},
 		Spec: clusterv1.ClusterSpec{
 			Paused: ptr.To(false),
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				APIServerPort: ptr.To[int32](8),
-				Services: &clusterv1.NetworkRanges{
+			ClusterNetwork: clusterv1.ClusterNetwork{
+				APIServerPort: 8,
+				Services: clusterv1.NetworkRanges{
 					CIDRBlocks: []string{"10.10.10.1/24"},
 				},
-				Pods: &clusterv1.NetworkRanges{
+				Pods: clusterv1.NetworkRanges{
 					CIDRBlocks: []string{"11.10.10.1/24"},
 				},
 				ServiceDomain: "lark",
@@ -1104,7 +1104,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 				},
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](3),
-					Variables: &clusterv1.ControlPlaneVariables{
+					Variables: clusterv1.ControlPlaneVariables{
 						Overrides: []clusterv1.ClusterVariable{
 							{
 								Name:  "controlPlaneVariable",
@@ -1134,13 +1134,13 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 						Value: apiextensionsv1.JSON{Raw: []byte(`"default-mp-cluster-wide-value"`)},
 					},
 				},
-				Workers: &clusterv1.WorkersTopology{
+				Workers: clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
 							Metadata: clusterv1.ObjectMeta{Labels: map[string]string{"foo": "bar"}, Annotations: map[string]string{"fizz": "buzz"}},
 							Class:    "default-worker",
 							Name:     "default-worker-topo1",
-							Variables: &clusterv1.MachineDeploymentVariables{
+							Variables: clusterv1.MachineDeploymentVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
 										Name:  "defaultMDWorkerVariable",
@@ -1161,7 +1161,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 							Metadata: clusterv1.ObjectMeta{Labels: map[string]string{"foo": "bar"}, Annotations: map[string]string{"fizz": "buzz"}},
 							Class:    "default-mp-worker",
 							Name:     "default-mp-worker-topo1",
-							Variables: &clusterv1.MachinePoolVariables{
+							Variables: clusterv1.MachinePoolVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
 										Name:  "defaultMPWorkerVariable",

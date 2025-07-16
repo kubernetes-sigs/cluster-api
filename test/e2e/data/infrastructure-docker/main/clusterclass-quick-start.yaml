@@ -31,41 +31,39 @@ spec:
   workers:
     machineDeployments:
     - class: default-worker
-      template:
-        metadata:
-          labels:
-            ClusterClass.machineDeployment.label: "ClusterClass.machineDeployment.labelValue"
-          annotations:
-            ClusterClass.machineDeployment.annotation: "ClusterClass.machineDeployment.annotationValue"
-        bootstrap:
-          templateRef:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-            kind: KubeadmConfigTemplate
-            name: quick-start-md-default-worker-bootstraptemplate
-        infrastructure:
-          templateRef:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-            kind: DockerMachineTemplate
-            name: quick-start-default-worker-machinetemplate
-      # We are intentionally not setting the 'unhealthyConditions' here to test that the field is optional.
+      metadata:
+        labels:
+          ClusterClass.machineDeployment.label: "ClusterClass.machineDeployment.labelValue"
+        annotations:
+          ClusterClass.machineDeployment.annotation: "ClusterClass.machineDeployment.annotationValue"
+      bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: quick-start-md-default-worker-bootstraptemplate
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: DockerMachineTemplate
+          name: quick-start-default-worker-machinetemplate
+      # We are intentionally not setting the 'unhealthyNodeConditions' here to test that the field is optional.
     machinePools:
     - class: default-worker
-      template:
-        metadata:
-          labels:
-            ClusterClass.machinePool.label: "ClusterClass.machinePool.labelValue"
-          annotations:
-            ClusterClass.machinePool.annotation: "ClusterClass.machinePool.annotationValue"
-        bootstrap:
-          templateRef:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-            kind: KubeadmConfigTemplate
-            name: quick-start-mp-default-worker-bootstraptemplate
-        infrastructure:
-          templateRef:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-            kind: DockerMachinePoolTemplate
-            name: quick-start-default-worker-machinepooltemplate
+      metadata:
+        labels:
+          ClusterClass.machinePool.label: "ClusterClass.machinePool.labelValue"
+        annotations:
+          ClusterClass.machinePool.annotation: "ClusterClass.machinePool.annotationValue"
+      bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: quick-start-mp-default-worker-bootstraptemplate
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: DockerMachinePoolTemplate
+          name: quick-start-default-worker-machinepooltemplate
   variables:
   - name: lbImageRepository
     required: true

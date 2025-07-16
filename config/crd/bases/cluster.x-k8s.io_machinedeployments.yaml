@@ -1996,11 +1996,13 @@ spec:
                 description: |-
                   strategy is the deployment strategy to use to replace existing machines with
                   new ones.
+                minProperties: 1
                 properties:
                   remediation:
                     description: |-
                       remediation controls the strategy of remediating unhealthy machines
                       and how remediating operations should occur during the lifecycle of the dependant MachineSets.
+                    minProperties: 1
                     properties:
                       maxInFlight:
                         anyOf:
@@ -2027,6 +2029,7 @@ spec:
                     description: |-
                       rollingUpdate is the rolling update config params. Present only if
                       MachineDeploymentStrategyType = RollingUpdate.
+                    minProperties: 1
                     properties:
                       deletePolicy:
                         description: |-
@@ -2306,6 +2309,7 @@ spec:
                           - conditionType
                           type: object
                         maxItems: 32
+                        minItems: 1
                         type: array
                         x-kubernetes-list-map-keys:
                         - conditionType

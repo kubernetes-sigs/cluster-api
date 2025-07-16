@@ -79,9 +79,9 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxUnavailable: intOrStrPtr(0),
 							MaxSurge:       intOrStrPtr(2),
 						},
@@ -108,9 +108,9 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxUnavailable: intOrStrPtr(0),
 							MaxSurge:       intOrStrPtr(2),
 						},
@@ -137,9 +137,9 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxUnavailable: intOrStrPtr(0),
 							MaxSurge:       intOrStrPtr(2),
 						},
@@ -181,9 +181,9 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxUnavailable: intOrStrPtr(0),
 							MaxSurge:       intOrStrPtr(0),
 						},
@@ -225,9 +225,9 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxUnavailable: intOrStrPtr(0),
 							MaxSurge:       intOrStrPtr(0),
 						},
@@ -348,9 +348,9 @@ func TestReconcileOldMachineSets(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxUnavailable: intOrStrPtr(1),
 							MaxSurge:       intOrStrPtr(3),
 						},
@@ -406,9 +406,9 @@ func TestReconcileOldMachineSets(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Strategy: &clusterv1.MachineDeploymentStrategy{
+					Strategy: clusterv1.MachineDeploymentStrategy{
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+						RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 							MaxUnavailable: intOrStrPtr(2),
 							MaxSurge:       intOrStrPtr(3),
 						},

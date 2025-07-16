@@ -1831,9 +1831,9 @@ func TestKubeadmConfigReconciler_computeClusterConfigurationAndAdditionalData(t 
 					Name: "mycluster",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: &clusterv1.ClusterNetwork{
-						Services:      &clusterv1.NetworkRanges{CIDRBlocks: []string{"myServiceSubnet"}},
-						Pods:          &clusterv1.NetworkRanges{CIDRBlocks: []string{"myPodSubnet"}},
+					ClusterNetwork: clusterv1.ClusterNetwork{
+						Services:      clusterv1.NetworkRanges{CIDRBlocks: []string{"myServiceSubnet"}},
+						Pods:          clusterv1.NetworkRanges{CIDRBlocks: []string{"myPodSubnet"}},
 						ServiceDomain: "myDNSDomain",
 					},
 					ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "myControlPlaneEndpoint", Port: 6443},

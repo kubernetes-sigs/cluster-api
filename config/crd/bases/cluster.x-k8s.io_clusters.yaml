@@ -2224,18 +2224,22 @@ spec:
                   - conditionType
                   type: object
                 maxItems: 32
+                minItems: 1
                 type: array
                 x-kubernetes-list-map-keys:
                 - conditionType
                 x-kubernetes-list-type: map
               clusterNetwork:
                 description: clusterNetwork represents the cluster network configuration.
+                minProperties: 1
                 properties:
                   apiServerPort:
                     description: |-
                       apiServerPort specifies the port the API Server should bind to.
                       Defaults to 6443.
                     format: int32
+                    maximum: 65535
+                    minimum: 1
                     type: integer
                   pods:
                     description: pods is the network ranges from which Pod networks
@@ -2408,6 +2412,9 @@ spec:
                     minProperties: 1
                     properties:
                       machineHealthCheck:
+                        allOf:
+                        - minProperties: 1
+                        - minProperties: 1
                         description: |-
                           machineHealthCheck allows to enable, disable and override
                           the MachineHealthCheck configuration in the ClusterClass for this control plane.
@@ -2524,6 +2531,7 @@ spec:
                               - type
                               type: object
                             maxItems: 100
+                            minItems: 1
                             type: array
                             x-kubernetes-list-type: atomic
                           unhealthyRange:
@@ -2628,6 +2636,7 @@ spec:
                           - conditionType
                           type: object
                         maxItems: 32
+                        minItems: 1
                         type: array
                         x-kubernetes-list-map-keys:
                         - conditionType
@@ -2635,7 +2644,7 @@ spec:
                       replicas:
                         description: |-
                           replicas is the number of control plane nodes.
-                          If the value is nil, the ControlPlane object is created without the number of Replicas
+                          If the value is not set, the ControlPlane object is created without the number of Replicas
                           and it's assumed that the control plane controller does not implement support for this field.
                           When specified against a control plane provider that lacks support for this field, this value will be ignored.
                         format: int32
@@ -2643,6 +2652,7 @@ spec:
                       variables:
                         description: variables can be used to customize the ControlPlane
                           through patches.
+                        minProperties: 1
                         properties:
                           overrides:
                             description: overrides can be used to override Cluster
@@ -2672,6 +2682,7 @@ spec:
                               - value
                               type: object
                             maxItems: 1000
+                            minItems: 1
                             type: array
                             x-kubernetes-list-map-keys:
                             - name
@@ -2708,6 +2719,7 @@ spec:
                       - value
                       type: object
                     maxItems: 1000
+                    minItems: 1
                     type: array
                     x-kubernetes-list-map-keys:
                     - name
@@ -2721,6 +2733,7 @@ spec:
                     description: |-
                       workers encapsulates the different constructs that form the worker nodes
                       for the cluster.
+                    minProperties: 1
                     properties:
                       machineDeployments:
                         description: machineDeployments is a list of machine deployments
@@ -2746,6 +2759,9 @@ spec:
                               minLength: 1
                               type: string
                             machineHealthCheck:
+                              allOf:
+                              - minProperties: 1
+                              - minProperties: 1
                               description: |-
                                 machineHealthCheck allows to enable, disable and override
                                 the MachineHealthCheck configuration in the ClusterClass for this MachineDeployment.
@@ -2862,6 +2878,7 @@ spec:
                                     - type
                                     type: object
                                   maxItems: 100
+                                  minItems: 1
                                   type: array
                                   x-kubernetes-list-type: atomic
                                 unhealthyRange:
@@ -2980,6 +2997,7 @@ spec:
                                 - conditionType
                                 type: object
                               maxItems: 32
+                              minItems: 1
                               type: array
                               x-kubernetes-list-map-keys:
                               - conditionType
@@ -2996,11 +3014,13 @@ spec:
                               description: |-
                                 strategy is the deployment strategy to use to replace existing machines with
                                 new ones.
+                              minProperties: 1
                               properties:
                                 remediation:
                                   description: |-
                                     remediation controls the strategy of remediating unhealthy machines
                                     and how remediating operations should occur during the lifecycle of the dependant MachineSets.
+                                  minProperties: 1
                                   properties:
                                     maxInFlight:
                                       anyOf:
@@ -3027,6 +3047,7 @@ spec:
                                   description: |-
                                     rollingUpdate is the rolling update config params. Present only if
                                     MachineDeploymentStrategyType = RollingUpdate.
+                                  minProperties: 1
                                   properties:
                                     deletePolicy:
                                       description: |-
@@ -3088,6 +3109,7 @@ spec:
                             variables:
                               description: variables can be used to customize the
                                 MachineDeployment through patches.
+                              minProperties: 1
                               properties:
                                 overrides:
                                   description: overrides can be used to override Cluster
@@ -3117,6 +3139,7 @@ spec:
                                     - value
                                     type: object
                                   maxItems: 1000
+                                  minItems: 1
                                   type: array
                                   x-kubernetes-list-map-keys:
                                   - name
@@ -3127,6 +3150,7 @@ spec:
                           - name
                           type: object
                         maxItems: 2000
+                        minItems: 1
                         type: array
                         x-kubernetes-list-map-keys:
                         - name
@@ -3156,6 +3180,7 @@ spec:
                                 minLength: 1
                                 type: string
                               maxItems: 100
+                              minItems: 1
                               type: array
                               x-kubernetes-list-type: atomic
                             metadata:
@@ -3235,6 +3260,7 @@ spec:
                             variables:
                               description: variables can be used to customize the
                                 MachinePool through patches.
+                              minProperties: 1
                               properties:
                                 overrides:
                                   description: overrides can be used to override Cluster
@@ -3264,6 +3290,7 @@ spec:
                                     - value
                                     type: object
                                   maxItems: 1000
+                                  minItems: 1
                                   type: array
                                   x-kubernetes-list-map-keys:
                                   - name
@@ -3274,6 +3301,7 @@ spec:
                           - name
                           type: object
                         maxItems: 2000
+                        minItems: 1
                         type: array
                         x-kubernetes-list-map-keys:
                         - name

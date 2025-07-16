@@ -218,9 +218,6 @@ func validateUpdatesToMachineHealthCheckClasses(clusters []clusterv1.Cluster, ol
 		if oldMdClass.MachineHealthCheck != nil && newMdClass.MachineHealthCheck == nil {
 			clustersUsingMHC := []string{}
 			for _, cluster := range clusters {
-				if cluster.Spec.Topology.Workers == nil {
-					continue
-				}
 				for _, mdTopology := range cluster.Spec.Topology.Workers.MachineDeployments {
 					if mdTopology.Class == newMdClass.Class {
 						if mdTopology.MachineHealthCheck != nil &&
@@ -492,10 +489,10 @@ func validateClusterClassMetadata(clusterClass *clusterv1.ClusterClass) field.Er
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, clusterClass.Spec.ControlPlane.Metadata.Validate(field.NewPath("spec", "controlPlane", "metadata"))...)
 	for _, m := range clusterClass.Spec.Workers.MachineDeployments {
-		allErrs = append(allErrs, m.Template.Metadata.Validate(field.NewPath("spec", "workers", "machineDeployments").Key(m.Class).Child("template", "metadata"))...)
+		allErrs = append(allErrs, m.Metadata.Validate(field.NewPath("spec", "workers", "machineDeployments").Key(m.Class).Child("template", "metadata"))...)
 	}
 	for _, m := range clusterClass.Spec.Workers.MachinePools {
-		allErrs = append(allErrs, m.Template.Metadata.Validate(field.NewPath("spec", "workers", "machinePools").Key(m.Class).Child("template", "metadata"))...)
+		allErrs = append(allErrs, m.Metadata.Validate(field.NewPath("spec", "workers", "machinePools").Key(m.Class).Child("template", "metadata"))...)
 	}
 	return allErrs
 }

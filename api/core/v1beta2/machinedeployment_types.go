@@ -32,6 +32,7 @@ const (
 )
 
 // MachineDeploymentStrategyType defines the type of MachineDeployment rollout strategies.
+// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
 type MachineDeploymentStrategyType string
 
 const (
@@ -283,7 +284,7 @@ type MachineDeploymentSpec struct {
 	// strategy is the deployment strategy to use to replace existing machines with
 	// new ones.
 	// +optional
-	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
+	Strategy MachineDeploymentStrategy `json:"strategy,omitempty,omitzero"`
 
 	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
 	// Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
@@ -301,30 +302,31 @@ type MachineDeploymentSpec struct {
 
 // MachineDeploymentStrategy describes how to replace existing machines
 // with new ones.
+// +kubebuilder:validation:MinProperties=1
 type MachineDeploymentStrategy struct {
 	// type of deployment. Allowed values are RollingUpdate and OnDelete.
 	// The default is RollingUpdate.
-	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
 	// +optional
 	Type MachineDeploymentStrategyType `json:"type,omitempty"`
 
 	// rollingUpdate is the rolling update config params. Present only if
 	// MachineDeploymentStrategyType = RollingUpdate.
 	// +optional
-	RollingUpdate *MachineRollingUpdateDeployment `json:"rollingUpdate,omitempty"`
+	RollingUpdate MachineDeploymentStrategyRollingUpdate `json:"rollingUpdate,omitempty,omitzero"`
 
 	// remediation controls the strategy of remediating unhealthy machines
 	// and how remediating operations should occur during the lifecycle of the dependant MachineSets.
 	// +optional
-	Remediation *RemediationStrategy `json:"remediation,omitempty"`
+	Remediation RemediationStrategy `json:"remediation,omitempty,omitzero"`
 }
 
 // ANCHOR_END: MachineDeploymentStrategy
 
-// ANCHOR: MachineRollingUpdateDeployment
+// ANCHOR: MachineDeploymentStrategyRollingUpdate
 
-// MachineRollingUpdateDeployment is used to control the desired behavior of rolling update.
-type MachineRollingUpdateDeployment struct {
+// MachineDeploymentStrategyRollingUpdate is used to control the desired behavior of rolling update.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentStrategyRollingUpdate struct {
 	// maxUnavailable is the maximum number of machines that can be unavailable during the update.
 	// Value can be an absolute number (ex: 5) or a percentage of desired
 	// machines (ex: 10%).
@@ -363,11 +365,12 @@ type MachineRollingUpdateDeployment struct {
 	DeletePolicy MachineSetDeletePolicy `json:"deletePolicy,omitempty"`
 }
 
-// ANCHOR_END: MachineRollingUpdateDeployment
+// ANCHOR_END: MachineDeploymentStrategyRollingUpdate
 
 // ANCHOR: RemediationStrategy
 
 // RemediationStrategy allows to define how the MachineSet can control scaling operations.
+// +kubebuilder:validation:MinProperties=1
 type RemediationStrategy struct {
 	// maxInFlight determines how many in flight remediations should happen at the same time.
 	//

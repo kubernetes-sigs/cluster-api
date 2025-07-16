@@ -100,21 +100,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*ClusterNetwork)(nil), (*v1beta2.ClusterNetwork)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_ClusterNetwork_To_v1beta2_ClusterNetwork(a.(*ClusterNetwork), b.(*v1beta2.ClusterNetwork), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.ClusterNetwork)(nil), (*ClusterNetwork)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ClusterNetwork_To_v1alpha4_ClusterNetwork(a.(*v1beta2.ClusterNetwork), b.(*ClusterNetwork), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ClusterSpec)(nil), (*v1beta2.ClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_ClusterSpec_To_v1beta2_ClusterSpec(a.(*ClusterSpec), b.(*v1beta2.ClusterSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Condition)(nil), (*v1beta2.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_Condition_To_v1beta2_Condition(a.(*Condition), b.(*v1beta2.Condition), scope)
 	}); err != nil {
@@ -160,21 +145,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*MachineDeploymentClass)(nil), (*v1beta2.MachineDeploymentClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(a.(*MachineDeploymentClass), b.(*v1beta2.MachineDeploymentClass), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*MachineDeploymentClassTemplate)(nil), (*v1beta2.MachineDeploymentClassTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_MachineDeploymentClassTemplate_To_v1beta2_MachineDeploymentClassTemplate(a.(*MachineDeploymentClassTemplate), b.(*v1beta2.MachineDeploymentClassTemplate), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachineDeploymentClassTemplate)(nil), (*MachineDeploymentClassTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachineDeploymentClassTemplate_To_v1alpha4_MachineDeploymentClassTemplate(a.(*v1beta2.MachineDeploymentClassTemplate), b.(*MachineDeploymentClassTemplate), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*MachineDeploymentList)(nil), (*v1beta2.MachineDeploymentList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_MachineDeploymentList_To_v1beta2_MachineDeploymentList(a.(*MachineDeploymentList), b.(*v1beta2.MachineDeploymentList), scope)
 	}); err != nil {
@@ -182,11 +152,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.MachineDeploymentList)(nil), (*MachineDeploymentList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineDeploymentList_To_v1alpha4_MachineDeploymentList(a.(*v1beta2.MachineDeploymentList), b.(*MachineDeploymentList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*MachineDeploymentStrategy)(nil), (*v1beta2.MachineDeploymentStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(a.(*MachineDeploymentStrategy), b.(*v1beta2.MachineDeploymentStrategy), scope)
 	}); err != nil {
 		return err
 	}
@@ -320,6 +285,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*ClusterNetwork)(nil), (*v1beta2.ClusterNetwork)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_ClusterNetwork_To_v1beta2_ClusterNetwork(a.(*ClusterNetwork), b.(*v1beta2.ClusterNetwork), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*ClusterSpec)(nil), (*v1beta2.ClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_ClusterSpec_To_v1beta2_ClusterSpec(a.(*ClusterSpec), b.(*v1beta2.ClusterSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*ClusterStatus)(nil), (*v1beta2.ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_ClusterStatus_To_v1beta2_ClusterStatus(a.(*ClusterStatus), b.(*v1beta2.ClusterStatus), scope)
 	}); err != nil {
@@ -355,6 +330,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*MachineDeploymentClass)(nil), (*v1beta2.MachineDeploymentClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(a.(*MachineDeploymentClass), b.(*v1beta2.MachineDeploymentClass), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*MachineDeploymentSpec)(nil), (*v1beta2.MachineDeploymentSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(a.(*MachineDeploymentSpec), b.(*v1beta2.MachineDeploymentSpec), scope)
 	}); err != nil {
@@ -362,6 +342,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*MachineDeploymentStatus)(nil), (*v1beta2.MachineDeploymentStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_MachineDeploymentStatus_To_v1beta2_MachineDeploymentStatus(a.(*MachineDeploymentStatus), b.(*v1beta2.MachineDeploymentStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*MachineDeploymentStrategy)(nil), (*v1beta2.MachineDeploymentStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(a.(*MachineDeploymentStrategy), b.(*v1beta2.MachineDeploymentStrategy), scope)
 	}); err != nil {
 		return err
 	}
@@ -380,8 +365,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*MachineRollingUpdateDeployment)(nil), (*v1beta2.MachineRollingUpdateDeployment)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1beta2_MachineRollingUpdateDeployment(a.(*MachineRollingUpdateDeployment), b.(*v1beta2.MachineRollingUpdateDeployment), scope)
+	if err := s.AddConversionFunc((*MachineRollingUpdateDeployment)(nil), (*v1beta2.MachineDeploymentStrategyRollingUpdate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1beta2_MachineDeploymentStrategyRollingUpdate(a.(*MachineRollingUpdateDeployment), b.(*v1beta2.MachineDeploymentStrategyRollingUpdate), scope)
 	}); err != nil {
 		return err
 	}
@@ -417,6 +402,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.ClusterClass)(nil), (*ClusterClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ClusterClass_To_v1alpha4_ClusterClass(a.(*v1beta2.ClusterClass), b.(*ClusterClass), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.ClusterNetwork)(nil), (*ClusterNetwork)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ClusterNetwork_To_v1alpha4_ClusterNetwork(a.(*v1beta2.ClusterNetwork), b.(*ClusterNetwork), scope)
 	}); err != nil {
 		return err
 	}
@@ -475,6 +465,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentStrategyRollingUpdate)(nil), (*MachineRollingUpdateDeployment)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachineDeploymentStrategyRollingUpdate_To_v1alpha4_MachineRollingUpdateDeployment(a.(*v1beta2.MachineDeploymentStrategyRollingUpdate), b.(*MachineRollingUpdateDeployment), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentStrategy)(nil), (*MachineDeploymentStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(a.(*v1beta2.MachineDeploymentStrategy), b.(*MachineDeploymentStrategy), scope)
 	}); err != nil {
@@ -497,11 +492,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.MachinePoolStatus)(nil), (*MachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachinePoolStatus_To_v1alpha4_MachinePoolStatus(a.(*v1beta2.MachinePoolStatus), b.(*MachinePoolStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*v1beta2.MachineRollingUpdateDeployment)(nil), (*MachineRollingUpdateDeployment)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachineRollingUpdateDeployment_To_v1alpha4_MachineRollingUpdateDeployment(a.(*v1beta2.MachineRollingUpdateDeployment), b.(*MachineRollingUpdateDeployment), scope)
 	}); err != nil {
 		return err
 	}
@@ -776,36 +766,30 @@ func Convert_v1beta2_ClusterList_To_v1alpha4_ClusterList(in *v1beta2.ClusterList
 }
 
 func autoConvert_v1alpha4_ClusterNetwork_To_v1beta2_ClusterNetwork(in *ClusterNetwork, out *v1beta2.ClusterNetwork, s conversion.Scope) error {
-	out.APIServerPort = (*int32)(unsafe.Pointer(in.APIServerPort))
-	out.Services = (*v1beta2.NetworkRanges)(unsafe.Pointer(in.Services))
-	out.Pods = (*v1beta2.NetworkRanges)(unsafe.Pointer(in.Pods))
+	if err := v1.Convert_Pointer_int32_To_int32(&in.APIServerPort, &out.APIServerPort, s); err != nil {
+		return err
+	}
+	// WARNING: in.Services requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.NetworkRanges vs sigs.k8s.io/cluster-api/api/core/v1beta2.NetworkRanges)
+	// WARNING: in.Pods requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.NetworkRanges vs sigs.k8s.io/cluster-api/api/core/v1beta2.NetworkRanges)
 	out.ServiceDomain = in.ServiceDomain
 	return nil
-}
-
-// Convert_v1alpha4_ClusterNetwork_To_v1beta2_ClusterNetwork is an autogenerated conversion function.
-func Convert_v1alpha4_ClusterNetwork_To_v1beta2_ClusterNetwork(in *ClusterNetwork, out *v1beta2.ClusterNetwork, s conversion.Scope) error {
-	return autoConvert_v1alpha4_ClusterNetwork_To_v1beta2_ClusterNetwork(in, out, s)
 }
 
 func autoConvert_v1beta2_ClusterNetwork_To_v1alpha4_ClusterNetwork(in *v1beta2.ClusterNetwork, out *ClusterNetwork, s conversion.Scope) error {
-	out.APIServerPort = (*int32)(unsafe.Pointer(in.APIServerPort))
-	out.Services = (*NetworkRanges)(unsafe.Pointer(in.Services))
-	out.Pods = (*NetworkRanges)(unsafe.Pointer(in.Pods))
+	if err := v1.Convert_int32_To_Pointer_int32(&in.APIServerPort, &out.APIServerPort, s); err != nil {
+		return err
+	}
+	// WARNING: in.Services requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.NetworkRanges vs *sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.NetworkRanges)
+	// WARNING: in.Pods requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.NetworkRanges vs *sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.NetworkRanges)
 	out.ServiceDomain = in.ServiceDomain
 	return nil
-}
-
-// Convert_v1beta2_ClusterNetwork_To_v1alpha4_ClusterNetwork is an autogenerated conversion function.
-func Convert_v1beta2_ClusterNetwork_To_v1alpha4_ClusterNetwork(in *v1beta2.ClusterNetwork, out *ClusterNetwork, s conversion.Scope) error {
-	return autoConvert_v1beta2_ClusterNetwork_To_v1alpha4_ClusterNetwork(in, out, s)
 }
 
 func autoConvert_v1alpha4_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, out *v1beta2.ClusterSpec, s conversion.Scope) error {
 	if err := v1.Convert_bool_To_Pointer_bool(&in.Paused, &out.Paused, s); err != nil {
 		return err
 	}
-	out.ClusterNetwork = (*v1beta2.ClusterNetwork)(unsafe.Pointer(in.ClusterNetwork))
+	// WARNING: in.ClusterNetwork requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.ClusterNetwork vs sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterNetwork)
 	if err := Convert_v1alpha4_APIEndpoint_To_v1beta2_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
@@ -839,16 +823,11 @@ func autoConvert_v1alpha4_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, ou
 	return nil
 }
 
-// Convert_v1alpha4_ClusterSpec_To_v1beta2_ClusterSpec is an autogenerated conversion function.
-func Convert_v1alpha4_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, out *v1beta2.ClusterSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha4_ClusterSpec_To_v1beta2_ClusterSpec(in, out, s)
-}
-
 func autoConvert_v1beta2_ClusterSpec_To_v1alpha4_ClusterSpec(in *v1beta2.ClusterSpec, out *ClusterSpec, s conversion.Scope) error {
 	if err := v1.Convert_Pointer_bool_To_bool(&in.Paused, &out.Paused, s); err != nil {
 		return err
 	}
-	out.ClusterNetwork = (*ClusterNetwork)(unsafe.Pointer(in.ClusterNetwork))
+	// WARNING: in.ClusterNetwork requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterNetwork vs *sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.ClusterNetwork)
 	if err := Convert_v1beta2_APIEndpoint_To_v1alpha4_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
@@ -1112,22 +1091,15 @@ func Convert_v1beta2_MachineDeployment_To_v1alpha4_MachineDeployment(in *v1beta2
 
 func autoConvert_v1alpha4_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in *MachineDeploymentClass, out *v1beta2.MachineDeploymentClass, s conversion.Scope) error {
 	out.Class = in.Class
-	if err := Convert_v1alpha4_MachineDeploymentClassTemplate_To_v1beta2_MachineDeploymentClassTemplate(&in.Template, &out.Template, s); err != nil {
-		return err
-	}
+	// WARNING: in.Template requires manual conversion: does not exist in peer-type
 	return nil
 }
 
-// Convert_v1alpha4_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass is an autogenerated conversion function.
-func Convert_v1alpha4_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in *MachineDeploymentClass, out *v1beta2.MachineDeploymentClass, s conversion.Scope) error {
-	return autoConvert_v1alpha4_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in, out, s)
-}
-
 func autoConvert_v1beta2_MachineDeploymentClass_To_v1alpha4_MachineDeploymentClass(in *v1beta2.MachineDeploymentClass, out *MachineDeploymentClass, s conversion.Scope) error {
+	// WARNING: in.Metadata requires manual conversion: does not exist in peer-type
 	out.Class = in.Class
-	if err := Convert_v1beta2_MachineDeploymentClassTemplate_To_v1alpha4_MachineDeploymentClassTemplate(&in.Template, &out.Template, s); err != nil {
-		return err
-	}
+	// WARNING: in.Bootstrap requires manual conversion: does not exist in peer-type
+	// WARNING: in.Infrastructure requires manual conversion: does not exist in peer-type
 	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
@@ -1138,42 +1110,6 @@ func autoConvert_v1beta2_MachineDeploymentClass_To_v1alpha4_MachineDeploymentCla
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.Strategy requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-func autoConvert_v1alpha4_MachineDeploymentClassTemplate_To_v1beta2_MachineDeploymentClassTemplate(in *MachineDeploymentClassTemplate, out *v1beta2.MachineDeploymentClassTemplate, s conversion.Scope) error {
-	if err := Convert_v1alpha4_ObjectMeta_To_v1beta2_ObjectMeta(&in.Metadata, &out.Metadata, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_MachineDeploymentClassBootstrapTemplate(&in.Bootstrap, &out.Bootstrap, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_MachineDeploymentClassInfrastructureTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1alpha4_MachineDeploymentClassTemplate_To_v1beta2_MachineDeploymentClassTemplate is an autogenerated conversion function.
-func Convert_v1alpha4_MachineDeploymentClassTemplate_To_v1beta2_MachineDeploymentClassTemplate(in *MachineDeploymentClassTemplate, out *v1beta2.MachineDeploymentClassTemplate, s conversion.Scope) error {
-	return autoConvert_v1alpha4_MachineDeploymentClassTemplate_To_v1beta2_MachineDeploymentClassTemplate(in, out, s)
-}
-
-func autoConvert_v1beta2_MachineDeploymentClassTemplate_To_v1alpha4_MachineDeploymentClassTemplate(in *v1beta2.MachineDeploymentClassTemplate, out *MachineDeploymentClassTemplate, s conversion.Scope) error {
-	if err := Convert_v1beta2_ObjectMeta_To_v1alpha4_ObjectMeta(&in.Metadata, &out.Metadata, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_MachineDeploymentClassBootstrapTemplate_To_v1alpha4_LocalObjectTemplate(&in.Bootstrap, &out.Bootstrap, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_MachineDeploymentClassInfrastructureTemplate_To_v1alpha4_LocalObjectTemplate(&in.Infrastructure, &out.Infrastructure, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta2_MachineDeploymentClassTemplate_To_v1alpha4_MachineDeploymentClassTemplate is an autogenerated conversion function.
-func Convert_v1beta2_MachineDeploymentClassTemplate_To_v1alpha4_MachineDeploymentClassTemplate(in *v1beta2.MachineDeploymentClassTemplate, out *MachineDeploymentClassTemplate, s conversion.Scope) error {
-	return autoConvert_v1beta2_MachineDeploymentClassTemplate_To_v1alpha4_MachineDeploymentClassTemplate(in, out, s)
 }
 
 func autoConvert_v1alpha4_MachineDeploymentList_To_v1beta2_MachineDeploymentList(in *MachineDeploymentList, out *v1beta2.MachineDeploymentList, s conversion.Scope) error {
@@ -1225,15 +1161,7 @@ func autoConvert_v1alpha4_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec
 	if err := Convert_v1alpha4_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	if in.Strategy != nil {
-		in, out := &in.Strategy, &out.Strategy
-		*out = new(v1beta2.MachineDeploymentStrategy)
-		if err := Convert_v1alpha4_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Strategy = nil
-	}
+	// WARNING: in.Strategy requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.MachineDeploymentStrategy vs sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy)
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.RevisionHistoryLimit requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_bool_To_Pointer_bool(&in.Paused, &out.Paused, s); err != nil {
@@ -1251,15 +1179,7 @@ func autoConvert_v1beta2_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec
 	if err := Convert_v1beta2_MachineTemplateSpec_To_v1alpha4_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	if in.Strategy != nil {
-		in, out := &in.Strategy, &out.Strategy
-		*out = new(MachineDeploymentStrategy)
-		if err := Convert_v1beta2_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Strategy = nil
-	}
+	// WARNING: in.Strategy requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy vs *sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.MachineDeploymentStrategy)
 	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_Pointer_bool_To_bool(&in.Paused, &out.Paused, s); err != nil {
 		return err
@@ -1327,34 +1247,13 @@ func autoConvert_v1beta2_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentSt
 
 func autoConvert_v1alpha4_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in *MachineDeploymentStrategy, out *v1beta2.MachineDeploymentStrategy, s conversion.Scope) error {
 	out.Type = v1beta2.MachineDeploymentStrategyType(in.Type)
-	if in.RollingUpdate != nil {
-		in, out := &in.RollingUpdate, &out.RollingUpdate
-		*out = new(v1beta2.MachineRollingUpdateDeployment)
-		if err := Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1beta2_MachineRollingUpdateDeployment(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.RollingUpdate = nil
-	}
+	// WARNING: in.RollingUpdate requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.MachineRollingUpdateDeployment vs sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate)
 	return nil
-}
-
-// Convert_v1alpha4_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy is an autogenerated conversion function.
-func Convert_v1alpha4_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in *MachineDeploymentStrategy, out *v1beta2.MachineDeploymentStrategy, s conversion.Scope) error {
-	return autoConvert_v1alpha4_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in, out, s)
 }
 
 func autoConvert_v1beta2_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(in *v1beta2.MachineDeploymentStrategy, out *MachineDeploymentStrategy, s conversion.Scope) error {
 	out.Type = MachineDeploymentStrategyType(in.Type)
-	if in.RollingUpdate != nil {
-		in, out := &in.RollingUpdate, &out.RollingUpdate
-		*out = new(MachineRollingUpdateDeployment)
-		if err := Convert_v1beta2_MachineRollingUpdateDeployment_To_v1alpha4_MachineRollingUpdateDeployment(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.RollingUpdate = nil
-	}
+	// WARNING: in.RollingUpdate requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate vs *sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.MachineRollingUpdateDeployment)
 	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -1773,20 +1672,6 @@ func autoConvert_v1beta2_MachinePoolStatus_To_v1alpha4_MachinePoolStatus(in *v1b
 	return nil
 }
 
-func autoConvert_v1alpha4_MachineRollingUpdateDeployment_To_v1beta2_MachineRollingUpdateDeployment(in *MachineRollingUpdateDeployment, out *v1beta2.MachineRollingUpdateDeployment, s conversion.Scope) error {
-	out.MaxUnavailable = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnavailable))
-	out.MaxSurge = (*intstr.IntOrString)(unsafe.Pointer(in.MaxSurge))
-	// WARNING: in.DeletePolicy requires manual conversion: inconvertible types (*string vs sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeletePolicy)
-	return nil
-}
-
-func autoConvert_v1beta2_MachineRollingUpdateDeployment_To_v1alpha4_MachineRollingUpdateDeployment(in *v1beta2.MachineRollingUpdateDeployment, out *MachineRollingUpdateDeployment, s conversion.Scope) error {
-	out.MaxUnavailable = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnavailable))
-	out.MaxSurge = (*intstr.IntOrString)(unsafe.Pointer(in.MaxSurge))
-	// WARNING: in.DeletePolicy requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeletePolicy vs *string)
-	return nil
-}
-
 func autoConvert_v1alpha4_MachineSet_To_v1beta2_MachineSet(in *MachineSet, out *v1beta2.MachineSet, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1alpha4_MachineSetSpec_To_v1beta2_MachineSetSpec(&in.Spec, &out.Spec, s); err != nil {
@@ -2134,15 +2019,7 @@ func autoConvert_v1alpha4_Topology_To_v1beta2_Topology(in *Topology, out *v1beta
 	if err := Convert_v1alpha4_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(&in.ControlPlane, &out.ControlPlane, s); err != nil {
 		return err
 	}
-	if in.Workers != nil {
-		in, out := &in.Workers, &out.Workers
-		*out = new(v1beta2.WorkersTopology)
-		if err := Convert_v1alpha4_WorkersTopology_To_v1beta2_WorkersTopology(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Workers = nil
-	}
+	// WARNING: in.Workers requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.WorkersTopology vs sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersTopology)
 	return nil
 }
 
@@ -2152,15 +2029,7 @@ func autoConvert_v1beta2_Topology_To_v1alpha4_Topology(in *v1beta2.Topology, out
 	if err := Convert_v1beta2_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(&in.ControlPlane, &out.ControlPlane, s); err != nil {
 		return err
 	}
-	if in.Workers != nil {
-		in, out := &in.Workers, &out.Workers
-		*out = new(WorkersTopology)
-		if err := Convert_v1beta2_WorkersTopology_To_v1alpha4_WorkersTopology(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Workers = nil
-	}
+	// WARNING: in.Workers requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersTopology vs *sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.WorkersTopology)
 	// WARNING: in.Variables requires manual conversion: does not exist in peer-type
 	return nil
 }

@@ -277,7 +277,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				Build(),
 			topology: &clusterv1.Topology{
 				ControlPlane: clusterv1.ControlPlaneTopology{},
-				Workers: &clusterv1.WorkersTopology{
+				Workers: clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
 							Class: "default-worker",
@@ -296,7 +296,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					// "location" has not been added to .variables.overrides.
 				},
-				Workers: &clusterv1.WorkersTopology{
+				Workers: clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
 							Class: "default-worker",
@@ -357,7 +357,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				Build(),
 			topology: &clusterv1.Topology{
 				ControlPlane: clusterv1.ControlPlaneTopology{
-					Variables: &clusterv1.ControlPlaneVariables{
+					Variables: clusterv1.ControlPlaneVariables{
 						Overrides: []clusterv1.ClusterVariable{
 							{
 								Name:  "httpProxy",
@@ -366,12 +366,12 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 						},
 					},
 				},
-				Workers: &clusterv1.WorkersTopology{
+				Workers: clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
 							Class: "default-worker",
 							Name:  "md-1",
-							Variables: &clusterv1.MachineDeploymentVariables{
+							Variables: clusterv1.MachineDeploymentVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
 										Name:  "httpProxy",
@@ -385,7 +385,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 						{
 							Class: "default-worker",
 							Name:  "md-1",
-							Variables: &clusterv1.MachinePoolVariables{
+							Variables: clusterv1.MachinePoolVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
 										Name:  "httpProxy",
@@ -405,7 +405,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 			},
 			expect: &clusterv1.Topology{
 				ControlPlane: clusterv1.ControlPlaneTopology{
-					Variables: &clusterv1.ControlPlaneVariables{
+					Variables: clusterv1.ControlPlaneVariables{
 						Overrides: []clusterv1.ClusterVariable{
 							{
 								Name: "httpProxy",
@@ -415,12 +415,12 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 						},
 					},
 				},
-				Workers: &clusterv1.WorkersTopology{
+				Workers: clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
 							Class: "default-worker",
 							Name:  "md-1",
-							Variables: &clusterv1.MachineDeploymentVariables{
+							Variables: clusterv1.MachineDeploymentVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
 										Name: "httpProxy",
@@ -435,7 +435,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 						{
 							Class: "default-worker",
 							Name:  "md-1",
-							Variables: &clusterv1.MachinePoolVariables{
+							Variables: clusterv1.MachinePoolVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
 										Name: "httpProxy",
@@ -1438,11 +1438,11 @@ func TestClusterValidation(t *testing.T) {
 			in: builder.Cluster("fooNamespace", "cluster1").
 				WithControlPlane(
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
-				WithClusterNetwork(&clusterv1.ClusterNetwork{
-					Services: &clusterv1.NetworkRanges{
+				WithClusterNetwork(clusterv1.ClusterNetwork{
+					Services: clusterv1.NetworkRanges{
 						CIDRBlocks: []string{},
 					},
-					Pods: &clusterv1.NetworkRanges{
+					Pods: clusterv1.NetworkRanges{
 						CIDRBlocks: []string{},
 					},
 				}).
@@ -1454,11 +1454,11 @@ func TestClusterValidation(t *testing.T) {
 			in: builder.Cluster("fooNamespace", "cluster1").
 				WithControlPlane(
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
-				WithClusterNetwork(&clusterv1.ClusterNetwork{
-					Services: &clusterv1.NetworkRanges{
+				WithClusterNetwork(clusterv1.ClusterNetwork{
+					Services: clusterv1.NetworkRanges{
 						CIDRBlocks: nil,
 					},
-					Pods: &clusterv1.NetworkRanges{
+					Pods: clusterv1.NetworkRanges{
 						CIDRBlocks: nil,
 					},
 				}).
@@ -1470,11 +1470,11 @@ func TestClusterValidation(t *testing.T) {
 			in: builder.Cluster("fooNamespace", "cluster1").
 				WithControlPlane(
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
-				WithClusterNetwork(&clusterv1.ClusterNetwork{
-					Services: &clusterv1.NetworkRanges{
+				WithClusterNetwork(clusterv1.ClusterNetwork{
+					Services: clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"10.10.10.10/24"},
 					},
-					Pods: &clusterv1.NetworkRanges{
+					Pods: clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"10.10.10.10/24"},
 					},
 				}).
@@ -1486,11 +1486,11 @@ func TestClusterValidation(t *testing.T) {
 			in: builder.Cluster("fooNamespace", "cluster1").
 				WithControlPlane(
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
-				WithClusterNetwork(&clusterv1.ClusterNetwork{
-					Services: &clusterv1.NetworkRanges{
+				WithClusterNetwork(clusterv1.ClusterNetwork{
+					Services: clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64"},
 					},
-					Pods: &clusterv1.NetworkRanges{
+					Pods: clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64"},
 					},
 				}).
@@ -1502,11 +1502,11 @@ func TestClusterValidation(t *testing.T) {
 			in: builder.Cluster("fooNamespace", "cluster1").
 				WithControlPlane(
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
-				WithClusterNetwork(&clusterv1.ClusterNetwork{
-					Services: &clusterv1.NetworkRanges{
+				WithClusterNetwork(clusterv1.ClusterNetwork{
+					Services: clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64", "10.10.10.10/24"},
 					},
-					Pods: &clusterv1.NetworkRanges{
+					Pods: clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64", "10.10.10.10/24"},
 					},
 				}).
@@ -1518,8 +1518,8 @@ func TestClusterValidation(t *testing.T) {
 			in: builder.Cluster("fooNamespace", "cluster1").
 				WithControlPlane(
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
-				WithClusterNetwork(&clusterv1.ClusterNetwork{
-					Services: &clusterv1.NetworkRanges{
+				WithClusterNetwork(clusterv1.ClusterNetwork{
+					Services: clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"10.10.10.10/24", "11.11.11.11/24"},
 					},
 				}).
@@ -1531,8 +1531,8 @@ func TestClusterValidation(t *testing.T) {
 			in: builder.Cluster("fooNamespace", "cluster1").
 				WithControlPlane(
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
-				WithClusterNetwork(&clusterv1.ClusterNetwork{
-					Services: &clusterv1.NetworkRanges{
+				WithClusterNetwork(clusterv1.ClusterNetwork{
+					Services: clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"2002::1234:abcd:ffff:c0a8:101/64", "2004::1234:abcd:ffff:c0a8:101/64"},
 					},
 				}).
@@ -1544,8 +1544,8 @@ func TestClusterValidation(t *testing.T) {
 			in: builder.Cluster("fooNamespace", "cluster1").
 				WithControlPlane(
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
-				WithClusterNetwork(&clusterv1.ClusterNetwork{
-					Pods: &clusterv1.NetworkRanges{
+				WithClusterNetwork(clusterv1.ClusterNetwork{
+					Pods: clusterv1.NetworkRanges{
 						CIDRBlocks: []string{"10.10.10.10/24", "11.11.11.11/24", "12.12.12.12/24"},
 					},
 				}).
@@ -1558,8 +1558,8 @@ func TestClusterValidation(t *testing.T) {
 			in: builder.Cluster("fooNamespace", "cluster1").
 				WithControlPlane(
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
-				WithClusterNetwork(&clusterv1.ClusterNetwork{
-					Services: &clusterv1.NetworkRanges{
+				WithClusterNetwork(clusterv1.ClusterNetwork{
+					Services: clusterv1.NetworkRanges{
 						// Invalid ranges: missing network suffix
 						CIDRBlocks: []string{"10.10.10.10", "11.11.11.11"},
 					},
@@ -1573,8 +1573,8 @@ func TestClusterValidation(t *testing.T) {
 			in: builder.Cluster("fooNamespace", "cluster1").
 				WithControlPlane(
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
-				WithClusterNetwork(&clusterv1.ClusterNetwork{
-					Pods: &clusterv1.NetworkRanges{
+				WithClusterNetwork(clusterv1.ClusterNetwork{
+					Pods: clusterv1.NetworkRanges{
 						// Invalid ranges: missing network suffix
 						CIDRBlocks: []string{"10.10.10.10", "11.11.11.11"},
 					},

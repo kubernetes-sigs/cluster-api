@@ -224,8 +224,8 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 				}
 
 				if matches {
-					if selectorMatchTemplate(selector, md.Template.Infrastructure.TemplateRef) ||
-						selectorMatchTemplate(selector, md.Template.Bootstrap.TemplateRef) {
+					if selectorMatchTemplate(selector, md.Infrastructure.TemplateRef) ||
+						selectorMatchTemplate(selector, md.Bootstrap.TemplateRef) {
 						match = true
 						break
 					}
@@ -260,8 +260,8 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 				}
 
 				if matches {
-					if selectorMatchTemplate(selector, mp.Template.Infrastructure.TemplateRef) ||
-						selectorMatchTemplate(selector, mp.Template.Bootstrap.TemplateRef) {
+					if selectorMatchTemplate(selector, mp.Infrastructure.TemplateRef) ||
+						selectorMatchTemplate(selector, mp.Bootstrap.TemplateRef) {
 						match = true
 						break
 					}

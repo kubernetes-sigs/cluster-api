@@ -295,7 +295,7 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	actualInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate("", "").Build()
 	actualInfrastructureMachineTemplateKey := client.ObjectKey{
 		Namespace: ns.Name,
-		Name:      mdClass.Template.Infrastructure.TemplateRef.Name,
+		Name:      mdClass.Infrastructure.TemplateRef.Name,
 	}
 	if err := env.Get(ctx, actualInfrastructureMachineTemplateKey, actualInfrastructureMachineTemplate); err != nil {
 		return err
@@ -305,7 +305,7 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	}
 
 	// Assert the MachineDeploymentClass has the expected APIVersion and Kind to the infrastructure machine template
-	if err := referenceExistsWithCorrectKindAndAPIVersion(mdClass.Template.Infrastructure.TemplateRef,
+	if err := referenceExistsWithCorrectKindAndAPIVersion(mdClass.Infrastructure.TemplateRef,
 		builder.GenericInfrastructureMachineTemplateKind,
 		builder.InfrastructureGroupVersion); err != nil {
 		return err
@@ -315,7 +315,7 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	actualBootstrapTemplate := builder.BootstrapTemplate("", "").Build()
 	actualBootstrapTemplateKey := client.ObjectKey{
 		Namespace: ns.Name,
-		Name:      mdClass.Template.Bootstrap.TemplateRef.Name,
+		Name:      mdClass.Bootstrap.TemplateRef.Name,
 	}
 	if err := env.Get(ctx, actualBootstrapTemplateKey, actualBootstrapTemplate); err != nil {
 		return err
@@ -325,7 +325,7 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	}
 
 	// Assert the MachineDeploymentClass has the expected APIVersion and Kind to the bootstrap template
-	return referenceExistsWithCorrectKindAndAPIVersion(mdClass.Template.Bootstrap.TemplateRef,
+	return referenceExistsWithCorrectKindAndAPIVersion(mdClass.Bootstrap.TemplateRef,
 		builder.GenericBootstrapConfigTemplateKind,
 		builder.BootstrapGroupVersion)
 }
@@ -344,7 +344,7 @@ func assertMachinePoolClass(ctx context.Context, actualClusterClass *clusterv1.C
 	actualInfrastructureMachinePoolTemplate := builder.InfrastructureMachinePoolTemplate("", "").Build()
 	actualInfrastructureMachinePoolTemplateKey := client.ObjectKey{
 		Namespace: ns.Name,
-		Name:      mpClass.Template.Infrastructure.TemplateRef.Name,
+		Name:      mpClass.Infrastructure.TemplateRef.Name,
 	}
 	if err := env.Get(ctx, actualInfrastructureMachinePoolTemplateKey, actualInfrastructureMachinePoolTemplate); err != nil {
 		return err
@@ -354,7 +354,7 @@ func assertMachinePoolClass(ctx context.Context, actualClusterClass *clusterv1.C
 	}
 
 	// Assert the MachinePoolClass has the expected APIVersion and Kind to the infrastructure machinepool template
-	if err := referenceExistsWithCorrectKindAndAPIVersion(mpClass.Template.Infrastructure.TemplateRef,
+	if err := referenceExistsWithCorrectKindAndAPIVersion(mpClass.Infrastructure.TemplateRef,
 		builder.GenericInfrastructureMachinePoolTemplateKind,
 		builder.InfrastructureGroupVersion); err != nil {
 		return err
@@ -364,7 +364,7 @@ func assertMachinePoolClass(ctx context.Context, actualClusterClass *clusterv1.C
 	actualBootstrapTemplate := builder.BootstrapTemplate("", "").Build()
 	actualBootstrapTemplateKey := client.ObjectKey{
 		Namespace: ns.Name,
-		Name:      mpClass.Template.Bootstrap.TemplateRef.Name,
+		Name:      mpClass.Bootstrap.TemplateRef.Name,
 	}
 	if err := env.Get(ctx, actualBootstrapTemplateKey, actualBootstrapTemplate); err != nil {
 		return err
@@ -374,7 +374,7 @@ func assertMachinePoolClass(ctx context.Context, actualClusterClass *clusterv1.C
 	}
 
 	// Assert the MachinePoolClass has the expected APIVersion and Kind to the bootstrap template
-	return referenceExistsWithCorrectKindAndAPIVersion(mpClass.Template.Bootstrap.TemplateRef,
+	return referenceExistsWithCorrectKindAndAPIVersion(mpClass.Bootstrap.TemplateRef,
 		builder.GenericBootstrapConfigTemplateKind,
 		builder.BootstrapGroupVersion)
 }

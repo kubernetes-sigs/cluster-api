@@ -498,6 +498,7 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []clusterv1.MachineReadinessGate `json:"readinessGates,omitempty"`
 

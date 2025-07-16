@@ -208,7 +208,7 @@ func MachineDeploymentClassesAreCompatible(current, desired *clusterv1.ClusterCl
 				// class.Template.Bootstrap is ensured syntactically correct by LocalObjectTemplateIsValid.
 
 				// Validates class.Template.Infrastructure template changes in a compatible way
-				allErrs = append(allErrs, ClusterClassTemplateAreCompatible(oldClass.Template.Infrastructure.TemplateRef, class.Template.Infrastructure.TemplateRef,
+				allErrs = append(allErrs, ClusterClassTemplateAreCompatible(oldClass.Infrastructure.TemplateRef, class.Infrastructure.TemplateRef,
 					field.NewPath("spec", "workers", "machineDeployments").Index(i))...)
 			}
 		}
@@ -249,7 +249,7 @@ func MachinePoolClassesAreCompatible(current, desired *clusterv1.ClusterClass) f
 				// class.Template.Bootstrap is ensured syntactically correct by LocalObjectTemplateIsValid.
 
 				// Validates class.Template.Infrastructure template changes in a compatible way
-				allErrs = append(allErrs, ClusterClassTemplateAreCompatible(oldClass.Template.Infrastructure.TemplateRef, class.Template.Infrastructure.TemplateRef,
+				allErrs = append(allErrs, ClusterClassTemplateAreCompatible(oldClass.Infrastructure.TemplateRef, class.Infrastructure.TemplateRef,
 					field.NewPath("spec", "workers", "machinePools").Index(i))...)
 			}
 		}
@@ -280,9 +280,6 @@ func MachinePoolClassesAreUnique(clusterClass *clusterv1.ClusterClass) field.Err
 // and unique, and each class in use is defined in ClusterClass.spec.Workers.MachineDeployments.
 func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
-	if desired.Spec.Topology.Workers == nil {
-		return nil
-	}
 	if len(desired.Spec.Topology.Workers.MachineDeployments) == 0 {
 		return nil
 	}
@@ -344,9 +341,6 @@ func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *cluste
 // and unique, and each class in use is defined in ClusterClass.spec.Workers.MachinePools.
 func MachinePoolTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
-	if desired.Spec.Topology.Workers == nil {
-		return nil
-	}
 	if len(desired.Spec.Topology.Workers.MachinePools) == 0 {
 		return nil
 	}
@@ -416,14 +410,14 @@ func ClusterClassTemplatesAreValid(clusterClass *clusterv1.ClusterClass) field.E
 
 	for i := range clusterClass.Spec.Workers.MachineDeployments {
 		mdc := clusterClass.Spec.Workers.MachineDeployments[i]
-		allErrs = append(allErrs, ClusterClassTemplateIsValid(mdc.Template.Bootstrap.TemplateRef, field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "bootstrap"))...)
-		allErrs = append(allErrs, ClusterClassTemplateIsValid(mdc.Template.Infrastructure.TemplateRef, field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "infrastructure"))...)
+		allErrs = append(allErrs, ClusterClassTemplateIsValid(mdc.Bootstrap.TemplateRef, field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "bootstrap"))...)
+		allErrs = append(allErrs, ClusterClassTemplateIsValid(mdc.Infrastructure.TemplateRef, field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "infrastructure"))...)
 	}
 
 	for i := range clusterClass.Spec.Workers.MachinePools {
 		mpc := clusterClass.Spec.Workers.MachinePools[i]
-		allErrs = append(allErrs, ClusterClassTemplateIsValid(mpc.Template.Bootstrap.TemplateRef, field.NewPath("spec", "workers", "machinePools").Index(i).Child("template", "bootstrap"))...)
-		allErrs = append(allErrs, ClusterClassTemplateIsValid(mpc.Template.Infrastructure.TemplateRef, field.NewPath("spec", "workers", "machinePools").Index(i).Child("template", "infrastructure"))...)
+		allErrs = append(allErrs, ClusterClassTemplateIsValid(mpc.Bootstrap.TemplateRef, field.NewPath("spec", "workers", "machinePools").Index(i).Child("template", "bootstrap"))...)
+		allErrs = append(allErrs, ClusterClassTemplateIsValid(mpc.Infrastructure.TemplateRef, field.NewPath("spec", "workers", "machinePools").Index(i).Child("template", "infrastructure"))...)
 	}
 
 	return allErrs

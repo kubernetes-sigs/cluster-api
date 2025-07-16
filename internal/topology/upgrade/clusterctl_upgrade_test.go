@@ -348,20 +348,18 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 
 	machineDeploymentClass1 := clusterv1.MachineDeploymentClass{
 		Class: "md-class1",
-		Template: clusterv1.MachineDeploymentClassTemplate{
-			Infrastructure: clusterv1.MachineDeploymentClassInfrastructureTemplate{
-				TemplateRef: clusterv1.ClusterClassTemplateReference{
-					Kind:       "TestResourceTemplate",
-					Name:       infrastructureMachineTemplate1.Name,
-					APIVersion: testt1v1beta1.GroupVersion.String(),
-				},
+		Infrastructure: clusterv1.MachineDeploymentClassInfrastructureTemplate{
+			TemplateRef: clusterv1.ClusterClassTemplateReference{
+				Kind:       "TestResourceTemplate",
+				Name:       infrastructureMachineTemplate1.Name,
+				APIVersion: testt1v1beta1.GroupVersion.String(),
 			},
-			Bootstrap: clusterv1.MachineDeploymentClassBootstrapTemplate{
-				TemplateRef: clusterv1.ClusterClassTemplateReference{
-					Kind:       "TestResourceTemplate",
-					Name:       bootstrapTemplate.Name,
-					APIVersion: testt1v1beta1.GroupVersion.String(),
-				},
+		},
+		Bootstrap: clusterv1.MachineDeploymentClassBootstrapTemplate{
+			TemplateRef: clusterv1.ClusterClassTemplateReference{
+				Kind:       "TestResourceTemplate",
+				Name:       bootstrapTemplate.Name,
+				APIVersion: testt1v1beta1.GroupVersion.String(),
 			},
 		},
 	}
@@ -543,20 +541,18 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 
 	machineDeploymentClass1 := clusterv1.MachineDeploymentClass{
 		Class: "md-class1",
-		Template: clusterv1.MachineDeploymentClassTemplate{
-			Infrastructure: clusterv1.MachineDeploymentClassInfrastructureTemplate{
-				TemplateRef: clusterv1.ClusterClassTemplateReference{
-					Kind:       "TestResourceTemplate",
-					Name:       infrastructureMachineTemplate1.Name,
-					APIVersion: testt2v1beta2.GroupVersion.String(),
-				},
+		Infrastructure: clusterv1.MachineDeploymentClassInfrastructureTemplate{
+			TemplateRef: clusterv1.ClusterClassTemplateReference{
+				Kind:       "TestResourceTemplate",
+				Name:       infrastructureMachineTemplate1.Name,
+				APIVersion: testt2v1beta2.GroupVersion.String(),
 			},
-			Bootstrap: clusterv1.MachineDeploymentClassBootstrapTemplate{
-				TemplateRef: clusterv1.ClusterClassTemplateReference{
-					Kind:       "TestResourceTemplate",
-					Name:       bootstrapTemplate.Name,
-					APIVersion: testt2v1beta2.GroupVersion.String(),
-				},
+		},
+		Bootstrap: clusterv1.MachineDeploymentClassBootstrapTemplate{
+			TemplateRef: clusterv1.ClusterClassTemplateReference{
+				Kind:       "TestResourceTemplate",
+				Name:       bootstrapTemplate.Name,
+				APIVersion: testt2v1beta2.GroupVersion.String(),
 			},
 		},
 	}

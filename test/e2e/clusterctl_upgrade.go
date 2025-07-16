@@ -973,13 +973,11 @@ func calculateExpectedMachineDeploymentMachineCount(ctx context.Context, c clien
 		Expect(apiruntime.DefaultUnstructuredConverter.FromUnstructured(unstructuredCluster.Object, cluster)).To(Succeed())
 
 		if cluster.Spec.Topology != nil {
-			if cluster.Spec.Topology.Workers != nil {
-				for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
-					if md.Replicas == nil {
-						continue
-					}
-					expectedMachineDeploymentWorkerCount += int64(*md.Replicas)
+			for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+				if md.Replicas == nil {
+					continue
 				}
+				expectedMachineDeploymentWorkerCount += int64(*md.Replicas)
 			}
 			return expectedMachineDeploymentWorkerCount
 		}
@@ -1062,13 +1060,11 @@ func calculateExpectedMachinePoolNodeCount(ctx context.Context, c client.Client,
 		Expect(apiruntime.DefaultUnstructuredConverter.FromUnstructured(unstructuredCluster.Object, cluster)).To(Succeed())
 
 		if cluster.Spec.Topology != nil {
-			if cluster.Spec.Topology.Workers != nil {
-				for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
-					if mp.Replicas == nil {
-						continue
-					}
-					expectedMachinePoolWorkerCount += int64(*mp.Replicas)
+			for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
+				if mp.Replicas == nil {
+					continue
 				}
+				expectedMachinePoolWorkerCount += int64(*mp.Replicas)
 			}
 			return expectedMachinePoolWorkerCount
 		}

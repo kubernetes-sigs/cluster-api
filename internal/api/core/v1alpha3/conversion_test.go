@@ -261,6 +261,17 @@ func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) 
 
 	// Drop RevisionHistoryLimit as we intentionally don't preserve it.
 	in.RevisionHistoryLimit = nil
+
+	if in.Strategy != nil {
+		if in.Strategy.RollingUpdate != nil {
+			if reflect.DeepEqual(in.Strategy.RollingUpdate, &MachineRollingUpdateDeployment{}) {
+				in.Strategy.RollingUpdate = nil
+			}
+		}
+		if reflect.DeepEqual(in.Strategy, &MachineDeploymentStrategy{}) {
+			in.Strategy = nil
+		}
+	}
 }
 
 func spokeObjectMeta(in *ObjectMeta, c randfill.Continue) {
@@ -385,6 +396,18 @@ func spokeCluster(in *Cluster, c randfill.Continue) {
 		in.Spec.InfrastructureRef.UID = ""
 		in.Spec.InfrastructureRef.ResourceVersion = ""
 		in.Spec.InfrastructureRef.FieldPath = ""
+	}
+
+	if in.Spec.ClusterNetwork != nil {
+		if in.Spec.ClusterNetwork.Services != nil && reflect.DeepEqual(in.Spec.ClusterNetwork.Services, &NetworkRanges{}) {
+			in.Spec.ClusterNetwork.Services = nil
+		}
+		if in.Spec.ClusterNetwork.Pods != nil && reflect.DeepEqual(in.Spec.ClusterNetwork.Pods, &NetworkRanges{}) {
+			in.Spec.ClusterNetwork.Pods = nil
+		}
+		if reflect.DeepEqual(in.Spec.ClusterNetwork, &ClusterNetwork{}) {
+			in.Spec.ClusterNetwork = nil
+		}
 	}
 }
 

@@ -466,7 +466,7 @@ type ClusterSpec struct {
 
 	// clusterNetwork represents the cluster network configuration.
 	// +optional
-	ClusterNetwork *ClusterNetwork `json:"clusterNetwork,omitempty"`
+	ClusterNetwork ClusterNetwork `json:"clusterNetwork,omitempty,omitzero"`
 
 	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
@@ -497,11 +497,13 @@ type ClusterSpec struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	AvailabilityGates []ClusterAvailabilityGate `json:"availabilityGates,omitempty"`
 }
 
 // ConditionPolarity defines the polarity for a metav1.Condition.
+// +kubebuilder:validation:Enum=Positive;Negative
 type ConditionPolarity string
 
 const (
@@ -530,7 +532,6 @@ type ClusterAvailabilityGate struct {
 	// When omitted, the default behaviour will be Positive.
 	// A positive polarity means that the condition should report a true status under normal conditions.
 	// A negative polarity means that the condition should report a false status under normal conditions.
-	// +kubebuilder:validation:Enum=Positive;Negative
 	// +optional
 	Polarity ConditionPolarity `json:"polarity,omitempty"`
 }
@@ -554,7 +555,7 @@ type Topology struct {
 	// workers encapsulates the different constructs that form the worker nodes
 	// for the cluster.
 	// +optional
-	Workers *WorkersTopology `json:"workers,omitempty"`
+	Workers WorkersTopology `json:"workers,omitempty,omitzero"`
 
 	// variables can be used to customize the Cluster through
 	// patches. They must comply to the corresponding
@@ -562,6 +563,7 @@ type Topology struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=1000
 	Variables []ClusterVariable `json:"variables,omitempty"`
 }
@@ -601,7 +603,7 @@ type ControlPlaneTopology struct {
 	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// replicas is the number of control plane nodes.
-	// If the value is nil, the ControlPlane object is created without the number of Replicas
+	// If the value is not set, the ControlPlane object is created without the number of Replicas
 	// and it's assumed that the control plane controller does not implement support for this field.
 	// When specified against a control plane provider that lacks support for this field, this value will be ignored.
 	// +optional
@@ -644,20 +646,23 @@ type ControlPlaneTopology struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
 	// variables can be used to customize the ControlPlane through patches.
 	// +optional
-	Variables *ControlPlaneVariables `json:"variables,omitempty"`
+	Variables ControlPlaneVariables `json:"variables,omitempty,omitzero"`
 }
 
 // WorkersTopology represents the different sets of worker nodes in the cluster.
+// +kubebuilder:validation:MinProperties=1
 type WorkersTopology struct {
 	// machineDeployments is a list of machine deployments in the cluster.
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=2000
 	MachineDeployments []MachineDeploymentTopology `json:"machineDeployments,omitempty"`
 
@@ -665,6 +670,7 @@ type WorkersTopology struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=2000
 	MachinePools []MachinePoolTopology `json:"machinePools,omitempty"`
 }
@@ -751,20 +757,22 @@ type MachineDeploymentTopology struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
 	// strategy is the deployment strategy to use to replace existing machines with
 	// new ones.
 	// +optional
-	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
+	Strategy MachineDeploymentStrategy `json:"strategy,omitempty,omitzero"`
 
 	// variables can be used to customize the MachineDeployment through patches.
 	// +optional
-	Variables *MachineDeploymentVariables `json:"variables,omitempty"`
+	Variables MachineDeploymentVariables `json:"variables,omitempty,omitzero"`
 }
 
 // MachineHealthCheckTopology defines a MachineHealthCheck for a group of machines.
+// +kubebuilder:validation:MinProperties=1
 type MachineHealthCheckTopology struct {
 	// enable controls if a MachineHealthCheck should be created for the target machines.
 	//
@@ -812,6 +820,7 @@ type MachinePoolTopology struct {
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -854,7 +863,7 @@ type MachinePoolTopology struct {
 
 	// variables can be used to customize the MachinePool through patches.
 	// +optional
-	Variables *MachinePoolVariables `json:"variables,omitempty"`
+	Variables MachinePoolVariables `json:"variables,omitempty,omitzero"`
 }
 
 // ClusterVariable can be used to customize the Cluster through patches. Each ClusterVariable is associated with a
@@ -878,31 +887,37 @@ type ClusterVariable struct {
 }
 
 // ControlPlaneVariables can be used to provide variables for the ControlPlane.
+// +kubebuilder:validation:MinProperties=1
 type ControlPlaneVariables struct {
 	// overrides can be used to override Cluster level variables.
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=1000
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 
 // MachineDeploymentVariables can be used to provide variables for a specific MachineDeployment.
+// +kubebuilder:validation:MinProperties=1
 type MachineDeploymentVariables struct {
 	// overrides can be used to override Cluster level variables.
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=1000
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 
 // MachinePoolVariables can be used to provide variables for a specific MachinePool.
+// +kubebuilder:validation:MinProperties=1
 type MachinePoolVariables struct {
 	// overrides can be used to override Cluster level variables.
 	// +optional
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=1000
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
@@ -913,19 +928,22 @@ type MachinePoolVariables struct {
 
 // ClusterNetwork specifies the different networking
 // parameters for a cluster.
+// +kubebuilder:validation:MinProperties=1
 type ClusterNetwork struct {
 	// apiServerPort specifies the port the API Server should bind to.
 	// Defaults to 6443.
 	// +optional
-	APIServerPort *int32 `json:"apiServerPort,omitempty"`
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	APIServerPort int32 `json:"apiServerPort,omitempty"`
 
 	// services is the network ranges from which service VIPs are allocated.
 	// +optional
-	Services *NetworkRanges `json:"services,omitempty"`
+	Services NetworkRanges `json:"services,omitempty,omitzero"`
 
 	// pods is the network ranges from which Pod networks are allocated.
 	// +optional
-	Pods *NetworkRanges `json:"pods,omitempty"`
+	Pods NetworkRanges `json:"pods,omitempty,omitzero"`
 
 	// serviceDomain is the domain name for services.
 	// +optional

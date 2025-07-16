@@ -1387,16 +1387,14 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			return ctrl.Result{}, nil
 		}
 
-		if owner.Spec.Strategy != nil && owner.Spec.Strategy.Remediation != nil {
-			if owner.Spec.Strategy.Remediation.MaxInFlight != nil {
-				var err error
-				replicas := int(ptr.Deref(owner.Spec.Replicas, 1))
-				maxInFlight, err = intstr.GetScaledValueFromIntOrPercent(owner.Spec.Strategy.Remediation.MaxInFlight, replicas, true)
-				if err != nil {
-					return ctrl.Result{}, fmt.Errorf("failed to calculate maxInFlight to remediate machines: %v", err)
-				}
-				log = log.WithValues("maxInFlight", maxInFlight, "replicas", replicas)
+		if owner.Spec.Strategy.Remediation.MaxInFlight != nil {
+			var err error
+			replicas := int(ptr.Deref(owner.Spec.Replicas, 1))
+			maxInFlight, err = intstr.GetScaledValueFromIntOrPercent(owner.Spec.Strategy.Remediation.MaxInFlight, replicas, true)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to calculate maxInFlight to remediate machines: %v", err)
 			}
+			log = log.WithValues("maxInFlight", maxInFlight, "replicas", replicas)
 		}
 	}
 

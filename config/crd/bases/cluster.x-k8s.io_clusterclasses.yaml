@@ -2882,6 +2882,7 @@ spec:
                   - conditionType
                   type: object
                 maxItems: 32
+                minItems: 1
                 type: array
                 x-kubernetes-list-map-keys:
                 - conditionType
@@ -2896,6 +2897,7 @@ spec:
                       machineHealthCheck defines a MachineHealthCheck for this ControlPlaneClass.
                       This field is supported if and only if the ControlPlane provider template
                       referenced above is Machine based and supports setting replicas.
+                    minProperties: 1
                     properties:
                       maxUnhealthy:
                         anyOf:
@@ -2997,6 +2999,7 @@ spec:
                           - type
                           type: object
                         maxItems: 100
+                        minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
                       unhealthyRange:
@@ -3168,6 +3171,7 @@ spec:
                       - conditionType
                       type: object
                     maxItems: 32
+                    minItems: 1
                     type: array
                     x-kubernetes-list-map-keys:
                     - conditionType
@@ -3920,6 +3924,47 @@ spec:
                         MachineDeploymentClass serves as a template to define a set of worker nodes of the cluster
                         provisioned using the `ClusterClass`.
                       properties:
+                        bootstrap:
+                          description: |-
+                            bootstrap contains the bootstrap template reference to be used
+                            for the creation of worker Machines.
+                          properties:
+                            templateRef:
+                              description: templateRef is a required reference to
+                                the BootstrapTemplate for a MachineDeployment.
+                              properties:
+                                apiVersion:
+                                  description: |-
+                                    apiVersion of the template.
+                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                  maxLength: 317
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                                kind:
+                                  description: |-
+                                    kind of the template.
+                                    kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                  type: string
+                                name:
+                                  description: |-
+                                    name of the template.
+                                    name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                              required:
+                              - apiVersion
+                              - kind
+                              - name
+                              type: object
+                          required:
+                          - templateRef
+                          type: object
                         class:
                           description: |-
                             class denotes a type of worker node present in the cluster,
@@ -3936,9 +3981,51 @@ spec:
                           maxLength: 256
                           minLength: 1
                           type: string
+                        infrastructure:
+                          description: |-
+                            infrastructure contains the infrastructure template reference to be used
+                            for the creation of worker Machines.
+                          properties:
+                            templateRef:
+                              description: templateRef is a required reference to
+                                the InfrastructureTemplate for a MachineDeployment.
+                              properties:
+                                apiVersion:
+                                  description: |-
+                                    apiVersion of the template.
+                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                  maxLength: 317
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                                kind:
+                                  description: |-
+                                    kind of the template.
+                                    kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                  type: string
+                                name:
+                                  description: |-
+                                    name of the template.
+                                    name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                              required:
+                              - apiVersion
+                              - kind
+                              - name
+                              type: object
+                          required:
+                          - templateRef
+                          type: object
                         machineHealthCheck:
                           description: machineHealthCheck defines a MachineHealthCheck
                             for this MachineDeploymentClass.
+                          minProperties: 1
                           properties:
                             maxUnhealthy:
                               anyOf:
@@ -4040,6 +4127,7 @@ spec:
                                 - type
                                 type: object
                               maxItems: 100
+                              minItems: 1
                               type: array
                               x-kubernetes-list-type: atomic
                             unhealthyRange:
@@ -4054,6 +4142,31 @@ spec:
                               minLength: 1
                               pattern: ^\[[0-9]+-[0-9]+\]$
                               type: string
+                          type: object
+                        metadata:
+                          description: |-
+                            metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
+                            At runtime this metadata is merged with the corresponding metadata from the topology.
+                          minProperties: 1
+                          properties:
+                            annotations:
+                              additionalProperties:
+                                type: string
+                              description: |-
+                                annotations is an unstructured key value map stored with a resource that may be
+                                set by external tools to store and retrieve arbitrary metadata. They are not
+                                queryable and should be preserved when modifying objects.
+                                More info: http://kubernetes.io/docs/user-guide/annotations
+                              type: object
+                            labels:
+                              additionalProperties:
+                                type: string
+                              description: |-
+                                labels is a map of string keys and values that can be used to organize and categorize
+                                (scope and select) objects. May match selectors of replication controllers
+                                and services.
+                                More info: http://kubernetes.io/docs/user-guide/labels
+                              type: object
                           type: object
                         minReadySeconds:
                           description: |-
@@ -4146,6 +4259,7 @@ spec:
                             - conditionType
                             type: object
                           maxItems: 32
+                          minItems: 1
                           type: array
                           x-kubernetes-list-map-keys:
                           - conditionType
@@ -4155,11 +4269,13 @@ spec:
                             strategy is the deployment strategy to use to replace existing machines with
                             new ones.
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+                          minProperties: 1
                           properties:
                             remediation:
                               description: |-
                                 remediation controls the strategy of remediating unhealthy machines
                                 and how remediating operations should occur during the lifecycle of the dependant MachineSets.
+                              minProperties: 1
                               properties:
                                 maxInFlight:
                                   anyOf:
@@ -4186,6 +4302,7 @@ spec:
                               description: |-
                                 rollingUpdate is the rolling update config params. Present only if
                                 MachineDeploymentStrategyType = RollingUpdate.
+                              minProperties: 1
                               properties:
                                 deletePolicy:
                                   description: |-
@@ -4244,125 +4361,10 @@ spec:
                               - OnDelete
                               type: string
                           type: object
-                        template:
-                          description: |-
-                            template is a local struct containing a collection of templates for creation of
-                            MachineDeployment objects representing a set of worker nodes.
-                          properties:
-                            bootstrap:
-                              description: |-
-                                bootstrap contains the bootstrap template reference to be used
-                                for the creation of worker Machines.
-                              properties:
-                                templateRef:
-                                  description: templateRef is a required reference
-                                    to the BootstrapTemplate for a MachineDeployment.
-                                  properties:
-                                    apiVersion:
-                                      description: |-
-                                        apiVersion of the template.
-                                        apiVersion must be fully qualified domain name followed by / and a version.
-                                      maxLength: 317
-                                      minLength: 1
-                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
-                                      type: string
-                                    kind:
-                                      description: |-
-                                        kind of the template.
-                                        kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
-                                      maxLength: 63
-                                      minLength: 1
-                                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
-                                      type: string
-                                    name:
-                                      description: |-
-                                        name of the template.
-                                        name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
-                                      maxLength: 253
-                                      minLength: 1
-                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                                      type: string
-                                  required:
-                                  - apiVersion
-                                  - kind
-                                  - name
-                                  type: object
-                              required:
-                              - templateRef
-                              type: object
-                            infrastructure:
-                              description: |-
-                                infrastructure contains the infrastructure template reference to be used
-                                for the creation of worker Machines.
-                              properties:
-                                templateRef:
-                                  description: templateRef is a required reference
-                                    to the InfrastructureTemplate for a MachineDeployment.
-                                  properties:
-                                    apiVersion:
-                                      description: |-
-                                        apiVersion of the template.
-                                        apiVersion must be fully qualified domain name followed by / and a version.
-                                      maxLength: 317
-                                      minLength: 1
-                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
-                                      type: string
-                                    kind:
-                                      description: |-
-                                        kind of the template.
-                                        kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
-                                      maxLength: 63
-                                      minLength: 1
-                                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
-                                      type: string
-                                    name:
-                                      description: |-
-                                        name of the template.
-                                        name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
-                                      maxLength: 253
-                                      minLength: 1
-                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                                      type: string
-                                  required:
-                                  - apiVersion
-                                  - kind
-                                  - name
-                                  type: object
-                              required:
-                              - templateRef
-                              type: object
-                            metadata:
-                              description: |-
-                                metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
-                                At runtime this metadata is merged with the corresponding metadata from the topology.
-                              minProperties: 1
-                              properties:
-                                annotations:
-                                  additionalProperties:
-                                    type: string
-                                  description: |-
-                                    annotations is an unstructured key value map stored with a resource that may be
-                                    set by external tools to store and retrieve arbitrary metadata. They are not
-                                    queryable and should be preserved when modifying objects.
-                                    More info: http://kubernetes.io/docs/user-guide/annotations
-                                  type: object
-                                labels:
-                                  additionalProperties:
-                                    type: string
-                                  description: |-
-                                    labels is a map of string keys and values that can be used to organize and categorize
-                                    (scope and select) objects. May match selectors of replication controllers
-                                    and services.
-                                    More info: http://kubernetes.io/docs/user-guide/labels
-                                  type: object
-                              type: object
-                          required:
-                          - bootstrap
-                          - infrastructure
-                          type: object
                       required:
+                      - bootstrap
                       - class
-                      - template
+                      - infrastructure
                       type: object
                     maxItems: 100
                     type: array
@@ -4378,6 +4380,47 @@ spec:
                         MachinePoolClass serves as a template to define a pool of worker nodes of the cluster
                         provisioned using `ClusterClass`.
                       properties:
+                        bootstrap:
+                          description: |-
+                            bootstrap contains the bootstrap template reference to be used
+                            for the creation of the Machines in the MachinePool.
+                          properties:
+                            templateRef:
+                              description: templateRef is a required reference to
+                                the BootstrapTemplate for a MachinePool.
+                              properties:
+                                apiVersion:
+                                  description: |-
+                                    apiVersion of the template.
+                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                  maxLength: 317
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                                kind:
+                                  description: |-
+                                    kind of the template.
+                                    kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                  type: string
+                                name:
+                                  description: |-
+                                    name of the template.
+                                    name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                              required:
+                              - apiVersion
+                              - kind
+                              - name
+                              type: object
+                          required:
+                          - templateRef
+                          type: object
                         class:
                           description: |-
                             class denotes a type of machine pool present in the cluster,
@@ -4398,6 +4441,72 @@ spec:
                           maxItems: 100
                           type: array
                           x-kubernetes-list-type: atomic
+                        infrastructure:
+                          description: |-
+                            infrastructure contains the infrastructure template reference to be used
+                            for the creation of the MachinePool.
+                          properties:
+                            templateRef:
+                              description: templateRef is a required reference to
+                                the InfrastructureTemplate for a MachinePool.
+                              properties:
+                                apiVersion:
+                                  description: |-
+                                    apiVersion of the template.
+                                    apiVersion must be fully qualified domain name followed by / and a version.
+                                  maxLength: 317
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                                kind:
+                                  description: |-
+                                    kind of the template.
+                                    kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                  type: string
+                                name:
+                                  description: |-
+                                    name of the template.
+                                    name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                              required:
+                              - apiVersion
+                              - kind
+                              - name
+                              type: object
+                          required:
+                          - templateRef
+                          type: object
+                        metadata:
+                          description: |-
+                            metadata is the metadata applied to the MachinePool.
+                            At runtime this metadata is merged with the corresponding metadata from the topology.
+                          minProperties: 1
+                          properties:
+                            annotations:
+                              additionalProperties:
+                                type: string
+                              description: |-
+                                annotations is an unstructured key value map stored with a resource that may be
+                                set by external tools to store and retrieve arbitrary metadata. They are not
+                                queryable and should be preserved when modifying objects.
+                                More info: http://kubernetes.io/docs/user-guide/annotations
+                              type: object
+                            labels:
+                              additionalProperties:
+                                type: string
+                              description: |-
+                                labels is a map of string keys and values that can be used to organize and categorize
+                                (scope and select) objects. May match selectors of replication controllers
+                                and services.
+                                More info: http://kubernetes.io/docs/user-guide/labels
+                              type: object
+                          type: object
                         minReadySeconds:
                           description: |-
                             minReadySeconds is the minimum number of seconds for which a newly created machine pool should
@@ -4452,125 +4561,10 @@ spec:
                           format: int32
                           minimum: 0
                           type: integer
-                        template:
-                          description: |-
-                            template is a local struct containing a collection of templates for creation of
-                            MachinePools objects representing a pool of worker nodes.
-                          properties:
-                            bootstrap:
-                              description: |-
-                                bootstrap contains the bootstrap template reference to be used
-                                for the creation of the Machines in the MachinePool.
-                              properties:
-                                templateRef:
-                                  description: templateRef is a required reference
-                                    to the BootstrapTemplate for a MachinePool.
-                                  properties:
-                                    apiVersion:
-                                      description: |-
-                                        apiVersion of the template.
-                                        apiVersion must be fully qualified domain name followed by / and a version.
-                                      maxLength: 317
-                                      minLength: 1
-                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
-                                      type: string
-                                    kind:
-                                      description: |-
-                                        kind of the template.
-                                        kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
-                                      maxLength: 63
-                                      minLength: 1
-                                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
-                                      type: string
-                                    name:
-                                      description: |-
-                                        name of the template.
-                                        name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
-                                      maxLength: 253
-                                      minLength: 1
-                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                                      type: string
-                                  required:
-                                  - apiVersion
-                                  - kind
-                                  - name
-                                  type: object
-                              required:
-                              - templateRef
-                              type: object
-                            infrastructure:
-                              description: |-
-                                infrastructure contains the infrastructure template reference to be used
-                                for the creation of the MachinePool.
-                              properties:
-                                templateRef:
-                                  description: templateRef is a required reference
-                                    to the InfrastructureTemplate for a MachinePool.
-                                  properties:
-                                    apiVersion:
-                                      description: |-
-                                        apiVersion of the template.
-                                        apiVersion must be fully qualified domain name followed by / and a version.
-                                      maxLength: 317
-                                      minLength: 1
-                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
-                                      type: string
-                                    kind:
-                                      description: |-
-                                        kind of the template.
-                                        kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
-                                      maxLength: 63
-                                      minLength: 1
-                                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
-                                      type: string
-                                    name:
-                                      description: |-
-                                        name of the template.
-                                        name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
-                                      maxLength: 253
-                                      minLength: 1
-                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                                      type: string
-                                  required:
-                                  - apiVersion
-                                  - kind
-                                  - name
-                                  type: object
-                              required:
-                              - templateRef
-                              type: object
-                            metadata:
-                              description: |-
-                                metadata is the metadata applied to the MachinePool.
-                                At runtime this metadata is merged with the corresponding metadata from the topology.
-                              minProperties: 1
-                              properties:
-                                annotations:
-                                  additionalProperties:
-                                    type: string
-                                  description: |-
-                                    annotations is an unstructured key value map stored with a resource that may be
-                                    set by external tools to store and retrieve arbitrary metadata. They are not
-                                    queryable and should be preserved when modifying objects.
-                                    More info: http://kubernetes.io/docs/user-guide/annotations
-                                  type: object
-                                labels:
-                                  additionalProperties:
-                                    type: string
-                                  description: |-
-                                    labels is a map of string keys and values that can be used to organize and categorize
-                                    (scope and select) objects. May match selectors of replication controllers
-                                    and services.
-                                    More info: http://kubernetes.io/docs/user-guide/labels
-                                  type: object
-                              type: object
-                          required:
-                          - bootstrap
-                          - infrastructure
-                          type: object
                       required:
+                      - bootstrap
                       - class
-                      - template
+                      - infrastructure
                       type: object
                     maxItems: 100
                     type: array

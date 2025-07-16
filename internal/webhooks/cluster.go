@@ -216,18 +216,11 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 		)
 	}
 
-	if newCluster.Spec.ClusterNetwork != nil {
-		// Ensure that the CIDR blocks defined under ClusterNetwork are valid.
-		if newCluster.Spec.ClusterNetwork.Pods != nil {
-			allErrs = append(allErrs, validateCIDRBlocks(specPath.Child("clusterNetwork", "pods", "cidrBlocks"),
-				newCluster.Spec.ClusterNetwork.Pods.CIDRBlocks)...)
-		}
-
-		if newCluster.Spec.ClusterNetwork.Services != nil {
-			allErrs = append(allErrs, validateCIDRBlocks(specPath.Child("clusterNetwork", "services", "cidrBlocks"),
-				newCluster.Spec.ClusterNetwork.Services.CIDRBlocks)...)
-		}
-	}
+	// Ensure that the CIDR blocks defined under ClusterNetwork are valid.
+	allErrs = append(allErrs, validateCIDRBlocks(specPath.Child("clusterNetwork", "pods", "cidrBlocks"),
+		newCluster.Spec.ClusterNetwork.Pods.CIDRBlocks)...)
+	allErrs = append(allErrs, validateCIDRBlocks(specPath.Child("clusterNetwork", "services", "cidrBlocks"),
+		newCluster.Spec.ClusterNetwork.Services.CIDRBlocks)...)
 
 	topologyPath := specPath.Child("topology")
 
@@ -675,32 +668,30 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 		}
 	}
 
-	if cluster.Spec.Topology.Workers != nil {
-		for i := range cluster.Spec.Topology.Workers.MachineDeployments {
-			md := cluster.Spec.Topology.Workers.MachineDeployments[i]
-			if md.MachineHealthCheck != nil {
-				fldPath := field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("machineHealthCheck")
+	for i := range cluster.Spec.Topology.Workers.MachineDeployments {
+		md := cluster.Spec.Topology.Workers.MachineDeployments[i]
+		if md.MachineHealthCheck != nil {
+			fldPath := field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("machineHealthCheck")
 
-				// Validate the MachineDeployment MachineHealthCheck if defined.
-				if !md.MachineHealthCheck.IsZero() {
-					allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, cluster.Namespace,
-						&md.MachineHealthCheck.MachineHealthCheckClass)...)
-				}
+			// Validate the MachineDeployment MachineHealthCheck if defined.
+			if !md.MachineHealthCheck.IsZero() {
+				allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, cluster.Namespace,
+					&md.MachineHealthCheck.MachineHealthCheckClass)...)
+			}
 
-				// If MachineHealthCheck is explicitly enabled then make sure that a MachineHealthCheck definition is
-				// available either in the Cluster topology or in the ClusterClass.
-				// (One of these definitions will be used in the controller to create the MachineHealthCheck)
-				mdClass := machineDeploymentClassOfName(clusterClass, md.Class)
-				if mdClass != nil { // Note: we skip handling the nil case here as it is already handled in previous validations.
-					// Check if the machineHealthCheck is explicitly enabled in the machineDeploymentTopology.
-					if md.MachineHealthCheck.Enable != nil && *md.MachineHealthCheck.Enable {
-						// Ensure the MHC is defined in at least one of the MachineDeploymentTopology of the Cluster or the MachineDeploymentClass of the ClusterClass.
-						if md.MachineHealthCheck.IsZero() && mdClass.MachineHealthCheck == nil {
-							allErrs = append(allErrs, field.Forbidden(
-								fldPath.Child("enable"),
-								fmt.Sprintf("cannot be set to %t as MachineHealthCheck definition is not available in the Cluster topology or the ClusterClass", *md.MachineHealthCheck.Enable),
-							))
-						}
+			// If MachineHealthCheck is explicitly enabled then make sure that a MachineHealthCheck definition is
+			// available either in the Cluster topology or in the ClusterClass.
+			// (One of these definitions will be used in the controller to create the MachineHealthCheck)
+			mdClass := machineDeploymentClassOfName(clusterClass, md.Class)
+			if mdClass != nil { // Note: we skip handling the nil case here as it is already handled in previous validations.
+				// Check if the machineHealthCheck is explicitly enabled in the machineDeploymentTopology.
+				if md.MachineHealthCheck.Enable != nil && *md.MachineHealthCheck.Enable {
+					// Ensure the MHC is defined in at least one of the MachineDeploymentTopology of the Cluster or the MachineDeploymentClass of the ClusterClass.
+					if md.MachineHealthCheck.IsZero() && mdClass.MachineHealthCheck == nil {
+						allErrs = append(allErrs, field.Forbidden(
+							fldPath.Child("enable"),
+							fmt.Sprintf("cannot be set to %t as MachineHealthCheck definition is not available in the Cluster topology or the ClusterClass", *md.MachineHealthCheck.Enable),
+						))
 					}
 				}
 			}
@@ -751,24 +742,16 @@ func DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clust
 	)
 	if oldCluster != nil {
 		oldClusterVariables = oldCluster.Spec.Topology.Variables
-		if oldCluster.Spec.Topology.ControlPlane.Variables != nil {
-			oldCPOverrides = oldCluster.Spec.Topology.ControlPlane.Variables.Overrides
+		oldCPOverrides = oldCluster.Spec.Topology.ControlPlane.Variables.Overrides
+
+		oldMDVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachineDeployments))
+		for _, md := range oldCluster.Spec.Topology.Workers.MachineDeployments {
+			oldMDVariables[md.Name] = md.Variables.Overrides
 		}
 
-		if oldCluster.Spec.Topology.Workers != nil {
-			oldMDVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachineDeployments))
-			for _, md := range oldCluster.Spec.Topology.Workers.MachineDeployments {
-				if md.Variables != nil {
-					oldMDVariables[md.Name] = md.Variables.Overrides
-				}
-			}
-
-			oldMPVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachinePools))
-			for _, mp := range oldCluster.Spec.Topology.Workers.MachinePools {
-				if mp.Variables != nil {
-					oldMPVariables[mp.Name] = mp.Variables.Overrides
-				}
-			}
+		oldMPVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachinePools))
+		for _, mp := range oldCluster.Spec.Topology.Workers.MachinePools {
+			oldMPVariables[mp.Name] = mp.Variables.Overrides
 		}
 	}
 
@@ -784,7 +767,7 @@ func DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clust
 		field.NewPath("spec", "topology", "variables"))...)
 
 	// Validate ControlPlane variable overrides.
-	if cluster.Spec.Topology.ControlPlane.Variables != nil && len(cluster.Spec.Topology.ControlPlane.Variables.Overrides) > 0 {
+	if len(cluster.Spec.Topology.ControlPlane.Variables.Overrides) > 0 {
 		allErrs = append(allErrs, variables.ValidateControlPlaneVariables(
 			ctx,
 			cluster.Spec.Topology.ControlPlane.Variables.Overrides,
@@ -794,36 +777,34 @@ func DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clust
 		)
 	}
 
-	if cluster.Spec.Topology.Workers != nil {
-		// Validate MachineDeployment variable overrides.
-		for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
-			// Continue if there are no variable overrides.
-			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
-				continue
-			}
-			allErrs = append(allErrs, variables.ValidateMachineVariables(
-				ctx,
-				md.Variables.Overrides,
-				oldMDVariables[md.Name],
-				clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("variables", "overrides"))...,
-			)
+	// Validate MachineDeployment variable overrides.
+	for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+		// Continue if there are no variable overrides.
+		if len(md.Variables.Overrides) == 0 {
+			continue
 		}
+		allErrs = append(allErrs, variables.ValidateMachineVariables(
+			ctx,
+			md.Variables.Overrides,
+			oldMDVariables[md.Name],
+			clusterClass.Status.Variables,
+			field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("variables", "overrides"))...,
+		)
+	}
 
-		// Validate MachinePool variable overrides.
-		for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
-			// Continue if there are no variable overrides.
-			if mp.Variables == nil || len(mp.Variables.Overrides) == 0 {
-				continue
-			}
-			allErrs = append(allErrs, variables.ValidateMachineVariables(
-				ctx,
-				mp.Variables.Overrides,
-				oldMPVariables[mp.Name],
-				clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machinePools").Key(mp.Name).Child("variables", "overrides"))...,
-			)
+	// Validate MachinePool variable overrides.
+	for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
+		// Continue if there are no variable overrides.
+		if len(mp.Variables.Overrides) == 0 {
+			continue
 		}
+		allErrs = append(allErrs, variables.ValidateMachineVariables(
+			ctx,
+			mp.Variables.Overrides,
+			oldMPVariables[mp.Name],
+			clusterClass.Status.Variables,
+			field.NewPath("spec", "topology", "workers", "machinePools").Key(mp.Name).Child("variables", "overrides"))...,
+		)
 	}
 	return allErrs
 }
@@ -848,7 +829,7 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 	}
 
 	// Default ControlPlane variable overrides.
-	if cluster.Spec.Topology.ControlPlane.Variables != nil && len(cluster.Spec.Topology.ControlPlane.Variables.Overrides) > 0 {
+	if len(cluster.Spec.Topology.ControlPlane.Variables.Overrides) > 0 {
 		defaultedVariables, errs := variables.DefaultMachineVariables(cluster.Spec.Topology.ControlPlane.Variables.Overrides, clusterClass.Status.Variables,
 			field.NewPath("spec", "topology", "controlPlane", "variables", "overrides"))
 		if len(errs) > 0 {
@@ -858,35 +839,33 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 		}
 	}
 
-	if cluster.Spec.Topology.Workers != nil {
-		// Default MachineDeployment variable overrides.
-		for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
-			// Continue if there are no variable overrides.
-			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
-				continue
-			}
-			defaultedVariables, errs := variables.DefaultMachineVariables(md.Variables.Overrides, clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("variables", "overrides"))
-			if len(errs) > 0 {
-				allErrs = append(allErrs, errs...)
-			} else {
-				md.Variables.Overrides = defaultedVariables
-			}
+	// Default MachineDeployment variable overrides.
+	for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+		// Continue if there are no variable overrides.
+		if len(md.Variables.Overrides) == 0 {
+			continue
 		}
+		defaultedVariables, errs := variables.DefaultMachineVariables(md.Variables.Overrides, clusterClass.Status.Variables,
+			field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("variables", "overrides"))
+		if len(errs) > 0 {
+			allErrs = append(allErrs, errs...)
+		} else {
+			cluster.Spec.Topology.Workers.MachineDeployments[i].Variables.Overrides = defaultedVariables
+		}
+	}
 
-		// Default MachinePool variable overrides.
-		for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
-			// Continue if there are no variable overrides.
-			if mp.Variables == nil || len(mp.Variables.Overrides) == 0 {
-				continue
-			}
-			defaultedVariables, errs := variables.DefaultMachineVariables(mp.Variables.Overrides, clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machinePools").Key(mp.Name).Child("variables", "overrides"))
-			if len(errs) > 0 {
-				allErrs = append(allErrs, errs...)
-			} else {
-				mp.Variables.Overrides = defaultedVariables
-			}
+	// Default MachinePool variable overrides.
+	for i, mp := range cluster.Spec.Topology.Workers.MachinePools {
+		// Continue if there are no variable overrides.
+		if len(mp.Variables.Overrides) == 0 {
+			continue
+		}
+		defaultedVariables, errs := variables.DefaultMachineVariables(mp.Variables.Overrides, clusterClass.Status.Variables,
+			field.NewPath("spec", "topology", "workers", "machinePools").Key(mp.Name).Child("variables", "overrides"))
+		if len(errs) > 0 {
+			allErrs = append(allErrs, errs...)
+		} else {
+			cluster.Spec.Topology.Workers.MachinePools[i].Variables.Overrides = defaultedVariables
 		}
 	}
 	return allErrs
@@ -983,17 +962,15 @@ func clusterClassIsReconciled(clusterClass *clusterv1.ClusterClass) error {
 func validateTopologyMetadata(topology *clusterv1.Topology, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, topology.ControlPlane.Metadata.Validate(fldPath.Child("controlPlane", "metadata"))...)
-	if topology.Workers != nil {
-		for _, md := range topology.Workers.MachineDeployments {
-			allErrs = append(allErrs, md.Metadata.Validate(
-				fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("metadata"),
-			)...)
-		}
-		for _, mp := range topology.Workers.MachinePools {
-			allErrs = append(allErrs, mp.Metadata.Validate(
-				fldPath.Child("workers", "machinePools").Key(mp.Name).Child("metadata"),
-			)...)
-		}
+	for _, md := range topology.Workers.MachineDeployments {
+		allErrs = append(allErrs, md.Metadata.Validate(
+			fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("metadata"),
+		)...)
+	}
+	for _, mp := range topology.Workers.MachinePools {
+		allErrs = append(allErrs, mp.Metadata.Validate(
+			fldPath.Child("workers", "machinePools").Key(mp.Name).Child("metadata"),
+		)...)
 	}
 	return allErrs
 }
@@ -1004,7 +981,7 @@ func validateTopologyMetadata(topology *clusterv1.Topology, fldPath *field.Path)
 func validateAutoscalerAnnotationsForCluster(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if cluster.Spec.Topology == nil || cluster.Spec.Topology.Workers == nil {
+	if cluster.Spec.Topology == nil {
 		return allErrs
 	}
 
@@ -1037,7 +1014,7 @@ func validateAutoscalerAnnotationsForCluster(cluster *clusterv1.Cluster, cluster
 			if mdc.Class != mdt.Class {
 				continue
 			}
-			for k := range mdc.Template.Metadata.Annotations {
+			for k := range mdc.Metadata.Annotations {
 				if k == clusterv1.AutoscalerMinSizeAnnotation || k == clusterv1.AutoscalerMaxSizeAnnotation {
 					allErrs = append(
 						allErrs,

@@ -1718,7 +1718,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 	var clusterClassMinReadySeconds int32 = 20
 	clusterClassStrategy := clusterv1.MachineDeploymentStrategy{
 		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
-		Remediation: &clusterv1.RemediationStrategy{
+		Remediation: clusterv1.RemediationStrategy{
 			MaxInFlight: ptr.To(intstr.FromInt32(5)),
 		},
 	}
@@ -1740,7 +1740,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		WithNodeVolumeDetachTimeout(&clusterClassDuration).
 		WithNodeDeletionTimeout(&clusterClassDuration).
 		WithMinReadySeconds(&clusterClassMinReadySeconds).
-		WithStrategy(&clusterClassStrategy).
+		WithStrategy(clusterClassStrategy).
 		Build()
 	mcds := []clusterv1.MachineDeploymentClass{*md1}
 	fakeClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1785,7 +1785,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 	var topologyMinReadySeconds int32 = 10
 	topologyStrategy := clusterv1.MachineDeploymentStrategy{
 		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-		Remediation: &clusterv1.RemediationStrategy{
+		Remediation: clusterv1.RemediationStrategy{
 			MaxInFlight: ptr.To(intstr.FromInt32(5)),
 		},
 	}
@@ -1816,7 +1816,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		NodeVolumeDetachTimeoutSeconds: &topologyDuration,
 		NodeDeletionTimeoutSeconds:     &topologyDuration,
 		MinReadySeconds:                &topologyMinReadySeconds,
-		Strategy:                       &topologyStrategy,
+		Strategy:                       topologyStrategy,
 	}
 
 	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {
@@ -1845,7 +1845,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		actualMd := actual.Object
 		g.Expect(*actualMd.Spec.Replicas).To(Equal(replicas))
-		g.Expect(*actualMd.Spec.Strategy).To(BeComparableTo(topologyStrategy))
+		g.Expect(actualMd.Spec.Strategy).To(BeComparableTo(topologyStrategy))
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(topologyMinReadySeconds)))
 		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeoutSeconds).To(Equal(topologyDuration))
@@ -1856,13 +1856,13 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Name).To(ContainSubstring("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("big-pool-of-machines"))
 
-		expectedAnnotations := util.MergeMap(mdTopology.Metadata.Annotations, md1.Template.Metadata.Annotations)
+		expectedAnnotations := util.MergeMap(mdTopology.Metadata.Annotations, md1.Metadata.Annotations)
 		delete(expectedAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
 		delete(expectedAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
 		g.Expect(actualMd.Annotations).To(Equal(expectedAnnotations))
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 
-		g.Expect(actualMd.Labels).To(BeComparableTo(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMd.Labels).To(BeComparableTo(util.MergeMap(mdTopology.Metadata.Labels, md1.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
@@ -1872,7 +1872,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
 		}))
-		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(BeComparableTo(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(BeComparableTo(util.MergeMap(mdTopology.Metadata.Labels, md1.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
@@ -1903,7 +1903,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		// checking only values from CC defaults
 		actualMd := actual.Object
-		g.Expect(*actualMd.Spec.Strategy).To(BeComparableTo(clusterClassStrategy))
+		g.Expect(actualMd.Spec.Strategy).To(BeComparableTo(clusterClassStrategy))
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(clusterClassMinReadySeconds)))
 		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(clusterClassFailureDomain))
 		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(Equal(clusterClassReadinessGates))
@@ -2002,13 +2002,13 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
 		g.Expect(actualMd.Name).To(Equal("existing-deployment-1"))
 
-		expectedAnnotations := util.MergeMap(mdTopology.Metadata.Annotations, md1.Template.Metadata.Annotations)
+		expectedAnnotations := util.MergeMap(mdTopology.Metadata.Annotations, md1.Metadata.Annotations)
 		delete(expectedAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
 		delete(expectedAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
 		g.Expect(actualMd.Annotations).To(Equal(expectedAnnotations))
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 
-		g.Expect(actualMd.Labels).To(BeComparableTo(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMd.Labels).To(BeComparableTo(util.MergeMap(mdTopology.Metadata.Labels, md1.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
@@ -2018,7 +2018,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
 		}))
-		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(BeComparableTo(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(BeComparableTo(util.MergeMap(mdTopology.Metadata.Labels, md1.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
@@ -2121,7 +2121,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				s.Blueprint.Topology.ControlPlane = clusterv1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](2),
 				}
-				s.Blueprint.Topology.Workers = &clusterv1.WorkersTopology{}
+				s.Blueprint.Topology.Workers = clusterv1.WorkersTopology{}
 
 				mdsState := scope.MachineDeploymentsStateMap{}
 				if tt.currentMDVersion != nil {
@@ -2315,18 +2315,18 @@ func TestComputeMachinePool(t *testing.T) {
 		g.Expect(actualMp.Name).To(ContainSubstring("cluster1"))
 		g.Expect(actualMp.Name).To(ContainSubstring("big-pool-of-machines"))
 
-		expectedAnnotations := util.MergeMap(mpTopology.Metadata.Annotations, mp1.Template.Metadata.Annotations)
+		expectedAnnotations := util.MergeMap(mpTopology.Metadata.Annotations, mp1.Metadata.Annotations)
 		delete(expectedAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
 		delete(expectedAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
 		g.Expect(actualMp.Annotations).To(Equal(expectedAnnotations))
 		g.Expect(actualMp.Spec.Template.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 
-		g.Expect(actualMp.Labels).To(BeComparableTo(util.MergeMap(mpTopology.Metadata.Labels, mp1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMp.Labels).To(BeComparableTo(util.MergeMap(mpTopology.Metadata.Labels, mp1.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                    cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:           "",
 			clusterv1.ClusterTopologyMachinePoolNameLabel: "big-pool-of-machines",
 		})))
-		g.Expect(actualMp.Spec.Template.ObjectMeta.Labels).To(BeComparableTo(util.MergeMap(mpTopology.Metadata.Labels, mp1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMp.Spec.Template.ObjectMeta.Labels).To(BeComparableTo(util.MergeMap(mpTopology.Metadata.Labels, mp1.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                    cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:           "",
 			clusterv1.ClusterTopologyMachinePoolNameLabel: "big-pool-of-machines",
@@ -2406,18 +2406,18 @@ func TestComputeMachinePool(t *testing.T) {
 		g.Expect(actualMp.Spec.FailureDomains).To(Equal(topologyFailureDomains))
 		g.Expect(actualMp.Name).To(Equal("existing-pool-1"))
 
-		expectedAnnotations := util.MergeMap(mpTopology.Metadata.Annotations, mp1.Template.Metadata.Annotations)
+		expectedAnnotations := util.MergeMap(mpTopology.Metadata.Annotations, mp1.Metadata.Annotations)
 		delete(expectedAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
 		delete(expectedAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
 		g.Expect(actualMp.Annotations).To(Equal(expectedAnnotations))
 		g.Expect(actualMp.Spec.Template.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 
-		g.Expect(actualMp.Labels).To(BeComparableTo(util.MergeMap(mpTopology.Metadata.Labels, mp1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMp.Labels).To(BeComparableTo(util.MergeMap(mpTopology.Metadata.Labels, mp1.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                    cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:           "",
 			clusterv1.ClusterTopologyMachinePoolNameLabel: "big-pool-of-machines",
 		})))
-		g.Expect(actualMp.Spec.Template.ObjectMeta.Labels).To(BeComparableTo(util.MergeMap(mpTopology.Metadata.Labels, mp1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMp.Spec.Template.ObjectMeta.Labels).To(BeComparableTo(util.MergeMap(mpTopology.Metadata.Labels, mp1.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                    cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:           "",
 			clusterv1.ClusterTopologyMachinePoolNameLabel: "big-pool-of-machines",
@@ -2520,7 +2520,7 @@ func TestComputeMachinePool(t *testing.T) {
 				s.Blueprint.Topology.ControlPlane = clusterv1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](2),
 				}
-				s.Blueprint.Topology.Workers = &clusterv1.WorkersTopology{}
+				s.Blueprint.Topology.Workers = clusterv1.WorkersTopology{}
 
 				mpsState := scope.MachinePoolsStateMap{}
 				if tt.currentMPVersion != nil {
@@ -2692,7 +2692,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneTopology{
 						Replicas: ptr.To[int32](2),
 					},
-					Workers: &clusterv1.WorkersTopology{},
+					Workers: clusterv1.WorkersTopology{},
 				}},
 				Current: &scope.ClusterState{
 					ControlPlane: &scope.ControlPlaneState{Object: controlPlaneObj},
@@ -2861,7 +2861,7 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneTopology{
 						Replicas: ptr.To[int32](2),
 					},
-					Workers: &clusterv1.WorkersTopology{},
+					Workers: clusterv1.WorkersTopology{},
 				}},
 				Current: &scope.ClusterState{
 					ControlPlane: &scope.ControlPlaneState{Object: controlPlaneObj},
@@ -2907,7 +2907,7 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 
 func TestIsMachineDeploymentDeferred(t *testing.T) {
 	clusterTopology := &clusterv1.Topology{
-		Workers: &clusterv1.WorkersTopology{
+		Workers: clusterv1.WorkersTopology{
 			MachineDeployments: []clusterv1.MachineDeploymentTopology{
 				{
 					Name: "md-with-defer-upgrade",
@@ -2990,7 +2990,7 @@ func TestIsMachineDeploymentDeferred(t *testing.T) {
 
 func TestIsMachinePoolDeferred(t *testing.T) {
 	clusterTopology := &clusterv1.Topology{
-		Workers: &clusterv1.WorkersTopology{
+		Workers: clusterv1.WorkersTopology{
 			MachinePools: []clusterv1.MachinePoolTopology{
 				{
 					Name: "mp-with-defer-upgrade",

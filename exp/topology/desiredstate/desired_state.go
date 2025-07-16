@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -795,7 +796,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 
 	strategy := machineDeploymentClass.Strategy
-	if machineDeploymentTopology.Strategy != nil {
+	if !reflect.DeepEqual(machineDeploymentTopology.Strategy, clusterv1.MachineDeploymentStrategy{}) {
 		strategy = machineDeploymentTopology.Strategy
 	}
 

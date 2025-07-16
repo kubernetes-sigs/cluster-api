@@ -305,14 +305,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		return r.sync(ctx, md, s.machineSets, templateExists)
 	}
 
-	if md.Spec.Strategy == nil {
-		return errors.Errorf("missing MachineDeployment strategy")
-	}
-
 	if md.Spec.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
-		if md.Spec.Strategy.RollingUpdate == nil {
-			return errors.Errorf("missing MachineDeployment settings for strategy type: %s", md.Spec.Strategy.Type)
-		}
 		return r.rolloutRolling(ctx, md, s.machineSets, templateExists)
 	}
 

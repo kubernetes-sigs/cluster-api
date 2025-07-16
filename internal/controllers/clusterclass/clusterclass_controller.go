@@ -222,10 +222,10 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, s *scope) 
 		refs = append(refs, clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef)
 	}
 	for _, mdClass := range clusterClass.Spec.Workers.MachineDeployments {
-		refs = append(refs, mdClass.Template.Bootstrap.TemplateRef, mdClass.Template.Infrastructure.TemplateRef)
+		refs = append(refs, mdClass.Bootstrap.TemplateRef, mdClass.Infrastructure.TemplateRef)
 	}
 	for _, mpClass := range clusterClass.Spec.Workers.MachinePools {
-		refs = append(refs, mpClass.Template.Bootstrap.TemplateRef, mpClass.Template.Infrastructure.TemplateRef)
+		refs = append(refs, mpClass.Bootstrap.TemplateRef, mpClass.Infrastructure.TemplateRef)
 	}
 
 	// Ensure all referenced objects are owned by the ClusterClass.

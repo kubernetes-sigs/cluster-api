@@ -28,7 +28,15 @@ import (
 // TopologyDryRunAnnotation annotation set, false otherwise.
 // This ensures that the immutability check is skipped only when dry-running and when the operations has been invoked by the topology controller.
 // Instead, kubectl dry-run behavior remains consistent with the one user gets when doing kubectl apply (immutability is enforced).
+//
+// Deprecated: Please use IsDryRunRequest instead.
 func ShouldSkipImmutabilityChecks(req admission.Request, obj metav1.Object) bool {
+	return IsDryRunRequest(req, obj)
+}
+
+// IsDryRunRequest returns true if it is a dry-run request and the object has the
+// TopologyDryRunAnnotation annotation set, false otherwise.
+func IsDryRunRequest(req admission.Request, obj metav1.Object) bool {
 	// Check if the request is a dry-run
 	if req.DryRun == nil || !*req.DryRun {
 		return false

@@ -31,6 +31,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/defaulting"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
@@ -321,8 +322,8 @@ func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp 
 	// *Note* This assumes that newly added default values never
 	// introduce a semantic difference to the unset value.
 	// But that is something that is ensured by our API guarantees.
-	kcpConfig.Default()
-	machineConfig.Spec.Default()
+	defaulting.ApplyPreviousKubeadmConfigDefaults(kcpConfig)
+	defaulting.ApplyPreviousKubeadmConfigDefaults(&machineConfig.Spec)
 
 	// cleanups all the fields that are not relevant for the comparison.
 	cleanupConfigFields(kcpConfig, machineConfig)

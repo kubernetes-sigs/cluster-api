@@ -351,6 +351,34 @@ func TestCopySpec(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Field not in src, no-op",
+			input: copySpecInput{
+				src: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"differentSpec": map[string]interface{}{
+							"B": "B",
+						},
+					},
+				},
+				dest: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"spec": map[string]interface{}{
+							"A": "A",
+						},
+					},
+				},
+				srcSpecPath:  "spec",
+				destSpecPath: "spec",
+			},
+			want: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"A": "A",
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

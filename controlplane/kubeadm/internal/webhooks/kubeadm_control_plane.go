@@ -82,8 +82,6 @@ func defaultKubeadmControlPlaneSpec(s *controlplanev1.KubeadmControlPlaneSpec) {
 		s.Version = "v" + s.Version
 	}
 
-	s.KubeadmConfigSpec.Default()
-
 	s.RolloutStrategy = defaultRolloutStrategy(s.RolloutStrategy)
 }
 

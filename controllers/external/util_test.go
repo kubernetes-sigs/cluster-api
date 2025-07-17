@@ -362,7 +362,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 	g.Expect(cloneSpec).To(BeComparableTo(expectedSpec))
 }
 
-func TestCloneTemplateMissingSpecTemplate(t *testing.T) {
+func TestCloneTemplateMissingSpec(t *testing.T) {
 	g := NewWithT(t)
 
 	templateName := "aquaTemplate"
@@ -377,7 +377,6 @@ func TestCloneTemplateMissingSpecTemplate(t *testing.T) {
 				"name":      templateName,
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec": map[string]interface{}{},
 		},
 	}
 
@@ -388,13 +387,59 @@ func TestCloneTemplateMissingSpecTemplate(t *testing.T) {
 		Namespace:  metav1.NamespaceDefault,
 	}
 
+	owner := metav1.OwnerReference{
+		Kind:       "Cluster",
+		APIVersion: clusterv1.GroupVersion.String(),
+		Name:       testClusterName,
+	}
+
+	expectedKind := "Aqua"
+	expectedAPIGroup := "aqua.io" // group from templateAPIVersion
+
 	fakeClient := fake.NewClientBuilder().WithObjects(template.DeepCopy()).Build()
 
-	_, _, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
+	_, ref, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
 		Client:      fakeClient,
-		TemplateRef: templateRef,
+		TemplateRef: templateRef.DeepCopy(),
 		Namespace:   metav1.NamespaceDefault,
 		ClusterName: testClusterName,
+		OwnerRef:    owner.DeepCopy(),
+		Labels: map[string]string{
+			"precedence":               "input",
+			clusterv1.ClusterNameLabel: "should-be-overwritten",
+		},
+		Annotations: map[string]string{
+			"precedence": "input",
+			clusterv1.TemplateClonedFromNameAnnotation: "should-be-overwritten",
+		},
 	})
-	g.Expect(err).To(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(ref).NotTo(BeNil())
+	g.Expect(ref.Kind).To(Equal(expectedKind))
+	g.Expect(ref.APIGroup).To(Equal(expectedAPIGroup))
+	g.Expect(ref.Name).To(HavePrefix(templateRef.Name))
+
+	clone := &unstructured.Unstructured{}
+	clone.SetKind(expectedKind)
+	clone.SetAPIVersion(templateAPIVersion)
+
+	key := client.ObjectKey{Name: ref.Name, Namespace: metav1.NamespaceDefault}
+	g.Expect(fakeClient.Get(ctx, key, clone)).To(Succeed())
+	g.Expect(clone.GetOwnerReferences()).To(HaveLen(1))
+	g.Expect(clone.GetOwnerReferences()).To(ContainElement(owner))
+
+	cloneSpec, ok, err := unstructured.NestedMap(clone.UnstructuredContent(), "spec")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(ok).To(BeFalse())
+	g.Expect(cloneSpec).To(BeNil())
+
+	cloneLabels := clone.GetLabels()
+	g.Expect(cloneLabels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, testClusterName))
+	g.Expect(cloneLabels).To(HaveKeyWithValue("precedence", "input"))
+
+	cloneAnnotations := clone.GetAnnotations()
+	g.Expect(cloneAnnotations).To(HaveKeyWithValue("precedence", "input"))
+
+	g.Expect(cloneAnnotations).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, templateRef.Name))
+	g.Expect(cloneAnnotations).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, templateRef.GroupVersionKind().GroupKind().String()))
 }

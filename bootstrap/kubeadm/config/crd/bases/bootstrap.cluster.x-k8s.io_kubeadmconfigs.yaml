@@ -5254,7 +5254,9 @@ spec:
                 type: array
                 x-kubernetes-list-type: atomic
               format:
-                description: format specifies the output format of the bootstrap data
+                description: |-
+                  format specifies the output format of the bootstrap data.
+                  Defaults to cloud-config if not set.
                 enum:
                 - cloud-config
                 - ignition
@@ -5399,7 +5401,7 @@ spec:
                           imagePullPolicy specifies the policy for image pulling
                           during kubeadm "init" and "join" operations. The value of
                           this field must be one of "Always", "IfNotPresent" or
-                          "Never". Defaults to "IfNotPresent".
+                          "Never". Defaults to "IfNotPresent" if not set.
                         enum:
                         - Always
                         - IfNotPresent
@@ -5870,7 +5872,7 @@ spec:
                           imagePullPolicy specifies the policy for image pulling
                           during kubeadm "init" and "join" operations. The value of
                           this field must be one of "Always", "IfNotPresent" or
-                          "Never". Defaults to "IfNotPresent".
+                          "Never". Defaults to "IfNotPresent" if not set.
                         enum:
                         - Always
                         - IfNotPresent

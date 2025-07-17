@@ -193,7 +193,9 @@ type GenerateTemplateInput struct {
 func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, error) {
 	template, found, err := unstructured.NestedMap(in.Template.Object, "spec", "template")
 	if !found {
-		return nil, errors.Errorf("missing Spec.Template on %v %q", in.Template.GroupVersionKind(), in.Template.GetName())
+		// Tolerate template objects without `spec.template`.
+		// Intentionally using an empty template as replacement.
+		template = nil
 	} else if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve Spec.Template map on %v %q", in.Template.GroupVersionKind(), in.Template.GetName())
 	}

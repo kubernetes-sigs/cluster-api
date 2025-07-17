@@ -482,6 +482,15 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// +optional
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 
+	// spec defines the spec for Machines
+	// in a KubeadmControlPlane object.
+	// +optional
+	Spec KubeadmControlPlaneMachineTemplateSpec `json:"spec,omitempty,omitzero"`
+}
+
+// KubeadmControlPlaneMachineTemplateSpec defines the spec for Machines
+// in a KubeadmControlPlane object.
+type KubeadmControlPlaneMachineTemplateSpec struct {
 	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
 	// +required

@@ -90,7 +90,8 @@ spec:
   template:
     spec:
       machineTemplate:
-        nodeDrainTimeout: 1s
+        spec:
+          nodeDrainTimeout: 1s
       kubeadmConfigSpec:
         clusterConfiguration:
           apiServer:

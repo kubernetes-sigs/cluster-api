@@ -565,8 +565,9 @@ spec:
             ControlPlaneTemplate.machineTemplate.label: "ControlPlaneTemplate.machineTemplate.labelValue"
           annotations:
             ControlPlaneTemplate.machineTemplate.annotation: "ControlPlaneTemplate.machineTemplate.annotationValue"
-        deletion:
-          nodeDrainTimeoutSeconds: 1
+        spec:
+          deletion:
+            nodeDrainTimeoutSeconds: 1
       kubeadmConfigSpec:
         clusterConfiguration:
           apiServer:

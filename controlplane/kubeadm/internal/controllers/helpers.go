@@ -145,7 +145,7 @@ func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Contex
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.Context, controlPlane *internal.ControlPlane) error {
-	ref := &controlPlane.KCP.Spec.MachineTemplate.InfrastructureRef
+	ref := &controlPlane.KCP.Spec.MachineTemplate.Spec.InfrastructureRef
 	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
 		return nil
 	}
@@ -200,7 +200,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 	}
 
 	// Clone the infrastructure template
-	apiVersion, err := contract.GetAPIVersion(ctx, r.Client, kcp.Spec.MachineTemplate.InfrastructureRef.GroupKind())
+	apiVersion, err := contract.GetAPIVersion(ctx, r.Client, kcp.Spec.MachineTemplate.Spec.InfrastructureRef.GroupKind())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to clone infrastructure template")
 	}
@@ -208,9 +208,9 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 		Client: r.Client,
 		TemplateRef: &corev1.ObjectReference{
 			APIVersion: apiVersion,
-			Kind:       kcp.Spec.MachineTemplate.InfrastructureRef.Kind,
+			Kind:       kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Kind,
 			Namespace:  kcp.Namespace,
-			Name:       kcp.Spec.MachineTemplate.InfrastructureRef.Name,
+			Name:       kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name,
 		},
 		Namespace:   kcp.Namespace,
 		Name:        machine.Name,
@@ -468,9 +468,9 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 	}
 
 	// Set other in-place mutable fields
-	desiredMachine.Spec.Deletion.NodeDrainTimeoutSeconds = kcp.Spec.MachineTemplate.Deletion.NodeDrainTimeoutSeconds
-	desiredMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = kcp.Spec.MachineTemplate.Deletion.NodeDeletionTimeoutSeconds
-	desiredMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = kcp.Spec.MachineTemplate.Deletion.NodeVolumeDetachTimeoutSeconds
+	desiredMachine.Spec.Deletion.NodeDrainTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds
+	desiredMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds
+	desiredMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 
 	// Note: We intentionally don't set "minReadySeconds" on Machines because we consider it enough to have machine availability driven by readiness of control plane components.
 	if existingMachine != nil {
@@ -485,7 +485,7 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 	if isEtcdManaged {
 		allReadinessGates = append(allReadinessGates, etcdMandatoryMachineReadinessGates...)
 	}
-	allReadinessGates = append(allReadinessGates, kcp.Spec.MachineTemplate.ReadinessGates...)
+	allReadinessGates = append(allReadinessGates, kcp.Spec.MachineTemplate.Spec.ReadinessGates...)
 
 	desiredMachine.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{}
 	knownGates := sets.Set[string]{}

@@ -136,6 +136,15 @@ type KubeadmControlPlaneTemplateMachineTemplate struct {
 	// +optional
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 
+	// spec defines the spec for Machines
+	// in a KubeadmControlPlane object.
+	// +optional
+	Spec KubeadmControlPlaneTemplateMachineTemplateSpec `json:"spec,omitempty,omitzero"`
+}
+
+// KubeadmControlPlaneTemplateMachineTemplateSpec defines the spec for Machines
+// in a KubeadmControlPlane object.
+type KubeadmControlPlaneTemplateMachineTemplateSpec struct {
 	// deletion contains configuration options for Machine deletion.
 	// +optional
 	Deletion KubeadmControlPlaneTemplateMachineTemplateDeletionSpec `json:"deletion,omitempty,omitzero"`

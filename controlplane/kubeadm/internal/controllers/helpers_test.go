@@ -351,10 +351,12 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     genericInfrastructureMachineTemplate.GetKind(),
-					APIGroup: genericInfrastructureMachineTemplate.GroupVersionKind().Group,
-					Name:     genericInfrastructureMachineTemplate.GetName(),
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     genericInfrastructureMachineTemplate.GetKind(),
+						APIGroup: genericInfrastructureMachineTemplate.GroupVersionKind().Group,
+						Name:     genericInfrastructureMachineTemplate.GetName(),
+					},
 				},
 			},
 			Version: "v1.16.6",
@@ -436,10 +438,12 @@ func TestCloneConfigsAndGenerateMachineFail(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     genericMachineTemplate.GetKind(),
-					APIGroup: genericMachineTemplate.GroupVersionKind().Group,
-					Name:     genericMachineTemplate.GetName(),
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     genericMachineTemplate.GetKind(),
+						APIGroup: genericMachineTemplate.GroupVersionKind().Group,
+						Name:     genericMachineTemplate.GetName(),
+					},
 				},
 			},
 			Version: "v1.16.6",
@@ -459,7 +463,7 @@ func TestCloneConfigsAndGenerateMachineFail(t *testing.T) {
 	}
 
 	// Try to break Infra Cloning
-	kcp.Spec.MachineTemplate.InfrastructureRef.Name = "something_invalid"
+	kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name = "something_invalid"
 	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, "")
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(&kcp.GetV1Beta1Conditions()[0]).Should(v1beta1conditions.HaveSameStateOf(&clusterv1.Condition{
@@ -525,13 +529,17 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 						ObjectMeta: kcpMachineTemplateObjectMeta,
-						ReadinessGates: []clusterv1.MachineReadinessGate{
-							{ConditionType: "Foo"},
-						},
-						Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
-							NodeDrainTimeoutSeconds:        duration5s,
-							NodeDeletionTimeoutSeconds:     duration5s,
-							NodeVolumeDetachTimeoutSeconds: duration5s,
+						Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+							ReadinessGates: []clusterv1.MachineReadinessGate{
+								{
+									ConditionType: "Foo",
+								},
+							},
+							Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+								NodeDrainTimeoutSeconds:        duration5s,
+								NodeDeletionTimeoutSeconds:     duration5s,
+								NodeVolumeDetachTimeoutSeconds: duration5s,
+							},
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -563,10 +571,12 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 						ObjectMeta: kcpMachineTemplateObjectMeta,
-						Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
-							NodeDrainTimeoutSeconds:        duration5s,
-							NodeDeletionTimeoutSeconds:     duration5s,
-							NodeVolumeDetachTimeoutSeconds: duration5s,
+						Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+							Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+								NodeDrainTimeoutSeconds:        duration5s,
+								NodeDeletionTimeoutSeconds:     duration5s,
+								NodeVolumeDetachTimeoutSeconds: duration5s,
+							},
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -593,10 +603,12 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 						ObjectMeta: kcpMachineTemplateObjectMeta,
-						Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
-							NodeDrainTimeoutSeconds:        duration5s,
-							NodeDeletionTimeoutSeconds:     duration5s,
-							NodeVolumeDetachTimeoutSeconds: duration5s,
+						Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+							Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+								NodeDrainTimeoutSeconds:        duration5s,
+								NodeDeletionTimeoutSeconds:     duration5s,
+								NodeVolumeDetachTimeoutSeconds: duration5s,
+							},
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -628,10 +640,12 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 						ObjectMeta: kcpMachineTemplateObjectMeta,
-						Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
-							NodeDrainTimeoutSeconds:        duration5s,
-							NodeDeletionTimeoutSeconds:     duration5s,
-							NodeVolumeDetachTimeoutSeconds: duration5s,
+						Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+							Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+								NodeDrainTimeoutSeconds:        duration5s,
+								NodeDeletionTimeoutSeconds:     duration5s,
+								NodeVolumeDetachTimeoutSeconds: duration5s,
+							},
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -658,10 +672,12 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 						ObjectMeta: kcpMachineTemplateObjectMeta,
-						Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
-							NodeDrainTimeoutSeconds:        duration5s,
-							NodeDeletionTimeoutSeconds:     duration5s,
-							NodeVolumeDetachTimeoutSeconds: duration5s,
+						Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+							Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+								NodeDrainTimeoutSeconds:        duration5s,
+								NodeDeletionTimeoutSeconds:     duration5s,
+								NodeVolumeDetachTimeoutSeconds: duration5s,
+							},
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -689,12 +705,18 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-						ObjectMeta:     kcpMachineTemplateObjectMeta,
-						ReadinessGates: []clusterv1.MachineReadinessGate{{ConditionType: "Bar"}},
-						Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
-							NodeDrainTimeoutSeconds:        duration5s,
-							NodeDeletionTimeoutSeconds:     duration5s,
-							NodeVolumeDetachTimeoutSeconds: duration5s,
+						ObjectMeta: kcpMachineTemplateObjectMeta,
+						Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+							ReadinessGates: []clusterv1.MachineReadinessGate{
+								{
+									ConditionType: "Bar",
+								},
+							},
+							Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+								NodeDrainTimeoutSeconds:        duration5s,
+								NodeDeletionTimeoutSeconds:     duration5s,
+								NodeVolumeDetachTimeoutSeconds: duration5s,
+							},
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -719,13 +741,17 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 						ObjectMeta: kcpMachineTemplateObjectMeta,
-						Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
-							NodeDrainTimeoutSeconds:        duration5s,
-							NodeDeletionTimeoutSeconds:     duration5s,
-							NodeVolumeDetachTimeoutSeconds: duration5s,
-						},
-						ReadinessGates: []clusterv1.MachineReadinessGate{
-							{ConditionType: "Foo"},
+						Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+							Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+								NodeDrainTimeoutSeconds:        duration5s,
+								NodeDeletionTimeoutSeconds:     duration5s,
+								NodeVolumeDetachTimeoutSeconds: duration5s,
+							},
+							ReadinessGates: []clusterv1.MachineReadinessGate{
+								{
+									ConditionType: "Foo",
+								},
+							},
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -754,13 +780,17 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 						ObjectMeta: kcpMachineTemplateObjectMeta,
-						Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
-							NodeDrainTimeoutSeconds:        duration5s,
-							NodeDeletionTimeoutSeconds:     duration5s,
-							NodeVolumeDetachTimeoutSeconds: duration5s,
-						},
-						ReadinessGates: []clusterv1.MachineReadinessGate{
-							{ConditionType: "Foo"},
+						Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+							Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+								NodeDrainTimeoutSeconds:        duration5s,
+								NodeDeletionTimeoutSeconds:     duration5s,
+								NodeVolumeDetachTimeoutSeconds: duration5s,
+							},
+							ReadinessGates: []clusterv1.MachineReadinessGate{
+								{
+									ConditionType: "Foo",
+								},
+							},
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -790,13 +820,17 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 						ObjectMeta: kcpMachineTemplateObjectMeta,
-						Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
-							NodeDrainTimeoutSeconds:        duration5s,
-							NodeDeletionTimeoutSeconds:     duration5s,
-							NodeVolumeDetachTimeoutSeconds: duration5s,
-						},
-						ReadinessGates: []clusterv1.MachineReadinessGate{
-							{ConditionType: "Foo"},
+						Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+							Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+								NodeDrainTimeoutSeconds:        duration5s,
+								NodeDeletionTimeoutSeconds:     duration5s,
+								NodeVolumeDetachTimeoutSeconds: duration5s,
+							},
+							ReadinessGates: []clusterv1.MachineReadinessGate{
+								{
+									ConditionType: "Foo",
+								},
+							},
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -877,11 +911,11 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					InfrastructureRef: *infraRef,
 					FailureDomain:     failureDomain,
 					Deletion: clusterv1.MachineDeletionSpec{
-						NodeDrainTimeoutSeconds:        tt.kcp.Spec.MachineTemplate.Deletion.NodeDrainTimeoutSeconds,
-						NodeDeletionTimeoutSeconds:     tt.kcp.Spec.MachineTemplate.Deletion.NodeDeletionTimeoutSeconds,
-						NodeVolumeDetachTimeoutSeconds: tt.kcp.Spec.MachineTemplate.Deletion.NodeVolumeDetachTimeoutSeconds,
+						NodeDrainTimeoutSeconds:        tt.kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds,
+						NodeDeletionTimeoutSeconds:     tt.kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds,
+						NodeVolumeDetachTimeoutSeconds: tt.kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds,
 					},
-					ReadinessGates: append(append(mandatoryMachineReadinessGates, etcdMandatoryMachineReadinessGates...), tt.kcp.Spec.MachineTemplate.ReadinessGates...),
+					ReadinessGates: append(append(mandatoryMachineReadinessGates, etcdMandatoryMachineReadinessGates...), tt.kcp.Spec.MachineTemplate.Spec.ReadinessGates...),
 				}
 
 				// Verify the Name and UID of the Machine remain unchanged
@@ -915,11 +949,11 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					Version:       tt.kcp.Spec.Version,
 					FailureDomain: failureDomain,
 					Deletion: clusterv1.MachineDeletionSpec{
-						NodeDrainTimeoutSeconds:        tt.kcp.Spec.MachineTemplate.Deletion.NodeDrainTimeoutSeconds,
-						NodeDeletionTimeoutSeconds:     tt.kcp.Spec.MachineTemplate.Deletion.NodeDeletionTimeoutSeconds,
-						NodeVolumeDetachTimeoutSeconds: tt.kcp.Spec.MachineTemplate.Deletion.NodeVolumeDetachTimeoutSeconds,
+						NodeDrainTimeoutSeconds:        tt.kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds,
+						NodeDeletionTimeoutSeconds:     tt.kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds,
+						NodeVolumeDetachTimeoutSeconds: tt.kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds,
 					},
-					ReadinessGates: append(append(mandatoryMachineReadinessGates, etcdMandatoryMachineReadinessGates...), tt.kcp.Spec.MachineTemplate.ReadinessGates...),
+					ReadinessGates: append(append(mandatoryMachineReadinessGates, etcdMandatoryMachineReadinessGates...), tt.kcp.Spec.MachineTemplate.Spec.ReadinessGates...),
 				}
 				// Verify Name.
 				for _, matcher := range tt.want {

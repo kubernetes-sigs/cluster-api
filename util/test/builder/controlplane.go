@@ -122,25 +122,35 @@ func controlPlaneSpecSchema(isTemplate bool) apiextensionsv1.JSONSchemaProps {
 			// mandatory field from the Cluster API contract - using Machines support
 			"machineTemplate": {
 				Type: "object",
-				Properties: func(isTemplate bool) map[string]apiextensionsv1.JSONSchemaProps {
-					props := map[string]apiextensionsv1.JSONSchemaProps{
-						"metadata":                       metadataSchema,
-						"nodeDeletionTimeoutSeconds":     {Type: "string"},
-						"nodeDrainTimeoutSeconds":        {Type: "string"},
-						"nodeVolumeDetachTimeoutSeconds": {Type: "string"},
-					}
-					if !isTemplate {
-						props["infrastructureRef"] = apiextensionsv1.JSONSchemaProps{
-							Type: "object",
-							Properties: map[string]apiextensionsv1.JSONSchemaProps{
-								"apiGroup": {Type: "string"},
-								"kind":     {Type: "string"},
-								"name":     {Type: "string"},
-							},
-						}
-					}
-					return props
-				}(isTemplate),
+				Properties: map[string]apiextensionsv1.JSONSchemaProps{
+					"metadata": metadataSchema,
+					"spec": {
+						Type: "object",
+						Properties: func(isTemplate bool) map[string]apiextensionsv1.JSONSchemaProps {
+							props := map[string]apiextensionsv1.JSONSchemaProps{
+								"deletion": {
+									Type: "object",
+									Properties: map[string]apiextensionsv1.JSONSchemaProps{
+										"nodeDeletionTimeoutSeconds":     {Type: "string"},
+										"nodeDrainTimeoutSeconds":        {Type: "string"},
+										"nodeVolumeDetachTimeoutSeconds": {Type: "string"},
+									},
+								},
+							}
+							if !isTemplate {
+								props["infrastructureRef"] = apiextensionsv1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]apiextensionsv1.JSONSchemaProps{
+										"apiGroup": {Type: "string"},
+										"kind":     {Type: "string"},
+										"name":     {Type: "string"},
+									},
+								}
+							}
+							return props
+						}(isTemplate),
+					},
+				},
 			},
 			// General purpose fields to be used in different test scenario.
 			"foo": {Type: "string"},

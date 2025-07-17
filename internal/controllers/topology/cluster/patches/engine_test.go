@@ -326,7 +326,7 @@ func TestApply(t *testing.T) {
 								{
 									Op:    "add",
 									Path:  "/spec/template/spec/machineTemplate",
-									Value: &apiextensionsv1.JSON{Raw: []byte(`{"infrastructureRef":{"apiVersion":"invalid","kind":"invalid","namespace":"invalid","name":"invalid"}}`)},
+									Value: &apiextensionsv1.JSON{Raw: []byte(`{"spec":{"infrastructureRef":{"apiVersion":"invalid","kind":"invalid","namespace":"invalid","name":"invalid"}}}`)},
 								},
 							},
 						},

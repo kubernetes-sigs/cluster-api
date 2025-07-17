@@ -335,7 +335,7 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 
 	input.ControlPlane.Spec.Version = input.KubernetesUpgradeVersion
 	if input.UpgradeMachineTemplate != nil {
-		input.ControlPlane.Spec.MachineTemplate.InfrastructureRef.Name = *input.UpgradeMachineTemplate
+		input.ControlPlane.Spec.MachineTemplate.Spec.InfrastructureRef.Name = *input.UpgradeMachineTemplate
 	}
 	// If the ClusterConfiguration is not specified, create an empty one.
 	if input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {

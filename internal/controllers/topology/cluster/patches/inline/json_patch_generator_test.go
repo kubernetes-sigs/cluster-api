@@ -632,7 +632,7 @@ func TestMatchesSelector(t *testing.T) {
 			match: false,
 		},
 		{
-			name: "Match ControlPlane InfrastructureMachineTemplate",
+			name: "Match ControlPlane InfrastructureMachineTemplate (v1beta1 contract)",
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
@@ -648,6 +648,34 @@ func TestMatchesSelector(t *testing.T) {
 					Name:       "my-controlplane",
 					Namespace:  "default",
 					FieldPath:  "spec.machineTemplate.infrastructureRef",
+				},
+			},
+			selector: clusterv1.PatchSelector{
+				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
+				Kind:       "AzureMachineTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					ControlPlane: ptr.To(true),
+				},
+			},
+			match: true,
+		},
+		{
+			name: "Match ControlPlane InfrastructureMachineTemplate (v1beta2 contract)",
+			req: &runtimehooksv1.GeneratePatchesRequestItem{
+				Object: runtime.RawExtension{
+					Object: &unstructured.Unstructured{
+						Object: map[string]interface{}{
+							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
+							"kind":       "AzureMachineTemplate",
+						},
+					},
+				},
+				HolderReference: runtimehooksv1.HolderReference{
+					APIVersion: clusterv1.GroupVersionControlPlane.String(),
+					Kind:       "KubeadmControlPlane",
+					Name:       "my-controlplane",
+					Namespace:  "default",
+					FieldPath:  "spec.machineTemplate.spec.infrastructureRef",
 				},
 			},
 			selector: clusterv1.PatchSelector{

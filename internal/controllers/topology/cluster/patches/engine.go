@@ -542,10 +542,12 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 	}
 	if err := patchObject(ctx, desired.ControlPlane.Object, controlPlaneTemplate, PreserveFields{
 		contract.ControlPlane().MachineTemplate().Metadata().Path(),
-		contract.ControlPlane().MachineTemplate().ReadinessGates().Path(),
-		contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(),
 		// Note: For simplicity we don't allow patching for the fields of both contracts to avoid
 		// requiring a client here to retrieve the contract version of the ControlPlane object.
+		contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta1").Path(),
+		contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta2").Path(),
+		contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Path(),
+		contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(),
 		contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path(),
 		contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path(),
 		contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path(),

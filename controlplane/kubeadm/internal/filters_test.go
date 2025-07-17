@@ -1465,7 +1465,7 @@ func TestMatchesTemplateClonedFrom(t *testing.T) {
 		g := NewWithT(t)
 		reason, match := matchesTemplateClonedFrom(nil, nil, nil)
 		g.Expect(match).To(BeFalse())
-		g.Expect(reason).To(Equal("Machine cannot be compared with KCP.spec.machineTemplate.infrastructureRef: Machine is nil"))
+		g.Expect(reason).To(Equal("Machine cannot be compared with KCP.spec.machineTemplate.spec.infrastructureRef: Machine is nil"))
 	})
 
 	t.Run("returns true if machine not found", func(t *testing.T) {
@@ -1500,10 +1500,12 @@ func TestMatchesTemplateClonedFrom(t *testing.T) {
 							"test": "labels",
 						},
 					},
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-						Kind:     "GenericMachineTemplate",
-						Name:     "infra-foo",
-						APIGroup: "generic.io",
+					Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							Kind:     "GenericMachineTemplate",
+							Name:     "infra-foo",
+							APIGroup: "generic.io",
+						},
 					},
 				},
 			},
@@ -1590,10 +1592,12 @@ func TestMatchesTemplateClonedFrom_WithClonedFromAnnotations(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     "GenericMachineTemplate",
-					Name:     "infra-foo",
-					APIGroup: "generic.io",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "GenericMachineTemplate",
+						Name:     "infra-foo",
+						APIGroup: "generic.io",
+					},
 				},
 			},
 		},
@@ -1677,7 +1681,13 @@ func TestUpToDate(t *testing.T) {
 			Replicas: nil,
 			Version:  "v1.31.0",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{APIGroup: clusterv1.GroupVersionInfrastructure.Group, Kind: "AWSMachineTemplate", Name: "template1"},
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "AWSMachineTemplate",
+						Name:     "template1",
+					},
+				},
 			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
@@ -1813,7 +1823,7 @@ func TestUpToDate(t *testing.T) {
 			name: "AWSMachine is not up-to-date",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
-				kcp.Spec.MachineTemplate.InfrastructureRef = clusterv1.ContractVersionedObjectReference{APIGroup: clusterv1.GroupVersionInfrastructure.Group, Kind: "AWSMachineTemplate", Name: "template2"} // kcp moving to template 2
+				kcp.Spec.MachineTemplate.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{APIGroup: clusterv1.GroupVersionInfrastructure.Group, Kind: "AWSMachineTemplate", Name: "template2"} // kcp moving to template 2
 				return kcp
 			}(),
 			machine:                 defaultMachine,

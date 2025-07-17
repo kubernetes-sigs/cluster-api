@@ -21,6 +21,7 @@ The following table shows the preliminary dates for the `v1.11` release cycle.
 | Communicate beta to providers                         | Comms Mgr    | Tuesday 15th July 2025     | week 12  |
 | Communicate upcoming code freeze to the community     | Comms Mgr    | Tuesday 15th July 2025     | week 12  |
 | v1.11.0-beta.x released                               | Release Lead | Tuesday 22nd July 2025     | week 13  |
+| v1.11.0-beta.x released                               | Release Lead | Tuesday 29nd July 2025     | week 14  |
 | release-1.11 branch created (**Begin [Code Freeze]**) | Release Lead | Tuesday 5th August 2025    | week 15  |
 | v1.11.0-rc.0 released                                 | Release Lead | Tuesday 5th August 2025    | week 15  |
 | release-1.11 jobs created                             | CI Mgr       | Tuesday 5th August 2025    | week 15  |

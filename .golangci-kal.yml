@@ -186,11 +186,6 @@ linters:
       text: "optionalfields: field AddressRef is optional and should (be a pointer|have the omitempty tag)"
       linters:
         - kubeapilinter
-    # KAL does not handle enum markers on enum types yet: https://github.com/kubernetes-sigs/kube-api-linter/issues/113
-    - path: ".*"
-      text: "optionalfields: field (Polarity|Format|Encoding|Type|DeletePolicy|FailurePolicy) is optional and (should be a pointer|has a valid zero value)"
-      linters:
-        - kubeapilinter
 
 issues:
   max-same-issues: 0

@@ -53,12 +53,16 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: "test",
-					Kind:     "UnknownInfraMachine",
-					Name:     "infraTemplate",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "test",
+						Kind:     "UnknownInfraMachine",
+						Name:     "infraTemplate",
+					},
+					Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+						NodeDrainTimeoutSeconds: ptr.To(int32(1)),
+					},
 				},
-				NodeDrainTimeoutSeconds: ptr.To(int32(1)),
 			},
 			Replicas: ptr.To[int32](1),
 			RolloutStrategy: &controlplanev1.RolloutStrategy{

@@ -710,9 +710,9 @@ func Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *ControlP
 	if err := autoConvert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in, out, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
-	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
-	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	out.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 	convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplateReference(&in.LocalObjectTemplate, &out.TemplateRef, s)
 	return nil
 }
@@ -721,9 +721,9 @@ func Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *clusterv
 	if err := autoConvert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in, out, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
-	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
-	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDeletionTimeoutSeconds)
 	Convert_v1beta2_ClusterClassTemplateReference_To_v1beta1_LocalObjectTemplate(&in.TemplateRef, &out.LocalObjectTemplate, s)
 	return nil
 }
@@ -737,9 +737,9 @@ func Convert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in *Co
 			return err
 		}
 	}
-	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
-	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
-	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	out.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 	return nil
 }
 
@@ -753,9 +753,9 @@ func Convert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in *cl
 			return err
 		}
 	}
-	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
-	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
-	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDeletionTimeoutSeconds)
 	return nil
 }
 
@@ -777,9 +777,9 @@ func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in
 			return err
 		}
 	}
-	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
-	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
-	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	out.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 	return nil
 }
 
@@ -802,9 +802,9 @@ func Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in
 			return err
 		}
 	}
-	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
-	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
-	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDeletionTimeoutSeconds)
 	return nil
 }
 
@@ -822,9 +822,9 @@ func Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopol
 			return err
 		}
 	}
-	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
-	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
-	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	out.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 	return nil
 }
 
@@ -844,9 +844,9 @@ func Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopol
 			return err
 		}
 	}
-	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
-	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
-	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDeletionTimeoutSeconds)
 	return nil
 }
 
@@ -863,9 +863,9 @@ func Convert_v1beta1_MachinePoolClass_To_v1beta2_MachinePoolClass(in *MachinePoo
 	if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_MachinePoolClassInfrastructureTemplate(&in.Template.Infrastructure, &out.Infrastructure, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
-	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
-	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	out.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 	return nil
 }
 
@@ -882,9 +882,9 @@ func Convert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(in *clusterv1.
 	if err := Convert_v1beta2_MachinePoolClassInfrastructureTemplate_To_v1beta1_LocalObjectTemplate(&in.Infrastructure, &out.Template.Infrastructure, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
-	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
-	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDeletionTimeoutSeconds)
 	return nil
 }
 
@@ -897,9 +897,9 @@ func Convert_v1beta1_MachinePoolTopology_To_v1beta2_MachinePoolTopology(in *Mach
 			return err
 		}
 	}
-	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
-	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
-	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	out.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 	return nil
 }
 
@@ -913,9 +913,9 @@ func Convert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(in *clus
 			return err
 		}
 	}
-	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
-	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
-	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDeletionTimeoutSeconds)
 	return nil
 }
 
@@ -923,9 +923,9 @@ func Convert_v1beta1_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, out *cl
 	if err := autoConvert_v1beta1_MachineSpec_To_v1beta2_MachineSpec(in, out, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
-	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
-	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	out.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 	return nil
 }
 
@@ -1490,9 +1490,9 @@ func Convert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in *clusterv1.MachineSpe
 	if err := autoConvert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in, out, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
-	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
-	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDeletionTimeoutSeconds)
 	return nil
 }
 

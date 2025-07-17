@@ -410,11 +410,13 @@ func TestComputeControlPlane(t *testing.T) {
 						Labels:      map[string]string{"l2": ""},
 						Annotations: map[string]string{"a2": ""},
 					},
-					ReadinessGates:                 readinessGates,
-					Replicas:                       &replicas,
-					NodeDrainTimeoutSeconds:        &nodeDrainTimeout,
-					NodeVolumeDetachTimeoutSeconds: &nodeVolumeDetachTimeout,
-					NodeDeletionTimeoutSeconds:     &nodeDeletionTimeout,
+					ReadinessGates: readinessGates,
+					Replicas:       &replicas,
+					Deletion: clusterv1.ControlPlaneTopologyMachineDeletionSpec{
+						NodeDrainTimeoutSeconds:        &nodeDrainTimeout,
+						NodeVolumeDetachTimeoutSeconds: &nodeVolumeDetachTimeout,
+						NodeDeletionTimeoutSeconds:     &nodeDeletionTimeout,
+					},
 				},
 			},
 		},
@@ -475,7 +477,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
-		assertNestedField(g, obj, expectedReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates().Path()...)
+		assertNestedField(g, obj, expectedReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta1").Path()...)
 		assertNestedField(g, obj, (time.Duration(topologyDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
 		assertNestedField(g, obj, (time.Duration(topologyDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
 		assertNestedField(g, obj, (time.Duration(topologyDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path()...)
@@ -515,7 +517,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
-		assertNestedField(g, obj, expectedReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates().Path()...)
+		assertNestedField(g, obj, expectedReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta2").Path()...)
 		assertNestedField(g, obj, int64(topologyDuration), contract.ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Path()...)
 		assertNestedField(g, obj, int64(topologyDuration), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Path()...)
 		assertNestedField(g, obj, int64(topologyDuration), contract.ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Path()...)
@@ -564,7 +566,7 @@ func TestComputeControlPlane(t *testing.T) {
 		g.Expect(obj).ToNot(BeNil())
 
 		// checking only values from CC defaults
-		assertNestedField(g, obj, expectedClusterClassReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates().Path()...)
+		assertNestedField(g, obj, expectedClusterClassReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta1").Path()...)
 		assertNestedField(g, obj, (time.Duration(clusterClassDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
 		assertNestedField(g, obj, (time.Duration(clusterClassDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
 		assertNestedField(g, obj, (time.Duration(clusterClassDuration) * time.Second).String(), contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path()...)
@@ -609,7 +611,7 @@ func TestComputeControlPlane(t *testing.T) {
 		g.Expect(obj).ToNot(BeNil())
 
 		// checking only values from CC defaults
-		assertNestedField(g, obj, expectedClusterClassReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates().Path()...)
+		assertNestedField(g, obj, expectedClusterClassReadinessGates, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta2").Path()...)
 		assertNestedField(g, obj, int64(clusterClassDuration), contract.ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Path()...)
 		assertNestedField(g, obj, int64(clusterClassDuration), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Path()...)
 		assertNestedField(g, obj, int64(clusterClassDuration), contract.ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Path()...)
@@ -676,7 +678,8 @@ func TestComputeControlPlane(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
-		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().ReadinessGates().Path()...)
+		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta1").Path()...)
+		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta2").Path()...)
 	})
 	t.Run("Generates the ControlPlane from the template and adds the infrastructure machine template if required (v1beta1 contract)", func(t *testing.T) {
 		g := NewWithT(t)
@@ -1807,16 +1810,18 @@ func TestComputeMachineDeployment(t *testing.T) {
 				clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation: "",
 			},
 		},
-		Class:                          "linux-worker",
-		Name:                           "big-pool-of-machines",
-		Replicas:                       &replicas,
-		FailureDomain:                  topologyFailureDomain,
-		ReadinessGates:                 readinessGates,
-		NodeDrainTimeoutSeconds:        &topologyDuration,
-		NodeVolumeDetachTimeoutSeconds: &topologyDuration,
-		NodeDeletionTimeoutSeconds:     &topologyDuration,
-		MinReadySeconds:                &topologyMinReadySeconds,
-		Strategy:                       topologyStrategy,
+		Class:          "linux-worker",
+		Name:           "big-pool-of-machines",
+		Replicas:       &replicas,
+		FailureDomain:  topologyFailureDomain,
+		ReadinessGates: readinessGates,
+		Deletion: clusterv1.MachineDeploymentTopologyMachineDeletionSpec{
+			NodeDrainTimeoutSeconds:        &topologyDuration,
+			NodeVolumeDetachTimeoutSeconds: &topologyDuration,
+			NodeDeletionTimeoutSeconds:     &topologyDuration,
+		},
+		MinReadySeconds: &topologyMinReadySeconds,
+		Strategy:        topologyStrategy,
 	}
 
 	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {
@@ -1848,9 +1853,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Spec.Strategy).To(BeComparableTo(topologyStrategy))
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(topologyMinReadySeconds)))
 		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
-		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeoutSeconds).To(Equal(topologyDuration))
-		g.Expect(*actualMd.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds).To(Equal(topologyDuration))
-		g.Expect(*actualMd.Spec.Template.Spec.NodeDeletionTimeoutSeconds).To(Equal(topologyDuration))
+		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(topologyDuration))
+		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(topologyDuration))
+		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(topologyDuration))
 		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(Equal(readinessGates))
 		g.Expect(actualMd.Spec.ClusterName).To(Equal("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("cluster1"))
@@ -1907,9 +1912,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(clusterClassMinReadySeconds)))
 		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(clusterClassFailureDomain))
 		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(Equal(clusterClassReadinessGates))
-		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeoutSeconds).To(Equal(clusterClassDuration))
-		g.Expect(*actualMd.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds).To(Equal(clusterClassDuration))
-		g.Expect(*actualMd.Spec.Template.Spec.NodeDeletionTimeoutSeconds).To(Equal(clusterClassDuration))
+		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(clusterClassDuration))
+		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(clusterClassDuration))
+		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(clusterClassDuration))
 	})
 
 	t.Run("Skips setting readinessGates if not set in Cluster and ClusterClass", func(t *testing.T) {
@@ -2270,14 +2275,16 @@ func TestComputeMachinePool(t *testing.T) {
 				clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation: "",
 			},
 		},
-		Class:                          "linux-worker",
-		Name:                           "big-pool-of-machines",
-		Replicas:                       &replicas,
-		FailureDomains:                 topologyFailureDomains,
-		NodeDrainTimeoutSeconds:        &topologyDuration,
-		NodeVolumeDetachTimeoutSeconds: &topologyDuration,
-		NodeDeletionTimeoutSeconds:     &topologyDuration,
-		MinReadySeconds:                &topologyMinReadySeconds,
+		Class:          "linux-worker",
+		Name:           "big-pool-of-machines",
+		Replicas:       &replicas,
+		FailureDomains: topologyFailureDomains,
+		Deletion: clusterv1.MachinePoolTopologyMachineDeletionSpec{
+			NodeDrainTimeoutSeconds:        &topologyDuration,
+			NodeVolumeDetachTimeoutSeconds: &topologyDuration,
+			NodeDeletionTimeoutSeconds:     &topologyDuration,
+		},
+		MinReadySeconds: &topologyMinReadySeconds,
 	}
 
 	t.Run("Generates the machine pool and the referenced templates", func(t *testing.T) {
@@ -2308,9 +2315,9 @@ func TestComputeMachinePool(t *testing.T) {
 		g.Expect(*actualMp.Spec.Replicas).To(Equal(replicas))
 		g.Expect(actualMp.Spec.FailureDomains).To(Equal(topologyFailureDomains))
 		g.Expect(actualMp.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(topologyMinReadySeconds)))
-		g.Expect(*actualMp.Spec.Template.Spec.NodeDrainTimeoutSeconds).To(Equal(topologyDuration))
-		g.Expect(*actualMp.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds).To(Equal(topologyDuration))
-		g.Expect(*actualMp.Spec.Template.Spec.NodeDeletionTimeoutSeconds).To(Equal(topologyDuration))
+		g.Expect(*actualMp.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(topologyDuration))
+		g.Expect(*actualMp.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(topologyDuration))
+		g.Expect(*actualMp.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(topologyDuration))
 		g.Expect(actualMp.Spec.ClusterName).To(Equal("cluster1"))
 		g.Expect(actualMp.Name).To(ContainSubstring("cluster1"))
 		g.Expect(actualMp.Name).To(ContainSubstring("big-pool-of-machines"))
@@ -2359,9 +2366,9 @@ func TestComputeMachinePool(t *testing.T) {
 		actualMp := actual.Object
 		g.Expect(actualMp.Spec.FailureDomains).To(Equal(clusterClassFailureDomains))
 		g.Expect(actualMp.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(clusterClassMinReadySeconds)))
-		g.Expect(*actualMp.Spec.Template.Spec.NodeDrainTimeoutSeconds).To(Equal(clusterClassDuration))
-		g.Expect(*actualMp.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds).To(Equal(clusterClassDuration))
-		g.Expect(*actualMp.Spec.Template.Spec.NodeDeletionTimeoutSeconds).To(Equal(clusterClassDuration))
+		g.Expect(*actualMp.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(clusterClassDuration))
+		g.Expect(*actualMp.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(clusterClassDuration))
+		g.Expect(*actualMp.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(clusterClassDuration))
 	})
 
 	t.Run("If there is already a machine pool, it preserves the object name and the reference names", func(t *testing.T) {

@@ -215,12 +215,8 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		// spec.machineTemplate
 		{spec, "machineTemplate", "metadata"},
 		{spec, "machineTemplate", "metadata", "*"},
-		{spec, "machineTemplate", "infrastructureRef", "apiGroup"},
-		{spec, "machineTemplate", "infrastructureRef", "name"},
-		{spec, "machineTemplate", "infrastructureRef", "kind"},
-		{spec, "machineTemplate", "nodeDrainTimeoutSeconds"},
-		{spec, "machineTemplate", "nodeVolumeDetachTimeoutSeconds"},
-		{spec, "machineTemplate", "nodeDeletionTimeoutSeconds"},
+		{spec, "machineTemplate", "spec"},
+		{spec, "machineTemplate", "spec", "*"},
 		// spec
 		{spec, "replicas"},
 		{spec, "version"},
@@ -336,32 +332,32 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 		}
 	}
 
-	if s.MachineTemplate.InfrastructureRef.APIGroup == "" {
+	if s.MachineTemplate.Spec.InfrastructureRef.APIGroup == "" {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				pathPrefix.Child("machineTemplate", "infrastructure", "apiGroup"),
-				s.MachineTemplate.InfrastructureRef.APIGroup,
+				s.MachineTemplate.Spec.InfrastructureRef.APIGroup,
 				"cannot be empty",
 			),
 		)
 	}
-	if s.MachineTemplate.InfrastructureRef.Kind == "" {
+	if s.MachineTemplate.Spec.InfrastructureRef.Kind == "" {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				pathPrefix.Child("machineTemplate", "infrastructure", "kind"),
-				s.MachineTemplate.InfrastructureRef.Kind,
+				s.MachineTemplate.Spec.InfrastructureRef.Kind,
 				"cannot be empty",
 			),
 		)
 	}
-	if s.MachineTemplate.InfrastructureRef.Name == "" {
+	if s.MachineTemplate.Spec.InfrastructureRef.Name == "" {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				pathPrefix.Child("machineTemplate", "infrastructure", "name"),
-				s.MachineTemplate.InfrastructureRef.Name,
+				s.MachineTemplate.Spec.InfrastructureRef.Name,
 				"cannot be empty",
 			),
 		)

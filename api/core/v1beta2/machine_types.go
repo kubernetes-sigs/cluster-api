@@ -450,6 +450,14 @@ type MachineSpec struct {
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
+	// deletion contains configuration options for Machine deletion.
+	// +optional
+	Deletion MachineDeletionSpec `json:"deletion,omitempty,omitzero"`
+}
+
+// MachineDeletionSpec contains configuration options for Machine deletion.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeletionSpec struct {
 	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`

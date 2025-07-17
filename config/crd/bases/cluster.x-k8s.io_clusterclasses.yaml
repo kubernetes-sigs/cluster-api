@@ -2892,6 +2892,38 @@ spec:
                   controlPlane is a reference to a local struct that holds the details
                   for provisioning the Control Plane for the Cluster.
                 properties:
+                  deletion:
+                    description: deletion contains configuration options for Machine
+                      deletion.
+                    minProperties: 1
+                    properties:
+                      nodeDeletionTimeoutSeconds:
+                        description: |-
+                          nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
+                          hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+                          Defaults to 10 seconds.
+                          NOTE: This value can be overridden while defining a Cluster.Topology.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      nodeDrainTimeoutSeconds:
+                        description: |-
+                          nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
+                          The default value is 0, meaning that the node can be drained without any time limitations.
+                          NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
+                          NOTE: This value can be overridden while defining a Cluster.Topology.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      nodeVolumeDetachTimeoutSeconds:
+                        description: |-
+                          nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
+                          to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+                          NOTE: This value can be overridden while defining a Cluster.Topology.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                    type: object
                   machineHealthCheck:
                     description: |-
                       machineHealthCheck defines a MachineHealthCheck for this ControlPlaneClass.
@@ -3106,32 +3138,6 @@ spec:
                         minLength: 1
                         type: string
                     type: object
-                  nodeDeletionTimeoutSeconds:
-                    description: |-
-                      nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-                      hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
-                      Defaults to 10 seconds.
-                      NOTE: This value can be overridden while defining a Cluster.Topology.
-                    format: int32
-                    minimum: 0
-                    type: integer
-                  nodeDrainTimeoutSeconds:
-                    description: |-
-                      nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
-                      The default value is 0, meaning that the node can be drained without any time limitations.
-                      NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
-                      NOTE: This value can be overridden while defining a Cluster.Topology.
-                    format: int32
-                    minimum: 0
-                    type: integer
-                  nodeVolumeDetachTimeoutSeconds:
-                    description: |-
-                      nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
-                      to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
-                      NOTE: This value can be overridden while defining a Cluster.Topology.
-                    format: int32
-                    minimum: 0
-                    type: integer
                   readinessGates:
                     description: |-
                       readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
@@ -3973,6 +3979,38 @@ spec:
                           maxLength: 256
                           minLength: 1
                           type: string
+                        deletion:
+                          description: deletion contains configuration options for
+                            Machine deletion.
+                          minProperties: 1
+                          properties:
+                            nodeDeletionTimeoutSeconds:
+                              description: |-
+                                nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
+                                hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+                                Defaults to 10 seconds.
+                                NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+                              format: int32
+                              minimum: 0
+                              type: integer
+                            nodeDrainTimeoutSeconds:
+                              description: |-
+                                nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
+                                The default value is 0, meaning that the node can be drained without any time limitations.
+                                NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
+                                NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+                              format: int32
+                              minimum: 0
+                              type: integer
+                            nodeVolumeDetachTimeoutSeconds:
+                              description: |-
+                                nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
+                                to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+                                NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+                              format: int32
+                              minimum: 0
+                              type: integer
+                          type: object
                         failureDomain:
                           description: |-
                             failureDomain is the failure domain the machines will be created in.
@@ -4196,32 +4234,6 @@ spec:
                               minLength: 1
                               type: string
                           type: object
-                        nodeDeletionTimeoutSeconds:
-                          description: |-
-                            nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-                            hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
-                            Defaults to 10 seconds.
-                            NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
-                          format: int32
-                          minimum: 0
-                          type: integer
-                        nodeDrainTimeoutSeconds:
-                          description: |-
-                            nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
-                            The default value is 0, meaning that the node can be drained without any time limitations.
-                            NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
-                            NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
-                          format: int32
-                          minimum: 0
-                          type: integer
-                        nodeVolumeDetachTimeoutSeconds:
-                          description: |-
-                            nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
-                            to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
-                            NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
-                          format: int32
-                          minimum: 0
-                          type: integer
                         readinessGates:
                           description: |-
                             readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
@@ -4429,6 +4441,38 @@ spec:
                           maxLength: 256
                           minLength: 1
                           type: string
+                        deletion:
+                          description: deletion contains configuration options for
+                            Machine deletion.
+                          minProperties: 1
+                          properties:
+                            nodeDeletionTimeoutSeconds:
+                              description: |-
+                                nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
+                                hosts after the Machine Pool is marked for deletion. A duration of 0 will retry deletion indefinitely.
+                                Defaults to 10 seconds.
+                                NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
+                              format: int32
+                              minimum: 0
+                              type: integer
+                            nodeDrainTimeoutSeconds:
+                              description: |-
+                                nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
+                                The default value is 0, meaning that the node can be drained without any time limitations.
+                                NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
+                                NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
+                              format: int32
+                              minimum: 0
+                              type: integer
+                            nodeVolumeDetachTimeoutSeconds:
+                              description: |-
+                                nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
+                                to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+                                NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
+                              format: int32
+                              minimum: 0
+                              type: integer
+                          type: object
                         failureDomains:
                           description: |-
                             failureDomains is the list of failure domains the MachinePool should be attached to.
@@ -4535,32 +4579,6 @@ spec:
                               minLength: 1
                               type: string
                           type: object
-                        nodeDeletionTimeoutSeconds:
-                          description: |-
-                            nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-                            hosts after the Machine Pool is marked for deletion. A duration of 0 will retry deletion indefinitely.
-                            Defaults to 10 seconds.
-                            NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
-                          format: int32
-                          minimum: 0
-                          type: integer
-                        nodeDrainTimeoutSeconds:
-                          description: |-
-                            nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
-                            The default value is 0, meaning that the node can be drained without any time limitations.
-                            NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
-                            NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
-                          format: int32
-                          minimum: 0
-                          type: integer
-                        nodeVolumeDetachTimeoutSeconds:
-                          description: |-
-                            nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
-                            to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
-                            NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass.
-                          format: int32
-                          minimum: 0
-                          type: integer
                       required:
                       - bootstrap
                       - class

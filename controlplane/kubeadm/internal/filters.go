@@ -122,7 +122,7 @@ func UpToDate(machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlan
 // TODO: This function will be renamed in a follow-up PR to something better. (ex: MatchesInfraMachine).
 func matchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructured, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool) {
 	if machine == nil {
-		return "Machine cannot be compared with KCP.spec.machineTemplate.infrastructureRef: Machine is nil", false
+		return "Machine cannot be compared with KCP.spec.machineTemplate.spec.infrastructureRef: Machine is nil", false
 	}
 	infraObj, found := infraConfigs[machine.Name]
 	if !found {
@@ -140,11 +140,11 @@ func matchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructure
 	}
 
 	// Check if the machine's infrastructure reference has been created from the current KCP infrastructure template.
-	if clonedFromName != kcp.Spec.MachineTemplate.InfrastructureRef.Name ||
-		clonedFromGroupKind != kcp.Spec.MachineTemplate.InfrastructureRef.GroupKind().String() {
+	if clonedFromName != kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name ||
+		clonedFromGroupKind != kcp.Spec.MachineTemplate.Spec.InfrastructureRef.GroupKind().String() {
 		return fmt.Sprintf("Infrastructure template on KCP rotated from %s %s to %s %s",
 			clonedFromGroupKind, clonedFromName,
-			kcp.Spec.MachineTemplate.InfrastructureRef.GroupKind().String(), kcp.Spec.MachineTemplate.InfrastructureRef.Name), false
+			kcp.Spec.MachineTemplate.Spec.InfrastructureRef.GroupKind().String(), kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name), false
 	}
 
 	return "", true

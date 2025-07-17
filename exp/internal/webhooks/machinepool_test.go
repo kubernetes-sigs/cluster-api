@@ -57,7 +57,7 @@ func TestMachinePoolDefault(t *testing.T) {
 	g.Expect(mp.Labels[clusterv1.ClusterNameLabel]).To(Equal(mp.Spec.ClusterName))
 	g.Expect(mp.Spec.Replicas).To(Equal(ptr.To[int32](1)))
 	g.Expect(mp.Spec.Template.Spec.Version).To(Equal("v1.20.0"))
-	g.Expect(*mp.Spec.Template.Spec.NodeDeletionTimeoutSeconds).To(Equal(defaultNodeDeletionTimeoutSeconds))
+	g.Expect(*mp.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(defaultNodeDeletionTimeoutSeconds))
 }
 
 func TestCalculateMachinePoolReplicas(t *testing.T) {

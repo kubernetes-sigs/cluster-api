@@ -54,7 +54,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	if err != nil {
 		return err
 	}
-	dst.Spec.MachineTemplate.InfrastructureRef = *infraRef
+	dst.Spec.MachineTemplate.Spec.InfrastructureRef = *infraRef
 
 	// Manually restore data.
 	restored := &controlplanev1.KubeadmControlPlane{}
@@ -102,7 +102,7 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	infraRef, err := convertToObjectReference(&src.Spec.MachineTemplate.InfrastructureRef, src.Namespace)
+	infraRef, err := convertToObjectReference(&src.Spec.MachineTemplate.Spec.InfrastructureRef, src.Namespace)
 	if err != nil {
 		return err
 	}
@@ -258,18 +258,36 @@ func Convert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1beta2_KubeadmContro
 	if err := autoConvert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1beta2_KubeadmControlPlaneMachineTemplate(in, out, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
-	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
-	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	if in.ReadinessGates != nil {
+		in, out := &in.ReadinessGates, &out.Spec.ReadinessGates
+		*out = make([]clusterv1.MachineReadinessGate, len(*in))
+		for i := range *in {
+			if err := clusterv1beta1.Convert_v1beta1_MachineReadinessGate_To_v1beta2_MachineReadinessGate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	}
+	out.Spec.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.Spec.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 	return nil
 }
 func Convert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1beta1_KubeadmControlPlaneMachineTemplate(in *controlplanev1.KubeadmControlPlaneMachineTemplate, out *KubeadmControlPlaneMachineTemplate, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1beta1_KubeadmControlPlaneMachineTemplate(in, out, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
-	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
-	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	if in.Spec.ReadinessGates != nil {
+		in, out := &in.Spec.ReadinessGates, &out.ReadinessGates
+		*out = make([]clusterv1beta1.MachineReadinessGate, len(*in))
+		for i := range *in {
+			if err := clusterv1beta1.Convert_v1beta2_MachineReadinessGate_To_v1beta1_MachineReadinessGate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	}
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Spec.Deletion.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Spec.Deletion.NodeDeletionTimeoutSeconds)
 	return nil
 }
 
@@ -277,9 +295,9 @@ func Convert_v1beta1_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta2_Kubea
 	if err := autoConvert_v1beta1_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta2_KubeadmControlPlaneTemplateMachineTemplate(in, out, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
-	out.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
-	out.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
+	out.Spec.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
+	out.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
+	out.Spec.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 	return nil
 }
 
@@ -287,9 +305,9 @@ func Convert_v1beta2_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta1_Kubea
 	if err := autoConvert_v1beta2_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta1_KubeadmControlPlaneTemplateMachineTemplate(in, out, s); err != nil {
 		return err
 	}
-	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.NodeDrainTimeoutSeconds)
-	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.NodeVolumeDetachTimeoutSeconds)
-	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.NodeDeletionTimeoutSeconds)
+	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Spec.Deletion.NodeDrainTimeoutSeconds)
+	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)
+	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Spec.Deletion.NodeDeletionTimeoutSeconds)
 	return nil
 }
 

@@ -98,8 +98,8 @@ func (webhook *MachinePool) Default(ctx context.Context, obj runtime.Object) err
 	m.Spec.Replicas = ptr.To[int32](replicas)
 
 	// Set the default value for the node deletion timeout.
-	if m.Spec.Template.Spec.NodeDeletionTimeoutSeconds == nil {
-		m.Spec.Template.Spec.NodeDeletionTimeoutSeconds = ptr.To(defaultNodeDeletionTimeoutSeconds)
+	if m.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds == nil {
+		m.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(defaultNodeDeletionTimeoutSeconds)
 	}
 
 	// tolerate version strings without a "v" prefix: prepend it if it's not there.

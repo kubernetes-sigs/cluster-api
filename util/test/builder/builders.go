@@ -516,13 +516,13 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 		obj.Spec.ControlPlane.MachineHealthCheck = c.controlPlaneMHC
 	}
 	if c.controlPlaneNodeDrainTimeout != nil {
-		obj.Spec.ControlPlane.NodeDrainTimeoutSeconds = c.controlPlaneNodeDrainTimeout
+		obj.Spec.ControlPlane.Deletion.NodeDrainTimeoutSeconds = c.controlPlaneNodeDrainTimeout
 	}
 	if c.controlPlaneNodeVolumeDetachTimeout != nil {
-		obj.Spec.ControlPlane.NodeVolumeDetachTimeoutSeconds = c.controlPlaneNodeVolumeDetachTimeout
+		obj.Spec.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds = c.controlPlaneNodeVolumeDetachTimeout
 	}
 	if c.controlPlaneNodeDeletionTimeout != nil {
-		obj.Spec.ControlPlane.NodeDeletionTimeoutSeconds = c.controlPlaneNodeDeletionTimeout
+		obj.Spec.ControlPlane.Deletion.NodeDeletionTimeoutSeconds = c.controlPlaneNodeDeletionTimeout
 	}
 	if c.controlPlaneInfrastructureMachineTemplate != nil {
 		obj.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
@@ -669,13 +669,13 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 		obj.FailureDomain = *m.failureDomain
 	}
 	if m.nodeDrainTimeout != nil {
-		obj.NodeDrainTimeoutSeconds = m.nodeDrainTimeout
+		obj.Deletion.NodeDrainTimeoutSeconds = m.nodeDrainTimeout
 	}
 	if m.nodeVolumeDetachTimeout != nil {
-		obj.NodeVolumeDetachTimeoutSeconds = m.nodeVolumeDetachTimeout
+		obj.Deletion.NodeVolumeDetachTimeoutSeconds = m.nodeVolumeDetachTimeout
 	}
 	if m.nodeDeletionTimeout != nil {
-		obj.NodeDeletionTimeoutSeconds = m.nodeDeletionTimeout
+		obj.Deletion.NodeDeletionTimeoutSeconds = m.nodeDeletionTimeout
 	}
 	if m.minReadySeconds != nil {
 		obj.MinReadySeconds = m.minReadySeconds
@@ -788,13 +788,13 @@ func (m *MachinePoolClassBuilder) Build() *clusterv1.MachinePoolClass {
 		obj.FailureDomains = m.failureDomains
 	}
 	if m.nodeDrainTimeout != nil {
-		obj.NodeDrainTimeoutSeconds = m.nodeDrainTimeout
+		obj.Deletion.NodeDrainTimeoutSeconds = m.nodeDrainTimeout
 	}
 	if m.nodeVolumeDetachTimeout != nil {
-		obj.NodeVolumeDetachTimeoutSeconds = m.nodeVolumeDetachTimeout
+		obj.Deletion.NodeVolumeDetachTimeoutSeconds = m.nodeVolumeDetachTimeout
 	}
 	if m.nodeDeletionTimeout != nil {
-		obj.NodeDeletionTimeoutSeconds = m.nodeDeletionTimeout
+		obj.Deletion.NodeDeletionTimeoutSeconds = m.nodeDeletionTimeout
 	}
 	if m.minReadySeconds != nil {
 		obj.MinReadySeconds = m.minReadySeconds

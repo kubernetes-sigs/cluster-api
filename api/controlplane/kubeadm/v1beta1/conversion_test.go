@@ -147,8 +147,8 @@ func hubMachineTemplateSpec(in *controlplanev1.KubeadmControlPlaneMachineTemplat
 
 	// Ensure ref field is always set to realistic values.
 	gvk := testGVKs[c.Int31n(4)]
-	in.InfrastructureRef.APIGroup = gvk.Group
-	in.InfrastructureRef.Kind = gvk.Kind
+	in.Spec.InfrastructureRef.APIGroup = gvk.Group
+	in.Spec.InfrastructureRef.Kind = gvk.Kind
 }
 
 func spokeKubeadmControlPlane(in *KubeadmControlPlane, c randfill.Continue) {

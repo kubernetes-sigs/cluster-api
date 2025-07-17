@@ -322,7 +322,16 @@ func Test_setScalingUpCondition(t *testing.T) {
 			name: "Not scaling up, infra template not found",
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3)), MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "AWSTemplate"}}},
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Replicas: ptr.To(int32(3)),
+						MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+							Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+								InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+									Kind: "AWSTemplate",
+								},
+							},
+						},
+					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
 				},
 				Machines: collections.FromMachines(
@@ -383,7 +392,16 @@ func Test_setScalingUpCondition(t *testing.T) {
 			name: "Scaling up, infra template not found",
 			controlPlane: &internal.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5)), MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "AWSTemplate"}}},
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Replicas: ptr.To(int32(5)),
+						MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+							Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+								InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+									Kind: "AWSTemplate",
+								},
+							},
+						},
+					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
 				},
 				Machines: collections.FromMachines(
@@ -1959,10 +1977,12 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: "test",
-					Kind:     "UnknownInfraMachine",
-					Name:     "foo",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "test",
+						Kind:     "UnknownInfraMachine",
+						Name:     "foo",
+					},
 				},
 			},
 		},
@@ -2111,10 +2131,12 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: "test",
-					Kind:     "UnknownInfraMachine",
-					Name:     "foo",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "test",
+						Kind:     "UnknownInfraMachine",
+						Name:     "foo",
+					},
 				},
 			},
 		},
@@ -2181,10 +2203,12 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: "test",
-					Kind:     "UnknownInfraMachine",
-					Name:     "foo",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "test",
+						Kind:     "UnknownInfraMachine",
+						Name:     "foo",
+					},
 				},
 			},
 		},
@@ -2258,10 +2282,12 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: "test",
-					Kind:     "UnknownInfraMachine",
-					Name:     "foo",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "test",
+						Kind:     "UnknownInfraMachine",
+						Name:     "foo",
+					},
 				},
 			},
 		},
@@ -2335,10 +2361,12 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 			Version:  "v1.16.6",
 			Replicas: ptr.To[int32](3),
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: "test",
-					Kind:     "UnknownInfraMachine",
-					Name:     "foo",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "test",
+						Kind:     "UnknownInfraMachine",
+						Name:     "foo",
+					},
 				},
 			},
 		},

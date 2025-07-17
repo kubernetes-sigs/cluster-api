@@ -151,6 +151,11 @@ func matchesSelector(req *runtimehooksv1.GeneratePatchesRequestItem, templateVar
 		}
 		// *.spec.machineTemplate.infrastructureRef holds the InfrastructureMachineTemplate of a ControlPlane.
 		// Note: this field path is only used in this context.
+		if req.HolderReference.FieldPath == strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Path(), ".") {
+			return true
+		}
+		// *.spec.machineTemplate.spec.infrastructureRef holds the InfrastructureMachineTemplate of a ControlPlane.
+		// Note: this field path is only used in this context.
 		if req.HolderReference.FieldPath == strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(), ".") {
 			return true
 		}

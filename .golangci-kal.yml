@@ -186,6 +186,10 @@ linters:
       text: "optionalfields: field AddressRef is optional and should (be a pointer|have the omitempty tag)"
       linters:
         - kubeapilinter
+    - path: "api/core/v1beta2/*|api/controlplane/kubeadm/v1beta2/*"
+      text: "optionalfields: field Deletion is optional and should (be a pointer|have the omitempty tag)"
+      linters:
+        - kubeapilinter
 
 issues:
   max-same-issues: 0

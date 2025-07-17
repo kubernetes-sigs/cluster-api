@@ -130,12 +130,31 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 // omits ObjectMeta and InfrastructureRef fields. These fields do not make sense on the KubeadmControlPlaneTemplate,
 // because they are calculated by the Cluster topology reconciler during reconciliation and thus cannot
 // be configured on the KubeadmControlPlaneTemplate.
+// +kubebuilder:validation:MinProperties=1
 type KubeadmControlPlaneTemplateMachineTemplate struct {
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 
+	// spec defines the spec for Machines
+	// in a KubeadmControlPlane object.
+	// +optional
+	Spec KubeadmControlPlaneTemplateMachineTemplateSpec `json:"spec,omitempty,omitzero"`
+}
+
+// KubeadmControlPlaneTemplateMachineTemplateSpec defines the spec for Machines
+// in a KubeadmControlPlane object.
+// +kubebuilder:validation:MinProperties=1
+type KubeadmControlPlaneTemplateMachineTemplateSpec struct {
+	// deletion contains configuration options for Machine deletion.
+	// +optional
+	Deletion KubeadmControlPlaneTemplateMachineTemplateDeletionSpec `json:"deletion,omitempty,omitzero"`
+}
+
+// KubeadmControlPlaneTemplateMachineTemplateDeletionSpec contains configuration options for Machine deletion.
+// +kubebuilder:validation:MinProperties=1
+type KubeadmControlPlaneTemplateMachineTemplateDeletionSpec struct {
 	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a controlplane node
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`

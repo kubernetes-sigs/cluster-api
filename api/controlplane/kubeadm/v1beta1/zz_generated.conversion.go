@@ -334,10 +334,8 @@ func autoConvert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1beta2_KubeadmCo
 	if err := Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if err := Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
-		return err
-	}
-	out.ReadinessGates = *(*[]corev1beta2.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
+	// WARNING: in.InfrastructureRef requires manual conversion: does not exist in peer-type
+	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
@@ -348,13 +346,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1beta1_KubeadmCo
 	if err := Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(&in.InfrastructureRef, &out.InfrastructureRef, s); err != nil {
-		return err
-	}
-	out.ReadinessGates = *(*[]corev1beta1.MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Spec requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -581,9 +573,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta1_K
 	if err := Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Spec requires manual conversion: does not exist in peer-type
 	return nil
 }
 

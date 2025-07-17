@@ -2722,7 +2722,7 @@ func TestReconcileMachinePools(t *testing.T) {
 						wantMachinePoolState.Object.Spec.Template.Spec.Bootstrap.ConfigRef.Name = gotMachinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Name
 					}
 					// expect default value for the node deletion timeout.
-					wantMachinePoolState.Object.Spec.Template.Spec.NodeDeletionTimeoutSeconds = ptr.To(int32(10))
+					wantMachinePoolState.Object.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(int32(10))
 
 					// Compare MachinePool.
 					// Note: We're intentionally only comparing Spec as otherwise we would have to account for
@@ -3084,12 +3084,16 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					name: "Initially reconcile",
 					desired: object{
 						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{},
+							"machineTemplate": map[string]interface{}{
+								"spec": map[string]interface{}{},
+							},
 						},
 					},
 					want: object{
 						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{},
+							"machineTemplate": map[string]interface{}{
+								"spec": map[string]interface{}{},
+							},
 						},
 					},
 					wantCreated: true,
@@ -3099,9 +3103,11 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					object: object{
 						spec: map[string]interface{}{
 							"machineTemplate": map[string]interface{}{
-								"infrastructureRef": map[string]interface{}{
-									"apiGroup": "foo",
-									"kind":     "Foo",
+								"spec": map[string]interface{}{
+									"infrastructureRef": map[string]interface{}{
+										"apiGroup": "foo",
+										"kind":     "Foo",
+									},
 								},
 							},
 						},
@@ -3117,17 +3123,27 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 										"foo": "foo",
 									},
 								},
-								"nodeDeletionTimeoutSeconds": "10m",
+								"spec": map[string]interface{}{
+									"deletion": map[string]interface{}{
+										"nodeDeletionTimeoutSeconds": "10m",
+									},
+								},
 							},
 						},
 					},
 					want: object{
 						spec: map[string]interface{}{
 							"machineTemplate": map[string]interface{}{
-								// User fields are preserved.
-								"infrastructureRef": map[string]interface{}{
-									"apiGroup": "foo",
-									"kind":     "Foo",
+								"spec": map[string]interface{}{
+									// User fields are preserved.
+									"infrastructureRef": map[string]interface{}{
+										"apiGroup": "foo",
+										"kind":     "Foo",
+									},
+									// ClusterClass authoritative fields are added.
+									"deletion": map[string]interface{}{
+										"nodeDeletionTimeoutSeconds": "10m",
+									},
 								},
 								// ClusterClass authoritative fields are added.
 								"metadata": map[string]interface{}{
@@ -3135,7 +3151,6 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 										"foo": "foo",
 									},
 								},
-								"nodeDeletionTimeoutSeconds": "10m",
 							},
 						},
 					},
@@ -3157,11 +3172,13 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					want: object{
 						spec: map[string]interface{}{
 							"machineTemplate": map[string]interface{}{
-								// Reconcile to drop clusterClassField,
-								// while preserving user-defined field and clusterClassField.
-								"infrastructureRef": map[string]interface{}{
-									"apiGroup": "foo",
-									"kind":     "Foo",
+								"spec": map[string]interface{}{
+									// Reconcile to drop clusterClassField,
+									// while preserving user-defined field and clusterClassField.
+									"infrastructureRef": map[string]interface{}{
+										"apiGroup": "foo",
+										"kind":     "Foo",
+									},
 								},
 								"metadata": map[string]interface{}{
 									"labels": map[string]interface{}{
@@ -3184,11 +3201,13 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					want: object{
 						spec: map[string]interface{}{
 							"machineTemplate": map[string]interface{}{
-								// Reconcile to drop clusterClassObject,
-								// while preserving user-defined field.
-								"infrastructureRef": map[string]interface{}{
-									"apiGroup": "foo",
-									"kind":     "Foo",
+								"spec": map[string]interface{}{
+									// Reconcile to drop clusterClassObject,
+									// while preserving user-defined field.
+									"infrastructureRef": map[string]interface{}{
+										"apiGroup": "foo",
+										"kind":     "Foo",
+									},
 								},
 							},
 						},

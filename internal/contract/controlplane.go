@@ -339,7 +339,7 @@ func (c *ControlPlaneMachineTemplate) InfrastructureV1Beta1Ref() *V1Beta1Ref {
 // InfrastructureRef provides access to the infrastructureRef of a MachineTemplate.
 func (c *ControlPlaneMachineTemplate) InfrastructureRef() *ControlPlaneMachineTemplateInfrastructureRef {
 	return &ControlPlaneMachineTemplateInfrastructureRef{
-		path: Path{"spec", "machineTemplate", "infrastructureRef"},
+		path: Path{"spec", "machineTemplate", "spec", "infrastructureRef"},
 	}
 }
 
@@ -429,35 +429,45 @@ func (c *ControlPlaneMachineTemplate) NodeDeletionTimeout() *Duration {
 // NodeDrainTimeoutSeconds provides access to the nodeDrainTimeout of a MachineTemplate.
 func (c *ControlPlaneMachineTemplate) NodeDrainTimeoutSeconds() *Int32 {
 	return &Int32{
-		path: Path{"spec", "machineTemplate", "nodeDrainTimeoutSeconds"},
+		path: Path{"spec", "machineTemplate", "spec", "deletion", "nodeDrainTimeoutSeconds"},
 	}
 }
 
 // NodeVolumeDetachTimeoutSeconds provides access to the nodeVolumeDetachTimeout of a MachineTemplate.
 func (c *ControlPlaneMachineTemplate) NodeVolumeDetachTimeoutSeconds() *Int32 {
 	return &Int32{
-		path: Path{"spec", "machineTemplate", "nodeVolumeDetachTimeoutSeconds"},
+		path: Path{"spec", "machineTemplate", "spec", "deletion", "nodeVolumeDetachTimeoutSeconds"},
 	}
 }
 
 // NodeDeletionTimeoutSeconds provides access to the nodeDeletionTimeout of a MachineTemplate.
 func (c *ControlPlaneMachineTemplate) NodeDeletionTimeoutSeconds() *Int32 {
 	return &Int32{
-		path: Path{"spec", "machineTemplate", "nodeDeletionTimeoutSeconds"},
+		path: Path{"spec", "machineTemplate", "spec", "deletion", "nodeDeletionTimeoutSeconds"},
 	}
 }
 
 // ReadinessGates provides access to control plane's ReadinessGates.
-func (c *ControlPlaneMachineTemplate) ReadinessGates() *ReadinessGates {
-	return &ReadinessGates{}
+func (c *ControlPlaneMachineTemplate) ReadinessGates(contractVersion string) *ReadinessGates {
+	if contractVersion == "v1beta1" {
+		return &ReadinessGates{
+			path: []string{"spec", "machineTemplate", "readinessGates"},
+		}
+	}
+
+	return &ReadinessGates{
+		path: []string{"spec", "machineTemplate", "spec", "readinessGates"},
+	}
 }
 
 // ReadinessGates provides a helper struct for working with ReadinessGates.
-type ReadinessGates struct{}
+type ReadinessGates struct {
+	path Path
+}
 
 // Path returns the path of the ReadinessGates.
 func (m *ReadinessGates) Path() Path {
-	return Path{"spec", "machineTemplate", "readinessGates"}
+	return m.path
 }
 
 // Get gets the ReadinessGates object.

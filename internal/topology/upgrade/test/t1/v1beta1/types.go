@@ -84,7 +84,7 @@ type TestResourceSpec struct {
 	// Note: field is not required because this CRD is also used for non - control plane cases.
 
 	// +required
-	MachineTemplate TestResourceMachineTemplateSpec `json:"machineTemplate"`
+	MachineTemplate TestResourceMachineTemplate `json:"machineTemplate"`
 
 	// Field for testing impact of dropping the DropDefaulterRemoveUnknownOrOmittableFields options in webhooks.
 
@@ -128,12 +128,18 @@ type StructWithOnlyOptionalFields struct {
 	B string `json:"b,omitempty"`
 }
 
-// TestResourceMachineTemplateSpec define the spec for machineTemplate in a resource.
-// Note: infrastructureRef field is not required because this CRD is also used for non - control plane cases.
-type TestResourceMachineTemplateSpec struct {
+// TestResourceMachineTemplate define the machineTemplate in a resource.
+type TestResourceMachineTemplate struct {
 	// +optional
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 
+	// +optional
+	Spec TestResourceMachineTemplateSpec `json:"spec,omitempty,omitzero"`
+}
+
+// TestResourceMachineTemplateSpec define the spec for machineTemplate in a resource.
+// Note: infrastructureRef field is not required because this CRD is also used for non - control plane cases.
+type TestResourceMachineTemplateSpec struct {
 	// +optional
 	InfrastructureRef TestContractVersionedObjectReference `json:"infrastructureRef"`
 }

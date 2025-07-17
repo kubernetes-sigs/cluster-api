@@ -105,9 +105,11 @@ func TestPatch(t *testing.T) {
 				},
 			},
 			Spec: clusterv1.MachineSpec{
-				ClusterName:             "cluster-1",
-				Version:                 "v1.25.0",
-				NodeDrainTimeoutSeconds: ptr.To(int32(10)),
+				ClusterName: "cluster-1",
+				Version:     "v1.25.0",
+				Deletion: clusterv1.MachineDeletionSpec{
+					NodeDrainTimeoutSeconds: ptr.To(int32(10)),
+				},
 				Bootstrap: clusterv1.Bootstrap{
 					DataSecretName: ptr.To("data-secret"),
 				},
@@ -133,7 +135,7 @@ func TestPatch(t *testing.T) {
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject)).To(Succeed())
 		// Modify the object
 		modifiedObject := initialObject.DeepCopy()
-		modifiedObject.Spec.NodeDrainTimeoutSeconds = ptr.To(int32(5))
+		modifiedObject.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(5))
 		// Compute request identifier, so we can later verify that the update call was not cached.
 		modifiedUnstructured, err := prepareModified(env.Scheme(), modifiedObject)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -160,7 +162,7 @@ func TestPatch(t *testing.T) {
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject)).To(Succeed())
 		// Modify the object
 		modifiedObject = initialObject.DeepCopy()
-		modifiedObject.Spec.NodeDrainTimeoutSeconds = ptr.To(int32(5))
+		modifiedObject.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(5))
 		// Compute request identifier, so we can later verify that the update call was cached.
 		modifiedUnstructured, err = prepareModified(env.Scheme(), modifiedObject)
 		g.Expect(err).ToNot(HaveOccurred())

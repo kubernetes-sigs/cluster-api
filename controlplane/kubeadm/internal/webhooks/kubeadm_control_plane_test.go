@@ -49,10 +49,12 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.18.3",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: "test",
-					Kind:     "UnknownInfraMachine",
-					Name:     "foo",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "test",
+						Kind:     "UnknownInfraMachine",
+						Name:     "foo",
+					},
 				},
 			},
 			RolloutStrategy: &controlplanev1.RolloutStrategy{},
@@ -60,7 +62,7 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 	}
 	updateDefaultingValidationKCP := kcp.DeepCopy()
 	updateDefaultingValidationKCP.Spec.Version = "v1.18.3"
-	updateDefaultingValidationKCP.Spec.MachineTemplate.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+	updateDefaultingValidationKCP.Spec.MachineTemplate.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 		APIGroup: "test",
 		Kind:     "UnknownInfraMachine",
 		Name:     "foo",
@@ -82,10 +84,12 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: "test",
-					Kind:     "UnknownInfraMachine",
-					Name:     "infraTemplate",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "test",
+						Kind:     "UnknownInfraMachine",
+						Name:     "infraTemplate",
+					},
 				},
 			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -297,14 +301,18 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: "test",
-					Kind:     "UnknownInfraMachine",
-					Name:     "infraTemplate",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "test",
+						Kind:     "UnknownInfraMachine",
+						Name:     "infraTemplate",
+					},
+					Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+						NodeDrainTimeoutSeconds:        ptr.To(int32(1)),
+						NodeVolumeDetachTimeoutSeconds: ptr.To(int32(1)),
+						NodeDeletionTimeoutSeconds:     ptr.To(int32(1)),
+					},
 				},
-				NodeDrainTimeoutSeconds:        ptr.To(int32(1)),
-				NodeVolumeDetachTimeoutSeconds: ptr.To(int32(1)),
-				NodeDeletionTimeoutSeconds:     ptr.To(int32(1)),
 			},
 			Replicas: ptr.To[int32](1),
 			RolloutStrategy: &controlplanev1.RolloutStrategy{
@@ -429,11 +437,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.MachineTemplate.ObjectMeta.Annotations = map[string]string{
 		"annotation": "labelAnnotation",
 	}
-	validUpdate.Spec.MachineTemplate.InfrastructureRef.APIGroup = "test-changed"
-	validUpdate.Spec.MachineTemplate.InfrastructureRef.Name = "orange"
-	validUpdate.Spec.MachineTemplate.NodeDrainTimeoutSeconds = ptr.To(int32(10))
-	validUpdate.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(10))
-	validUpdate.Spec.MachineTemplate.NodeDeletionTimeoutSeconds = ptr.To(int32(10))
+	validUpdate.Spec.MachineTemplate.Spec.InfrastructureRef.APIGroup = "test-changed"
+	validUpdate.Spec.MachineTemplate.Spec.InfrastructureRef.Name = "orange"
+	validUpdate.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(10))
+	validUpdate.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(10))
+	validUpdate.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(int32(10))
 	validUpdate.Spec.Replicas = ptr.To[int32](5)
 	now := metav1.NewTime(time.Now())
 	validUpdate.Spec.RolloutAfter = &now
@@ -1219,10 +1227,12 @@ func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.19.0",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: "test",
-					Kind:     "UnknownInfraMachine",
-					Name:     "infraTemplate",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "test",
+						Kind:     "UnknownInfraMachine",
+						Name:     "infraTemplate",
+					},
 				},
 			},
 		},

@@ -7175,42 +7175,6 @@ spec:
                   machineTemplate contains information about how machines
                   should be shaped when creating or updating a control plane.
                 properties:
-                  infrastructureRef:
-                    description: |-
-                      infrastructureRef is a required reference to a custom resource
-                      offered by an infrastructure provider.
-                    properties:
-                      apiGroup:
-                        description: |-
-                          apiGroup is the group of the resource being referenced.
-                          apiGroup must be fully qualified domain name.
-                          The corresponding version for this reference will be looked up from the contract
-                          labels of the corresponding CRD of the resource being referenced.
-                        maxLength: 253
-                        minLength: 1
-                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                        type: string
-                      kind:
-                        description: |-
-                          kind of the resource being referenced.
-                          kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
-                        maxLength: 63
-                        minLength: 1
-                        pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
-                        type: string
-                      name:
-                        description: |-
-                          name of the resource being referenced.
-                          name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
-                        maxLength: 253
-                        minLength: 1
-                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                        type: string
-                    required:
-                    - apiGroup
-                    - kind
-                    - name
-                    type: object
                   metadata:
                     description: |-
                       metadata is the standard object's metadata.
@@ -7236,73 +7200,123 @@ spec:
                           More info: http://kubernetes.io/docs/user-guide/labels
                         type: object
                     type: object
-                  nodeDeletionTimeoutSeconds:
+                  spec:
                     description: |-
-                      nodeDeletionTimeoutSeconds defines how long the machine controller will attempt to delete the Node that the Machine
-                      hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
-                      If no value is provided, the default value for this property of the Machine resource will be used.
-                    format: int32
-                    minimum: 0
-                    type: integer
-                  nodeDrainTimeoutSeconds:
-                    description: |-
-                      nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a controlplane node
-                      The default value is 0, meaning that the node can be drained without any time limitations.
-                      NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
-                    format: int32
-                    minimum: 0
-                    type: integer
-                  nodeVolumeDetachTimeoutSeconds:
-                    description: |-
-                      nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
-                      to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
-                    format: int32
-                    minimum: 0
-                    type: integer
-                  readinessGates:
-                    description: |-
-                      readinessGates specifies additional conditions to include when evaluating Machine Ready condition;
-                      KubeadmControlPlane will always add readinessGates for the condition it is setting on the Machine:
-                      APIServerPodHealthy, SchedulerPodHealthy, ControllerManagerPodHealthy, and if etcd is managed by CKP also
-                      EtcdPodHealthy, EtcdMemberHealthy.
+                      spec defines the spec for Machines
+                      in a KubeadmControlPlane object.
+                    properties:
+                      deletion:
+                        description: deletion contains configuration options for Machine
+                          deletion.
+                        minProperties: 1
+                        properties:
+                          nodeDeletionTimeoutSeconds:
+                            description: |-
+                              nodeDeletionTimeoutSeconds defines how long the machine controller will attempt to delete the Node that the Machine
+                              hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+                              If no value is provided, the default value for this property of the Machine resource will be used.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          nodeDrainTimeoutSeconds:
+                            description: |-
+                              nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a controlplane node
+                              The default value is 0, meaning that the node can be drained without any time limitations.
+                              NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          nodeVolumeDetachTimeoutSeconds:
+                            description: |-
+                              nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
+                              to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                        type: object
+                      infrastructureRef:
+                        description: |-
+                          infrastructureRef is a required reference to a custom resource
+                          offered by an infrastructure provider.
+                        properties:
+                          apiGroup:
+                            description: |-
+                              apiGroup is the group of the resource being referenced.
+                              apiGroup must be fully qualified domain name.
+                              The corresponding version for this reference will be looked up from the contract
+                              labels of the corresponding CRD of the resource being referenced.
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                          kind:
+                            description: |-
+                              kind of the resource being referenced.
+                              kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                            maxLength: 63
+                            minLength: 1
+                            pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                            type: string
+                          name:
+                            description: |-
+                              name of the resource being referenced.
+                              name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        required:
+                        - apiGroup
+                        - kind
+                        - name
+                        type: object
+                      readinessGates:
+                        description: |-
+                          readinessGates specifies additional conditions to include when evaluating Machine Ready condition;
+                          KubeadmControlPlane will always add readinessGates for the condition it is setting on the Machine:
+                          APIServerPodHealthy, SchedulerPodHealthy, ControllerManagerPodHealthy, and if etcd is managed by CKP also
+                          EtcdPodHealthy, EtcdMemberHealthy.
 
-                      This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
-                      computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
-                    items:
-                      description: MachineReadinessGate contains the type of a Machine
-                        condition to be used as a readiness gate.
-                      properties:
-                        conditionType:
-                          description: |-
-                            conditionType refers to a condition with matching type in the Machine's condition list.
-                            If the conditions doesn't exist, it will be treated as unknown.
-                            Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
-                          maxLength: 316
-                          minLength: 1
-                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
-                          type: string
-                        polarity:
-                          description: |-
-                            polarity of the conditionType specified in this readinessGate.
-                            Valid values are Positive, Negative and omitted.
-                            When omitted, the default behaviour will be Positive.
-                            A positive polarity means that the condition should report a true status under normal conditions.
-                            A negative polarity means that the condition should report a false status under normal conditions.
-                          enum:
-                          - Positive
-                          - Negative
-                          type: string
-                      required:
-                      - conditionType
-                      type: object
-                    maxItems: 32
-                    minItems: 1
-                    type: array
-                    x-kubernetes-list-map-keys:
-                    - conditionType
-                    x-kubernetes-list-type: map
+                          This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready
+                          computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.
+                        items:
+                          description: MachineReadinessGate contains the type of a
+                            Machine condition to be used as a readiness gate.
+                          properties:
+                            conditionType:
+                              description: |-
+                                conditionType refers to a condition with matching type in the Machine's condition list.
+                                If the conditions doesn't exist, it will be treated as unknown.
+                                Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
+                              maxLength: 316
+                              minLength: 1
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                              type: string
+                            polarity:
+                              description: |-
+                                polarity of the conditionType specified in this readinessGate.
+                                Valid values are Positive, Negative and omitted.
+                                When omitted, the default behaviour will be Positive.
+                                A positive polarity means that the condition should report a true status under normal conditions.
+                                A negative polarity means that the condition should report a false status under normal conditions.
+                              enum:
+                              - Positive
+                              - Negative
+                              type: string
+                          required:
+                          - conditionType
+                          type: object
+                        maxItems: 32
+                        minItems: 1
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - conditionType
+                        x-kubernetes-list-type: map
+                    required:
+                    - infrastructureRef
+                    type: object
                 required:
-                - infrastructureRef
+                - spec
                 type: object
               remediationStrategy:
                 description: remediationStrategy is the RemediationStrategy that controls

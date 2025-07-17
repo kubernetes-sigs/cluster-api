@@ -969,9 +969,7 @@ func autoConvert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *v1b
 	}
 	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -995,9 +993,7 @@ func autoConvert_v1beta2_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(i
 	}
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.Variables requires manual conversion: does not exist in peer-type
 	return nil
@@ -1103,9 +1099,7 @@ func autoConvert_v1beta2_MachineDeploymentClass_To_v1alpha4_MachineDeploymentCla
 	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.Strategy requires manual conversion: does not exist in peer-type
@@ -1282,9 +1276,7 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1alpha4_MachineDeployment
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.Strategy requires manual conversion: does not exist in peer-type
@@ -1867,9 +1859,7 @@ func autoConvert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in *v1beta2.Machine
 	}
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDrainTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeVolumeDetachTimeoutSeconds requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeDeletionTimeoutSeconds requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	return nil
 }
 

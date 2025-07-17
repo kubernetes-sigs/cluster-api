@@ -565,11 +565,13 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &bootstrapRef,
 					},
-					MinReadySeconds:                ptr.To[int32](3),
-					ReadinessGates:                 []clusterv1.MachineReadinessGate{{ConditionType: "foo"}},
-					NodeDrainTimeoutSeconds:        duration10s,
-					NodeVolumeDetachTimeoutSeconds: duration10s,
-					NodeDeletionTimeoutSeconds:     duration10s,
+					MinReadySeconds: ptr.To[int32](3),
+					ReadinessGates:  []clusterv1.MachineReadinessGate{{ConditionType: "foo"}},
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDrainTimeoutSeconds:        duration10s,
+						NodeVolumeDetachTimeoutSeconds: duration10s,
+						NodeDeletionTimeoutSeconds:     duration10s,
+					},
 				},
 			},
 		},
@@ -637,9 +639,9 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		}
 		existingMS.Spec.Template.Annotations = nil
 		existingMS.Spec.Template.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "bar"}}
-		existingMS.Spec.Template.Spec.NodeDrainTimeoutSeconds = duration5s
-		existingMS.Spec.Template.Spec.NodeDeletionTimeoutSeconds = duration5s
-		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = duration5s
+		existingMS.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = duration5s
+		existingMS.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = duration5s
+		existingMS.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration5s
 		existingMS.Spec.DeletePolicy = clusterv1.NewestMachineSetDeletePolicy
 		existingMS.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 
@@ -677,9 +679,9 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		}
 		existingMS.Spec.Template.Annotations = nil
 		existingMS.Spec.Template.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "bar"}}
-		existingMS.Spec.Template.Spec.NodeDrainTimeoutSeconds = duration5s
-		existingMS.Spec.Template.Spec.NodeDeletionTimeoutSeconds = duration5s
-		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = duration5s
+		existingMS.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = duration5s
+		existingMS.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = duration5s
+		existingMS.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration5s
 		existingMS.Spec.DeletePolicy = clusterv1.NewestMachineSetDeletePolicy
 		existingMS.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 
@@ -731,9 +733,9 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		}
 		existingMS.Spec.Template.Annotations = nil
 		existingMS.Spec.Template.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "bar"}}
-		existingMS.Spec.Template.Spec.NodeDrainTimeoutSeconds = duration5s
-		existingMS.Spec.Template.Spec.NodeDeletionTimeoutSeconds = duration5s
-		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeoutSeconds = duration5s
+		existingMS.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = duration5s
+		existingMS.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = duration5s
+		existingMS.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration5s
 		existingMS.Spec.DeletePolicy = clusterv1.NewestMachineSetDeletePolicy
 		existingMS.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 

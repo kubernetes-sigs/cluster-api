@@ -448,7 +448,7 @@ func setMachinesUpToDateCondition(ctx context.Context, kcp *controlplanev1.Kubea
 
 func calculateMissingReferencesMessage(kcp *controlplanev1.KubeadmControlPlane, infraMachineTemplateNotFound bool) string {
 	if infraMachineTemplateNotFound {
-		return fmt.Sprintf("%s does not exist", kcp.Spec.MachineTemplate.InfrastructureRef.Kind)
+		return fmt.Sprintf("%s does not exist", kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Kind)
 	}
 	return ""
 }

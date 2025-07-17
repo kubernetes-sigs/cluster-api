@@ -687,13 +687,13 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 
 	cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(refObj)
 	if err != nil {
-		return nil, errors.Wrap(err, "cluster controlPlane.spec.machineTemplate.infrastructureRef is not yet set")
+		return nil, errors.Wrap(err, "cluster controlPlane.spec.machineTemplate.spec.infrastructureRef is not yet set")
 	}
 	refObj, err = getReferencedObject(ctx, env.GetClient(), cpInfraRef, version, actualCluster.Namespace)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get referenced controlPlane.spec.machineTemplate.infrastructureRef")
+		return nil, errors.Wrap(err, "failed to get referenced controlPlane.spec.machineTemplate.spec.infrastructureRef")
 	}
-	addToAllObj(cluster.Name, "controlPlane.spec.machineTemplate.infrastructureRef", refObj)
+	addToAllObj(cluster.Name, "controlPlane.spec.machineTemplate.spec.infrastructureRef", refObj)
 	refs[clusterv1.ContractVersionedObjectReference{
 		APIGroup: refObj.GroupVersionKind().Group,
 		Kind:     refObj.GetKind(),
@@ -701,7 +701,7 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 	}] = refObj.GetGeneration()
 	for _, check := range additionalChecks {
 		if err := check(refObj); err != nil {
-			return nil, errors.Wrap(err, "failed additional checks on controlPlane.spec.machineTemplate.infrastructureRef")
+			return nil, errors.Wrap(err, "failed additional checks on controlPlane.spec.machineTemplate.spec.infrastructureRef")
 		}
 	}
 
@@ -963,8 +963,8 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 		Kind:     refObj.GetKind(),
 		Name:     refObj.GetName(),
 	}
-	g.Expect(refsBefore).ToNot(HaveKey(controlPlaneInfraRef), "controlPlane.spec.machineTemplate.infrastructureRef did not rollout")
-	g.Expect(refsAfter[controlPlaneInfraRef]).To(Equal(int64(1)), "controlPlane.spec.machineTemplate.infrastructureRef has unexpected generation")
+	g.Expect(refsBefore).ToNot(HaveKey(controlPlaneInfraRef), "controlPlane.spec.machineTemplate.spec.infrastructureRef did not rollout")
+	g.Expect(refsAfter[controlPlaneInfraRef]).To(Equal(int64(1)), "controlPlane.spec.machineTemplate.spec.infrastructureRef has unexpected generation")
 
 	machineDeployments := &clusterv1.MachineDeploymentList{}
 	err = env.List(ctx, machineDeployments, client.InNamespace(cluster.Namespace), client.MatchingLabels{
@@ -1046,7 +1046,7 @@ func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter
 		Kind:     refObj.GetKind(),
 		Name:     refObj.GetName(),
 	}
-	g.Expect(refsAfter[controlPlaneInfraRef]).To(Equal(refsBefore[controlPlaneInfraRef]), "controlPlane.spec.machineTemplate.infrastructureRef unexpected change triggering a rollout")
+	g.Expect(refsAfter[controlPlaneInfraRef]).To(Equal(refsBefore[controlPlaneInfraRef]), "controlPlane.spec.machineTemplate.spec.infrastructureRef unexpected change triggering a rollout")
 
 	machineDeployments := &clusterv1.MachineDeploymentList{}
 	err = env.List(ctx, machineDeployments, client.InNamespace(cluster.Namespace), client.MatchingLabels{

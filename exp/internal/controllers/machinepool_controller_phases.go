@@ -494,7 +494,10 @@ func (r *MachinePoolReconciler) computeDesiredMachine(mp *clusterv1.MachinePool,
 			Annotations:     make(map[string]string),
 		},
 		Spec: clusterv1.MachineSpec{
-			ClusterName:       mp.Spec.ClusterName,
+			ClusterName: mp.Spec.ClusterName,
+			Bootstrap: clusterv1.Bootstrap{
+				DataSecretName: ptr.To(""),
+			},
 			InfrastructureRef: infraRef,
 			Version:           kubernetesVersion,
 		},

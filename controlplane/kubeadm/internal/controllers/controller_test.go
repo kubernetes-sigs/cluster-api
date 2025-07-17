@@ -244,10 +244,12 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     "UnknownInfraMachine",
-					APIGroup: "test",
-					Name:     "foo",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "UnknownInfraMachine",
+						APIGroup: "test",
+						Name:     "foo",
+					},
 				},
 			},
 		},
@@ -284,10 +286,12 @@ func TestReconcileNoKCP(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     "UnknownInfraMachine",
-					APIGroup: "test",
-					Name:     "foo",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "UnknownInfraMachine",
+						APIGroup: "test",
+						Name:     "foo",
+					},
 				},
 			},
 		},
@@ -325,10 +329,12 @@ func TestReconcileNoCluster(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     "UnknownInfraMachine",
-					APIGroup: "test",
-					Name:     "foo",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "UnknownInfraMachine",
+						APIGroup: "test",
+						Name:     "foo",
+					},
 				},
 			},
 		},
@@ -376,10 +382,12 @@ func TestReconcilePaused(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     "UnknownInfraMachine",
-					APIGroup: "test",
-					Name:     "foo",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "UnknownInfraMachine",
+						APIGroup: "test",
+						Name:     "foo",
+					},
 				},
 			},
 		},
@@ -431,10 +439,12 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     "UnknownInfraMachine",
-					APIGroup: "test",
-					Name:     "foo",
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "UnknownInfraMachine",
+						APIGroup: "test",
+						Name:     "foo",
+					},
 				},
 			},
 		},
@@ -1254,10 +1264,12 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 			Replicas: nil,
 			Version:  "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     genericInfrastructureMachineTemplate.GetKind(),
-					APIGroup: genericInfrastructureMachineTemplate.GroupVersionKind().Group,
-					Name:     genericInfrastructureMachineTemplate.GetName(),
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     genericInfrastructureMachineTemplate.GetKind(),
+						APIGroup: genericInfrastructureMachineTemplate.GroupVersionKind().Group,
+						Name:     genericInfrastructureMachineTemplate.GetName(),
+					},
 				},
 			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
@@ -1501,10 +1513,12 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 			Replicas: nil,
 			Version:  "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     genericInfrastructureMachineTemplate.GetKind(),
-					APIGroup: genericInfrastructureMachineTemplate.GroupVersionKind().Group,
-					Name:     genericInfrastructureMachineTemplate.GetName(),
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     genericInfrastructureMachineTemplate.GetKind(),
+						APIGroup: genericInfrastructureMachineTemplate.GroupVersionKind().Group,
+						Name:     genericInfrastructureMachineTemplate.GetName(),
+					},
 				},
 			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
@@ -1784,13 +1798,15 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: bootstrapRef,
 			},
-			InfrastructureRef:              *infraMachineRef,
-			Version:                        "v1.25.3",
-			FailureDomain:                  fd,
-			ProviderID:                     "provider-id",
-			NodeDrainTimeoutSeconds:        duration5s,
-			NodeVolumeDetachTimeoutSeconds: duration5s,
-			NodeDeletionTimeoutSeconds:     duration5s,
+			InfrastructureRef: *infraMachineRef,
+			Version:           "v1.25.3",
+			FailureDomain:     fd,
+			ProviderID:        "provider-id",
+			Deletion: clusterv1.MachineDeletionSpec{
+				NodeDrainTimeoutSeconds:        duration5s,
+				NodeVolumeDetachTimeoutSeconds: duration5s,
+				NodeDeletionTimeoutSeconds:     duration5s,
+			},
 		},
 	}
 	// Note: use "manager" as the field owner to mimic the manager used before ClusterAPI v1.4.0.
@@ -1819,10 +1835,12 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: ptr.To("machine-bootstrap-secret"),
 			},
-			NodeDrainTimeoutSeconds:        duration5s,
-			NodeVolumeDetachTimeoutSeconds: duration5s,
-			NodeDeletionTimeoutSeconds:     duration5s,
-			ReadinessGates:                 mandatoryMachineReadinessGates,
+			Deletion: clusterv1.MachineDeletionSpec{
+				NodeDrainTimeoutSeconds:        duration5s,
+				NodeVolumeDetachTimeoutSeconds: duration5s,
+				NodeDeletionTimeoutSeconds:     duration5s,
+			},
+			ReadinessGates: mandatoryMachineReadinessGates,
 		},
 	}
 	g.Expect(env.Create(ctx, deletingMachine, client.FieldOwner(classicManager))).To(Succeed())
@@ -1890,14 +1908,18 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 						"modified-annotation":  "modified-value",  // Annotation value will be modified while testing in-place mutation.
 					},
 				},
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     "GenericInfrastructureMachineTemplate",
-					Name:     "infra-foo",
-					APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "GenericInfrastructureMachineTemplate",
+						Name:     "infra-foo",
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+					},
+					Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
+						NodeDrainTimeoutSeconds:        duration5s,
+						NodeVolumeDetachTimeoutSeconds: duration5s,
+						NodeDeletionTimeoutSeconds:     duration5s,
+					},
 				},
-				NodeDrainTimeoutSeconds:        duration5s,
-				NodeVolumeDetachTimeoutSeconds: duration5s,
-				NodeDeletionTimeoutSeconds:     duration5s,
 			},
 		},
 	}
@@ -2004,9 +2026,9 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		"modified-annotation":  "modified-value-2", // Modify the value of the annotation
 		// Drop "dropped-annotation"
 	}
-	kcp.Spec.MachineTemplate.NodeDrainTimeoutSeconds = duration10s
-	kcp.Spec.MachineTemplate.NodeDeletionTimeoutSeconds = duration10s
-	kcp.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds = duration10s
+	kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds = duration10s
+	kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds = duration10s
+	kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration10s
 
 	// Use the updated KCP.
 	controlPlane.KCP = kcp
@@ -2026,17 +2048,17 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
 	g.Expect(updatedInplaceMutatingMachine.Annotations).Should(Equal(expectedAnnotations))
 	// Verify Node timeout values
-	g.Expect(updatedInplaceMutatingMachine.Spec.NodeDrainTimeoutSeconds).Should(And(
+	g.Expect(updatedInplaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(And(
 		Not(BeNil()),
-		HaveValue(BeComparableTo(*kcp.Spec.MachineTemplate.NodeDrainTimeoutSeconds)),
+		HaveValue(BeComparableTo(*kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds)),
 	))
-	g.Expect(updatedInplaceMutatingMachine.Spec.NodeDeletionTimeoutSeconds).Should(And(
+	g.Expect(updatedInplaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(And(
 		Not(BeNil()),
-		HaveValue(BeComparableTo(*kcp.Spec.MachineTemplate.NodeDeletionTimeoutSeconds)),
+		HaveValue(BeComparableTo(*kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds)),
 	))
-	g.Expect(updatedInplaceMutatingMachine.Spec.NodeVolumeDetachTimeoutSeconds).Should(And(
+	g.Expect(updatedInplaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(And(
 		Not(BeNil()),
-		HaveValue(BeComparableTo(*kcp.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds)),
+		HaveValue(BeComparableTo(*kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)),
 	))
 	// Verify that the non in-place mutating fields remain the same.
 	g.Expect(updatedInplaceMutatingMachine.Spec.FailureDomain).Should(Equal(inPlaceMutatingMachine.Spec.FailureDomain))
@@ -2083,13 +2105,13 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))
 	g.Expect(updatedDeletingMachine.Annotations).Should(Equal(deletingMachine.Annotations))
 	// Verify Node timeout values
-	g.Expect(updatedDeletingMachine.Spec.NodeDrainTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.NodeDrainTimeoutSeconds))
-	g.Expect(updatedDeletingMachine.Spec.NodeDeletionTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.NodeDeletionTimeoutSeconds))
-	g.Expect(updatedDeletingMachine.Spec.NodeVolumeDetachTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
 	// Verify the machine spec is otherwise unchanged.
-	deletingMachine.Spec.NodeDrainTimeoutSeconds = kcp.Spec.MachineTemplate.NodeDrainTimeoutSeconds
-	deletingMachine.Spec.NodeDeletionTimeoutSeconds = kcp.Spec.MachineTemplate.NodeDeletionTimeoutSeconds
-	deletingMachine.Spec.NodeVolumeDetachTimeoutSeconds = kcp.Spec.MachineTemplate.NodeVolumeDetachTimeoutSeconds
+	deletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds
+	deletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds
+	deletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 	g.Expect(updatedDeletingMachine.Spec).Should(BeComparableTo(deletingMachine.Spec))
 }
 
@@ -3794,10 +3816,12 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					Kind:     builder.GenericInfrastructureMachineTemplateKind,
-					Name:     "infra-foo",
-					APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     builder.GenericInfrastructureMachineTemplateKind,
+						Name:     "infra-foo",
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+					},
 				},
 			},
 			Replicas: ptr.To[int32](int32(3)),

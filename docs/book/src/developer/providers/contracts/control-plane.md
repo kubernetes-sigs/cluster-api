@@ -428,6 +428,7 @@ the ControlPlane `spec`.
 type FooControlPlaneSpec struct {
     // machineTemplate contains information about how machines
     // should be shaped when creating or updating a control plane.
+    // +required
     MachineTemplate FooControlPlaneMachineTemplate `json:"machineTemplate"`
     
     // See other rules for more details about mandatory/optional fields in ControlPlane spec.
@@ -435,18 +436,33 @@ type FooControlPlaneSpec struct {
 }
 
 type FooControlPlaneMachineTemplate struct {
-    // Standard object's metadata.
+    // metadata is the standard object's metadata.
     // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
     // +optional
     ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
-    
-    // infrastructureRef is a required reference to a custom infra machine template resource
-    // offered by an infrastructure provider.
-    // +required
-    InfrastructureRef clusterv1.ContractVersionedObjectReference `json:"infrastructureRef"`
-    
+
+    // spec defines the spec for Machines of the control plane.
+    // +optional
+    Spec FooControlPlaneMachineTemplateSpec `json:"spec,omitempty,omitzero"`
+}
+
+type FooControlPlaneMachineTemplateSpec struct {
+	// infrastructureRef is a required reference to a custom infra machine template resource
+	// offered by an infrastructure provider.
+	// +required
+	InfrastructureRef clusterv1.ContractVersionedObjectReference `json:"infrastructureRef"`
+
+	// deletion contains configuration options for Machine deletion.
+	// +optional
+	Deletion FooControlPlaneMachineTemplateDeletionSpec `json:"deletion,omitempty,omitzero"`
+}
+
+// FooControlPlaneMachineTemplateDeletionSpec contains configuration options for Machine deletion.
+// +kubebuilder:validation:MinProperties=1
+type FooControlPlaneMachineTemplateDeletionSpec struct {
     // nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a controlplane node
     // The default value is 0, meaning that the node can be drained without any time limitations.
+	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
     // +optional
     // +kubebuilder:validation:Minimum=0
     NodeDrainTimeoutSeconds *int32 `json:"nodeDrainTimeoutSeconds,omitempty"`
@@ -482,14 +498,16 @@ preserves compatibility with the deprecated v1beta1 contract; compatibility will
 For reference. The v1beta1 contract had `nodeDrainTimeout`, `nodeVolumeDetachTimeout`, `nodeDeletionTimeout` fields
 of type `*metav1.Duration` instead of the new fields with `Seconds` suffix of type `*int32`.
 `infrastructureRef` was of type `corev1.ObjectReference`, the new field has the type  `clusterv1.ContractVersionedObjectReference`.
+In v1beta2 we also moved `infrastructureRef` into the newly introduced `spec.machineTemplate.spec` field and `nodeDrainTimeoutSeconds`,
+`nodeVolumeDetachTimeoutSeconds` and `nodeDeletionTimeoutSeconds` into the newly introduced `spec.machineTemplate.spec.deletion` field.
 
 </aside>
 
 In case you are developing a control plane provider that allows definition of machine readiness gates, you SHOULD also implement
-the following `machineTemplate` field.
+the following `spec.machineTemplate.spec` field.
 
 ```go
-type FooControlPlaneMachineTemplate struct {
+type FooControlPlaneMachineTemplateSpec struct {
     // readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
     //
     // This field can be used e.g. by Cluster API control plane providers to extend the semantic of the
@@ -515,6 +533,8 @@ type FooControlPlaneMachineTemplate struct {
     // Other fields SHOULD be added based on the needs of your provider.
 }
 ```
+
+NOTE: In the v1beta1 contract the `readinessGates` field was located directly in the `spec.machineTemplate` field.
 
 In case you are developing a control plane provider where control plane instances uses a Cluster API Machine 
 object to represent each control plane instance, but those instances do not show up as a Kubernetes node (for example, 

@@ -482,6 +482,15 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// +optional
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 
+	// spec defines the spec for Machines
+	// in a KubeadmControlPlane object.
+	// +required
+	Spec KubeadmControlPlaneMachineTemplateSpec `json:"spec,omitempty,omitzero"`
+}
+
+// KubeadmControlPlaneMachineTemplateSpec defines the spec for Machines
+// in a KubeadmControlPlane object.
+type KubeadmControlPlaneMachineTemplateSpec struct {
 	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
 	// +required
@@ -502,6 +511,14 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []clusterv1.MachineReadinessGate `json:"readinessGates,omitempty"`
 
+	// deletion contains configuration options for Machine deletion.
+	// +optional
+	Deletion KubeadmControlPlaneMachineTemplateDeletionSpec `json:"deletion,omitempty,omitzero"`
+}
+
+// KubeadmControlPlaneMachineTemplateDeletionSpec contains configuration options for Machine deletion.
+// +kubebuilder:validation:MinProperties=1
+type KubeadmControlPlaneMachineTemplateDeletionSpec struct {
 	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a controlplane node
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`

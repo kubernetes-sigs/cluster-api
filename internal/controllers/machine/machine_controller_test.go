@@ -1492,10 +1492,12 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:             "test-cluster",
-					InfrastructureRef:       clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:               clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-					NodeDrainTimeoutSeconds: ptr.To(int32(60)),
+					ClusterName:       "test-cluster",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDrainTimeoutSeconds: ptr.To(int32(60)),
+					},
 				},
 
 				Status: clusterv1.MachineStatus{
@@ -1515,10 +1517,12 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:             "test-cluster",
-					InfrastructureRef:       clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:               clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-					NodeDrainTimeoutSeconds: ptr.To(int32(60)),
+					ClusterName:       "test-cluster",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDrainTimeoutSeconds: ptr.To(int32(60)),
+					},
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
@@ -2053,10 +2057,12 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:                    "test-cluster",
-					InfrastructureRef:              clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:                      clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-					NodeVolumeDetachTimeoutSeconds: ptr.To(int32(30)),
+					ClusterName:       "test-cluster",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeVolumeDetachTimeoutSeconds: ptr.To(int32(30)),
+					},
 				},
 
 				Status: clusterv1.MachineStatus{
@@ -2076,10 +2082,12 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:                    "test-cluster",
-					InfrastructureRef:              clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:                      clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-					NodeVolumeDetachTimeoutSeconds: ptr.To(int32(60)),
+					ClusterName:       "test-cluster",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeVolumeDetachTimeoutSeconds: ptr.To(int32(60)),
+					},
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
@@ -3461,7 +3469,7 @@ func TestNodeDeletion(t *testing.T) {
 			g := NewWithT(t)
 
 			m := testMachine.DeepCopy()
-			m.Spec.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
+			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
 
@@ -3594,7 +3602,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			m := testMachine.DeepCopy()
-			m.Spec.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
+			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
 

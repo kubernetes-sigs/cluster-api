@@ -107,6 +107,7 @@ const (
 
 // Add-on providers.
 const (
+	Cdk8sAddonProviderName = "eitco-cdk8s"
 	HelmAddonProviderName  = "helm"
 	FleetAddonProviderName = "rancher-fleet"
 )
@@ -445,6 +446,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         HelmAddonProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/addon-components.yaml",
+			providerType: clusterctlv1.AddonProviderType,
+		},
+		&provider{
+			name:         Cdk8sAddonProviderName,
+			url:          "https://github.com/eitco/cluster-api-addon-provider-cdk8s/releases/latest/addon-components.yaml",
 			providerType: clusterctlv1.AddonProviderType,
 		},
 

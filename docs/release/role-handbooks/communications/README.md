@@ -182,6 +182,7 @@ We should inform at least the following providers via a new issue on their respe
 
 * Addon provider fleet: https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/issues/new
 * Addon provider helm: https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/issues/new
+* Addon provider cdk8s: https://github.com/eitco/cluster-api-addon-provider-cdk8s/issues/new
 * AWS: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/new
 * Azure: https://github.com/kubernetes-sigs/cluster-api-provider-azure/issues/new
 * Cloudstack: https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/issues/new

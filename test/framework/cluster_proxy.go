@@ -307,6 +307,7 @@ func (p *clusterProxy) GetCache(ctx context.Context) cache.Cache {
 }
 
 // CreateOrUpdate creates or updates objects using the clusterProxy client.
+// Defaults to use FieldValidation: strict, which can be overwritten with CreateOrUpdateOptions.
 func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opts ...CreateOrUpdateOption) error {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for CreateOrUpdate")
 	Expect(resources).NotTo(BeNil(), "resources is required for CreateOrUpdate")
@@ -318,6 +319,9 @@ func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opt
 	if config.labelSelector != nil {
 		labelSelector = config.labelSelector
 	}
+	// Prepending field validation strict so that it is used per default, but can still be overwritten.
+	config.createOpts = append([]client.CreateOption{client.FieldValidation("Strict")}, config.createOpts...)
+	config.updateOpts = append([]client.UpdateOption{client.FieldValidation("Strict")}, config.updateOpts...)
 	objs, err := yaml.ToUnstructured(resources)
 	if err != nil {
 		return err

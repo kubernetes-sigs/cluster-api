@@ -74,7 +74,7 @@ spec:
   - name: etcdImageTag
     required: true
     # This metadata has just been added to verify that we can set metadata.
-    metadata:
+    deprecatedV1Beta1Metadata:
       labels:
         testLabelKey: testLabelValue
       annotations:

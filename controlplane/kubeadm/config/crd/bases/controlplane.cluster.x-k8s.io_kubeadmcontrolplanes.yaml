@@ -7315,6 +7315,8 @@ spec:
                     required:
                     - infrastructureRef
                     type: object
+                required:
+                - spec
                 type: object
               remediationStrategy:
                 description: remediationStrategy is the RemediationStrategy that controls

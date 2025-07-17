@@ -5590,6 +5590,7 @@ spec:
                         description: |-
                           machineTemplate contains information about how machines
                           should be shaped when creating or updating a control plane.
+                        minProperties: 1
                         properties:
                           metadata:
                             description: |-
@@ -5620,6 +5621,7 @@ spec:
                             description: |-
                               spec defines the spec for Machines
                               in a KubeadmControlPlane object.
+                            minProperties: 1
                             properties:
                               deletion:
                                 description: deletion contains configuration options

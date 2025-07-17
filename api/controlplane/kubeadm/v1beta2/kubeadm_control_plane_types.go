@@ -484,7 +484,7 @@ type KubeadmControlPlaneMachineTemplate struct {
 
 	// spec defines the spec for Machines
 	// in a KubeadmControlPlane object.
-	// +optional
+	// +required
 	Spec KubeadmControlPlaneMachineTemplateSpec `json:"spec,omitempty,omitzero"`
 }
 

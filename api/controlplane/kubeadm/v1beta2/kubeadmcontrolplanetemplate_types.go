@@ -130,6 +130,7 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 // omits ObjectMeta and InfrastructureRef fields. These fields do not make sense on the KubeadmControlPlaneTemplate,
 // because they are calculated by the Cluster topology reconciler during reconciliation and thus cannot
 // be configured on the KubeadmControlPlaneTemplate.
+// +kubebuilder:validation:MinProperties=1
 type KubeadmControlPlaneTemplateMachineTemplate struct {
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
@@ -144,6 +145,7 @@ type KubeadmControlPlaneTemplateMachineTemplate struct {
 
 // KubeadmControlPlaneTemplateMachineTemplateSpec defines the spec for Machines
 // in a KubeadmControlPlane object.
+// +kubebuilder:validation:MinProperties=1
 type KubeadmControlPlaneTemplateMachineTemplateSpec struct {
 	// deletion contains configuration options for Machine deletion.
 	// +optional

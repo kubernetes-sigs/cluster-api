@@ -667,7 +667,7 @@ type ControlPlaneTopologyMachineHealthCheck struct {
 
 // IsDefined returns true if both checks and remediation are zero.
 func (m *ControlPlaneTopologyMachineHealthCheck) IsDefined() bool {
-	return reflect.ValueOf(m.Checks).IsZero() && reflect.ValueOf(m.Remediation).IsZero()
+	return !reflect.ValueOf(m.Checks).IsZero() || !reflect.ValueOf(m.Remediation).IsZero()
 }
 
 // ControlPlaneTopologyMachineHealthCheckChecks are the checks that are used to evaluate if a control plane Machine is healthy.
@@ -892,7 +892,7 @@ type MachineDeploymentTopologyMachineHealthCheck struct {
 
 // IsDefined returns true if both checks and remediation are zero.
 func (m *MachineDeploymentTopologyMachineHealthCheck) IsDefined() bool {
-	return reflect.ValueOf(m.Checks).IsZero() && reflect.ValueOf(m.Remediation).IsZero()
+	return !reflect.ValueOf(m.Checks).IsZero() || !reflect.ValueOf(m.Remediation).IsZero()
 }
 
 // MachineDeploymentTopologyMachineHealthCheckChecks are the checks that are used to evaluate if a MachineDeployment Machine is healthy.

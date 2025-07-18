@@ -21,7 +21,7 @@ import (
 	"io"
 	"os"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -204,14 +204,20 @@ func orderChildrenObjects(childrenObj []ctrlclient.Object) []ctrlclient.Object {
 	// printBefore returns true if children[i] should be printed before children[j]. Objects are sorted by z-order and
 	// row name such that objects with higher z-order are printed first, and objects with the same z-order are
 	// printed in alphabetical order.
-	printBefore := func(i, j int) bool {
-		if tree.GetZOrder(childrenObj[i]) == tree.GetZOrder(childrenObj[j]) {
-			return getRowName(childrenObj[i]) < getRowName(childrenObj[j])
+	printBefore := func(i, j ctrlclient.Object) int {
+		if tree.GetZOrder(i) == tree.GetZOrder(j) {
+			if getRowName(i) < getRowName(j) {
+				return -1
+			}
+			return 1
 		}
 
-		return tree.GetZOrder(childrenObj[i]) > tree.GetZOrder(childrenObj[j])
+		if tree.GetZOrder(i) > tree.GetZOrder(j) {
+			return -1
+		}
+		return 1
 	}
-	sort.Slice(childrenObj, printBefore)
+	slices.SortFunc(childrenObj, printBefore)
 	return childrenObj
 }
 
@@ -260,14 +266,20 @@ func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree
 	// printBefore returns true if children[i] should be printed before children[j]. Objects are sorted by z-order and
 	// row name such that objects with higher z-order are printed first, and objects with the same z-order are
 	// printed in alphabetical order.
-	printBefore := func(i, j int) bool {
-		if tree.GetZOrder(childrenObj[i]) == tree.GetZOrder(childrenObj[j]) {
-			return getRowName(childrenObj[i]) < getRowName(childrenObj[j])
+	printBefore := func(i, j ctrlclient.Object) int {
+		if tree.GetZOrder(i) == tree.GetZOrder(j) {
+			if getRowName(i) < getRowName(j) {
+				return -1
+			}
+			return 1
 		}
 
-		return tree.GetZOrder(childrenObj[i]) > tree.GetZOrder(childrenObj[j])
+		if tree.GetZOrder(i) > tree.GetZOrder(j) {
+			return -1
+		}
+		return 1
 	}
-	sort.Slice(childrenObj, printBefore)
+	slices.SortFunc(childrenObj, printBefore)
 
 	for i, child := range childrenObj {
 		addObjectRowV1Beta1(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child)

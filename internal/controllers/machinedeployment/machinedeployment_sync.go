@@ -19,7 +19,7 @@ package machinedeployment
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -420,9 +420,13 @@ func (r *Reconciler) scale(ctx context.Context, deployment *clusterv1.MachineDep
 		// when scaling down, we should scale down older machine sets first.
 		switch {
 		case deploymentReplicasToAdd > 0:
-			sort.Sort(mdutil.MachineSetsBySizeNewer(allMSs))
+			slices.SortFunc(allMSs, func(a, b *clusterv1.MachineSet) int {
+				return mdutil.SortBySize(a, b, mdutil.DESCENDING)
+			})
 		case deploymentReplicasToAdd < 0:
-			sort.Sort(mdutil.MachineSetsBySizeOlder(allMSs))
+			slices.SortFunc(allMSs, func(a, b *clusterv1.MachineSet) int {
+				return mdutil.SortBySize(a, b, mdutil.ASCENDING)
+			})
 		}
 
 		// Iterate over all active machine sets and estimate proportions for each of them.
@@ -590,7 +594,9 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 		return nil
 	}
 
-	sort.Sort(mdutil.MachineSetsByCreationTimestamp(cleanableMSes))
+	slices.SortFunc(cleanableMSes, func(a, b *clusterv1.MachineSet) int {
+		return mdutil.SortByCreationTimestamp(a, b, mdutil.ASCENDING)
+	})
 	log.V(4).Info("Looking to cleanup old machine sets for deployment")
 
 	for i := range cleanableMSCount {

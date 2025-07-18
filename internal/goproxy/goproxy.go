@@ -24,7 +24,7 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -137,7 +137,12 @@ func (g *Client) GetVersions(ctx context.Context, gomodulePath string) (semver.V
 		return nil, fmt.Errorf("no versions found for go module %q", gomodulePath)
 	}
 
-	sort.Sort(parsedVersions)
+	slices.SortFunc(parsedVersions, func(i, j semver.Version) int {
+		if i.LT(j) {
+			return -1
+		}
+		return 1
+	})
 
 	return parsedVersions, nil
 }

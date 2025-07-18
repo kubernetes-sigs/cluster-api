@@ -18,7 +18,7 @@ package v1beta2
 
 import (
 	"reflect"
-	"sort"
+	"slices"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
@@ -217,8 +217,11 @@ func (p Patch) Apply(latest Setter, opts ...PatchApplyOption) error {
 	}
 
 	if applyOpt.conditionSortFunc != nil {
-		sort.SliceStable(latestConditions, func(i, j int) bool {
-			return applyOpt.conditionSortFunc(latestConditions[i], latestConditions[j])
+		slices.SortStableFunc(latestConditions, func(i, j metav1.Condition) int {
+			if applyOpt.conditionSortFunc(i, j) {
+				return -1
+			}
+			return 1
 		})
 	}
 

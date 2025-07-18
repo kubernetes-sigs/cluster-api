@@ -19,6 +19,7 @@ package machinedeployment
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -233,14 +234,17 @@ func setRollingOutCondition(_ context.Context, machineDeployment *clusterv1.Mach
 	if rolloutReasons.Len() > 0 {
 		// Surface rollout reasons ensuring that if there is a version change, it goes first.
 		reasons := rolloutReasons.UnsortedList()
-		sort.Slice(reasons, func(i, j int) bool {
-			if strings.HasPrefix(reasons[i], "* Version") && !strings.HasPrefix(reasons[j], "* Version") {
-				return true
+		slices.SortFunc(reasons, func(i, j string) int {
+			if strings.HasPrefix(i, "* Version") && !strings.HasPrefix(j, "* Version") {
+				return -1
 			}
-			if !strings.HasPrefix(reasons[i], "* Version") && strings.HasPrefix(reasons[j], "* Version") {
-				return false
+			if !strings.HasPrefix(i, "* Version") && strings.HasPrefix(j, "* Version") {
+				return 1
 			}
-			return reasons[i] < reasons[j]
+			if i < j {
+				return -1
+			}
+			return 1
 		})
 		message += fmt.Sprintf("\n%s", strings.Join(reasons, "\n"))
 	}

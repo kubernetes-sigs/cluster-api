@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
-	"sort"
+	"slices"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -91,8 +91,11 @@ func Set(targetObj Setter, condition metav1.Condition, opts ...SetOption) {
 	}
 
 	if setOpt.conditionSortFunc != nil {
-		sort.SliceStable(conditions, func(i, j int) bool {
-			return setOpt.conditionSortFunc(conditions[i], conditions[j])
+		slices.SortStableFunc(conditions, func(i, j metav1.Condition) int {
+			if setOpt.conditionSortFunc(i, j) {
+				return -1
+			}
+			return 1
 		})
 	}
 

@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"maps"
+	"reflect"
 	"slices"
 	"sort"
 
@@ -40,11 +41,18 @@ func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	restored := &infrav1.DockerCluster{}
-	if ok, err := utilconversion.UnmarshalData(dst, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(dst, restored)
+	if err != nil {
 		return err
 	}
 
-	dst.Status.Initialization = restored.Status.Initialization
+	// Recover intent for bool values converted to *bool.
+	initialization := infrav1.DockerClusterInitializationStatus{}
+	restoredDockerClusterProvisioned := restored.Status.Initialization.Provisioned
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredDockerClusterProvisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, infrav1.DockerClusterInitializationStatus{}) {
+		dst.Status.Initialization = initialization
+	}
 
 	return nil
 }
@@ -56,11 +64,7 @@ func (dst *DockerCluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	if err := utilconversion.MarshalData(src, dst); err != nil {
-		return err
-	}
-
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -83,11 +87,18 @@ func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	restored := &infrav1.DockerMachine{}
-	if ok, err := utilconversion.UnmarshalData(dst, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
 
-	dst.Status.Initialization = restored.Status.Initialization
+	// Recover intent for bool values converted to *bool.
+	initialization := infrav1.DockerMachineInitializationStatus{}
+	restoredDockerMachineProvisioned := restored.Status.Initialization.Provisioned
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredDockerMachineProvisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, infrav1.DockerMachineInitializationStatus{}) {
+		dst.Status.Initialization = initialization
+	}
 
 	return nil
 }
@@ -103,11 +114,7 @@ func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.ProviderID = nil
 	}
 
-	if err := utilconversion.MarshalData(src, dst); err != nil {
-		return err
-	}
-
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -137,12 +144,20 @@ func (src *DevCluster) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	// Manually restore data.
 	restored := &infrav1.DevCluster{}
-	if ok, err := utilconversion.UnmarshalData(dst, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
 
-	dst.Status.Initialization = restored.Status.Initialization
+	// Recover intent for bool values converted to *bool.
+	initialization := infrav1.DevClusterInitializationStatus{}
+	restoredDockerMachineProvisioned := restored.Status.Initialization.Provisioned
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredDockerMachineProvisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, infrav1.DevClusterInitializationStatus{}) {
+		dst.Status.Initialization = initialization
+	}
 
 	return nil
 }
@@ -154,11 +169,7 @@ func (dst *DevCluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	if err := utilconversion.MarshalData(src, dst); err != nil {
-		return err
-	}
-
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *DevClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -180,12 +191,20 @@ func (src *DevMachine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	// Manually restore data.
 	restored := &infrav1.DevMachine{}
-	if ok, err := utilconversion.UnmarshalData(dst, restored); err != nil || !ok {
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
 		return err
 	}
 
-	dst.Status.Initialization = restored.Status.Initialization
+	// Recover intent for bool values converted to *bool.
+	initialization := infrav1.DevMachineInitializationStatus{}
+	restoredDevMachineProvisioned := restored.Status.Initialization.Provisioned
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredDevMachineProvisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, infrav1.DevMachineInitializationStatus{}) {
+		dst.Status.Initialization = initialization
+	}
 
 	return nil
 }
@@ -201,11 +220,7 @@ func (dst *DevMachine) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.ProviderID = nil
 	}
 
-	if err := utilconversion.MarshalData(src, dst); err != nil {
-		return err
-	}
-
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *DevMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -239,10 +254,6 @@ func Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(in *clusterv1.ObjectMeta, 
 func Convert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevClusterStatus, out *infrav1.DevClusterStatus, s apiconversion.Scope) error {
 	if err := autoConvert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in, out, s); err != nil {
 		return err
-	}
-
-	if in.Ready {
-		out.Initialization.Provisioned = ptr.To(in.Ready)
 	}
 
 	if in.FailureDomains != nil {
@@ -289,9 +300,7 @@ func Convert_v1beta2_DevClusterStatus_To_v1beta1_DevClusterStatus(in *infrav1.De
 		return err
 	}
 
-	if in.Initialization.Provisioned != nil {
-		out.Ready = *in.Initialization.Provisioned
-	}
+	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
 
 	if in.FailureDomains != nil {
 		out.FailureDomains = clusterv1beta1.FailureDomains{}
@@ -327,10 +336,6 @@ func Convert_v1beta1_DevMachineStatus_To_v1beta2_DevMachineStatus(in *DevMachine
 		return err
 	}
 
-	if in.Ready {
-		out.Initialization.Provisioned = ptr.To(in.Ready)
-	}
-
 	// Reset conditions from autogenerated conversions
 	// NOTE: v1beta1 conditions should not be automatically be converted into v1beta2 conditions.
 	out.Conditions = nil
@@ -361,9 +366,7 @@ func Convert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *infrav1.De
 		return err
 	}
 
-	if in.Initialization.Provisioned != nil {
-		out.Ready = *in.Initialization.Provisioned
-	}
+	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
 
 	// Reset conditions from autogenerated conversions
 	// NOTE: v1beta2 conditions should not be automatically be converted into legacy conditions (v1beta1).
@@ -388,10 +391,6 @@ func Convert_v1beta2_DevMachineStatus_To_v1beta1_DevMachineStatus(in *infrav1.De
 func Convert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in *DockerClusterStatus, out *infrav1.DockerClusterStatus, s apiconversion.Scope) error {
 	if err := autoConvert_v1beta1_DockerClusterStatus_To_v1beta2_DockerClusterStatus(in, out, s); err != nil {
 		return err
-	}
-
-	if in.Ready {
-		out.Initialization.Provisioned = ptr.To(in.Ready)
 	}
 
 	if in.FailureDomains != nil {
@@ -438,9 +437,7 @@ func Convert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in *infr
 		return err
 	}
 
-	if in.Initialization.Provisioned != nil {
-		out.Ready = *in.Initialization.Provisioned
-	}
+	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
 
 	if in.FailureDomains != nil {
 		out.FailureDomains = clusterv1beta1.FailureDomains{}
@@ -476,10 +473,6 @@ func Convert_v1beta1_DockerMachineStatus_To_v1beta2_DockerMachineStatus(in *Dock
 		return err
 	}
 
-	if in.Ready {
-		out.Initialization.Provisioned = ptr.To(in.Ready)
-	}
-
 	// Reset conditions from autogenerated conversions
 	// NOTE: v1beta1 conditions should not be automatically be converted into v1beta2 conditions.
 	out.Conditions = nil
@@ -511,7 +504,7 @@ func Convert_v1beta2_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *infr
 	}
 
 	if in.Initialization.Provisioned != nil {
-		out.Ready = *in.Initialization.Provisioned
+		out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
 	}
 
 	// Reset conditions from autogenerated conversions

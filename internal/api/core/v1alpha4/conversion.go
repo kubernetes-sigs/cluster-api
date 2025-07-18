@@ -32,6 +32,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -130,8 +131,8 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.Topology.Variables = restored.Spec.Topology.Variables
 			dst.Spec.Topology.ControlPlane.Variables = restored.Spec.Topology.ControlPlane.Variables
 
-			if restored.Spec.Topology.ControlPlane.MachineHealthCheck != nil {
-				dst.Spec.Topology.ControlPlane.MachineHealthCheck = restored.Spec.Topology.ControlPlane.MachineHealthCheck
+			if restored.Spec.Topology.ControlPlane.HealthCheck != nil {
+				dst.Spec.Topology.ControlPlane.HealthCheck = restored.Spec.Topology.ControlPlane.HealthCheck
 			}
 
 			if restored.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds != nil {
@@ -156,7 +157,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 				dst.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDeletionTimeoutSeconds
 				dst.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds = restored.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds
 				dst.Spec.Topology.Workers.MachineDeployments[i].Strategy = restored.Spec.Topology.Workers.MachineDeployments[i].Strategy
-				dst.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck = restored.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck
+				dst.Spec.Topology.Workers.MachineDeployments[i].HealthCheck = restored.Spec.Topology.Workers.MachineDeployments[i].HealthCheck
 			}
 
 			dst.Spec.Topology.Workers.MachinePools = restored.Spec.Topology.Workers.MachinePools
@@ -244,7 +245,7 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Patches = restored.Spec.Patches
 	dst.Spec.Variables = restored.Spec.Variables
 	dst.Spec.AvailabilityGates = restored.Spec.AvailabilityGates
-	dst.Spec.ControlPlane.MachineHealthCheck = restored.Spec.ControlPlane.MachineHealthCheck
+	dst.Spec.ControlPlane.HealthCheck = restored.Spec.ControlPlane.HealthCheck
 	dst.Spec.ControlPlane.ReadinessGates = restored.Spec.ControlPlane.ReadinessGates
 	dst.Spec.ControlPlane.NamingStrategy = restored.Spec.ControlPlane.NamingStrategy
 	dst.Spec.Infrastructure.NamingStrategy = restored.Spec.Infrastructure.NamingStrategy
@@ -254,7 +255,7 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Workers.MachinePools = restored.Spec.Workers.MachinePools
 
 	for i := range restored.Spec.Workers.MachineDeployments {
-		dst.Spec.Workers.MachineDeployments[i].MachineHealthCheck = restored.Spec.Workers.MachineDeployments[i].MachineHealthCheck
+		dst.Spec.Workers.MachineDeployments[i].HealthCheck = restored.Spec.Workers.MachineDeployments[i].HealthCheck
 		dst.Spec.Workers.MachineDeployments[i].ReadinessGates = restored.Spec.Workers.MachineDeployments[i].ReadinessGates
 		dst.Spec.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Workers.MachineDeployments[i].FailureDomain
 		dst.Spec.Workers.MachineDeployments[i].NamingStrategy = restored.Spec.Workers.MachineDeployments[i].NamingStrategy
@@ -637,8 +638,6 @@ func (dst *MachineHealthCheck) ConvertFrom(srcRaw conversion.Hub) error {
 	if dst.Spec.RemediationTemplate != nil {
 		dst.Spec.RemediationTemplate.Namespace = src.Namespace
 	}
-
-	dropEmptyStringsMachineHealthCheck(dst)
 
 	// Preserve Hub data on down-conversion except for metadata
 	return utilconversion.MarshalData(src, dst)
@@ -1065,13 +1064,21 @@ func Convert_v1alpha4_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(i
 	}
 
 	for _, c := range in.UnhealthyConditions {
-		out.UnhealthyNodeConditions = append(out.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
+		out.Checks.UnhealthyNodeConditions = append(out.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
 			Type:           c.Type,
 			Status:         c.Status,
 			TimeoutSeconds: ptr.Deref(clusterv1.ConvertToSeconds(&c.Timeout), 0),
 		})
 	}
-	out.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeStartupTimeout)
+	out.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeStartupTimeout)
+	out.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MaxUnhealthy
+	out.Remediation.TriggerIf.UnhealthyInRange = ptr.Deref(in.UnhealthyRange, "")
+	if in.RemediationTemplate != nil {
+		out.Remediation.TemplateRef = &clusterv1.MachineHealthCheckRemediationTemplateReference{}
+		if err := clusterv1beta1.Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.RemediationTemplate, out.Remediation.TemplateRef, s); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -1081,14 +1088,24 @@ func Convert_v1beta2_MachineHealthCheckSpec_To_v1alpha4_MachineHealthCheckSpec(i
 		return err
 	}
 
-	for _, c := range in.UnhealthyNodeConditions {
+	for _, c := range in.Checks.UnhealthyNodeConditions {
 		out.UnhealthyConditions = append(out.UnhealthyConditions, UnhealthyCondition{
 			Type:    c.Type,
 			Status:  c.Status,
 			Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(&c.TimeoutSeconds), metav1.Duration{}),
 		})
 	}
-	out.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.NodeStartupTimeoutSeconds)
+	out.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.Checks.NodeStartupTimeoutSeconds)
+	out.MaxUnhealthy = in.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo
+	if in.Remediation.TriggerIf.UnhealthyInRange != "" {
+		out.UnhealthyRange = ptr.To(in.Remediation.TriggerIf.UnhealthyInRange)
+	}
+	if in.Remediation.TemplateRef != nil {
+		out.RemediationTemplate = &corev1.ObjectReference{}
+		if err := clusterv1beta1.Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(in.Remediation.TemplateRef, out.RemediationTemplate, s); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -1336,10 +1353,6 @@ func dropEmptyStringsMachineSpec(spec *MachineSpec) {
 	dropEmptyString(&spec.Version)
 	dropEmptyString(&spec.ProviderID)
 	dropEmptyString(&spec.FailureDomain)
-}
-
-func dropEmptyStringsMachineHealthCheck(dst *MachineHealthCheck) {
-	dropEmptyString(&dst.Spec.UnhealthyRange)
 }
 
 func dropEmptyString(s **string) {

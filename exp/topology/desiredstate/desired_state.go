@@ -145,12 +145,13 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 	// Compute the desired state of the ControlPlane MachineHealthCheck if defined.
 	// The MachineHealthCheck will have the same name as the ControlPlane Object and a selector for the ControlPlane InfrastructureMachines.
 	if s.Blueprint.IsControlPlaneMachineHealthCheckEnabled() {
+		checks, remediation := s.Blueprint.ControlPlaneMachineHealthCheckClass()
 		desiredState.ControlPlane.MachineHealthCheck = computeMachineHealthCheck(
 			ctx,
 			desiredState.ControlPlane.Object,
 			selectors.ForControlPlaneMHC(),
 			s.Current.Cluster,
-			s.Blueprint.ControlPlaneMachineHealthCheckClass())
+			checks, remediation)
 	}
 
 	// Compute the desired state for the Cluster object adding a reference to the
@@ -917,12 +918,13 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	// If the ClusterClass defines a MachineHealthCheck for the MachineDeployment add it to the desired state.
 	if s.Blueprint.IsMachineDeploymentMachineHealthCheckEnabled(&machineDeploymentTopology) {
 		// Note: The MHC is going to use a selector that provides a minimal set of labels which are common to all MachineSets belonging to the MachineDeployment.
+		checks, remediation := s.Blueprint.MachineDeploymentMachineHealthCheckClass(&machineDeploymentTopology)
 		desiredMachineDeployment.MachineHealthCheck = computeMachineHealthCheck(
 			ctx,
 			desiredMachineDeploymentObj,
 			selectors.ForMachineDeploymentMHC(desiredMachineDeploymentObj),
 			s.Current.Cluster,
-			s.Blueprint.MachineDeploymentMachineHealthCheckClass(&machineDeploymentTopology))
+			checks, remediation)
 	}
 	return desiredMachineDeployment, nil
 }
@@ -1438,7 +1440,7 @@ func templateToTemplate(in templateToInput) (*unstructured.Unstructured, error) 
 	return template, nil
 }
 
-func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Object, selector *metav1.LabelSelector, cluster *clusterv1.Cluster, check *clusterv1.MachineHealthCheckClass) *clusterv1.MachineHealthCheck {
+func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Object, selector *metav1.LabelSelector, cluster *clusterv1.Cluster, mhcChecks clusterv1.MachineHealthCheckChecks, mhcRemediation clusterv1.MachineHealthCheckRemediation) *clusterv1.MachineHealthCheck {
 	// Create a MachineHealthCheck with the spec given in the ClusterClass.
 	mhc := &clusterv1.MachineHealthCheck{
 		TypeMeta: metav1.TypeMeta{
@@ -1458,13 +1460,10 @@ func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Obj
 			},
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
-			ClusterName:               cluster.Name,
-			Selector:                  *selector,
-			UnhealthyNodeConditions:   check.UnhealthyNodeConditions,
-			MaxUnhealthy:              check.MaxUnhealthy,
-			UnhealthyRange:            check.UnhealthyRange,
-			NodeStartupTimeoutSeconds: check.NodeStartupTimeoutSeconds,
-			RemediationTemplate:       check.RemediationTemplate,
+			ClusterName: cluster.Name,
+			Selector:    *selector,
+			Checks:      mhcChecks,
+			Remediation: mhcRemediation,
 		},
 	}
 

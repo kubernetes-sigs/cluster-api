@@ -119,7 +119,7 @@ type ClusterTopologyBuilder struct {
 	workers               clusterv1.WorkersTopology
 	version               string
 	controlPlaneReplicas  int32
-	controlPlaneMHC       *clusterv1.MachineHealthCheckTopology
+	controlPlaneMHC       *clusterv1.ControlPlaneTopologyMachineHealthCheck
 	variables             []clusterv1.ClusterVariable
 	controlPlaneVariables []clusterv1.ClusterVariable
 }
@@ -161,8 +161,8 @@ func (c *ClusterTopologyBuilder) WithControlPlaneVariables(variables ...clusterv
 	return c
 }
 
-// WithControlPlaneMachineHealthCheck adds MachineHealthCheckTopology used as the MachineHealthCheck value.
-func (c *ClusterTopologyBuilder) WithControlPlaneMachineHealthCheck(mhc *clusterv1.MachineHealthCheckTopology) *ClusterTopologyBuilder {
+// WithControlPlaneMachineHealthCheck adds ControlPlaneTopologyMachineHealthCheck used as the MachineHealthCheck value.
+func (c *ClusterTopologyBuilder) WithControlPlaneMachineHealthCheck(mhc *clusterv1.ControlPlaneTopologyMachineHealthCheck) *ClusterTopologyBuilder {
 	c.controlPlaneMHC = mhc
 	return c
 }
@@ -195,8 +195,8 @@ func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 		Workers: c.workers,
 		Version: c.version,
 		ControlPlane: clusterv1.ControlPlaneTopology{
-			Replicas:           &c.controlPlaneReplicas,
-			MachineHealthCheck: c.controlPlaneMHC,
+			Replicas:    &c.controlPlaneReplicas,
+			HealthCheck: c.controlPlaneMHC,
 		},
 		Variables: c.variables,
 	}
@@ -216,7 +216,7 @@ type MachineDeploymentTopologyBuilder struct {
 	class       string
 	name        string
 	replicas    *int32
-	mhc         *clusterv1.MachineHealthCheckTopology
+	mhc         *clusterv1.MachineDeploymentTopologyMachineHealthCheck
 	variables   []clusterv1.ClusterVariable
 }
 
@@ -251,8 +251,8 @@ func (m *MachineDeploymentTopologyBuilder) WithVariables(variables ...clusterv1.
 	return m
 }
 
-// WithMachineHealthCheck adds MachineHealthCheckTopology used as the MachineHealthCheck value.
-func (m *MachineDeploymentTopologyBuilder) WithMachineHealthCheck(mhc *clusterv1.MachineHealthCheckTopology) *MachineDeploymentTopologyBuilder {
+// WithMachineHealthCheck adds MachineDeploymentTopologyMachineHealthCheck used as the MachineHealthCheck value.
+func (m *MachineDeploymentTopologyBuilder) WithMachineHealthCheck(mhc *clusterv1.MachineDeploymentTopologyMachineHealthCheck) *MachineDeploymentTopologyBuilder {
 	m.mhc = mhc
 	return m
 }
@@ -263,10 +263,10 @@ func (m *MachineDeploymentTopologyBuilder) Build() clusterv1.MachineDeploymentTo
 		Metadata: clusterv1.ObjectMeta{
 			Annotations: m.annotations,
 		},
-		Class:              m.class,
-		Name:               m.name,
-		Replicas:           m.replicas,
-		MachineHealthCheck: m.mhc,
+		Class:       m.class,
+		Name:        m.name,
+		Replicas:    m.replicas,
+		HealthCheck: m.mhc,
 	}
 
 	if len(m.variables) > 0 {
@@ -345,7 +345,7 @@ type ClusterClassBuilder struct {
 	controlPlaneReadinessGates                []clusterv1.MachineReadinessGate
 	controlPlaneTemplate                      *unstructured.Unstructured
 	controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
-	controlPlaneMHC                           *clusterv1.MachineHealthCheckClass
+	controlPlaneMHC                           *clusterv1.ControlPlaneClassMachineHealthCheck
 	controlPlaneNodeDrainTimeout              *int32
 	controlPlaneNodeVolumeDetachTimeout       *int32
 	controlPlaneNodeDeletionTimeout           *int32
@@ -401,7 +401,7 @@ func (c *ClusterClassBuilder) WithControlPlaneInfrastructureMachineTemplate(t *u
 }
 
 // WithControlPlaneMachineHealthCheck adds a MachineHealthCheck for the ControlPlane to the ClusterClassBuilder.
-func (c *ClusterClassBuilder) WithControlPlaneMachineHealthCheck(mhc *clusterv1.MachineHealthCheckClass) *ClusterClassBuilder {
+func (c *ClusterClassBuilder) WithControlPlaneMachineHealthCheck(mhc *clusterv1.ControlPlaneClassMachineHealthCheck) *ClusterClassBuilder {
 	c.controlPlaneMHC = mhc
 	return c
 }
@@ -513,7 +513,7 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 		obj.Spec.ControlPlane.TemplateRef = objToClusterClassTemplateRef(c.controlPlaneTemplate)
 	}
 	if c.controlPlaneMHC != nil {
-		obj.Spec.ControlPlane.MachineHealthCheck = c.controlPlaneMHC
+		obj.Spec.ControlPlane.HealthCheck = c.controlPlaneMHC
 	}
 	if c.controlPlaneNodeDrainTimeout != nil {
 		obj.Spec.ControlPlane.Deletion.NodeDrainTimeoutSeconds = c.controlPlaneNodeDrainTimeout
@@ -548,7 +548,7 @@ type MachineDeploymentClassBuilder struct {
 	bootstrapTemplate             *unstructured.Unstructured
 	labels                        map[string]string
 	annotations                   map[string]string
-	machineHealthCheckClass       *clusterv1.MachineHealthCheckClass
+	machineHealthCheckClass       *clusterv1.MachineDeploymentClassMachineHealthCheck
 	readinessGates                []clusterv1.MachineReadinessGate
 	failureDomain                 *string
 	nodeDrainTimeout              *int32
@@ -591,7 +591,7 @@ func (m *MachineDeploymentClassBuilder) WithAnnotations(annotations map[string]s
 }
 
 // WithMachineHealthCheckClass sets the MachineHealthCheckClass for the MachineDeploymentClassBuilder.
-func (m *MachineDeploymentClassBuilder) WithMachineHealthCheckClass(mhc *clusterv1.MachineHealthCheckClass) *MachineDeploymentClassBuilder {
+func (m *MachineDeploymentClassBuilder) WithMachineHealthCheckClass(mhc *clusterv1.MachineDeploymentClassMachineHealthCheck) *MachineDeploymentClassBuilder {
 	m.machineHealthCheckClass = mhc
 	return m
 }
@@ -660,7 +660,7 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 		obj.Infrastructure.TemplateRef = objToClusterClassTemplateRef(m.infrastructureMachineTemplate)
 	}
 	if m.machineHealthCheckClass != nil {
-		obj.MachineHealthCheck = m.machineHealthCheckClass
+		obj.HealthCheck = m.machineHealthCheckClass
 	}
 	if m.readinessGates != nil {
 		obj.ReadinessGates = m.readinessGates
@@ -2154,10 +2154,16 @@ func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
 			OwnerReferences: m.ownerRefs,
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
-			ClusterName:             m.clusterName,
-			Selector:                m.selector,
-			UnhealthyNodeConditions: m.unhealthyNodeConditions,
-			MaxUnhealthy:            m.maxUnhealthy,
+			ClusterName: m.clusterName,
+			Selector:    m.selector,
+			Checks: clusterv1.MachineHealthCheckChecks{
+				UnhealthyNodeConditions: m.unhealthyNodeConditions,
+			},
+			Remediation: clusterv1.MachineHealthCheckRemediation{
+				TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
+					UnhealthyLessThanOrEqualTo: m.maxUnhealthy,
+				},
+			},
 		},
 	}
 	if m.clusterName != "" {

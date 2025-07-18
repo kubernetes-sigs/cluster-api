@@ -501,7 +501,7 @@ func spokeMachineHealthCheck(in *MachineHealthCheck, c randfill.Continue) {
 
 	in.Namespace = "foo"
 
-	dropEmptyStringsMachineHealthCheck(in)
+	dropEmptyString(&in.Spec.UnhealthyRange)
 }
 
 func spokeObjectReference(in *corev1.ObjectReference, c randfill.Continue) {

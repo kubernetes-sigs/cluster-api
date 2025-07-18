@@ -107,8 +107,8 @@ node group. But, during a scale from zero situation (ie when a node group has ze
 autoscaler needs to acquire this information from the infrastructure provider.
 
 An optional status field is proposed on the Infrastructure Machine Template which will be populated
-by infrastructure providers to contain the CPU, memory, and GPU capacities for machines described by that
-template. The cluster autoscaler will then utilize this information by reading the appropriate
+by infrastructure providers to contain the CPU, CPU architecture, memory, and GPU capacities for machines
+described by that template. The cluster autoscaler will then utilize this information by reading the appropriate
 infrastructure reference from the resource it is scaling (MachineSet or MachineDeployment).
 
 A user may override the field in the associated infrastructure template by applying annotations to the
@@ -160,6 +160,13 @@ the template.  Internally, this field will be represented by a Go `map` type uti
 for the keys and `k8s.io/apimachinery/pkg/api/resource.Quantity` as the values (similar to how resource
 limits and requests are handled for pods).
 
+Additionally, the status field should contain information about the node, such as the architecture and 
+operating system. This information is not required for the autoscaler to function, but it can be useful in 
+scenarios where the autoscaler needs to make decisions for clusters with heterogeneous node groups in architecture, OS, or both.
+
+This information must be represented as a field with name `nodeInfo`, a struct with two optional subfields, 
+`architecture` and `operatingSystem`. Allowed values for architecture are `amd64`, `arm64`, `s390x`, `ppc64le`.
+
 It is worth mentioning that the Infrastructure Machine Templates are not usually reconciled by themselves.
 Each infrastructure provider will be responsible for determining the best implementation for adding the
 status field based on the information available on their platform.
@@ -175,6 +182,9 @@ const (
 // DockerMachineTemplateStatus defines the observed state of a DockerMachineTemplate
 type DockerMachineTemplateStatus struct {
     Capacity corev1.ResourceList `json:"capacity,omitempty"`
+    
+    // +optional
+    NodeInfo NodeInfo `json:"nodeInfo,omitempty,omitzero"`
 }
 
 // DockerMachineTemplate is the Schema for the dockermachinetemplates API.
@@ -187,6 +197,39 @@ type DockerMachineTemplate struct {
 }
 ```
 _Note: the `ResourceList` and `ResourceName` referenced are from k8s.io/api/core/v1`_
+
+`NodeInfo` is a struct that contains the architecture and operating system information of the node, to implement 
+in the providers integration code.
+Its definition should look like the following:
+
+```go
+// Architecture represents the CPU architecture of the node.
+// Its underlying type is a string and its value can be any of amd64, arm64, s390x, ppc64le.
+// +kubebuilder:validation:Enum=amd64;arm64;s390x;ppc64le
+// +enum
+type Architecture string
+
+// Example architecture constants defined for better readability and maintainability.
+const (
+    ArchitectureAmd64 Architecture = "amd64"
+    ArchitectureArm64 Architecture = "arm64"
+    ArchitectureS390x Architecture = "s390x"
+    ArchitecturePpc64le Architecture = "ppc64le"
+)
+    
+// NodeInfo contains information about the node's architecture and operating system. 
+// +kubebuilder:validation:MinProperties=1
+type NodeInfo struct {
+    // architecture is the CPU architecture of the node. 
+    // Its underlying type is a string and its value can be any of amd64, arm64, s390x, ppc64le.
+    // +optional
+    Architecture Architecture `json:"architecture,omitempty"`
+    // operatingSystem is a string representing the operating system of the node.
+    // This may be a string like 'linux' or 'windows'.
+    // +optional
+    OperatingSystem string `json:"operatingSystem,omitempty"`
+}
+```
 
 When used as a manifest, it would look like this:
 
@@ -204,7 +247,12 @@ status:
     memory: 500mb
     cpu: "1"
     nvidia.com/gpu: "1"
+  nodeInfo:
+    architecture: arm64
+    operatingSystem: linux
 ```
+
+The information stored in the `status.nodeInfo` field will be used by the cluster autoscaler's scheduler simulator to determine the simulated node's labels `kubernetes.io/arch` and `kubernetes.io/os`. This logic will be implemented in the cluster autoscaler's ClusterAPI cloud provider code.
 
 #### MachineSet and MachineDeployment Annotations
 
@@ -245,6 +293,28 @@ metadata:
     capacity.cluster-autoscaler.kubernetes.io/labels: "key1=value1,key2=value2"
     capacity.cluster-autoscaler.kubernetes.io/taints: "key1=value1:NoSchedule,key2=value2:NoExecute"
 ```
+
+If the `capacity.cluster-autoscaler.kubernetes.io/labels` annotation specifies a label that would otherwise be
+generated from the fields in the `status` field of the Machine Template, the autoscaler will prioritize and use 
+the label defined in the annotation. This means any label set by the annotation will override the corresponding
+value provided by the infrastructure provider in the Machine Template status.
+
+For example, assume the following objects
+
+```yaml
+kind: MachineDeployment
+metadata:
+  annotations:
+    capacity.cluster-autoscaler.kubernetes.io/labels: kubernetes.io/arch=amd64
+---
+kind: ExampleMachineTemplate
+status:
+  nodeInfo:
+    architecture: arm64
+```
+
+The cluster autoscaler will prefer the annotation on the MachineDeployment and will predict nodes that have a 
+`kubernetes.io/arch: amd64` label on them.
 
 ### Security Model
 
@@ -318,6 +388,7 @@ office hours meeting:
 
 ## Implementation History
 
+- [X] 05/08/2025: Updated proposal to enable architecture- and OS- aware auto-scale from 0
 - [X] 09/12/2024: Added section on Implementation Status
 - [X] 01/31/2023: Updated proposal to include annotation changes
 - [X] 06/10/2021: Proposed idea in an issue or [community meeting]

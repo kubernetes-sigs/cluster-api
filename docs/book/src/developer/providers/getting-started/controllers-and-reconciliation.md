@@ -1,6 +1,6 @@
 # Controllers and Reconciliation
 
-Right now, you can create objects with our API types, but those objects doesn't make any impact on your mailgun infrastrucrure. 
+Right now, you can create objects with your API types, but those objects don't make any impact on your mailgun infrastructure. 
 Let's fix that by implementing controllers and reconciliation for your API objects.
 
 From the [kubebuilder book][controller]:
@@ -25,17 +25,16 @@ Kubebuilder has created our first controller in `controllers/mailguncluster_cont
 // MailgunClusterReconciler reconciles a MailgunCluster object
 type MailgunClusterReconciler struct {
 	client.Client
-	Log logr.Logger
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=mailgunclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=mailgunclusters/status,verbs=get;update;patch
 
 func (r *MailgunClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("mailguncluster", req.NamespacedName)
+	_ = logf.FromContext(ctx)
 
-	// your logic here
+	// TODO(user): your logic here
 
 	return ctrl.Result{}, nil
 }
@@ -88,7 +87,7 @@ We're going to be sending mail, so let's add a few extra fields:
 // MailgunClusterReconciler reconciles a MailgunCluster object
 type MailgunClusterReconciler struct {
 	client.Client
-	Log       logr.Logger
+	Scheme *runtime.Scheme
 	Mailgun   mailgun.Mailgun
 	Recipient string
 }
@@ -102,7 +101,7 @@ Here's a naive example:
 ```go
 func (r *MailgunClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	_ = r.Log.WithValues("mailguncluster", req.NamespacedName)
+	_ = ctrl.LoggerFrom(ctx)
 
 	var cluster infrav1.MailgunCluster
 	if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
@@ -117,8 +116,8 @@ By returning an error, you request that our controller will get `Reconcile()` ca
 That may not always be what you want - what if the object's been deleted? So let's check that:
 
 ```go
-    var cluster infrav1.MailgunCluster
-    if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
+    var mailgunCluster infrav1.MailgunCluster
+    if err := r.Get(ctx, req.NamespacedName, &mailgunCluster); err != nil {
         // 	import apierrors "k8s.io/apimachinery/pkg/api/errors"
         if apierrors.IsNotFound(err) {
             return ctrl.Result{}, nil
@@ -127,17 +126,55 @@ That may not always be what you want - what if the object's been deleted? So let
     }
 ```
 
-Now, if this were any old `kubebuilder` project you'd be done, but in our case you have one more object to retrieve.
-Cluster API splits a cluster into two objects: the [`Cluster` defined by Cluster API itself][cluster].
-We'll want to retrieve that as well.
+Now that we have our own cluster object (`MailGunCluster`) that represents all the
+infrastructure provider specific details for our cluster, we also need to retrieve
+the upstream [`Cluster` object that is defined by Cluster API itself][cluster].
 Luckily, cluster API [provides a helper for us][getowner].
 
+First, you'll need to import the cluster-api package into our project if you haven't done so yet:
+
+```bash
+# In your Mailgun repository's root directory
+go get sigs.k8s.io/cluster-api
+go mod tidy
+```
+
+Now we can add in a call to the `GetOwnerCluster` function to retrieve the cluster object:
+
 ```go
-    cluster, err := util.GetOwnerCluster(ctx, r.Client, &mg)
+    // import sigs.k8s.io/cluster-api/util
+    cluster, err := util.GetOwnerCluster(ctx, r.Client, mailgunCluster.ObjectMeta)
     if err != nil {
         return ctrl.Result{}, err
-    
     }
+```
+
+If our cluster was just created, the Cluster API controller may not have set the ownership reference on our object yet, so we'll have to return here and wait to do more with our cluster object until then. We can leave a log message noting that we're waiting for the main Cluster API controller to set the ownership reference. Here's what our `Reconcile()` function looks like now:
+
+```go
+func (r *MailgunClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+    // We change the _ to `log` since we're going to log something now
+    log = ctrl.LoggerFrom(ctx)
+
+    var mailgunCluster infrav1.MailgunCluster
+    if err := r.Get(ctx, req.NamespacedName, &mailgunCluster); err != nil {
+        // import apierrors "k8s.io/apimachinery/pkg/api/errors"
+        if apierrors.IsNotFound(err) {
+            return ctrl.Result{}, nil
+        }
+        return ctrl.Result{}, err
+    }
+
+    // import sigs.k8s.io/cluster-api/util
+    cluster, err := util.GetOwnerCluster(ctx, r.Client, mailgunCluster.ObjectMeta)
+    if err != nil {
+        return ctrl.Result{}, err
+    }
+
+	if cluster == nil {
+		log.Info("Waiting for Cluster Controller to set OwnerRef on MailGunCluster")
+		return ctrl.Result{}, nil
+	}
 ```
 
 ### The fun part
@@ -152,10 +189,10 @@ This is where your provider really comes into its own.
 In our case, let's try sending some mail:
 
 ```go
-subject := fmt.Sprintf("[%s] New Cluster %s requested", mgCluster.Spec.Priority, cluster.Name)
-body := fmt.Sprint("Hello! One cluster please.\n\n%s\n", mgCluster.Spec.Request)
+subject := fmt.Sprintf("[%s] New Cluster %s requested", mailgunCluster.Spec.Priority, cluster.Name)
+body := fmt.Sprintf("Hello! One cluster please.\n\n%s\n", mailgunCluster.Spec.Request)
 
-msg := mailgun.NewMessage(mgCluster.Spec.Requester, subject, body, r.Recipient)
+msg := r.mailgun.NewMessage(mailgunCluster.Spec.Requester, subject, body, r.Recipient)
 _, _, err = r.Mailgun.Send(msg)
 if err != nil {
     return ctrl.Result{}, err
@@ -172,28 +209,28 @@ This is an important thing about controllers: they need to be idempotent. This m
 So in our case, we'll store the result of sending a message, and then check to see if we've sent one before.
 
 ```go
-    if mgCluster.Status.MessageID != nil {
+    if mailgunCluster.Status.MessageID != nil {
         // We already sent a message, so skip reconciliation
         return ctrl.Result{}, nil
     }
     
-    subject := fmt.Sprintf("[%s] New Cluster %s requested", mgCluster.Spec.Priority, cluster.Name)
-    body := fmt.Sprintf("Hello! One cluster please.\n\n%s\n", mgCluster.Spec.Request)
+    subject := fmt.Sprintf("[%s] New Cluster %s requested", mailgunCluster.Spec.Priority, cluster.Name)
+    body := fmt.Sprintf("Hello! One cluster please.\n\n%s\n", mailgunCluster.Spec.Request)
     
-    msg := mailgun.NewMessage(mgCluster.Spec.Requester, subject, body, r.Recipient)
+    msg := r.Mailgun.NewMessage(mailgunCluster.Spec.Requester, subject, body, r.Recipient)
     _, msgID, err := r.Mailgun.Send(msg)
     if err != nil {
         return ctrl.Result{}, err
     }
     
     // patch from sigs.k8s.io/cluster-api/util/patch
-    helper, err := patch.NewHelper(&mgCluster, r.Client)
+    helper, err := patch.NewHelper(&mailgunCluster, r.Client)
     if err != nil {
         return ctrl.Result{}, err
     }
-    mgCluster.Status.MessageID = &msgID
-    if err := helper.Patch(ctx, &mgCluster); err != nil {
-        return ctrl.Result{}, errors.Wrapf(err, "couldn't patch cluster %q", mgCluster.Name)
+    mailgunCluster.Status.MessageID = &msgID
+    if err := helper.Patch(ctx, &mailgunCluster); err != nil {
+        return ctrl.Result{}, errors.Wrapf(err, "couldn't patch cluster %q", mailgunCluster.Name)
     }
     
     return ctrl.Result{}, nil
@@ -223,7 +260,7 @@ Right now, it probably looks like this:
 ```go
     if err = (&controllers.MailgunClusterReconciler{
         Client: mgr.GetClient(),
-        Log:    ctrl.Log.WithName("controllers").WithName("MailgunCluster"),
+        Scheme: mgr.GetScheme(),
     }).SetupWithManager(mgr); err != nil {
         setupLog.Error(err, "Unable to create controller", "controller", "MailgunCluster")
         os.Exit(1)
@@ -256,7 +293,7 @@ We're going to use environment variables for this:
     
     if err = (&controllers.MailgunClusterReconciler{
         Client:    mgr.GetClient(),
-        Log:       ctrl.Log.WithName("controllers").WithName("MailgunCluster"),
+        Scheme: mgr.GetScheme(),
         Mailgun:   mg,
         Recipient: recipient,
     }).SetupWithManager(mgr); err != nil {

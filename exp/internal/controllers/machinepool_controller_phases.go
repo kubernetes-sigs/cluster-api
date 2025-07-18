@@ -276,6 +276,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 		return ctrl.Result{}, err
 	}
 	infraConfig := infraReconcileResult.Result
+	s.infraMachinePool = infraConfig
 
 	if !infraConfig.GetDeletionTimestamp().IsZero() {
 		return ctrl.Result{}, nil

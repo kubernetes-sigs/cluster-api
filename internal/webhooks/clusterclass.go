@@ -23,7 +23,6 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -188,14 +187,14 @@ func validateUpdatesToMachineHealthCheckClasses(clusters []clusterv1.Cluster, ol
 	var allErrs field.ErrorList
 
 	// Check if the MachineHealthCheck for the control plane is dropped.
-	if oldClusterClass.Spec.ControlPlane.MachineHealthCheck != nil && newClusterClass.Spec.ControlPlane.MachineHealthCheck == nil {
+	if oldClusterClass.Spec.ControlPlane.HealthCheck != nil && newClusterClass.Spec.ControlPlane.HealthCheck == nil {
 		// Make sure that none of the clusters are using this MachineHealthCheck.
 		clustersUsingMHC := []string{}
 		for _, cluster := range clusters {
-			if cluster.Spec.Topology.ControlPlane.MachineHealthCheck != nil &&
-				cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable != nil &&
-				*cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable &&
-				cluster.Spec.Topology.ControlPlane.MachineHealthCheck.IsZero() {
+			if cluster.Spec.Topology.ControlPlane.HealthCheck != nil &&
+				cluster.Spec.Topology.ControlPlane.HealthCheck.Enabled != nil &&
+				*cluster.Spec.Topology.ControlPlane.HealthCheck.Enabled &&
+				cluster.Spec.Topology.ControlPlane.HealthCheck.IsHealthCheckConfigZero() {
 				clustersUsingMHC = append(clustersUsingMHC, cluster.Name)
 			}
 		}
@@ -215,15 +214,15 @@ func validateUpdatesToMachineHealthCheckClasses(clusters []clusterv1.Cluster, ol
 			continue
 		}
 		// If the MachineHealthCheck is dropped then check that no cluster is using it.
-		if oldMdClass.MachineHealthCheck != nil && newMdClass.MachineHealthCheck == nil {
+		if oldMdClass.HealthCheck != nil && newMdClass.HealthCheck == nil {
 			clustersUsingMHC := []string{}
 			for _, cluster := range clusters {
 				for _, mdTopology := range cluster.Spec.Topology.Workers.MachineDeployments {
 					if mdTopology.Class == newMdClass.Class {
-						if mdTopology.MachineHealthCheck != nil &&
-							mdTopology.MachineHealthCheck.Enable != nil &&
-							*mdTopology.MachineHealthCheck.Enable &&
-							mdTopology.MachineHealthCheck.IsZero() {
+						if mdTopology.HealthCheck != nil &&
+							mdTopology.HealthCheck.Enabled != nil &&
+							*mdTopology.HealthCheck.Enabled &&
+							mdTopology.HealthCheck.IsHealthCheckConfigZero() {
 							clustersUsingMHC = append(clustersUsingMHC, cluster.Name)
 							break
 						}
@@ -361,11 +360,11 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 	var allErrs field.ErrorList
 
 	// Validate ControlPlane MachineHealthCheck if defined.
-	if clusterClass.Spec.ControlPlane.MachineHealthCheck != nil {
+	if clusterClass.Spec.ControlPlane.HealthCheck != nil {
 		fldPath := field.NewPath("spec", "controlPlane", "machineHealthCheck")
 
-		allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, clusterClass.Namespace,
-			clusterClass.Spec.ControlPlane.MachineHealthCheck)...)
+		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
+		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 
 		// Ensure ControlPlane does not define a MachineHealthCheck if it does not define MachineInfrastructure.
 		if clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
@@ -378,12 +377,13 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 
 	// Validate MachineDeployment MachineHealthChecks.
 	for _, md := range clusterClass.Spec.Workers.MachineDeployments {
-		if md.MachineHealthCheck == nil {
+		if md.HealthCheck == nil {
 			continue
 		}
 		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("machineHealthCheck")
 
-		allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, clusterClass.Namespace, md.MachineHealthCheck)...)
+		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, md.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
+		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, md.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 	}
 	return allErrs
 }
@@ -466,23 +466,6 @@ func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorL
 	}
 
 	return allErrs
-}
-
-// validateMachineHealthCheckClass validates the MachineHealthCheckSpec fields defined in a MachineHealthCheckClass.
-func validateMachineHealthCheckClass(fldPath *field.Path, namespace string, m *clusterv1.MachineHealthCheckClass) field.ErrorList {
-	mhc := clusterv1.MachineHealthCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
-		Spec: clusterv1.MachineHealthCheckSpec{
-			NodeStartupTimeoutSeconds: m.NodeStartupTimeoutSeconds,
-			MaxUnhealthy:              m.MaxUnhealthy,
-			UnhealthyNodeConditions:   m.UnhealthyNodeConditions,
-			UnhealthyRange:            m.UnhealthyRange,
-			RemediationTemplate:       m.RemediationTemplate,
-		}}
-
-	return (&MachineHealthCheck{}).validateCommonFields(&mhc, fldPath)
 }
 
 func validateClusterClassMetadata(clusterClass *clusterv1.ClusterClass) field.ErrorList {

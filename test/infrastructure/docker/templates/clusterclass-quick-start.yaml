@@ -13,14 +13,15 @@ spec:
         kind: DockerMachineTemplate
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         name: quick-start-control-plane
-    machineHealthCheck:
-      unhealthyNodeConditions:
-        - type: Ready
-          status: Unknown
-          timeoutSeconds: 300
-        - type: Ready
-          status: "False"
-          timeoutSeconds: 300
+    healthCheck:
+      checks:
+        unhealthyNodeConditions:
+          - type: Ready
+            status: Unknown
+            timeoutSeconds: 300
+          - type: Ready
+            status: "False"
+            timeoutSeconds: 300
   infrastructure:
     templateRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -39,14 +40,15 @@ spec:
           apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: DockerMachineTemplate
           name: quick-start-default-worker-machinetemplate
-      machineHealthCheck:
-        unhealthyNodeConditions:
-          - type: Ready
-            status: Unknown
-            timeoutSeconds: 300
-          - type: Ready
-            status: "False"
-            timeoutSeconds: 300
+      healthCheck:
+        checks:
+          unhealthyNodeConditions:
+            - type: Ready
+              status: Unknown
+              timeoutSeconds: 300
+            - type: Ready
+              status: "False"
+              timeoutSeconds: 300
     machinePools:
     - class: default-worker
       bootstrap:

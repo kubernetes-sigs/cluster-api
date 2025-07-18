@@ -61,7 +61,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
 					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
-					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{}).
+					WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneClassMachineHealthCheck{}).
 					Build(),
 				Topology: builder.ClusterTopology().
 					WithClass("cluster-class").
@@ -74,12 +74,12 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
 					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
-					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{}).
+					WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneClassMachineHealthCheck{}).
 					Build(),
 				Topology: builder.ClusterTopology().
 					WithClass("cluster-class").
-					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-						Enable: ptr.To(false),
+					WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyMachineHealthCheck{
+						Enabled: ptr.To(false),
 					}).
 					Build(),
 			},
@@ -90,12 +90,12 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
 					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
-					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{}).
+					WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneClassMachineHealthCheck{}).
 					Build(),
 				Topology: builder.ClusterTopology().
 					WithClass("cluster-class").
-					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-						Enable: ptr.To(true),
+					WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyMachineHealthCheck{
+						Enabled: ptr.To(true),
 					}).
 					Build(),
 			},
@@ -109,8 +109,8 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 					Build(),
 				Topology: builder.ClusterTopology().
 					WithClass("cluster-class").
-					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+					WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyMachineHealthCheck{
+						Checks: clusterv1.ControlPlaneTopologyMachineHealthCheckChecks{
 							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
 									Type:           corev1.NodeReady,
@@ -132,9 +132,9 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 					Build(),
 				Topology: builder.ClusterTopology().
 					WithClass("cluster-class").
-					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-						Enable: ptr.To(false),
-						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+					WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyMachineHealthCheck{
+						Enabled: ptr.To(false),
+						Checks: clusterv1.ControlPlaneTopologyMachineHealthCheckChecks{
 							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
 									Type:           corev1.NodeReady,
@@ -156,9 +156,9 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 					Build(),
 				Topology: builder.ClusterTopology().
 					WithClass("cluster-class").
-					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-						Enable: ptr.To(true),
-						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+					WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyMachineHealthCheck{
+						Enabled: ptr.To(true),
+						Checks: clusterv1.ControlPlaneTopologyMachineHealthCheckChecks{
 							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 								{
 									Type:           corev1.NodeReady,
@@ -183,65 +183,101 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 }
 
 func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
-	mhcInClusterClass := &clusterv1.MachineHealthCheckClass{
-		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-			{
-				Type:           corev1.NodeReady,
-				Status:         corev1.ConditionFalse,
-				TimeoutSeconds: 10 * 60,
-			},
-		},
-	}
-
-	percent50 := intstr.FromString("50%")
-	mhcInClusterTopology := &clusterv1.MachineHealthCheckClass{
-		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-			{
-				Type:           corev1.NodeReady,
-				Status:         corev1.ConditionFalse,
-				TimeoutSeconds: 20 * 60,
-			},
-		},
-		MaxUnhealthy: &percent50,
-	}
-
 	tests := []struct {
-		name      string
-		blueprint *ClusterBlueprint
-		want      *clusterv1.MachineHealthCheckClass
+		name            string
+		blueprint       *ClusterBlueprint
+		wantChecks      clusterv1.MachineHealthCheckChecks
+		wantRemediation clusterv1.MachineHealthCheckRemediation
 	}{
 		{
 			name: "should return the MachineHealthCheck from cluster topology if defined - should take precedence over MachineHealthCheck in ClusterClass",
 			blueprint: &ClusterBlueprint{
 				Topology: builder.ClusterTopology().
-					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-						MachineHealthCheckClass: *mhcInClusterTopology,
+					WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyMachineHealthCheck{
+						Checks: clusterv1.ControlPlaneTopologyMachineHealthCheckChecks{
+							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+								{
+									Type:           corev1.NodeReady,
+									Status:         corev1.ConditionFalse,
+									TimeoutSeconds: 20 * 60,
+								},
+							},
+						},
+						Remediation: clusterv1.ControlPlaneTopologyMachineHealthCheckRemediation{
+							TriggerIf: clusterv1.ControlPlaneTopologyMachineHealthCheckRemediationTriggerIf{
+								UnhealthyLessThanOrEqualTo: ptr.To(intstr.FromString("50%")),
+							},
+						},
 					}).
 					Build(),
 				ControlPlane: &ControlPlaneBlueprint{
-					MachineHealthCheck: mhcInClusterClass,
+					MachineHealthCheck: &clusterv1.ControlPlaneClassMachineHealthCheck{
+						Checks: clusterv1.ControlPlaneClassMachineHealthCheckChecks{
+							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+								{
+									Type:           corev1.NodeReady,
+									Status:         corev1.ConditionFalse,
+									TimeoutSeconds: 10 * 60,
+								},
+							},
+						},
+					},
 				},
 			},
-			want: mhcInClusterTopology,
+			wantChecks: clusterv1.MachineHealthCheckChecks{
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+					{
+						Type:           corev1.NodeReady,
+						Status:         corev1.ConditionFalse,
+						TimeoutSeconds: 20 * 60,
+					},
+				},
+			},
+			wantRemediation: clusterv1.MachineHealthCheckRemediation{
+				TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
+					UnhealthyLessThanOrEqualTo: ptr.To(intstr.FromString("50%")),
+				},
+			},
 		},
 		{
 			name: "should return the MachineHealthCheck from ClusterClass if no MachineHealthCheck is defined in cluster topology",
 			blueprint: &ClusterBlueprint{
 				Topology: builder.ClusterTopology().
-					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{}).
+					WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyMachineHealthCheck{}).
 					Build(),
 				ControlPlane: &ControlPlaneBlueprint{
-					MachineHealthCheck: mhcInClusterClass,
+					MachineHealthCheck: &clusterv1.ControlPlaneClassMachineHealthCheck{
+						Checks: clusterv1.ControlPlaneClassMachineHealthCheckChecks{
+							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+								{
+									Type:           corev1.NodeReady,
+									Status:         corev1.ConditionFalse,
+									TimeoutSeconds: 10 * 60,
+								},
+							},
+						},
+					},
 				},
 			},
-			want: mhcInClusterClass,
+			wantChecks: clusterv1.MachineHealthCheckChecks{
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+					{
+						Type:           corev1.NodeReady,
+						Status:         corev1.ConditionFalse,
+						TimeoutSeconds: 10 * 60,
+					},
+				},
+			},
+			wantRemediation: clusterv1.MachineHealthCheckRemediation{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			g.Expect(tt.blueprint.ControlPlaneMachineHealthCheckClass()).To(BeComparableTo(tt.want))
+			gotChecks, gotRemediation := tt.blueprint.ControlPlaneMachineHealthCheckClass()
+			g.Expect(gotChecks).To(BeComparableTo(tt.wantChecks))
+			g.Expect(gotRemediation).To(BeComparableTo(tt.wantRemediation))
 		})
 	}
 }
@@ -270,7 +306,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 			blueprint: &ClusterBlueprint{
 				MachineDeployments: map[string]*MachineDeploymentBlueprint{
 					"worker-class": {
-						MachineHealthCheck: &clusterv1.MachineHealthCheckClass{},
+						MachineHealthCheck: &clusterv1.MachineDeploymentClassMachineHealthCheck{},
 					},
 				},
 			},
@@ -284,14 +320,14 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 			blueprint: &ClusterBlueprint{
 				MachineDeployments: map[string]*MachineDeploymentBlueprint{
 					"worker-class": {
-						MachineHealthCheck: &clusterv1.MachineHealthCheckClass{},
+						MachineHealthCheck: &clusterv1.MachineDeploymentClassMachineHealthCheck{},
 					},
 				},
 			},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Class: "worker-class",
-				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
-					Enable: ptr.To(false),
+				HealthCheck: &clusterv1.MachineDeploymentTopologyMachineHealthCheck{
+					Enabled: ptr.To(false),
 				},
 			},
 			want: false,
@@ -301,14 +337,14 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 			blueprint: &ClusterBlueprint{
 				MachineDeployments: map[string]*MachineDeploymentBlueprint{
 					"worker-class": {
-						MachineHealthCheck: &clusterv1.MachineHealthCheckClass{},
+						MachineHealthCheck: &clusterv1.MachineDeploymentClassMachineHealthCheck{},
 					},
 				},
 			},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Class: "worker-class",
-				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
-					Enable: ptr.To(true),
+				HealthCheck: &clusterv1.MachineDeploymentTopologyMachineHealthCheck{
+					Enabled: ptr.To(true),
 				},
 			},
 			want: true,
@@ -322,8 +358,8 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 			},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Class: "worker-class",
-				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
-					MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+				HealthCheck: &clusterv1.MachineDeploymentTopologyMachineHealthCheck{
+					Checks: clusterv1.MachineDeploymentTopologyMachineHealthCheckChecks{
 						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 							{
 								Type:           corev1.NodeReady,
@@ -345,9 +381,9 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 			},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Class: "worker-class",
-				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
-					Enable: ptr.To(false),
-					MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+				HealthCheck: &clusterv1.MachineDeploymentTopologyMachineHealthCheck{
+					Enabled: ptr.To(false),
+					Checks: clusterv1.MachineDeploymentTopologyMachineHealthCheckChecks{
 						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 							{
 								Type:           corev1.NodeReady,
@@ -369,9 +405,9 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 			},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Class: "worker-class",
-				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
-					Enable: ptr.To(true),
-					MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+				HealthCheck: &clusterv1.MachineDeploymentTopologyMachineHealthCheck{
+					Enabled: ptr.To(true),
+					Checks: clusterv1.MachineDeploymentTopologyMachineHealthCheckChecks{
 						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 							{
 								Type:           corev1.NodeReady,
@@ -395,72 +431,108 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 }
 
 func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
-	mhcInClusterClass := &clusterv1.MachineHealthCheckClass{
-		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-			{
-				Type:           corev1.NodeReady,
-				Status:         corev1.ConditionFalse,
-				TimeoutSeconds: 10 * 60,
-			},
-		},
-	}
-
-	percent50 := intstr.FromString("50%")
-	mhcInClusterTopology := &clusterv1.MachineHealthCheckClass{
-		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-			{
-				Type:           corev1.NodeReady,
-				Status:         corev1.ConditionFalse,
-				TimeoutSeconds: 20 * 60,
-			},
-		},
-		MaxUnhealthy: &percent50,
-	}
-
 	tests := []struct {
-		name       string
-		blueprint  *ClusterBlueprint
-		mdTopology *clusterv1.MachineDeploymentTopology
-		want       *clusterv1.MachineHealthCheckClass
+		name            string
+		blueprint       *ClusterBlueprint
+		mdTopology      *clusterv1.MachineDeploymentTopology
+		wantChecks      clusterv1.MachineHealthCheckChecks
+		wantRemediation clusterv1.MachineHealthCheckRemediation
 	}{
 		{
 			name: "should return the MachineHealthCheck from cluster topology if defined - should take precedence over MachineHealthCheck in ClusterClass",
 			blueprint: &ClusterBlueprint{
 				MachineDeployments: map[string]*MachineDeploymentBlueprint{
 					"worker-class": {
-						MachineHealthCheck: mhcInClusterClass,
+						MachineHealthCheck: &clusterv1.MachineDeploymentClassMachineHealthCheck{
+							Checks: clusterv1.MachineDeploymentClassMachineHealthCheckChecks{
+								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+									{
+										Type:           corev1.NodeReady,
+										Status:         corev1.ConditionFalse,
+										TimeoutSeconds: 10 * 60,
+									},
+								},
+							},
+						},
 					},
 				},
 			},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Class: "worker-class",
-				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
-					MachineHealthCheckClass: *mhcInClusterTopology,
+				HealthCheck: &clusterv1.MachineDeploymentTopologyMachineHealthCheck{
+					Checks: clusterv1.MachineDeploymentTopologyMachineHealthCheckChecks{
+						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+							{
+								Type:           corev1.NodeReady,
+								Status:         corev1.ConditionFalse,
+								TimeoutSeconds: 20 * 60,
+							},
+						},
+					},
+					Remediation: clusterv1.MachineDeploymentTopologyMachineHealthCheckRemediation{
+						TriggerIf: clusterv1.MachineDeploymentTopologyMachineHealthCheckRemediationTriggerIf{
+							UnhealthyLessThanOrEqualTo: ptr.To(intstr.FromString("50%")),
+						},
+					},
 				},
 			},
-			want: mhcInClusterTopology,
+			wantChecks: clusterv1.MachineHealthCheckChecks{
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+					{
+						Type:           corev1.NodeReady,
+						Status:         corev1.ConditionFalse,
+						TimeoutSeconds: 20 * 60,
+					},
+				},
+			},
+			wantRemediation: clusterv1.MachineHealthCheckRemediation{
+				TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
+					UnhealthyLessThanOrEqualTo: ptr.To(intstr.FromString("50%")),
+				},
+			},
 		},
 		{
 			name: "should return the MachineHealthCheck from ClusterClass if no MachineHealthCheck is defined in cluster topology",
 			blueprint: &ClusterBlueprint{
 				MachineDeployments: map[string]*MachineDeploymentBlueprint{
 					"worker-class": {
-						MachineHealthCheck: mhcInClusterClass,
+						MachineHealthCheck: &clusterv1.MachineDeploymentClassMachineHealthCheck{
+							Checks: clusterv1.MachineDeploymentClassMachineHealthCheckChecks{
+								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+									{
+										Type:           corev1.NodeReady,
+										Status:         corev1.ConditionFalse,
+										TimeoutSeconds: 10 * 60,
+									},
+								},
+							},
+						},
 					},
 				},
 			},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
-				Class:              "worker-class",
-				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{},
+				Class:       "worker-class",
+				HealthCheck: &clusterv1.MachineDeploymentTopologyMachineHealthCheck{},
 			},
-			want: mhcInClusterClass,
+			wantChecks: clusterv1.MachineHealthCheckChecks{
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+					{
+						Type:           corev1.NodeReady,
+						Status:         corev1.ConditionFalse,
+						TimeoutSeconds: 10 * 60,
+					},
+				},
+			},
+			wantRemediation: clusterv1.MachineHealthCheckRemediation{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			g.Expect(tt.blueprint.MachineDeploymentMachineHealthCheckClass(tt.mdTopology)).To(BeComparableTo(tt.want))
+			gotChecks, gotRemediation := tt.blueprint.MachineDeploymentMachineHealthCheckClass(tt.mdTopology)
+			g.Expect(gotChecks).To(BeComparableTo(tt.wantChecks))
+			g.Expect(gotRemediation).To(BeComparableTo(tt.wantRemediation))
 		})
 	}
 }

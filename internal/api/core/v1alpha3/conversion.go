@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -519,8 +520,8 @@ func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 		return nil
 	}
 
-	if restored.Spec.UnhealthyRange != "" {
-		dst.Spec.UnhealthyRange = restored.Spec.UnhealthyRange
+	if restored.Spec.Remediation.TriggerIf.UnhealthyInRange != "" {
+		dst.Spec.Remediation.TriggerIf.UnhealthyInRange = restored.Spec.Remediation.TriggerIf.UnhealthyInRange
 	}
 	dst.Status.Conditions = restored.Status.Conditions
 
@@ -791,13 +792,20 @@ func Convert_v1alpha3_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(i
 	}
 
 	for _, c := range in.UnhealthyConditions {
-		out.UnhealthyNodeConditions = append(out.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
+		out.Checks.UnhealthyNodeConditions = append(out.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
 			Type:           c.Type,
 			Status:         c.Status,
 			TimeoutSeconds: ptr.Deref(clusterv1.ConvertToSeconds(&c.Timeout), 0),
 		})
 	}
-	out.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeStartupTimeout)
+	out.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeStartupTimeout)
+	out.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MaxUnhealthy
+	if in.RemediationTemplate != nil {
+		out.Remediation.TemplateRef = &clusterv1.MachineHealthCheckRemediationTemplateReference{}
+		if err := clusterv1beta1.Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.RemediationTemplate, out.Remediation.TemplateRef, s); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -807,14 +815,21 @@ func Convert_v1beta2_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(i
 		return err
 	}
 
-	for _, c := range in.UnhealthyNodeConditions {
+	for _, c := range in.Checks.UnhealthyNodeConditions {
 		out.UnhealthyConditions = append(out.UnhealthyConditions, UnhealthyCondition{
 			Type:    c.Type,
 			Status:  c.Status,
 			Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(&c.TimeoutSeconds), metav1.Duration{}),
 		})
 	}
-	out.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.NodeStartupTimeoutSeconds)
+	out.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.Checks.NodeStartupTimeoutSeconds)
+	out.MaxUnhealthy = in.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo
+	if in.Remediation.TemplateRef != nil {
+		out.RemediationTemplate = &corev1.ObjectReference{}
+		if err := clusterv1beta1.Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(in.Remediation.TemplateRef, out.RemediationTemplate, s); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

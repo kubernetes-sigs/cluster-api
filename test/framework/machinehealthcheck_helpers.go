@@ -56,7 +56,7 @@ func DiscoverMachineHealthChecksAndWaitForRemediation(ctx context.Context, input
 	Expect(machineHealthChecks).NotTo(BeEmpty())
 
 	for _, mhc := range machineHealthChecks {
-		Expect(mhc.Spec.UnhealthyNodeConditions).NotTo(BeEmpty())
+		Expect(mhc.Spec.Checks.UnhealthyNodeConditions).NotTo(BeEmpty())
 
 		fmt.Fprintln(GinkgoWriter, "Ensuring there is at least 1 Machine that MachineHealthCheck is matching")
 		machines := GetMachinesByMachineHealthCheck(ctx, GetMachinesByMachineHealthCheckInput{
@@ -69,8 +69,8 @@ func DiscoverMachineHealthChecksAndWaitForRemediation(ctx context.Context, input
 
 		fmt.Fprintln(GinkgoWriter, "Patching MachineHealthCheck unhealthy condition to one of the nodes")
 		unhealthyNodeCondition := corev1.NodeCondition{
-			Type:               mhc.Spec.UnhealthyNodeConditions[0].Type,
-			Status:             mhc.Spec.UnhealthyNodeConditions[0].Status,
+			Type:               mhc.Spec.Checks.UnhealthyNodeConditions[0].Type,
+			Status:             mhc.Spec.Checks.UnhealthyNodeConditions[0].Status,
 			LastTransitionTime: metav1.Time{Time: time.Now()},
 		}
 		PatchNodeCondition(ctx, PatchNodeConditionInput{
@@ -170,7 +170,7 @@ func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Cont
 
 // hasMatchingUnhealthyNodeConditions returns true if any node condition matches with machine health check unhealthy conditions.
 func hasMatchingUnhealthyNodeConditions(machineHealthCheck *clusterv1.MachineHealthCheck, nodeConditions []corev1.NodeCondition) bool {
-	for _, unhealthyNodeCondition := range machineHealthCheck.Spec.UnhealthyNodeConditions {
+	for _, unhealthyNodeCondition := range machineHealthCheck.Spec.Checks.UnhealthyNodeConditions {
 		for _, nodeCondition := range nodeConditions {
 			if nodeCondition.Type == unhealthyNodeCondition.Type && nodeCondition.Status == unhealthyNodeCondition.Status {
 				return true

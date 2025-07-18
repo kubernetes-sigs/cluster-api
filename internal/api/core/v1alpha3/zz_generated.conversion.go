@@ -28,7 +28,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	intstr "k8s.io/apimachinery/pkg/util/intstr"
 	v1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -967,36 +966,17 @@ func autoConvert_v1alpha3_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSp
 	out.ClusterName = in.ClusterName
 	out.Selector = in.Selector
 	// WARNING: in.UnhealthyConditions requires manual conversion: does not exist in peer-type
-	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
+	// WARNING: in.MaxUnhealthy requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeStartupTimeout requires manual conversion: does not exist in peer-type
-	if in.RemediationTemplate != nil {
-		in, out := &in.RemediationTemplate, &out.RemediationTemplate
-		*out = new(v1beta2.MachineHealthCheckRemediationTemplateReference)
-		if err := v1beta1.Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.RemediationTemplate = nil
-	}
+	// WARNING: in.RemediationTemplate requires manual conversion: does not exist in peer-type
 	return nil
 }
 
 func autoConvert_v1beta2_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(in *v1beta2.MachineHealthCheckSpec, out *MachineHealthCheckSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
 	out.Selector = in.Selector
-	// WARNING: in.UnhealthyNodeConditions requires manual conversion: does not exist in peer-type
-	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
-	// WARNING: in.UnhealthyRange requires manual conversion: does not exist in peer-type
-	// WARNING: in.NodeStartupTimeoutSeconds requires manual conversion: does not exist in peer-type
-	if in.RemediationTemplate != nil {
-		in, out := &in.RemediationTemplate, &out.RemediationTemplate
-		*out = new(corev1.ObjectReference)
-		if err := v1beta1.Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.RemediationTemplate = nil
-	}
+	// WARNING: in.Checks requires manual conversion: does not exist in peer-type
+	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
 	return nil
 }
 

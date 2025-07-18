@@ -236,7 +236,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	// do sort to avoid keep changing m.Status as the returned machines are not in order
 	sort.Strings(m.Status.Targets)
 
-	nodeStartupTimeout := m.Spec.NodeStartupTimeoutSeconds
+	nodeStartupTimeout := m.Spec.Checks.NodeStartupTimeoutSeconds
 	if nodeStartupTimeout == nil {
 		nodeStartupTimeout = &clusterv1.DefaultNodeStartupTimeoutSeconds
 	}
@@ -245,7 +245,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	healthy, unhealthy, nextCheckTimes := r.healthCheckTargets(targets, logger, metav1.Duration{Duration: time.Duration(*nodeStartupTimeout) * time.Second})
 	m.Status.CurrentHealthy = ptr.To(int32(len(healthy)))
 
-	// check MHC current health against MaxUnhealthy
+	// check MHC current health against UnhealthyLessThanOrEqualTo
 	remediationAllowed, remediationCount, err := isAllowedRemediation(m)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error checking if remediation is allowed")
@@ -254,8 +254,8 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	if !remediationAllowed {
 		var message string
 
-		if m.Spec.UnhealthyRange == "" {
-			maxUnhealthyValue := ptr.To(ptr.Deref(m.Spec.MaxUnhealthy, defaultMaxUnhealthy)).String()
+		if m.Spec.Remediation.TriggerIf.UnhealthyInRange == "" {
+			maxUnhealthyValue := ptr.To(ptr.Deref(m.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)).String()
 			logger.V(3).Info(
 				"Short-circuiting remediation",
 				totalTargetKeyLog, totalTargets,
@@ -270,13 +270,13 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 			logger.V(3).Info(
 				"Short-circuiting remediation",
 				totalTargetKeyLog, totalTargets,
-				unhealthyRangeKeyLog, m.Spec.UnhealthyRange,
+				unhealthyRangeKeyLog, m.Spec.Remediation.TriggerIf.UnhealthyInRange,
 				unhealthyTargetsKeyLog, len(unhealthy),
 			)
 			message = fmt.Sprintf("Remediation is not allowed, the number of not started or unhealthy machines does not fall within the range (total: %v, unhealthy: %v, unhealthyRange: %v)",
 				totalTargets,
 				len(unhealthy),
-				m.Spec.UnhealthyRange)
+				m.Spec.Remediation.TriggerIf.UnhealthyInRange)
 		}
 
 		// Remediation not allowed, the number of not started or unhealthy machines either exceeds maxUnhealthy (or) not within unhealthyRange
@@ -329,18 +329,18 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	if m.Spec.UnhealthyRange == "" {
+	if m.Spec.Remediation.TriggerIf.UnhealthyInRange == "" {
 		logger.V(3).Info(
 			"Remediations are allowed",
 			totalTargetKeyLog, totalTargets,
-			maxUnhealthyKeyLog, ptr.To(ptr.Deref(m.Spec.MaxUnhealthy, defaultMaxUnhealthy)).String(),
+			maxUnhealthyKeyLog, ptr.To(ptr.Deref(m.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)).String(),
 			unhealthyTargetsKeyLog, len(unhealthy),
 		)
 	} else {
 		logger.V(3).Info(
 			"Remediations are allowed",
 			totalTargetKeyLog, totalTargets,
-			unhealthyRangeKeyLog, m.Spec.UnhealthyRange,
+			unhealthyRangeKeyLog, m.Spec.Remediation.TriggerIf.UnhealthyInRange,
 			unhealthyTargetsKeyLog, len(unhealthy),
 		)
 	}
@@ -378,7 +378,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger, healthy []healthCheckTarget, m *clusterv1.MachineHealthCheck) []error {
 	errList := []error{}
 	for _, t := range healthy {
-		if m.Spec.RemediationTemplate != nil {
+		if m.Spec.Remediation.TemplateRef != nil {
 			// Get remediation request object
 			obj, err := r.getExternalRemediationRequest(ctx, m, t.Machine.Name)
 			if err != nil {
@@ -428,7 +428,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 		if annotations.IsPaused(cluster, t.Machine) {
 			logger.Info("Machine has failed health check, but machine is paused so skipping remediation", "reason", condition.Reason, "message", condition.Message)
 		} else {
-			if m.Spec.RemediationTemplate != nil {
+			if m.Spec.Remediation.TemplateRef != nil {
 				// If external remediation request already exists,
 				// return early
 				if r.externalRemediationRequestExists(ctx, m, t.Machine.Name) {
@@ -442,7 +442,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 					UID:        t.Machine.UID,
 				}
 
-				from, err := external.Get(ctx, r.Client, m.Spec.RemediationTemplate.ToObjectReference(m.Namespace))
+				from, err := external.Get(ctx, r.Client, m.Spec.Remediation.TemplateRef.ToObjectReference(m.Namespace))
 				if err != nil {
 					v1beta1conditions.MarkFalse(m, clusterv1.ExternalRemediationTemplateAvailableV1Beta1Condition, clusterv1.ExternalRemediationTemplateNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 
@@ -450,22 +450,22 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 						Type:    clusterv1.MachineExternallyRemediatedCondition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineExternallyRemediatedRemediationTemplateNotFoundReason,
-						Message: fmt.Sprintf("Error retrieving remediation template %s %s", m.Spec.RemediationTemplate.Kind, klog.KRef(m.Namespace, m.Spec.RemediationTemplate.Name)),
+						Message: fmt.Sprintf("Error retrieving remediation template %s %s", m.Spec.Remediation.TemplateRef.Kind, klog.KRef(m.Namespace, m.Spec.Remediation.TemplateRef.Name)),
 					})
-					errList = append(errList, errors.Wrapf(err, "error retrieving remediation template %v %q for machine %q in namespace %q within cluster %q", m.Spec.RemediationTemplate.GroupVersionKind(), m.Spec.RemediationTemplate.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
+					errList = append(errList, errors.Wrapf(err, "error retrieving remediation template %v %q for machine %q in namespace %q within cluster %q", m.Spec.Remediation.TemplateRef.GroupVersionKind(), m.Spec.Remediation.TemplateRef.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
 					return errList
 				}
 
 				generateTemplateInput := &external.GenerateTemplateInput{
 					Template:    from,
-					TemplateRef: m.Spec.RemediationTemplate.ToObjectReference(m.Namespace),
+					TemplateRef: m.Spec.Remediation.TemplateRef.ToObjectReference(m.Namespace),
 					Namespace:   t.Machine.Namespace,
 					ClusterName: t.Machine.Spec.ClusterName,
 					OwnerRef:    cloneOwnerRef,
 				}
 				to, err := external.GenerateTemplate(generateTemplateInput)
 				if err != nil {
-					errList = append(errList, errors.Wrapf(err, "failed to create template for remediation request %v %q for machine %q in namespace %q within cluster %q", m.Spec.RemediationTemplate.GroupVersionKind(), m.Spec.RemediationTemplate.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
+					errList = append(errList, errors.Wrapf(err, "failed to create template for remediation request %v %q for machine %q in namespace %q within cluster %q", m.Spec.Remediation.TemplateRef.GroupVersionKind(), m.Spec.Remediation.TemplateRef.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
 					return errList
 				}
 
@@ -657,12 +657,12 @@ func machineNames(machines []*clusterv1.Machine) []string {
 	return result
 }
 
-// isAllowedRemediation checks the value of the MaxUnhealthy field to determine
+// isAllowedRemediation checks the value of the UnhealthyLessThanOrEqualTo field to determine
 // returns whether remediation should be allowed or not, the remediation count, and error if any.
 func isAllowedRemediation(mhc *clusterv1.MachineHealthCheck) (bool, int32, error) {
 	var remediationAllowed bool
 	var remediationCount int32
-	if mhc.Spec.UnhealthyRange != "" {
+	if mhc.Spec.Remediation.TriggerIf.UnhealthyInRange != "" {
 		minVal, maxVal, err := getUnhealthyRange(mhc)
 		if err != nil {
 			return false, 0, err
@@ -689,7 +689,7 @@ func isAllowedRemediation(mhc *clusterv1.MachineHealthCheck) (bool, int32, error
 // Eg. [2-5] will return (2,5,nil).
 func getUnhealthyRange(mhc *clusterv1.MachineHealthCheck) (int, int, error) {
 	// remove '[' and ']'
-	unhealthyRange := (mhc.Spec.UnhealthyRange)[1 : len(mhc.Spec.UnhealthyRange)-1]
+	unhealthyRange := (mhc.Spec.Remediation.TriggerIf.UnhealthyInRange)[1 : len(mhc.Spec.Remediation.TriggerIf.UnhealthyInRange)-1]
 
 	parts := strings.Split(unhealthyRange, "-")
 
@@ -711,7 +711,7 @@ func getUnhealthyRange(mhc *clusterv1.MachineHealthCheck) (int, int, error) {
 }
 
 func getMaxUnhealthy(mhc *clusterv1.MachineHealthCheck) (int, error) {
-	maxUnhealthy, err := intstr.GetScaledValueFromIntOrPercent(ptr.To(ptr.Deref(mhc.Spec.MaxUnhealthy, defaultMaxUnhealthy)), int(ptr.Deref[int32](mhc.Status.ExpectedMachines, 0)), false)
+	maxUnhealthy, err := intstr.GetScaledValueFromIntOrPercent(ptr.To(ptr.Deref(mhc.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)), int(ptr.Deref[int32](mhc.Status.ExpectedMachines, 0)), false)
 	if err != nil {
 		return 0, err
 	}
@@ -727,8 +727,8 @@ func unhealthyMachineCount(mhc *clusterv1.MachineHealthCheck) int {
 // getExternalRemediationRequest gets reference to External Remediation Request, unstructured object.
 func (r *Reconciler) getExternalRemediationRequest(ctx context.Context, m *clusterv1.MachineHealthCheck, machineName string) (*unstructured.Unstructured, error) {
 	remediationRef := &corev1.ObjectReference{
-		APIVersion: m.Spec.RemediationTemplate.APIVersion,
-		Kind:       strings.TrimSuffix(m.Spec.RemediationTemplate.Kind, clusterv1.TemplateSuffix),
+		APIVersion: m.Spec.Remediation.TemplateRef.APIVersion,
+		Kind:       strings.TrimSuffix(m.Spec.Remediation.TemplateRef.Kind, clusterv1.TemplateSuffix),
 		Name:       machineName,
 		Namespace:  m.Namespace,
 	}

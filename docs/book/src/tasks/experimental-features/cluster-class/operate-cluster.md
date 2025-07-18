@@ -284,15 +284,15 @@ This means in the following example the Cluster topology controller will always 
 patches for the infrastructure ref, even if the `DockerClusterTemplate` already has a `v1beta2` apiVersion.
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: quick-start
   namespace: default
 spec:
   infrastructure:
-    ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: DockerClusterTemplate
 ...
 ```
@@ -307,14 +307,14 @@ apiVersion of the referenced CRD. The following example shows how to upgrade the
 
 ClusterClass with the old apiVersion:
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: quick-start
 spec:
   infrastructure:
-    ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: DockerClusterTemplate
 ...
   patches:
@@ -334,13 +334,13 @@ spec:
 
 ClusterClass with the new apiVersion:
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: quick-start
 spec:
   infrastructure:
-    ref:
+    templateRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2 # apiVersion updated
       kind: DockerClusterTemplate
 ...

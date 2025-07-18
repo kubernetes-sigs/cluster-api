@@ -133,7 +133,7 @@ Note: We enforce that variable conflicts have to be resolved by ClusterClass aut
 Variables that are defined with external variable definitions can be set like regular variables in Cluster `.spec.topology.variables`.
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 #metadata 
 spec:

@@ -146,7 +146,10 @@ const (
 	timeouts             = "timeouts"
 )
 
-const minimumCertificatesExpiryDays = 7
+const (
+	minimumCertificatesExpiryDays   = 7
+	defaultCACertificatesExpiryDays = 3650
+)
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
@@ -173,6 +176,7 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		{spec, kubeadmConfigSpec, clusterConfiguration, controllerManager, "*"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, scheduler},
 		{spec, kubeadmConfigSpec, clusterConfiguration, scheduler, "*"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "certificateValidityPeriodDays"},
 		// spec.kubeadmConfigSpec.initConfiguration
 		{spec, kubeadmConfigSpec, initConfiguration, nodeRegistration},
 		{spec, kubeadmConfigSpec, initConfiguration, nodeRegistration, "*"},
@@ -318,6 +322,27 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 		if s.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil {
 			externalEtcd = true
 		}
+		path := field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration")
+		if s.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays > s.KubeadmConfigSpec.ClusterConfiguration.CACertificateValidityPeriodDays {
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					path.Child("certificateValidityPeriodDays"),
+					s.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays,
+					fmt.Sprintf("must be less than or equal to caCertificateValidityPeriodDays %v", s.KubeadmConfigSpec.ClusterConfiguration.CACertificateValidityPeriodDays),
+				),
+			)
+		}
+		if s.KubeadmConfigSpec.ClusterConfiguration.CACertificateValidityPeriodDays == 0 && s.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays > defaultCACertificatesExpiryDays {
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					path.Child("certificateValidityPeriodDays"),
+					s.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays,
+					fmt.Sprintf("must be less than or equal to default value of caCertificateValidityPeriodDays %v", defaultCACertificatesExpiryDays),
+				),
+			)
+		}
 	}
 
 	if !externalEtcd {
@@ -370,16 +395,17 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 		allErrs = append(allErrs, field.Invalid(pathPrefix.Child("version"), s.Version, "must be a valid semantic version"))
 	}
 
-	allErrs = append(allErrs, validateRolloutBefore(s.RolloutBefore, pathPrefix.Child("rolloutBefore"))...)
+	allErrs = append(allErrs, validateRolloutBefore(s.RolloutBefore, s.KubeadmConfigSpec.ClusterConfiguration, pathPrefix.Child("rolloutBefore"))...)
 	allErrs = append(allErrs, validateRolloutStrategy(s.RolloutStrategy, s.Replicas, pathPrefix.Child("rolloutStrategy"))...)
 
 	if s.MachineNamingStrategy != nil {
 		allErrs = append(allErrs, validateNamingStrategy(s.MachineNamingStrategy, pathPrefix.Child("machineNamingStrategy"))...)
 	}
+
 	return allErrs
 }
 
-func validateRolloutBefore(rolloutBefore *controlplanev1.RolloutBefore, pathPrefix *field.Path) field.ErrorList {
+func validateRolloutBefore(rolloutBefore *controlplanev1.RolloutBefore, clusterConfiguration *bootstrapv1.ClusterConfiguration, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if rolloutBefore == nil {
@@ -389,6 +415,16 @@ func validateRolloutBefore(rolloutBefore *controlplanev1.RolloutBefore, pathPref
 	if rolloutBefore.CertificatesExpiryDays != nil {
 		if *rolloutBefore.CertificatesExpiryDays < minimumCertificatesExpiryDays {
 			allErrs = append(allErrs, field.Invalid(pathPrefix.Child("certificatesExpiryDays"), *rolloutBefore.CertificatesExpiryDays, fmt.Sprintf("must be greater than or equal to %v", minimumCertificatesExpiryDays)))
+		}
+
+		if clusterConfiguration == nil {
+			return allErrs
+		}
+
+		if clusterConfiguration.CertificateValidityPeriodDays != 0 {
+			if *rolloutBefore.CertificatesExpiryDays < clusterConfiguration.CertificateValidityPeriodDays {
+				allErrs = append(allErrs, field.Invalid(pathPrefix.Child("certificatesExpiryDays"), *rolloutBefore.CertificatesExpiryDays, fmt.Sprintf("must be greater than or equal to certificateValidityPeriodDays %v", clusterConfiguration.CertificateValidityPeriodDays)))
+			}
 		}
 	}
 

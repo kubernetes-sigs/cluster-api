@@ -135,7 +135,7 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateDelete(_ context.Context, _ 
 func validateKubeadmControlPlaneTemplateResourceSpec(s controlplanev1.KubeadmControlPlaneTemplateResourceSpec, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, validateRolloutBefore(s.RolloutBefore, pathPrefix.Child("rolloutBefore"))...)
+	allErrs = append(allErrs, validateRolloutBefore(s.RolloutBefore, s.KubeadmConfigSpec.ClusterConfiguration, pathPrefix.Child("rolloutBefore"))...)
 	allErrs = append(allErrs, validateRolloutStrategy(s.RolloutStrategy, nil, pathPrefix.Child("rolloutStrategy"))...)
 	if s.MachineNamingStrategy != nil {
 		allErrs = append(allErrs, validateNamingStrategy(s.MachineNamingStrategy, pathPrefix.Child("machineNamingStrategy"))...)

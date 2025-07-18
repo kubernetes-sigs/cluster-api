@@ -1591,7 +1591,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineHealthCheck(ref
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ControlPlaneClassMachineHealthCheck defines a MachineHealthCheck for a group of machines.",
+				Description: "ControlPlaneClassMachineHealthCheck defines a MachineHealthCheck for control plane machines.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"checks": {
@@ -1620,7 +1620,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineHealthCheckChec
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ControlPlaneClassMachineHealthCheckChecks are the checks that are used to evaluate if a Machine is healthy.",
+				Description: "ControlPlaneClassMachineHealthCheckChecks are the checks that are used to evaluate if a control plane Machine is healthy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"nodeStartupTimeoutSeconds": {
@@ -1661,7 +1661,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineHealthCheckReme
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ControlPlaneClassMachineHealthCheckRemediation configures if and how remediations are triggered if a Machine is unhealthy.",
+				Description: "ControlPlaneClassMachineHealthCheckRemediation configures if and how remediations are triggered if a control plane Machine is unhealthy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"triggerIf": {
@@ -1779,7 +1779,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref common.Referen
 					},
 					"healthCheck": {
 						SchemaProps: spec.SchemaProps{
-							Description: "healthCheck allows to enable, disable and override the MachineHealthCheck configuration in the ClusterClass for this control plane.",
+							Description: "healthCheck allows to enable, disable and override control plane health check configuration from the ClusterClass for this control plane.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyMachineHealthCheck"),
 						},
 					},
@@ -1865,7 +1865,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyMachineHealthCheck(
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ControlPlaneTopologyMachineHealthCheck defines a MachineHealthCheck for a group of machines.",
+				Description: "ControlPlaneTopologyMachineHealthCheck defines a MachineHealthCheck for control plane machines.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"enabled": {
@@ -1901,7 +1901,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyMachineHealthCheckC
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ControlPlaneTopologyMachineHealthCheckChecks are the checks that are used to evaluate if a Machine is healthy.",
+				Description: "ControlPlaneTopologyMachineHealthCheckChecks are the checks that are used to evaluate if a control plane Machine is healthy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"nodeStartupTimeoutSeconds": {
@@ -1942,7 +1942,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyMachineHealthCheckR
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ControlPlaneTopologyMachineHealthCheckRemediation configures if and how remediations are triggered if a Machine is unhealthy.",
+				Description: "ControlPlaneTopologyMachineHealthCheckRemediation configures if and how remediations are triggered if a control plane Machine is unhealthy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"triggerIf": {
@@ -2917,7 +2917,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineHealthChec
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentClassMachineHealthCheck defines a MachineHealthCheck for a group of machines.",
+				Description: "MachineDeploymentClassMachineHealthCheck defines a MachineHealthCheck for MachineDeployment machines.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"checks": {
@@ -2946,7 +2946,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineHealthChec
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentClassMachineHealthCheckChecks are the checks that are used to evaluate if a Machine is healthy.",
+				Description: "MachineDeploymentClassMachineHealthCheckChecks are the checks that are used to evaluate if a MachineDeployment Machine is healthy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"nodeStartupTimeoutSeconds": {
@@ -2987,7 +2987,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineHealthChec
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentClassMachineHealthCheckRemediation configures if and how remediations are triggered if a Machine is unhealthy.",
+				Description: "MachineDeploymentClassMachineHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"triggerIf": {
@@ -3410,7 +3410,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 					},
 					"healthCheck": {
 						SchemaProps: spec.SchemaProps{
-							Description: "healthCheck allows to enable, disable and override the MachineHealthCheck configuration in the ClusterClass for this MachineDeployment.",
+							Description: "healthCheck allows to enable, disable and override MachineDeployment health check configuration from the ClusterClass for this MachineDeployment.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyMachineHealthCheck"),
 						},
 					},
@@ -3511,7 +3511,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyMachineHealthC
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentTopologyMachineHealthCheck defines a MachineHealthCheck for a group of machines.",
+				Description: "MachineDeploymentTopologyMachineHealthCheck defines a MachineHealthCheck for MachineDeployment machines.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"enabled": {
@@ -3547,7 +3547,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyMachineHealthC
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentTopologyMachineHealthCheckChecks are the checks that are used to evaluate if a Machine is healthy.",
+				Description: "MachineDeploymentTopologyMachineHealthCheckChecks are the checks that are used to evaluate if a MachineDeployment Machine is healthy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"nodeStartupTimeoutSeconds": {
@@ -3588,7 +3588,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyMachineHealthC
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentTopologyMachineHealthCheckRemediation configures if and how remediations are triggered if a Machine is unhealthy.",
+				Description: "MachineDeploymentTopologyMachineHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"triggerIf": {

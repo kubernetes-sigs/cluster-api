@@ -104,7 +104,7 @@ func (b *ClusterBlueprint) IsControlPlaneMachineHealthCheckEnabled() bool {
 	}
 	// If no MachineHealthCheck is defined in the ClusterClass or in the Cluster Topology then return false.
 	if b.ClusterClass.Spec.ControlPlane.HealthCheck == nil &&
-		(b.Topology.ControlPlane.HealthCheck == nil || b.Topology.ControlPlane.HealthCheck.IsHealthCheckConfigZero()) {
+		(b.Topology.ControlPlane.HealthCheck == nil || b.Topology.ControlPlane.HealthCheck.IsDefined()) {
 		return false
 	}
 	// If `enable` is not set then consider it as true. A MachineHealthCheck will be created from either ClusterClass or Cluster Topology.
@@ -121,7 +121,7 @@ func (b *ClusterBlueprint) ControlPlaneMachineHealthCheckClass() (clusterv1.Mach
 		return clusterv1.MachineHealthCheckChecks{}, clusterv1.MachineHealthCheckRemediation{}
 	}
 
-	if b.Topology.ControlPlane.HealthCheck != nil && !b.Topology.ControlPlane.HealthCheck.IsHealthCheckConfigZero() {
+	if b.Topology.ControlPlane.HealthCheck != nil && !b.Topology.ControlPlane.HealthCheck.IsDefined() {
 		return clusterv1.MachineHealthCheckChecks{
 				NodeStartupTimeoutSeconds: b.Topology.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds,
 				UnhealthyNodeConditions:   b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyNodeConditions,
@@ -155,7 +155,7 @@ func (b *ClusterBlueprint) HasControlPlaneMachineHealthCheck() bool {
 // Returns false otherwise.
 func (b *ClusterBlueprint) IsMachineDeploymentMachineHealthCheckEnabled(md *clusterv1.MachineDeploymentTopology) bool {
 	// If no MachineHealthCheck is defined in the ClusterClass or in the Cluster Topology then return false.
-	if b.MachineDeployments[md.Class].MachineHealthCheck == nil && (md.HealthCheck == nil || md.HealthCheck.IsHealthCheckConfigZero()) {
+	if b.MachineDeployments[md.Class].MachineHealthCheck == nil && (md.HealthCheck == nil || md.HealthCheck.IsDefined()) {
 		return false
 	}
 	// If `enable` is not set then consider it as true. A MachineHealthCheck will be created from either ClusterClass or Cluster Topology.
@@ -172,7 +172,7 @@ func (b *ClusterBlueprint) MachineDeploymentMachineHealthCheckClass(md *clusterv
 		return clusterv1.MachineHealthCheckChecks{}, clusterv1.MachineHealthCheckRemediation{}
 	}
 
-	if md.HealthCheck != nil && !md.HealthCheck.IsHealthCheckConfigZero() {
+	if md.HealthCheck != nil && !md.HealthCheck.IsDefined() {
 		return clusterv1.MachineHealthCheckChecks{
 				NodeStartupTimeoutSeconds: md.HealthCheck.Checks.NodeStartupTimeoutSeconds,
 				UnhealthyNodeConditions:   md.HealthCheck.Checks.UnhealthyNodeConditions,

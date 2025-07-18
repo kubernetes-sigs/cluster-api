@@ -1836,12 +1836,14 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 	// Create InfrastructureMachineTemplates for test cases
 	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()
 
-	mhcClass := &clusterv1.MachineHealthCheckClass{
-		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-			{
-				Type:           corev1.NodeReady,
-				Status:         corev1.ConditionUnknown,
-				TimeoutSeconds: 5 * 60,
+	mhcClass := &clusterv1.ControlPlaneClassMachineHealthCheck{
+		Checks: clusterv1.ControlPlaneClassMachineHealthCheckChecks{
+			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+				{
+					Type:           corev1.NodeReady,
+					Status:         corev1.ConditionUnknown,
+					TimeoutSeconds: 5 * 60,
+				},
 			},
 		},
 	}
@@ -1862,7 +1864,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 
 	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "cp1").
 		WithSelector(*selectors.ForControlPlaneMHC()).
-		WithUnhealthyNodeConditions(mhcClass.UnhealthyNodeConditions).
+		WithUnhealthyNodeConditions(mhcClass.Checks.UnhealthyNodeConditions).
 		WithClusterName("cluster1")
 
 	tests := []struct {

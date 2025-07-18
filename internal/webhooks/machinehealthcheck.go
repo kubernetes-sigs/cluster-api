@@ -77,8 +77,8 @@ func (webhook *MachineHealthCheck) Default(_ context.Context, obj runtime.Object
 	}
 	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
-	if m.Spec.NodeStartupTimeoutSeconds == nil {
-		m.Spec.NodeStartupTimeoutSeconds = &clusterv1.DefaultNodeStartupTimeoutSeconds
+	if m.Spec.Checks.NodeStartupTimeoutSeconds == nil {
+		m.Spec.Checks.NodeStartupTimeoutSeconds = &clusterv1.DefaultNodeStartupTimeoutSeconds
 	}
 
 	return nil
@@ -147,7 +147,8 @@ func (webhook *MachineHealthCheck) validate(oldMHC, newMHC *clusterv1.MachineHea
 		)
 	}
 
-	allErrs = append(allErrs, webhook.validateCommonFields(newMHC, specPath)...)
+	allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(specPath, newMHC.Spec.Checks.NodeStartupTimeoutSeconds)...)
+	allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(specPath, newMHC.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -155,27 +156,28 @@ func (webhook *MachineHealthCheck) validate(oldMHC, newMHC *clusterv1.MachineHea
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachineHealthCheck").GroupKind(), newMHC.Name, allErrs)
 }
 
-// ValidateCommonFields validates NodeStartupTimeoutSeconds, MaxUnhealthy, and RemediationTemplate of the MHC.
-// These are the fields in common with other types which define MachineHealthChecks such as MachineHealthCheckClass and MachineHealthCheckTopology.
-func (webhook *MachineHealthCheck) validateCommonFields(m *clusterv1.MachineHealthCheck, fldPath *field.Path) field.ErrorList {
+func validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath *field.Path, nodeStartupTimeoutSeconds *int32) field.ErrorList {
 	var allErrs field.ErrorList
-
-	if m.Spec.NodeStartupTimeoutSeconds != nil &&
-		*m.Spec.NodeStartupTimeoutSeconds != disabledNodeStartupTimeoutSeconds &&
-		*m.Spec.NodeStartupTimeoutSeconds < minNodeStartupTimeoutSeconds {
+	if nodeStartupTimeoutSeconds != nil &&
+		*nodeStartupTimeoutSeconds != disabledNodeStartupTimeoutSeconds &&
+		*nodeStartupTimeoutSeconds < minNodeStartupTimeoutSeconds {
 		allErrs = append(
 			allErrs,
-			field.Invalid(fldPath.Child("nodeStartupTimeoutSeconds"), *m.Spec.NodeStartupTimeoutSeconds, "must be at least 30s"),
+			field.Invalid(fldPath.Child("checks", "nodeStartupTimeoutSeconds"), *nodeStartupTimeoutSeconds, "must be at least 30s"),
 		)
 	}
-	if m.Spec.MaxUnhealthy != nil {
-		if _, err := intstr.GetScaledValueFromIntOrPercent(m.Spec.MaxUnhealthy, 0, false); err != nil {
+	return allErrs
+}
+
+func validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath *field.Path, unhealthyLessThanOrEqualTo *intstr.IntOrString) field.ErrorList {
+	var allErrs field.ErrorList
+	if unhealthyLessThanOrEqualTo != nil {
+		if _, err := intstr.GetScaledValueFromIntOrPercent(unhealthyLessThanOrEqualTo, 0, false); err != nil {
 			allErrs = append(
 				allErrs,
-				field.Invalid(fldPath.Child("maxUnhealthy"), m.Spec.MaxUnhealthy, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+				field.Invalid(fldPath.Child("remediation", "triggerIf", "unhealthyLessThanOrEqualTo"), unhealthyLessThanOrEqualTo, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
 			)
 		}
 	}
-
 	return allErrs
 }

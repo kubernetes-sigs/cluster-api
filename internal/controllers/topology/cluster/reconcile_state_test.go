@@ -33,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -42,6 +43,7 @@ import (
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -290,6 +292,27 @@ func TestReconcileShim(t *testing.T) {
 }
 
 func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
+	var testGVKs = []schema.GroupVersionKind{
+		{
+			Group:   "refAPIGroup1",
+			Kind:    "refKind1",
+			Version: "v1beta4",
+		},
+	}
+
+	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+		for _, gvk := range testGVKs {
+			if gvk.GroupKind() == gk {
+				return schema.GroupVersion{
+					Group:   gk.Group,
+					Version: gvk.Version,
+				}.String(), nil
+			}
+		}
+		return "", fmt.Errorf("unknown GroupVersionKind: %v", gk)
+	}
+	clusterv1beta1.SetAPIVersionGetter(apiVersionGetter)
+
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)
 
@@ -342,8 +365,16 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef:   &clusterv1.ContractVersionedObjectReference{},
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
+					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: "refAPIGroup1",
+						Kind:     "refKind1",
+						Name:     "refName1",
+					},
+					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: "refAPIGroup1",
+						Kind:     "refKind1",
+						Name:     "refName1",
+					},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -367,8 +398,16 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef:   &clusterv1.ContractVersionedObjectReference{},
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
+					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: "refAPIGroup1",
+						Kind:     "refKind1",
+						Name:     "refName1",
+					},
+					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: "refAPIGroup1",
+						Kind:     "refKind1",
+						Name:     "refName1",
+					},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -392,8 +431,16 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef:   &clusterv1.ContractVersionedObjectReference{},
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
+					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: "refAPIGroup1",
+						Kind:     "refKind1",
+						Name:     "refName1",
+					},
+					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: "refAPIGroup1",
+						Kind:     "refKind1",
+						Name:     "refName1",
+					},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{

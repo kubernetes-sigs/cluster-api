@@ -57,9 +57,8 @@ func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 
 	if ok {
 		RestoreDockerClusterSpec(&restored.Spec, &dst.Spec)
+		RestoreDockerClusterStatus(&restored.Status, &dst.Status)
 	}
-
-	RestoreDockerClusterStatus(&restored.Status, &dst.Status)
 
 	return nil
 }
@@ -118,9 +117,8 @@ func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
 
 	if ok {
 		RestoreDockerMachineSpec(&restored.Spec, &dst.Spec)
+		RestoreDockerMachineStatus(&restored.Status, &dst.Status)
 	}
-
-	RestoreDockerMachineStatus(&restored.Status, &dst.Status)
 
 	return nil
 }

@@ -524,7 +524,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
 		dst.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 		dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
-		dst.Spec.Strategy.Remediation = restored.Spec.Strategy.Remediation
+		dst.Spec.Remediation = restored.Spec.Remediation
 
 		if restored.Spec.MachineNamingStrategy != nil {
 			dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy

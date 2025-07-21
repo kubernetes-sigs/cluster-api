@@ -362,6 +362,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 		selectors             map[string]string
 		labels                map[string]string
 		strategy              clusterv1.MachineDeploymentStrategy
+		remediation           clusterv1.MachineDeploymentRemediationSpec
 		expectErr             bool
 		machineNamingStrategy clusterv1.MachineNamingStrategy
 	}{
@@ -455,10 +456,8 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should return error for invalid remediation maxInFlight",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: clusterv1.MachineDeploymentStrategy{
-				Remediation: clusterv1.RemediationStrategy{
-					MaxInFlight: &badMaxInFlight,
-				},
+			remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: &badMaxInFlight,
 			},
 			expectErr: true,
 		},
@@ -466,10 +465,8 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should not return error for valid percentage remediation maxInFlight",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: clusterv1.MachineDeploymentStrategy{
-				Remediation: clusterv1.RemediationStrategy{
-					MaxInFlight: &goodMaxInFlightPercentage,
-				},
+			remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: &goodMaxInFlightPercentage,
 			},
 			expectErr: false,
 		},
@@ -477,10 +474,8 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should not return error for valid int remediation maxInFlight",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: clusterv1.MachineDeploymentStrategy{
-				Remediation: clusterv1.RemediationStrategy{
-					MaxInFlight: &goodMaxInFlightInt,
-				},
+			remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: &goodMaxInFlightInt,
 			},
 			expectErr: false,
 		},
@@ -533,8 +528,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 		},
 	}
 
-	for i := range tests {
-		tt := tests[i]
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			md := &clusterv1.MachineDeployment{
@@ -556,6 +550,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 							},
 						},
 					},
+					Remediation:           tt.remediation,
 					MachineNamingStrategy: &tt.machineNamingStrategy,
 				},
 			}

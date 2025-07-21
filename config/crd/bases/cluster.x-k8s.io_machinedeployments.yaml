@@ -1927,6 +1927,31 @@ spec:
               paused:
                 description: paused indicates that the deployment is paused.
                 type: boolean
+              remediation:
+                description: remediation controls how unhealthy Machines are remediated.
+                minProperties: 1
+                properties:
+                  maxInFlight:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: |-
+                      maxInFlight determines how many in flight remediations should happen at the same time.
+
+                      Remediation only happens on the MachineSet with the most current revision, while
+                      older MachineSets (usually present during rollout operations) aren't allowed to remediate.
+
+                      Note: In general (independent of remediations), unhealthy machines are always
+                      prioritized during scale down operations over healthy ones.
+
+                      MaxInFlight can be set to a fixed number or a percentage.
+                      Example: when this is set to 20%, the MachineSet controller deletes at most 20% of
+                      the desired replicas.
+
+                      If not set, remediation is limited to all machines (bounded by replicas)
+                      under the active MachineSet's management.
+                    x-kubernetes-int-or-string: true
+                type: object
               replicas:
                 description: |-
                   replicas is the number of desired machines.
@@ -2013,33 +2038,6 @@ spec:
                   new ones.
                 minProperties: 1
                 properties:
-                  remediation:
-                    description: |-
-                      remediation controls the strategy of remediating unhealthy machines
-                      and how remediating operations should occur during the lifecycle of the dependant MachineSets.
-                    minProperties: 1
-                    properties:
-                      maxInFlight:
-                        anyOf:
-                        - type: integer
-                        - type: string
-                        description: |-
-                          maxInFlight determines how many in flight remediations should happen at the same time.
-
-                          Remediation only happens on the MachineSet with the most current revision, while
-                          older MachineSets (usually present during rollout operations) aren't allowed to remediate.
-
-                          Note: In general (independent of remediations), unhealthy machines are always
-                          prioritized during scale down operations over healthy ones.
-
-                          MaxInFlight can be set to a fixed number or a percentage.
-                          Example: when this is set to 20%, the MachineSet controller deletes at most 20% of
-                          the desired replicas.
-
-                          If not set, remediation is limited to all machines (bounded by replicas)
-                          under the active MachineSet's management.
-                        x-kubernetes-int-or-string: true
-                    type: object
                   rollingUpdate:
                     description: |-
                       rollingUpdate is the rolling update config params. Present only if

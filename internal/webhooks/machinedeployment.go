@@ -270,12 +270,12 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		}
 	}
 
-	if newMD.Spec.Strategy.Remediation.MaxInFlight != nil {
-		if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.Remediation.MaxInFlight, total, true); err != nil {
+	if newMD.Spec.Remediation.MaxInFlight != nil {
+		if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Remediation.MaxInFlight, total, true); err != nil {
 			allErrs = append(
 				allErrs,
 				field.Invalid(specPath.Child("strategy", "remediation", "maxInFlight"),
-					newMD.Spec.Strategy.Remediation.MaxInFlight.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+					newMD.Spec.Remediation.MaxInFlight.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
 			)
 		}
 	}

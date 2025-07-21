@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -801,6 +802,14 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		strategy = machineDeploymentTopology.Strategy
 	}
 
+	var remediationMaxInFlight *intstr.IntOrString
+	if machineDeploymentClass.HealthCheck != nil && machineDeploymentClass.HealthCheck.Remediation.MaxInFlight != nil {
+		remediationMaxInFlight = machineDeploymentClass.HealthCheck.Remediation.MaxInFlight
+	}
+	if machineDeploymentTopology.HealthCheck != nil && machineDeploymentTopology.HealthCheck.Remediation.MaxInFlight != nil {
+		remediationMaxInFlight = machineDeploymentTopology.HealthCheck.Remediation.MaxInFlight
+	}
+
 	failureDomain := machineDeploymentClass.FailureDomain
 	if machineDeploymentTopology.FailureDomain != "" {
 		failureDomain = machineDeploymentTopology.FailureDomain
@@ -859,6 +868,9 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 			Strategy:    strategy,
 			Deletion: clusterv1.MachineDeploymentDeletionSpec{
 				Order: deletionOrder,
+			},
+			Remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: remediationMaxInFlight,
 			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{

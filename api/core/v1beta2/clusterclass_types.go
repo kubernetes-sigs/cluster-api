@@ -512,6 +512,24 @@ type MachineDeploymentClassHealthCheckChecks struct {
 // MachineDeploymentClassHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.
 // +kubebuilder:validation:MinProperties=1
 type MachineDeploymentClassHealthCheckRemediation struct {
+	// maxInFlight determines how many in flight remediations should happen at the same time.
+	//
+	// Remediation only happens on the MachineSet with the most current revision, while
+	// older MachineSets (usually present during rollout operations) aren't allowed to remediate.
+	//
+	// Note: In general (independent of remediations), unhealthy machines are always
+	// prioritized during scale down operations over healthy ones.
+	//
+	// MaxInFlight can be set to a fixed number or a percentage.
+	// Example: when this is set to 20%, the MachineSet controller deletes at most 20% of
+	// the desired replicas.
+	//
+	// If not set, remediation is limited to all machines (bounded by replicas)
+	// under the active MachineSet's management.
+	//
+	// +optional
+	MaxInFlight *intstr.IntOrString `json:"maxInFlight,omitempty"`
+
 	// triggerIf configures if remediations are triggered.
 	// If this field is not set, remediations are always triggered.
 	// +optional

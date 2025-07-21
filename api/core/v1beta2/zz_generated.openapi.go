@@ -95,6 +95,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeletionSpec":                            schema_cluster_api_api_core_v1beta2_MachineDeploymentDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeprecatedStatus":                        schema_cluster_api_api_core_v1beta2_MachineDeploymentDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentList":                                    schema_cluster_api_api_core_v1beta2_MachineDeploymentList(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRemediationSpec":                         schema_cluster_api_api_core_v1beta2_MachineDeploymentRemediationSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentSpec":                                    schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStatus":                                  schema_cluster_api_api_core_v1beta2_MachineDeploymentStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy":                                schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategy(ref),
@@ -162,7 +163,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatch":                                       schema_cluster_api_api_core_v1beta2_PatchSelectorMatch(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatchMachineDeploymentClass":                 schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachineDeploymentClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatchMachinePoolClass":                       schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachinePoolClass(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.RemediationStrategy":                                      schema_cluster_api_api_core_v1beta2_RemediationStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.Topology":                                                 schema_cluster_api_api_core_v1beta2_Topology(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition":                                   schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ValidationRule":                                           schema_cluster_api_api_core_v1beta2_ValidationRule(ref),
@@ -2935,6 +2935,12 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassHealthCheckRemedi
 				Description: "MachineDeploymentClassHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"maxInFlight": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxInFlight determines how many in flight remediations should happen at the same time.\n\nRemediation only happens on the MachineSet with the most current revision, while older MachineSets (usually present during rollout operations) aren't allowed to remediate.\n\nNote: In general (independent of remediations), unhealthy machines are always prioritized during scale down operations over healthy ones.\n\nMaxInFlight can be set to a fixed number or a percentage. Example: when this is set to 20%, the MachineSet controller deletes at most 20% of the desired replicas.\n\nIf not set, remediation is limited to all machines (bounded by replicas) under the active MachineSet's management.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
 					"triggerIf": {
 						SchemaProps: spec.SchemaProps{
 							Description: "triggerIf configures if remediations are triggered. If this field is not set, remediations are always triggered.",
@@ -2952,7 +2958,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassHealthCheckRemedi
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassHealthCheckRemediationTriggerIf", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckRemediationTemplateReference"},
+			"k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassHealthCheckRemediationTriggerIf", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckRemediationTemplateReference"},
 	}
 }
 
@@ -3160,6 +3166,27 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentList(ref common.Refere
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentRemediationSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentRemediationSpec controls how unhealthy Machines are remediated.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"maxInFlight": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxInFlight determines how many in flight remediations should happen at the same time.\n\nRemediation only happens on the MachineSet with the most current revision, while older MachineSets (usually present during rollout operations) aren't allowed to remediate.\n\nNote: In general (independent of remediations), unhealthy machines are always prioritized during scale down operations over healthy ones.\n\nMaxInFlight can be set to a fixed number or a percentage. Example: when this is set to 20%, the MachineSet controller deletes at most 20% of the desired replicas.\n\nIf not set, remediation is limited to all machines (bounded by replicas) under the active MachineSet's management.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3215,6 +3242,13 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy"),
 						},
 					},
+					"remediation": {
+						SchemaProps: spec.SchemaProps{
+							Description: "remediation controls how unhealthy Machines are remediated.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRemediationSpec"),
+						},
+					},
 					"deletion": {
 						SchemaProps: spec.SchemaProps{
 							Description: "deletion contains configuration options for MachineDeployment deletion.",
@@ -3234,7 +3268,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRemediationSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
 	}
 }
 
@@ -3351,18 +3385,11 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategy(ref common.Re
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate"),
 						},
 					},
-					"remediation": {
-						SchemaProps: spec.SchemaProps{
-							Description: "remediation controls the strategy of remediating unhealthy machines and how remediating operations should occur during the lifecycle of the dependant MachineSets.",
-							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.RemediationStrategy"),
-						},
-					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate", "sigs.k8s.io/cluster-api/api/core/v1beta2.RemediationStrategy"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate"},
 	}
 }
 
@@ -3586,6 +3613,12 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyHealthCheckRem
 				Description: "MachineDeploymentTopologyHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"maxInFlight": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxInFlight determines how many in flight remediations should happen at the same time.\n\nRemediation only happens on the MachineSet with the most current revision, while older MachineSets (usually present during rollout operations) aren't allowed to remediate.\n\nNote: In general (independent of remediations), unhealthy machines are always prioritized during scale down operations over healthy ones.\n\nMaxInFlight can be set to a fixed number or a percentage. Example: when this is set to 20%, the MachineSet controller deletes at most 20% of the desired replicas.\n\nIf not set, remediation is limited to all machines (bounded by replicas) under the active MachineSet's management.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
 					"triggerIf": {
 						SchemaProps: spec.SchemaProps{
 							Description: "triggerIf configures if remediations are triggered. If this field is not set, remediations are always triggered.",
@@ -3603,7 +3636,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyHealthCheckRem
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyHealthCheckRemediationTriggerIf", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckRemediationTemplateReference"},
+			"k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyHealthCheckRemediationTriggerIf", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckRemediationTemplateReference"},
 	}
 }
 
@@ -6245,27 +6278,6 @@ func schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachinePoolClass(ref 
 				},
 			},
 		},
-	}
-}
-
-func schema_cluster_api_api_core_v1beta2_RemediationStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "RemediationStrategy allows to define how the MachineSet can control scaling operations.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"maxInFlight": {
-						SchemaProps: spec.SchemaProps{
-							Description: "maxInFlight determines how many in flight remediations should happen at the same time.\n\nRemediation only happens on the MachineSet with the most current revision, while older MachineSets (usually present during rollout operations) aren't allowed to remediate.\n\nNote: In general (independent of remediations), unhealthy machines are always prioritized during scale down operations over healthy ones.\n\nMaxInFlight can be set to a fixed number or a percentage. Example: when this is set to 20%, the MachineSet controller deletes at most 20% of the desired replicas.\n\nIf not set, remediation is limited to all machines (bounded by replicas) under the active MachineSet's management.",
-							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
 	}
 }
 

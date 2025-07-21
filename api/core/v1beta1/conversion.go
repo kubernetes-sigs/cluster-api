@@ -829,13 +829,21 @@ func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in
 		if in.Strategy.RollingUpdate != nil && in.Strategy.RollingUpdate.DeletePolicy != nil {
 			out.Deletion.Order = clusterv1.MachineSetDeletionOrder(*in.Strategy.RollingUpdate.DeletePolicy)
 		}
+		if in.Strategy.Remediation != nil && in.Strategy.Remediation.MaxInFlight != nil {
+			if out.HealthCheck == nil {
+				out.HealthCheck = &clusterv1.MachineDeploymentClassHealthCheck{}
+			}
+			out.HealthCheck.Remediation.MaxInFlight = in.Strategy.Remediation.MaxInFlight
+		}
 	}
 	out.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
 	out.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
 	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 
 	if in.MachineHealthCheck != nil {
-		out.HealthCheck = &clusterv1.MachineDeploymentClassHealthCheck{}
+		if out.HealthCheck == nil {
+			out.HealthCheck = &clusterv1.MachineDeploymentClassHealthCheck{}
+		}
 		for _, c := range in.MachineHealthCheck.UnhealthyConditions {
 			out.HealthCheck.Checks.UnhealthyNodeConditions = append(out.HealthCheck.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
 				Type:           c.Type,
@@ -884,11 +892,23 @@ func Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in
 		}
 		out.Strategy.RollingUpdate.DeletePolicy = ptr.To(string(in.Deletion.Order))
 	}
+	if in.HealthCheck != nil && in.HealthCheck.Remediation.MaxInFlight != nil {
+		if out.Strategy == nil {
+			out.Strategy = &MachineDeploymentStrategy{}
+		}
+		if out.Strategy.Remediation == nil {
+			out.Strategy.Remediation = &RemediationStrategy{}
+		}
+		out.Strategy.Remediation.MaxInFlight = in.HealthCheck.Remediation.MaxInFlight
+	}
 	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDrainTimeoutSeconds)
 	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeVolumeDetachTimeoutSeconds)
 	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDeletionTimeoutSeconds)
 
-	if in.HealthCheck != nil {
+	// Check if HealthCheck is not nil and another field apart from MaxInFlight is set (MaxInFlight is set in Strategy above).
+	if in.HealthCheck != nil && !reflect.DeepEqual(in.HealthCheck, &clusterv1.MachineDeploymentClassHealthCheck{
+		Remediation: clusterv1.MachineDeploymentClassHealthCheckRemediation{MaxInFlight: in.HealthCheck.Remediation.MaxInFlight},
+	}) {
 		out.MachineHealthCheck = &MachineHealthCheckClass{}
 		for _, c := range in.HealthCheck.Checks.UnhealthyNodeConditions {
 			out.MachineHealthCheck.UnhealthyConditions = append(out.MachineHealthCheck.UnhealthyConditions, UnhealthyCondition{
@@ -928,13 +948,21 @@ func Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopol
 		if in.Strategy.RollingUpdate != nil && in.Strategy.RollingUpdate.DeletePolicy != nil {
 			out.Deletion.Order = clusterv1.MachineSetDeletionOrder(*in.Strategy.RollingUpdate.DeletePolicy)
 		}
+		if in.Strategy.Remediation != nil && in.Strategy.Remediation.MaxInFlight != nil {
+			if out.HealthCheck == nil {
+				out.HealthCheck = &clusterv1.MachineDeploymentTopologyHealthCheck{}
+			}
+			out.HealthCheck.Remediation.MaxInFlight = in.Strategy.Remediation.MaxInFlight
+		}
 	}
 	out.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
 	out.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
 	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 
 	if in.MachineHealthCheck != nil {
-		out.HealthCheck = &clusterv1.MachineDeploymentTopologyHealthCheck{}
+		if out.HealthCheck == nil {
+			out.HealthCheck = &clusterv1.MachineDeploymentTopologyHealthCheck{}
+		}
 		out.HealthCheck.Enabled = in.MachineHealthCheck.Enable
 		for _, c := range in.MachineHealthCheck.UnhealthyConditions {
 			out.HealthCheck.Checks.UnhealthyNodeConditions = append(out.HealthCheck.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
@@ -981,11 +1009,23 @@ func Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopol
 		}
 		out.Strategy.RollingUpdate.DeletePolicy = ptr.To(string(in.Deletion.Order))
 	}
+	if in.HealthCheck != nil && in.HealthCheck.Remediation.MaxInFlight != nil {
+		if out.Strategy == nil {
+			out.Strategy = &MachineDeploymentStrategy{}
+		}
+		if out.Strategy.Remediation == nil {
+			out.Strategy.Remediation = &RemediationStrategy{}
+		}
+		out.Strategy.Remediation.MaxInFlight = in.HealthCheck.Remediation.MaxInFlight
+	}
 	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDrainTimeoutSeconds)
 	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeVolumeDetachTimeoutSeconds)
 	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDeletionTimeoutSeconds)
 
-	if in.HealthCheck != nil {
+	// Check if HealthCheck is not nil and another field apart from MaxInFlight is set (MaxInFlight is set in Strategy above).
+	if in.HealthCheck != nil && !reflect.DeepEqual(in.HealthCheck, &clusterv1.MachineDeploymentTopologyHealthCheck{
+		Remediation: clusterv1.MachineDeploymentTopologyHealthCheckRemediation{MaxInFlight: in.HealthCheck.Remediation.MaxInFlight},
+	}) {
 		out.MachineHealthCheck = &MachineHealthCheckTopology{}
 		out.MachineHealthCheck.Enable = in.HealthCheck.Enabled
 		for _, c := range in.HealthCheck.Checks.UnhealthyNodeConditions {
@@ -2028,6 +2068,9 @@ func Convert_v1beta1_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in *
 		if in.Strategy.RollingUpdate != nil && in.Strategy.RollingUpdate.DeletePolicy != nil {
 			out.Deletion.Order = clusterv1.MachineSetDeletionOrder(*in.Strategy.RollingUpdate.DeletePolicy)
 		}
+		if in.Strategy.Remediation != nil && in.Strategy.Remediation.MaxInFlight != nil {
+			out.Remediation.MaxInFlight = in.Strategy.Remediation.MaxInFlight
+		}
 	}
 
 	return nil
@@ -2052,6 +2095,15 @@ func Convert_v1beta2_MachineDeploymentSpec_To_v1beta1_MachineDeploymentSpec(in *
 		}
 		out.Strategy.RollingUpdate.DeletePolicy = ptr.To(string(in.Deletion.Order))
 	}
+	if in.Remediation.MaxInFlight != nil {
+		if out.Strategy == nil {
+			out.Strategy = &MachineDeploymentStrategy{}
+		}
+		if out.Strategy.Remediation == nil {
+			out.Strategy.Remediation = &RemediationStrategy{}
+		}
+		out.Strategy.Remediation.MaxInFlight = in.Remediation.MaxInFlight
+	}
 
 	return nil
 }
@@ -2062,11 +2114,6 @@ func Convert_v1beta1_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrat
 	}
 	if in.RollingUpdate != nil {
 		if err := Convert_v1beta1_MachineRollingUpdateDeployment_To_v1beta2_MachineDeploymentStrategyRollingUpdate(in.RollingUpdate, &out.RollingUpdate, s); err != nil {
-			return err
-		}
-	}
-	if in.Remediation != nil {
-		if err := Convert_v1beta1_RemediationStrategy_To_v1beta2_RemediationStrategy(in.Remediation, &out.Remediation, s); err != nil {
 			return err
 		}
 	}
@@ -2081,12 +2128,6 @@ func Convert_v1beta2_MachineDeploymentStrategy_To_v1beta1_MachineDeploymentStrat
 	if !reflect.DeepEqual(in.RollingUpdate, clusterv1.MachineDeploymentStrategyRollingUpdate{}) {
 		out.RollingUpdate = &MachineRollingUpdateDeployment{}
 		if err := Convert_v1beta2_MachineDeploymentStrategyRollingUpdate_To_v1beta1_MachineRollingUpdateDeployment(&in.RollingUpdate, out.RollingUpdate, s); err != nil {
-			return err
-		}
-	}
-	if !reflect.DeepEqual(in.Remediation, clusterv1.RemediationStrategy{}) {
-		out.Remediation = &RemediationStrategy{}
-		if err := Convert_v1beta2_RemediationStrategy_To_v1beta1_RemediationStrategy(&in.Remediation, out.Remediation, s); err != nil {
 			return err
 		}
 	}

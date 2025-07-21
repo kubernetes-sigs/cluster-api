@@ -427,7 +427,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		dst.Spec.Deletion.Order = restored.Spec.Deletion.Order
-		dst.Spec.Strategy.Remediation = restored.Spec.Strategy.Remediation
+		dst.Spec.Remediation = restored.Spec.Remediation
 
 		if restored.Spec.MachineNamingStrategy != nil {
 			dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy

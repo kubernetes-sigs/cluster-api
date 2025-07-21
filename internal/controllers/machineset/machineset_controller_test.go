@@ -1944,10 +1944,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			},
 			Spec: clusterv1.MachineDeploymentSpec{
 				ClusterName: "test-cluster",
-				Strategy: clusterv1.MachineDeploymentStrategy{
-					Remediation: clusterv1.RemediationStrategy{
-						MaxInFlight: ptr.To(intstr.FromInt32(int32(maxInFlight))),
-					},
+				Remediation: clusterv1.MachineDeploymentRemediationSpec{
+					MaxInFlight: ptr.To(intstr.FromInt32(int32(maxInFlight))),
 				},
 			},
 		}

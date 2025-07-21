@@ -291,6 +291,10 @@ type MachineDeploymentSpec struct {
 	// +optional
 	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
 
+	// remediation controls how unhealthy Machines are remediated.
+	// +optional
+	Remediation MachineDeploymentRemediationSpec `json:"remediation,omitempty,omitzero"`
+
 	// deletion contains configuration options for MachineDeployment deletion.
 	// +optional
 	Deletion MachineDeploymentDeletionSpec `json:"deletion,omitempty,omitzero"`
@@ -317,11 +321,6 @@ type MachineDeploymentStrategy struct {
 	// MachineDeploymentStrategyType = RollingUpdate.
 	// +optional
 	RollingUpdate MachineDeploymentStrategyRollingUpdate `json:"rollingUpdate,omitempty,omitzero"`
-
-	// remediation controls the strategy of remediating unhealthy machines
-	// and how remediating operations should occur during the lifecycle of the dependant MachineSets.
-	// +optional
-	Remediation RemediationStrategy `json:"remediation,omitempty,omitzero"`
 }
 
 // ANCHOR_END: MachineDeploymentStrategy
@@ -365,11 +364,9 @@ type MachineDeploymentStrategyRollingUpdate struct {
 
 // ANCHOR_END: MachineDeploymentStrategyRollingUpdate
 
-// ANCHOR: RemediationStrategy
-
-// RemediationStrategy allows to define how the MachineSet can control scaling operations.
+// MachineDeploymentRemediationSpec controls how unhealthy Machines are remediated.
 // +kubebuilder:validation:MinProperties=1
-type RemediationStrategy struct {
+type MachineDeploymentRemediationSpec struct {
 	// maxInFlight determines how many in flight remediations should happen at the same time.
 	//
 	// Remediation only happens on the MachineSet with the most current revision, while
@@ -388,8 +385,6 @@ type RemediationStrategy struct {
 	// +optional
 	MaxInFlight *intstr.IntOrString `json:"maxInFlight,omitempty"`
 }
-
-// ANCHOR_END: RemediationStrategy
 
 // MachineNamingStrategy allows changing the naming pattern used when creating
 // Machines.

@@ -1387,10 +1387,10 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			return ctrl.Result{}, nil
 		}
 
-		if owner.Spec.Strategy.Remediation.MaxInFlight != nil {
+		if owner.Spec.Remediation.MaxInFlight != nil {
 			var err error
 			replicas := int(ptr.Deref(owner.Spec.Replicas, 1))
-			maxInFlight, err = intstr.GetScaledValueFromIntOrPercent(owner.Spec.Strategy.Remediation.MaxInFlight, replicas, true)
+			maxInFlight, err = intstr.GetScaledValueFromIntOrPercent(owner.Spec.Remediation.MaxInFlight, replicas, true)
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to calculate maxInFlight to remediate machines: %v", err)
 			}
@@ -1419,7 +1419,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineSetMachineRemediationDeferredReason,
-			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", owner.Spec.Strategy.Remediation.MaxInFlight),
+			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", owner.Spec.Remediation.MaxInFlight),
 		}, nil); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -1443,7 +1443,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineSetMachineRemediationDeferredReason,
-			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", owner.Spec.Strategy.Remediation.MaxInFlight),
+			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", owner.Spec.Remediation.MaxInFlight),
 		}, nil); err != nil {
 			return ctrl.Result{}, err
 		}

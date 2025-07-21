@@ -69,7 +69,7 @@ var describeClusterClusterCmd = &cobra.Command{
 		# e.g. un-group all the machines with Ready=true instead of showing a single group node.
 		clusterctl describe cluster test-1 --grouping=false
 
-		# Describe the cluster named test-1 showing the MachineInfrastructure and BootstrapConfig objects
+		# Describe the cluster named test-1 showing the InfrastructureMachine and BootstrapConfig objects
 		# also when their status is the same as the status of the corresponding machine object.
 		clusterctl describe cluster test-1 --echo`),
 
@@ -102,7 +102,7 @@ func init() {
 		"Show infrastructure and bootstrap config templates associated with the cluster.")
 
 	describeClusterClusterCmd.Flags().BoolVar(&dc.echo, "echo", false, ""+
-		"Show MachineInfrastructure and BootstrapConfig when ready condition is true or it has the Status, Severity and Reason of the machine's object.")
+		"Show InfrastructureMachine and BootstrapConfig when ready condition is true or it has the Status, Severity and Reason of the machine's object.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.grouping, "grouping", true,
 		"Groups machines when ready condition has the same Status, Severity and Reason.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.disableGrouping, "disable-grouping", false,

@@ -2667,7 +2667,7 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Accept cluster.topology.class change with a compatible controlPlane.MachineInfrastructure ref change",
+			name: "Accept cluster.topology.class change with a compatible controlPlane.infrastructureMachine ref change",
 			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
 				WithControlPlaneTemplate(refToUnstructured(ref)).
@@ -2681,7 +2681,7 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Accept cluster.topology.class change with a compatible controlPlane.MachineInfrastructure ref change",
+			name: "Accept cluster.topology.class change with a compatible controlPlane.infrastructureMachine ref change",
 			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
 				WithControlPlaneTemplate(refToUnstructured(ref)).
@@ -2695,7 +2695,7 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Reject cluster.topology.class change with an incompatible controlPlane.MachineInfrastructure Kind ref change",
+			name: "Reject cluster.topology.class change with an incompatible controlPlane.infrastructureMachine Kind ref change",
 			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
 				WithControlPlaneTemplate(refToUnstructured(ref)).
@@ -2709,7 +2709,7 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Reject cluster.topology.class change with an incompatible controlPlane.MachineInfrastructure APIVersion ref change",
+			name: "Reject cluster.topology.class change with an incompatible controlPlane.infrastructureMachine APIVersion ref change",
 			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
 				WithControlPlaneTemplate(refToUnstructured(ref)).

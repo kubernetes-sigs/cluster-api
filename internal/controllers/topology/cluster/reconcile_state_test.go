@@ -1608,7 +1608,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 				ClusterClass: &clusterv1.ClusterClass{},
 			}
 			if tt.class.InfrastructureMachineTemplate != nil {
-				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+				s.Blueprint.ClusterClass.Spec.ControlPlane.InfrastructureMachine = &clusterv1.ControlPlaneClassInfrastructureMachineTemplate{
 					TemplateRef: objToClusterClassTemplateRef(tt.class.InfrastructureMachineTemplate),
 				}
 			}
@@ -1801,7 +1801,7 @@ func TestReconcileControlPlaneCleanup(t *testing.T) {
 			ClusterClass: &clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						MachineInfrastructure: &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+						InfrastructureMachine: &clusterv1.ControlPlaneClassInfrastructureMachineTemplate{
 							TemplateRef: objToClusterClassTemplateRef(infrastructureMachineTemplate),
 						},
 					},
@@ -1885,16 +1885,16 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 				Build(),
 		},
 		{
-			name:  "Should not create ControlPlane MachineHealthCheck when no MachineInfrastructure is defined",
+			name:  "Should not create ControlPlane MachineHealthCheck when no InfrastructureMachine is defined",
 			class: ccWithoutControlPlaneInfrastructure,
 			current: &scope.ControlPlaneState{
 				Object: controlPlane1.DeepCopy(),
-				// Note this creation would be blocked by the validation Webhook. MHC with no MachineInfrastructure is not allowed.
+				// Note this creation would be blocked by the validation Webhook. MHC with no InfrastructureMachine is not allowed.
 				MachineHealthCheck: mhcBuilder.Build(),
 			},
 			desired: &scope.ControlPlaneState{
 				Object: controlPlane1.DeepCopy(),
-				// ControlPlane does not have defined MachineInfrastructure.
+				// ControlPlane does not have defined InfrastructureMachine.
 				// InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
 			},
 			want: nil,
@@ -1957,7 +1957,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 				ClusterClass: &clusterv1.ClusterClass{},
 			}
 			if tt.class.InfrastructureMachineTemplate != nil {
-				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+				s.Blueprint.ClusterClass.Spec.ControlPlane.InfrastructureMachine = &clusterv1.ControlPlaneClassInfrastructureMachineTemplate{
 					TemplateRef: objToClusterClassTemplateRef(tt.class.InfrastructureMachineTemplate),
 				}
 			}

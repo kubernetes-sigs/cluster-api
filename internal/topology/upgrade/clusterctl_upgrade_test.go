@@ -383,7 +383,7 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 					Name:       controlPlaneTemplate.Name,
 					APIVersion: testt1v1beta1.GroupVersion.String(),
 				},
-				MachineInfrastructure: &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+				InfrastructureMachine: &clusterv1.ControlPlaneClassInfrastructureMachineTemplate{
 					TemplateRef: clusterv1.ClusterClassTemplateReference{
 						Kind:       "TestResourceTemplate",
 						Name:       infrastructureMachineTemplate1.Name,
@@ -576,7 +576,7 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 					Name:       controlPlaneTemplate.Name,
 					APIVersion: testt2v1beta2.GroupVersion.String(),
 				},
-				MachineInfrastructure: &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+				InfrastructureMachine: &clusterv1.ControlPlaneClassInfrastructureMachineTemplate{
 					TemplateRef: clusterv1.ClusterClassTemplateReference{
 						Kind:       "TestResourceTemplate",
 						Name:       infrastructureMachineTemplate1.Name,

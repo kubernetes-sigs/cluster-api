@@ -310,8 +310,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.ControlPlaneClassMachineInfrastructureTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(a.(*LocalObjectTemplate), b.(*v1beta2.ControlPlaneClassMachineInfrastructureTemplate), scope)
+	if err := s.AddConversionFunc((*LocalObjectTemplate)(nil), (*v1beta2.ControlPlaneClassInfrastructureMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ControlPlaneClassInfrastructureMachineTemplate(a.(*LocalObjectTemplate), b.(*v1beta2.ControlPlaneClassInfrastructureMachineTemplate), scope)
 	}); err != nil {
 		return err
 	}
@@ -420,8 +420,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta2.ControlPlaneClassMachineInfrastructureTemplate)(nil), (*LocalObjectTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ControlPlaneClassMachineInfrastructureTemplate_To_v1alpha4_LocalObjectTemplate(a.(*v1beta2.ControlPlaneClassMachineInfrastructureTemplate), b.(*LocalObjectTemplate), scope)
+	if err := s.AddConversionFunc((*v1beta2.ControlPlaneClassInfrastructureMachineTemplate)(nil), (*LocalObjectTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ControlPlaneClassInfrastructureMachineTemplate_To_v1alpha4_LocalObjectTemplate(a.(*v1beta2.ControlPlaneClassInfrastructureMachineTemplate), b.(*LocalObjectTemplate), scope)
 	}); err != nil {
 		return err
 	}
@@ -941,15 +941,7 @@ func autoConvert_v1alpha4_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *Con
 		return err
 	}
 	// WARNING: in.LocalObjectTemplate requires manual conversion: does not exist in peer-type
-	if in.MachineInfrastructure != nil {
-		in, out := &in.MachineInfrastructure, &out.MachineInfrastructure
-		*out = new(v1beta2.ControlPlaneClassMachineInfrastructureTemplate)
-		if err := Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.MachineInfrastructure = nil
-	}
+	// WARNING: in.MachineInfrastructure requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -958,15 +950,7 @@ func autoConvert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *v1b
 		return err
 	}
 	// WARNING: in.TemplateRef requires manual conversion: does not exist in peer-type
-	if in.MachineInfrastructure != nil {
-		in, out := &in.MachineInfrastructure, &out.MachineInfrastructure
-		*out = new(LocalObjectTemplate)
-		if err := Convert_v1beta2_ControlPlaneClassMachineInfrastructureTemplate_To_v1alpha4_LocalObjectTemplate(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.MachineInfrastructure = nil
-	}
+	// WARNING: in.InfrastructureMachine requires manual conversion: does not exist in peer-type
 	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type

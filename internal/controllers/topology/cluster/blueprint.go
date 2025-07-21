@@ -53,13 +53,13 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 
 	// If the clusterClass mandates the controlPlane has infrastructureMachines, read it.
 	if blueprint.HasControlPlaneInfrastructureMachine() {
-		blueprint.ControlPlane.InfrastructureMachineTemplate, err = r.getReference(ctx, blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.ToObjectReference(clusterClass.Namespace))
+		blueprint.ControlPlane.InfrastructureMachineTemplate, err = r.getReference(ctx, blueprint.ClusterClass.Spec.ControlPlane.InfrastructureMachine.TemplateRef.ToObjectReference(clusterClass.Namespace))
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get control plane's machine template for ClusterClass %s", klog.KObj(blueprint.ClusterClass))
+			return nil, errors.Wrapf(err, "failed to get control plane's infrastructure machine template for ClusterClass %s", klog.KObj(blueprint.ClusterClass))
 		}
 	}
 
-	// If the clusterClass defines a valid MachineHealthCheck (including a defined MachineInfrastructure) set the blueprint MachineHealthCheck.
+	// If the clusterClass defines a valid MachineHealthCheck (including a defined InfrastructureMachine) set the blueprint MachineHealthCheck.
 	if blueprint.HasControlPlaneMachineHealthCheck() {
 		blueprint.ControlPlane.MachineHealthCheck = blueprint.ClusterClass.Spec.ControlPlane.MachineHealthCheck
 	}

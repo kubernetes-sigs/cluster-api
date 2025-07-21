@@ -641,11 +641,11 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 
 		// Validate ControlPlane MachineHealthCheck if defined.
 		if !cluster.Spec.Topology.ControlPlane.MachineHealthCheck.IsZero() {
-			// Ensure ControlPlane does not define a MachineHealthCheck if the ClusterClass does not define MachineInfrastructure.
-			if clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
+			// Ensure ControlPlane does not define a MachineHealthCheck if the ClusterClass does not define InfrastructureMachine.
+			if clusterClass.Spec.ControlPlane.InfrastructureMachine == nil {
 				allErrs = append(allErrs, field.Forbidden(
 					fldPath,
-					"can be set only if spec.controlPlane.machineInfrastructure is set in ClusterClass",
+					"can be set only if spec.controlPlane.infrastructureMachine is set in ClusterClass",
 				))
 			}
 			allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, cluster.Namespace,

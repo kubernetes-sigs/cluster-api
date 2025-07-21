@@ -279,7 +279,7 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 	// ControlPlane
 	s.Blueprint.ControlPlane.Template = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.ControlPlane.TemplateRef))
 	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
-		s.Blueprint.ControlPlane.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef))
+		s.Blueprint.ControlPlane.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.ControlPlane.InfrastructureMachine.TemplateRef))
 	}
 	if s.Blueprint.HasControlPlaneMachineHealthCheck() {
 		s.Blueprint.ControlPlane.MachineHealthCheck = s.Blueprint.ClusterClass.Spec.ControlPlane.MachineHealthCheck

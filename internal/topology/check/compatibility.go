@@ -180,9 +180,9 @@ func ClusterClassesAreCompatible(current, desired *clusterv1.ClusterClass) field
 	// Validate control plane changes desired a compatible way.
 	allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.TemplateRef, desired.Spec.ControlPlane.TemplateRef,
 		field.NewPath("spec", "controlPlane"))...)
-	if desired.Spec.ControlPlane.MachineInfrastructure != nil && current.Spec.ControlPlane.MachineInfrastructure != nil {
-		allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.MachineInfrastructure.TemplateRef, desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
-			field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
+	if desired.Spec.ControlPlane.InfrastructureMachine != nil && current.Spec.ControlPlane.InfrastructureMachine != nil {
+		allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.InfrastructureMachine.TemplateRef, desired.Spec.ControlPlane.InfrastructureMachine.TemplateRef,
+			field.NewPath("spec", "controlPlane", "infrastructureMachine"))...)
 	}
 
 	// Validate changes to MachineDeployments.
@@ -404,8 +404,8 @@ func ClusterClassTemplatesAreValid(clusterClass *clusterv1.ClusterClass) field.E
 
 	allErrs = append(allErrs, ClusterClassTemplateIsValid(clusterClass.Spec.Infrastructure.TemplateRef, field.NewPath("spec", "infrastructure"))...)
 	allErrs = append(allErrs, ClusterClassTemplateIsValid(clusterClass.Spec.ControlPlane.TemplateRef, field.NewPath("spec", "controlPlane"))...)
-	if clusterClass.Spec.ControlPlane.MachineInfrastructure != nil {
-		allErrs = append(allErrs, ClusterClassTemplateIsValid(clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef, field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
+	if clusterClass.Spec.ControlPlane.InfrastructureMachine != nil {
+		allErrs = append(allErrs, ClusterClassTemplateIsValid(clusterClass.Spec.ControlPlane.InfrastructureMachine.TemplateRef, field.NewPath("spec", "controlPlane", "infrastructureMachine"))...)
 	}
 
 	for i := range clusterClass.Spec.Workers.MachineDeployments {

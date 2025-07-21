@@ -50,7 +50,7 @@ type DescribeClusterOptions struct {
 	// AddTemplateVirtualNode instructs the discovery process to group template under a virtual node.
 	AddTemplateVirtualNode bool
 
-	// Echo displays MachineInfrastructure or BootstrapConfig objects if the object's ready condition is true
+	// Echo displays InfrastructureMachine or BootstrapConfig objects if the object's ready condition is true
 	// or it has the same Status, Severity and Reason of the parent's object ready condition (it is an echo)
 	Echo bool
 

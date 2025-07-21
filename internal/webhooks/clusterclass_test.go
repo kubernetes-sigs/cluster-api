@@ -680,7 +680,7 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "create pass if valid machineHealthCheck defined for ControlPlane with MachineInfrastructure set",
+			name: "create pass if valid machineHealthCheck defined for ControlPlane with InfrastructureMachine set",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -703,7 +703,7 @@ func TestClusterClassValidation(t *testing.T) {
 				Build(),
 		},
 		{
-			name: "create fail if MachineHealthCheck defined for ControlPlane with MachineInfrastructure unset",
+			name: "create fail if MachineHealthCheck defined for ControlPlane with InfrastructureMachine unset",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).

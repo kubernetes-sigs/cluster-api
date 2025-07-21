@@ -525,7 +525,7 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 		obj.Spec.ControlPlane.Deletion.NodeDeletionTimeoutSeconds = c.controlPlaneNodeDeletionTimeout
 	}
 	if c.controlPlaneInfrastructureMachineTemplate != nil {
-		obj.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+		obj.Spec.ControlPlane.InfrastructureMachine = &clusterv1.ControlPlaneClassInfrastructureMachineTemplate{
 			TemplateRef: objToClusterClassTemplateRef(c.controlPlaneInfrastructureMachineTemplate),
 		}
 	}

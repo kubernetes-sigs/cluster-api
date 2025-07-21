@@ -160,14 +160,13 @@ type ControlPlaneClass struct {
 	// +required
 	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
 
-	// machineInfrastructure defines the metadata and infrastructure information
-	// for control plane machines.
+	// infrastructureMachine defines infrastructure for control plane machines.
 	//
 	// This field is supported if and only if the control plane provider template
 	// referenced above is Machine based and supports setting replicas.
 	//
 	// +optional
-	MachineInfrastructure *ControlPlaneClassMachineInfrastructureTemplate `json:"machineInfrastructure,omitempty"`
+	InfrastructureMachine *ControlPlaneClassInfrastructureMachineTemplate `json:"infrastructureMachine,omitempty"`
 
 	// machineHealthCheck defines a MachineHealthCheck for this ControlPlaneClass.
 	// This field is supported if and only if the ControlPlane provider template
@@ -1171,9 +1170,9 @@ type ExternalPatchDefinition struct {
 	Settings map[string]string `json:"settings,omitempty"`
 }
 
-// ControlPlaneClassMachineInfrastructureTemplate defines the template for a MachineInfrastructure of a ControlPlane.
-type ControlPlaneClassMachineInfrastructureTemplate struct {
-	// templateRef is a required reference to the template for a MachineInfrastructure of a ControlPlane.
+// ControlPlaneClassInfrastructureMachineTemplate defines the template for a InfrastructureMachine of a ControlPlane.
+type ControlPlaneClassInfrastructureMachineTemplate struct {
+	// templateRef is a required reference to the template for a InfrastructureMachine of a ControlPlane.
 	// +required
 	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
 }

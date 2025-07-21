@@ -373,13 +373,13 @@ func Test_Discovery(t *testing.T) {
 				},
 				// infra machines and boostrap should have meta names
 				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/cp1": func(g *WithT, obj client.Object) {
-					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructure"))
+					g.Expect(GetMetaName(obj)).To(Equal("InfrastructureMachine"))
 				},
 				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/cp1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("BootstrapConfig"))
 				},
 				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureMachine, ns1/m1": func(g *WithT, obj client.Object) {
-					g.Expect(GetMetaName(obj)).To(Equal("MachineInfrastructure"))
+					g.Expect(GetMetaName(obj)).To(Equal("InfrastructureMachine"))
 				},
 				clusterv1.GroupVersionBootstrap.String() + ", Kind=GenericBootstrapConfig, ns1/m1": func(g *WithT, obj client.Object) {
 					g.Expect(GetMetaName(obj)).To(Equal("BootstrapConfig"))

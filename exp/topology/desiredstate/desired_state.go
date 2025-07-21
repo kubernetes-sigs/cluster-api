@@ -230,7 +230,7 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 // that should be referenced by the ControlPlane object.
 func (g *generator) computeControlPlaneInfrastructureMachineTemplate(ctx context.Context, s *scope.Scope) (*unstructured.Unstructured, error) {
 	template := s.Blueprint.ControlPlane.InfrastructureMachineTemplate
-	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
+	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.ControlPlane.InfrastructureMachine.TemplateRef.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
 	cluster := s.Current.Cluster
 
 	// Check if the current control plane object has a machineTemplate.infrastructureRef already defined.

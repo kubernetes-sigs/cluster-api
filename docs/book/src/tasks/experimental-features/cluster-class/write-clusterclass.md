@@ -41,7 +41,7 @@ spec:
       kind: KubeadmControlPlaneTemplate
       name: docker-clusterclass-v0.1.0
       namespace: default
-    machineInfrastructure:
+    infrastructureMachine:
       ref:
         kind: DockerMachineTemplate
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1

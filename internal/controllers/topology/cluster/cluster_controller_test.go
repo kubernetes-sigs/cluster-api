@@ -1044,7 +1044,7 @@ func assertControlPlaneReconcile(cluster *clusterv1.Cluster) error {
 		return err
 	}
 	// Check for the ControlPlaneInfrastructure if it's referenced in the clusterClass.
-	if clusterClass.Spec.ControlPlane.MachineInfrastructure != nil {
+	if clusterClass.Spec.ControlPlane.InfrastructureMachine != nil {
 		cpInfra, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(cp)
 		if err != nil {
 			return err

@@ -2924,6 +2924,49 @@ spec:
                         minimum: 0
                         type: integer
                     type: object
+                  infrastructureMachine:
+                    description: |-
+                      infrastructureMachine defines infrastructure for control plane machines.
+
+                      This field is supported if and only if the control plane provider template
+                      referenced above is Machine based and supports setting replicas.
+                    properties:
+                      templateRef:
+                        description: templateRef is a required reference to the template
+                          for a InfrastructureMachine of a ControlPlane.
+                        properties:
+                          apiVersion:
+                            description: |-
+                              apiVersion of the template.
+                              apiVersion must be fully qualified domain name followed by / and a version.
+                            maxLength: 317
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                          kind:
+                            description: |-
+                              kind of the template.
+                              kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                            maxLength: 63
+                            minLength: 1
+                            pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                            type: string
+                          name:
+                            description: |-
+                              name of the template.
+                              name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        required:
+                        - apiVersion
+                        - kind
+                        - name
+                        type: object
+                    required:
+                    - templateRef
+                    type: object
                   machineHealthCheck:
                     description: |-
                       machineHealthCheck defines a MachineHealthCheck for this ControlPlaneClass.
@@ -3046,50 +3089,6 @@ spec:
                         minLength: 1
                         pattern: ^\[[0-9]+-[0-9]+\]$
                         type: string
-                    type: object
-                  machineInfrastructure:
-                    description: |-
-                      machineInfrastructure defines the metadata and infrastructure information
-                      for control plane machines.
-
-                      This field is supported if and only if the control plane provider template
-                      referenced above is Machine based and supports setting replicas.
-                    properties:
-                      templateRef:
-                        description: templateRef is a required reference to the template
-                          for a MachineInfrastructure of a ControlPlane.
-                        properties:
-                          apiVersion:
-                            description: |-
-                              apiVersion of the template.
-                              apiVersion must be fully qualified domain name followed by / and a version.
-                            maxLength: 317
-                            minLength: 1
-                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
-                            type: string
-                          kind:
-                            description: |-
-                              kind of the template.
-                              kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
-                            maxLength: 63
-                            minLength: 1
-                            pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
-                            type: string
-                          name:
-                            description: |-
-                              name of the template.
-                              name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
-                            maxLength: 253
-                            minLength: 1
-                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                            type: string
-                        required:
-                        - apiVersion
-                        - kind
-                        - name
-                        type: object
-                    required:
-                    - templateRef
                     type: object
                   metadata:
                     description: |-

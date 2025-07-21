@@ -57,8 +57,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.Condition":                                      schema_cluster_api_api_core_v1beta2_Condition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference":               schema_cluster_api_api_core_v1beta2_ContractVersionedObjectReference(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClass":                              schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassInfrastructureMachineTemplate": schema_cluster_api_api_core_v1beta2_ControlPlaneClassInfrastructureMachineTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec":           schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineDeletionSpec(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate": schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy":                schema_cluster_api_api_core_v1beta2_ControlPlaneClassNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopology":                           schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyMachineDeletionSpec":        schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyMachineDeletionSpec(ref),
@@ -1480,10 +1480,10 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"),
 						},
 					},
-					"machineInfrastructure": {
+					"infrastructureMachine": {
 						SchemaProps: spec.SchemaProps{
-							Description: "machineInfrastructure defines the metadata and infrastructure information for control plane machines.\n\nThis field is supported if and only if the control plane provider template referenced above is Machine based and supports setting replicas.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate"),
+							Description: "infrastructureMachine defines infrastructure for control plane machines.\n\nThis field is supported if and only if the control plane provider template referenced above is Machine based and supports setting replicas.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassInfrastructureMachineTemplate"),
 						},
 					},
 					"machineHealthCheck": {
@@ -1532,7 +1532,30 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassInfrastructureMachineTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ControlPlaneClassInfrastructureMachineTemplate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneClassInfrastructureMachineTemplate defines the template for a InfrastructureMachine of a ControlPlane.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"templateRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "templateRef is a required reference to the template for a InfrastructureMachine of a ControlPlane.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"),
+						},
+					},
+				},
+				Required: []string{"templateRef"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
 	}
 }
 
@@ -1567,29 +1590,6 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineDeletionSpec(re
 				},
 			},
 		},
-	}
-}
-
-func schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ControlPlaneClassMachineInfrastructureTemplate defines the template for a MachineInfrastructure of a ControlPlane.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"templateRef": {
-						SchemaProps: spec.SchemaProps{
-							Description: "templateRef is a required reference to the template for a MachineInfrastructure of a ControlPlane.",
-							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"),
-						},
-					},
-				},
-				Required: []string{"templateRef"},
-			},
-		},
-		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"},
 	}
 }
 

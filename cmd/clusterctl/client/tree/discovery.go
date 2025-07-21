@@ -50,7 +50,7 @@ type DiscoverOptions struct {
 	// AddTemplateVirtualNode instructs the discovery process to group template under a virtual node.
 	AddTemplateVirtualNode bool
 
-	// Echo displays MachineInfrastructure or BootstrapConfig objects if the object's ready condition is true
+	// Echo displays InfrastructureMachine or BootstrapConfig objects if the object's ready condition is true
 	Echo bool
 
 	// Grouping groups machine objects in case the ready conditions
@@ -128,7 +128,7 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 		if visible {
 			if (m.Spec.InfrastructureRef != clusterv1.ContractVersionedObjectReference{}) {
 				if machineInfra, err := external.GetObjectFromContractVersionedRef(ctx, c, &m.Spec.InfrastructureRef, m.Namespace); err == nil {
-					tree.Add(m, machineInfra, ObjectMetaName("MachineInfrastructure"), NoEcho(true))
+					tree.Add(m, machineInfra, ObjectMetaName("InfrastructureMachine"), NoEcho(true))
 				}
 			}
 

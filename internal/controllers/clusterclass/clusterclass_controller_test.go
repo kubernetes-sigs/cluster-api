@@ -257,11 +257,11 @@ func assertControlPlaneTemplate(ctx context.Context, actualClusterClass *cluster
 	}
 
 	// If the control plane has machine infra assert that the infra machine template has the correct owner reference.
-	if actualClusterClass.Spec.ControlPlane.MachineInfrastructure != nil {
+	if actualClusterClass.Spec.ControlPlane.InfrastructureMachine != nil {
 		actualInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate("", "").Build()
 		actualInfrastructureMachineTemplateKey := client.ObjectKey{
 			Namespace: ns.Name,
-			Name:      actualClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.Name,
+			Name:      actualClusterClass.Spec.ControlPlane.InfrastructureMachine.TemplateRef.Name,
 		}
 		if err := env.Get(ctx, actualInfrastructureMachineTemplateKey, actualInfrastructureMachineTemplate); err != nil {
 			return err
@@ -271,7 +271,7 @@ func assertControlPlaneTemplate(ctx context.Context, actualClusterClass *cluster
 		}
 
 		// Assert the ClusterClass has the expected APIVersion and Kind to the infrastructure machine template
-		if err := referenceExistsWithCorrectKindAndAPIVersion(actualClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
+		if err := referenceExistsWithCorrectKindAndAPIVersion(actualClusterClass.Spec.ControlPlane.InfrastructureMachine.TemplateRef,
 			builder.GenericInfrastructureMachineTemplateKind,
 			builder.InfrastructureGroupVersion); err != nil {
 			return err

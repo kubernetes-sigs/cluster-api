@@ -526,8 +526,8 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 		_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.ControlPlane.TemplateRef.ToObjectReference(cc.Namespace))
 		errs = append(errs, err)
 
-		if cc.Spec.ControlPlane.MachineInfrastructure != nil {
-			_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.ControlPlane.MachineInfrastructure.TemplateRef.ToObjectReference(cc.Namespace))
+		if cc.Spec.ControlPlane.InfrastructureMachine != nil {
+			_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.ControlPlane.InfrastructureMachine.TemplateRef.ToObjectReference(cc.Namespace))
 			errs = append(errs, err)
 		}
 

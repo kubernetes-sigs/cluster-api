@@ -714,6 +714,10 @@ func Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *ControlP
 	out.Deletion.NodeVolumeDetachTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeVolumeDetachTimeout)
 	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 	convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplateReference(&in.LocalObjectTemplate, &out.TemplateRef, s)
+	if in.MachineInfrastructure != nil && in.MachineInfrastructure.Ref != nil {
+		out.InfrastructureMachine = &clusterv1.ControlPlaneClassInfrastructureMachineTemplate{}
+		return Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ControlPlaneClassInfrastructureMachineTemplate(in.MachineInfrastructure, out.InfrastructureMachine, s)
+	}
 	return nil
 }
 
@@ -725,6 +729,10 @@ func Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *clusterv
 	out.NodeVolumeDetachTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeVolumeDetachTimeoutSeconds)
 	out.NodeDeletionTimeout = clusterv1.ConvertFromSeconds(in.Deletion.NodeDeletionTimeoutSeconds)
 	Convert_v1beta2_ClusterClassTemplateReference_To_v1beta1_LocalObjectTemplate(&in.TemplateRef, &out.LocalObjectTemplate, s)
+	if in.InfrastructureMachine != nil && !reflect.DeepEqual(in.InfrastructureMachine.TemplateRef, clusterv1.ControlPlaneClassInfrastructureMachineTemplate{}) {
+		out.MachineInfrastructure = &LocalObjectTemplate{}
+		return Convert_v1beta2_ControlPlaneClassInfrastructureMachineTemplate_To_v1beta1_LocalObjectTemplate(in.InfrastructureMachine, out.MachineInfrastructure, s)
+	}
 	return nil
 }
 
@@ -1672,7 +1680,7 @@ func Convert_v1beta2_MachineNodeReference_To_v1_ObjectReference(in *clusterv1.Ma
 	return nil
 }
 
-func Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(in *LocalObjectTemplate, out *clusterv1.ControlPlaneClassMachineInfrastructureTemplate, s apimachineryconversion.Scope) error {
+func Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ControlPlaneClassInfrastructureMachineTemplate(in *LocalObjectTemplate, out *clusterv1.ControlPlaneClassInfrastructureMachineTemplate, s apimachineryconversion.Scope) error {
 	convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplateReference(in, &out.TemplateRef, s)
 	return nil
 }
@@ -1709,7 +1717,7 @@ func convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplateReferenc
 	}
 }
 
-func Convert_v1beta2_ControlPlaneClassMachineInfrastructureTemplate_To_v1beta1_LocalObjectTemplate(in *clusterv1.ControlPlaneClassMachineInfrastructureTemplate, out *LocalObjectTemplate, s apimachineryconversion.Scope) error {
+func Convert_v1beta2_ControlPlaneClassInfrastructureMachineTemplate_To_v1beta1_LocalObjectTemplate(in *clusterv1.ControlPlaneClassInfrastructureMachineTemplate, out *LocalObjectTemplate, s apimachineryconversion.Scope) error {
 	Convert_v1beta2_ClusterClassTemplateReference_To_v1beta1_LocalObjectTemplate(&in.TemplateRef, out, s)
 	return nil
 }

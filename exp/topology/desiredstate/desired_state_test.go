@@ -233,7 +233,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 		assertTemplateToTemplate(g, assertTemplateInput{
 			cluster:           scope.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.InfrastructureMachine.TemplateRef,
 			template:          blueprint.ControlPlane.InfrastructureMachineTemplate,
 			currentObjectName: "",
 			obj:               obj,
@@ -259,7 +259,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 		assertTemplateToTemplate(g, assertTemplateInput{
 			cluster:           scope.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.InfrastructureMachine.TemplateRef,
 			template:          blueprint.ControlPlane.InfrastructureMachineTemplate,
 			currentObjectName: "",
 			obj:               obj,
@@ -304,7 +304,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 		assertTemplateToTemplate(g, assertTemplateInput{
 			cluster:           s.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.InfrastructureMachine.TemplateRef,
 			template:          blueprint.ControlPlane.InfrastructureMachineTemplate,
 			currentObjectName: contract.ObjToRef(currentInfrastructureMachineTemplate).Name,
 			obj:               obj,
@@ -345,7 +345,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 		assertTemplateToTemplate(g, assertTemplateInput{
 			cluster:           s.Current.Cluster,
-			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
+			templateRef:       blueprint.ClusterClass.Spec.ControlPlane.InfrastructureMachine.TemplateRef,
 			template:          blueprint.ControlPlane.InfrastructureMachineTemplate,
 			currentObjectName: contract.ObjToRef(currentInfrastructureMachineTemplate).Name,
 			obj:               obj,

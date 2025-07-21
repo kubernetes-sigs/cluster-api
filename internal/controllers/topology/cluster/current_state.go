@@ -101,7 +101,7 @@ func (r *Reconciler) getCurrentInfrastructureClusterState(ctx context.Context, b
 }
 
 // getCurrentControlPlaneState returns information on the ControlPlane being used by the Cluster. If a reference is not found,
-// an error is thrown. If the ControlPlane requires MachineInfrastructure according to its ClusterClass an error will be
+// an error is thrown. If the ControlPlane requires InfrastructureMachine according to its ClusterClass an error will be
 // thrown if the ControlPlane has no MachineTemplates.
 func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, blueprintControlPlane *scope.ControlPlaneBlueprint, blueprintHasControlPlaneInfrastructureMachine bool, cluster *clusterv1.Cluster) (*scope.ControlPlaneState, error) {
 	var err error

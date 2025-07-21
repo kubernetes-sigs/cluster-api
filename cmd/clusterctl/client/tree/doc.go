@@ -29,7 +29,7 @@ surface problems, if any; in practice:
     e.g. secrets or templates.
 
   - It is possible to add "meta names" to object, thus making hierarchical tree more consistent for the users,
-    e.g. use MachineInfrastructure instead of using all the different infrastructure machine kinds (AWSMachine, VSphereMachine etc.).
+    e.g. use InfrastructureMachine instead of using all the different infrastructure machine kinds (AWSMachine, VSphereMachine etc.).
 
   - It is possible to add "virtual nodes", thus allowing to make the hierarchical tree more meaningful for the users,
     e.g. adding a Workers object to group all the MachineDeployments.

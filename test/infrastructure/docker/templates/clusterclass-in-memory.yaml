@@ -108,7 +108,7 @@ metadata:
   name: in-memory
 spec:
   controlPlane:
-    machineInfrastructure:
+    infrastructureMachine:
       templateRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DevMachineTemplate

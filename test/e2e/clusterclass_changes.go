@@ -793,7 +793,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 		newClusterClass.Spec.Workers.MachinePools[i] = mpClass
 	}
 
-	cloneTemplateAndUpdateRef(ctx, mgmtClient, &newClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
+	cloneTemplateAndUpdateRef(ctx, mgmtClient, &newClusterClass.Spec.ControlPlane.InfrastructureMachine.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
 	cloneTemplateAndUpdateRef(ctx, mgmtClient, &newClusterClass.Spec.ControlPlane.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
 	cloneTemplateAndUpdateRef(ctx, mgmtClient, &newClusterClass.Spec.Infrastructure.TemplateRef, input.ClusterClass.Namespace, input.ClusterClassNamespace)
 

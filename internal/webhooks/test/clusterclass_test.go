@@ -531,7 +531,7 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 
 // createTemplates builds and then creates all required ClusterClass templates in the envtest API server.
 func createTemplates(ns *corev1.Namespace) (func() error, error) {
-	// Templates for MachineInfrastructure, ClusterInfrastructure, ControlPlane and Bootstrap.
+	// Templates for InfrastructureMachine, ClusterInfrastructure, ControlPlane and Bootstrap.
 	infrastructureMachineTemplate1 := builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()
 	infrastructureMachineTemplate2 := builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName2).Build()
 	infrastructureClusterTemplate1 := builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()

@@ -180,7 +180,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane_Error(t *testing.T
 
 		cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
 		// Try to break Infra Cloning
-		kcp.Spec.MachineTemplate.InfrastructureRef.Name = "something_invalid"
+		kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name = "something_invalid"
 		g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
 		kcp.UID = types.UID(util.RandomString(10))
 
@@ -422,7 +422,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 		cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
 		// Try to break Infra Cloning
-		kcp.Spec.MachineTemplate.InfrastructureRef.Name = "something_invalid"
+		kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name = "something_invalid"
 		g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
 		kcp.UID = types.UID(util.RandomString(10))
 		setKCPHealthy(kcp)

@@ -156,8 +156,8 @@ func TestControlPlane(t *testing.T) {
 		g := NewWithT(t)
 		cluster := clusterv1.Cluster{
 			Status: clusterv1.ClusterStatus{
-				FailureDomains: clusterv1.FailureDomains{
-					"one": failureDomain(false),
+				FailureDomains: []clusterv1.FailureDomain{
+					failureDomain("one", false),
 				},
 			},
 		}
@@ -170,24 +170,24 @@ func TestControlPlane(t *testing.T) {
 			"machine-1": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: ptr.To(metav1.Now())},
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.31.0"), // deleted
-					FailureDomain:     ptr.To("one"),
-					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: clusterv1.GroupVersionInfrastructure.String(), Name: "m1"},
+					Version:           "v1.31.0",
+					FailureDomain:     "one",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m1"},
 				}},
 		}
 		controlPlane, err := NewControlPlane(ctx, nil, env.GetClient(), &cluster, kcp, machines)
 		g.Expect(err).NotTo(HaveOccurred())
 		fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(fd).To(BeNil())
+		g.Expect(fd).To(BeEmpty())
 	})
 
 	t.Run("ControlPlane returns error when getting infra resources", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := clusterv1.Cluster{
 			Status: clusterv1.ClusterStatus{
-				FailureDomains: clusterv1.FailureDomains{
-					"one": failureDomain(true),
+				FailureDomains: []clusterv1.FailureDomain{
+					failureDomain("one", true),
 				},
 			},
 		}
@@ -200,9 +200,9 @@ func TestControlPlane(t *testing.T) {
 			"machine-1": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.31.0"),
-					FailureDomain:     ptr.To("one"),
-					InfrastructureRef: corev1.ObjectReference{Name: "m1"},
+					Version:           "v1.31.0",
+					FailureDomain:     "one",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Name: "m1"},
 				}},
 		}
 		_, err := NewControlPlane(ctx, nil, env.GetClient(), &cluster, kcp, machines)
@@ -263,10 +263,10 @@ func TestControlPlane(t *testing.T) {
 		testCluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: ns.Name},
 			Status: clusterv1.ClusterStatus{
-				FailureDomains: clusterv1.FailureDomains{
-					"one":   failureDomain(true),
-					"two":   failureDomain(true),
-					"three": failureDomain(true),
+				FailureDomains: []clusterv1.FailureDomain{
+					failureDomain("one", true),
+					failureDomain("two", true),
+					failureDomain("three", true),
 				},
 			},
 		}
@@ -295,18 +295,16 @@ func TestControlPlane(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "m1",
 					Namespace: ns.Name},
 				Spec: clusterv1.MachineSpec{
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: clusterv1.GroupVersionInfrastructure.String(),
-						Kind:       "GenericInfrastructureMachine",
-						Name:       "infra-config1",
-						Namespace:  ns.Name,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+						Kind:     "GenericInfrastructureMachine",
+						Name:     "infra-config1",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-							Kind:       "KubeadmConfig",
-							Name:       "bootstrap-config-machinereconcile",
-							Namespace:  ns.Name,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: clusterv1.GroupVersionBootstrap.Group,
+							Kind:     "KubeadmConfig",
+							Name:     "bootstrap-config-machinereconcile",
 						},
 					},
 				},
@@ -536,9 +534,9 @@ func TestMachineInFailureDomainWithMostMachines(t *testing.T) {
 			"machine-3": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.31.0"),
-					FailureDomain:     ptr.To("three"),
-					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m3"},
+					Version:           "v1.31.0",
+					FailureDomain:     "three",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m3"},
 				}},
 		}
 
@@ -546,8 +544,8 @@ func TestMachineInFailureDomainWithMostMachines(t *testing.T) {
 			KCP: &controlplanev1.KubeadmControlPlane{},
 			Cluster: &clusterv1.Cluster{
 				Status: clusterv1.ClusterStatus{
-					FailureDomains: clusterv1.FailureDomains{
-						"three": failureDomain(false),
+					FailureDomains: []clusterv1.FailureDomain{
+						failureDomain("three", false),
 					},
 				},
 			},
@@ -567,7 +565,7 @@ func TestMachineInFailureDomainWithMostMachines(t *testing.T) {
 			KCP: &controlplanev1.KubeadmControlPlane{},
 			Cluster: &clusterv1.Cluster{
 				Status: clusterv1.ClusterStatus{
-					FailureDomains: clusterv1.FailureDomains{},
+					FailureDomains: []clusterv1.FailureDomain{},
 				},
 			},
 			Machines: collections.Machines{},
@@ -588,9 +586,9 @@ func TestMachineWithDeleteAnnotation(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.31.0"),
-					FailureDomain:     ptr.To("one"),
-					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m1"},
+					Version:           "v1.31.0",
+					FailureDomain:     "one",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m1"},
 				}},
 			"machine-2": &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m2",
@@ -599,9 +597,9 @@ func TestMachineWithDeleteAnnotation(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.31.0"),
-					FailureDomain:     ptr.To("two"),
-					InfrastructureRef: corev1.ObjectReference{Kind: "GenericInfrastructureMachine", APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1", Name: "m2"},
+					Version:           "v1.31.0",
+					FailureDomain:     "two",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m2"},
 				}},
 		}
 

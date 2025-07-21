@@ -2932,8 +2932,12 @@ spec:
                     minProperties: 1
                     properties:
                       checks:
-                        description: checks are the checks that are used to evaluate
-                          if a Machine is healthy.
+                        description: |-
+                          checks are the checks that are used to evaluate if a Machine is healthy.
+                          Even if checks is not set, the MachineHealthCheck controller will still
+                          flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and
+                          Machines with deleted Nodes as unhealthy. Furthermore, nodeStartupTimeoutSeconds
+                          is defaulted to 10 minutes and evaluated accordingly.
                         minProperties: 1
                         properties:
                           nodeStartupTimeoutSeconds:
@@ -2993,8 +2997,13 @@ spec:
                             x-kubernetes-list-type: atomic
                         type: object
                       remediation:
-                        description: remediation configures if and how remediations
-                          are triggered if a Machine is unhealthy.
+                        description: |-
+                          remediation configures if and how remediations are triggered if a Machine is unhealthy.
+                          If remediation is not set (and thus triggerIf is not set), remediation will always be
+                          triggered for unhealthy Machines.
+                          If remediation is not set (and thus templateRef is not set), the OwnerRemediated condition
+                          will be set on unhealthy Machines to trigger remediation via the owner of the Machines,
+                          for example a MachineSet or a KubeadmControlPlane.
                         minProperties: 1
                         properties:
                           templateRef:
@@ -4044,8 +4053,12 @@ spec:
                           minProperties: 1
                           properties:
                             checks:
-                              description: checks are the checks that are used to
-                                evaluate if a Machine is healthy.
+                              description: |-
+                                checks are the checks that are used to evaluate if a Machine is healthy.
+                                Even if checks is not set, the MachineHealthCheck controller will still
+                                flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and
+                                Machines with deleted Nodes as unhealthy. Furthermore, nodeStartupTimeoutSeconds
+                                is defaulted to 10 minutes and evaluated accordingly.
                               minProperties: 1
                               properties:
                                 nodeStartupTimeoutSeconds:
@@ -4105,8 +4118,13 @@ spec:
                                   x-kubernetes-list-type: atomic
                               type: object
                             remediation:
-                              description: remediation configures if and how remediations
-                                are triggered if a Machine is unhealthy.
+                              description: |-
+                                remediation configures if and how remediations are triggered if a Machine is unhealthy.
+                                If remediation is not set (and thus triggerIf is not set), remediation will always be
+                                triggered for unhealthy Machines.
+                                If remediation is not set (and thus templateRef is not set), the OwnerRemediated condition
+                                will be set on unhealthy Machines to trigger remediation via the owner of the Machines,
+                                for example a MachineSet or a KubeadmControlPlane.
                               minProperties: 1
                               properties:
                                 templateRef:

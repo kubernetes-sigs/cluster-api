@@ -657,10 +657,19 @@ type ControlPlaneTopologyHealthCheck struct {
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// checks are the checks that are used to evaluate if a Machine is healthy.
+	// Even if checks is not set, the MachineHealthCheck controller will still
+	// flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and
+	// Machines with deleted Nodes as unhealthy. Furthermore, nodeStartupTimeoutSeconds
+	// is defaulted to 10 minutes and evaluated accordingly.
 	// +optional
 	Checks ControlPlaneTopologyHealthCheckChecks `json:"checks,omitempty,omitzero"`
 
 	// remediation configures if and how remediations are triggered if a Machine is unhealthy.
+	// If remediation is not set (and thus triggerIf is not set), remediation will always be
+	// triggered for unhealthy Machines.
+	// If remediation is not set (and thus templateRef is not set), the OwnerRemediated condition
+	// will be set on unhealthy Machines to trigger remediation via the owner of the Machines,
+	// for example a MachineSet or a KubeadmControlPlane.
 	// +optional
 	Remediation ControlPlaneTopologyHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
 }
@@ -882,10 +891,19 @@ type MachineDeploymentTopologyHealthCheck struct {
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// checks are the checks that are used to evaluate if a Machine is healthy.
+	// Even if checks is not set, the MachineHealthCheck controller will still
+	// flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and
+	// Machines with deleted Nodes as unhealthy. Furthermore, nodeStartupTimeoutSeconds
+	// is defaulted to 10 minutes and evaluated accordingly.
 	// +optional
 	Checks MachineDeploymentTopologyHealthCheckChecks `json:"checks,omitempty,omitzero"`
 
 	// remediation configures if and how remediations are triggered if a Machine is unhealthy.
+	// If remediation is not set (and thus triggerIf is not set), remediation will always be
+	// triggered for unhealthy Machines.
+	// If remediation is not set (and thus templateRef is not set), the OwnerRemediated condition
+	// will be set on unhealthy Machines to trigger remediation via the owner of the Machines,
+	// for example a MachineSet or a KubeadmControlPlane.
 	// +optional
 	Remediation MachineDeploymentTopologyHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
 }

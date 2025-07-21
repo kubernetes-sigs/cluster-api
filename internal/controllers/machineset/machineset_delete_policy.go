@@ -123,18 +123,18 @@ func getMachinesToDeletePrioritized(filteredMachines []*clusterv1.Machine, diff 
 }
 
 func getDeletePriorityFunc(ms *clusterv1.MachineSet) (deletePriorityFunc, error) {
-	// Map the Spec.DeletePolicy value to the appropriate delete priority function
-	switch ms.Spec.DeletePolicy {
-	case clusterv1.RandomMachineSetDeletePolicy:
+	// Map the Spec.Order value to the appropriate delete priority function
+	switch ms.Spec.Deletion.Order {
+	case clusterv1.RandomMachineSetDeletionOrder:
 		return randomDeletePolicy, nil
-	case clusterv1.NewestMachineSetDeletePolicy:
+	case clusterv1.NewestMachineSetDeletionOrder:
 		return newestDeletePriority, nil
-	case clusterv1.OldestMachineSetDeletePolicy:
+	case clusterv1.OldestMachineSetDeletionOrder:
 		return oldestDeletePriority, nil
 	case "":
 		return randomDeletePolicy, nil
 	default:
-		return nil, errors.Errorf("Unsupported delete policy %s. Must be one of 'Random', 'Newest', or 'Oldest'", ms.Spec.DeletePolicy)
+		return nil, errors.Errorf("Unsupported deletion order %s. Must be one of 'Random', 'Newest', or 'Oldest'", ms.Spec.Deletion.Order)
 	}
 }
 

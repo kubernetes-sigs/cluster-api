@@ -554,6 +554,11 @@ type MachineDeploymentClassHealthCheckRemediationTriggerIf struct {
 // MachineDeploymentClassMachineDeletionSpec contains configuration options for Machine deletion.
 // +kubebuilder:validation:MinProperties=1
 type MachineDeploymentClassMachineDeletionSpec struct {
+	// order defines the order in which Machines are deleted when downscaling.
+	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+	// +optional
+	Order MachineSetDeletionOrder `json:"order,omitempty"`
+
 	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`

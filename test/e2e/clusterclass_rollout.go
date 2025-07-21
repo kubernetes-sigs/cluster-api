@@ -198,11 +198,13 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 					RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 						MaxUnavailable: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
 						MaxSurge:       &intstr.IntOrString{Type: intstr.Int, IntVal: 5 + rand.Int31n(20)}, //nolint:gosec
-						DeletePolicy:   clusterv1.NewestMachineSetDeletePolicy,
 					},
 					Remediation: clusterv1.RemediationStrategy{
 						MaxInFlight: &intstr.IntOrString{Type: intstr.Int, IntVal: 2 + rand.Int31n(20)}, //nolint:gosec
 					},
+				}
+				topology.Deletion = clusterv1.MachineDeploymentTopologyMachineDeletionSpec{
+					Order: clusterv1.NewestMachineSetDeletionOrder,
 				}
 			},
 			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),

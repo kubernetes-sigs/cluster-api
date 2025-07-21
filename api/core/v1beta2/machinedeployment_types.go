@@ -291,6 +291,10 @@ type MachineDeploymentSpec struct {
 	// +optional
 	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
 
+	// deletion contains configuration options for MachineDeployment deletion.
+	// +optional
+	Deletion MachineDeploymentDeletionSpec `json:"deletion,omitempty,omitzero"`
+
 	// paused indicates that the deployment is paused.
 	// +optional
 	Paused *bool `json:"paused,omitempty"`
@@ -357,12 +361,6 @@ type MachineDeploymentStrategyRollingUpdate struct {
 	// at any time during the update is at most 130% of desired machines.
 	// +optional
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
-
-	// deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
-	// Valid values are "Random, "Newest", "Oldest"
-	// When no value is supplied, the default DeletePolicy of MachineSet is used
-	// +optional
-	DeletePolicy MachineSetDeletePolicy `json:"deletePolicy,omitempty"`
 }
 
 // ANCHOR_END: MachineDeploymentStrategyRollingUpdate
@@ -417,6 +415,15 @@ type MachineNamingStrategy struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Template string `json:"template,omitempty"`
+}
+
+// MachineDeploymentDeletionSpec contains configuration options for MachineDeployment deletion.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentDeletionSpec struct {
+	// order defines the order in which Machines are deleted when downscaling.
+	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+	// +optional
+	Order MachineSetDeletionOrder `json:"order,omitempty"`
 }
 
 // ANCHOR: MachineDeploymentStatus

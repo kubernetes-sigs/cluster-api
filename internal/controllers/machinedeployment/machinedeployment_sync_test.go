@@ -393,8 +393,10 @@ func newTestMachineDeployment(replicas, statusReplicas, upToDateReplicas, availa
 				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 					MaxUnavailable: intOrStrPtr(0),
 					MaxSurge:       intOrStrPtr(1),
-					DeletePolicy:   clusterv1.OldestMachineSetDeletePolicy,
 				},
+			},
+			Deletion: clusterv1.MachineDeploymentDeletionSpec{
+				Order: clusterv1.OldestMachineSetDeletionOrder,
 			},
 		},
 		Status: clusterv1.MachineDeploymentStatus{
@@ -544,9 +546,11 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
 					MaxSurge:       intOrStrPtr(1),
-					DeletePolicy:   clusterv1.RandomMachineSetDeletePolicy,
 					MaxUnavailable: intOrStrPtr(0),
 				},
+			},
+			Deletion: clusterv1.MachineDeploymentDeletionSpec{
+				Order: clusterv1.RandomMachineSetDeletionOrder,
 			},
 			MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
 				Template: "{{ .machineSet.name }}" + namingTemplateKey + "-{{ .random }}",
@@ -584,11 +588,13 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 			Annotations: map[string]string{"top-level-annotation": "top-level-annotation-value"},
 		},
 		Spec: clusterv1.MachineSetSpec{
-			ClusterName:  "test-cluster",
-			Replicas:     ptr.To[int32](3),
-			DeletePolicy: clusterv1.RandomMachineSetDeletePolicy,
-			Selector:     metav1.LabelSelector{MatchLabels: map[string]string{"k1": "v1"}},
-			Template:     *deployment.Spec.Template.DeepCopy(),
+			ClusterName: "test-cluster",
+			Replicas:    ptr.To[int32](3),
+			Deletion: clusterv1.MachineSetDeletionSpec{
+				Order: clusterv1.RandomMachineSetDeletionOrder,
+			},
+			Selector: metav1.LabelSelector{MatchLabels: map[string]string{"k1": "v1"}},
+			Template: *deployment.Spec.Template.DeepCopy(),
 			MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
 				Template: "{{ .machineSet.name }}" + namingTemplateKey + "-{{ .random }}",
 			},
@@ -642,7 +648,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		existingMS.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = duration5s
 		existingMS.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = duration5s
 		existingMS.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration5s
-		existingMS.Spec.DeletePolicy = clusterv1.NewestMachineSetDeletePolicy
+		existingMS.Spec.Deletion.Order = clusterv1.NewestMachineSetDeletionOrder
 		existingMS.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 
 		expectedMS := skeletonMSBasedOnMD.DeepCopy()
@@ -682,7 +688,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		existingMS.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = duration5s
 		existingMS.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = duration5s
 		existingMS.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration5s
-		existingMS.Spec.DeletePolicy = clusterv1.NewestMachineSetDeletePolicy
+		existingMS.Spec.Deletion.Order = clusterv1.NewestMachineSetDeletionOrder
 		existingMS.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 
 		oldMS := skeletonMSBasedOnMD.DeepCopy()
@@ -736,7 +742,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		existingMS.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = duration5s
 		existingMS.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = duration5s
 		existingMS.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration5s
-		existingMS.Spec.DeletePolicy = clusterv1.NewestMachineSetDeletePolicy
+		existingMS.Spec.Deletion.Order = clusterv1.NewestMachineSetDeletionOrder
 		existingMS.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](0)
 
 		expectedMS := skeletonMSBasedOnMD.DeepCopy()
@@ -744,8 +750,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		expectedMS.Name = deployment.Name + "-" + uniqueID
 		expectedMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = uniqueID
 		expectedMS.Spec.Template.Labels[clusterv1.MachineDeploymentUniqueLabel] = uniqueID
-		// DeletePolicy should be empty with rollout strategy "OnDelete".
-		expectedMS.Spec.DeletePolicy = ""
+		expectedMS.Spec.Deletion.Order = deployment.Spec.Deletion.Order
 
 		g := NewWithT(t)
 		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(ctx, deployment, existingMS, nil)
@@ -799,8 +804,8 @@ func assertMachineSet(g *WithT, actualMS *clusterv1.MachineSet, expectedMS *clus
 	// Check MinReadySeconds
 	g.Expect(actualMS.Spec.Template.Spec.MinReadySeconds).Should(Equal(expectedMS.Spec.Template.Spec.MinReadySeconds))
 
-	// Check DeletePolicy
-	g.Expect(actualMS.Spec.DeletePolicy).Should(Equal(expectedMS.Spec.DeletePolicy))
+	// Check Order
+	g.Expect(actualMS.Spec.Deletion.Order).Should(Equal(expectedMS.Spec.Deletion.Order))
 
 	// Check MachineTemplateSpec
 	g.Expect(actualMS.Spec.Template.Spec).Should(BeComparableTo(expectedMS.Spec.Template.Spec))

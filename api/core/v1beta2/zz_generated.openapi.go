@@ -92,6 +92,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate":             schema_cluster_api_api_core_v1beta2_MachineDeploymentClassInfrastructureTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec":                schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy":                     schema_cluster_api_api_core_v1beta2_MachineDeploymentClassNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeletionSpec":                            schema_cluster_api_api_core_v1beta2_MachineDeploymentDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeprecatedStatus":                        schema_cluster_api_api_core_v1beta2_MachineDeploymentDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentList":                                    schema_cluster_api_api_core_v1beta2_MachineDeploymentList(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentSpec":                                    schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref),
@@ -144,6 +145,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolVariables":                                     schema_cluster_api_api_core_v1beta2_MachinePoolVariables(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate":                                     schema_cluster_api_api_core_v1beta2_MachineReadinessGate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSet":                                               schema_cluster_api_api_core_v1beta2_MachineSet(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeletionSpec":                                   schema_cluster_api_api_core_v1beta2_MachineSetDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeprecatedStatus":                               schema_cluster_api_api_core_v1beta2_MachineSetDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetList":                                           schema_cluster_api_api_core_v1beta2_MachineSetList(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetSpec":                                           schema_cluster_api_api_core_v1beta2_MachineSetSpec(ref),
@@ -3012,6 +3014,13 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineDeletionSp
 				Description: "MachineDeploymentClassMachineDeletionSpec contains configuration options for Machine deletion.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"order": {
+						SchemaProps: spec.SchemaProps{
+							Description: "order defines the order in which Machines are deleted when downscaling. Defaults to \"Random\".  Valid values are \"Random, \"Newest\", \"Oldest\"",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"nodeDrainTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
 							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
@@ -3049,6 +3058,26 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassNamingStrategy(re
 					"template": {
 						SchemaProps: spec.SchemaProps{
 							Description: "template defines the template to use for generating the name of the MachineDeployment object. If not defined, it will fallback to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`. If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. The templating mechanism provides the following arguments: * `.cluster.name`: The name of the cluster object. * `.random`: A random alphanumeric string, without vowels, of length 5. * `.machineDeployment.topologyName`: The name of the MachineDeployment topology (Cluster.spec.topology.workers.machineDeployments[].name).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentDeletionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentDeletionSpec contains configuration options for MachineDeployment deletion.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"order": {
+						SchemaProps: spec.SchemaProps{
+							Description: "order defines the order in which Machines are deleted when downscaling. Defaults to \"Random\".  Valid values are \"Random, \"Newest\", \"Oldest\"",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3186,6 +3215,13 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy"),
 						},
 					},
+					"deletion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "deletion contains configuration options for MachineDeployment deletion.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeletionSpec"),
+						},
+					},
 					"paused": {
 						SchemaProps: spec.SchemaProps{
 							Description: "paused indicates that the deployment is paused.",
@@ -3198,7 +3234,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
 	}
 }
 
@@ -3347,13 +3383,6 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategyRollingUpdate(
 						SchemaProps: spec.SchemaProps{
 							Description: "maxSurge is the maximum number of machines that can be scheduled above the desired number of machines. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is calculated from percentage by rounding up. Defaults to 1. Example: when this is set to 30%, the new MachineSet can be scaled up immediately when the rolling update starts, such that the total number of old and new machines do not exceed 130% of desired machines. Once old machines have been killed, new MachineSet can be scaled up further, ensuring that total number of machines running at any time during the update is at most 130% of desired machines.",
 							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
-						},
-					},
-					"deletePolicy": {
-						SchemaProps: spec.SchemaProps{
-							Description: "deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling. Valid values are \"Random, \"Newest\", \"Oldest\" When no value is supplied, the default DeletePolicy of MachineSet is used",
-							Type:        []string{"string"},
-							Format:      "",
 						},
 					},
 				},
@@ -3613,6 +3642,13 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyMachineDeletio
 				Description: "MachineDeploymentTopologyMachineDeletionSpec contains configuration options for Machine deletion.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"order": {
+						SchemaProps: spec.SchemaProps{
+							Description: "order defines the order in which Machines are deleted when downscaling. Defaults to \"Random\".  Valid values are \"Random, \"Newest\", \"Oldest\"",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"nodeDrainTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
 							Description: "nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`",
@@ -5367,6 +5403,26 @@ func schema_cluster_api_api_core_v1beta2_MachineSet(ref common.ReferenceCallback
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_MachineSetDeletionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineSetDeletionSpec contains configuration options for MachineSet deletion.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"order": {
+						SchemaProps: spec.SchemaProps{
+							Description: "order defines the order in which Machines are deleted when downscaling. Defaults to \"Random\".  Valid values are \"Random, \"Newest\", \"Oldest\"",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_MachineSetDeprecatedStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -5461,13 +5517,6 @@ func schema_cluster_api_api_core_v1beta2_MachineSetSpec(ref common.ReferenceCall
 							Format:      "int32",
 						},
 					},
-					"deletePolicy": {
-						SchemaProps: spec.SchemaProps{
-							Description: "deletePolicy defines the policy used to identify nodes to delete when downscaling. Defaults to \"Random\".  Valid values are \"Random, \"Newest\", \"Oldest\"",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
 					"selector": {
 						SchemaProps: spec.SchemaProps{
 							Description: "selector is a label query over machines that should match the replica count. Label keys and values that must match in order to be controlled by this MachineSet. It must match the machine template's labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors",
@@ -5488,12 +5537,19 @@ func schema_cluster_api_api_core_v1beta2_MachineSetSpec(ref common.ReferenceCall
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy"),
 						},
 					},
+					"deletion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "deletion contains configuration options for MachineSet deletion.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeletionSpec"),
+						},
+					},
 				},
 				Required: []string{"clusterName", "selector", "template"},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
 	}
 }
 

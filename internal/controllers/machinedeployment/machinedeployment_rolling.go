@@ -194,7 +194,7 @@ func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clu
 
 	sort.Sort(mdutil.MachineSetsByCreationTimestamp(oldMSs))
 
-	// Scale down all old MachineSets with any unhealthy replicas. MachineSet will honour Spec.DeletePolicy
+	// Scale down all old MachineSets with any unhealthy replicas. MachineSet will honour Spec.Order
 	// for deleting Machines. Machines with a deletion timestamp, with a failure message or without a nodeRef
 	// are preferred for all strategies.
 	// This results in a best effort to remove machines backing unhealthy nodes.

@@ -806,6 +806,11 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		failureDomain = machineDeploymentTopology.FailureDomain
 	}
 
+	deletionOrder := machineDeploymentClass.Deletion.Order
+	if machineDeploymentTopology.Deletion.Order != "" {
+		deletionOrder = machineDeploymentTopology.Deletion.Order
+	}
+
 	nodeDrainTimeout := machineDeploymentClass.Deletion.NodeDrainTimeoutSeconds
 	if machineDeploymentTopology.Deletion.NodeDrainTimeoutSeconds != nil {
 		nodeDrainTimeout = machineDeploymentTopology.Deletion.NodeDrainTimeoutSeconds
@@ -852,6 +857,9 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: s.Current.Cluster.Name,
 			Strategy:    strategy,
+			Deletion: clusterv1.MachineDeploymentDeletionSpec{
+				Order: deletionOrder,
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       s.Current.Cluster.Name,

@@ -2824,6 +2824,15 @@ spec:
                                   format: int32
                                   minimum: 0
                                   type: integer
+                                order:
+                                  description: |-
+                                    order defines the order in which Machines are deleted when downscaling.
+                                    Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+                                  enum:
+                                  - Random
+                                  - Newest
+                                  - Oldest
+                                  type: string
                               type: object
                             failureDomain:
                               description: |-
@@ -3139,16 +3148,6 @@ spec:
                                     MachineDeploymentStrategyType = RollingUpdate.
                                   minProperties: 1
                                   properties:
-                                    deletePolicy:
-                                      description: |-
-                                        deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
-                                        Valid values are "Random, "Newest", "Oldest"
-                                        When no value is supplied, the default DeletePolicy of MachineSet is used
-                                      enum:
-                                      - Random
-                                      - Newest
-                                      - Oldest
-                                      type: string
                                     maxSurge:
                                       anyOf:
                                       - type: integer

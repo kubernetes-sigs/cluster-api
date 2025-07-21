@@ -1174,6 +1174,7 @@ func autoConvert_v1beta2_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec
 	}
 	// WARNING: in.Strategy requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy vs *sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.MachineDeploymentStrategy)
 	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_Pointer_bool_To_bool(&in.Paused, &out.Paused, s); err != nil {
 		return err
 	}
@@ -1718,7 +1719,7 @@ func autoConvert_v1alpha4_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSe
 	out.ClusterName = in.ClusterName
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
-	out.DeletePolicy = v1beta2.MachineSetDeletePolicy(in.DeletePolicy)
+	// WARNING: in.DeletePolicy requires manual conversion: does not exist in peer-type
 	out.Selector = in.Selector
 	if err := Convert_v1alpha4_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
@@ -1729,12 +1730,12 @@ func autoConvert_v1alpha4_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSe
 func autoConvert_v1beta2_MachineSetSpec_To_v1alpha4_MachineSetSpec(in *v1beta2.MachineSetSpec, out *MachineSetSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
-	out.DeletePolicy = string(in.DeletePolicy)
 	out.Selector = in.Selector
 	if err := Convert_v1beta2_MachineTemplateSpec_To_v1alpha4_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	return nil
 }
 

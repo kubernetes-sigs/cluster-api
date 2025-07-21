@@ -556,6 +556,7 @@ type MachineDeploymentClassBuilder struct {
 	nodeDeletionTimeout           *int32
 	minReadySeconds               *int32
 	strategy                      clusterv1.MachineDeploymentStrategy
+	deletionOrder                 clusterv1.MachineSetDeletionOrder
 	namingStrategy                *clusterv1.MachineDeploymentClassNamingStrategy
 }
 
@@ -638,6 +639,12 @@ func (m *MachineDeploymentClassBuilder) WithStrategy(s clusterv1.MachineDeployme
 	return m
 }
 
+// WithDeletionOrder sets the deletion order for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithDeletionOrder(deletionOrder clusterv1.MachineSetDeletionOrder) *MachineDeploymentClassBuilder {
+	m.deletionOrder = deletionOrder
+	return m
+}
+
 // WithNamingStrategy sets the NamingStrategy for the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentClassBuilder) WithNamingStrategy(n *clusterv1.MachineDeploymentClassNamingStrategy) *MachineDeploymentClassBuilder {
 	m.namingStrategy = n
@@ -681,6 +688,7 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 		obj.MinReadySeconds = m.minReadySeconds
 	}
 	obj.Strategy = m.strategy
+	obj.Deletion.Order = m.deletionOrder
 	if m.namingStrategy != nil {
 		obj.NamingStrategy = m.namingStrategy
 	}

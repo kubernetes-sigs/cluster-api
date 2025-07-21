@@ -1725,6 +1725,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			MaxInFlight: ptr.To(intstr.FromInt32(5)),
 		},
 	}
+	clusterClassDeletionOrder := clusterv1.NewestMachineSetDeletionOrder
 	clusterClassReadinessGates := []clusterv1.MachineReadinessGate{
 		{ConditionType: "foo"},
 	}
@@ -1746,6 +1747,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		WithNodeDeletionTimeout(&clusterClassDuration).
 		WithMinReadySeconds(&clusterClassMinReadySeconds).
 		WithStrategy(clusterClassStrategy).
+		WithDeletionOrder(clusterClassDeletionOrder).
 		Build()
 	mcds := []clusterv1.MachineDeploymentClass{*md1}
 	fakeClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1796,6 +1798,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			MaxInFlight: ptr.To(intstr.FromInt32(5)),
 		},
 	}
+	topologyDeletionOrder := clusterv1.OldestMachineSetDeletionOrder
 	readinessGates := []clusterv1.MachineReadinessGate{
 		{ConditionType: "foo"},
 		{ConditionType: "bar"},
@@ -1820,6 +1823,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		FailureDomain:  topologyFailureDomain,
 		ReadinessGates: readinessGates,
 		Deletion: clusterv1.MachineDeploymentTopologyMachineDeletionSpec{
+			Order:                          topologyDeletionOrder,
 			NodeDrainTimeoutSeconds:        &topologyDuration,
 			NodeVolumeDetachTimeoutSeconds: &topologyDuration,
 			NodeDeletionTimeoutSeconds:     &topologyDuration,
@@ -1857,6 +1861,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Spec.Strategy).To(BeComparableTo(topologyStrategy))
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(topologyMinReadySeconds)))
 		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
+		g.Expect(actualMd.Spec.Deletion.Order).To(Equal(topologyDeletionOrder))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(topologyDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(topologyDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(topologyDuration))
@@ -1902,7 +1907,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Class:    "linux-worker",
 			Name:     "big-pool-of-machines",
 			Replicas: &replicas,
-			// missing ReadinessGates, FailureDomain, NodeDrainTimeoutSeconds, NodeVolumeDetachTimeoutSeconds, NodeDeletionTimeoutSeconds, MinReadySeconds, Strategy
+			// missing ReadinessGates, FailureDomain, NodeDrainTimeoutSeconds, NodeVolumeDetachTimeoutSeconds, NodeDeletionTimeoutSeconds, MinReadySeconds, Strategy, deletion.Order
 		}
 
 		e := generator{}
@@ -1916,6 +1921,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(clusterClassMinReadySeconds)))
 		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(clusterClassFailureDomain))
 		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(Equal(clusterClassReadinessGates))
+		g.Expect(actualMd.Spec.Deletion.Order).To(Equal(clusterClassDeletionOrder))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(clusterClassDuration))
@@ -2360,7 +2366,7 @@ func TestComputeMachinePool(t *testing.T) {
 			Class:    "linux-worker",
 			Name:     "big-pool-of-machines",
 			Replicas: &replicas,
-			// missing FailureDomain, NodeDrainTimeoutSeconds, NodeVolumeDetachTimeoutSeconds, NodeDeletionTimeoutSeconds, MinReadySeconds, Strategy
+			// missing FailureDomain, NodeDrainTimeoutSeconds, NodeVolumeDetachTimeoutSeconds, NodeDeletionTimeoutSeconds, MinReadySeconds
 		}
 
 		e := generator{}

@@ -65,11 +65,6 @@ type MachineSetSpec struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// deletePolicy defines the policy used to identify nodes to delete when downscaling.
-	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
-	// +optional
-	DeletePolicy MachineSetDeletePolicy `json:"deletePolicy,omitempty"`
-
 	// selector is a label query over machines that should match the replica count.
 	// Label keys and values that must match in order to be controlled by this MachineSet.
 	// It must match the machine template's labels.
@@ -87,6 +82,19 @@ type MachineSetSpec struct {
 	// Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
 	// +optional
 	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
+
+	// deletion contains configuration options for MachineSet deletion.
+	// +optional
+	Deletion MachineSetDeletionSpec `json:"deletion,omitempty,omitzero"`
+}
+
+// MachineSetDeletionSpec contains configuration options for MachineSet deletion.
+// +kubebuilder:validation:MinProperties=1
+type MachineSetDeletionSpec struct {
+	// order defines the order in which Machines are deleted when downscaling.
+	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+	// +optional
+	Order MachineSetDeletionOrder `json:"order,omitempty"`
 }
 
 // MachineSet's ScalingUp condition and corresponding reasons.
@@ -246,32 +254,32 @@ type MachineTemplateSpec struct {
 
 // ANCHOR_END: MachineTemplateSpec
 
-// MachineSetDeletePolicy defines how priority is assigned to nodes to delete when
+// MachineSetDeletionOrder defines how priority is assigned to nodes to delete when
 // downscaling a MachineSet. Defaults to "Random".
 // +kubebuilder:validation:Enum=Random;Newest;Oldest
-type MachineSetDeletePolicy string
+type MachineSetDeletionOrder string
 
 const (
-	// RandomMachineSetDeletePolicy prioritizes both Machines that have the annotation
+	// RandomMachineSetDeletionOrder prioritizes both Machines that have the annotation
 	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
 	// (Status.FailureReason or Status.FailureMessage are set to a non-empty value
 	// or NodeHealthy type of Status.Conditions is not true).
 	// Finally, it picks Machines at random to delete.
-	RandomMachineSetDeletePolicy MachineSetDeletePolicy = "Random"
+	RandomMachineSetDeletionOrder MachineSetDeletionOrder = "Random"
 
-	// NewestMachineSetDeletePolicy prioritizes both Machines that have the annotation
+	// NewestMachineSetDeletionOrder prioritizes both Machines that have the annotation
 	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
 	// (Status.FailureReason or Status.FailureMessage are set to a non-empty value
 	// or NodeHealthy type of Status.Conditions is not true).
 	// It then prioritizes the newest Machines for deletion based on the Machine's CreationTimestamp.
-	NewestMachineSetDeletePolicy MachineSetDeletePolicy = "Newest"
+	NewestMachineSetDeletionOrder MachineSetDeletionOrder = "Newest"
 
-	// OldestMachineSetDeletePolicy prioritizes both Machines that have the annotation
+	// OldestMachineSetDeletionOrder prioritizes both Machines that have the annotation
 	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
 	// (Status.FailureReason or Status.FailureMessage are set to a non-empty value
 	// or NodeHealthy type of Status.Conditions is not true).
 	// It then prioritizes the oldest Machines for deletion based on the Machine's CreationTimestamp.
-	OldestMachineSetDeletePolicy MachineSetDeletePolicy = "Oldest"
+	OldestMachineSetDeletionOrder MachineSetDeletionOrder = "Oldest"
 )
 
 // ANCHOR: MachineSetStatus

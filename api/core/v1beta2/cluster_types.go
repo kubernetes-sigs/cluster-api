@@ -614,7 +614,7 @@ type ControlPlaneTopology struct {
 	// healthCheck allows to enable, disable and override control plane health check
 	// configuration from the ClusterClass for this control plane.
 	// +optional
-	HealthCheck *ControlPlaneTopologyMachineHealthCheck `json:"healthCheck,omitempty"`
+	HealthCheck *ControlPlaneTopologyHealthCheck `json:"healthCheck,omitempty"`
 
 	// deletion contains configuration options for Machine deletion.
 	// +optional
@@ -641,9 +641,9 @@ type ControlPlaneTopology struct {
 	Variables ControlPlaneVariables `json:"variables,omitempty,omitzero"`
 }
 
-// ControlPlaneTopologyMachineHealthCheck defines a MachineHealthCheck for control plane machines.
+// ControlPlaneTopologyHealthCheck defines a MachineHealthCheck for control plane machines.
 // +kubebuilder:validation:MinProperties=1
-type ControlPlaneTopologyMachineHealthCheck struct {
+type ControlPlaneTopologyHealthCheck struct {
 	// enabled controls if a MachineHealthCheck should be created for the target machines.
 	//
 	// If false: No MachineHealthCheck will be created.
@@ -658,21 +658,21 @@ type ControlPlaneTopologyMachineHealthCheck struct {
 
 	// checks are the checks that are used to evaluate if a Machine is healthy.
 	// +optional
-	Checks ControlPlaneTopologyMachineHealthCheckChecks `json:"checks,omitempty,omitzero"`
+	Checks ControlPlaneTopologyHealthCheckChecks `json:"checks,omitempty,omitzero"`
 
 	// remediation configures if and how remediations are triggered if a Machine is unhealthy.
 	// +optional
-	Remediation ControlPlaneTopologyMachineHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
+	Remediation ControlPlaneTopologyHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
 }
 
 // IsDefined returns true if both checks and remediation are zero.
-func (m *ControlPlaneTopologyMachineHealthCheck) IsDefined() bool {
+func (m *ControlPlaneTopologyHealthCheck) IsDefined() bool {
 	return !reflect.ValueOf(m.Checks).IsZero() || !reflect.ValueOf(m.Remediation).IsZero()
 }
 
-// ControlPlaneTopologyMachineHealthCheckChecks are the checks that are used to evaluate if a control plane Machine is healthy.
+// ControlPlaneTopologyHealthCheckChecks are the checks that are used to evaluate if a control plane Machine is healthy.
 // +kubebuilder:validation:MinProperties=1
-type ControlPlaneTopologyMachineHealthCheckChecks struct {
+type ControlPlaneTopologyHealthCheckChecks struct {
 	// nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
 	// to consider a Machine unhealthy if a corresponding Node isn't associated
 	// through a `Spec.ProviderID` field.
@@ -700,13 +700,13 @@ type ControlPlaneTopologyMachineHealthCheckChecks struct {
 	UnhealthyNodeConditions []UnhealthyNodeCondition `json:"unhealthyNodeConditions,omitempty"`
 }
 
-// ControlPlaneTopologyMachineHealthCheckRemediation configures if and how remediations are triggered if a control plane Machine is unhealthy.
+// ControlPlaneTopologyHealthCheckRemediation configures if and how remediations are triggered if a control plane Machine is unhealthy.
 // +kubebuilder:validation:MinProperties=1
-type ControlPlaneTopologyMachineHealthCheckRemediation struct {
+type ControlPlaneTopologyHealthCheckRemediation struct {
 	// triggerIf configures if remediations are triggered.
 	// If this field is not set, remediations are always triggered.
 	// +optional
-	TriggerIf ControlPlaneTopologyMachineHealthCheckRemediationTriggerIf `json:"triggerIf,omitempty,omitzero"`
+	TriggerIf ControlPlaneTopologyHealthCheckRemediationTriggerIf `json:"triggerIf,omitempty,omitzero"`
 
 	// templateRef is a reference to a remediation template
 	// provided by an infrastructure provider.
@@ -718,9 +718,9 @@ type ControlPlaneTopologyMachineHealthCheckRemediation struct {
 	TemplateRef *MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty"`
 }
 
-// ControlPlaneTopologyMachineHealthCheckRemediationTriggerIf configures if remediations are triggered.
+// ControlPlaneTopologyHealthCheckRemediationTriggerIf configures if remediations are triggered.
 // +kubebuilder:validation:MinProperties=1
-type ControlPlaneTopologyMachineHealthCheckRemediationTriggerIf struct {
+type ControlPlaneTopologyHealthCheckRemediationTriggerIf struct {
 	// unhealthyLessThanOrEqualTo specifies that remediations are only triggered if the number of
 	// unhealthy Machines is less than or equal to the configured value.
 	// unhealthyInRange takes precedence if set.
@@ -828,7 +828,7 @@ type MachineDeploymentTopology struct {
 	// healthCheck allows to enable, disable and override MachineDeployment health check
 	// configuration from the ClusterClass for this MachineDeployment.
 	// +optional
-	HealthCheck *MachineDeploymentTopologyMachineHealthCheck `json:"healthCheck,omitempty"`
+	HealthCheck *MachineDeploymentTopologyHealthCheck `json:"healthCheck,omitempty"`
 
 	// deletion contains configuration options for Machine deletion.
 	// +optional
@@ -866,9 +866,9 @@ type MachineDeploymentTopology struct {
 	Variables MachineDeploymentVariables `json:"variables,omitempty,omitzero"`
 }
 
-// MachineDeploymentTopologyMachineHealthCheck defines a MachineHealthCheck for MachineDeployment machines.
+// MachineDeploymentTopologyHealthCheck defines a MachineHealthCheck for MachineDeployment machines.
 // +kubebuilder:validation:MinProperties=1
-type MachineDeploymentTopologyMachineHealthCheck struct {
+type MachineDeploymentTopologyHealthCheck struct {
 	// enabled controls if a MachineHealthCheck should be created for the target machines.
 	//
 	// If false: No MachineHealthCheck will be created.
@@ -883,21 +883,21 @@ type MachineDeploymentTopologyMachineHealthCheck struct {
 
 	// checks are the checks that are used to evaluate if a Machine is healthy.
 	// +optional
-	Checks MachineDeploymentTopologyMachineHealthCheckChecks `json:"checks,omitempty,omitzero"`
+	Checks MachineDeploymentTopologyHealthCheckChecks `json:"checks,omitempty,omitzero"`
 
 	// remediation configures if and how remediations are triggered if a Machine is unhealthy.
 	// +optional
-	Remediation MachineDeploymentTopologyMachineHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
+	Remediation MachineDeploymentTopologyHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
 }
 
 // IsDefined returns true if both checks and remediation are zero.
-func (m *MachineDeploymentTopologyMachineHealthCheck) IsDefined() bool {
+func (m *MachineDeploymentTopologyHealthCheck) IsDefined() bool {
 	return !reflect.ValueOf(m.Checks).IsZero() || !reflect.ValueOf(m.Remediation).IsZero()
 }
 
-// MachineDeploymentTopologyMachineHealthCheckChecks are the checks that are used to evaluate if a MachineDeployment Machine is healthy.
+// MachineDeploymentTopologyHealthCheckChecks are the checks that are used to evaluate if a MachineDeployment Machine is healthy.
 // +kubebuilder:validation:MinProperties=1
-type MachineDeploymentTopologyMachineHealthCheckChecks struct {
+type MachineDeploymentTopologyHealthCheckChecks struct {
 	// nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
 	// to consider a Machine unhealthy if a corresponding Node isn't associated
 	// through a `Spec.ProviderID` field.
@@ -925,13 +925,13 @@ type MachineDeploymentTopologyMachineHealthCheckChecks struct {
 	UnhealthyNodeConditions []UnhealthyNodeCondition `json:"unhealthyNodeConditions,omitempty"`
 }
 
-// MachineDeploymentTopologyMachineHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.
+// MachineDeploymentTopologyHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.
 // +kubebuilder:validation:MinProperties=1
-type MachineDeploymentTopologyMachineHealthCheckRemediation struct {
+type MachineDeploymentTopologyHealthCheckRemediation struct {
 	// triggerIf configures if remediations are triggered.
 	// If this field is not set, remediations are always triggered.
 	// +optional
-	TriggerIf MachineDeploymentTopologyMachineHealthCheckRemediationTriggerIf `json:"triggerIf,omitempty,omitzero"`
+	TriggerIf MachineDeploymentTopologyHealthCheckRemediationTriggerIf `json:"triggerIf,omitempty,omitzero"`
 
 	// templateRef is a reference to a remediation template
 	// provided by an infrastructure provider.
@@ -943,9 +943,9 @@ type MachineDeploymentTopologyMachineHealthCheckRemediation struct {
 	TemplateRef *MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty"`
 }
 
-// MachineDeploymentTopologyMachineHealthCheckRemediationTriggerIf configures if remediations are triggered.
+// MachineDeploymentTopologyHealthCheckRemediationTriggerIf configures if remediations are triggered.
 // +kubebuilder:validation:MinProperties=1
-type MachineDeploymentTopologyMachineHealthCheckRemediationTriggerIf struct {
+type MachineDeploymentTopologyHealthCheckRemediationTriggerIf struct {
 	// unhealthyLessThanOrEqualTo specifies that remediations are only triggered if the number of
 	// unhealthy Machines is less than or equal to the configured value.
 	// unhealthyInRange takes precedence if set.

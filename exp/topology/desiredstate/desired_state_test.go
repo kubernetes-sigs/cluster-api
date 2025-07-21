@@ -1733,8 +1733,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 		WithAnnotations(annotations).
 		WithInfrastructureTemplate(workerInfrastructureMachineTemplate).
 		WithBootstrapTemplate(workerBootstrapTemplate).
-		WithMachineHealthCheckClass(&clusterv1.MachineDeploymentClassMachineHealthCheck{
-			Checks: clusterv1.MachineDeploymentClassMachineHealthCheckChecks{
+		WithMachineHealthCheckClass(&clusterv1.MachineDeploymentClassHealthCheck{
+			Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 				UnhealthyNodeConditions:   unhealthyNodeConditions,
 				NodeStartupTimeoutSeconds: nodeTimeoutDuration,
 			},
@@ -1776,8 +1776,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 				},
 				BootstrapTemplate:             workerBootstrapTemplate,
 				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
-				MachineHealthCheck: &clusterv1.MachineDeploymentClassMachineHealthCheck{
-					Checks: clusterv1.MachineDeploymentClassMachineHealthCheckChecks{
+				HealthCheck: &clusterv1.MachineDeploymentClassHealthCheck{
+					Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 						UnhealthyNodeConditions:   unhealthyNodeConditions,
 						NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 					},
@@ -1938,8 +1938,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 					},
 					BootstrapTemplate:             workerBootstrapTemplate,
 					InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
-					MachineHealthCheck: &clusterv1.MachineDeploymentClassMachineHealthCheck{
-						Checks: clusterv1.MachineDeploymentClassMachineHealthCheckChecks{
+					HealthCheck: &clusterv1.MachineDeploymentClassHealthCheck{
+						Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 							UnhealthyNodeConditions:   unhealthyNodeConditions,
 							NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 						},

@@ -171,7 +171,7 @@ type ControlPlaneClass struct {
 	// This field is supported if and only if the ControlPlane provider template
 	// referenced above is Machine based and supports setting replicas.
 	// +optional
-	HealthCheck *ControlPlaneClassMachineHealthCheck `json:"healthCheck,omitempty"`
+	HealthCheck *ControlPlaneClassHealthCheck `json:"healthCheck,omitempty"`
 
 	// namingStrategy allows changing the naming pattern used when creating the control plane provider object.
 	// +optional
@@ -198,21 +198,21 @@ type ControlPlaneClass struct {
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 }
 
-// ControlPlaneClassMachineHealthCheck defines a MachineHealthCheck for control plane machines.
+// ControlPlaneClassHealthCheck defines a MachineHealthCheck for control plane machines.
 // +kubebuilder:validation:MinProperties=1
-type ControlPlaneClassMachineHealthCheck struct {
+type ControlPlaneClassHealthCheck struct {
 	// checks are the checks that are used to evaluate if a Machine is healthy.
 	// +optional
-	Checks ControlPlaneClassMachineHealthCheckChecks `json:"checks,omitempty,omitzero"`
+	Checks ControlPlaneClassHealthCheckChecks `json:"checks,omitempty,omitzero"`
 
 	// remediation configures if and how remediations are triggered if a Machine is unhealthy.
 	// +optional
-	Remediation ControlPlaneClassMachineHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
+	Remediation ControlPlaneClassHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
 }
 
-// ControlPlaneClassMachineHealthCheckChecks are the checks that are used to evaluate if a control plane Machine is healthy.
+// ControlPlaneClassHealthCheckChecks are the checks that are used to evaluate if a control plane Machine is healthy.
 // +kubebuilder:validation:MinProperties=1
-type ControlPlaneClassMachineHealthCheckChecks struct {
+type ControlPlaneClassHealthCheckChecks struct {
 	// nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
 	// to consider a Machine unhealthy if a corresponding Node isn't associated
 	// through a `Spec.ProviderID` field.
@@ -240,13 +240,13 @@ type ControlPlaneClassMachineHealthCheckChecks struct {
 	UnhealthyNodeConditions []UnhealthyNodeCondition `json:"unhealthyNodeConditions,omitempty"`
 }
 
-// ControlPlaneClassMachineHealthCheckRemediation configures if and how remediations are triggered if a control plane Machine is unhealthy.
+// ControlPlaneClassHealthCheckRemediation configures if and how remediations are triggered if a control plane Machine is unhealthy.
 // +kubebuilder:validation:MinProperties=1
-type ControlPlaneClassMachineHealthCheckRemediation struct {
+type ControlPlaneClassHealthCheckRemediation struct {
 	// triggerIf configures if remediations are triggered.
 	// If this field is not set, remediations are always triggered.
 	// +optional
-	TriggerIf ControlPlaneClassMachineHealthCheckRemediationTriggerIf `json:"triggerIf,omitempty,omitzero"`
+	TriggerIf ControlPlaneClassHealthCheckRemediationTriggerIf `json:"triggerIf,omitempty,omitzero"`
 
 	// templateRef is a reference to a remediation template
 	// provided by an infrastructure provider.
@@ -258,9 +258,9 @@ type ControlPlaneClassMachineHealthCheckRemediation struct {
 	TemplateRef *MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty"`
 }
 
-// ControlPlaneClassMachineHealthCheckRemediationTriggerIf configures if remediations are triggered.
+// ControlPlaneClassHealthCheckRemediationTriggerIf configures if remediations are triggered.
 // +kubebuilder:validation:MinProperties=1
-type ControlPlaneClassMachineHealthCheckRemediationTriggerIf struct {
+type ControlPlaneClassHealthCheckRemediationTriggerIf struct {
 	// unhealthyLessThanOrEqualTo specifies that remediations are only triggered if the number of
 	// unhealthy Machines is less than or equal to the configured value.
 	// unhealthyInRange takes precedence if set.
@@ -387,7 +387,7 @@ type MachineDeploymentClass struct {
 
 	// healthCheck defines a MachineHealthCheck for this MachineDeploymentClass.
 	// +optional
-	HealthCheck *MachineDeploymentClassMachineHealthCheck `json:"healthCheck,omitempty"`
+	HealthCheck *MachineDeploymentClassHealthCheck `json:"healthCheck,omitempty"`
 
 	// failureDomain is the failure domain the machines will be created in.
 	// Must match the name of a FailureDomain from the Cluster status.
@@ -435,21 +435,21 @@ type MachineDeploymentClass struct {
 	Strategy MachineDeploymentStrategy `json:"strategy,omitempty,omitzero"`
 }
 
-// MachineDeploymentClassMachineHealthCheck defines a MachineHealthCheck for MachineDeployment machines.
+// MachineDeploymentClassHealthCheck defines a MachineHealthCheck for MachineDeployment machines.
 // +kubebuilder:validation:MinProperties=1
-type MachineDeploymentClassMachineHealthCheck struct {
+type MachineDeploymentClassHealthCheck struct {
 	// checks are the checks that are used to evaluate if a Machine is healthy.
 	// +optional
-	Checks MachineDeploymentClassMachineHealthCheckChecks `json:"checks,omitempty,omitzero"`
+	Checks MachineDeploymentClassHealthCheckChecks `json:"checks,omitempty,omitzero"`
 
 	// remediation configures if and how remediations are triggered if a Machine is unhealthy.
 	// +optional
-	Remediation MachineDeploymentClassMachineHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
+	Remediation MachineDeploymentClassHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
 }
 
-// MachineDeploymentClassMachineHealthCheckChecks are the checks that are used to evaluate if a MachineDeployment Machine is healthy.
+// MachineDeploymentClassHealthCheckChecks are the checks that are used to evaluate if a MachineDeployment Machine is healthy.
 // +kubebuilder:validation:MinProperties=1
-type MachineDeploymentClassMachineHealthCheckChecks struct {
+type MachineDeploymentClassHealthCheckChecks struct {
 	// nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
 	// to consider a Machine unhealthy if a corresponding Node isn't associated
 	// through a `Spec.ProviderID` field.
@@ -477,13 +477,13 @@ type MachineDeploymentClassMachineHealthCheckChecks struct {
 	UnhealthyNodeConditions []UnhealthyNodeCondition `json:"unhealthyNodeConditions,omitempty"`
 }
 
-// MachineDeploymentClassMachineHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.
+// MachineDeploymentClassHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.
 // +kubebuilder:validation:MinProperties=1
-type MachineDeploymentClassMachineHealthCheckRemediation struct {
+type MachineDeploymentClassHealthCheckRemediation struct {
 	// triggerIf configures if remediations are triggered.
 	// If this field is not set, remediations are always triggered.
 	// +optional
-	TriggerIf MachineDeploymentClassMachineHealthCheckRemediationTriggerIf `json:"triggerIf,omitempty,omitzero"`
+	TriggerIf MachineDeploymentClassHealthCheckRemediationTriggerIf `json:"triggerIf,omitempty,omitzero"`
 
 	// templateRef is a reference to a remediation template
 	// provided by an infrastructure provider.
@@ -495,9 +495,9 @@ type MachineDeploymentClassMachineHealthCheckRemediation struct {
 	TemplateRef *MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty"`
 }
 
-// MachineDeploymentClassMachineHealthCheckRemediationTriggerIf configures if remediations are triggered.
+// MachineDeploymentClassHealthCheckRemediationTriggerIf configures if remediations are triggered.
 // +kubebuilder:validation:MinProperties=1
-type MachineDeploymentClassMachineHealthCheckRemediationTriggerIf struct {
+type MachineDeploymentClassHealthCheckRemediationTriggerIf struct {
 	// unhealthyLessThanOrEqualTo specifies that remediations are only triggered if the number of
 	// unhealthy Machines is less than or equal to the configured value.
 	// unhealthyInRange takes precedence if set.

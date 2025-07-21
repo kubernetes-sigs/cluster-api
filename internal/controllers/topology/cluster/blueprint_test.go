@@ -61,13 +61,13 @@ func TestGetBlueprint(t *testing.T) {
 		Build()
 	workerBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "workerbootstraptemplate1").
 		Build()
-	cpMachineHealthCheck := &clusterv1.ControlPlaneClassMachineHealthCheck{
-		Checks: clusterv1.ControlPlaneClassMachineHealthCheckChecks{
+	cpMachineHealthCheck := &clusterv1.ControlPlaneClassHealthCheck{
+		Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
 			NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 		},
 	}
-	mdMachineHealthCheck := &clusterv1.MachineDeploymentClassMachineHealthCheck{
-		Checks: clusterv1.MachineDeploymentClassMachineHealthCheckChecks{
+	mdMachineHealthCheck := &clusterv1.MachineDeploymentClassHealthCheck{
+		Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 			NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 		},
 	}
@@ -233,7 +233,7 @@ func TestGetBlueprint(t *testing.T) {
 						},
 						InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
 						BootstrapTemplate:             workerBootstrapTemplate,
-						MachineHealthCheck:            mdMachineHealthCheck,
+						HealthCheck:                   mdMachineHealthCheck,
 					},
 				},
 				MachinePools: map[string]*scope.MachinePoolBlueprint{},
@@ -293,7 +293,7 @@ func TestGetBlueprint(t *testing.T) {
 				ControlPlane: &scope.ControlPlaneBlueprint{
 					Template:                      controlPlaneTemplate,
 					InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate,
-					MachineHealthCheck:            cpMachineHealthCheck,
+					HealthCheck:                   cpMachineHealthCheck,
 				},
 				MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{},
 				MachinePools:       map[string]*scope.MachinePoolBlueprint{},

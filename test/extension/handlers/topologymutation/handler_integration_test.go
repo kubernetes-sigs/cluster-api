@@ -282,7 +282,7 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 		s.Blueprint.ControlPlane.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef))
 	}
 	if s.Blueprint.HasControlPlaneMachineHealthCheck() {
-		s.Blueprint.ControlPlane.MachineHealthCheck = s.Blueprint.ClusterClass.Spec.ControlPlane.HealthCheck
+		s.Blueprint.ControlPlane.HealthCheck = s.Blueprint.ClusterClass.Spec.ControlPlane.HealthCheck
 	}
 
 	// MachineDeployments.
@@ -292,7 +292,7 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 		machineDeploymentBlueprint.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Infrastructure.TemplateRef))
 		machineDeploymentBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Bootstrap.TemplateRef))
 		if machineDeploymentClass.HealthCheck != nil {
-			machineDeploymentBlueprint.MachineHealthCheck = machineDeploymentClass.HealthCheck
+			machineDeploymentBlueprint.HealthCheck = machineDeploymentClass.HealthCheck
 		}
 		s.Blueprint.MachineDeployments[machineDeploymentClass.Class] = machineDeploymentBlueprint
 	}

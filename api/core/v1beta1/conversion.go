@@ -680,7 +680,7 @@ func Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *ControlP
 	convert_v1beta1_LocalObjectTemplate_To_v1beta2_ClusterClassTemplateReference(&in.LocalObjectTemplate, &out.TemplateRef, s)
 
 	if in.MachineHealthCheck != nil {
-		out.HealthCheck = &clusterv1.ControlPlaneClassMachineHealthCheck{}
+		out.HealthCheck = &clusterv1.ControlPlaneClassHealthCheck{}
 		for _, c := range in.MachineHealthCheck.UnhealthyConditions {
 			out.HealthCheck.Checks.UnhealthyNodeConditions = append(out.HealthCheck.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
 				Type:           c.Type,
@@ -748,7 +748,7 @@ func Convert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in *Co
 	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 
 	if in.MachineHealthCheck != nil {
-		out.HealthCheck = &clusterv1.ControlPlaneTopologyMachineHealthCheck{}
+		out.HealthCheck = &clusterv1.ControlPlaneTopologyHealthCheck{}
 		out.HealthCheck.Enabled = in.MachineHealthCheck.Enable
 		for _, c := range in.MachineHealthCheck.UnhealthyConditions {
 			out.HealthCheck.Checks.UnhealthyNodeConditions = append(out.HealthCheck.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
@@ -832,7 +832,7 @@ func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in
 	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 
 	if in.MachineHealthCheck != nil {
-		out.HealthCheck = &clusterv1.MachineDeploymentClassMachineHealthCheck{}
+		out.HealthCheck = &clusterv1.MachineDeploymentClassHealthCheck{}
 		for _, c := range in.MachineHealthCheck.UnhealthyConditions {
 			out.HealthCheck.Checks.UnhealthyNodeConditions = append(out.HealthCheck.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
 				Type:           c.Type,
@@ -919,7 +919,7 @@ func Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopol
 	out.Deletion.NodeDeletionTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDeletionTimeout)
 
 	if in.MachineHealthCheck != nil {
-		out.HealthCheck = &clusterv1.MachineDeploymentTopologyMachineHealthCheck{}
+		out.HealthCheck = &clusterv1.MachineDeploymentTopologyHealthCheck{}
 		out.HealthCheck.Enabled = in.MachineHealthCheck.Enable
 		for _, c := range in.MachineHealthCheck.UnhealthyConditions {
 			out.HealthCheck.Checks.UnhealthyNodeConditions = append(out.HealthCheck.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{

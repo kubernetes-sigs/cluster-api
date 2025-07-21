@@ -1836,8 +1836,8 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 	// Create InfrastructureMachineTemplates for test cases
 	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()
 
-	mhcClass := &clusterv1.ControlPlaneClassMachineHealthCheck{
-		Checks: clusterv1.ControlPlaneClassMachineHealthCheckChecks{
+	mhcClass := &clusterv1.ControlPlaneClassHealthCheck{
+		Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
 			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
 					Type:           corev1.NodeReady,
@@ -1851,10 +1851,10 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 	// Create clusterClasses requiring controlPlaneInfrastructure and one not.
 	ccWithControlPlaneInfrastructure := &scope.ControlPlaneBlueprint{
 		InfrastructureMachineTemplate: infrastructureMachineTemplate,
-		MachineHealthCheck:            mhcClass,
+		HealthCheck:                   mhcClass,
 	}
 	ccWithoutControlPlaneInfrastructure := &scope.ControlPlaneBlueprint{
-		MachineHealthCheck: mhcClass,
+		HealthCheck: mhcClass,
 	}
 
 	// Create ControlPlane Object.
@@ -3924,8 +3924,8 @@ func prepareControlPlaneBluePrint(in *scope.ControlPlaneBlueprint, namespace str
 			s.InfrastructureMachineTemplate.SetNamespace(namespace)
 		}
 	}
-	if in.MachineHealthCheck != nil {
-		s.MachineHealthCheck = in.MachineHealthCheck.DeepCopy()
+	if in.HealthCheck != nil {
+		s.HealthCheck = in.HealthCheck.DeepCopy()
 	}
 	if in.Template != nil {
 		s.Template = in.Template.DeepCopy()

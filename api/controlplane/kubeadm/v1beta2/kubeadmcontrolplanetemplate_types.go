@@ -114,9 +114,9 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 	// +kubebuilder:default={type: "RollingUpdate", rollingUpdate: {maxSurge: 1}}
 	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
 
-	// remediationStrategy is the RemediationStrategy that controls how control plane machine remediation happens.
+	// remediation controls how unhealthy Machines are remediated.
 	// +optional
-	RemediationStrategy *RemediationStrategy `json:"remediationStrategy,omitempty"`
+	Remediation KubeadmControlPlaneRemediationSpec `json:"remediation,omitempty,omitzero"`
 
 	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
 	// InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.

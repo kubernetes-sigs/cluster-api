@@ -221,7 +221,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlane
 	// WARNING: in.RolloutBefore requires manual conversion: does not exist in peer-type
 	// WARNING: in.RolloutAfter requires manual conversion: does not exist in peer-type
 	out.RolloutStrategy = (*RolloutStrategy)(unsafe.Pointer(in.RolloutStrategy))
-	// WARNING: in.RemediationStrategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
 	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
 	return nil
 }

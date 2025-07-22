@@ -100,9 +100,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 		dst.Spec.RolloutBefore = restored.Spec.RolloutBefore
 
-		if restored.Spec.RemediationStrategy != nil {
-			dst.Spec.RemediationStrategy = restored.Spec.RemediationStrategy
-		}
+		dst.Spec.Remediation = restored.Spec.Remediation
 		if restored.Status.LastRemediation != nil {
 			dst.Status.LastRemediation = restored.Status.LastRemediation
 		}

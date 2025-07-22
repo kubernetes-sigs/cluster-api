@@ -448,7 +448,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.RolloutBefore = &controlplanev1.RolloutBefore{
 		CertificatesExpiryDays: ptr.To[int32](14),
 	}
-	validUpdate.Spec.RemediationStrategy = &controlplanev1.RemediationStrategy{
+	validUpdate.Spec.Remediation = controlplanev1.KubeadmControlPlaneRemediationSpec{
 		MaxRetry:                ptr.To[int32](50),
 		MinHealthyPeriodSeconds: ptr.To(int32(10 * 60 * 60)),
 		RetryPeriodSeconds:      ptr.To[int32](10 * 60),

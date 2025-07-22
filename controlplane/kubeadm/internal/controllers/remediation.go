@@ -493,13 +493,10 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 
 	// Gets MinHealthyPeriodSeconds and RetryPeriodSeconds from the remediation strategy, or use defaults.
 	minHealthyPeriod := time.Duration(controlplanev1.DefaultMinHealthyPeriodSeconds) * time.Second
-	if controlPlane.KCP.Spec.RemediationStrategy != nil && controlPlane.KCP.Spec.RemediationStrategy.MinHealthyPeriodSeconds != nil {
-		minHealthyPeriod = time.Duration(*controlPlane.KCP.Spec.RemediationStrategy.MinHealthyPeriodSeconds) * time.Second
+	if controlPlane.KCP.Spec.Remediation.MinHealthyPeriodSeconds != nil {
+		minHealthyPeriod = time.Duration(*controlPlane.KCP.Spec.Remediation.MinHealthyPeriodSeconds) * time.Second
 	}
-	retryPeriod := time.Duration(0)
-	if controlPlane.KCP.Spec.RemediationStrategy != nil {
-		retryPeriod = time.Duration(ptr.Deref(controlPlane.KCP.Spec.RemediationStrategy.RetryPeriodSeconds, 0)) * time.Second
-	}
+	retryPeriod := time.Duration(ptr.Deref(controlPlane.KCP.Spec.Remediation.RetryPeriodSeconds, 0)) * time.Second
 
 	// Gets the timestamp of the last remediation; if missing, default to a value
 	// that ensures both MinHealthyPeriodSeconds and RetryPeriodSeconds are expired.
@@ -545,8 +542,8 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	}
 
 	// Check if remediation can happen because of maxRetry is not reached yet, if defined.
-	if controlPlane.KCP.Spec.RemediationStrategy != nil && controlPlane.KCP.Spec.RemediationStrategy.MaxRetry != nil {
-		maxRetry := int(*controlPlane.KCP.Spec.RemediationStrategy.MaxRetry)
+	if controlPlane.KCP.Spec.Remediation.MaxRetry != nil {
+		maxRetry := int(*controlPlane.KCP.Spec.Remediation.MaxRetry)
 		if remediationInProgressData.RetryCount >= maxRetry {
 			log.Info(fmt.Sprintf("A control plane machine needs remediation, but the operation already failed %d times (MaxRetry %d). Skipping remediation", remediationInProgressData.RetryCount, maxRetry))
 			v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "KubeadmControlPlane can't remediate this machine because the operation already failed %d times (MaxRetry)", maxRetry)

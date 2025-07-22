@@ -464,9 +464,9 @@ type KubeadmControlPlaneSpec struct {
 	// +kubebuilder:default={type: "RollingUpdate", rollingUpdate: {maxSurge: 1}}
 	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
 
-	// remediationStrategy is the RemediationStrategy that controls how control plane machine remediation happens.
+	// remediation controls how unhealthy Machines are remediated.
 	// +optional
-	RemediationStrategy *RemediationStrategy `json:"remediationStrategy,omitempty"`
+	Remediation KubeadmControlPlaneRemediationSpec `json:"remediation,omitempty,omitzero"`
 
 	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
 	// InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.
@@ -575,8 +575,9 @@ type RollingUpdate struct {
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 }
 
-// RemediationStrategy allows to define how control plane machine remediation happens.
-type RemediationStrategy struct {
+// KubeadmControlPlaneRemediationSpec controls how unhealthy control plane Machines are remediated.
+// +kubebuilder:validation:MinProperties=1
+type KubeadmControlPlaneRemediationSpec struct {
 	// maxRetry is the Max number of retries while attempting to remediate an unhealthy machine.
 	// A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.
 	// For example, given a control plane with three machines M1, M2, M3:

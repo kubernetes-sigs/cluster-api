@@ -220,8 +220,8 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		// spec
 		{spec, "replicas"},
 		{spec, "version"},
-		{spec, "remediationStrategy"},
-		{spec, "remediationStrategy", "*"},
+		{spec, "remediation"},
+		{spec, "remediation", "*"},
 		{spec, "machineNamingStrategy"},
 		{spec, "machineNamingStrategy", "*"},
 		{spec, "rolloutAfter"},

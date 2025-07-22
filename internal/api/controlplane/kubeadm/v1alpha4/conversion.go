@@ -99,9 +99,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 		dst.Spec.RolloutBefore = restored.Spec.RolloutBefore
 
-		if restored.Spec.RemediationStrategy != nil {
-			dst.Spec.RemediationStrategy = restored.Spec.RemediationStrategy
-		}
+		dst.Spec.Remediation = restored.Spec.Remediation
 		if restored.Status.LastRemediation != nil {
 			dst.Status.LastRemediation = restored.Status.LastRemediation
 		}
@@ -207,9 +205,7 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 		dst.Spec.Template.Spec.RolloutBefore = restored.Spec.Template.Spec.RolloutBefore
 
-		if restored.Spec.Template.Spec.RemediationStrategy != nil {
-			dst.Spec.Template.Spec.RemediationStrategy = restored.Spec.Template.Spec.RemediationStrategy
-		}
+		dst.Spec.Template.Spec.Remediation = restored.Spec.Template.Spec.Remediation
 
 		if restored.Spec.Template.Spec.MachineNamingStrategy != nil {
 			dst.Spec.Template.Spec.MachineNamingStrategy = restored.Spec.Template.Spec.MachineNamingStrategy
@@ -309,7 +305,7 @@ func Convert_v1beta2_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmContr
 
 func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, scope apimachineryconversion.Scope) error {
 	// .RolloutBefore was added in v1beta1.
-	// .RemediationStrategy was added in v1beta1.
+	// .KubeadmControlPlaneRemediationSpec was added in v1beta1.
 	return autoConvert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in, out, scope)
 }
 

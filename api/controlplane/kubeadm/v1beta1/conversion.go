@@ -81,14 +81,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	if src.Spec.RemediationStrategy != nil {
-		if dst.Spec.RemediationStrategy == nil {
-			dst.Spec.RemediationStrategy = &controlplanev1.RemediationStrategy{}
-		}
-		var restoredRetryPeriodSeconds *int32
-		if restored.Spec.RemediationStrategy != nil {
-			restoredRetryPeriodSeconds = restored.Spec.RemediationStrategy.RetryPeriodSeconds
-		}
-		clusterv1.Convert_Duration_To_Pointer_int32(src.Spec.RemediationStrategy.RetryPeriod, ok, restoredRetryPeriodSeconds, &dst.Spec.RemediationStrategy.RetryPeriodSeconds)
+		clusterv1.Convert_Duration_To_Pointer_int32(src.Spec.RemediationStrategy.RetryPeriod, ok, restored.Spec.Remediation.RetryPeriodSeconds, &dst.Spec.Remediation.RetryPeriodSeconds)
 	}
 
 	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
@@ -142,14 +135,7 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	if src.Spec.Template.Spec.RemediationStrategy != nil {
-		if dst.Spec.Template.Spec.RemediationStrategy == nil {
-			dst.Spec.Template.Spec.RemediationStrategy = &controlplanev1.RemediationStrategy{}
-		}
-		var restoredRetryPeriodSeconds *int32
-		if restored.Spec.Template.Spec.RemediationStrategy != nil {
-			restoredRetryPeriodSeconds = restored.Spec.Template.Spec.RemediationStrategy.RetryPeriodSeconds
-		}
-		clusterv1.Convert_Duration_To_Pointer_int32(src.Spec.Template.Spec.RemediationStrategy.RetryPeriod, ok, restoredRetryPeriodSeconds, &dst.Spec.Template.Spec.RemediationStrategy.RetryPeriodSeconds)
+		clusterv1.Convert_Duration_To_Pointer_int32(src.Spec.Template.Spec.RemediationStrategy.RetryPeriod, ok, restored.Spec.Template.Spec.Remediation.RetryPeriodSeconds, &dst.Spec.Template.Spec.Remediation.RetryPeriodSeconds)
 	}
 
 	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
@@ -170,6 +156,64 @@ func (dst *KubeadmControlPlaneTemplate) ConvertFrom(srcRaw conversion.Hub) error
 
 	// Preserve Hub data on down-conversion except for metadata.
 	return utilconversion.MarshalData(src, dst)
+}
+
+func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if !reflect.DeepEqual(in.Remediation, controlplanev1.KubeadmControlPlaneRemediationSpec{}) {
+		out.RemediationStrategy = &RemediationStrategy{}
+		if err := Convert_v1beta2_KubeadmControlPlaneRemediationSpec_To_v1beta1_RemediationStrategy(&in.Remediation, out.RemediationStrategy, s); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func Convert_v1beta1_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(in *KubeadmControlPlaneSpec, out *controlplanev1.KubeadmControlPlaneSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if in.RemediationStrategy != nil {
+		if err := Convert_v1beta1_RemediationStrategy_To_v1beta2_KubeadmControlPlaneRemediationSpec(in.RemediationStrategy, &out.Remediation, s); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func Convert_v1beta2_KubeadmControlPlaneTemplateResourceSpec_To_v1beta1_KubeadmControlPlaneTemplateResourceSpec(in *controlplanev1.KubeadmControlPlaneTemplateResourceSpec, out *KubeadmControlPlaneTemplateResourceSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_KubeadmControlPlaneTemplateResourceSpec_To_v1beta1_KubeadmControlPlaneTemplateResourceSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if !reflect.DeepEqual(in.Remediation, controlplanev1.KubeadmControlPlaneRemediationSpec{}) {
+		out.RemediationStrategy = &RemediationStrategy{}
+		if err := Convert_v1beta2_KubeadmControlPlaneRemediationSpec_To_v1beta1_RemediationStrategy(&in.Remediation, out.RemediationStrategy, s); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func Convert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1beta2_KubeadmControlPlaneTemplateResourceSpec(in *KubeadmControlPlaneTemplateResourceSpec, out *controlplanev1.KubeadmControlPlaneTemplateResourceSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1beta2_KubeadmControlPlaneTemplateResourceSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if in.RemediationStrategy != nil {
+		if err := Convert_v1beta1_RemediationStrategy_To_v1beta2_KubeadmControlPlaneRemediationSpec(in.RemediationStrategy, &out.Remediation, s); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, s apimachineryconversion.Scope) error {
@@ -311,19 +355,15 @@ func Convert_v1beta2_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta1_Kubea
 	return nil
 }
 
-func Convert_v1beta1_RemediationStrategy_To_v1beta2_RemediationStrategy(in *RemediationStrategy, out *controlplanev1.RemediationStrategy, s apimachineryconversion.Scope) error {
-	if err := autoConvert_v1beta1_RemediationStrategy_To_v1beta2_RemediationStrategy(in, out, s); err != nil {
-		return err
-	}
+func Convert_v1beta1_RemediationStrategy_To_v1beta2_KubeadmControlPlaneRemediationSpec(in *RemediationStrategy, out *controlplanev1.KubeadmControlPlaneRemediationSpec, _ apimachineryconversion.Scope) error {
+	out.MaxRetry = in.MaxRetry
 	out.MinHealthyPeriodSeconds = clusterv1.ConvertToSeconds(in.MinHealthyPeriod)
 	out.RetryPeriodSeconds = clusterv1.ConvertToSeconds(&in.RetryPeriod)
 	return nil
 }
 
-func Convert_v1beta2_RemediationStrategy_To_v1beta1_RemediationStrategy(in *controlplanev1.RemediationStrategy, out *RemediationStrategy, s apimachineryconversion.Scope) error {
-	if err := autoConvert_v1beta2_RemediationStrategy_To_v1beta1_RemediationStrategy(in, out, s); err != nil {
-		return err
-	}
+func Convert_v1beta2_KubeadmControlPlaneRemediationSpec_To_v1beta1_RemediationStrategy(in *controlplanev1.KubeadmControlPlaneRemediationSpec, out *RemediationStrategy, _ apimachineryconversion.Scope) error {
+	out.MaxRetry = in.MaxRetry
 	out.MinHealthyPeriod = clusterv1.ConvertFromSeconds(in.MinHealthyPeriodSeconds)
 	out.RetryPeriod = ptr.Deref(clusterv1.ConvertFromSeconds(in.RetryPeriodSeconds), metav1.Duration{})
 	return nil

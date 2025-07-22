@@ -7318,9 +7318,9 @@ spec:
                 required:
                 - spec
                 type: object
-              remediationStrategy:
-                description: remediationStrategy is the RemediationStrategy that controls
-                  how control plane machine remediation happens.
+              remediation:
+                description: remediation controls how unhealthy Machines are remediated.
+                minProperties: 1
                 properties:
                   maxRetry:
                     description: "maxRetry is the Max number of retries while attempting

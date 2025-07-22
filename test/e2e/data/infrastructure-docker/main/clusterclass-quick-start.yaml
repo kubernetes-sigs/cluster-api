@@ -291,7 +291,7 @@ spec:
           controlPlane: true
       jsonPatches:
       - op: add
-        path: /spec/template/spec/rolloutStrategy/rollingUpdate/maxSurge
+        path: /spec/template/spec/rollout/strategy/rollingUpdate/maxSurge
         valueFrom:
           template: "{{ .kubeadmControlPlaneMaxSurge }}"
   - name: controlPlaneTaint
@@ -558,8 +558,9 @@ spec:
       annotations:
         ControlPlaneTemplate.template.annotation: "ControlPlaneTemplate.template.annotationValue"
     spec:
-      rolloutBefore:
-        certificatesExpiryDays: 21
+      rollout:
+        before:
+          certificatesExpiryDays: 21
       machineTemplate:
         metadata:
           labels:

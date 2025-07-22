@@ -1256,7 +1256,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 						beforeClusterUpgradeGVH: tt.hookResponse,
 					}).
-					WithCallAllExtensionValidations(validateCleanupCluster(s.Current.Cluster)).
+					WithCallAllExtensionValidations(validateClusterParameter(s.Current.Cluster)).
 					Build()
 
 				fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
@@ -1576,7 +1576,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 						afterControlPlaneUpgradeGVH: tt.hookResponse,
 					}).
-					WithCallAllExtensionValidations(validateCleanupCluster(tt.s.Current.Cluster)).
+					WithCallAllExtensionValidations(validateClusterParameter(tt.s.Current.Cluster)).
 					WithCatalog(catalog).
 					Build()
 
@@ -3572,7 +3572,9 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 	}
 }
 
-func validateCleanupCluster(originalCluster *clusterv1.Cluster) func(req runtimehooksv1.RequestObject) error {
+func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runtimehooksv1.RequestObject) error {
+	// return a func that allows to check if expected transformations are applied to the Cluster parameter which is
+	// included in the payload for lifecycle hooks calls.
 	return func(req runtimehooksv1.RequestObject) error {
 		var cluster clusterv1beta1.Cluster
 		switch req := req.(type) {
@@ -3584,6 +3586,7 @@ func validateCleanupCluster(originalCluster *clusterv1.Cluster) func(req runtime
 			return fmt.Errorf("unhandled request type %T", req)
 		}
 
+		// check if managed fields and well know annotations have been removed from the Cluster parameter included in the payload lifecycle hooks calls.
 		if cluster.GetManagedFields() != nil {
 			return errors.New("managedFields should have been cleaned up")
 		}
@@ -3594,12 +3597,13 @@ func validateCleanupCluster(originalCluster *clusterv1.Cluster) func(req runtime
 			return errors.New("conversion annotation should have been cleaned up")
 		}
 
+		// check the Cluster parameter included in the payload lifecycle hooks calls has been properly converted from v1beta2 to v1beta1.
+		// Note: to perform this check we convert the parameter back to v1beta2 and compare with the original cluster +/- expected transformations.
 		v1beta2Cluster := &clusterv1.Cluster{}
 		if err := cluster.ConvertTo(v1beta2Cluster); err != nil {
 			return err
 		}
 
-		// Apply same changes that are expected for a cluster sent to runtime hook.
 		originalClusterCopy := originalCluster.DeepCopy()
 		originalClusterCopy.SetManagedFields(nil)
 		if originalClusterCopy.Annotations != nil {

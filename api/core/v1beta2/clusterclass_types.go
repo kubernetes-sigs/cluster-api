@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	"reflect"
-
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -169,11 +167,11 @@ type ControlPlaneClass struct {
 	// +optional
 	MachineInfrastructure *ControlPlaneClassMachineInfrastructureTemplate `json:"machineInfrastructure,omitempty"`
 
-	// machineHealthCheck defines a MachineHealthCheck for this ControlPlaneClass.
+	// healthCheck defines a MachineHealthCheck for this ControlPlaneClass.
 	// This field is supported if and only if the ControlPlane provider template
 	// referenced above is Machine based and supports setting replicas.
 	// +optional
-	MachineHealthCheck *MachineHealthCheckClass `json:"machineHealthCheck,omitempty"`
+	HealthCheck *ControlPlaneClassHealthCheck `json:"healthCheck,omitempty"`
 
 	// namingStrategy allows changing the naming pattern used when creating the control plane provider object.
 	// +optional
@@ -198,6 +196,106 @@ type ControlPlaneClass struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
+}
+
+// ControlPlaneClassHealthCheck defines a MachineHealthCheck for control plane machines.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneClassHealthCheck struct {
+	// checks are the checks that are used to evaluate if a Machine is healthy.
+	//
+	// Independent of this configuration the MachineHealthCheck controller will always
+	// flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and
+	// Machines with deleted Nodes as unhealthy.
+	//
+	// Furthermore, if checks.nodeStartupTimeoutSeconds is not set it
+	// is defaulted to 10 minutes and evaluated accordingly.
+	//
+	// +optional
+	Checks ControlPlaneClassHealthCheckChecks `json:"checks,omitempty,omitzero"`
+
+	// remediation configures if and how remediations are triggered if a Machine is unhealthy.
+	//
+	// If remediation or remediation.triggerIf is not set,
+	// remediation will always be triggered for unhealthy Machines.
+	//
+	// If remediation or remediation.templateRef is not set,
+	// the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via
+	// the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.
+	//
+	// +optional
+	Remediation ControlPlaneClassHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
+}
+
+// ControlPlaneClassHealthCheckChecks are the checks that are used to evaluate if a control plane Machine is healthy.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneClassHealthCheckChecks struct {
+	// nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
+	// to consider a Machine unhealthy if a corresponding Node isn't associated
+	// through a `Spec.ProviderID` field.
+	//
+	// The duration set in this field is compared to the greatest of:
+	// - Cluster's infrastructure ready condition timestamp (if and when available)
+	// - Control Plane's initialized condition timestamp (if and when available)
+	// - Machine's infrastructure ready condition timestamp (if and when available)
+	// - Machine's metadata creation timestamp
+	//
+	// Defaults to 10 minutes.
+	// If you wish to disable this feature, set the value explicitly to 0.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	NodeStartupTimeoutSeconds *int32 `json:"nodeStartupTimeoutSeconds,omitempty"`
+
+	// unhealthyNodeConditions contains a list of conditions that determine
+	// whether a node is considered unhealthy. The conditions are combined in a
+	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	UnhealthyNodeConditions []UnhealthyNodeCondition `json:"unhealthyNodeConditions,omitempty"`
+}
+
+// ControlPlaneClassHealthCheckRemediation configures if and how remediations are triggered if a control plane Machine is unhealthy.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneClassHealthCheckRemediation struct {
+	// triggerIf configures if remediations are triggered.
+	// If this field is not set, remediations are always triggered.
+	// +optional
+	TriggerIf ControlPlaneClassHealthCheckRemediationTriggerIf `json:"triggerIf,omitempty,omitzero"`
+
+	// templateRef is a reference to a remediation template
+	// provided by an infrastructure provider.
+	//
+	// This field is completely optional, when filled, the MachineHealthCheck controller
+	// creates a new object from the template referenced and hands off remediation of the machine to
+	// a controller that lives outside of Cluster API.
+	// +optional
+	TemplateRef *MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty"`
+}
+
+// ControlPlaneClassHealthCheckRemediationTriggerIf configures if remediations are triggered.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneClassHealthCheckRemediationTriggerIf struct {
+	// unhealthyLessThanOrEqualTo specifies that remediations are only triggered if the number of
+	// unhealthy Machines is less than or equal to the configured value.
+	// unhealthyInRange takes precedence if set.
+	//
+	// +optional
+	UnhealthyLessThanOrEqualTo *intstr.IntOrString `json:"unhealthyLessThanOrEqualTo,omitempty"`
+
+	// unhealthyInRange specifies that remediations are only triggered if the number of
+	// unhealthy Machines is in the configured range.
+	// Takes precedence over unhealthyLessThanOrEqualTo.
+	// Eg. "[3-5]" - This means that remediation will be allowed only when:
+	// (a) there are at least 3 unhealthy Machines (and)
+	// (b) there are at most 5 unhealthy Machines
+	//
+	// +optional
+	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=32
+	UnhealthyInRange string `json:"unhealthyInRange,omitempty"`
 }
 
 // ControlPlaneClassMachineDeletionSpec contains configuration options for Machine deletion.
@@ -303,9 +401,9 @@ type MachineDeploymentClass struct {
 	// +required
 	Infrastructure MachineDeploymentClassInfrastructureTemplate `json:"infrastructure"`
 
-	// machineHealthCheck defines a MachineHealthCheck for this MachineDeploymentClass.
+	// healthCheck defines a MachineHealthCheck for this MachineDeploymentClass.
 	// +optional
-	MachineHealthCheck *MachineHealthCheckClass `json:"machineHealthCheck,omitempty"`
+	HealthCheck *MachineDeploymentClassHealthCheck `json:"healthCheck,omitempty"`
 
 	// failureDomain is the failure domain the machines will be created in.
 	// Must match the name of a FailureDomain from the Cluster status.
@@ -353,6 +451,106 @@ type MachineDeploymentClass struct {
 	Strategy MachineDeploymentStrategy `json:"strategy,omitempty,omitzero"`
 }
 
+// MachineDeploymentClassHealthCheck defines a MachineHealthCheck for MachineDeployment machines.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentClassHealthCheck struct {
+	// checks are the checks that are used to evaluate if a Machine is healthy.
+	//
+	// Independent of this configuration the MachineHealthCheck controller will always
+	// flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and
+	// Machines with deleted Nodes as unhealthy.
+	//
+	// Furthermore, if checks.nodeStartupTimeoutSeconds is not set it
+	// is defaulted to 10 minutes and evaluated accordingly.
+	//
+	// +optional
+	Checks MachineDeploymentClassHealthCheckChecks `json:"checks,omitempty,omitzero"`
+
+	// remediation configures if and how remediations are triggered if a Machine is unhealthy.
+	//
+	// If remediation or remediation.triggerIf is not set,
+	// remediation will always be triggered for unhealthy Machines.
+	//
+	// If remediation or remediation.templateRef is not set,
+	// the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via
+	// the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.
+	//
+	// +optional
+	Remediation MachineDeploymentClassHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
+}
+
+// MachineDeploymentClassHealthCheckChecks are the checks that are used to evaluate if a MachineDeployment Machine is healthy.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentClassHealthCheckChecks struct {
+	// nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
+	// to consider a Machine unhealthy if a corresponding Node isn't associated
+	// through a `Spec.ProviderID` field.
+	//
+	// The duration set in this field is compared to the greatest of:
+	// - Cluster's infrastructure ready condition timestamp (if and when available)
+	// - Control Plane's initialized condition timestamp (if and when available)
+	// - Machine's infrastructure ready condition timestamp (if and when available)
+	// - Machine's metadata creation timestamp
+	//
+	// Defaults to 10 minutes.
+	// If you wish to disable this feature, set the value explicitly to 0.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	NodeStartupTimeoutSeconds *int32 `json:"nodeStartupTimeoutSeconds,omitempty"`
+
+	// unhealthyNodeConditions contains a list of conditions that determine
+	// whether a node is considered unhealthy. The conditions are combined in a
+	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	UnhealthyNodeConditions []UnhealthyNodeCondition `json:"unhealthyNodeConditions,omitempty"`
+}
+
+// MachineDeploymentClassHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentClassHealthCheckRemediation struct {
+	// triggerIf configures if remediations are triggered.
+	// If this field is not set, remediations are always triggered.
+	// +optional
+	TriggerIf MachineDeploymentClassHealthCheckRemediationTriggerIf `json:"triggerIf,omitempty,omitzero"`
+
+	// templateRef is a reference to a remediation template
+	// provided by an infrastructure provider.
+	//
+	// This field is completely optional, when filled, the MachineHealthCheck controller
+	// creates a new object from the template referenced and hands off remediation of the machine to
+	// a controller that lives outside of Cluster API.
+	// +optional
+	TemplateRef *MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty"`
+}
+
+// MachineDeploymentClassHealthCheckRemediationTriggerIf configures if remediations are triggered.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentClassHealthCheckRemediationTriggerIf struct {
+	// unhealthyLessThanOrEqualTo specifies that remediations are only triggered if the number of
+	// unhealthy Machines is less than or equal to the configured value.
+	// unhealthyInRange takes precedence if set.
+	//
+	// +optional
+	UnhealthyLessThanOrEqualTo *intstr.IntOrString `json:"unhealthyLessThanOrEqualTo,omitempty"`
+
+	// unhealthyInRange specifies that remediations are only triggered if the number of
+	// unhealthy Machines is in the configured range.
+	// Takes precedence over unhealthyLessThanOrEqualTo.
+	// Eg. "[3-5]" - This means that remediation will be allowed only when:
+	// (a) there are at least 3 unhealthy Machines (and)
+	// (b) there are at most 5 unhealthy Machines
+	//
+	// +optional
+	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=32
+	UnhealthyInRange string `json:"unhealthyInRange,omitempty"`
+}
+
 // MachineDeploymentClassMachineDeletionSpec contains configuration options for Machine deletion.
 // +kubebuilder:validation:MinProperties=1
 type MachineDeploymentClassMachineDeletionSpec struct {
@@ -394,63 +592,6 @@ type MachineDeploymentClassNamingStrategy struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
 	Template string `json:"template,omitempty"`
-}
-
-// MachineHealthCheckClass defines a MachineHealthCheck for a group of Machines.
-// +kubebuilder:validation:MinProperties=1
-type MachineHealthCheckClass struct {
-	// unhealthyNodeConditions contains a list of conditions that determine
-	// whether a node is considered unhealthy. The conditions are combined in a
-	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
-	//
-	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=100
-	UnhealthyNodeConditions []UnhealthyNodeCondition `json:"unhealthyNodeConditions,omitempty"`
-
-	// maxUnhealthy specifies the maximum number of unhealthy machines allowed.
-	// Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
-	// "selector" are not healthy.
-	// +optional
-	MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
-
-	// unhealthyRange specifies the range of unhealthy machines allowed.
-	// Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
-	// is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
-	// Eg. "[3-5]" - This means that remediation will be allowed only when:
-	// (a) there are at least 3 unhealthy machines (and)
-	// (b) there are at most 5 unhealthy machines
-	// +optional
-	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=32
-	UnhealthyRange string `json:"unhealthyRange,omitempty"`
-
-	// nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
-	// to consider a Machine unhealthy if a corresponding Node isn't associated
-	// through a `Spec.ProviderID` field.
-	//
-	// The duration set in this field is compared to the greatest of:
-	// - Cluster's infrastructure ready condition timestamp (if and when available)
-	// - Control Plane's initialized condition timestamp (if and when available)
-	// - Machine's infrastructure ready condition timestamp (if and when available)
-	// - Machine's metadata creation timestamp
-	//
-	// Defaults to 10 minutes.
-	// If you wish to disable this feature, set the value explicitly to 0.
-	// +optional
-	// +kubebuilder:validation:Minimum=0
-	NodeStartupTimeoutSeconds *int32 `json:"nodeStartupTimeoutSeconds,omitempty"`
-
-	// remediationTemplate is a reference to a remediation template
-	// provided by an infrastructure provider.
-	//
-	// This field is completely optional, when filled, the MachineHealthCheck controller
-	// creates a new object from the template referenced and hands off remediation of the machine to
-	// a controller that lives outside of Cluster API.
-	// +optional
-	RemediationTemplate *MachineHealthCheckRemediationTemplateReference `json:"remediationTemplate,omitempty"`
 }
 
 // MachinePoolClass serves as a template to define a pool of worker nodes of the cluster
@@ -548,11 +689,6 @@ type MachinePoolClassNamingStrategy struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
 	Template string `json:"template,omitempty"`
-}
-
-// IsZero returns true if none of the values of MachineHealthCheckClass are defined.
-func (m MachineHealthCheckClass) IsZero() bool {
-	return reflect.ValueOf(m).IsZero()
 }
 
 // ClusterClassVariable defines a variable which can

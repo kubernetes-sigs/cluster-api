@@ -61,8 +61,15 @@ func TestGetBlueprint(t *testing.T) {
 		Build()
 	workerBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "workerbootstraptemplate1").
 		Build()
-	machineHealthCheck := &clusterv1.MachineHealthCheckClass{
-		NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+	cpMachineHealthCheck := &clusterv1.ControlPlaneClassHealthCheck{
+		Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
+			NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+		},
+	}
+	mdMachineHealthCheck := &clusterv1.MachineDeploymentClassHealthCheck{
+		Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
+			NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+		},
 	}
 
 	machineDeployment := builder.MachineDeploymentClass("workerclass1").
@@ -70,7 +77,7 @@ func TestGetBlueprint(t *testing.T) {
 		WithAnnotations(map[string]string{"a": "b"}).
 		WithInfrastructureTemplate(workerInfrastructureMachineTemplate).
 		WithBootstrapTemplate(workerBootstrapTemplate).
-		WithMachineHealthCheckClass(machineHealthCheck).
+		WithMachineHealthCheckClass(mdMachineHealthCheck).
 		Build()
 
 	mds := []clusterv1.MachineDeploymentClass{*machineDeployment}
@@ -226,7 +233,7 @@ func TestGetBlueprint(t *testing.T) {
 						},
 						InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
 						BootstrapTemplate:             workerBootstrapTemplate,
-						MachineHealthCheck:            machineHealthCheck,
+						HealthCheck:                   mdMachineHealthCheck,
 					},
 				},
 				MachinePools: map[string]*scope.MachinePoolBlueprint{},
@@ -268,7 +275,7 @@ func TestGetBlueprint(t *testing.T) {
 				WithInfrastructureClusterTemplate(infraClusterTemplate).
 				WithControlPlaneTemplate(controlPlaneTemplate).
 				WithControlPlaneInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
-				WithControlPlaneMachineHealthCheck(machineHealthCheck).
+				WithControlPlaneMachineHealthCheck(cpMachineHealthCheck).
 				Build(),
 			objects: []client.Object{
 				infraClusterTemplate,
@@ -280,13 +287,13 @@ func TestGetBlueprint(t *testing.T) {
 					WithInfrastructureClusterTemplate(infraClusterTemplate).
 					WithControlPlaneTemplate(controlPlaneTemplate).
 					WithControlPlaneInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
-					WithControlPlaneMachineHealthCheck(machineHealthCheck).
+					WithControlPlaneMachineHealthCheck(cpMachineHealthCheck).
 					Build(),
 				InfrastructureClusterTemplate: infraClusterTemplate,
 				ControlPlane: &scope.ControlPlaneBlueprint{
 					Template:                      controlPlaneTemplate,
 					InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate,
-					MachineHealthCheck:            machineHealthCheck,
+					HealthCheck:                   cpMachineHealthCheck,
 				},
 				MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{},
 				MachinePools:       map[string]*scope.MachinePoolBlueprint{},

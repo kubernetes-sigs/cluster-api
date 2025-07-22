@@ -63,11 +63,13 @@ func TestGetTargetsFromMHC(t *testing.T) {
 			Selector: metav1.LabelSelector{
 				MatchLabels: mhcSelector,
 			},
-			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-				{
-					Type:           corev1.NodeReady,
-					Status:         corev1.ConditionUnknown,
-					TimeoutSeconds: 5 * 60,
+			Checks: clusterv1.MachineHealthCheckChecks{
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+					{
+						Type:           corev1.NodeReady,
+						Status:         corev1.ConditionUnknown,
+						TimeoutSeconds: 5 * 60,
+					},
 				},
 			},
 		},
@@ -225,16 +227,18 @@ func TestHealthCheckTargets(t *testing.T) {
 				MatchLabels: mhcSelector,
 			},
 			ClusterName: clusterName,
-			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-				{
-					Type:           corev1.NodeReady,
-					Status:         corev1.ConditionUnknown,
-					TimeoutSeconds: timeoutForUnhealthyNodeConditions,
-				},
-				{
-					Type:           corev1.NodeReady,
-					Status:         corev1.ConditionFalse,
-					TimeoutSeconds: timeoutForUnhealthyNodeConditions,
+			Checks: clusterv1.MachineHealthCheckChecks{
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+					{
+						Type:           corev1.NodeReady,
+						Status:         corev1.ConditionUnknown,
+						TimeoutSeconds: timeoutForUnhealthyNodeConditions,
+					},
+					{
+						Type:           corev1.NodeReady,
+						Status:         corev1.ConditionFalse,
+						TimeoutSeconds: timeoutForUnhealthyNodeConditions,
+					},
 				},
 			},
 		},

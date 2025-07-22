@@ -2440,17 +2440,87 @@ spec:
                             minimum: 0
                             type: integer
                         type: object
-                      machineHealthCheck:
-                        allOf:
-                        - minProperties: 1
-                        - minProperties: 1
+                      healthCheck:
                         description: |-
-                          machineHealthCheck allows to enable, disable and override
-                          the MachineHealthCheck configuration in the ClusterClass for this control plane.
+                          healthCheck allows to enable, disable and override control plane health check
+                          configuration from the ClusterClass for this control plane.
+                        minProperties: 1
                         properties:
-                          enable:
+                          checks:
                             description: |-
-                              enable controls if a MachineHealthCheck should be created for the target machines.
+                              checks are the checks that are used to evaluate if a Machine is healthy.
+
+                              If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,
+                              and as a consequence the checks and remediation fields from Cluster will be used instead of the
+                              corresponding fields in ClusterClass.
+
+                              Independent of this configuration the MachineHealthCheck controller will always
+                              flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and
+                              Machines with deleted Nodes as unhealthy.
+
+                              Furthermore, if checks.nodeStartupTimeoutSeconds is not set it
+                              is defaulted to 10 minutes and evaluated accordingly.
+                            minProperties: 1
+                            properties:
+                              nodeStartupTimeoutSeconds:
+                                description: |-
+                                  nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
+                                  to consider a Machine unhealthy if a corresponding Node isn't associated
+                                  through a `Spec.ProviderID` field.
+
+                                  The duration set in this field is compared to the greatest of:
+                                  - Cluster's infrastructure ready condition timestamp (if and when available)
+                                  - Control Plane's initialized condition timestamp (if and when available)
+                                  - Machine's infrastructure ready condition timestamp (if and when available)
+                                  - Machine's metadata creation timestamp
+
+                                  Defaults to 10 minutes.
+                                  If you wish to disable this feature, set the value explicitly to 0.
+                                format: int32
+                                minimum: 0
+                                type: integer
+                              unhealthyNodeConditions:
+                                description: |-
+                                  unhealthyNodeConditions contains a list of conditions that determine
+                                  whether a node is considered unhealthy. The conditions are combined in a
+                                  logical OR, i.e. if any of the conditions is met, the node is unhealthy.
+                                items:
+                                  description: |-
+                                    UnhealthyNodeCondition represents a Node condition type and value with a timeout
+                                    specified as a duration.  When the named condition has been in the given
+                                    status for at least the timeout value, a node is considered unhealthy.
+                                  properties:
+                                    status:
+                                      description: status of the condition, one of
+                                        True, False, Unknown.
+                                      minLength: 1
+                                      type: string
+                                    timeoutSeconds:
+                                      description: |-
+                                        timeoutSeconds is the duration that a node must be in a given status for,
+                                        after which the node is considered unhealthy.
+                                        For example, with a value of "1h", the node must match the status
+                                        for at least 1 hour before being considered unhealthy.
+                                      format: int32
+                                      minimum: 0
+                                      type: integer
+                                    type:
+                                      description: type of Node condition
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - status
+                                  - timeoutSeconds
+                                  - type
+                                  type: object
+                                maxItems: 100
+                                minItems: 1
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          enabled:
+                            description: |-
+                              enabled controls if a MachineHealthCheck should be created for the target machines.
 
                               If false: No MachineHealthCheck will be created.
 
@@ -2460,121 +2530,90 @@ spec:
                               If true: A MachineHealthCheck is guaranteed to be created. Cluster validation will
                               block if `enable` is true and no MachineHealthCheck definition is available.
                             type: boolean
-                          maxUnhealthy:
-                            anyOf:
-                            - type: integer
-                            - type: string
+                          remediation:
                             description: |-
-                              maxUnhealthy specifies the maximum number of unhealthy machines allowed.
-                              Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
-                              "selector" are not healthy.
-                            x-kubernetes-int-or-string: true
-                          nodeStartupTimeoutSeconds:
-                            description: |-
-                              nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
-                              to consider a Machine unhealthy if a corresponding Node isn't associated
-                              through a `Spec.ProviderID` field.
+                              remediation configures if and how remediations are triggered if a Machine is unhealthy.
 
-                              The duration set in this field is compared to the greatest of:
-                              - Cluster's infrastructure ready condition timestamp (if and when available)
-                              - Control Plane's initialized condition timestamp (if and when available)
-                              - Machine's infrastructure ready condition timestamp (if and when available)
-                              - Machine's metadata creation timestamp
+                              If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,
+                              and as a consequence the checks and remediation fields from cluster will be used instead of the
+                              corresponding fields in ClusterClass.
 
-                              Defaults to 10 minutes.
-                              If you wish to disable this feature, set the value explicitly to 0.
-                            format: int32
-                            minimum: 0
-                            type: integer
-                          remediationTemplate:
-                            description: |-
-                              remediationTemplate is a reference to a remediation template
-                              provided by an infrastructure provider.
+                              If an health check override is defined and remediation or remediation.triggerIf is not set,
+                              remediation will always be triggered for unhealthy Machines.
 
-                              This field is completely optional, when filled, the MachineHealthCheck controller
-                              creates a new object from the template referenced and hands off remediation of the machine to
-                              a controller that lives outside of Cluster API.
+                              If an health check override is defined and remediation or remediation.templateRef is not set,
+                              the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via
+                              the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.
+                            minProperties: 1
                             properties:
-                              apiVersion:
+                              templateRef:
                                 description: |-
-                                  apiVersion of the remediation template.
-                                  apiVersion must be fully qualified domain name followed by / and a version.
-                                  NOTE: This field must be kept in sync with the APIVersion of the remediation template.
-                                maxLength: 317
-                                minLength: 1
-                                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
-                                type: string
-                              kind:
+                                  templateRef is a reference to a remediation template
+                                  provided by an infrastructure provider.
+
+                                  This field is completely optional, when filled, the MachineHealthCheck controller
+                                  creates a new object from the template referenced and hands off remediation of the machine to
+                                  a controller that lives outside of Cluster API.
+                                properties:
+                                  apiVersion:
+                                    description: |-
+                                      apiVersion of the remediation template.
+                                      apiVersion must be fully qualified domain name followed by / and a version.
+                                      NOTE: This field must be kept in sync with the APIVersion of the remediation template.
+                                    maxLength: 317
+                                    minLength: 1
+                                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                                    type: string
+                                  kind:
+                                    description: |-
+                                      kind of the remediation template.
+                                      kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                                    maxLength: 63
+                                    minLength: 1
+                                    pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                    type: string
+                                  name:
+                                    description: |-
+                                      name of the remediation template.
+                                      name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                    maxLength: 253
+                                    minLength: 1
+                                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                    type: string
+                                required:
+                                - apiVersion
+                                - kind
+                                - name
+                                type: object
+                              triggerIf:
                                 description: |-
-                                  kind of the remediation template.
-                                  kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
-                                maxLength: 63
-                                minLength: 1
-                                pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
-                                type: string
-                              name:
-                                description: |-
-                                  name of the remediation template.
-                                  name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
-                                maxLength: 253
-                                minLength: 1
-                                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                                type: string
-                            required:
-                            - apiVersion
-                            - kind
-                            - name
+                                  triggerIf configures if remediations are triggered.
+                                  If this field is not set, remediations are always triggered.
+                                minProperties: 1
+                                properties:
+                                  unhealthyInRange:
+                                    description: |-
+                                      unhealthyInRange specifies that remediations are only triggered if the number of
+                                      unhealthy Machines is in the configured range.
+                                      Takes precedence over unhealthyLessThanOrEqualTo.
+                                      Eg. "[3-5]" - This means that remediation will be allowed only when:
+                                      (a) there are at least 3 unhealthy Machines (and)
+                                      (b) there are at most 5 unhealthy Machines
+                                    maxLength: 32
+                                    minLength: 1
+                                    pattern: ^\[[0-9]+-[0-9]+\]$
+                                    type: string
+                                  unhealthyLessThanOrEqualTo:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: |-
+                                      unhealthyLessThanOrEqualTo specifies that remediations are only triggered if the number of
+                                      unhealthy Machines is less than or equal to the configured value.
+                                      unhealthyInRange takes precedence if set.
+                                    x-kubernetes-int-or-string: true
+                                type: object
                             type: object
-                          unhealthyNodeConditions:
-                            description: |-
-                              unhealthyNodeConditions contains a list of conditions that determine
-                              whether a node is considered unhealthy. The conditions are combined in a
-                              logical OR, i.e. if any of the conditions is met, the node is unhealthy.
-                            items:
-                              description: |-
-                                UnhealthyNodeCondition represents a Node condition type and value with a timeout
-                                specified as a duration.  When the named condition has been in the given
-                                status for at least the timeout value, a node is considered unhealthy.
-                              properties:
-                                status:
-                                  description: status of the condition, one of True,
-                                    False, Unknown.
-                                  minLength: 1
-                                  type: string
-                                timeoutSeconds:
-                                  description: |-
-                                    timeoutSeconds is the duration that a node must be in a given status for,
-                                    after which the node is considered unhealthy.
-                                    For example, with a value of "1h", the node must match the status
-                                    for at least 1 hour before being considered unhealthy.
-                                  format: int32
-                                  minimum: 0
-                                  type: integer
-                                type:
-                                  description: type of Node condition
-                                  minLength: 1
-                                  type: string
-                              required:
-                              - status
-                              - timeoutSeconds
-                              - type
-                              type: object
-                            maxItems: 100
-                            minItems: 1
-                            type: array
-                            x-kubernetes-list-type: atomic
-                          unhealthyRange:
-                            description: |-
-                              unhealthyRange specifies the range of unhealthy machines allowed.
-                              Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
-                              is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
-                              Eg. "[3-5]" - This means that remediation will be allowed only when:
-                              (a) there are at least 3 unhealthy machines (and)
-                              (b) there are at most 5 unhealthy machines
-                            maxLength: 32
-                            minLength: 1
-                            pattern: ^\[[0-9]+-[0-9]+\]$
-                            type: string
                         type: object
                       metadata:
                         description: |-
@@ -2793,17 +2832,87 @@ spec:
                               maxLength: 256
                               minLength: 1
                               type: string
-                            machineHealthCheck:
-                              allOf:
-                              - minProperties: 1
-                              - minProperties: 1
+                            healthCheck:
                               description: |-
-                                machineHealthCheck allows to enable, disable and override
-                                the MachineHealthCheck configuration in the ClusterClass for this MachineDeployment.
+                                healthCheck allows to enable, disable and override MachineDeployment health check
+                                configuration from the ClusterClass for this MachineDeployment.
+                              minProperties: 1
                               properties:
-                                enable:
+                                checks:
                                   description: |-
-                                    enable controls if a MachineHealthCheck should be created for the target machines.
+                                    checks are the checks that are used to evaluate if a Machine is healthy.
+
+                                    If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,
+                                    and as a consequence the checks and remediation fields from Cluster will be used instead of the
+                                    corresponding fields in ClusterClass.
+
+                                    Independent of this configuration the MachineHealthCheck controller will always
+                                    flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and
+                                    Machines with deleted Nodes as unhealthy.
+
+                                    Furthermore, if checks.nodeStartupTimeoutSeconds is not set it
+                                    is defaulted to 10 minutes and evaluated accordingly.
+                                  minProperties: 1
+                                  properties:
+                                    nodeStartupTimeoutSeconds:
+                                      description: |-
+                                        nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
+                                        to consider a Machine unhealthy if a corresponding Node isn't associated
+                                        through a `Spec.ProviderID` field.
+
+                                        The duration set in this field is compared to the greatest of:
+                                        - Cluster's infrastructure ready condition timestamp (if and when available)
+                                        - Control Plane's initialized condition timestamp (if and when available)
+                                        - Machine's infrastructure ready condition timestamp (if and when available)
+                                        - Machine's metadata creation timestamp
+
+                                        Defaults to 10 minutes.
+                                        If you wish to disable this feature, set the value explicitly to 0.
+                                      format: int32
+                                      minimum: 0
+                                      type: integer
+                                    unhealthyNodeConditions:
+                                      description: |-
+                                        unhealthyNodeConditions contains a list of conditions that determine
+                                        whether a node is considered unhealthy. The conditions are combined in a
+                                        logical OR, i.e. if any of the conditions is met, the node is unhealthy.
+                                      items:
+                                        description: |-
+                                          UnhealthyNodeCondition represents a Node condition type and value with a timeout
+                                          specified as a duration.  When the named condition has been in the given
+                                          status for at least the timeout value, a node is considered unhealthy.
+                                        properties:
+                                          status:
+                                            description: status of the condition,
+                                              one of True, False, Unknown.
+                                            minLength: 1
+                                            type: string
+                                          timeoutSeconds:
+                                            description: |-
+                                              timeoutSeconds is the duration that a node must be in a given status for,
+                                              after which the node is considered unhealthy.
+                                              For example, with a value of "1h", the node must match the status
+                                              for at least 1 hour before being considered unhealthy.
+                                            format: int32
+                                            minimum: 0
+                                            type: integer
+                                          type:
+                                            description: type of Node condition
+                                            minLength: 1
+                                            type: string
+                                        required:
+                                        - status
+                                        - timeoutSeconds
+                                        - type
+                                        type: object
+                                      maxItems: 100
+                                      minItems: 1
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                  type: object
+                                enabled:
+                                  description: |-
+                                    enabled controls if a MachineHealthCheck should be created for the target machines.
 
                                     If false: No MachineHealthCheck will be created.
 
@@ -2813,121 +2922,90 @@ spec:
                                     If true: A MachineHealthCheck is guaranteed to be created. Cluster validation will
                                     block if `enable` is true and no MachineHealthCheck definition is available.
                                   type: boolean
-                                maxUnhealthy:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
+                                remediation:
                                   description: |-
-                                    maxUnhealthy specifies the maximum number of unhealthy machines allowed.
-                                    Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
-                                    "selector" are not healthy.
-                                  x-kubernetes-int-or-string: true
-                                nodeStartupTimeoutSeconds:
-                                  description: |-
-                                    nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
-                                    to consider a Machine unhealthy if a corresponding Node isn't associated
-                                    through a `Spec.ProviderID` field.
+                                    remediation configures if and how remediations are triggered if a Machine is unhealthy.
 
-                                    The duration set in this field is compared to the greatest of:
-                                    - Cluster's infrastructure ready condition timestamp (if and when available)
-                                    - Control Plane's initialized condition timestamp (if and when available)
-                                    - Machine's infrastructure ready condition timestamp (if and when available)
-                                    - Machine's metadata creation timestamp
+                                    If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,
+                                    and as a consequence the checks and remediation fields from cluster will be used instead of the
+                                    corresponding fields in ClusterClass.
 
-                                    Defaults to 10 minutes.
-                                    If you wish to disable this feature, set the value explicitly to 0.
-                                  format: int32
-                                  minimum: 0
-                                  type: integer
-                                remediationTemplate:
-                                  description: |-
-                                    remediationTemplate is a reference to a remediation template
-                                    provided by an infrastructure provider.
+                                    If an health check override is defined and remediation or remediation.triggerIf is not set,
+                                    remediation will always be triggered for unhealthy Machines.
 
-                                    This field is completely optional, when filled, the MachineHealthCheck controller
-                                    creates a new object from the template referenced and hands off remediation of the machine to
-                                    a controller that lives outside of Cluster API.
+                                    If an health check override is defined and remediation or remediation.templateRef is not set,
+                                    the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via
+                                    the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.
+                                  minProperties: 1
                                   properties:
-                                    apiVersion:
+                                    templateRef:
                                       description: |-
-                                        apiVersion of the remediation template.
-                                        apiVersion must be fully qualified domain name followed by / and a version.
-                                        NOTE: This field must be kept in sync with the APIVersion of the remediation template.
-                                      maxLength: 317
-                                      minLength: 1
-                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
-                                      type: string
-                                    kind:
+                                        templateRef is a reference to a remediation template
+                                        provided by an infrastructure provider.
+
+                                        This field is completely optional, when filled, the MachineHealthCheck controller
+                                        creates a new object from the template referenced and hands off remediation of the machine to
+                                        a controller that lives outside of Cluster API.
+                                      properties:
+                                        apiVersion:
+                                          description: |-
+                                            apiVersion of the remediation template.
+                                            apiVersion must be fully qualified domain name followed by / and a version.
+                                            NOTE: This field must be kept in sync with the APIVersion of the remediation template.
+                                          maxLength: 317
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                        kind:
+                                          description: |-
+                                            kind of the remediation template.
+                                            kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                          type: string
+                                        name:
+                                          description: |-
+                                            name of the remediation template.
+                                            name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                      required:
+                                      - apiVersion
+                                      - kind
+                                      - name
+                                      type: object
+                                    triggerIf:
                                       description: |-
-                                        kind of the remediation template.
-                                        kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
-                                      maxLength: 63
-                                      minLength: 1
-                                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
-                                      type: string
-                                    name:
-                                      description: |-
-                                        name of the remediation template.
-                                        name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
-                                      maxLength: 253
-                                      minLength: 1
-                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                                      type: string
-                                  required:
-                                  - apiVersion
-                                  - kind
-                                  - name
+                                        triggerIf configures if remediations are triggered.
+                                        If this field is not set, remediations are always triggered.
+                                      minProperties: 1
+                                      properties:
+                                        unhealthyInRange:
+                                          description: |-
+                                            unhealthyInRange specifies that remediations are only triggered if the number of
+                                            unhealthy Machines is in the configured range.
+                                            Takes precedence over unhealthyLessThanOrEqualTo.
+                                            Eg. "[3-5]" - This means that remediation will be allowed only when:
+                                            (a) there are at least 3 unhealthy Machines (and)
+                                            (b) there are at most 5 unhealthy Machines
+                                          maxLength: 32
+                                          minLength: 1
+                                          pattern: ^\[[0-9]+-[0-9]+\]$
+                                          type: string
+                                        unhealthyLessThanOrEqualTo:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
+                                          description: |-
+                                            unhealthyLessThanOrEqualTo specifies that remediations are only triggered if the number of
+                                            unhealthy Machines is less than or equal to the configured value.
+                                            unhealthyInRange takes precedence if set.
+                                          x-kubernetes-int-or-string: true
+                                      type: object
                                   type: object
-                                unhealthyNodeConditions:
-                                  description: |-
-                                    unhealthyNodeConditions contains a list of conditions that determine
-                                    whether a node is considered unhealthy. The conditions are combined in a
-                                    logical OR, i.e. if any of the conditions is met, the node is unhealthy.
-                                  items:
-                                    description: |-
-                                      UnhealthyNodeCondition represents a Node condition type and value with a timeout
-                                      specified as a duration.  When the named condition has been in the given
-                                      status for at least the timeout value, a node is considered unhealthy.
-                                    properties:
-                                      status:
-                                        description: status of the condition, one
-                                          of True, False, Unknown.
-                                        minLength: 1
-                                        type: string
-                                      timeoutSeconds:
-                                        description: |-
-                                          timeoutSeconds is the duration that a node must be in a given status for,
-                                          after which the node is considered unhealthy.
-                                          For example, with a value of "1h", the node must match the status
-                                          for at least 1 hour before being considered unhealthy.
-                                        format: int32
-                                        minimum: 0
-                                        type: integer
-                                      type:
-                                        description: type of Node condition
-                                        minLength: 1
-                                        type: string
-                                    required:
-                                    - status
-                                    - timeoutSeconds
-                                    - type
-                                    type: object
-                                  maxItems: 100
-                                  minItems: 1
-                                  type: array
-                                  x-kubernetes-list-type: atomic
-                                unhealthyRange:
-                                  description: |-
-                                    unhealthyRange specifies the range of unhealthy machines allowed.
-                                    Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
-                                    is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
-                                    Eg. "[3-5]" - This means that remediation will be allowed only when:
-                                    (a) there are at least 3 unhealthy machines (and)
-                                    (b) there are at most 5 unhealthy machines
-                                  maxLength: 32
-                                  minLength: 1
-                                  pattern: ^\[[0-9]+-[0-9]+\]$
-                                  type: string
                               type: object
                             metadata:
                               description: |-

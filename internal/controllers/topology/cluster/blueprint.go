@@ -61,7 +61,7 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 
 	// If the clusterClass defines a valid MachineHealthCheck (including a defined MachineInfrastructure) set the blueprint MachineHealthCheck.
 	if blueprint.HasControlPlaneMachineHealthCheck() {
-		blueprint.ControlPlane.MachineHealthCheck = blueprint.ClusterClass.Spec.ControlPlane.MachineHealthCheck
+		blueprint.ControlPlane.HealthCheck = blueprint.ClusterClass.Spec.ControlPlane.HealthCheck
 	}
 
 	// Loop over the machine deployments classes in ClusterClass
@@ -87,8 +87,8 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 		}
 
 		// If the machineDeploymentClass defines a MachineHealthCheck add it to the blueprint.
-		if machineDeploymentClass.MachineHealthCheck != nil {
-			machineDeploymentBlueprint.MachineHealthCheck = machineDeploymentClass.MachineHealthCheck
+		if machineDeploymentClass.HealthCheck != nil {
+			machineDeploymentBlueprint.HealthCheck = machineDeploymentClass.HealthCheck
 		}
 		blueprint.MachineDeployments[machineDeploymentClass.Class] = machineDeploymentBlueprint
 	}

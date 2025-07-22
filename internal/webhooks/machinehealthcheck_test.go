@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
@@ -38,12 +39,16 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{"foo": "bar"},
 			},
-			RemediationTemplate: &clusterv1.MachineHealthCheckRemediationTemplateReference{},
-			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-				{
-					Type:   corev1.NodeReady,
-					Status: corev1.ConditionFalse,
+			Checks: clusterv1.MachineHealthCheckChecks{
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionFalse,
+					},
 				},
+			},
+			Remediation: clusterv1.MachineHealthCheckRemediation{
+				TemplateRef: &clusterv1.MachineHealthCheckRemediationTemplateReference{},
 			},
 		},
 	}
@@ -53,8 +58,8 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 	g.Expect(webhook.Default(ctx, mhc)).To(Succeed())
 
 	g.Expect(mhc.Labels[clusterv1.ClusterNameLabel]).To(Equal(mhc.Spec.ClusterName))
-	g.Expect(mhc.Spec.NodeStartupTimeoutSeconds).ToNot(BeNil())
-	g.Expect(*mhc.Spec.NodeStartupTimeoutSeconds).To(Equal(int32(10 * 60)))
+	g.Expect(mhc.Spec.Checks.NodeStartupTimeoutSeconds).ToNot(BeNil())
+	g.Expect(*mhc.Spec.Checks.NodeStartupTimeoutSeconds).To(Equal(int32(10 * 60)))
 }
 
 func TestMachineHealthCheckLabelSelectorAsSelectorValidation(t *testing.T) {
@@ -83,10 +88,12 @@ func TestMachineHealthCheckLabelSelectorAsSelectorValidation(t *testing.T) {
 					Selector: metav1.LabelSelector{
 						MatchLabels: tt.selectors,
 					},
-					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-						{
-							Type:   corev1.NodeReady,
-							Status: corev1.ConditionFalse,
+					Checks: clusterv1.MachineHealthCheckChecks{
+						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+							{
+								Type:   corev1.NodeReady,
+								Status: corev1.ConditionFalse,
+							},
 						},
 					},
 				},
@@ -145,10 +152,12 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 							"test": "test",
 						},
 					},
-					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-						{
-							Type:   corev1.NodeReady,
-							Status: corev1.ConditionFalse,
+					Checks: clusterv1.MachineHealthCheckChecks{
+						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+							{
+								Type:   corev1.NodeReady,
+								Status: corev1.ConditionFalse,
+							},
 						},
 					},
 				},
@@ -161,10 +170,12 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 							"test": "test",
 						},
 					},
-					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-						{
-							Type:   corev1.NodeReady,
-							Status: corev1.ConditionFalse,
+					Checks: clusterv1.MachineHealthCheckChecks{
+						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+							{
+								Type:   corev1.NodeReady,
+								Status: corev1.ConditionFalse,
+							},
 						},
 					},
 				},
@@ -219,7 +230,9 @@ func TestMachineHealthCheckUnhealthyNodeConditions(t *testing.T) {
 							"test": "test",
 						},
 					},
-					UnhealthyNodeConditions: tt.unhealthyNodeConditions,
+					Checks: clusterv1.MachineHealthCheckChecks{
+						UnhealthyNodeConditions: tt.unhealthyNodeConditions,
+					},
 				},
 			}
 			webhook := &MachineHealthCheck{}
@@ -292,16 +305,18 @@ func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
 
 		mhc := &clusterv1.MachineHealthCheck{
 			Spec: clusterv1.MachineHealthCheckSpec{
-				NodeStartupTimeoutSeconds: tt.timeout,
 				Selector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"test": "test",
 					},
 				},
-				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionFalse,
+				Checks: clusterv1.MachineHealthCheckChecks{
+					NodeStartupTimeoutSeconds: tt.timeout,
+					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
 					},
 				},
 			},
@@ -357,19 +372,24 @@ func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
 	for _, tt := range tests {
 		g := NewWithT(t)
 
-		maxUnhealthy := tt.value
 		mhc := &clusterv1.MachineHealthCheck{
 			Spec: clusterv1.MachineHealthCheckSpec{
-				MaxUnhealthy: &maxUnhealthy,
 				Selector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"test": "test",
 					},
 				},
-				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionFalse,
+				Checks: clusterv1.MachineHealthCheckChecks{
+					UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
+					},
+				},
+				Remediation: clusterv1.MachineHealthCheckRemediation{
+					TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
+						UnhealthyLessThanOrEqualTo: ptr.To(tt.value),
 					},
 				},
 			},
@@ -398,10 +418,12 @@ func TestMachineHealthCheckSelectorValidation(t *testing.T) {
 	g := NewWithT(t)
 	mhc := &clusterv1.MachineHealthCheck{
 		Spec: clusterv1.MachineHealthCheckSpec{
-			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-				{
-					Type:   corev1.NodeReady,
-					Status: corev1.ConditionFalse,
+			Checks: clusterv1.MachineHealthCheckChecks{
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionFalse,
+					},
 				},
 			},
 		},
@@ -424,10 +446,12 @@ func TestMachineHealthCheckClusterNameSelectorValidation(t *testing.T) {
 					"baz":                      "qux",
 				},
 			},
-			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-				{
-					Type:   corev1.NodeReady,
-					Status: corev1.ConditionFalse,
+			Checks: clusterv1.MachineHealthCheckChecks{
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionFalse,
+					},
 				},
 			},
 		},

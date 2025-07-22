@@ -355,16 +355,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*MachineHealthCheckTopology)(nil), (*v1beta2.MachineHealthCheckTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachineHealthCheckTopology_To_v1beta2_MachineHealthCheckTopology(a.(*MachineHealthCheckTopology), b.(*v1beta2.MachineHealthCheckTopology), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachineHealthCheckTopology)(nil), (*MachineHealthCheckTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachineHealthCheckTopology_To_v1beta1_MachineHealthCheckTopology(a.(*v1beta2.MachineHealthCheckTopology), b.(*MachineHealthCheckTopology), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*MachineList)(nil), (*v1beta2.MachineList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachineList_To_v1beta2_MachineList(a.(*MachineList), b.(*v1beta2.MachineList), scope)
 	}); err != nil {
@@ -755,11 +745,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*MachineHealthCheckClass)(nil), (*v1beta2.MachineHealthCheckClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachineHealthCheckClass_To_v1beta2_MachineHealthCheckClass(a.(*MachineHealthCheckClass), b.(*v1beta2.MachineHealthCheckClass), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddConversionFunc((*MachineHealthCheckSpec)(nil), (*v1beta2.MachineHealthCheckSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(a.(*MachineHealthCheckSpec), b.(*v1beta2.MachineHealthCheckSpec), scope)
 	}); err != nil {
@@ -927,11 +912,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentTopology)(nil), (*MachineDeploymentTopology)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopology(a.(*v1beta2.MachineDeploymentTopology), b.(*MachineDeploymentTopology), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*v1beta2.MachineHealthCheckClass)(nil), (*MachineHealthCheckClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachineHealthCheckClass_To_v1beta1_MachineHealthCheckClass(a.(*v1beta2.MachineHealthCheckClass), b.(*MachineHealthCheckClass), scope)
 	}); err != nil {
 		return err
 	}
@@ -1768,15 +1748,7 @@ func autoConvert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *Cont
 	} else {
 		out.MachineInfrastructure = nil
 	}
-	if in.MachineHealthCheck != nil {
-		in, out := &in.MachineHealthCheck, &out.MachineHealthCheck
-		*out = new(v1beta2.MachineHealthCheckClass)
-		if err := Convert_v1beta1_MachineHealthCheckClass_To_v1beta2_MachineHealthCheckClass(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.MachineHealthCheck = nil
-	}
+	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
 	if in.NamingStrategy != nil {
 		in, out := &in.NamingStrategy, &out.NamingStrategy
 		*out = new(v1beta2.ControlPlaneClassNamingStrategy)
@@ -1807,15 +1779,7 @@ func autoConvert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *v1be
 	} else {
 		out.MachineInfrastructure = nil
 	}
-	if in.MachineHealthCheck != nil {
-		in, out := &in.MachineHealthCheck, &out.MachineHealthCheck
-		*out = new(MachineHealthCheckClass)
-		if err := Convert_v1beta2_MachineHealthCheckClass_To_v1beta1_MachineHealthCheckClass(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.MachineHealthCheck = nil
-	}
+	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	if in.NamingStrategy != nil {
 		in, out := &in.NamingStrategy, &out.NamingStrategy
 		*out = new(ControlPlaneClassNamingStrategy)
@@ -1859,15 +1823,7 @@ func autoConvert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in
 		return err
 	}
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
-	if in.MachineHealthCheck != nil {
-		in, out := &in.MachineHealthCheck, &out.MachineHealthCheck
-		*out = new(v1beta2.MachineHealthCheckTopology)
-		if err := Convert_v1beta1_MachineHealthCheckTopology_To_v1beta2_MachineHealthCheckTopology(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.MachineHealthCheck = nil
-	}
+	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
@@ -1881,15 +1837,7 @@ func autoConvert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in
 		return err
 	}
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
-	if in.MachineHealthCheck != nil {
-		in, out := &in.MachineHealthCheck, &out.MachineHealthCheck
-		*out = new(MachineHealthCheckTopology)
-		if err := Convert_v1beta2_MachineHealthCheckTopology_To_v1beta1_MachineHealthCheckTopology(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.MachineHealthCheck = nil
-	}
+	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	// WARNING: in.Variables requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneVariables vs *sigs.k8s.io/cluster-api/api/core/v1beta1.ControlPlaneVariables)
@@ -2364,15 +2312,7 @@ func Convert_v1beta2_MachineDeployment_To_v1beta1_MachineDeployment(in *v1beta2.
 func autoConvert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in *MachineDeploymentClass, out *v1beta2.MachineDeploymentClass, s conversion.Scope) error {
 	out.Class = in.Class
 	// WARNING: in.Template requires manual conversion: does not exist in peer-type
-	if in.MachineHealthCheck != nil {
-		in, out := &in.MachineHealthCheck, &out.MachineHealthCheck
-		*out = new(v1beta2.MachineHealthCheckClass)
-		if err := Convert_v1beta1_MachineHealthCheckClass_To_v1beta2_MachineHealthCheckClass(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.MachineHealthCheck = nil
-	}
+	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_Pointer_string_To_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
 		return err
 	}
@@ -2399,15 +2339,7 @@ func autoConvert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClas
 	out.Class = in.Class
 	// WARNING: in.Bootstrap requires manual conversion: does not exist in peer-type
 	// WARNING: in.Infrastructure requires manual conversion: does not exist in peer-type
-	if in.MachineHealthCheck != nil {
-		in, out := &in.MachineHealthCheck, &out.MachineHealthCheck
-		*out = new(MachineHealthCheckClass)
-		if err := Convert_v1beta2_MachineHealthCheckClass_To_v1beta1_MachineHealthCheckClass(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.MachineHealthCheck = nil
-	}
+	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_string_To_Pointer_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
 		return err
 	}
@@ -2611,15 +2543,7 @@ func autoConvert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentT
 		return err
 	}
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
-	if in.MachineHealthCheck != nil {
-		in, out := &in.MachineHealthCheck, &out.MachineHealthCheck
-		*out = new(v1beta2.MachineHealthCheckTopology)
-		if err := Convert_v1beta1_MachineHealthCheckTopology_To_v1beta2_MachineHealthCheckTopology(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.MachineHealthCheck = nil
-	}
+	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
@@ -2640,15 +2564,7 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentT
 		return err
 	}
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
-	if in.MachineHealthCheck != nil {
-		in, out := &in.MachineHealthCheck, &out.MachineHealthCheck
-		*out = new(MachineHealthCheckTopology)
-		if err := Convert_v1beta2_MachineHealthCheckTopology_To_v1beta1_MachineHealthCheckTopology(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.MachineHealthCheck = nil
-	}
+	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
@@ -2871,44 +2787,6 @@ func Convert_v1beta2_MachineHealthCheck_To_v1beta1_MachineHealthCheck(in *v1beta
 	return autoConvert_v1beta2_MachineHealthCheck_To_v1beta1_MachineHealthCheck(in, out, s)
 }
 
-func autoConvert_v1beta1_MachineHealthCheckClass_To_v1beta2_MachineHealthCheckClass(in *MachineHealthCheckClass, out *v1beta2.MachineHealthCheckClass, s conversion.Scope) error {
-	// WARNING: in.UnhealthyConditions requires manual conversion: does not exist in peer-type
-	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
-	if err := v1.Convert_Pointer_string_To_string(&in.UnhealthyRange, &out.UnhealthyRange, s); err != nil {
-		return err
-	}
-	// WARNING: in.NodeStartupTimeout requires manual conversion: does not exist in peer-type
-	if in.RemediationTemplate != nil {
-		in, out := &in.RemediationTemplate, &out.RemediationTemplate
-		*out = new(v1beta2.MachineHealthCheckRemediationTemplateReference)
-		if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.RemediationTemplate = nil
-	}
-	return nil
-}
-
-func autoConvert_v1beta2_MachineHealthCheckClass_To_v1beta1_MachineHealthCheckClass(in *v1beta2.MachineHealthCheckClass, out *MachineHealthCheckClass, s conversion.Scope) error {
-	// WARNING: in.UnhealthyNodeConditions requires manual conversion: does not exist in peer-type
-	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
-	if err := v1.Convert_string_To_Pointer_string(&in.UnhealthyRange, &out.UnhealthyRange, s); err != nil {
-		return err
-	}
-	// WARNING: in.NodeStartupTimeoutSeconds requires manual conversion: does not exist in peer-type
-	if in.RemediationTemplate != nil {
-		in, out := &in.RemediationTemplate, &out.RemediationTemplate
-		*out = new(corev1.ObjectReference)
-		if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.RemediationTemplate = nil
-	}
-	return nil
-}
-
 func autoConvert_v1beta1_MachineHealthCheckList_To_v1beta2_MachineHealthCheckList(in *MachineHealthCheckList, out *v1beta2.MachineHealthCheckList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
@@ -2955,41 +2833,18 @@ func autoConvert_v1beta1_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpe
 	out.ClusterName = in.ClusterName
 	out.Selector = in.Selector
 	// WARNING: in.UnhealthyConditions requires manual conversion: does not exist in peer-type
-	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
-	if err := v1.Convert_Pointer_string_To_string(&in.UnhealthyRange, &out.UnhealthyRange, s); err != nil {
-		return err
-	}
+	// WARNING: in.MaxUnhealthy requires manual conversion: does not exist in peer-type
+	// WARNING: in.UnhealthyRange requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeStartupTimeout requires manual conversion: does not exist in peer-type
-	if in.RemediationTemplate != nil {
-		in, out := &in.RemediationTemplate, &out.RemediationTemplate
-		*out = new(v1beta2.MachineHealthCheckRemediationTemplateReference)
-		if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.RemediationTemplate = nil
-	}
+	// WARNING: in.RemediationTemplate requires manual conversion: does not exist in peer-type
 	return nil
 }
 
 func autoConvert_v1beta2_MachineHealthCheckSpec_To_v1beta1_MachineHealthCheckSpec(in *v1beta2.MachineHealthCheckSpec, out *MachineHealthCheckSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
 	out.Selector = in.Selector
-	// WARNING: in.UnhealthyNodeConditions requires manual conversion: does not exist in peer-type
-	out.MaxUnhealthy = (*intstr.IntOrString)(unsafe.Pointer(in.MaxUnhealthy))
-	if err := v1.Convert_string_To_Pointer_string(&in.UnhealthyRange, &out.UnhealthyRange, s); err != nil {
-		return err
-	}
-	// WARNING: in.NodeStartupTimeoutSeconds requires manual conversion: does not exist in peer-type
-	if in.RemediationTemplate != nil {
-		in, out := &in.RemediationTemplate, &out.RemediationTemplate
-		*out = new(corev1.ObjectReference)
-		if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.RemediationTemplate = nil
-	}
+	// WARNING: in.Checks requires manual conversion: does not exist in peer-type
+	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -3045,32 +2900,6 @@ func autoConvert_v1beta2_MachineHealthCheckStatus_To_v1beta1_MachineHealthCheckS
 	out.Targets = *(*[]string)(unsafe.Pointer(&in.Targets))
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-func autoConvert_v1beta1_MachineHealthCheckTopology_To_v1beta2_MachineHealthCheckTopology(in *MachineHealthCheckTopology, out *v1beta2.MachineHealthCheckTopology, s conversion.Scope) error {
-	out.Enable = (*bool)(unsafe.Pointer(in.Enable))
-	if err := Convert_v1beta1_MachineHealthCheckClass_To_v1beta2_MachineHealthCheckClass(&in.MachineHealthCheckClass, &out.MachineHealthCheckClass, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta1_MachineHealthCheckTopology_To_v1beta2_MachineHealthCheckTopology is an autogenerated conversion function.
-func Convert_v1beta1_MachineHealthCheckTopology_To_v1beta2_MachineHealthCheckTopology(in *MachineHealthCheckTopology, out *v1beta2.MachineHealthCheckTopology, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachineHealthCheckTopology_To_v1beta2_MachineHealthCheckTopology(in, out, s)
-}
-
-func autoConvert_v1beta2_MachineHealthCheckTopology_To_v1beta1_MachineHealthCheckTopology(in *v1beta2.MachineHealthCheckTopology, out *MachineHealthCheckTopology, s conversion.Scope) error {
-	out.Enable = (*bool)(unsafe.Pointer(in.Enable))
-	if err := Convert_v1beta2_MachineHealthCheckClass_To_v1beta1_MachineHealthCheckClass(&in.MachineHealthCheckClass, &out.MachineHealthCheckClass, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta2_MachineHealthCheckTopology_To_v1beta1_MachineHealthCheckTopology is an autogenerated conversion function.
-func Convert_v1beta2_MachineHealthCheckTopology_To_v1beta1_MachineHealthCheckTopology(in *v1beta2.MachineHealthCheckTopology, out *MachineHealthCheckTopology, s conversion.Scope) error {
-	return autoConvert_v1beta2_MachineHealthCheckTopology_To_v1beta1_MachineHealthCheckTopology(in, out, s)
 }
 
 func autoConvert_v1beta1_MachineList_To_v1beta2_MachineList(in *MachineList, out *v1beta2.MachineList, s conversion.Scope) error {

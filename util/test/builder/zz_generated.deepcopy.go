@@ -135,7 +135,7 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 	}
 	if in.controlPlaneMHC != nil {
 		in, out := &in.controlPlaneMHC, &out.controlPlaneMHC
-		*out = new(v1beta2.MachineHealthCheckClass)
+		*out = new(v1beta2.ControlPlaneClassHealthCheck)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.controlPlaneNodeDrainTimeout != nil {
@@ -223,7 +223,7 @@ func (in *ClusterTopologyBuilder) DeepCopyInto(out *ClusterTopologyBuilder) {
 	in.workers.DeepCopyInto(&out.workers)
 	if in.controlPlaneMHC != nil {
 		in, out := &in.controlPlaneMHC, &out.controlPlaneMHC
-		*out = new(v1beta2.MachineHealthCheckTopology)
+		*out = new(v1beta2.ControlPlaneTopologyHealthCheck)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.variables != nil {
@@ -533,7 +533,7 @@ func (in *MachineDeploymentClassBuilder) DeepCopyInto(out *MachineDeploymentClas
 	}
 	if in.machineHealthCheckClass != nil {
 		in, out := &in.machineHealthCheckClass, &out.machineHealthCheckClass
-		*out = new(v1beta2.MachineHealthCheckClass)
+		*out = new(v1beta2.MachineDeploymentClassHealthCheck)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.readinessGates != nil {
@@ -601,7 +601,7 @@ func (in *MachineDeploymentTopologyBuilder) DeepCopyInto(out *MachineDeploymentT
 	}
 	if in.mhc != nil {
 		in, out := &in.mhc, &out.mhc
-		*out = new(v1beta2.MachineHealthCheckTopology)
+		*out = new(v1beta2.MachineDeploymentTopologyHealthCheck)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.variables != nil {

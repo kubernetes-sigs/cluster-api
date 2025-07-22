@@ -194,6 +194,20 @@ func spokeCluster(in *Cluster, c randfill.Continue) {
 	}
 
 	dropEmptyStringsCluster(in)
+	if in.Spec.Topology != nil {
+		if in.Spec.Topology.ControlPlane.MachineHealthCheck != nil {
+			dropEmptyString(&in.Spec.Topology.ControlPlane.MachineHealthCheck.UnhealthyRange)
+		}
+		if in.Spec.Topology.Workers != nil {
+			for i, md := range in.Spec.Topology.Workers.MachineDeployments {
+				dropEmptyString(&md.FailureDomain)
+				if md.MachineHealthCheck != nil {
+					dropEmptyString(&md.MachineHealthCheck.UnhealthyRange)
+				}
+				in.Spec.Topology.Workers.MachineDeployments[i] = md
+			}
+		}
+	}
 
 	if in.Spec.ClusterNetwork != nil {
 		if in.Spec.ClusterNetwork.Services != nil && reflect.DeepEqual(in.Spec.ClusterNetwork.Services, &NetworkRanges{}) {
@@ -332,6 +346,15 @@ func spokeClusterClass(in *ClusterClass, c randfill.Continue) {
 	in.Namespace = "foo"
 
 	dropEmptyStringsClusterClass(in)
+	if in.Spec.ControlPlane.MachineHealthCheck != nil {
+		dropEmptyString(&in.Spec.ControlPlane.MachineHealthCheck.UnhealthyRange)
+	}
+	for i, md := range in.Spec.Workers.MachineDeployments {
+		if md.MachineHealthCheck != nil {
+			dropEmptyString(&md.MachineHealthCheck.UnhealthyRange)
+		}
+		in.Spec.Workers.MachineDeployments[i] = md
+	}
 }
 
 func spokeClusterClassStatus(in *ClusterClassStatus, c randfill.Continue) {
@@ -653,7 +676,7 @@ func spokeMachineHealthCheck(in *MachineHealthCheck, c randfill.Continue) {
 
 	in.Namespace = "foo"
 
-	dropEmptyStringsMachineHealthCheck(in)
+	dropEmptyString(&in.Spec.UnhealthyRange)
 }
 
 func spokeMachineHealthCheckStatus(in *MachineHealthCheckStatus, c randfill.Continue) {

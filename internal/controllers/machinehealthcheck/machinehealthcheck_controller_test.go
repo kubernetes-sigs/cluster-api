@@ -697,13 +697,13 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}).Should(Equal(1))
 	})
 
-	t.Run("it marks unhealthy machines as unhealthy but not for remediation when the unhealthy Machines exceed MaxUnhealthy", func(t *testing.T) {
+	t.Run("it marks unhealthy machines as unhealthy but not for remediation when the unhealthy Machines exceed UnhealthyLessThanOrEqualTo", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 		maxUnhealthy := intstr.Parse("40%")
-		mhc.Spec.MaxUnhealthy = &maxUnhealthy
+		mhc.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = &maxUnhealthy
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -780,7 +780,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 		unhealthyRange := "[1-3]"
-		mhc.Spec.UnhealthyRange = unhealthyRange
+		mhc.Spec.Remediation.TriggerIf.UnhealthyInRange = unhealthyRange
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -847,13 +847,13 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		assertMachinesOwnerRemediated(g, mhc, 1)
 	})
 
-	t.Run("it marks unhealthy machines as unhealthy but not for remediation when the unhealthy Machines is not within UnhealthyRange", func(t *testing.T) {
+	t.Run("it marks unhealthy machines as unhealthy but not for remediation when the unhealthy Machines is not within UnhealthyInRange", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 		unhealthyRange := "[3-5]"
-		mhc.Spec.UnhealthyRange = unhealthyRange
+		mhc.Spec.Remediation.TriggerIf.UnhealthyInRange = unhealthyRange
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -937,7 +937,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.NodeStartupTimeoutSeconds = ptr.To(int32(5 * 60 * 60))
+		mhc.Spec.Checks.NodeStartupTimeoutSeconds = ptr.To(int32(5 * 60 * 60))
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -1009,7 +1009,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.NodeStartupTimeoutSeconds = ptr.To(int32(10))
+		mhc.Spec.Checks.NodeStartupTimeoutSeconds = ptr.To(int32(10))
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -1084,7 +1084,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.NodeStartupTimeoutSeconds = ptr.To(int32(10))
+		mhc.Spec.Checks.NodeStartupTimeoutSeconds = ptr.To(int32(10))
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -1156,7 +1156,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.UnhealthyNodeConditions = nil
+		mhc.Spec.Checks.UnhealthyNodeConditions = nil
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -1406,7 +1406,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}, timeout, 100*time.Millisecond).Should(Equal(1))
 
 		// Create the MachineHealthCheck instance.
-		mhc.Spec.NodeStartupTimeoutSeconds = ptr.To(int32(1))
+		mhc.Spec.Checks.NodeStartupTimeoutSeconds = ptr.To(int32(1))
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		// defer cleanup for all the objects that have been created
@@ -1598,7 +1598,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.RemediationTemplate = remediationTemplate
+		mhc.Spec.Remediation.TemplateRef = remediationTemplate
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
 			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
@@ -1756,7 +1756,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.RemediationTemplate = remediationTemplate
+		mhc.Spec.Remediation.TemplateRef = remediationTemplate
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
 			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
@@ -2338,8 +2338,14 @@ func TestIsAllowedRemediation(t *testing.T) {
 
 			mhc := &clusterv1.MachineHealthCheck{
 				Spec: clusterv1.MachineHealthCheckSpec{
-					MaxUnhealthy:              tc.maxUnhealthy,
-					NodeStartupTimeoutSeconds: ptr.To(int32(0)),
+					Checks: clusterv1.MachineHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To(int32(0)),
+					},
+					Remediation: clusterv1.MachineHealthCheckRemediation{
+						TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
+							UnhealthyLessThanOrEqualTo: tc.maxUnhealthy,
+						},
+					},
 				},
 				Status: clusterv1.MachineHealthCheckStatus{
 					ExpectedMachines:   ptr.To(tc.expectedMachines),
@@ -2404,7 +2410,11 @@ func TestGetMaxUnhealthy(t *testing.T) {
 
 			mhc := &clusterv1.MachineHealthCheck{
 				Spec: clusterv1.MachineHealthCheckSpec{
-					MaxUnhealthy: tc.maxUnhealthy,
+					Remediation: clusterv1.MachineHealthCheckRemediation{
+						TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
+							UnhealthyLessThanOrEqualTo: tc.maxUnhealthy,
+						},
+					},
 				},
 				Status: clusterv1.MachineHealthCheckStatus{
 					ExpectedMachines: ptr.To(tc.actualMachineCount),
@@ -2751,13 +2761,19 @@ func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHeal
 					"selector": string(uuid.NewUUID()),
 				},
 			},
-			MaxUnhealthy:              &maxUnhealthy,
-			NodeStartupTimeoutSeconds: ptr.To(int32(1)),
-			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-				{
-					Type:           corev1.NodeReady,
-					Status:         corev1.ConditionUnknown,
-					TimeoutSeconds: 5 * 60,
+			Checks: clusterv1.MachineHealthCheckChecks{
+				NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+					{
+						Type:           corev1.NodeReady,
+						Status:         corev1.ConditionUnknown,
+						TimeoutSeconds: 5 * 60,
+					},
+				},
+			},
+			Remediation: clusterv1.MachineHealthCheckRemediation{
+				TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
+					UnhealthyLessThanOrEqualTo: &maxUnhealthy,
 				},
 			},
 		},

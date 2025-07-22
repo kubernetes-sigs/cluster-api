@@ -1733,9 +1733,11 @@ func TestComputeMachineDeployment(t *testing.T) {
 		WithAnnotations(annotations).
 		WithInfrastructureTemplate(workerInfrastructureMachineTemplate).
 		WithBootstrapTemplate(workerBootstrapTemplate).
-		WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
-			UnhealthyNodeConditions:   unhealthyNodeConditions,
-			NodeStartupTimeoutSeconds: nodeTimeoutDuration,
+		WithMachineHealthCheckClass(&clusterv1.MachineDeploymentClassHealthCheck{
+			Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
+				UnhealthyNodeConditions:   unhealthyNodeConditions,
+				NodeStartupTimeoutSeconds: nodeTimeoutDuration,
+			},
 		}).
 		WithReadinessGates(clusterClassReadinessGates).
 		WithFailureDomain(clusterClassFailureDomain).
@@ -1774,9 +1776,11 @@ func TestComputeMachineDeployment(t *testing.T) {
 				},
 				BootstrapTemplate:             workerBootstrapTemplate,
 				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
-				MachineHealthCheck: &clusterv1.MachineHealthCheckClass{
-					UnhealthyNodeConditions:   unhealthyNodeConditions,
-					NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+				HealthCheck: &clusterv1.MachineDeploymentClassHealthCheck{
+					Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
+						UnhealthyNodeConditions:   unhealthyNodeConditions,
+						NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+					},
 				},
 			},
 		},
@@ -1934,9 +1938,11 @@ func TestComputeMachineDeployment(t *testing.T) {
 					},
 					BootstrapTemplate:             workerBootstrapTemplate,
 					InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
-					MachineHealthCheck: &clusterv1.MachineHealthCheckClass{
-						UnhealthyNodeConditions:   unhealthyNodeConditions,
-						NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+					HealthCheck: &clusterv1.MachineDeploymentClassHealthCheck{
+						Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
+							UnhealthyNodeConditions:   unhealthyNodeConditions,
+							NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+						},
 					},
 				},
 			},
@@ -2191,10 +2197,10 @@ func TestComputeMachineDeployment(t *testing.T) {
 		}}))
 
 		// Check that the NodeStartupTime is set as expected.
-		g.Expect(actual.MachineHealthCheck.Spec.NodeStartupTimeoutSeconds).To(Equal(nodeTimeoutDuration))
+		g.Expect(actual.MachineHealthCheck.Spec.Checks.NodeStartupTimeoutSeconds).To(Equal(nodeTimeoutDuration))
 
 		// Check that UnhealthyNodeConditions are set as expected.
-		g.Expect(actual.MachineHealthCheck.Spec.UnhealthyNodeConditions).To(BeComparableTo(unhealthyNodeConditions))
+		g.Expect(actual.MachineHealthCheck.Spec.Checks.UnhealthyNodeConditions).To(BeComparableTo(unhealthyNodeConditions))
 	})
 }
 
@@ -3346,7 +3352,7 @@ func TestMergeMap(t *testing.T) {
 }
 
 func Test_computeMachineHealthCheck(t *testing.T) {
-	mhcSpec := &clusterv1.MachineHealthCheckClass{
+	mhcChecks := clusterv1.MachineHealthCheckChecks{
 		UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 			{
 				Type:           corev1.NodeReady,
@@ -3388,26 +3394,28 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 			Selector: metav1.LabelSelector{MatchLabels: map[string]string{
 				"foo": "bar",
 			}},
-			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
-				{
-					Type:           corev1.NodeReady,
-					Status:         corev1.ConditionUnknown,
-					TimeoutSeconds: 5 * 60,
+			Checks: clusterv1.MachineHealthCheckChecks{
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+					{
+						Type:           corev1.NodeReady,
+						Status:         corev1.ConditionUnknown,
+						TimeoutSeconds: 5 * 60,
+					},
+					{
+						Type:           corev1.NodeReady,
+						Status:         corev1.ConditionFalse,
+						TimeoutSeconds: 5 * 60,
+					},
 				},
-				{
-					Type:           corev1.NodeReady,
-					Status:         corev1.ConditionFalse,
-					TimeoutSeconds: 5 * 60,
-				},
+				NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 			},
-			NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 		},
 	}
 
 	t.Run("set all fields correctly", func(t *testing.T) {
 		g := NewWithT(t)
 
-		got := computeMachineHealthCheck(ctx, healthCheckTarget, selector, cluster, mhcSpec)
+		got := computeMachineHealthCheck(ctx, healthCheckTarget, selector, cluster, mhcChecks, clusterv1.MachineHealthCheckRemediation{})
 
 		g.Expect(got).To(BeComparableTo(want), cmp.Diff(got, want))
 	})

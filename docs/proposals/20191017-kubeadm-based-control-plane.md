@@ -425,18 +425,18 @@ KubeadmControlPlane rollout is triggered by:
   - Changes to Version
   - Changes to the kubeadmConfigSpec
   - Changes to the infrastructureRef
-  - The `rolloutAfter` field, which can be set to a specific time in the future
+  - The `spec.rollout.after` field, which can be set to a specific time in the future
     - Set to `nil` or the zero value of `time.Time` if no upgrades are desired
     - An upgrade will run after that timestamp is passed
     - Good for scheduling upgrades/SLOs
-    - Set `rolloutAfter` to now (in RFC3339 form) if an upgrade is required immediately
+    - Set `spec.rollout.after` to now (in RFC3339 form) if an upgrade is required immediately
 
 - The controller should tolerate the manual or automatic removal of a replica during the upgrade process. A replica that fails during the upgrade may block the completion of the upgrade. Removal or other remedial action may be necessary to allow the upgrade to complete.
 
 - In order to determine if a Machine to be rolled out, KCP implements the following:
     - The infrastructureRef link used by each machine at creation time is stored in annotations at machine level.
     - The kubeadmConfigSpec used by each machine at creation time is stored in annotations at machine level.
-        - If the annotation is not present (machine is either old or adopted), we won't roll out on any possible changes made in KCP's ClusterConfiguration given that we don't have enough information to make a decision. Users should use KCP.Spec.RolloutAfter field to force a rollout in this case.
+        - If the annotation is not present (machine is either old or adopted), we won't roll out on any possible changes made in KCP's ClusterConfiguration given that we don't have enough information to make a decision. Users should use `KCP.spec.rollout.after` field to force a rollout in this case.
 
 ##### Rolling update strategy
 

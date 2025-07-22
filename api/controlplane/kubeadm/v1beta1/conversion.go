@@ -169,6 +169,19 @@ func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(
 			return err
 		}
 	}
+	if !reflect.DeepEqual(in.Rollout.Before, controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{}) {
+		out.RolloutBefore = &RolloutBefore{}
+		out.RolloutBefore.CertificatesExpiryDays = ptr.To(in.Rollout.Before.CertificatesExpiryDays)
+	}
+	out.RolloutAfter = in.Rollout.After
+	if !reflect.DeepEqual(in.Rollout.Strategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) {
+		out.RolloutStrategy = &RolloutStrategy{}
+		out.RolloutStrategy.Type = RolloutStrategyType(in.Rollout.Strategy.Type)
+		if in.Rollout.Strategy.RollingUpdate.MaxSurge != nil {
+			out.RolloutStrategy.RollingUpdate = &RollingUpdate{}
+			out.RolloutStrategy.RollingUpdate.MaxSurge = in.Rollout.Strategy.RollingUpdate.MaxSurge
+		}
+	}
 
 	return nil
 }
@@ -183,6 +196,16 @@ func Convert_v1beta1_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(
 			return err
 		}
 	}
+	if in.RolloutBefore != nil && in.RolloutBefore.CertificatesExpiryDays != nil {
+		out.Rollout.Before.CertificatesExpiryDays = *in.RolloutBefore.CertificatesExpiryDays
+	}
+	out.Rollout.After = in.RolloutAfter
+	if in.RolloutStrategy != nil {
+		out.Rollout.Strategy.Type = controlplanev1.KubeadmControlPlaneRolloutStrategyType(in.RolloutStrategy.Type)
+		if in.RolloutStrategy.RollingUpdate != nil && in.RolloutStrategy.RollingUpdate.MaxSurge != nil {
+			out.Rollout.Strategy.RollingUpdate.MaxSurge = in.RolloutStrategy.RollingUpdate.MaxSurge
+		}
+	}
 
 	return nil
 }
@@ -192,10 +215,30 @@ func Convert_v1beta2_KubeadmControlPlaneTemplateResourceSpec_To_v1beta1_KubeadmC
 		return err
 	}
 
+	if !reflect.DeepEqual(in.MachineTemplate, KubeadmControlPlaneTemplateMachineTemplate{}) {
+		out.MachineTemplate = &KubeadmControlPlaneTemplateMachineTemplate{}
+		if err := Convert_v1beta2_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta1_KubeadmControlPlaneTemplateMachineTemplate(&in.MachineTemplate, out.MachineTemplate, s); err != nil {
+			return err
+		}
+	}
+
 	if !reflect.DeepEqual(in.Remediation, controlplanev1.KubeadmControlPlaneRemediationSpec{}) {
 		out.RemediationStrategy = &RemediationStrategy{}
 		if err := Convert_v1beta2_KubeadmControlPlaneRemediationSpec_To_v1beta1_RemediationStrategy(&in.Remediation, out.RemediationStrategy, s); err != nil {
 			return err
+		}
+	}
+	if !reflect.DeepEqual(in.Rollout.Before, controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{}) {
+		out.RolloutBefore = &RolloutBefore{}
+		out.RolloutBefore.CertificatesExpiryDays = ptr.To(in.Rollout.Before.CertificatesExpiryDays)
+	}
+	out.RolloutAfter = in.Rollout.After
+	if !reflect.DeepEqual(in.Rollout.Strategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) {
+		out.RolloutStrategy = &RolloutStrategy{}
+		out.RolloutStrategy.Type = RolloutStrategyType(in.Rollout.Strategy.Type)
+		if in.Rollout.Strategy.RollingUpdate.MaxSurge != nil {
+			out.RolloutStrategy.RollingUpdate = &RollingUpdate{}
+			out.RolloutStrategy.RollingUpdate.MaxSurge = in.Rollout.Strategy.RollingUpdate.MaxSurge
 		}
 	}
 
@@ -207,9 +250,25 @@ func Convert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1beta2_KubeadmC
 		return err
 	}
 
+	if in.MachineTemplate != nil {
+		if err := Convert_v1beta1_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta2_KubeadmControlPlaneTemplateMachineTemplate(in.MachineTemplate, &out.MachineTemplate, s); err != nil {
+			return err
+		}
+	}
+
 	if in.RemediationStrategy != nil {
 		if err := Convert_v1beta1_RemediationStrategy_To_v1beta2_KubeadmControlPlaneRemediationSpec(in.RemediationStrategy, &out.Remediation, s); err != nil {
 			return err
+		}
+	}
+	if in.RolloutBefore != nil && in.RolloutBefore.CertificatesExpiryDays != nil {
+		out.Rollout.Before.CertificatesExpiryDays = *in.RolloutBefore.CertificatesExpiryDays
+	}
+	out.Rollout.After = in.RolloutAfter
+	if in.RolloutStrategy != nil {
+		out.Rollout.Strategy.Type = controlplanev1.KubeadmControlPlaneRolloutStrategyType(in.RolloutStrategy.Type)
+		if in.RolloutStrategy.RollingUpdate != nil && in.RolloutStrategy.RollingUpdate.MaxSurge != nil {
+			out.Rollout.Strategy.RollingUpdate.MaxSurge = in.RolloutStrategy.RollingUpdate.MaxSurge
 		}
 	}
 

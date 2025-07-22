@@ -99,6 +99,7 @@ func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []in
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
 		hubNodeRegistrationOptions,
+		spokeKubeadmControlPlaneTemplate,
 		spokeRemediationStrategy,
 		spokeKubeadmControlPlaneTemplateMachineTemplate,
 		spokeBootstrapToken,
@@ -162,6 +163,13 @@ func spokeKubeadmControlPlane(in *KubeadmControlPlane, c randfill.Continue) {
 	in.Spec.MachineTemplate.InfrastructureRef.UID = ""
 	in.Spec.MachineTemplate.InfrastructureRef.ResourceVersion = ""
 	in.Spec.MachineTemplate.InfrastructureRef.FieldPath = ""
+
+	if reflect.DeepEqual(in.Spec.RolloutBefore, &RolloutBefore{}) {
+		in.Spec.RolloutBefore = nil
+	}
+	if reflect.DeepEqual(in.Spec.RolloutStrategy, &RolloutStrategy{}) {
+		in.Spec.RolloutStrategy = nil
+	}
 }
 
 func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c randfill.Continue) {
@@ -230,6 +238,17 @@ func spokeClusterConfiguration(in *bootstrapv1beta1.ClusterConfiguration, c rand
 	in.Networking.DNSDomain = ""
 	in.KubernetesVersion = ""
 	in.ClusterName = ""
+}
+
+func spokeKubeadmControlPlaneTemplate(in *KubeadmControlPlaneTemplate, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if reflect.DeepEqual(in.Spec.Template.Spec.RolloutBefore, &RolloutBefore{}) {
+		in.Spec.Template.Spec.RolloutBefore = nil
+	}
+	if reflect.DeepEqual(in.Spec.Template.Spec.RolloutStrategy, &RolloutStrategy{}) {
+		in.Spec.Template.Spec.RolloutStrategy = nil
+	}
 }
 
 func spokeRemediationStrategy(in *RemediationStrategy, c randfill.Continue) {

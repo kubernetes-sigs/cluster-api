@@ -88,31 +88,16 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 	// machineTemplate contains information about how machines
 	// should be shaped when creating or updating a control plane.
 	// +optional
-	MachineTemplate *KubeadmControlPlaneTemplateMachineTemplate `json:"machineTemplate,omitempty"`
+	MachineTemplate KubeadmControlPlaneTemplateMachineTemplate `json:"machineTemplate,omitempty,omitzero"`
 
 	// kubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
 	// +optional
 	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec,omitempty,omitzero"`
 
-	// rolloutBefore is a field to indicate a rollout should be performed
-	// if the specified criteria is met.
-	//
+	// rollout defines the rollout behavior.
 	// +optional
-	RolloutBefore *RolloutBefore `json:"rolloutBefore,omitempty"`
-
-	// rolloutAfter is a field to indicate a rollout should be performed
-	// after the specified time even if no changes have been made to the
-	// KubeadmControlPlane.
-	//
-	// +optional
-	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
-
-	// rolloutStrategy is the RolloutStrategy to use to replace control plane machines with
-	// new ones.
-	// +optional
-	// +kubebuilder:default={type: "RollingUpdate", rollingUpdate: {maxSurge: 1}}
-	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
+	Rollout KubeadmControlPlaneRolloutSpec `json:"rollout,omitempty,omitzero"`
 
 	// remediation controls how unhealthy Machines are remediated.
 	// +optional

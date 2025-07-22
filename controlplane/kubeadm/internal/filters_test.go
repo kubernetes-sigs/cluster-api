@@ -1694,10 +1694,12 @@ func TestUpToDate(t *testing.T) {
 					CertificatesDir: "foo",
 				},
 			},
-			RolloutBefore: &controlplanev1.RolloutBefore{
-				CertificatesExpiryDays: ptr.To(int32(60)), // rollout if certificates will expire in less then 60 days.
+			Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
+				Before: controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{
+					CertificatesExpiryDays: 60, // rollout if certificates will expire in less then 60 days.
+				},
+				After: ptr.To(metav1.Time{Time: reconciliationTime.Add(10 * 24 * time.Hour)}), // rollout 10 days from now.
 			},
-			RolloutAfter: ptr.To(metav1.Time{Time: reconciliationTime.Add(10 * 24 * time.Hour)}), // rollout 10 days from now.
 		},
 	}
 	defaultMachine := &clusterv1.Machine{
@@ -1765,9 +1767,7 @@ func TestUpToDate(t *testing.T) {
 			name: "certificate are expiring soon",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
-				kcp.Spec.RolloutBefore = &controlplanev1.RolloutBefore{
-					CertificatesExpiryDays: ptr.To(int32(150)), // rollout if certificates will expire in less then 150 days.
-				}
+				kcp.Spec.Rollout.Before.CertificatesExpiryDays = 150 // rollout if certificates will expire in less then 150 days.
 				return kcp
 			}(),
 			machine:                 defaultMachine, // certificates will expire in 100 days from now.
@@ -1781,7 +1781,7 @@ func TestUpToDate(t *testing.T) {
 			name: "rollout after expired",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
-				kcp.Spec.RolloutAfter = ptr.To(metav1.Time{Time: reconciliationTime.Add(-1 * 24 * time.Hour)}) // one day ago
+				kcp.Spec.Rollout.After = ptr.To(metav1.Time{Time: reconciliationTime.Add(-1 * 24 * time.Hour)}) // one day ago
 				return kcp
 			}(),
 			machine:                 defaultMachine, // created two days ago

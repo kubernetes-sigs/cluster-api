@@ -3826,11 +3826,13 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 			},
 			Replicas: ptr.To[int32](int32(3)),
 			Version:  "v1.31.0",
-			RolloutStrategy: &controlplanev1.RolloutStrategy{
-				Type: "RollingUpdate",
-				RollingUpdate: &controlplanev1.RollingUpdate{
-					MaxSurge: &intstr.IntOrString{
-						IntVal: 1,
+			Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
+				Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
+					Type: controlplanev1.RollingUpdateStrategyType,
+					RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
+						MaxSurge: &intstr.IntOrString{
+							IntVal: 1,
+						},
 					},
 				},
 			},

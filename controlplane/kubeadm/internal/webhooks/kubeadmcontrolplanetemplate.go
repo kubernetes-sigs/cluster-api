@@ -19,6 +19,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -100,13 +101,11 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateUpdate(_ context.Context, ol
 	// The defaulting was dropped with Cluster API v1.11.
 	// To ensure users can still apply their KubeadmControlPlaneTemplate over pre-existing KubeadmControlPlaneTemplate
 	// without setting rolloutStrategy we allow transitions from the old default value to unset.
-	if newK.Spec.Template.Spec.RolloutStrategy == nil &&
-		oldK.Spec.Template.Spec.RolloutStrategy != nil &&
-		oldK.Spec.Template.Spec.RolloutStrategy.Type == controlplanev1.RollingUpdateStrategyType &&
-		oldK.Spec.Template.Spec.RolloutStrategy.RollingUpdate != nil &&
-		oldK.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge != nil &&
-		*oldK.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge == intstr.FromInt32(1) {
-		newK.Spec.Template.Spec.RolloutStrategy = oldK.Spec.Template.Spec.RolloutStrategy
+	if reflect.DeepEqual(newK.Spec.Template.Spec.Rollout.Strategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) &&
+		oldK.Spec.Template.Spec.Rollout.Strategy.Type == controlplanev1.RollingUpdateStrategyType &&
+		oldK.Spec.Template.Spec.Rollout.Strategy.RollingUpdate.MaxSurge != nil &&
+		*oldK.Spec.Template.Spec.Rollout.Strategy.RollingUpdate.MaxSurge == intstr.FromInt32(1) {
+		newK.Spec.Template.Spec.Rollout.Strategy = oldK.Spec.Template.Spec.Rollout.Strategy
 	}
 
 	equal, diff, err := compare.Diff(oldK.Spec.Template.Spec, newK.Spec.Template.Spec)
@@ -135,16 +134,13 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateDelete(_ context.Context, _ 
 func validateKubeadmControlPlaneTemplateResourceSpec(s controlplanev1.KubeadmControlPlaneTemplateResourceSpec, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, validateRolloutBefore(s.RolloutBefore, pathPrefix.Child("rolloutBefore"))...)
-	allErrs = append(allErrs, validateRolloutStrategy(s.RolloutStrategy, nil, pathPrefix.Child("rolloutStrategy"))...)
+	allErrs = append(allErrs, validateRolloutStrategy(s.Rollout.Strategy, nil, pathPrefix.Child("rolloutStrategy"))...)
 	if s.MachineNamingStrategy != nil {
 		allErrs = append(allErrs, validateNamingStrategy(s.MachineNamingStrategy, pathPrefix.Child("machineNamingStrategy"))...)
 	}
 
-	if s.MachineTemplate != nil {
-		// Validate the metadata of the MachineTemplate
-		allErrs = append(allErrs, s.MachineTemplate.ObjectMeta.Validate(pathPrefix.Child("machineTemplate", "metadata"))...)
-	}
+	// Validate the metadata of the MachineTemplate
+	allErrs = append(allErrs, s.MachineTemplate.ObjectMeta.Validate(pathPrefix.Child("machineTemplate", "metadata"))...)
 
 	return allErrs
 }

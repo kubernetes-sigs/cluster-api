@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -184,25 +183,20 @@ func TestShouldRolloutAfter(t *testing.T) {
 
 func TestShouldRolloutBeforeCertificatesExpire(t *testing.T) {
 	reconciliationTime := &metav1.Time{Time: time.Now()}
-	t.Run("if rolloutBefore is nil it should return false", func(t *testing.T) {
+	t.Run("if rolloutBefore is not set it should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, nil)(m)).To(BeFalse())
-	})
-	t.Run("if rolloutBefore.certificatesExpiryDays is nil it should return false", func(t *testing.T) {
-		g := NewWithT(t)
-		m := &clusterv1.Machine{}
-		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, &controlplanev1.RolloutBefore{})(m)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{})(m)).To(BeFalse())
 	})
 	t.Run("if machine is nil it should return false", func(t *testing.T) {
 		g := NewWithT(t)
-		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: ptr.To[int32](10)}
+		rb := controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{CertificatesExpiryDays: 10}
 		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(nil)).To(BeFalse())
 	})
 	t.Run("if the machine certificate expiry information is not available it should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: ptr.To[int32](10)}
+		rb := controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{CertificatesExpiryDays: 10}
 		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(m)).To(BeFalse())
 	})
 	t.Run("if the machine certificates are not going to expire within the expiry time it should return false", func(t *testing.T) {
@@ -213,7 +207,7 @@ func TestShouldRolloutBeforeCertificatesExpire(t *testing.T) {
 				CertificatesExpiryDate: &metav1.Time{Time: certificateExpiryTime},
 			},
 		}
-		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: ptr.To[int32](10)}
+		rb := controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{CertificatesExpiryDays: 10}
 		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(m)).To(BeFalse())
 	})
 	t.Run("if machine certificates will expire within the expiry time then it should return true", func(t *testing.T) {
@@ -224,7 +218,7 @@ func TestShouldRolloutBeforeCertificatesExpire(t *testing.T) {
 				CertificatesExpiryDate: &metav1.Time{Time: certificateExpiryTime},
 			},
 		}
-		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: ptr.To[int32](10)}
+		rb := controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{CertificatesExpiryDays: 10}
 		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(m)).To(BeTrue())
 	})
 }

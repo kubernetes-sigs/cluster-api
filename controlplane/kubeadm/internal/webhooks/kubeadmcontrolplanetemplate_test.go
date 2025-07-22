@@ -46,7 +46,7 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
 			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
 				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
-						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
+						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateSpec{
 								Deletion: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateDeletionSpec{
 									NodeDrainTimeoutSeconds: ptr.To(int32(1)),
@@ -77,7 +77,7 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateDisabled(t *testing.T) 
 			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
 				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
-						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
+						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateSpec{
 								Deletion: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateDeletionSpec{
 									NodeDrainTimeoutSeconds: ptr.To(int32(1)),
@@ -112,7 +112,7 @@ func TestKubeadmControlPlaneTemplateValidationMetadata(t *testing.T) {
 						},
 					},
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
-						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
+						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							ObjectMeta: clusterv1.ObjectMeta{
 								Labels: map[string]string{
 									"foo":          "$invalid-key",
@@ -142,7 +142,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
 				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
-						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
+						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateSpec{
 								Deletion: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateDeletionSpec{
 									NodeDrainTimeoutSeconds: ptr.To(int32(10 * 60)),
@@ -161,7 +161,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 							// Only this field is different, but defaulting will set it as well, so this should pass the immutability check.
 							Format: bootstrapv1.CloudConfig,
 						},
-						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
+						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateSpec{
 								Deletion: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateDeletionSpec{
 									NodeDrainTimeoutSeconds: ptr.To(int32(10 * 60)),
@@ -183,7 +183,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
 				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
-						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
+						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateSpec{
 								Deletion: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateDeletionSpec{
 									NodeDrainTimeoutSeconds: ptr.To(int32(10 * 60)),
@@ -206,7 +206,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 								"new-cmd",
 							},
 						},
-						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
+						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateSpec{
 								Deletion: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateDeletionSpec{
 									NodeDrainTimeoutSeconds: ptr.To(int32(10 * 60)),
@@ -229,10 +229,12 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
 				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
-						RolloutStrategy: &controlplanev1.RolloutStrategy{
-							Type: controlplanev1.RollingUpdateStrategyType,
-							RollingUpdate: &controlplanev1.RollingUpdate{
-								MaxSurge: ptr.To(intstr.FromInt32(1)),
+						Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
+							Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
+								Type: controlplanev1.RollingUpdateStrategyType,
+								RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
+									MaxSurge: ptr.To(intstr.FromInt32(1)),
+								},
 							},
 						},
 					},
@@ -243,7 +245,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
 				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
-						RolloutStrategy: nil,
+						Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{},
 					},
 				},
 			},

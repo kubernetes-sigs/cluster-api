@@ -86,14 +86,14 @@ func UpToDate(machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlan
 	conditionMessages := []string{}
 
 	// Machines whose certificates are about to expire.
-	if collections.ShouldRolloutBefore(reconciliationTime, kcp.Spec.RolloutBefore)(machine) {
+	if collections.ShouldRolloutBefore(reconciliationTime, kcp.Spec.Rollout.Before)(machine) {
 		logMessages = append(logMessages, "certificates will expire soon, rolloutBefore expired")
 		conditionMessages = append(conditionMessages, "Certificates will expire soon")
 	}
 
 	// Machines that are scheduled for rollout (KCP.Spec.RolloutAfter set,
 	// the RolloutAfter deadline is expired, and the machine was created before the deadline).
-	if collections.ShouldRolloutAfter(reconciliationTime, kcp.Spec.RolloutAfter)(machine) {
+	if collections.ShouldRolloutAfter(reconciliationTime, kcp.Spec.Rollout.After)(machine) {
 		logMessages = append(logMessages, "rolloutAfter expired")
 		conditionMessages = append(conditionMessages, "KubeadmControlPlane spec.rolloutAfter expired")
 	}

@@ -28,7 +28,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	intstr "k8s.io/apimachinery/pkg/util/intstr"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	kubeadmv1beta2 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	v1beta2 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -110,36 +109,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.MachineNamingStrategy)(nil), (*MachineNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineNamingStrategy_To_v1beta1_MachineNamingStrategy(a.(*v1beta2.MachineNamingStrategy), b.(*MachineNamingStrategy), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*RollingUpdate)(nil), (*v1beta2.RollingUpdate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_RollingUpdate_To_v1beta2_RollingUpdate(a.(*RollingUpdate), b.(*v1beta2.RollingUpdate), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.RollingUpdate)(nil), (*RollingUpdate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_RollingUpdate_To_v1beta1_RollingUpdate(a.(*v1beta2.RollingUpdate), b.(*RollingUpdate), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*RolloutBefore)(nil), (*v1beta2.RolloutBefore)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_RolloutBefore_To_v1beta2_RolloutBefore(a.(*RolloutBefore), b.(*v1beta2.RolloutBefore), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.RolloutBefore)(nil), (*RolloutBefore)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_RolloutBefore_To_v1beta1_RolloutBefore(a.(*v1beta2.RolloutBefore), b.(*RolloutBefore), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*RolloutStrategy)(nil), (*v1beta2.RolloutStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_RolloutStrategy_To_v1beta2_RolloutStrategy(a.(*RolloutStrategy), b.(*v1beta2.RolloutStrategy), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.RolloutStrategy)(nil), (*RolloutStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_RolloutStrategy_To_v1beta1_RolloutStrategy(a.(*v1beta2.RolloutStrategy), b.(*RolloutStrategy), scope)
 	}); err != nil {
 		return err
 	}
@@ -359,9 +328,9 @@ func autoConvert_v1beta1_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneS
 	if err := Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
-	out.RolloutBefore = (*v1beta2.RolloutBefore)(unsafe.Pointer(in.RolloutBefore))
-	out.RolloutAfter = (*v1.Time)(unsafe.Pointer(in.RolloutAfter))
-	out.RolloutStrategy = (*v1beta2.RolloutStrategy)(unsafe.Pointer(in.RolloutStrategy))
+	// WARNING: in.RolloutBefore requires manual conversion: does not exist in peer-type
+	// WARNING: in.RolloutAfter requires manual conversion: does not exist in peer-type
+	// WARNING: in.RolloutStrategy requires manual conversion: does not exist in peer-type
 	// WARNING: in.RemediationStrategy requires manual conversion: does not exist in peer-type
 	out.MachineNamingStrategy = (*v1beta2.MachineNamingStrategy)(unsafe.Pointer(in.MachineNamingStrategy))
 	return nil
@@ -376,9 +345,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneS
 	if err := Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
-	out.RolloutBefore = (*RolloutBefore)(unsafe.Pointer(in.RolloutBefore))
-	out.RolloutAfter = (*v1.Time)(unsafe.Pointer(in.RolloutAfter))
-	out.RolloutStrategy = (*RolloutStrategy)(unsafe.Pointer(in.RolloutStrategy))
+	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type
 	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
 	out.MachineNamingStrategy = (*MachineNamingStrategy)(unsafe.Pointer(in.MachineNamingStrategy))
 	return nil
@@ -582,42 +549,24 @@ func Convert_v1beta2_KubeadmControlPlaneTemplateResource_To_v1beta1_KubeadmContr
 }
 
 func autoConvert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1beta2_KubeadmControlPlaneTemplateResourceSpec(in *KubeadmControlPlaneTemplateResourceSpec, out *v1beta2.KubeadmControlPlaneTemplateResourceSpec, s conversion.Scope) error {
-	if in.MachineTemplate != nil {
-		in, out := &in.MachineTemplate, &out.MachineTemplate
-		*out = new(v1beta2.KubeadmControlPlaneTemplateMachineTemplate)
-		if err := Convert_v1beta1_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta2_KubeadmControlPlaneTemplateMachineTemplate(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.MachineTemplate = nil
-	}
+	// WARNING: in.MachineTemplate requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1.KubeadmControlPlaneTemplateMachineTemplate vs sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2.KubeadmControlPlaneTemplateMachineTemplate)
 	if err := Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
-	out.RolloutBefore = (*v1beta2.RolloutBefore)(unsafe.Pointer(in.RolloutBefore))
-	out.RolloutAfter = (*v1.Time)(unsafe.Pointer(in.RolloutAfter))
-	out.RolloutStrategy = (*v1beta2.RolloutStrategy)(unsafe.Pointer(in.RolloutStrategy))
+	// WARNING: in.RolloutBefore requires manual conversion: does not exist in peer-type
+	// WARNING: in.RolloutAfter requires manual conversion: does not exist in peer-type
+	// WARNING: in.RolloutStrategy requires manual conversion: does not exist in peer-type
 	// WARNING: in.RemediationStrategy requires manual conversion: does not exist in peer-type
 	out.MachineNamingStrategy = (*v1beta2.MachineNamingStrategy)(unsafe.Pointer(in.MachineNamingStrategy))
 	return nil
 }
 
 func autoConvert_v1beta2_KubeadmControlPlaneTemplateResourceSpec_To_v1beta1_KubeadmControlPlaneTemplateResourceSpec(in *v1beta2.KubeadmControlPlaneTemplateResourceSpec, out *KubeadmControlPlaneTemplateResourceSpec, s conversion.Scope) error {
-	if in.MachineTemplate != nil {
-		in, out := &in.MachineTemplate, &out.MachineTemplate
-		*out = new(KubeadmControlPlaneTemplateMachineTemplate)
-		if err := Convert_v1beta2_KubeadmControlPlaneTemplateMachineTemplate_To_v1beta1_KubeadmControlPlaneTemplateMachineTemplate(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.MachineTemplate = nil
-	}
+	// WARNING: in.MachineTemplate requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2.KubeadmControlPlaneTemplateMachineTemplate vs *sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1.KubeadmControlPlaneTemplateMachineTemplate)
 	if err := Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
-	out.RolloutBefore = (*RolloutBefore)(unsafe.Pointer(in.RolloutBefore))
-	out.RolloutAfter = (*v1.Time)(unsafe.Pointer(in.RolloutAfter))
-	out.RolloutStrategy = (*RolloutStrategy)(unsafe.Pointer(in.RolloutStrategy))
+	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type
 	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
 	out.MachineNamingStrategy = (*MachineNamingStrategy)(unsafe.Pointer(in.MachineNamingStrategy))
 	return nil
@@ -679,66 +628,4 @@ func autoConvert_v1beta2_MachineNamingStrategy_To_v1beta1_MachineNamingStrategy(
 // Convert_v1beta2_MachineNamingStrategy_To_v1beta1_MachineNamingStrategy is an autogenerated conversion function.
 func Convert_v1beta2_MachineNamingStrategy_To_v1beta1_MachineNamingStrategy(in *v1beta2.MachineNamingStrategy, out *MachineNamingStrategy, s conversion.Scope) error {
 	return autoConvert_v1beta2_MachineNamingStrategy_To_v1beta1_MachineNamingStrategy(in, out, s)
-}
-
-func autoConvert_v1beta1_RollingUpdate_To_v1beta2_RollingUpdate(in *RollingUpdate, out *v1beta2.RollingUpdate, s conversion.Scope) error {
-	out.MaxSurge = (*intstr.IntOrString)(unsafe.Pointer(in.MaxSurge))
-	return nil
-}
-
-// Convert_v1beta1_RollingUpdate_To_v1beta2_RollingUpdate is an autogenerated conversion function.
-func Convert_v1beta1_RollingUpdate_To_v1beta2_RollingUpdate(in *RollingUpdate, out *v1beta2.RollingUpdate, s conversion.Scope) error {
-	return autoConvert_v1beta1_RollingUpdate_To_v1beta2_RollingUpdate(in, out, s)
-}
-
-func autoConvert_v1beta2_RollingUpdate_To_v1beta1_RollingUpdate(in *v1beta2.RollingUpdate, out *RollingUpdate, s conversion.Scope) error {
-	out.MaxSurge = (*intstr.IntOrString)(unsafe.Pointer(in.MaxSurge))
-	return nil
-}
-
-// Convert_v1beta2_RollingUpdate_To_v1beta1_RollingUpdate is an autogenerated conversion function.
-func Convert_v1beta2_RollingUpdate_To_v1beta1_RollingUpdate(in *v1beta2.RollingUpdate, out *RollingUpdate, s conversion.Scope) error {
-	return autoConvert_v1beta2_RollingUpdate_To_v1beta1_RollingUpdate(in, out, s)
-}
-
-func autoConvert_v1beta1_RolloutBefore_To_v1beta2_RolloutBefore(in *RolloutBefore, out *v1beta2.RolloutBefore, s conversion.Scope) error {
-	out.CertificatesExpiryDays = (*int32)(unsafe.Pointer(in.CertificatesExpiryDays))
-	return nil
-}
-
-// Convert_v1beta1_RolloutBefore_To_v1beta2_RolloutBefore is an autogenerated conversion function.
-func Convert_v1beta1_RolloutBefore_To_v1beta2_RolloutBefore(in *RolloutBefore, out *v1beta2.RolloutBefore, s conversion.Scope) error {
-	return autoConvert_v1beta1_RolloutBefore_To_v1beta2_RolloutBefore(in, out, s)
-}
-
-func autoConvert_v1beta2_RolloutBefore_To_v1beta1_RolloutBefore(in *v1beta2.RolloutBefore, out *RolloutBefore, s conversion.Scope) error {
-	out.CertificatesExpiryDays = (*int32)(unsafe.Pointer(in.CertificatesExpiryDays))
-	return nil
-}
-
-// Convert_v1beta2_RolloutBefore_To_v1beta1_RolloutBefore is an autogenerated conversion function.
-func Convert_v1beta2_RolloutBefore_To_v1beta1_RolloutBefore(in *v1beta2.RolloutBefore, out *RolloutBefore, s conversion.Scope) error {
-	return autoConvert_v1beta2_RolloutBefore_To_v1beta1_RolloutBefore(in, out, s)
-}
-
-func autoConvert_v1beta1_RolloutStrategy_To_v1beta2_RolloutStrategy(in *RolloutStrategy, out *v1beta2.RolloutStrategy, s conversion.Scope) error {
-	out.Type = v1beta2.RolloutStrategyType(in.Type)
-	out.RollingUpdate = (*v1beta2.RollingUpdate)(unsafe.Pointer(in.RollingUpdate))
-	return nil
-}
-
-// Convert_v1beta1_RolloutStrategy_To_v1beta2_RolloutStrategy is an autogenerated conversion function.
-func Convert_v1beta1_RolloutStrategy_To_v1beta2_RolloutStrategy(in *RolloutStrategy, out *v1beta2.RolloutStrategy, s conversion.Scope) error {
-	return autoConvert_v1beta1_RolloutStrategy_To_v1beta2_RolloutStrategy(in, out, s)
-}
-
-func autoConvert_v1beta2_RolloutStrategy_To_v1beta1_RolloutStrategy(in *v1beta2.RolloutStrategy, out *RolloutStrategy, s conversion.Scope) error {
-	out.Type = RolloutStrategyType(in.Type)
-	out.RollingUpdate = (*RollingUpdate)(unsafe.Pointer(in.RollingUpdate))
-	return nil
-}
-
-// Convert_v1beta2_RolloutStrategy_To_v1beta1_RolloutStrategy is an autogenerated conversion function.
-func Convert_v1beta2_RolloutStrategy_To_v1beta1_RolloutStrategy(in *v1beta2.RolloutStrategy, out *RolloutStrategy, s conversion.Scope) error {
-	return autoConvert_v1beta2_RolloutStrategy_To_v1beta1_RolloutStrategy(in, out, s)
 }

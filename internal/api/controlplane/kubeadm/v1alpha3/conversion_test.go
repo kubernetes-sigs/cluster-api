@@ -20,6 +20,7 @@ package v1alpha3
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -166,6 +167,10 @@ func spokeKubeadmControlPlane(in *KubeadmControlPlane, c randfill.Continue) {
 	in.Spec.InfrastructureTemplate.UID = ""
 	in.Spec.InfrastructureTemplate.ResourceVersion = ""
 	in.Spec.InfrastructureTemplate.FieldPath = ""
+
+	if reflect.DeepEqual(in.Spec.RolloutStrategy, &RolloutStrategy{}) {
+		in.Spec.RolloutStrategy = nil
+	}
 }
 
 func spokeDNS(obj *bootstrapv1alpha3.DNS, c randfill.Continue) {

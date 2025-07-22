@@ -186,7 +186,9 @@ func Test_ObjectRestarter(t *testing.T) {
 							Name:      "kcp",
 						},
 						Spec: controlplanev1.KubeadmControlPlaneSpec{
-							RolloutAfter: &metav1.Time{Time: time.Now().Local().Add(time.Hour)},
+							Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
+								After: &metav1.Time{Time: time.Now().Local().Add(time.Hour)},
+							},
 						},
 					},
 				},
@@ -230,9 +232,9 @@ func Test_ObjectRestarter(t *testing.T) {
 					err = cl.Get(context.TODO(), key, kcp)
 					g.Expect(err).ToNot(HaveOccurred())
 					if tt.wantRollout {
-						g.Expect(kcp.Spec.RolloutAfter).NotTo(BeNil())
+						g.Expect(kcp.Spec.Rollout.After).NotTo(BeNil())
 					} else {
-						g.Expect(kcp.Spec.RolloutAfter).To(BeNil())
+						g.Expect(kcp.Spec.Rollout.After).To(BeNil())
 					}
 				}
 			}

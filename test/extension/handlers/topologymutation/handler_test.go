@@ -121,8 +121,13 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
 					Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 						Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
-							RolloutStrategy: &controlplanev1.RolloutStrategy{
-								RollingUpdate: &controlplanev1.RollingUpdate{MaxSurge: &intstr.IntOrString{IntVal: 1}},
+							Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
+								Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
+									Type: controlplanev1.RollingUpdateStrategyType,
+									RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
+										MaxSurge: &intstr.IntOrString{IntVal: 1},
+									},
+								},
 							},
 						},
 					},
@@ -349,7 +354,7 @@ func TestHandler_GeneratePatches(t *testing.T) {
 				},
 				Items: []runtimehooksv1.GeneratePatchesResponseItem{
 					responseItem("1", `[
-{"op":"add","path":"/spec","value":{"template": {"spec":{"rolloutStrategy": {"rollingUpdate":{"maxSurge":3}}}}}}
+{"op":"add","path":"/spec","value":{"template": {"spec":{"rollout": {"strategy": {"type": "RollingUpdate","rollingUpdate":{"maxSurge":3}}}}}}}
 ]`),
 					responseItem("2", `[
 {"op":"add","path":"/spec/template/spec/customImage","value":"kindest/node:v1.23.0"}

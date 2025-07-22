@@ -25,14 +25,14 @@ import (
 	"sigs.k8s.io/cluster-api/errors"
 )
 
-// RolloutStrategyType defines the rollout strategies for a KubeadmControlPlane.
+// KubeadmControlPlaneRolloutStrategyType defines the rollout strategies for a KubeadmControlPlane.
 // +kubebuilder:validation:Enum=RollingUpdate
-type RolloutStrategyType string
+type KubeadmControlPlaneRolloutStrategyType string
 
 const (
 	// RollingUpdateStrategyType replaces the old control planes by new one using rolling update
 	// i.e. gradually scale up or down the old control planes and scale up or down the new one.
-	RollingUpdateStrategyType RolloutStrategyType = "RollingUpdate"
+	RollingUpdateStrategyType KubeadmControlPlaneRolloutStrategyType = "RollingUpdate"
 )
 
 const (
@@ -444,25 +444,9 @@ type KubeadmControlPlaneSpec struct {
 	// +optional
 	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec,omitempty,omitzero"`
 
-	// rolloutBefore is a field to indicate a rollout should be performed
-	// if the specified criteria is met.
+	// rollout defines the rollout behavior.
 	// +optional
-	RolloutBefore *RolloutBefore `json:"rolloutBefore,omitempty"`
-
-	// rolloutAfter is a field to indicate a rollout should be performed
-	// after the specified time even if no changes have been made to the
-	// KubeadmControlPlane.
-	// Example: In the YAML the time can be specified in the RFC3339 format.
-	// To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
-	// use "2023-03-09T09:00:00Z".
-	// +optional
-	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
-
-	// rolloutStrategy is the RolloutStrategy to use to replace control plane machines with
-	// new ones.
-	// +optional
-	// +kubebuilder:default={type: "RollingUpdate", rollingUpdate: {maxSurge: 1}}
-	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
+	Rollout KubeadmControlPlaneRolloutSpec `json:"rollout,omitempty,omitzero"`
 
 	// remediation controls how unhealthy Machines are remediated.
 	// +optional
@@ -540,31 +524,57 @@ type KubeadmControlPlaneMachineTemplateDeletionSpec struct {
 	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
 }
 
-// RolloutBefore describes when a rollout should be performed on the KCP machines.
-type RolloutBefore struct {
+// KubeadmControlPlaneRolloutSpec defines the rollout behavior.
+// +kubebuilder:validation:MinProperties=1
+type KubeadmControlPlaneRolloutSpec struct {
+	// before is a field to indicate a rollout should be performed
+	// if the specified criteria is met.
+	// +optional
+	Before KubeadmControlPlaneRolloutBeforeSpec `json:"before,omitempty,omitzero"`
+
+	// after is a field to indicate a rollout should be performed
+	// after the specified time even if no changes have been made to the
+	// KubeadmControlPlane.
+	// Example: In the YAML the time can be specified in the RFC3339 format.
+	// To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+	// use "2023-03-09T09:00:00Z".
+	// +optional
+	After *metav1.Time `json:"after,omitempty"`
+
+	// strategy specifies how to roll out control plane Machines.
+	// +optional
+	Strategy KubeadmControlPlaneRolloutStrategy `json:"strategy,omitempty,omitzero"`
+}
+
+// KubeadmControlPlaneRolloutBeforeSpec describes when a rollout should be performed on the KCP machines.
+// +kubebuilder:validation:MinProperties=1
+type KubeadmControlPlaneRolloutBeforeSpec struct {
 	// certificatesExpiryDays indicates a rollout needs to be performed if the
 	// certificates of the machine will expire within the specified days.
 	// +optional
-	CertificatesExpiryDays *int32 `json:"certificatesExpiryDays,omitempty"`
+	// +kubebuilder:validation:Minimum=7
+	CertificatesExpiryDays int32 `json:"certificatesExpiryDays,omitempty"`
 }
 
-// RolloutStrategy describes how to replace existing machines
+// KubeadmControlPlaneRolloutStrategy describes how to replace existing machines
 // with new ones.
-type RolloutStrategy struct {
+// +kubebuilder:validation:MinProperties=1
+type KubeadmControlPlaneRolloutStrategy struct {
 	// type of rollout. Currently the only supported strategy is
 	// "RollingUpdate".
 	// Default is RollingUpdate.
-	// +optional
-	Type RolloutStrategyType `json:"type,omitempty"`
+	// +required
+	Type KubeadmControlPlaneRolloutStrategyType `json:"type"`
 
 	// rollingUpdate is the rolling update config params. Present only if
-	// RolloutStrategyType = RollingUpdate.
+	// type = RollingUpdate.
 	// +optional
-	RollingUpdate *RollingUpdate `json:"rollingUpdate,omitempty"`
+	RollingUpdate KubeadmControlPlaneRolloutStrategyRollingUpdate `json:"rollingUpdate,omitempty,omitzero"`
 }
 
-// RollingUpdate is used to control the desired behavior of rolling update.
-type RollingUpdate struct {
+// KubeadmControlPlaneRolloutStrategyRollingUpdate is used to control the desired behavior of rolling update.
+// +kubebuilder:validation:MinProperties=1
+type KubeadmControlPlaneRolloutStrategyRollingUpdate struct {
 	// maxSurge is the maximum number of control planes that can be scheduled above or under the
 	// desired number of control planes.
 	// Value can be an absolute number 1 or 0.

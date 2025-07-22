@@ -57,7 +57,6 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 					},
 				},
 			},
-			RolloutStrategy: &controlplanev1.RolloutStrategy{},
 		},
 	}
 	updateDefaultingValidationKCP := kcp.DeepCopy()
@@ -72,8 +71,8 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
 
 	g.Expect(kcp.Spec.Version).To(Equal("v1.18.3"))
-	g.Expect(kcp.Spec.RolloutStrategy.Type).To(Equal(controlplanev1.RollingUpdateStrategyType))
-	g.Expect(kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
+	g.Expect(kcp.Spec.Rollout.Strategy.Type).To(Equal(controlplanev1.RollingUpdateStrategyType))
+	g.Expect(kcp.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
 }
 
 func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
@@ -97,11 +96,13 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			},
 			Replicas: ptr.To[int32](1),
 			Version:  "v1.19.0",
-			RolloutStrategy: &controlplanev1.RolloutStrategy{
-				Type: controlplanev1.RollingUpdateStrategyType,
-				RollingUpdate: &controlplanev1.RollingUpdate{
-					MaxSurge: &intstr.IntOrString{
-						IntVal: 1,
+			Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
+				Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
+					Type: controlplanev1.RollingUpdateStrategyType,
+					RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
+						MaxSurge: &intstr.IntOrString{
+							IntVal: 1,
+						},
 					},
 				},
 			},
@@ -109,11 +110,11 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	}
 
 	invalidMaxSurge := valid.DeepCopy()
-	invalidMaxSurge.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = int32(3)
+	invalidMaxSurge.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = int32(3)
 
 	stringMaxSurge := valid.DeepCopy()
 	val := intstr.FromString("1")
-	stringMaxSurge.Spec.RolloutStrategy.RollingUpdate.MaxSurge = &val
+	stringMaxSurge.Spec.Rollout.Strategy.RollingUpdate.MaxSurge = &val
 
 	missingReplicas := valid.DeepCopy()
 	missingReplicas.Spec.Replicas = nil
@@ -144,11 +145,6 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 
 	invalidCoreDNSVersion := valid.DeepCopy()
 	invalidCoreDNSVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag = "1-7" // not a valid semantic version
-
-	invalidRolloutBeforeCertificateExpiryDays := valid.DeepCopy()
-	invalidRolloutBeforeCertificateExpiryDays.Spec.RolloutBefore = &controlplanev1.RolloutBefore{
-		CertificatesExpiryDays: ptr.To[int32](5), // less than minimum
-	}
 
 	invalidIgnitionConfiguration := valid.DeepCopy()
 	invalidIgnitionConfiguration.Spec.KubeadmConfigSpec.Ignition = &bootstrapv1.IgnitionSpec{}
@@ -236,12 +232,6 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			kcp:       stringMaxSurge,
 		},
 		{
-			name:      "should return error when given an invalid rolloutBefore.certificatesExpiryDays value",
-			expectErr: true,
-			kcp:       invalidRolloutBeforeCertificateExpiryDays,
-		},
-
-		{
 			name:                  "should return error when Ignition configuration is invalid",
 			enableIgnitionFeature: true,
 			expectErr:             true,
@@ -315,14 +305,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				},
 			},
 			Replicas: ptr.To[int32](1),
-			RolloutStrategy: &controlplanev1.RolloutStrategy{
-				Type: controlplanev1.RollingUpdateStrategyType,
-				RollingUpdate: &controlplanev1.RollingUpdate{
-					MaxSurge: &intstr.IntOrString{
-						IntVal: 1,
-					},
-				},
-			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				InitConfiguration: &bootstrapv1.InitConfiguration{
 					LocalAPIEndpoint: bootstrapv1.APIEndpoint{
@@ -379,18 +361,28 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				},
 			},
 			Version: "v1.16.6",
-			RolloutBefore: &controlplanev1.RolloutBefore{
-				CertificatesExpiryDays: ptr.To[int32](7),
+			Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
+				Before: controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{
+					CertificatesExpiryDays: 7,
+				},
+				Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
+					Type: controlplanev1.RollingUpdateStrategyType,
+					RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
+						MaxSurge: &intstr.IntOrString{
+							IntVal: 1,
+						},
+					},
+				},
 			},
 		},
 	}
 
 	updateMaxSurgeVal := before.DeepCopy()
-	updateMaxSurgeVal.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = int32(0)
+	updateMaxSurgeVal.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = int32(0)
 	updateMaxSurgeVal.Spec.Replicas = ptr.To[int32](3)
 
 	wrongReplicaCountForScaleIn := before.DeepCopy()
-	wrongReplicaCountForScaleIn.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = int32(0)
+	wrongReplicaCountForScaleIn.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = int32(0)
 
 	validUpdateKubeadmConfigInit := before.DeepCopy()
 	validUpdateKubeadmConfigInit.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration = bootstrapv1.NodeRegistrationOptions{}
@@ -444,10 +436,8 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(int32(10))
 	validUpdate.Spec.Replicas = ptr.To[int32](5)
 	now := metav1.NewTime(time.Now())
-	validUpdate.Spec.RolloutAfter = &now
-	validUpdate.Spec.RolloutBefore = &controlplanev1.RolloutBefore{
-		CertificatesExpiryDays: ptr.To[int32](14),
-	}
+	validUpdate.Spec.Rollout.After = &now
+	validUpdate.Spec.Rollout.Before.CertificatesExpiryDays = 14
 	validUpdate.Spec.Remediation = controlplanev1.KubeadmControlPlaneRemediationSpec{
 		MaxRetry:                ptr.To[int32](50),
 		MinHealthyPeriodSeconds: ptr.To(int32(10 * 60 * 60)),
@@ -673,13 +663,8 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	disableNTPServers := before.DeepCopy()
 	disableNTPServers.Spec.KubeadmConfigSpec.NTP.Enabled = ptr.To(false)
 
-	invalidRolloutBeforeCertificateExpiryDays := before.DeepCopy()
-	invalidRolloutBeforeCertificateExpiryDays.Spec.RolloutBefore = &controlplanev1.RolloutBefore{
-		CertificatesExpiryDays: ptr.To[int32](5), // less than minimum
-	}
-
 	unsetRolloutBefore := before.DeepCopy()
-	unsetRolloutBefore.Spec.RolloutBefore = nil
+	unsetRolloutBefore.Spec.Rollout.Before = controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{}
 
 	invalidIgnitionConfiguration := before.DeepCopy()
 	invalidIgnitionConfiguration.Spec.KubeadmConfigSpec.Ignition = &bootstrapv1.IgnitionSpec{}
@@ -1047,12 +1032,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       updateDiskSetup,
 		},
 		{
-			name:      "should return error when rolloutBefore.certificatesExpiryDays is invalid",
-			expectErr: true,
-			before:    before,
-			kcp:       invalidRolloutBeforeCertificateExpiryDays,
-		},
-		{
 			name:      "should allow unsetting rolloutBefore",
 			expectErr: false,
 			before:    before,
@@ -1268,8 +1247,8 @@ func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 			} else {
 				g.Expect(err).To(Succeed())
 				g.Expect(tt.kcp.Spec.Version).To(Equal("v1.19.0"))
-				g.Expect(tt.kcp.Spec.RolloutStrategy.Type).To(Equal(controlplanev1.RollingUpdateStrategyType))
-				g.Expect(tt.kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
+				g.Expect(tt.kcp.Spec.Rollout.Strategy.Type).To(Equal(controlplanev1.RollingUpdateStrategyType))
+				g.Expect(tt.kcp.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
 				g.Expect(tt.kcp.Spec.Replicas).To(Equal(ptr.To[int32](1)))
 			}
 			g.Expect(warnings).To(BeEmpty())

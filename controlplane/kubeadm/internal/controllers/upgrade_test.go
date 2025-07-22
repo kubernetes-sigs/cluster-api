@@ -189,7 +189,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com1"
 	cluster.Spec.ControlPlaneEndpoint.Port = 6443
 	kcp.Spec.Replicas = ptr.To[int32](3)
-	kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 0
+	kcp.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 0
 	setKCPHealthy(kcp)
 
 	fmc := &fakeManagementCluster{

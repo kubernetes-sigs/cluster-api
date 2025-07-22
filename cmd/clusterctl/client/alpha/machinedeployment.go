@@ -49,7 +49,7 @@ func getMachineDeployment(ctx context.Context, proxy cluster.Proxy, name, namesp
 
 // setRolloutAfterOnMachineDeployment sets MachineDeployment.spec.rolloutAfter.
 func setRolloutAfterOnMachineDeployment(ctx context.Context, proxy cluster.Proxy, name, namespace string) error {
-	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf(`{"spec":{"rolloutAfter":"%v"}}`, time.Now().Format(time.RFC3339))))
+	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf(`{"spec":{"rollout":{"after":"%v"}}}`, time.Now().Format(time.RFC3339))))
 	return patchMachineDeployment(ctx, proxy, name, namespace, patch)
 }
 

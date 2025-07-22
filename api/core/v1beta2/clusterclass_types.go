@@ -444,11 +444,9 @@ type MachineDeploymentClass struct {
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
-	// strategy is the deployment strategy to use to replace existing machines with
-	// new ones.
-	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// rollout defines the rollout behavior.
 	// +optional
-	Strategy MachineDeploymentStrategy `json:"strategy,omitempty,omitzero"`
+	Rollout MachineDeploymentClassRolloutSpec `json:"rollout,omitempty,omitzero"`
 }
 
 // MachineDeploymentClassHealthCheck defines a MachineHealthCheck for MachineDeployment machines.
@@ -615,6 +613,64 @@ type MachineDeploymentClassNamingStrategy struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
 	Template string `json:"template,omitempty"`
+}
+
+// MachineDeploymentClassRolloutSpec defines the rollout behavior.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentClassRolloutSpec struct {
+	// strategy specifies how to roll out control plane Machines.
+	// +optional
+	Strategy MachineDeploymentClassRolloutStrategy `json:"strategy,omitempty,omitzero"`
+}
+
+// MachineDeploymentClassRolloutStrategy describes how to replace existing machines
+// with new ones.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentClassRolloutStrategy struct {
+	// type of rollout. Allowed values are RollingUpdate and OnDelete.
+	// Default is RollingUpdate.
+	// +required
+	Type MachineDeploymentRolloutStrategyType `json:"type"`
+
+	// rollingUpdate is the rolling update config params. Present only if
+	// type = RollingUpdate.
+	// +optional
+	RollingUpdate MachineDeploymentClassRolloutStrategyRollingUpdate `json:"rollingUpdate,omitempty,omitzero"`
+}
+
+// MachineDeploymentClassRolloutStrategyRollingUpdate is used to control the desired behavior of rolling update.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentClassRolloutStrategyRollingUpdate struct {
+	// maxUnavailable is the maximum number of machines that can be unavailable during the update.
+	// Value can be an absolute number (ex: 5) or a percentage of desired
+	// machines (ex: 10%).
+	// Absolute number is calculated from percentage by rounding down.
+	// This can not be 0 if MaxSurge is 0.
+	// Defaults to 0.
+	// Example: when this is set to 30%, the old MachineSet can be scaled
+	// down to 70% of desired machines immediately when the rolling update
+	// starts. Once new machines are ready, old MachineSet can be scaled
+	// down further, followed by scaling up the new MachineSet, ensuring
+	// that the total number of machines available at all times
+	// during the update is at least 70% of desired machines.
+	// +optional
+	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
+
+	// maxSurge is the maximum number of machines that can be scheduled above the
+	// desired number of machines.
+	// Value can be an absolute number (ex: 5) or a percentage of
+	// desired machines (ex: 10%).
+	// This can not be 0 if MaxUnavailable is 0.
+	// Absolute number is calculated from percentage by rounding up.
+	// Defaults to 1.
+	// Example: when this is set to 30%, the new MachineSet can be scaled
+	// up immediately when the rolling update starts, such that the total
+	// number of old and new machines do not exceed 130% of desired
+	// machines. Once old machines have been killed, new MachineSet can
+	// be scaled up further, ensuring that total number of machines running
+	// at any time during the update is at most 130% of desired machines.
+	// +optional
+	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 }
 
 // MachinePoolClass serves as a template to define a pool of worker nodes of the cluster

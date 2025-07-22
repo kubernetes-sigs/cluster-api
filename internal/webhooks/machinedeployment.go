@@ -104,8 +104,8 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 		m.Spec.Selector.MatchLabels = make(map[string]string)
 	}
 
-	if m.Spec.Strategy.Type == "" {
-		m.Spec.Strategy.Type = clusterv1.RollingUpdateMachineDeploymentStrategyType
+	if m.Spec.Rollout.Strategy.Type == "" {
+		m.Spec.Rollout.Strategy.Type = clusterv1.RollingUpdateMachineDeploymentStrategyType
 	}
 
 	if m.Spec.Template.Labels == nil {
@@ -113,14 +113,14 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 	}
 
 	// Default RollingUpdate strategy only if strategy type is RollingUpdate.
-	if m.Spec.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
-		if m.Spec.Strategy.RollingUpdate.MaxSurge == nil {
+	if m.Spec.Rollout.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
+		if m.Spec.Rollout.Strategy.RollingUpdate.MaxSurge == nil {
 			ios1 := intstr.FromInt32(1)
-			m.Spec.Strategy.RollingUpdate.MaxSurge = &ios1
+			m.Spec.Rollout.Strategy.RollingUpdate.MaxSurge = &ios1
 		}
-		if m.Spec.Strategy.RollingUpdate.MaxUnavailable == nil {
+		if m.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable == nil {
 			ios0 := intstr.FromInt32(0)
-			m.Spec.Strategy.RollingUpdate.MaxUnavailable = &ios0
+			m.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable = &ios0
 		}
 	}
 
@@ -250,22 +250,22 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		total = int(*newMD.Spec.Replicas)
 	}
 
-	if newMD.Spec.Strategy.RollingUpdate.MaxSurge != nil {
-		if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.RollingUpdate.MaxSurge, total, true); err != nil {
+	if newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge != nil {
+		if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge, total, true); err != nil {
 			allErrs = append(
 				allErrs,
 				field.Invalid(specPath.Child("strategy", "rollingUpdate", "maxSurge"),
-					newMD.Spec.Strategy.RollingUpdate.MaxSurge, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+					newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
 			)
 		}
 	}
 
-	if newMD.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-		if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.RollingUpdate.MaxUnavailable, total, true); err != nil {
+	if newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable != nil {
+		if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable, total, true); err != nil {
 			allErrs = append(
 				allErrs,
 				field.Invalid(specPath.Child("strategy", "rollingUpdate", "maxUnavailable"),
-					newMD.Spec.Strategy.RollingUpdate.MaxUnavailable, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+					newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
 			)
 		}
 	}

@@ -692,8 +692,10 @@ func assertMachineDeploymentTopologyFields(g Gomega, md clusterv1.MachineDeploym
 		g.Expect(md.Spec.Template.Spec.MinReadySeconds).To(Equal(mdTopology.MinReadySeconds))
 	}
 
-	if !reflect.DeepEqual(mdTopology.Strategy, clusterv1.MachineDeploymentStrategy{}) {
-		g.Expect(md.Spec.Strategy).To(BeComparableTo(mdTopology.Strategy))
+	if !reflect.DeepEqual(mdTopology.Rollout.Strategy, clusterv1.MachineDeploymentTopologyRolloutStrategy{}) {
+		g.Expect(md.Spec.Rollout.Strategy.Type).To(BeComparableTo(mdTopology.Rollout.Strategy.Type))
+		g.Expect(md.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable).To(BeComparableTo(mdTopology.Rollout.Strategy.RollingUpdate.MaxUnavailable))
+		g.Expect(md.Spec.Rollout.Strategy.RollingUpdate.MaxSurge).To(BeComparableTo(mdTopology.Rollout.Strategy.RollingUpdate.MaxSurge))
 	}
 
 	if mdTopology.FailureDomain != "" {

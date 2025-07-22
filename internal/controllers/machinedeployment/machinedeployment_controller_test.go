@@ -125,11 +125,13 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 					// verify that all original MachineSets have been deleted.
 					MatchLabels: labels,
 				},
-				Strategy: clusterv1.MachineDeploymentStrategy{
-					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-					RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
-						MaxUnavailable: intOrStrPtr(0),
-						MaxSurge:       intOrStrPtr(1),
+				Rollout: clusterv1.MachineDeploymentRolloutSpec{
+					Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+						RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+							MaxUnavailable: intOrStrPtr(0),
+							MaxSurge:       intOrStrPtr(1),
+						},
 					},
 				},
 				Deletion: clusterv1.MachineDeploymentDeletionSpec{
@@ -562,11 +564,13 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 				// We're using the same labels for spec.selector and spec.template.labels.
 				MatchLabels: labels,
 			},
-			Strategy: clusterv1.MachineDeploymentStrategy{
-				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
-					MaxUnavailable: intOrStrPtr(0),
-					MaxSurge:       intOrStrPtr(1),
+			Rollout: clusterv1.MachineDeploymentRolloutSpec{
+				Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+					RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+						MaxUnavailable: intOrStrPtr(0),
+						MaxSurge:       intOrStrPtr(1),
+					},
 				},
 			},
 			Deletion: clusterv1.MachineDeploymentDeletionSpec{

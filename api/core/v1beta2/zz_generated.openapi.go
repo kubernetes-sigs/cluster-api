@@ -92,20 +92,27 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate":             schema_cluster_api_api_core_v1beta2_MachineDeploymentClassInfrastructureTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec":                schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy":                     schema_cluster_api_api_core_v1beta2_MachineDeploymentClassNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutSpec":                        schema_cluster_api_api_core_v1beta2_MachineDeploymentClassRolloutSpec(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutStrategy":                    schema_cluster_api_api_core_v1beta2_MachineDeploymentClassRolloutStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutStrategyRollingUpdate":       schema_cluster_api_api_core_v1beta2_MachineDeploymentClassRolloutStrategyRollingUpdate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeletionSpec":                            schema_cluster_api_api_core_v1beta2_MachineDeploymentDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeprecatedStatus":                        schema_cluster_api_api_core_v1beta2_MachineDeploymentDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentList":                                    schema_cluster_api_api_core_v1beta2_MachineDeploymentList(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRemediationSpec":                         schema_cluster_api_api_core_v1beta2_MachineDeploymentRemediationSpec(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutSpec":                             schema_cluster_api_api_core_v1beta2_MachineDeploymentRolloutSpec(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutStrategy":                         schema_cluster_api_api_core_v1beta2_MachineDeploymentRolloutStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutStrategyRollingUpdate":            schema_cluster_api_api_core_v1beta2_MachineDeploymentRolloutStrategyRollingUpdate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentSpec":                                    schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStatus":                                  schema_cluster_api_api_core_v1beta2_MachineDeploymentStatus(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy":                                schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategy(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate":                   schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategyRollingUpdate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopology":                                schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyHealthCheck":                     schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyHealthCheck(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyHealthCheckChecks":               schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyHealthCheckChecks(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyHealthCheckRemediation":          schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyHealthCheckRemediation(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyHealthCheckRemediationTriggerIf": schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyHealthCheckRemediationTriggerIf(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyMachineDeletionSpec":             schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyMachineDeletionSpec(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutSpec":                     schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyRolloutSpec(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutStrategy":                 schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyRolloutStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutStrategyRollingUpdate":    schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyRolloutStrategyRollingUpdate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentV1Beta1DeprecatedStatus":                 schema_cluster_api_api_core_v1beta2_MachineDeploymentV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables":                               schema_cluster_api_api_core_v1beta2_MachineDeploymentVariables(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeprecatedStatus":                                  schema_cluster_api_api_core_v1beta2_MachineDeprecatedStatus(ref),
@@ -2819,11 +2826,11 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 							},
 						},
 					},
-					"strategy": {
+					"rollout": {
 						SchemaProps: spec.SchemaProps{
-							Description: "strategy is the deployment strategy to use to replace existing machines with new ones. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
+							Description: "rollout defines the rollout behavior.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutSpec"),
 						},
 					},
 				},
@@ -2831,7 +2838,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -3074,6 +3081,86 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassNamingStrategy(re
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassRolloutSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentClassRolloutSpec defines the rollout behavior.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"strategy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "strategy specifies how to roll out control plane Machines.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutStrategy"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutStrategy"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassRolloutStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentClassRolloutStrategy describes how to replace existing machines with new ones.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type of rollout. Allowed values are RollingUpdate and OnDelete. Default is RollingUpdate.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"rollingUpdate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "rollingUpdate is the rolling update config params. Present only if type = RollingUpdate.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutStrategyRollingUpdate"),
+						},
+					},
+				},
+				Required: []string{"type"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutStrategyRollingUpdate"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassRolloutStrategyRollingUpdate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentClassRolloutStrategyRollingUpdate is used to control the desired behavior of rolling update.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"maxUnavailable": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxUnavailable is the maximum number of machines that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). Absolute number is calculated from percentage by rounding down. This can not be 0 if MaxSurge is 0. Defaults to 0. Example: when this is set to 30%, the old MachineSet can be scaled down to 70% of desired machines immediately when the rolling update starts. Once new machines are ready, old MachineSet can be scaled down further, followed by scaling up the new MachineSet, ensuring that the total number of machines available at all times during the update is at least 70% of desired machines.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+					"maxSurge": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxSurge is the maximum number of machines that can be scheduled above the desired number of machines. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is calculated from percentage by rounding up. Defaults to 1. Example: when this is set to 30%, the new MachineSet can be scaled up immediately when the rolling update starts, such that the total number of old and new machines do not exceed 130% of desired machines. Once old machines have been killed, new MachineSet can be scaled up further, ensuring that total number of machines running at any time during the update is at most 130% of desired machines.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_MachineDeploymentDeletionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3187,6 +3274,92 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentRemediationSpec(ref co
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentRolloutSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentRolloutSpec defines the rollout behavior.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"after": {
+						SchemaProps: spec.SchemaProps{
+							Description: "after is a field to indicate a rollout should be performed after the specified time even if no changes have been made to the MachineDeployment. Example: In the YAML the time can be specified in the RFC3339 format. To specify the rolloutAfter target as March 9, 2023, at 9 am UTC use \"2023-03-09T09:00:00Z\".",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"strategy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "strategy specifies how to roll out control plane Machines.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutStrategy"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutStrategy"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentRolloutStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentRolloutStrategy describes how to replace existing machines with new ones.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type of rollout. Allowed values are RollingUpdate and OnDelete. Default is RollingUpdate.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"rollingUpdate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "rollingUpdate is the rolling update config params. Present only if type = RollingUpdate.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutStrategyRollingUpdate"),
+						},
+					},
+				},
+				Required: []string{"type"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutStrategyRollingUpdate"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentRolloutStrategyRollingUpdate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentRolloutStrategyRollingUpdate is used to control the desired behavior of rolling update.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"maxUnavailable": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxUnavailable is the maximum number of machines that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). Absolute number is calculated from percentage by rounding down. This can not be 0 if MaxSurge is 0. Defaults to 0. Example: when this is set to 30%, the old MachineSet can be scaled down to 70% of desired machines immediately when the rolling update starts. Once new machines are ready, old MachineSet can be scaled down further, followed by scaling up the new MachineSet, ensuring that the total number of machines available at all times during the update is at least 70% of desired machines.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+					"maxSurge": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxSurge is the maximum number of machines that can be scheduled above the desired number of machines. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is calculated from percentage by rounding up. Defaults to 1. Example: when this is set to 30%, the new MachineSet can be scaled up immediately when the rolling update starts, such that the total number of old and new machines do not exceed 130% of desired machines. Once old machines have been killed, new MachineSet can be scaled up further, ensuring that total number of machines running at any time during the update is at most 130% of desired machines.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3209,10 +3382,11 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 							Format:      "int32",
 						},
 					},
-					"rolloutAfter": {
+					"rollout": {
 						SchemaProps: spec.SchemaProps{
-							Description: "rolloutAfter is a field to indicate a rollout should be performed after the specified time even if no changes have been made to the MachineDeployment. Example: In the YAML the time can be specified in the RFC3339 format. To specify the rolloutAfter target as March 9, 2023, at 9 am UTC use \"2023-03-09T09:00:00Z\".",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+							Description: "rollout defines the rollout behavior.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutSpec"),
 						},
 					},
 					"selector": {
@@ -3227,13 +3401,6 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 							Description: "template describes the machines that will be created.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"),
-						},
-					},
-					"strategy": {
-						SchemaProps: spec.SchemaProps{
-							Description: "strategy is the deployment strategy to use to replace existing machines with new ones.",
-							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy"),
 						},
 					},
 					"machineNamingStrategy": {
@@ -3268,7 +3435,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRemediationSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRemediationSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
 	}
 }
 
@@ -3364,62 +3531,6 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentStatus(ref common.Refe
 	}
 }
 
-func schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentStrategy describes how to replace existing machines with new ones.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"type": {
-						SchemaProps: spec.SchemaProps{
-							Description: "type of deployment. Allowed values are RollingUpdate and OnDelete. The default is RollingUpdate.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"rollingUpdate": {
-						SchemaProps: spec.SchemaProps{
-							Description: "rollingUpdate is the rolling update config params. Present only if MachineDeploymentStrategyType = RollingUpdate.",
-							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate"},
-	}
-}
-
-func schema_cluster_api_api_core_v1beta2_MachineDeploymentStrategyRollingUpdate(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentStrategyRollingUpdate is used to control the desired behavior of rolling update.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"maxUnavailable": {
-						SchemaProps: spec.SchemaProps{
-							Description: "maxUnavailable is the maximum number of machines that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). Absolute number is calculated from percentage by rounding down. This can not be 0 if MaxSurge is 0. Defaults to 0. Example: when this is set to 30%, the old MachineSet can be scaled down to 70% of desired machines immediately when the rolling update starts. Once new machines are ready, old MachineSet can be scaled down further, followed by scaling up the new MachineSet, ensuring that the total number of machines available at all times during the update is at least 70% of desired machines.",
-							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
-						},
-					},
-					"maxSurge": {
-						SchemaProps: spec.SchemaProps{
-							Description: "maxSurge is the maximum number of machines that can be scheduled above the desired number of machines. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is calculated from percentage by rounding up. Defaults to 1. Example: when this is set to 30%, the new MachineSet can be scaled up immediately when the rolling update starts, such that the total number of old and new machines do not exceed 130% of desired machines. Once old machines have been killed, new MachineSet can be scaled up further, ensuring that total number of machines running at any time during the update is at most 130% of desired machines.",
-							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
-	}
-}
-
 func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3506,11 +3617,11 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 							},
 						},
 					},
-					"strategy": {
+					"rollout": {
 						SchemaProps: spec.SchemaProps{
-							Description: "strategy is the deployment strategy to use to replace existing machines with new ones.",
+							Description: "rollout defines the rollout behavior.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutSpec"),
 						},
 					},
 					"variables": {
@@ -3525,7 +3636,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -3706,6 +3817,86 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyMachineDeletio
 				},
 			},
 		},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyRolloutSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentTopologyRolloutSpec defines the rollout behavior.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"strategy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "strategy specifies how to roll out control plane Machines.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutStrategy"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutStrategy"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyRolloutStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentTopologyRolloutStrategy describes how to replace existing machines with new ones.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type of rollout. Allowed values are RollingUpdate and OnDelete. Default is RollingUpdate.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"rollingUpdate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "rollingUpdate is the rolling update config params. Present only if type = RollingUpdate.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutStrategyRollingUpdate"),
+						},
+					},
+				},
+				Required: []string{"type"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutStrategyRollingUpdate"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyRolloutStrategyRollingUpdate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentTopologyRolloutStrategyRollingUpdate is used to control the desired behavior of rolling update.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"maxUnavailable": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxUnavailable is the maximum number of machines that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). Absolute number is calculated from percentage by rounding down. This can not be 0 if MaxSurge is 0. Defaults to 0. Example: when this is set to 30%, the old MachineSet can be scaled down to 70% of desired machines immediately when the rolling update starts. Once new machines are ready, old MachineSet can be scaled down further, followed by scaling up the new MachineSet, ensuring that the total number of machines available at all times during the update is at least 70% of desired machines.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+					"maxSurge": {
+						SchemaProps: spec.SchemaProps{
+							Description: "maxSurge is the maximum number of machines that can be scheduled above the desired number of machines. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is calculated from percentage by rounding up. Defaults to 1. Example: when this is set to 30%, the new MachineSet can be scaled up immediately when the rolling update starts, such that the total number of old and new machines do not exceed 130% of desired machines. Once old machines have been killed, new MachineSet can be scaled up further, ensuring that total number of machines running at any time during the update is at most 130% of desired machines.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
 	}
 }
 

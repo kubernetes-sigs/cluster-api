@@ -173,7 +173,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 
 	message := fmt.Sprintf("%d available replicas, at least %d required", *machineDeployment.Status.AvailableReplicas, minReplicasNeeded)
 	if mdutil.IsRollingUpdate(machineDeployment) {
-		message += fmt.Sprintf(" (spec.strategy.rollout.maxUnavailable is %s, spec.replicas is %d)", machineDeployment.Spec.Strategy.RollingUpdate.MaxUnavailable, *machineDeployment.Spec.Replicas)
+		message += fmt.Sprintf(" (spec.strategy.rollout.maxUnavailable is %s, spec.replicas is %d)", machineDeployment.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable, *machineDeployment.Spec.Replicas)
 	}
 
 	if !machineDeployment.DeletionTimestamp.IsZero() {

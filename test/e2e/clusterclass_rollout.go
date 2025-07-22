@@ -93,7 +93,7 @@ type ClusterClassRolloutSpecInput struct {
 //   - Verify that fields were mutated in-place and assert cluster objects
 //   - Modify fields in KCP and MachineDeployments to trigger a full rollout of all Machines
 //   - Verify that all Machines have been replaced and assert cluster objects
-//   - Set RolloutAfter on KCP and MachineDeployments to trigger a full rollout of all Machines
+//   - Set spec.rollout.after on KCP and MachineDeployments to trigger a full rollout of all Machines
 //   - Verify that all Machines have been replaced and assert cluster objects
 //
 // While asserting cluster objects we check that all objects have the right labels, annotations and selectors.
@@ -193,9 +193,9 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.Deletion.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
 				topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
 				topology.MinReadySeconds = ptr.To[int32](rand.Int31n(20))                  //nolint:gosec
-				topology.Strategy = clusterv1.MachineDeploymentStrategy{
+				topology.Rollout.Strategy = clusterv1.MachineDeploymentTopologyRolloutStrategy{
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-					RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
+					RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{
 						MaxUnavailable: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
 						MaxSurge:       &intstr.IntOrString{Type: intstr.Int, IntVal: 5 + rand.Int31n(20)}, //nolint:gosec
 					},
@@ -274,9 +274,9 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 		}, input.E2EConfig.GetIntervals(specName, "wait-control-plane")...).Should(Succeed())
 		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass, input.FilterMetadataBeforeValidation)
 
-		By("Rolling out control plane and MachineDeployment (rolloutAfter)")
+		By("Rolling out control plane and MachineDeployment (rollout.after)")
 		machinesBeforeUpgrade = getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
-		By("Setting rolloutAfter on control plane")
+		By("Setting rollout.after on control plane")
 		Eventually(func(g Gomega) {
 			kcp := clusterResources.ControlPlane
 			g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(kcp), kcp)).To(Succeed())
@@ -285,20 +285,20 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			kcp.Spec.Rollout.After = &metav1.Time{Time: time.Now()}
 			g.Expect(patchHelper.Patch(ctx, kcp)).To(Succeed())
 		}, 10*time.Second, 1*time.Second).Should(Succeed())
-		By("Setting rolloutAfter on MachineDeployments")
+		By("Setting rollout.after on MachineDeployments")
 		for _, md := range clusterResources.MachineDeployments {
 			Eventually(func(g Gomega) {
 				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(md), md)).To(Succeed())
 				patchHelper, err := patch.NewHelper(md, input.BootstrapClusterProxy.GetClient())
 				g.Expect(err).ToNot(HaveOccurred())
-				md.Spec.RolloutAfter = &metav1.Time{Time: time.Now()}
+				md.Spec.Rollout.After = &metav1.Time{Time: time.Now()}
 				g.Expect(patchHelper.Patch(ctx, md)).To(Succeed())
 			}, 10*time.Second, 1*time.Second).Should(Succeed())
 		}
-		By("Verifying all Machines are replaced through rolloutAfter")
+		By("Verifying all Machines are replaced through rollout.after")
 		Eventually(func(g Gomega) {
 			machinesAfterUpgrade := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
-			g.Expect(machinesAfterUpgrade.HasAny(machinesBeforeUpgrade.UnsortedList()...)).To(BeFalse(), "All Machines must be replaced through rollout with rolloutAfter")
+			g.Expect(machinesAfterUpgrade.HasAny(machinesBeforeUpgrade.UnsortedList()...)).To(BeFalse(), "All Machines must be replaced through rollout with rollout.after")
 		}, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...).Should(Succeed())
 		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass, input.FilterMetadataBeforeValidation)
 

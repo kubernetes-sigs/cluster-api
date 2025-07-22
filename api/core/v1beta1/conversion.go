@@ -823,11 +823,13 @@ func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in
 		return err
 	}
 	if in.Strategy != nil {
-		if err := Convert_v1beta1_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in.Strategy, &out.Strategy, s); err != nil {
-			return err
-		}
-		if in.Strategy.RollingUpdate != nil && in.Strategy.RollingUpdate.DeletePolicy != nil {
-			out.Deletion.Order = clusterv1.MachineSetDeletionOrder(*in.Strategy.RollingUpdate.DeletePolicy)
+		out.Rollout.Strategy.Type = clusterv1.MachineDeploymentRolloutStrategyType(in.Strategy.Type)
+		if in.Strategy.RollingUpdate != nil {
+			out.Rollout.Strategy.RollingUpdate.MaxUnavailable = in.Strategy.RollingUpdate.MaxUnavailable
+			out.Rollout.Strategy.RollingUpdate.MaxSurge = in.Strategy.RollingUpdate.MaxSurge
+			if in.Strategy.RollingUpdate.DeletePolicy != nil {
+				out.Deletion.Order = clusterv1.MachineSetDeletionOrder(*in.Strategy.RollingUpdate.DeletePolicy)
+			}
 		}
 		if in.Strategy.Remediation != nil && in.Strategy.Remediation.MaxInFlight != nil {
 			if out.HealthCheck == nil {
@@ -877,10 +879,13 @@ func Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in
 	if err := Convert_v1beta2_MachineDeploymentClassInfrastructureTemplate_To_v1beta1_LocalObjectTemplate(&in.Infrastructure, &out.Template.Infrastructure, s); err != nil {
 		return err
 	}
-	if !reflect.DeepEqual(in.Strategy, clusterv1.MachineDeploymentStrategy{}) {
+	if !reflect.DeepEqual(in.Rollout.Strategy, clusterv1.MachineDeploymentClassRolloutStrategy{}) {
 		out.Strategy = &MachineDeploymentStrategy{}
-		if err := Convert_v1beta2_MachineDeploymentStrategy_To_v1beta1_MachineDeploymentStrategy(&in.Strategy, out.Strategy, s); err != nil {
-			return err
+		out.Strategy.Type = MachineDeploymentStrategyType(in.Rollout.Strategy.Type)
+		if !reflect.DeepEqual(in.Rollout.Strategy.RollingUpdate, clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{}) {
+			out.Strategy.RollingUpdate = &MachineRollingUpdateDeployment{}
+			out.Strategy.RollingUpdate.MaxUnavailable = in.Rollout.Strategy.RollingUpdate.MaxUnavailable
+			out.Strategy.RollingUpdate.MaxSurge = in.Rollout.Strategy.RollingUpdate.MaxSurge
 		}
 	}
 	if in.Deletion.Order != "" {
@@ -942,11 +947,13 @@ func Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopol
 		}
 	}
 	if in.Strategy != nil {
-		if err := Convert_v1beta1_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in.Strategy, &out.Strategy, s); err != nil {
-			return err
-		}
-		if in.Strategy.RollingUpdate != nil && in.Strategy.RollingUpdate.DeletePolicy != nil {
-			out.Deletion.Order = clusterv1.MachineSetDeletionOrder(*in.Strategy.RollingUpdate.DeletePolicy)
+		out.Rollout.Strategy.Type = clusterv1.MachineDeploymentRolloutStrategyType(in.Strategy.Type)
+		if in.Strategy.RollingUpdate != nil {
+			out.Rollout.Strategy.RollingUpdate.MaxUnavailable = in.Strategy.RollingUpdate.MaxUnavailable
+			out.Rollout.Strategy.RollingUpdate.MaxSurge = in.Strategy.RollingUpdate.MaxSurge
+			if in.Strategy.RollingUpdate.DeletePolicy != nil {
+				out.Deletion.Order = clusterv1.MachineSetDeletionOrder(*in.Strategy.RollingUpdate.DeletePolicy)
+			}
 		}
 		if in.Strategy.Remediation != nil && in.Strategy.Remediation.MaxInFlight != nil {
 			if out.HealthCheck == nil {
@@ -994,10 +1001,13 @@ func Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopol
 			return err
 		}
 	}
-	if !reflect.DeepEqual(in.Strategy, clusterv1.MachineDeploymentStrategy{}) {
+	if !reflect.DeepEqual(in.Rollout.Strategy, clusterv1.MachineDeploymentTopologyRolloutStrategy{}) {
 		out.Strategy = &MachineDeploymentStrategy{}
-		if err := Convert_v1beta2_MachineDeploymentStrategy_To_v1beta1_MachineDeploymentStrategy(&in.Strategy, out.Strategy, s); err != nil {
-			return err
+		out.Strategy.Type = MachineDeploymentStrategyType(in.Rollout.Strategy.Type)
+		if !reflect.DeepEqual(in.Rollout.Strategy.RollingUpdate, clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{}) {
+			out.Strategy.RollingUpdate = &MachineRollingUpdateDeployment{}
+			out.Strategy.RollingUpdate.MaxUnavailable = in.Rollout.Strategy.RollingUpdate.MaxUnavailable
+			out.Strategy.RollingUpdate.MaxSurge = in.Rollout.Strategy.RollingUpdate.MaxSurge
 		}
 	}
 	if in.Deletion.Order != "" {
@@ -1978,18 +1988,6 @@ func Convert_v1beta2_MachineSetSpec_To_v1beta1_MachineSetSpec(in *clusterv1.Mach
 	return nil
 }
 
-func Convert_v1beta1_MachineRollingUpdateDeployment_To_v1beta2_MachineDeploymentStrategyRollingUpdate(in *MachineRollingUpdateDeployment, out *clusterv1.MachineDeploymentStrategyRollingUpdate, _ apimachineryconversion.Scope) error {
-	out.MaxUnavailable = in.MaxUnavailable
-	out.MaxSurge = in.MaxSurge
-	return nil
-}
-
-func Convert_v1beta2_MachineDeploymentStrategyRollingUpdate_To_v1beta1_MachineRollingUpdateDeployment(in *clusterv1.MachineDeploymentStrategyRollingUpdate, out *MachineRollingUpdateDeployment, _ apimachineryconversion.Scope) error {
-	out.MaxUnavailable = in.MaxUnavailable
-	out.MaxSurge = in.MaxSurge
-	return nil
-}
-
 func Convert_v1beta1_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, out *clusterv1.ClusterSpec, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta1_ClusterSpec_To_v1beta2_ClusterSpec(in, out, s); err != nil {
 		return err
@@ -2062,16 +2060,19 @@ func Convert_v1beta1_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in *
 		return err
 	}
 	if in.Strategy != nil {
-		if err := Convert_v1beta1_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in.Strategy, &out.Strategy, s); err != nil {
-			return err
-		}
-		if in.Strategy.RollingUpdate != nil && in.Strategy.RollingUpdate.DeletePolicy != nil {
-			out.Deletion.Order = clusterv1.MachineSetDeletionOrder(*in.Strategy.RollingUpdate.DeletePolicy)
+		out.Rollout.Strategy.Type = clusterv1.MachineDeploymentRolloutStrategyType(in.Strategy.Type)
+		if in.Strategy.RollingUpdate != nil {
+			out.Rollout.Strategy.RollingUpdate.MaxUnavailable = in.Strategy.RollingUpdate.MaxUnavailable
+			out.Rollout.Strategy.RollingUpdate.MaxSurge = in.Strategy.RollingUpdate.MaxSurge
+			if in.Strategy.RollingUpdate.DeletePolicy != nil {
+				out.Deletion.Order = clusterv1.MachineSetDeletionOrder(*in.Strategy.RollingUpdate.DeletePolicy)
+			}
 		}
 		if in.Strategy.Remediation != nil && in.Strategy.Remediation.MaxInFlight != nil {
 			out.Remediation.MaxInFlight = in.Strategy.Remediation.MaxInFlight
 		}
 	}
+	out.Rollout.After = in.RolloutAfter
 
 	return nil
 }
@@ -2080,10 +2081,13 @@ func Convert_v1beta2_MachineDeploymentSpec_To_v1beta1_MachineDeploymentSpec(in *
 	if err := autoConvert_v1beta2_MachineDeploymentSpec_To_v1beta1_MachineDeploymentSpec(in, out, s); err != nil {
 		return err
 	}
-	if !reflect.DeepEqual(in.Strategy, clusterv1.MachineDeploymentStrategy{}) {
+	if !reflect.DeepEqual(in.Rollout.Strategy, clusterv1.MachineDeploymentRolloutStrategy{}) {
 		out.Strategy = &MachineDeploymentStrategy{}
-		if err := Convert_v1beta2_MachineDeploymentStrategy_To_v1beta1_MachineDeploymentStrategy(&in.Strategy, out.Strategy, s); err != nil {
-			return err
+		out.Strategy.Type = MachineDeploymentStrategyType(in.Rollout.Strategy.Type)
+		if !reflect.DeepEqual(in.Rollout.Strategy.RollingUpdate, clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{}) {
+			out.Strategy.RollingUpdate = &MachineRollingUpdateDeployment{}
+			out.Strategy.RollingUpdate.MaxUnavailable = in.Rollout.Strategy.RollingUpdate.MaxUnavailable
+			out.Strategy.RollingUpdate.MaxSurge = in.Rollout.Strategy.RollingUpdate.MaxSurge
 		}
 	}
 	if in.Deletion.Order != "" {
@@ -2104,33 +2108,7 @@ func Convert_v1beta2_MachineDeploymentSpec_To_v1beta1_MachineDeploymentSpec(in *
 		}
 		out.Strategy.Remediation.MaxInFlight = in.Remediation.MaxInFlight
 	}
-
-	return nil
-}
-
-func Convert_v1beta1_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in *MachineDeploymentStrategy, out *clusterv1.MachineDeploymentStrategy, s apimachineryconversion.Scope) error {
-	if err := autoConvert_v1beta1_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in, out, s); err != nil {
-		return err
-	}
-	if in.RollingUpdate != nil {
-		if err := Convert_v1beta1_MachineRollingUpdateDeployment_To_v1beta2_MachineDeploymentStrategyRollingUpdate(in.RollingUpdate, &out.RollingUpdate, s); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func Convert_v1beta2_MachineDeploymentStrategy_To_v1beta1_MachineDeploymentStrategy(in *clusterv1.MachineDeploymentStrategy, out *MachineDeploymentStrategy, s apimachineryconversion.Scope) error {
-	if err := autoConvert_v1beta2_MachineDeploymentStrategy_To_v1beta1_MachineDeploymentStrategy(in, out, s); err != nil {
-		return err
-	}
-	if !reflect.DeepEqual(in.RollingUpdate, clusterv1.MachineDeploymentStrategyRollingUpdate{}) {
-		out.RollingUpdate = &MachineRollingUpdateDeployment{}
-		if err := Convert_v1beta2_MachineDeploymentStrategyRollingUpdate_To_v1beta1_MachineRollingUpdateDeployment(&in.RollingUpdate, out.RollingUpdate, s); err != nil {
-			return err
-		}
-	}
+	out.RolloutAfter = in.Rollout.After
 
 	return nil
 }

@@ -4371,65 +4371,70 @@ spec:
                           x-kubernetes-list-map-keys:
                           - conditionType
                           x-kubernetes-list-type: map
-                        strategy:
-                          description: |-
-                            strategy is the deployment strategy to use to replace existing machines with
-                            new ones.
-                            NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+                        rollout:
+                          description: rollout defines the rollout behavior.
                           minProperties: 1
                           properties:
-                            rollingUpdate:
-                              description: |-
-                                rollingUpdate is the rolling update config params. Present only if
-                                MachineDeploymentStrategyType = RollingUpdate.
+                            strategy:
+                              description: strategy specifies how to roll out control
+                                plane Machines.
                               minProperties: 1
                               properties:
-                                maxSurge:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
+                                rollingUpdate:
                                   description: |-
-                                    maxSurge is the maximum number of machines that can be scheduled above the
-                                    desired number of machines.
-                                    Value can be an absolute number (ex: 5) or a percentage of
-                                    desired machines (ex: 10%).
-                                    This can not be 0 if MaxUnavailable is 0.
-                                    Absolute number is calculated from percentage by rounding up.
-                                    Defaults to 1.
-                                    Example: when this is set to 30%, the new MachineSet can be scaled
-                                    up immediately when the rolling update starts, such that the total
-                                    number of old and new machines do not exceed 130% of desired
-                                    machines. Once old machines have been killed, new MachineSet can
-                                    be scaled up further, ensuring that total number of machines running
-                                    at any time during the update is at most 130% of desired machines.
-                                  x-kubernetes-int-or-string: true
-                                maxUnavailable:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
+                                    rollingUpdate is the rolling update config params. Present only if
+                                    type = RollingUpdate.
+                                  minProperties: 1
+                                  properties:
+                                    maxSurge:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      description: |-
+                                        maxSurge is the maximum number of machines that can be scheduled above the
+                                        desired number of machines.
+                                        Value can be an absolute number (ex: 5) or a percentage of
+                                        desired machines (ex: 10%).
+                                        This can not be 0 if MaxUnavailable is 0.
+                                        Absolute number is calculated from percentage by rounding up.
+                                        Defaults to 1.
+                                        Example: when this is set to 30%, the new MachineSet can be scaled
+                                        up immediately when the rolling update starts, such that the total
+                                        number of old and new machines do not exceed 130% of desired
+                                        machines. Once old machines have been killed, new MachineSet can
+                                        be scaled up further, ensuring that total number of machines running
+                                        at any time during the update is at most 130% of desired machines.
+                                      x-kubernetes-int-or-string: true
+                                    maxUnavailable:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      description: |-
+                                        maxUnavailable is the maximum number of machines that can be unavailable during the update.
+                                        Value can be an absolute number (ex: 5) or a percentage of desired
+                                        machines (ex: 10%).
+                                        Absolute number is calculated from percentage by rounding down.
+                                        This can not be 0 if MaxSurge is 0.
+                                        Defaults to 0.
+                                        Example: when this is set to 30%, the old MachineSet can be scaled
+                                        down to 70% of desired machines immediately when the rolling update
+                                        starts. Once new machines are ready, old MachineSet can be scaled
+                                        down further, followed by scaling up the new MachineSet, ensuring
+                                        that the total number of machines available at all times
+                                        during the update is at least 70% of desired machines.
+                                      x-kubernetes-int-or-string: true
+                                  type: object
+                                type:
                                   description: |-
-                                    maxUnavailable is the maximum number of machines that can be unavailable during the update.
-                                    Value can be an absolute number (ex: 5) or a percentage of desired
-                                    machines (ex: 10%).
-                                    Absolute number is calculated from percentage by rounding down.
-                                    This can not be 0 if MaxSurge is 0.
-                                    Defaults to 0.
-                                    Example: when this is set to 30%, the old MachineSet can be scaled
-                                    down to 70% of desired machines immediately when the rolling update
-                                    starts. Once new machines are ready, old MachineSet can be scaled
-                                    down further, followed by scaling up the new MachineSet, ensuring
-                                    that the total number of machines available at all times
-                                    during the update is at least 70% of desired machines.
-                                  x-kubernetes-int-or-string: true
+                                    type of rollout. Allowed values are RollingUpdate and OnDelete.
+                                    Default is RollingUpdate.
+                                  enum:
+                                  - RollingUpdate
+                                  - OnDelete
+                                  type: string
+                              required:
+                              - type
                               type: object
-                            type:
-                              description: |-
-                                type of deployment. Allowed values are RollingUpdate and OnDelete.
-                                The default is RollingUpdate.
-                              enum:
-                              - RollingUpdate
-                              - OnDelete
-                              type: string
                           type: object
                       required:
                       - bootstrap

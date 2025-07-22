@@ -171,11 +171,11 @@ linters:
       linters:
         - kubeapilinter
     - path: "api/core/v1beta2/cluster_types.go"
-      text: "optionalfields: field (ClusterNetwork|Services|Pods|ControlPlaneEndpoint|ControlPlane|Workers|Metadata|Variables|Strategy) is optional and should (be a pointer|have the omitempty tag)"
+      text: "optionalfields: field (ClusterNetwork|Services|Pods|ControlPlaneEndpoint|ControlPlane|Workers|Metadata|Variables|Strategy|Rollout|RollingUpdate) is optional and should (be a pointer|have the omitempty tag)"
       linters:
         - kubeapilinter
     - path: "api/core/v1beta2/clusterclass_types.go"
-      text: "optionalfields: field (Workers|Metadata|ControlPlane|Strategy|Infrastructure|DeprecatedV1Beta1Metadata) is optional and should (be a pointer|have the omitempty tag)"
+      text: "optionalfields: field (Workers|Metadata|ControlPlane|Strategy|Infrastructure|DeprecatedV1Beta1Metadata|Rollout|RollingUpdate) is optional and should (be a pointer|have the omitempty tag)"
       linters:
         - kubeapilinter
     - path: "api/core/v1beta2/(cluster_types.go|clusterclass_types.go|machinehealthcheck_types.go)"
@@ -183,7 +183,7 @@ linters:
       linters:
         - kubeapilinter
     - path: "api/core/v1beta2/machinedeployment_types.go"
-      text: "optionalfields: field (Strategy|RollingUpdate|Remediation) is optional and should (be a pointer|have the omitempty tag)"
+      text: "optionalfields: field (Strategy|Rollout|RollingUpdate|Remediation) is optional and should (be a pointer|have the omitempty tag)"
       linters:
         - kubeapilinter
     - path: "api/ipam/v1beta2/ipaddressclaim_types.go"

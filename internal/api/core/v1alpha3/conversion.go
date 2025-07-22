@@ -436,7 +436,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 		dst.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
 		dst.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
-		dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
+		dst.Spec.Rollout.After = restored.Spec.Rollout.After
 		if restored.Status.Deprecated != nil && restored.Status.Deprecated.V1Beta1 != nil {
 			dst.Status.Deprecated.V1Beta1.Conditions = restored.Status.Deprecated.V1Beta1.Conditions
 		}
@@ -762,27 +762,15 @@ func Convert_v1alpha3_Bootstrap_To_v1beta2_Bootstrap(in *Bootstrap, out *cluster
 	return autoConvert_v1alpha3_Bootstrap_To_v1beta2_Bootstrap(in, out, s)
 }
 
-func Convert_v1alpha3_MachineRollingUpdateDeployment_To_v1beta2_MachineDeploymentStrategyRollingUpdate(in *MachineRollingUpdateDeployment, out *clusterv1.MachineDeploymentStrategyRollingUpdate, _ apimachineryconversion.Scope) error {
+func Convert_v1alpha3_MachineRollingUpdateDeployment_To_v1beta2_MachineDeploymentRolloutStrategyRollingUpdate(in *MachineRollingUpdateDeployment, out *clusterv1.MachineDeploymentRolloutStrategyRollingUpdate, _ apimachineryconversion.Scope) error {
 	out.MaxUnavailable = in.MaxUnavailable
 	out.MaxSurge = in.MaxSurge
 	return nil
 }
 
-func Convert_v1beta2_MachineDeploymentStrategyRollingUpdate_To_v1alpha3_MachineRollingUpdateDeployment(in *clusterv1.MachineDeploymentStrategyRollingUpdate, out *MachineRollingUpdateDeployment, _ apimachineryconversion.Scope) error {
+func Convert_v1beta2_MachineDeploymentRolloutStrategyRollingUpdate_To_v1alpha3_MachineRollingUpdateDeployment(in *clusterv1.MachineDeploymentRolloutStrategyRollingUpdate, out *MachineRollingUpdateDeployment, _ apimachineryconversion.Scope) error {
 	out.MaxUnavailable = in.MaxUnavailable
 	out.MaxSurge = in.MaxSurge
-	return nil
-}
-
-func Convert_v1alpha3_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in *MachineDeploymentStrategy, out *clusterv1.MachineDeploymentStrategy, s apimachineryconversion.Scope) error {
-	if err := autoConvert_v1alpha3_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in, out, s); err != nil {
-		return err
-	}
-	if in.RollingUpdate != nil {
-		if err := Convert_v1alpha3_MachineRollingUpdateDeployment_To_v1beta2_MachineDeploymentStrategyRollingUpdate(in.RollingUpdate, &out.RollingUpdate, s); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -885,10 +873,14 @@ func Convert_v1beta2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in 
 	if err := autoConvert_v1beta2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in, out, s); err != nil {
 		return err
 	}
-	if !reflect.DeepEqual(in.Strategy, clusterv1.MachineDeploymentStrategy{}) {
+	if !reflect.DeepEqual(in.Rollout.Strategy, clusterv1.MachineDeploymentRolloutStrategy{}) {
 		out.Strategy = &MachineDeploymentStrategy{}
-		if err := Convert_v1beta2_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStrategy(&in.Strategy, out.Strategy, s); err != nil {
-			return err
+		out.Strategy.Type = MachineDeploymentStrategyType(in.Rollout.Strategy.Type)
+		if !reflect.DeepEqual(in.Rollout.Strategy.RollingUpdate, clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{}) {
+			out.Strategy.RollingUpdate = &MachineRollingUpdateDeployment{}
+			if err := Convert_v1beta2_MachineDeploymentRolloutStrategyRollingUpdate_To_v1alpha3_MachineRollingUpdateDeployment(&in.Rollout.Strategy.RollingUpdate, out.Strategy.RollingUpdate, s); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -906,19 +898,6 @@ func Convert_v1alpha3_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, 
 	return autoConvert_v1alpha3_MachineStatus_To_v1beta2_MachineStatus(in, out, s)
 }
 
-func Convert_v1beta2_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStrategy(in *clusterv1.MachineDeploymentStrategy, out *MachineDeploymentStrategy, s apimachineryconversion.Scope) error {
-	if err := autoConvert_v1beta2_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStrategy(in, out, s); err != nil {
-		return err
-	}
-	if !reflect.DeepEqual(in.RollingUpdate, clusterv1.MachineDeploymentStrategyRollingUpdate{}) {
-		out.RollingUpdate = &MachineRollingUpdateDeployment{}
-		if err := Convert_v1beta2_MachineDeploymentStrategyRollingUpdate_To_v1alpha3_MachineRollingUpdateDeployment(&in.RollingUpdate, out.RollingUpdate, s); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func Convert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *clusterv1.MachineSetSpec, out *MachineSetSpec, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in, out, s); err != nil {
 		return err
@@ -934,8 +913,11 @@ func Convert_v1alpha3_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(in 
 		return err
 	}
 	if in.Strategy != nil {
-		if err := Convert_v1alpha3_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in.Strategy, &out.Strategy, s); err != nil {
-			return err
+		out.Rollout.Strategy.Type = clusterv1.MachineDeploymentRolloutStrategyType(in.Strategy.Type)
+		if in.Strategy.RollingUpdate != nil {
+			if err := Convert_v1alpha3_MachineRollingUpdateDeployment_To_v1beta2_MachineDeploymentRolloutStrategyRollingUpdate(in.Strategy.RollingUpdate, &out.Rollout.Strategy.RollingUpdate, s); err != nil {
+				return err
+			}
 		}
 	}
 

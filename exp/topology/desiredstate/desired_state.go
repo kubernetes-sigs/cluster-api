@@ -797,9 +797,28 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		minReadySeconds = machineDeploymentTopology.MinReadySeconds
 	}
 
-	strategy := machineDeploymentClass.Strategy
-	if !reflect.DeepEqual(machineDeploymentTopology.Strategy, clusterv1.MachineDeploymentStrategy{}) {
-		strategy = machineDeploymentTopology.Strategy
+	var rollout clusterv1.MachineDeploymentRolloutSpec
+	if !reflect.DeepEqual(machineDeploymentClass.Rollout, clusterv1.MachineDeploymentRolloutSpec{}) {
+		rollout = clusterv1.MachineDeploymentRolloutSpec{
+			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: machineDeploymentClass.Rollout.Strategy.Type,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxUnavailable: machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+					MaxSurge:       machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxSurge,
+				},
+			},
+		}
+	}
+	if !reflect.DeepEqual(machineDeploymentTopology.Rollout, clusterv1.MachineDeploymentTopologyRolloutSpec{}) {
+		rollout = clusterv1.MachineDeploymentRolloutSpec{
+			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: machineDeploymentTopology.Rollout.Strategy.Type,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxUnavailable: machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+					MaxSurge:       machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxSurge,
+				},
+			},
+		}
 	}
 
 	var remediationMaxInFlight *intstr.IntOrString
@@ -865,7 +884,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: s.Current.Cluster.Name,
-			Strategy:    strategy,
+			Rollout:     rollout,
 			Deletion: clusterv1.MachineDeploymentDeletionSpec{
 				Order: deletionOrder,
 			},

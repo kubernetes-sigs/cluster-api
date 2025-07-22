@@ -1719,7 +1719,10 @@ func TestComputeMachineDeployment(t *testing.T) {
 	clusterClassFailureDomain := "A"
 	clusterClassDuration := int32(20)
 	var clusterClassMinReadySeconds int32 = 20
-	clusterClassStrategy := clusterv1.MachineDeploymentStrategy{
+	clusterClassStrategy := clusterv1.MachineDeploymentClassRolloutStrategy{
+		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+	}
+	clusterClassMDStrategy := clusterv1.MachineDeploymentRolloutStrategy{
 		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
 	}
 	clusterClassHealthCheck := &clusterv1.MachineDeploymentClassHealthCheck{
@@ -1795,7 +1798,10 @@ func TestComputeMachineDeployment(t *testing.T) {
 	topologyFailureDomain := "B"
 	topologyDuration := int32(10)
 	var topologyMinReadySeconds int32 = 10
-	topologyStrategy := clusterv1.MachineDeploymentStrategy{
+	topologyStrategy := clusterv1.MachineDeploymentTopologyRolloutStrategy{
+		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+	}
+	topologyMDStrategy := clusterv1.MachineDeploymentRolloutStrategy{
 		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 	}
 	topologyHealthCheck := &clusterv1.MachineDeploymentTopologyHealthCheck{
@@ -1835,7 +1841,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 			NodeDeletionTimeoutSeconds:     &topologyDuration,
 		},
 		MinReadySeconds: &topologyMinReadySeconds,
-		Strategy:        topologyStrategy,
+		Rollout: clusterv1.MachineDeploymentTopologyRolloutSpec{
+			Strategy: topologyStrategy,
+		},
 	}
 
 	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {
@@ -1864,7 +1872,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		actualMd := actual.Object
 		g.Expect(*actualMd.Spec.Replicas).To(Equal(replicas))
-		g.Expect(actualMd.Spec.Strategy).To(BeComparableTo(topologyStrategy))
+		g.Expect(actualMd.Spec.Rollout.Strategy).To(BeComparableTo(topologyMDStrategy))
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(topologyMinReadySeconds)))
 		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
 		g.Expect(actualMd.Spec.Remediation.MaxInFlight).To(Equal(topologyHealthCheck.Remediation.MaxInFlight))
@@ -1924,7 +1932,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		// checking only values from CC defaults
 		actualMd := actual.Object
-		g.Expect(actualMd.Spec.Strategy).To(BeComparableTo(clusterClassStrategy))
+		g.Expect(actualMd.Spec.Rollout.Strategy).To(BeComparableTo(clusterClassMDStrategy))
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(clusterClassMinReadySeconds)))
 		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(clusterClassFailureDomain))
 		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(Equal(clusterClassReadinessGates))

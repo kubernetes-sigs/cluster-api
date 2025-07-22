@@ -106,7 +106,7 @@ const (
 	PausedAnnotation = "cluster.x-k8s.io/paused"
 
 	// DisableMachineCreateAnnotation is an annotation that can be used to signal a MachineSet to stop creating new machines.
-	// It is utilized in the OnDelete MachineDeploymentStrategy to allow the MachineDeployment controller to scale down
+	// It is utilized in the OnDelete rollout strategy to allow the MachineDeployment controller to scale down
 	// older MachineSets when Machines are deleted and add the new replicas to the latest MachineSet.
 	DisableMachineCreateAnnotation = "cluster.x-k8s.io/disable-machine-create"
 

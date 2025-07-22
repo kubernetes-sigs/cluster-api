@@ -344,11 +344,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*MachineDeploymentStrategy)(nil), (*v1beta2.MachineDeploymentStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(a.(*MachineDeploymentStrategy), b.(*v1beta2.MachineDeploymentStrategy), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddConversionFunc((*MachineHealthCheckSpec)(nil), (*v1beta2.MachineHealthCheckSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(a.(*MachineHealthCheckSpec), b.(*v1beta2.MachineHealthCheckSpec), scope)
 	}); err != nil {
@@ -364,8 +359,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*MachineRollingUpdateDeployment)(nil), (*v1beta2.MachineDeploymentStrategyRollingUpdate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1beta2_MachineDeploymentStrategyRollingUpdate(a.(*MachineRollingUpdateDeployment), b.(*v1beta2.MachineDeploymentStrategyRollingUpdate), scope)
+	if err := s.AddConversionFunc((*MachineRollingUpdateDeployment)(nil), (*v1beta2.MachineDeploymentRolloutStrategyRollingUpdate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_MachineRollingUpdateDeployment_To_v1beta2_MachineDeploymentRolloutStrategyRollingUpdate(a.(*MachineRollingUpdateDeployment), b.(*v1beta2.MachineDeploymentRolloutStrategyRollingUpdate), scope)
 	}); err != nil {
 		return err
 	}
@@ -454,6 +449,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentRolloutStrategyRollingUpdate)(nil), (*MachineRollingUpdateDeployment)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachineDeploymentRolloutStrategyRollingUpdate_To_v1alpha4_MachineRollingUpdateDeployment(a.(*v1beta2.MachineDeploymentRolloutStrategyRollingUpdate), b.(*MachineRollingUpdateDeployment), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentSpec)(nil), (*MachineDeploymentSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec(a.(*v1beta2.MachineDeploymentSpec), b.(*MachineDeploymentSpec), scope)
 	}); err != nil {
@@ -461,16 +461,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentStatus)(nil), (*MachineDeploymentStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentStatus(a.(*v1beta2.MachineDeploymentStatus), b.(*MachineDeploymentStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentStrategyRollingUpdate)(nil), (*MachineRollingUpdateDeployment)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachineDeploymentStrategyRollingUpdate_To_v1alpha4_MachineRollingUpdateDeployment(a.(*v1beta2.MachineDeploymentStrategyRollingUpdate), b.(*MachineRollingUpdateDeployment), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*v1beta2.MachineDeploymentStrategy)(nil), (*MachineDeploymentStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(a.(*v1beta2.MachineDeploymentStrategy), b.(*MachineDeploymentStrategy), scope)
 	}); err != nil {
 		return err
 	}
@@ -1101,7 +1091,7 @@ func autoConvert_v1beta2_MachineDeploymentClass_To_v1alpha4_MachineDeploymentCla
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
-	// WARNING: in.Strategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -1154,7 +1144,7 @@ func autoConvert_v1alpha4_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec
 	if err := Convert_v1alpha4_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	// WARNING: in.Strategy requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.MachineDeploymentStrategy vs sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy)
+	// WARNING: in.Strategy requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.RevisionHistoryLimit requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_bool_To_Pointer_bool(&in.Paused, &out.Paused, s); err != nil {
@@ -1167,12 +1157,11 @@ func autoConvert_v1alpha4_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec
 func autoConvert_v1beta2_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec(in *v1beta2.MachineDeploymentSpec, out *MachineDeploymentSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
-	// WARNING: in.RolloutAfter requires manual conversion: does not exist in peer-type
+	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type
 	out.Selector = in.Selector
 	if err := Convert_v1beta2_MachineTemplateSpec_To_v1alpha4_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	// WARNING: in.Strategy requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategy vs *sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.MachineDeploymentStrategy)
 	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
 	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
@@ -1240,18 +1229,6 @@ func autoConvert_v1beta2_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentSt
 	return nil
 }
 
-func autoConvert_v1alpha4_MachineDeploymentStrategy_To_v1beta2_MachineDeploymentStrategy(in *MachineDeploymentStrategy, out *v1beta2.MachineDeploymentStrategy, s conversion.Scope) error {
-	out.Type = v1beta2.MachineDeploymentStrategyType(in.Type)
-	// WARNING: in.RollingUpdate requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.MachineRollingUpdateDeployment vs sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate)
-	return nil
-}
-
-func autoConvert_v1beta2_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(in *v1beta2.MachineDeploymentStrategy, out *MachineDeploymentStrategy, s conversion.Scope) error {
-	out.Type = MachineDeploymentStrategyType(in.Type)
-	// WARNING: in.RollingUpdate requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentStrategyRollingUpdate vs *sigs.k8s.io/cluster-api/internal/api/core/v1alpha4.MachineRollingUpdateDeployment)
-	return nil
-}
-
 func autoConvert_v1alpha4_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopology(in *MachineDeploymentTopology, out *v1beta2.MachineDeploymentTopology, s conversion.Scope) error {
 	if err := Convert_v1alpha4_ObjectMeta_To_v1beta2_ObjectMeta(&in.Metadata, &out.Metadata, s); err != nil {
 		return err
@@ -1279,7 +1256,7 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1alpha4_MachineDeployment
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
-	// WARNING: in.Strategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type
 	// WARNING: in.Variables requires manual conversion: does not exist in peer-type
 	return nil
 }

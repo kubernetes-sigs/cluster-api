@@ -388,7 +388,7 @@ func TestFindNewMachineSet(t *testing.T) {
 	deployment.Spec.Template.Spec.InfrastructureRef.Name = "new-infra-ref"
 
 	deploymentWithRolloutAfter := deployment.DeepCopy()
-	deploymentWithRolloutAfter.Spec.RolloutAfter = &rolloutAfter
+	deploymentWithRolloutAfter.Spec.Rollout.After = &rolloutAfter
 
 	matchingMS := generateMS(deployment)
 
@@ -463,7 +463,7 @@ func TestFindNewMachineSet(t *testing.T) {
 			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
 			reconciliationTime: &oneAfterRolloutAfter,
 			expected:           nil,
-			createReason:       fmt.Sprintf("RolloutAfter on MachineDeployment set to %s, no MachineSet has been created afterwards", rolloutAfter.Format(time.RFC3339)),
+			createReason:       fmt.Sprintf("spec.rollout.after on MachineDeployment set to %s, no MachineSet has been created afterwards", rolloutAfter.Format(time.RFC3339)),
 		},
 		{
 			Name:               "Get MachineSet created after RolloutAfter if reconciliationTime is > rolloutAfter",
@@ -512,7 +512,7 @@ func TestFindOldMachineSets(t *testing.T) {
 	deployment := generateDeployment("nginx")
 
 	deploymentWithRolloutAfter := deployment.DeepCopy()
-	deploymentWithRolloutAfter.Spec.RolloutAfter = &rolloutAfter
+	deploymentWithRolloutAfter.Spec.Rollout.After = &rolloutAfter
 
 	newMS := generateMS(deployment)
 	newMS.Name = "aa"
@@ -720,7 +720,7 @@ func TestResolveFenceposts(t *testing.T) {
 func TestNewMSNewReplicas(t *testing.T) {
 	tests := []struct {
 		Name          string
-		strategyType  clusterv1.MachineDeploymentStrategyType
+		strategyType  clusterv1.MachineDeploymentRolloutStrategyType
 		depReplicas   int32
 		newMSReplicas int32
 		maxSurge      int32
@@ -747,8 +747,8 @@ func TestNewMSNewReplicas(t *testing.T) {
 			g := NewWithT(t)
 
 			*(newDeployment.Spec.Replicas) = test.depReplicas
-			newDeployment.Spec.Strategy.Type = test.strategyType
-			newDeployment.Spec.Strategy.RollingUpdate = clusterv1.MachineDeploymentStrategyRollingUpdate{
+			newDeployment.Spec.Rollout.Strategy.Type = test.strategyType
+			newDeployment.Spec.Rollout.Strategy.RollingUpdate = clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
 				MaxUnavailable: ptr.To(intstr.FromInt32(1)),
 				MaxSurge:       ptr.To(intstr.FromInt32(test.maxSurge)),
 			}
@@ -765,12 +765,14 @@ func TestDeploymentComplete(t *testing.T) {
 		return &clusterv1.MachineDeployment{
 			Spec: clusterv1.MachineDeploymentSpec{
 				Replicas: &desired,
-				Strategy: clusterv1.MachineDeploymentStrategy{
-					RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
-						MaxUnavailable: ptr.To(intstr.FromInt32(maxUnavailable)),
-						MaxSurge:       ptr.To(intstr.FromInt32(maxSurge)),
+				Rollout: clusterv1.MachineDeploymentRolloutSpec{
+					Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+						RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+							MaxUnavailable: ptr.To(intstr.FromInt32(maxUnavailable)),
+							MaxSurge:       ptr.To(intstr.FromInt32(maxSurge)),
+						},
+						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 					},
-					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 				},
 			},
 			Status: clusterv1.MachineDeploymentStatus{
@@ -843,12 +845,14 @@ func TestMaxUnavailable(t *testing.T) {
 		return clusterv1.MachineDeployment{
 			Spec: clusterv1.MachineDeploymentSpec{
 				Replicas: func(i int32) *int32 { return &i }(replicas),
-				Strategy: clusterv1.MachineDeploymentStrategy{
-					RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
-						MaxSurge:       ptr.To(intstr.FromInt32(1)),
-						MaxUnavailable: &maxUnavailable,
+				Rollout: clusterv1.MachineDeploymentRolloutSpec{
+					Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+						RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+							MaxSurge:       ptr.To(intstr.FromInt32(1)),
+							MaxUnavailable: &maxUnavailable,
+						},
+						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 					},
-					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 				},
 			},
 		}
@@ -938,9 +942,9 @@ func TestComputeMachineSetAnnotations(t *testing.T) {
 	deployment.Spec.Replicas = ptr.To[int32](3)
 	maxSurge := intstr.FromInt32(1)
 	maxUnavailable := intstr.FromInt32(0)
-	deployment.Spec.Strategy = clusterv1.MachineDeploymentStrategy{
+	deployment.Spec.Rollout.Strategy = clusterv1.MachineDeploymentRolloutStrategy{
 		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-		RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
+		RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
 			MaxSurge:       &maxSurge,
 			MaxUnavailable: &maxUnavailable,
 		},

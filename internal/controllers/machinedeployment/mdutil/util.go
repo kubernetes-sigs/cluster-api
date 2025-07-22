@@ -312,7 +312,7 @@ func MaxUnavailable(deployment clusterv1.MachineDeployment) int32 {
 		return int32(0)
 	}
 	// Error caught by validation
-	_, maxUnavailable, _ := ResolveFenceposts(deployment.Spec.Strategy.RollingUpdate.MaxSurge, deployment.Spec.Strategy.RollingUpdate.MaxUnavailable, *(deployment.Spec.Replicas))
+	_, maxUnavailable, _ := ResolveFenceposts(deployment.Spec.Rollout.Strategy.RollingUpdate.MaxSurge, deployment.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable, *(deployment.Spec.Replicas))
 	if maxUnavailable > *deployment.Spec.Replicas {
 		return *deployment.Spec.Replicas
 	}
@@ -325,7 +325,7 @@ func MaxSurge(deployment clusterv1.MachineDeployment) int32 {
 		return int32(0)
 	}
 	// Error caught by validation
-	maxSurge, _, _ := ResolveFenceposts(deployment.Spec.Strategy.RollingUpdate.MaxSurge, deployment.Spec.Strategy.RollingUpdate.MaxUnavailable, *(deployment.Spec.Replicas))
+	maxSurge, _, _ := ResolveFenceposts(deployment.Spec.Rollout.Strategy.RollingUpdate.MaxSurge, deployment.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable, *(deployment.Spec.Replicas))
 	return maxSurge
 }
 
@@ -485,24 +485,24 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 	}
 
 	// If RolloutAfter is not set, pick the first matching MachineSet.
-	if deployment.Spec.RolloutAfter == nil {
+	if deployment.Spec.Rollout.After == nil {
 		return matchingMachineSets[0], "", nil
 	}
 
 	// If reconciliation time is before RolloutAfter, pick the first matching MachineSet.
-	if reconciliationTime.Before(deployment.Spec.RolloutAfter) {
+	if reconciliationTime.Before(deployment.Spec.Rollout.After) {
 		return matchingMachineSets[0], "", nil
 	}
 
 	// Pick the first matching MachineSet that has been created at RolloutAfter or later.
 	for _, ms := range matchingMachineSets {
-		if ms.CreationTimestamp.Sub(deployment.Spec.RolloutAfter.Time) >= 0 {
+		if ms.CreationTimestamp.Sub(deployment.Spec.Rollout.After.Time) >= 0 {
 			return ms, "", nil
 		}
 	}
 
 	// If no matching MachineSet was created after RolloutAfter, trigger creation of a new MachineSet.
-	return nil, fmt.Sprintf("RolloutAfter on MachineDeployment set to %s, no MachineSet has been created afterwards", deployment.Spec.RolloutAfter.Format(time.RFC3339)), nil
+	return nil, fmt.Sprintf("spec.rollout.after on MachineDeployment set to %s, no MachineSet has been created afterwards", deployment.Spec.Rollout.After.Format(time.RFC3339)), nil
 }
 
 // FindOldMachineSets returns the old machine sets targeted by the given Deployment, within the given slice of MSes.
@@ -629,7 +629,7 @@ func GetUptoDateReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) 
 
 // IsRollingUpdate returns true if the strategy type is a rolling update.
 func IsRollingUpdate(deployment *clusterv1.MachineDeployment) bool {
-	return deployment.Spec.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType
+	return deployment.Spec.Rollout.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType
 }
 
 // DeploymentComplete considers a deployment to be complete once all of its desired replicas
@@ -650,10 +650,10 @@ func DeploymentComplete(deployment *clusterv1.MachineDeployment, newStatus *clus
 // 2) For RollingUpdateStrategy: Max number of machines allowed is reached: deployment's replicas + maxSurge == all MSs' replicas.
 // 3) For OnDeleteStrategy: Max number of machines allowed is reached: deployment's replicas == all MSs' replicas.
 func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*clusterv1.MachineSet, newMSReplicas int32) (int32, error) {
-	switch deployment.Spec.Strategy.Type {
+	switch deployment.Spec.Rollout.Strategy.Type {
 	case clusterv1.RollingUpdateMachineDeploymentStrategyType:
 		// Check if we can scale up.
-		maxSurge, err := intstrutil.GetScaledValueFromIntOrPercent(deployment.Spec.Strategy.RollingUpdate.MaxSurge, int(*(deployment.Spec.Replicas)), true)
+		maxSurge, err := intstrutil.GetScaledValueFromIntOrPercent(deployment.Spec.Rollout.Strategy.RollingUpdate.MaxSurge, int(*(deployment.Spec.Replicas)), true)
 		if err != nil {
 			return 0, err
 		}
@@ -681,7 +681,7 @@ func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*cluster
 		scaleUpCount := *(deployment.Spec.Replicas) - currentMachineCount
 		return newMSReplicas + scaleUpCount, nil
 	default:
-		return 0, fmt.Errorf("failed to compute replicas: deployment strategy %v isn't supported", deployment.Spec.Strategy.Type)
+		return 0, fmt.Errorf("failed to compute replicas: deployment strategy %v isn't supported", deployment.Spec.Rollout.Strategy.Type)
 	}
 }
 

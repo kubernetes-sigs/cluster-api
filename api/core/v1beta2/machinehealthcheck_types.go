@@ -61,19 +61,26 @@ type MachineHealthCheckSpec struct {
 	Selector metav1.LabelSelector `json:"selector"`
 
 	// checks are the checks that are used to evaluate if a Machine is healthy.
-	// Even if checks is not set, the MachineHealthCheck controller will still
+	//
+	// Independent of this configuration the MachineHealthCheck controller will always
 	// flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and
-	// Machines with deleted Nodes as unhealthy. Furthermore, nodeStartupTimeoutSeconds
+	// Machines with deleted Nodes as unhealthy.
+	//
+	// Furthermore, if checks.nodeStartupTimeoutSeconds is not set it
 	// is defaulted to 10 minutes and evaluated accordingly.
+	//
 	// +optional
 	Checks MachineHealthCheckChecks `json:"checks,omitempty,omitzero"`
 
 	// remediation configures if and how remediations are triggered if a Machine is unhealthy.
-	// If remediation is not set (and thus triggerIf is not set), remediation will always be
-	// triggered for unhealthy Machines.
-	// If remediation is not set (and thus templateRef is not set), the OwnerRemediated condition
-	// will be set on unhealthy Machines to trigger remediation via the owner of the Machines,
-	// for example a MachineSet or a KubeadmControlPlane.
+	//
+	// If remediation or remediation.triggerIf is not set,
+	// remediation will always be triggered for unhealthy Machines.
+	//
+	// If remediation or remediation.templateRef is not set,
+	// the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via
+	// the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.
+	//
 	// +optional
 	Remediation MachineHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
 }

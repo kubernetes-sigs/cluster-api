@@ -657,19 +657,34 @@ type ControlPlaneTopologyHealthCheck struct {
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// checks are the checks that are used to evaluate if a Machine is healthy.
-	// Even if checks is not set, the MachineHealthCheck controller will still
+	//
+	// If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,
+	// and as a consequence the checks and remediation fields from Cluster will be used instead of the
+	// corresponding fields in ClusterClass.
+	//
+	// Independent of this configuration the MachineHealthCheck controller will always
 	// flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and
-	// Machines with deleted Nodes as unhealthy. Furthermore, nodeStartupTimeoutSeconds
+	// Machines with deleted Nodes as unhealthy.
+	//
+	// Furthermore, if checks.nodeStartupTimeoutSeconds is not set it
 	// is defaulted to 10 minutes and evaluated accordingly.
+	//
 	// +optional
 	Checks ControlPlaneTopologyHealthCheckChecks `json:"checks,omitempty,omitzero"`
 
 	// remediation configures if and how remediations are triggered if a Machine is unhealthy.
-	// If remediation is not set (and thus triggerIf is not set), remediation will always be
-	// triggered for unhealthy Machines.
-	// If remediation is not set (and thus templateRef is not set), the OwnerRemediated condition
-	// will be set on unhealthy Machines to trigger remediation via the owner of the Machines,
-	// for example a MachineSet or a KubeadmControlPlane.
+	//
+	// If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,
+	// and as a consequence the checks and remediation fields from cluster will be used instead of the
+	// corresponding fields in ClusterClass.
+	//
+	// If an health check override is defined and remediation or remediation.triggerIf is not set,
+	// remediation will always be triggered for unhealthy Machines.
+	//
+	// If an health check override is defined and remediation or remediation.templateRef is not set,
+	// the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via
+	// the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.
+	//
 	// +optional
 	Remediation ControlPlaneTopologyHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
 }
@@ -891,19 +906,34 @@ type MachineDeploymentTopologyHealthCheck struct {
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// checks are the checks that are used to evaluate if a Machine is healthy.
-	// Even if checks is not set, the MachineHealthCheck controller will still
+	//
+	// If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,
+	// and as a consequence the checks and remediation fields from Cluster will be used instead of the
+	// corresponding fields in ClusterClass.
+	//
+	// Independent of this configuration the MachineHealthCheck controller will always
 	// flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and
-	// Machines with deleted Nodes as unhealthy. Furthermore, nodeStartupTimeoutSeconds
+	// Machines with deleted Nodes as unhealthy.
+	//
+	// Furthermore, if checks.nodeStartupTimeoutSeconds is not set it
 	// is defaulted to 10 minutes and evaluated accordingly.
+	//
 	// +optional
 	Checks MachineDeploymentTopologyHealthCheckChecks `json:"checks,omitempty,omitzero"`
 
 	// remediation configures if and how remediations are triggered if a Machine is unhealthy.
-	// If remediation is not set (and thus triggerIf is not set), remediation will always be
-	// triggered for unhealthy Machines.
-	// If remediation is not set (and thus templateRef is not set), the OwnerRemediated condition
-	// will be set on unhealthy Machines to trigger remediation via the owner of the Machines,
-	// for example a MachineSet or a KubeadmControlPlane.
+	//
+	// If one of checks and remediation fields are set, the system assumes that an healthCheck override is defined,
+	// and as a consequence the checks and remediation fields from cluster will be used instead of the
+	// corresponding fields in ClusterClass.
+	//
+	// If an health check override is defined and remediation or remediation.triggerIf is not set,
+	// remediation will always be triggered for unhealthy Machines.
+	//
+	// If an health check override is defined and remediation or remediation.templateRef is not set,
+	// the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via
+	// the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.
+	//
 	// +optional
 	Remediation MachineDeploymentTopologyHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
 }

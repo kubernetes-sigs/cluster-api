@@ -60,6 +60,8 @@ const defaultDiscoveryTimeout = 10 * time.Second
 
 // Options are creation options for a Client.
 type Options struct {
+	CertFile string // Path of the PEM-encoded client certificate.
+	KeyFile  string // Path of the PEM-encoded client key.
 	Catalog  *runtimecatalog.Catalog
 	Registry runtimeregistry.ExtensionRegistry
 	Client   ctrlclient.Client
@@ -68,6 +70,8 @@ type Options struct {
 // New returns a new Client.
 func New(options Options) runtimeclient.Client {
 	return &client{
+		certFile: options.CertFile,
+		keyFile:  options.KeyFile,
 		catalog:  options.Catalog,
 		registry: options.Registry,
 		client:   options.Client,
@@ -77,6 +81,8 @@ func New(options Options) runtimeclient.Client {
 var _ runtimeclient.Client = &client{}
 
 type client struct {
+	certFile string
+	keyFile  string
 	catalog  *runtimecatalog.Catalog
 	registry runtimeregistry.ExtensionRegistry
 	client   ctrlclient.Client
@@ -102,6 +108,8 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 	request := &runtimehooksv1.DiscoveryRequest{}
 	response := &runtimehooksv1.DiscoveryResponse{}
 	opts := &httpCallOptions{
+		certFile:        c.certFile,
+		keyFile:         c.keyFile,
 		catalog:         c.catalog,
 		config:          extensionConfig.Spec.ClientConfig,
 		registrationGVH: hookGVH,
@@ -329,6 +337,8 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	}
 
 	httpOpts := &httpCallOptions{
+		certFile:        c.certFile,
+		keyFile:         c.keyFile,
 		catalog:         c.catalog,
 		config:          registration.ClientConfig,
 		registrationGVH: registration.GroupVersionHook,
@@ -396,6 +406,8 @@ func cloneAndAddSettings(request runtimehooksv1.RequestObject, registrationSetti
 }
 
 type httpCallOptions struct {
+	certFile        string
+	keyFile         string
 	catalog         *runtimecatalog.Catalog
 	config          runtimev1.ClientConfig
 	registrationGVH runtimecatalog.GroupVersionHook
@@ -484,6 +496,8 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	client := http.DefaultClient
 	tlsConfig, err := transport.TLSConfigFor(&transport.Config{
 		TLS: transport.TLSConfig{
+			CertFile:   opts.certFile,
+			KeyFile:    opts.keyFile,
 			CAData:     opts.config.CABundle,
 			ServerName: extensionURL.Hostname(),
 		},

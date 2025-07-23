@@ -110,6 +110,8 @@ var (
 	webhookCertDir              string
 	webhookCertName             string
 	webhookKeyName              string
+	runtimeExtensionCertFile    string
+	runtimeExtensionKeyFile     string
 	healthAddr                  string
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
@@ -259,10 +261,16 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Webhook cert dir.")
 
 	fs.StringVar(&webhookCertName, "webhook-cert-name", "tls.crt",
-		"Webhook cert name.")
+		"Name of the file for webhook's server certificate; the file must be placed under webhook-cert-dir.")
 
 	fs.StringVar(&webhookKeyName, "webhook-key-name", "tls.key",
-		"Webhook key name.")
+		"Name of the file for webhook's server key; the file must be placed under webhook-cert-dir.")
+
+	fs.StringVar(&runtimeExtensionCertFile, "runtime-extension-client-cert-file", "",
+		"Path of the PEM-encoded client certificate to be used when calling runtime extensions.")
+
+	fs.StringVar(&runtimeExtensionKeyFile, "runtime-extension-client-key-file", "",
+		"Path of the PEM-encoded client key to be used when calling runtime extensions.")
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
@@ -531,6 +539,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
 		// This is the creation of the runtimeClient for the controllers, embedding a shared catalog and registry instance.
 		runtimeClient = internalruntimeclient.New(internalruntimeclient.Options{
+			CertFile: runtimeExtensionCertFile,
+			KeyFile:  runtimeExtensionKeyFile,
 			Catalog:  catalog,
 			Registry: runtimeregistry.New(),
 			Client:   mgr.GetClient(),

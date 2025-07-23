@@ -80,6 +80,10 @@ type Options struct {
 	// Note: This option is only used when TLSOpts does not set GetCertificate.
 	KeyName string
 
+	// ClientCAName is the CA certificate name which server used to verify remote(client)'s certificate.
+	// Defaults to "", which means server does not verify client's certificate.
+	ClientCAName string
+
 	// TLSOpts is used to allow configuring the TLS config used for the server.
 	// This also allows providing a certificate via GetCertificate.
 	TLSOpts []func(*tls.Config)
@@ -105,13 +109,14 @@ func New(options Options) (*Server, error) {
 
 	webhookServer := webhook.NewServer(
 		webhook.Options{
-			Port:       options.Port,
-			Host:       options.Host,
-			CertDir:    options.CertDir,
-			CertName:   options.CertName,
-			KeyName:    options.KeyName,
-			TLSOpts:    options.TLSOpts,
-			WebhookMux: http.NewServeMux(),
+			Port:         options.Port,
+			Host:         options.Host,
+			ClientCAName: options.ClientCAName,
+			CertDir:      options.CertDir,
+			CertName:     options.CertName,
+			KeyName:      options.KeyName,
+			TLSOpts:      options.TLSOpts,
+			WebhookMux:   http.NewServeMux(),
 		},
 	)
 

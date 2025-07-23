@@ -694,7 +694,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 							},
 						},
 						Deletion: &clusterv1.MachineDeletionStatus{
-							NodeDrainStartTime: &metav1.Time{Time: time.Now().Add(-6 * time.Minute)},
+							NodeDrainStartTime: metav1.Time{Time: time.Now().Add(-6 * time.Minute)},
 						},
 					}
 				}),

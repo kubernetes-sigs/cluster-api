@@ -163,6 +163,10 @@ linters:
       text: "optionalfields: field (Status|Initialization) is optional and should (be a pointer|have the omitempty tag)"
       linters:
         - kubeapilinter
+    - path: "api/.*"
+      text: "optionalfields: field (LastAppliedTime|Expires|After|LastUpdated|CertificatesExpiryDate|NodeDrainStartTime|WaitForNodeVolumeDetachStartTime) is optional and should (be a pointer|have the omitempty tag)"
+      linters:
+        - kubeapilinter
     - path: "api/bootstrap/kubeadm/v1beta2"
       text: "optionalfields: field (Spec|NodeRegistration|LocalAPIEndpoint|Etcd|APIServer|ControllerManager|Scheduler|DNS|Discovery|ObjectMeta) is optional and should (be a pointer|have the omitempty tag)"
       linters:

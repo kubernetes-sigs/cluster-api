@@ -79,9 +79,9 @@ type HelperOptions struct {
 func newHelperOptions(target client.Object, opts ...HelperOption) *HelperOptions {
 	helperOptions := &HelperOptions{
 		FilterObjectInput: ssa.FilterObjectInput{
-			AllowedPaths:    defaultAllowedPaths,
-			IgnorePaths:     []contract.Path{},
-			DropEmptyStruct: false,
+			AllowedPaths:          defaultAllowedPaths,
+			IgnorePaths:           []contract.Path{},
+			DropEmptyStructAndNil: false,
 		},
 	}
 	// Overwrite the allowedPaths for Cluster objects to prevent the topology controller
@@ -89,13 +89,13 @@ func newHelperOptions(target client.Object, opts ...HelperOption) *HelperOptions
 	switch target.(type) {
 	case *clusterv1.Cluster:
 		helperOptions.AllowedPaths = allowedPathsCluster
-		// NOTE: DropEmptyStruct is not required for the cluster, because even if it is converted to unstructured using the DefaultUnstructuredConverter,
+		// NOTE: DropEmptyStructAndNil is not required for the cluster, because even if it is converted to unstructured using the DefaultUnstructuredConverter,
 		// and it does not handle omitzero (yet), none of the allowedPaths is using omitzero.
 	case *unstructured.Unstructured:
-		// NOTE: DropEmptyStruct is not required for unstructured objects, because DefaultUnstructuredConverter is not called.
+		// NOTE: DropEmptyStructAndNil is not required for unstructured objects, because DefaultUnstructuredConverter is not called.
 	default:
-		helperOptions.DropEmptyStruct = true
-		// NOTE: DropEmptyStruct is required for typed objects, because they are converted to unstructured using the DefaultUnstructuredConverter,
+		helperOptions.DropEmptyStructAndNil = true
+		// NOTE: DropEmptyStructAndNil is required for typed objects, because they are converted to unstructured using the DefaultUnstructuredConverter,
 		// and it does not handle omitzero (yet).
 	}
 
@@ -122,12 +122,12 @@ func (i IgnorePaths) ApplyToHelper(opts *HelperOptions) {
 	opts.IgnorePaths = i
 }
 
-// DropEmptyStruct instruct the Helper to drop all fields with values equals to empty struct.
+// DropEmptyStructAndNil instruct the Helper to drop all fields with values equals to empty struct.
 // NOTE: This is required when using typed objects, because the DefaultUnstructuredConverter does
 // not handle omitzero (yet).
-type DropEmptyStruct bool
+type DropEmptyStructAndNil bool
 
 // ApplyToHelper applies this configuration to the given helper options.
-func (i DropEmptyStruct) ApplyToHelper(opts *HelperOptions) {
-	opts.DropEmptyStruct = bool(i)
+func (i DropEmptyStructAndNil) ApplyToHelper(opts *HelperOptions) {
+	opts.DropEmptyStructAndNil = bool(i)
 }

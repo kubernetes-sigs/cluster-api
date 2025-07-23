@@ -2929,7 +2929,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
-						After: &metav1.Time{Time: reconciliationTime.Add(1 * time.Hour)}, // rollout after not yet expired
+						After: metav1.Time{Time: reconciliationTime.Add(1 * time.Hour)}, // rollout after not yet expired
 					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -2961,7 +2961,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
-						After: &metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // rollout after expired
+						After: metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // rollout after expired
 					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -2994,7 +2994,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
-						After: &metav1.Time{Time: reconciliationTime.Add(-2 * time.Hour)}, // rollout after expired
+						After: metav1.Time{Time: reconciliationTime.Add(-2 * time.Hour)}, // rollout after expired
 					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -3026,7 +3026,7 @@ func TestNewMachineUpToDateCondition(t *testing.T) {
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
-						After: &metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // rollout after expired
+						After: metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // rollout after expired
 					},
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{

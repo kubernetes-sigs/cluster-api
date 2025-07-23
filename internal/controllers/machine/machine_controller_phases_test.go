@@ -1002,11 +1002,11 @@ func TestReconcileInfrastructure(t *testing.T) {
 func TestReconcileCertificateExpiry(t *testing.T) {
 	fakeTimeString := "2020-01-01T00:00:00Z"
 	fakeTime, _ := time.Parse(time.RFC3339, fakeTimeString)
-	fakeMetaTime := &metav1.Time{Time: fakeTime}
+	fakeMetaTime := metav1.Time{Time: fakeTime}
 
 	fakeTimeString2 := "2020-02-02T00:00:00Z"
 	fakeTime2, _ := time.Parse(time.RFC3339, fakeTimeString2)
-	fakeMetaTime2 := &metav1.Time{Time: fakeTime2}
+	fakeMetaTime2 := metav1.Time{Time: fakeTime2}
 
 	bootstrapConfigWithExpiry := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -1064,7 +1064,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 				},
 			},
 			expected: func(g *WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.CertificatesExpiryDate).To(BeNil())
+				g.Expect(m.Status.CertificatesExpiryDate.IsZero()).To(BeTrue())
 			},
 		},
 		{
@@ -1082,7 +1082,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 				},
 			},
 			expected: func(g *WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.CertificatesExpiryDate).To(BeNil())
+				g.Expect(m.Status.CertificatesExpiryDate.IsZero()).To(BeTrue())
 			},
 		},
 		{
@@ -1107,7 +1107,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 			},
 			bootstrapConfig: bootstrapConfigWithoutExpiry,
 			expected: func(g *WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.CertificatesExpiryDate).To(BeNil())
+				g.Expect(m.Status.CertificatesExpiryDate.IsZero()).To(BeTrue())
 			},
 		},
 		{
@@ -1216,7 +1216,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 			},
 			bootstrapConfig: bootstrapConfigWithoutExpiry,
 			expected: func(g *WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.CertificatesExpiryDate).To(BeNil())
+				g.Expect(m.Status.CertificatesExpiryDate.IsZero()).To(BeTrue())
 			},
 		},
 	}

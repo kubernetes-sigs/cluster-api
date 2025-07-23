@@ -1828,7 +1828,7 @@ func autoConvert_v1alpha4_MachineStatus_To_v1beta2_MachineStatus(in *MachineStat
 		out.NodeRef = nil
 	}
 	out.NodeInfo = (*corev1.NodeSystemInfo)(unsafe.Pointer(in.NodeInfo))
-	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
+	// WARNING: in.LastUpdated requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	// WARNING: in.Version requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
@@ -1874,7 +1874,7 @@ func autoConvert_v1beta2_MachineStatus_To_v1alpha4_MachineStatus(in *v1beta2.Mac
 		out.NodeRef = nil
 	}
 	out.NodeInfo = (*corev1.NodeSystemInfo)(unsafe.Pointer(in.NodeInfo))
-	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
+	// WARNING: in.LastUpdated requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	out.Addresses = *(*MachineAddresses)(unsafe.Pointer(&in.Addresses))
 	out.Phase = in.Phase
 	// WARNING: in.CertificatesExpiryDate requires manual conversion: does not exist in peer-type

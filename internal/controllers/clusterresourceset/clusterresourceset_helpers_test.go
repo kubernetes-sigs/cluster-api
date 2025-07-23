@@ -62,7 +62,7 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 							},
 							Applied:         true,
 							Hash:            "xyz",
-							LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+							LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 						},
 					},
 				},

@@ -200,7 +200,7 @@ func Test_filterIgnoredPaths(t *testing.T) {
 	}
 }
 
-func Test_filterDropEmptyStruct(t *testing.T) {
+func Test_filterDropEmptyStructAndNil(t *testing.T) {
 	tests := []struct {
 		name      string
 		ctx       *FilterIntentInput
@@ -213,10 +213,10 @@ func Test_filterDropEmptyStruct(t *testing.T) {
 				Value: map[string]interface{}{
 					"spec": map[string]interface{}{},
 				},
-				DropEmptyStruct: true,
+				DropEmptyStructAndNil: true,
 			},
 			wantValue: map[string]interface{}{
-				// we are filtering out spec.foo and then spec given that it is an empty map
+				// we are filtering out spec given that it is an empty map
 			},
 		},
 		{
@@ -228,10 +228,27 @@ func Test_filterDropEmptyStruct(t *testing.T) {
 						"bar": map[string]interface{}{},
 					},
 				},
-				DropEmptyStruct: true,
+				DropEmptyStructAndNil: true,
 			},
 			wantValue: map[string]interface{}{
-				// we are filtering out spec.bar.foo and then spec given that it is an empty map
+				// we are filtering out spec.bar and then spec given that it is an empty map
+			},
+		},
+		{
+			name: "Cleanup nil and parent empty nested maps",
+			ctx: &FilterIntentInput{
+				Path: contract.Path{},
+				Value: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"bar": map[string]interface{}{
+							"field": nil,
+						},
+					},
+				},
+				DropEmptyStructAndNil: true,
+			},
+			wantValue: map[string]interface{}{
+				// we are filtering out spec.bar.field and then spec.bar and spec given that they are empty maps
 			},
 		},
 	}

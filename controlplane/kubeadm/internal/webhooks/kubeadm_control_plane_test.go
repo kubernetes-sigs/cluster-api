@@ -436,7 +436,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(int32(10))
 	validUpdate.Spec.Replicas = ptr.To[int32](5)
 	now := metav1.NewTime(time.Now())
-	validUpdate.Spec.Rollout.After = &now
+	validUpdate.Spec.Rollout.After = now
 	validUpdate.Spec.Rollout.Before.CertificatesExpiryDays = 14
 	validUpdate.Spec.Remediation = controlplanev1.KubeadmControlPlaneRemediationSpec{
 		MaxRetry:                ptr.To[int32](50),

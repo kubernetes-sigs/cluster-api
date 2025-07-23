@@ -17,8 +17,10 @@ limitations under the License.
 package upstreamv1beta4
 
 import (
+	"reflect"
 	"unsafe"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -124,6 +126,9 @@ func Convert_upstreamv1beta4_BootstrapToken_To_v1beta2_BootstrapToken(in *Bootst
 		return err
 	}
 	out.TTLSeconds = clusterv1.ConvertToSeconds(in.TTL)
+	if in.Expires != nil && !reflect.DeepEqual(in.Expires, &metav1.Time{}) {
+		out.Expires = *in.Expires
+	}
 	return nil
 }
 
@@ -242,6 +247,7 @@ func Convert_v1beta2_BootstrapToken_To_upstreamv1beta4_BootstrapToken(in *bootst
 		return err
 	}
 	out.TTL = clusterv1.ConvertFromSeconds(in.TTLSeconds)
+	out.Expires = ptr.To(in.Expires)
 	return nil
 }
 

@@ -410,7 +410,7 @@ type BootstrapToken struct {
 	// expires specifies the timestamp when this token expires. Defaults to being set
 	// dynamically at runtime based on the ttlSeconds. Expires and ttlSeconds are mutually exclusive.
 	// +optional
-	Expires *metav1.Time `json:"expires,omitempty"`
+	Expires metav1.Time `json:"expires,omitempty,omitzero"`
 
 	// usages describes the ways in which this token can be used. Can by default be used
 	// for establishing bidirectional trust, but that can be changed here.

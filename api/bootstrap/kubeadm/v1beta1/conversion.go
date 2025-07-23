@@ -431,6 +431,7 @@ func Convert_v1beta2_BootstrapToken_To_v1beta1_BootstrapToken(in *bootstrapv1.Bo
 		return err
 	}
 	out.TTL = clusterv1.ConvertFromSeconds(in.TTLSeconds)
+	out.Expires = ptr.To(in.Expires)
 	return nil
 }
 
@@ -535,6 +536,9 @@ func Convert_v1beta1_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToken
 		return err
 	}
 	out.TTLSeconds = clusterv1.ConvertToSeconds(in.TTL)
+	if in.Expires != nil && !reflect.DeepEqual(in.Expires, &metav1.Time{}) {
+		out.Expires = *in.Expires
+	}
 	return nil
 }
 

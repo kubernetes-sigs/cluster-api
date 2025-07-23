@@ -534,7 +534,7 @@ type MachineStatus struct {
 
 	// lastUpdated identifies when the phase of the Machine last transitioned.
 	// +optional
-	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
+	LastUpdated metav1.Time `json:"lastUpdated,omitempty,omitzero"`
 
 	// addresses is a list of addresses assigned to the machine.
 	// This field is copied from the infrastructure provider reference.
@@ -549,7 +549,7 @@ type MachineStatus struct {
 	// certificatesExpiryDate is the expiry date of the machine certificates.
 	// This value is only set for control plane machines.
 	// +optional
-	CertificatesExpiryDate *metav1.Time `json:"certificatesExpiryDate,omitempty"`
+	CertificatesExpiryDate metav1.Time `json:"certificatesExpiryDate,omitempty,omitzero"`
 
 	// observedGeneration is the latest generation observed by the controller.
 	// +optional
@@ -670,7 +670,7 @@ type MachineDeletionStatus struct {
 	// if the nodeDrainTimeoutSeconds is exceeded.
 	// Only present when the Machine has a deletionTimestamp and draining the node had been started.
 	// +optional
-	NodeDrainStartTime *metav1.Time `json:"nodeDrainStartTime,omitempty"`
+	NodeDrainStartTime metav1.Time `json:"nodeDrainStartTime,omitempty,omitzero"`
 
 	// waitForNodeVolumeDetachStartTime is the time when waiting for volume detachment started
 	// and is used to determine if the nodeVolumeDetachTimeoutSeconds is exceeded.
@@ -678,7 +678,7 @@ type MachineDeletionStatus struct {
 	// is observed from the node's `.Status.VolumesAttached` field.
 	// Only present when the Machine has a deletionTimestamp and waiting for volume detachments had been started.
 	// +optional
-	WaitForNodeVolumeDetachStartTime *metav1.Time `json:"waitForNodeVolumeDetachStartTime,omitempty"`
+	WaitForNodeVolumeDetachStartTime metav1.Time `json:"waitForNodeVolumeDetachStartTime,omitempty,omitzero"`
 }
 
 // SetTypedPhase sets the Phase field to the string representation of MachinePhase.

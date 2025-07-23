@@ -856,7 +856,11 @@ func Convert_v1alpha3_ObjectMeta_To_v1beta2_ObjectMeta(in *ObjectMeta, out *clus
 
 func Convert_v1beta2_MachineStatus_To_v1alpha3_MachineStatus(in *clusterv1.MachineStatus, out *MachineStatus, s apimachineryconversion.Scope) error {
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta2_MachineStatus_To_v1alpha3_MachineStatus(in, out, s)
+	if err := autoConvert_v1beta2_MachineStatus_To_v1alpha3_MachineStatus(in, out, s); err != nil {
+		return err
+	}
+	out.LastUpdated = ptr.To(in.LastUpdated)
+	return nil
 }
 
 func Convert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apimachineryconversion.Scope) error {
@@ -895,7 +899,13 @@ func Convert_v1beta2_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus
 
 func Convert_v1alpha3_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, out *clusterv1.MachineStatus, s apimachineryconversion.Scope) error {
 	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
-	return autoConvert_v1alpha3_MachineStatus_To_v1beta2_MachineStatus(in, out, s)
+	if err := autoConvert_v1alpha3_MachineStatus_To_v1beta2_MachineStatus(in, out, s); err != nil {
+		return err
+	}
+	if in.LastUpdated != nil && !reflect.DeepEqual(in.LastUpdated, &metav1.Time{}) {
+		out.LastUpdated = *in.LastUpdated
+	}
+	return nil
 }
 
 func Convert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *clusterv1.MachineSetSpec, out *MachineSetSpec, s apimachineryconversion.Scope) error {

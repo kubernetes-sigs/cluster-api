@@ -411,7 +411,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 				ResourceRef:     resource,
 				Hash:            "",
 				Applied:         false,
-				LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			})
 
 			errList = append(errList, err)
@@ -428,7 +428,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 			ResourceRef:     resource,
 			Hash:            "",
 			Applied:         false,
-			LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+			LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 		})
 
 		// Apply all values in the key-value pair of the resource to the cluster.
@@ -451,7 +451,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 			ResourceRef:     resource,
 			Hash:            resourceScope.hash(),
 			Applied:         isSuccessful,
-			LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+			LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 		})
 	}
 	if len(errList) > 0 {

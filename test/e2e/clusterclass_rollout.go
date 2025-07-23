@@ -285,7 +285,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(kcp), kcp)).To(Succeed())
 			patchHelper, err := patch.NewHelper(kcp, input.BootstrapClusterProxy.GetClient())
 			g.Expect(err).ToNot(HaveOccurred())
-			kcp.Spec.Rollout.After = &metav1.Time{Time: time.Now()}
+			kcp.Spec.Rollout.After = metav1.Time{Time: time.Now()}
 			g.Expect(patchHelper.Patch(ctx, kcp)).To(Succeed())
 		}, 10*time.Second, 1*time.Second).Should(Succeed())
 		By("Setting rollout.after on MachineDeployments")
@@ -294,7 +294,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(md), md)).To(Succeed())
 				patchHelper, err := patch.NewHelper(md, input.BootstrapClusterProxy.GetClient())
 				g.Expect(err).ToNot(HaveOccurred())
-				md.Spec.Rollout.After = &metav1.Time{Time: time.Now()}
+				md.Spec.Rollout.After = metav1.Time{Time: time.Now()}
 				g.Expect(patchHelper.Patch(ctx, md)).To(Succeed())
 			}, 10*time.Second, 1*time.Second).Should(Succeed())
 		}

@@ -109,7 +109,7 @@ func Test_ObjectRestarter(t *testing.T) {
 						},
 						Spec: clusterv1.MachineDeploymentSpec{
 							Rollout: clusterv1.MachineDeploymentRolloutSpec{
-								After: &metav1.Time{Time: time.Now().Local().Add(time.Hour)},
+								After: metav1.Time{Time: time.Now().Local().Add(time.Hour)},
 							},
 						},
 					},
@@ -189,7 +189,7 @@ func Test_ObjectRestarter(t *testing.T) {
 						},
 						Spec: controlplanev1.KubeadmControlPlaneSpec{
 							Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
-								After: &metav1.Time{Time: time.Now().Local().Add(time.Hour)},
+								After: metav1.Time{Time: time.Now().Local().Add(time.Hour)},
 							},
 						},
 					},
@@ -234,9 +234,9 @@ func Test_ObjectRestarter(t *testing.T) {
 					err = cl.Get(context.TODO(), key, kcp)
 					g.Expect(err).ToNot(HaveOccurred())
 					if tt.wantRollout {
-						g.Expect(kcp.Spec.Rollout.After).NotTo(BeNil())
+						g.Expect(kcp.Spec.Rollout.After.IsZero()).To(BeFalse())
 					} else {
-						g.Expect(kcp.Spec.Rollout.After).To(BeNil())
+						g.Expect(kcp.Spec.Rollout.After.IsZero()).To(BeTrue())
 					}
 				}
 			}

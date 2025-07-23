@@ -1502,7 +1502,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
-						NodeDrainStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 70)).UTC()},
+						NodeDrainStartTime: metav1.Time{Time: time.Now().Add(-(time.Second * 70)).UTC()},
 					},
 				},
 			},
@@ -1526,7 +1526,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
-						NodeDrainStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 30)).UTC()},
+						NodeDrainStartTime: metav1.Time{Time: time.Now().Add(-(time.Second * 30)).UTC()},
 					},
 				},
 			},
@@ -1547,7 +1547,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
-						NodeDrainStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 1000)).UTC()},
+						NodeDrainStartTime: metav1.Time{Time: time.Now().Add(-(time.Second * 1000)).UTC()},
 					},
 				},
 			},
@@ -1595,7 +1595,7 @@ func TestDrainNode(t *testing.T) {
 		nodeName             string
 		node                 *corev1.Node
 		pods                 []*corev1.Pod
-		nodeDrainStartTime   *metav1.Time
+		nodeDrainStartTime   metav1.Time
 		wantV1Beta1Condition *clusterv1.Condition
 		wantResult           ctrl.Result
 		wantErr              string
@@ -1703,7 +1703,7 @@ func TestDrainNode(t *testing.T) {
 					},
 				},
 			},
-			nodeDrainStartTime: &metav1.Time{Time: nodeDrainStartTime},
+			nodeDrainStartTime: metav1.Time{Time: nodeDrainStartTime},
 			wantResult:         ctrl.Result{RequeueAfter: 20 * time.Second},
 			wantV1Beta1Condition: &clusterv1.Condition{
 				Type:     clusterv1.DrainingSucceededV1Beta1Condition,
@@ -1800,7 +1800,7 @@ func TestDrainNode(t *testing.T) {
 			testMachine.Status.NodeRef = &clusterv1.MachineNodeReference{
 				Name: tt.nodeName,
 			}
-			if tt.nodeDrainStartTime != nil {
+			if !tt.nodeDrainStartTime.IsZero() {
 				testMachine.Status.Deletion = &clusterv1.MachineDeletionStatus{
 					NodeDrainStartTime: tt.nodeDrainStartTime,
 				}
@@ -1864,7 +1864,7 @@ func TestDrainNode_withCaching(t *testing.T) {
 				Name: "node-1",
 			},
 			Deletion: &clusterv1.MachineDeletionStatus{
-				NodeDrainStartTime: &metav1.Time{Time: nodeDrainStartTime},
+				NodeDrainStartTime: metav1.Time{Time: nodeDrainStartTime},
 			},
 		},
 	}
@@ -2067,7 +2067,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
-						WaitForNodeVolumeDetachStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 60)).UTC()},
+						WaitForNodeVolumeDetachStartTime: metav1.Time{Time: time.Now().Add(-(time.Second * 60)).UTC()},
 					},
 				},
 			},
@@ -2091,7 +2091,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
-						WaitForNodeVolumeDetachStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 30)).UTC()},
+						WaitForNodeVolumeDetachStartTime: metav1.Time{Time: time.Now().Add(-(time.Second * 30)).UTC()},
 					},
 				},
 			},
@@ -2112,7 +2112,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
-						WaitForNodeVolumeDetachStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 1000)).UTC()},
+						WaitForNodeVolumeDetachStartTime: metav1.Time{Time: time.Now().Add(-(time.Second * 1000)).UTC()},
 					},
 				},
 			},
@@ -2193,7 +2193,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		},
 		Status: clusterv1.MachineStatus{
 			Deletion: &clusterv1.MachineDeletionStatus{
-				WaitForNodeVolumeDetachStartTime: &metav1.Time{Time: waitForNodeVolumeDetachStartTime},
+				WaitForNodeVolumeDetachStartTime: metav1.Time{Time: waitForNodeVolumeDetachStartTime},
 			},
 		},
 	}

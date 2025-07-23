@@ -21,6 +21,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
@@ -135,6 +136,24 @@ func Convert_v1beta2_ResourceSetBinding_To_Pointer_v1alpha4_ResourceSetBinding(i
 	}
 	*out = &ResourceSetBinding{}
 	return autoConvert_v1beta2_ResourceSetBinding_To_v1alpha4_ResourceSetBinding(in, *out, s)
+}
+
+func Convert_v1alpha4_ResourceBinding_To_v1beta2_ResourceBinding(in *ResourceBinding, out *addonsv1.ResourceBinding, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha4_ResourceBinding_To_v1beta2_ResourceBinding(in, out, s); err != nil {
+		return err
+	}
+	if in.LastAppliedTime != nil && !reflect.DeepEqual(in.LastAppliedTime, &metav1.Time{}) {
+		out.LastAppliedTime = *in.LastAppliedTime
+	}
+	return nil
+}
+
+func Convert_v1beta2_ResourceBinding_To_v1alpha4_ResourceBinding(in *addonsv1.ResourceBinding, out *ResourceBinding, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_ResourceBinding_To_v1alpha4_ResourceBinding(in, out, s); err != nil {
+		return err
+	}
+	out.LastAppliedTime = ptr.To(in.LastAppliedTime)
+	return nil
 }
 
 // Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)

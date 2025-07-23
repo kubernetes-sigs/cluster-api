@@ -439,7 +439,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 							},
 						},
 						Deletion: &clusterv1.MachineDeletionStatus{
-							NodeDrainStartTime: &metav1.Time{Time: time.Now().Add(-6 * time.Minute)},
+							NodeDrainStartTime: metav1.Time{Time: time.Now().Add(-6 * time.Minute)},
 						},
 					}
 				}),
@@ -1163,7 +1163,7 @@ func withStaleDrain() fakeMachinesOption {
 		if m.Status.Deletion == nil {
 			m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
 		}
-		m.Status.Deletion.NodeDrainStartTime = ptr.To(metav1.Time{Time: time.Now().Add(-6 * time.Minute)})
+		m.Status.Deletion.NodeDrainStartTime = metav1.Time{Time: time.Now().Add(-6 * time.Minute)}
 	}
 }
 

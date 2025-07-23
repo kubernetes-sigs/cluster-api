@@ -38,7 +38,7 @@ type ResourceBinding struct {
 
 	// lastAppliedTime identifies when this resource was last applied to the cluster.
 	// +optional
-	LastAppliedTime *metav1.Time `json:"lastAppliedTime,omitempty"`
+	LastAppliedTime metav1.Time `json:"lastAppliedTime,omitempty,omitzero"`
 
 	// applied is to track if a resource is applied to the cluster or not.
 	// +required

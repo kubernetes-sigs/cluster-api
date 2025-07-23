@@ -147,37 +147,37 @@ func TestShouldRolloutAfter(t *testing.T) {
 	reconciliationTime := metav1.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	t.Run("if the machine is nil it returns false", func(t *testing.T) {
 		g := NewWithT(t)
-		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, &reconciliationTime)(nil)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, reconciliationTime)(nil)).To(BeFalse())
 	})
 	t.Run("if the reconciliationTime is nil it returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.ShouldRolloutAfter(nil, &reconciliationTime)(m)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutAfter(nil, reconciliationTime)(m)).To(BeFalse())
 	})
 	t.Run("if the rolloutAfter is nil it returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, nil)(m)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, metav1.Time{})(m)).To(BeFalse())
 	})
 	t.Run("if rolloutAfter is after the reconciliation time, return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
 		rolloutAfter := metav1.NewTime(reconciliationTime.Add(+1 * time.Hour))
-		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, &rolloutAfter)(m)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, rolloutAfter)(m)).To(BeFalse())
 	})
 	t.Run("if rolloutAfter is before the reconciliation time and the machine was created before rolloutAfter, return true", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
 		m.SetCreationTimestamp(metav1.NewTime(reconciliationTime.Add(-2 * time.Hour)))
 		rolloutAfter := metav1.NewTime(reconciliationTime.Add(-1 * time.Hour))
-		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, &rolloutAfter)(m)).To(BeTrue())
+		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, rolloutAfter)(m)).To(BeTrue())
 	})
 	t.Run("if rolloutAfter is before the reconciliation time and the machine was created after rolloutAfter, return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
 		m.SetCreationTimestamp(metav1.NewTime(reconciliationTime.Add(+1 * time.Hour)))
 		rolloutAfter := metav1.NewTime(reconciliationTime.Add(-1 * time.Hour))
-		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, &rolloutAfter)(m)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, rolloutAfter)(m)).To(BeFalse())
 	})
 }
 
@@ -204,7 +204,7 @@ func TestShouldRolloutBeforeCertificatesExpire(t *testing.T) {
 		certificateExpiryTime := reconciliationTime.Add(60 * 24 * time.Hour) // certificates will expire in 60 days from 'now'.
 		m := &clusterv1.Machine{
 			Status: clusterv1.MachineStatus{
-				CertificatesExpiryDate: &metav1.Time{Time: certificateExpiryTime},
+				CertificatesExpiryDate: metav1.Time{Time: certificateExpiryTime},
 			},
 		}
 		rb := controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{CertificatesExpiryDays: 10}
@@ -215,7 +215,7 @@ func TestShouldRolloutBeforeCertificatesExpire(t *testing.T) {
 		certificateExpiryTime := reconciliationTime.Add(5 * 24 * time.Hour) // certificates will expire in 5 days from 'now'.
 		m := &clusterv1.Machine{
 			Status: clusterv1.MachineStatus{
-				CertificatesExpiryDate: &metav1.Time{Time: certificateExpiryTime},
+				CertificatesExpiryDate: metav1.Time{Time: certificateExpiryTime},
 			},
 		}
 		rb := controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{CertificatesExpiryDays: 10}

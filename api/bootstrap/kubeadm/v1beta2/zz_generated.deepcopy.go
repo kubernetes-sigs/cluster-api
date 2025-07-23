@@ -109,10 +109,7 @@ func (in *BootstrapToken) DeepCopyInto(out *BootstrapToken) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.Expires != nil {
-		in, out := &in.Expires, &out.Expires
-		*out = (*in).DeepCopy()
-	}
+	in.Expires.DeepCopyInto(&out.Expires)
 	if in.Usages != nil {
 		in, out := &in.Usages, &out.Usages
 		*out = make([]string, len(*in))

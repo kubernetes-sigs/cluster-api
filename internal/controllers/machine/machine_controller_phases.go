@@ -377,7 +377,7 @@ func (r *Reconciler) reconcileCertificateExpiry(_ context.Context, s *scope) (ct
 			return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile certificates expiry: failed to parse expiry date from annotation on %s", klog.KObj(m))
 		}
 		expTime := metav1.NewTime(expiryTime)
-		m.Status.CertificatesExpiryDate = &expTime
+		m.Status.CertificatesExpiryDate = expTime
 	} else if s.bootstrapConfig != nil {
 		// If the expiry information is not available on the machine annotation
 		// look for it on the bootstrap config.
@@ -389,14 +389,14 @@ func (r *Reconciler) reconcileCertificateExpiry(_ context.Context, s *scope) (ct
 				return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile certificates expiry: failed to parse expiry date from annotation on %s", klog.KObj(s.bootstrapConfig))
 			}
 			expTime := metav1.NewTime(expiryTime)
-			m.Status.CertificatesExpiryDate = &expTime
+			m.Status.CertificatesExpiryDate = expTime
 		}
 	}
 
 	// If the certificates expiry information is not fond on the machine
 	// and on the bootstrap config then reset machine.status.certificatesExpiryDate.
 	if !expiryInfoFound {
-		m.Status.CertificatesExpiryDate = nil
+		m.Status.CertificatesExpiryDate = metav1.Time{}
 	}
 
 	return ctrl.Result{}, nil

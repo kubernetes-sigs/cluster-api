@@ -509,7 +509,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					afterControlPlaneInitializedGVH: tt.hookResponse,
 				}).
-				WithCallAllExtensionValidations(validateCleanupCluster).
+				WithCallAllExtensionValidations(validateClusterParameter(tt.cluster)).
 				WithCatalog(catalog).
 				Build()
 
@@ -1153,7 +1153,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					afterClusterUpgradeGVH: tt.hookResponse,
 				}).
-				WithCallAllExtensionValidations(validateCleanupCluster).
+				WithCallAllExtensionValidations(validateClusterParameter(tt.s.Current.Cluster)).
 				WithCatalog(catalog).
 				Build()
 

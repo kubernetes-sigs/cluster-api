@@ -1226,6 +1226,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 										FieldsV1:   &metav1.FieldsV1{},
 									},
 								},
+								Annotations: map[string]string{
+									"fizz":                             "buzz",
+									corev1.LastAppliedConfigAnnotation: "should be cleaned up",
+									conversion.DataAnnotation:          "should be cleaned up",
+								},
 							},
 							// Add some more fields to check that conversion implemented when calling RuntimeExtension are properly handled.
 							Spec: clusterv1.ClusterSpec{
@@ -3612,6 +3617,9 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 			delete(annotations, conversion.DataAnnotation)
 			originalClusterCopy.Annotations = annotations
 		}
+
+		// drop conditions, it is not possible to round trip without the data annotation.
+		originalClusterCopy.Status.Conditions = nil
 
 		if !apiequality.Semantic.DeepEqual(originalClusterCopy, v1beta2Cluster) {
 			return errors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, v1beta2Cluster))

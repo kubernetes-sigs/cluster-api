@@ -17,14 +17,17 @@ limitations under the License.
 package cluster
 
 import (
-	"errors"
 	"fmt"
+	"maps"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -582,7 +585,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					beforeClusterDeleteGVH: tt.hookResponse,
 				}).
-				WithCallAllExtensionValidations(validateCleanupCluster).
+				WithCallAllExtensionValidations(validateClusterParameter(tt.cluster)).
 				WithCatalog(catalog).
 				Build()
 
@@ -727,18 +730,6 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-
-			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-				WithCatalog(catalog).
-				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-					gvh: tt.hookResponse,
-				}).
-				WithCallAllExtensionValidations(validateCleanupCluster).
-				Build()
-
-			r := &Reconciler{
-				RuntimeClient: runtimeClient,
-			}
 			s := &scope.Scope{
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
@@ -763,6 +754,18 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 					},
 				},
 				HookResponseTracker: scope.NewHookResponseTracker(),
+			}
+
+			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+				WithCatalog(catalog).
+				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+					gvh: tt.hookResponse,
+				}).
+				WithCallAllExtensionValidations(validateClusterParameter(s.Current.Cluster)).
+				Build()
+
+			r := &Reconciler{
+				RuntimeClient: runtimeClient,
 			}
 			res, err := r.callBeforeClusterCreateHook(ctx, s)
 			if tt.wantErr {
@@ -1716,29 +1719,57 @@ func TestClusterClassToCluster(t *testing.T) {
 	}
 }
 
-func validateCleanupCluster(req runtimehooksv1.RequestObject) error {
-	var cluster clusterv1beta1.Cluster
-	switch req := req.(type) {
-	case *runtimehooksv1.BeforeClusterCreateRequest:
-		cluster = req.Cluster
-	case *runtimehooksv1.AfterControlPlaneInitializedRequest:
-		cluster = req.Cluster
-	case *runtimehooksv1.AfterClusterUpgradeRequest:
-		cluster = req.Cluster
-	case *runtimehooksv1.BeforeClusterDeleteRequest:
-		cluster = req.Cluster
-	default:
-		return fmt.Errorf("unhandled request type %T", req)
-	}
+func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runtimehooksv1.RequestObject) error {
+	// return a func that allows to check if expected transformations are applied to the Cluster parameter which is
+	// included in the payload for lifecycle hooks calls.
+	return func(req runtimehooksv1.RequestObject) error {
+		var cluster clusterv1beta1.Cluster
+		switch req := req.(type) {
+		case *runtimehooksv1.BeforeClusterCreateRequest:
+			cluster = req.Cluster
+		case *runtimehooksv1.AfterControlPlaneInitializedRequest:
+			cluster = req.Cluster
+		case *runtimehooksv1.AfterClusterUpgradeRequest:
+			cluster = req.Cluster
+		case *runtimehooksv1.BeforeClusterDeleteRequest:
+			cluster = req.Cluster
+		default:
+			return fmt.Errorf("unhandled request type %T", req)
+		}
 
-	if cluster.GetManagedFields() != nil {
-		return errors.New("managedFields should have been cleaned up")
+		// check if managed fields and well know annotations have been removed from the Cluster parameter included in the payload lifecycle hooks calls.
+		if cluster.GetManagedFields() != nil {
+			return errors.New("managedFields should have been cleaned up")
+		}
+		if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
+			return errors.New("last-applied-configuration annotation should have been cleaned up")
+		}
+		if _, ok := cluster.Annotations[conversion.DataAnnotation]; ok {
+			return errors.New("conversion annotation should have been cleaned up")
+		}
+
+		// check the Cluster parameter included in the payload lifecycle hooks calls has been properly converted from v1beta2 to v1beta1.
+		// Note: to perform this check we convert the parameter back to v1beta2 and compare with the original cluster +/- expected transformations.
+		v1beta2Cluster := &clusterv1.Cluster{}
+		if err := cluster.ConvertTo(v1beta2Cluster); err != nil {
+			return err
+		}
+
+		originalClusterCopy := originalCluster.DeepCopy()
+		originalClusterCopy.SetManagedFields(nil)
+		if originalClusterCopy.Annotations != nil {
+			annotations := maps.Clone(cluster.Annotations)
+			delete(annotations, corev1.LastAppliedConfigAnnotation)
+			delete(annotations, conversion.DataAnnotation)
+			originalClusterCopy.Annotations = annotations
+		}
+
+		// drop conditions, it is not possible to round trip without the data annotation.
+		originalClusterCopy.Status.Conditions = nil
+
+		if !apiequality.Semantic.DeepEqual(originalClusterCopy, v1beta2Cluster) {
+			return errors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, v1beta2Cluster))
+		}
+		return nil
 	}
-	if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
-		return errors.New("last-applied-configuration annotation should have been cleaned up")
-	}
-	if _, ok := cluster.Annotations[conversion.DataAnnotation]; ok {
-		return errors.New("conversion annotation should have been cleaned up")
-	}
-	return nil
 }

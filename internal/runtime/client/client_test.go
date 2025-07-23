@@ -863,7 +863,7 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
-				URL:      "https://127.0.0.1/",
+				URL:      ptr.To("https://127.0.0.1/"),
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{},
@@ -876,8 +876,8 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 						Hook:       "FakeHook",
 					},
-					TimeoutSeconds: 1,
-					FailurePolicy:  runtimev1.FailurePolicyFail,
+					TimeoutSeconds: ptr.To[int32](1),
+					FailurePolicy:  ptr.To(runtimev1.FailurePolicyFail),
 				},
 			},
 		},
@@ -911,7 +911,7 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 	defer srv.Close()
 
 	// Set the URL to the real address of the test server.
-	validExtensionHandlerWithFailPolicy.Spec.ClientConfig.URL = fmt.Sprintf("https://%s/", srv.Listener.Addr().String())
+	validExtensionHandlerWithFailPolicy.Spec.ClientConfig.URL = ptr.To(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
 
 	cat := runtimecatalog.New()
 	_ = fakev1alpha1.AddToCatalog(cat)

@@ -30,6 +30,7 @@ linters:
               - "ssatags" # Ensure array fields have the appropriate listType markers
               - "statusoptional" # Ensure all first children within status should be optional.
               - "statussubresource" # All root objects that have a `status` field should have a status subresource.
+              - "notimestamp" # Prevents usage of 'Timestamp' fields
               - "uniquemarkers" # Ensure that types and fields do not contain more than a single definition of a marker that should only be present once.
 
             # Per discussion in July 2024, we are keeping phase fields for now.

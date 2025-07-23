@@ -134,19 +134,21 @@ func DumpAllResources(ctx context.Context, input DumpAllResourcesInput) {
 	Expect(input.Namespace).NotTo(BeEmpty(), "input.Namespace is required for DumpAllResources")
 	Expect(input.LogPath).NotTo(BeEmpty(), "input.LogPath is required for DumpAllResources")
 
+	resources := GetCAPIResources(ctx, GetCAPIResourcesInput{
+		Lister:       input.Lister,
+		Namespace:    input.Namespace,
+		IncludeTypes: input.IncludeTypes,
+	})
+
 	// Describe all clusters (this is a sort of summary of all the resources being bumped).
+	// Note: intentionally calling GetCAPIResources first as DescribeAllCluster is more likely to fail
+	// and then we wouldn't have the CAPI resources available.
 	DescribeAllCluster(ctx, DescribeAllClusterInput{
 		Lister:               input.Lister,
 		KubeConfigPath:       input.KubeConfigPath,
 		ClusterctlConfigPath: input.ClusterctlConfigPath,
 		LogFolder:            filepath.Join(input.LogPath, input.Namespace, "Cluster"),
 		Namespace:            input.Namespace,
-	})
-
-	resources := GetCAPIResources(ctx, GetCAPIResourcesInput{
-		Lister:       input.Lister,
-		Namespace:    input.Namespace,
-		IncludeTypes: input.IncludeTypes,
 	})
 
 	for i := range resources {

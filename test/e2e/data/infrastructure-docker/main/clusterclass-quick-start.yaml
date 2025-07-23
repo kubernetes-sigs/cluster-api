@@ -291,9 +291,11 @@ spec:
           controlPlane: true
       jsonPatches:
       - op: add
-        path: /spec/template/spec/rollout/strategy/rollingUpdate/maxSurge
+        path: /spec/template/spec/rollout/strategy
         valueFrom:
-          template: "{{ .kubeadmControlPlaneMaxSurge }}"
+          template: |
+            rollingUpdate:
+              maxSurge: {{ .kubeadmControlPlaneMaxSurge }}"
   - name: controlPlaneTaint
     enabledIf: "{{ not .controlPlaneTaint }}"
     definitions:

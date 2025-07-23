@@ -2828,7 +2828,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 					},
 					"rollout": {
 						SchemaProps: spec.SchemaProps{
-							Description: "rollout defines the rollout behavior.",
+							Description: "rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines. It allows you to define the strategy used during rolling replacements.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutSpec"),
 						},
@@ -3384,7 +3384,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 					},
 					"rollout": {
 						SchemaProps: spec.SchemaProps{
-							Description: "rollout defines the rollout behavior.",
+							Description: "rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines. It allows you to require that all Machines are replaced after a certain time, and allows you to define the strategy used during rolling replacements.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutSpec"),
 						},
@@ -3619,7 +3619,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 					},
 					"rollout": {
 						SchemaProps: spec.SchemaProps{
-							Description: "rollout defines the rollout behavior.",
+							Description: "rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines. It allows you to define the strategy used during rolling replacements.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyRolloutSpec"),
 						},

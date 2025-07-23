@@ -349,7 +349,7 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 		allErrs = append(allErrs, field.Invalid(pathPrefix.Child("version"), s.Version, "must be a valid semantic version"))
 	}
 
-	allErrs = append(allErrs, validateRolloutStrategy(s.Rollout.Strategy, s.Replicas, pathPrefix.Child("rolloutStrategy"))...)
+	allErrs = append(allErrs, validateRolloutStrategy(s.Rollout.Strategy, s.Replicas, pathPrefix.Child("rollout", "strategy"))...)
 
 	if s.MachineNamingStrategy != nil {
 		allErrs = append(allErrs, validateNamingStrategy(s.MachineNamingStrategy, pathPrefix.Child("machineNamingStrategy"))...)

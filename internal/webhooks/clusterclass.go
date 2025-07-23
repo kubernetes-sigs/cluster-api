@@ -122,6 +122,8 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 	// Ensure all MachinePool classes are unique.
 	allErrs = append(allErrs, check.MachinePoolClassesAreUnique(newClusterClass)...)
 
+	allErrs = append(allErrs, validateClusterClassRollout(newClusterClass)...)
+
 	// Ensure MachineHealthChecks are valid.
 	allErrs = append(allErrs, validateMachineHealthCheckClasses(newClusterClass)...)
 
@@ -200,8 +202,8 @@ func validateUpdatesToMachineHealthCheckClasses(clusters []clusterv1.Cluster, ol
 		}
 		if len(clustersUsingMHC) != 0 {
 			allErrs = append(allErrs, field.Forbidden(
-				field.NewPath("spec", "controlPlane", "machineHealthCheck"),
-				fmt.Sprintf("MachineHealthCheck cannot be deleted because it is used by Cluster(s) %q", strings.Join(clustersUsingMHC, ",")),
+				field.NewPath("spec", "controlPlane", "healthCheck"),
+				fmt.Sprintf("healthCheck cannot be deleted because it is used by Cluster(s) %q", strings.Join(clustersUsingMHC, ",")),
 			))
 		}
 	}
@@ -231,8 +233,8 @@ func validateUpdatesToMachineHealthCheckClasses(clusters []clusterv1.Cluster, ol
 			}
 			if len(clustersUsingMHC) != 0 {
 				allErrs = append(allErrs, field.Forbidden(
-					field.NewPath("spec", "workers", "machineDeployments").Key(newMdClass.Class).Child("machineHealthCheck"),
-					fmt.Sprintf("MachineHealthCheck cannot be deleted because it is used by Cluster(s) %q", strings.Join(clustersUsingMHC, ",")),
+					field.NewPath("spec", "workers", "machineDeployments").Key(newMdClass.Class).Child("healthCheck"),
+					fmt.Sprintf("healthCheck cannot be deleted because it is used by Cluster(s) %q", strings.Join(clustersUsingMHC, ",")),
 				))
 			}
 		}
@@ -356,12 +358,23 @@ func getClusterClassVariablesMapWithReverseIndex(clusterClassVariables []cluster
 	return variablesMap, variablesIndexMap
 }
 
+func validateClusterClassRollout(clusterClass *clusterv1.ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+
+	for _, md := range clusterClass.Spec.Workers.MachineDeployments {
+		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("rollout")
+		allErrs = append(allErrs, validateRolloutStrategy(fldPath.Child("strategy"), md.Rollout.Strategy.RollingUpdate.MaxUnavailable, md.Rollout.Strategy.RollingUpdate.MaxSurge)...)
+	}
+
+	return allErrs
+}
+
 func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// Validate ControlPlane MachineHealthCheck if defined.
 	if clusterClass.Spec.ControlPlane.HealthCheck != nil {
-		fldPath := field.NewPath("spec", "controlPlane", "machineHealthCheck")
+		fldPath := field.NewPath("spec", "controlPlane", "healthCheck")
 
 		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
 		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
@@ -380,10 +393,11 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 		if md.HealthCheck == nil {
 			continue
 		}
-		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("machineHealthCheck")
+		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("healthCheck")
 
 		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, md.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
 		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, md.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
+		allErrs = append(allErrs, validateRemediationMaxInFlight(fldPath.Child("remediation"), md.HealthCheck.Remediation.MaxInFlight)...)
 	}
 	return allErrs
 }

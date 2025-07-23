@@ -1974,7 +1974,10 @@ spec:
                 format: int32
                 type: integer
               rollout:
-                description: rollout defines the rollout behavior.
+                description: |-
+                  rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.
+                  It allows you to require that all Machines are replaced after a certain time,
+                  and allows you to define the strategy used during rolling replacements.
                 minProperties: 1
                 properties:
                   after:

@@ -115,12 +115,10 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 	// Default RollingUpdate strategy only if strategy type is RollingUpdate.
 	if m.Spec.Rollout.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
 		if m.Spec.Rollout.Strategy.RollingUpdate.MaxSurge == nil {
-			ios1 := intstr.FromInt32(1)
-			m.Spec.Rollout.Strategy.RollingUpdate.MaxSurge = &ios1
+			m.Spec.Rollout.Strategy.RollingUpdate.MaxSurge = ptr.To(intstr.FromInt32(1))
 		}
 		if m.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable == nil {
-			ios0 := intstr.FromInt32(0)
-			m.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable = &ios0
+			m.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable = ptr.To(intstr.FromInt32(0))
 		}
 	}
 
@@ -245,40 +243,8 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		)
 	}
 
-	total := 1
-	if newMD.Spec.Replicas != nil {
-		total = int(*newMD.Spec.Replicas)
-	}
-
-	if newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge != nil {
-		if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge, total, true); err != nil {
-			allErrs = append(
-				allErrs,
-				field.Invalid(specPath.Child("strategy", "rollingUpdate", "maxSurge"),
-					newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
-			)
-		}
-	}
-
-	if newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable != nil {
-		if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable, total, true); err != nil {
-			allErrs = append(
-				allErrs,
-				field.Invalid(specPath.Child("strategy", "rollingUpdate", "maxUnavailable"),
-					newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
-			)
-		}
-	}
-
-	if newMD.Spec.Remediation.MaxInFlight != nil {
-		if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Remediation.MaxInFlight, total, true); err != nil {
-			allErrs = append(
-				allErrs,
-				field.Invalid(specPath.Child("strategy", "remediation", "maxInFlight"),
-					newMD.Spec.Remediation.MaxInFlight.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
-			)
-		}
-	}
+	allErrs = append(allErrs, validateRolloutStrategy(specPath.Child("rollout", "strategy"), newMD.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable, newMD.Spec.Rollout.Strategy.RollingUpdate.MaxSurge)...)
+	allErrs = append(allErrs, validateRemediationMaxInFlight(specPath.Child("remediation"), newMD.Spec.Remediation.MaxInFlight)...)
 
 	if newMD.Spec.Template.Spec.Version != "" {
 		if !version.KubeSemver.MatchString(newMD.Spec.Template.Spec.Version) {
@@ -298,6 +264,54 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 	}
 
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachineDeployment").GroupKind(), newMD.Name, allErrs)
+}
+
+func validateRolloutStrategy(fldPath *field.Path, maxUnavailable, maxSurge *intstr.IntOrString) field.ErrorList {
+	var allErrs field.ErrorList
+	if maxUnavailable != nil {
+		// Note: total and roundUp parameters don't matter for validation.
+		if _, err := intstr.GetScaledValueFromIntOrPercent(maxUnavailable, 0, false); err != nil {
+			allErrs = append(
+				allErrs,
+				field.Invalid(fldPath.Child("rollingUpdate", "maxUnavailable"),
+					maxUnavailable.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+			)
+		}
+	}
+	if maxSurge != nil {
+		// Note: total and roundUp parameters don't matter for validation.
+		if _, err := intstr.GetScaledValueFromIntOrPercent(maxSurge, 0, false); err != nil {
+			allErrs = append(
+				allErrs,
+				field.Invalid(fldPath.Child("rollingUpdate", "maxSurge"),
+					maxSurge.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+			)
+		}
+	}
+	if maxUnavailable != nil && maxSurge != nil &&
+		maxUnavailable.Type == intstr.Int && maxSurge.Type == intstr.Int &&
+		maxUnavailable.IntVal == 0 && maxSurge.IntVal == 0 {
+		allErrs = append(
+			allErrs,
+			field.Invalid(fldPath.Child("rollingUpdate"),
+				maxSurge.String(), "maxUnavailable and maxSurge cannot both be 0"),
+		)
+	}
+	return allErrs
+}
+
+func validateRemediationMaxInFlight(fldPath *field.Path, maxInFlight *intstr.IntOrString) field.ErrorList {
+	var allErrs field.ErrorList
+	if maxInFlight != nil {
+		// Note: total and roundUp parameters don't matter for validation.
+		if _, err := intstr.GetScaledValueFromIntOrPercent(maxInFlight, 0, false); err != nil {
+			allErrs = append(
+				allErrs,
+				field.Invalid(fldPath.Child("maxInFlight"), maxInFlight.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+			)
+		}
+	}
+	return allErrs
 }
 
 func validateMDMachineNamingStrategy(machineNamingStrategy *clusterv1.MachineNamingStrategy, pathPrefix *field.Path) field.ErrorList {

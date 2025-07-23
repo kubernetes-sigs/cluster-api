@@ -4372,7 +4372,9 @@ spec:
                           - conditionType
                           x-kubernetes-list-type: map
                         rollout:
-                          description: rollout defines the rollout behavior.
+                          description: |-
+                            rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.
+                            It allows you to define the strategy used during rolling replacements.
                           minProperties: 1
                           properties:
                             strategy:

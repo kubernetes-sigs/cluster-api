@@ -262,7 +262,9 @@ type MachineDeploymentSpec struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// rollout defines the rollout behavior.
+	// rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.
+	// It allows you to require that all Machines are replaced after a certain time,
+	// and allows you to define the strategy used during rolling replacements.
 	// +optional
 	Rollout MachineDeploymentRolloutSpec `json:"rollout,omitempty,omitzero"`
 

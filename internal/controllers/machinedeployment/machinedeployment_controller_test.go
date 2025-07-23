@@ -219,7 +219,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			return len(machineSets.Items)
 		}, timeout).Should(BeEquivalentTo(1))
 
-		t.Log("Verifying that the deployment's deletePolicy was propagated to the machineset")
+		t.Log("Verifying that the deployment's deletion.order was propagated to the machineset")
 		g.Expect(machineSets.Items[0].Spec.Deletion.Order).To(Equal(clusterv1.OldestMachineSetDeletionOrder))
 
 		t.Log("Verifying the linked infrastructure template has a cluster owner reference")
@@ -391,9 +391,9 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(BeNil())
 		}).Should(Succeed())
 
-		// Update the DeletePolicy of the MachineDeployment,
+		// Update the deletion.order of the MachineDeployment,
 		// expect the Reconcile to be called and the MachineSet to be updated in-place.
-		t.Log("Updating deletePolicy on the MachineDeployment")
+		t.Log("Updating deletion.order on the MachineDeployment")
 		modifyFunc = func(d *clusterv1.MachineDeployment) {
 			d.Spec.Deletion.Order = clusterv1.NewestMachineSetDeletionOrder
 		}
@@ -402,7 +402,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			g.Expect(env.List(ctx, machineSets, msListOpts...)).Should(Succeed())
 			// Verify we still only have 2 MachineSets.
 			g.Expect(machineSets.Items).To(HaveLen(2))
-			// Verify the DeletePolicy value is updated
+			// Verify the deletion.order value is updated
 			g.Expect(machineSets.Items[0].Spec.Deletion.Order).Should(Equal(clusterv1.NewestMachineSetDeletionOrder))
 
 			// Verify that the old machine set retains its delete policy

@@ -444,7 +444,9 @@ type KubeadmControlPlaneSpec struct {
 	// +optional
 	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec,omitempty,omitzero"`
 
-	// rollout defines the rollout behavior.
+	// rollout allows you to configure the behaviour of rolling updates to the control plane Machines.
+	// It allows you to require that all Machines are replaced before or after a certain time,
+	// and allows you to define the strategy used during rolling replacements.
 	// +optional
 	Rollout KubeadmControlPlaneRolloutSpec `json:"rollout,omitempty,omitzero"`
 
@@ -524,7 +526,9 @@ type KubeadmControlPlaneMachineTemplateDeletionSpec struct {
 	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
 }
 
-// KubeadmControlPlaneRolloutSpec defines the rollout behavior.
+// KubeadmControlPlaneRolloutSpec allows you to configure the behaviour of rolling updates to the control plane Machines.
+// It allows you to require that all Machines are replaced before or after a certain time,
+// and allows you to define the strategy used during rolling replacements.
 // +kubebuilder:validation:MinProperties=1
 type KubeadmControlPlaneRolloutSpec struct {
 	// before is a field to indicate a rollout should be performed
@@ -551,6 +555,7 @@ type KubeadmControlPlaneRolloutSpec struct {
 type KubeadmControlPlaneRolloutBeforeSpec struct {
 	// certificatesExpiryDays indicates a rollout needs to be performed if the
 	// certificates of the machine will expire within the specified days.
+	// The minimum for this field is 7.
 	// +optional
 	// +kubebuilder:validation:Minimum=7
 	CertificatesExpiryDays int32 `json:"certificatesExpiryDays,omitempty"`

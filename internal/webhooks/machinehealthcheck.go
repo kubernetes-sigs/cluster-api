@@ -172,10 +172,11 @@ func validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath *field.Path, no
 func validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath *field.Path, unhealthyLessThanOrEqualTo *intstr.IntOrString) field.ErrorList {
 	var allErrs field.ErrorList
 	if unhealthyLessThanOrEqualTo != nil {
+		// Note: total and roundUp parameters don't matter for validation.
 		if _, err := intstr.GetScaledValueFromIntOrPercent(unhealthyLessThanOrEqualTo, 0, false); err != nil {
 			allErrs = append(
 				allErrs,
-				field.Invalid(fldPath.Child("remediation", "triggerIf", "unhealthyLessThanOrEqualTo"), unhealthyLessThanOrEqualTo, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+				field.Invalid(fldPath.Child("remediation", "triggerIf", "unhealthyLessThanOrEqualTo"), unhealthyLessThanOrEqualTo.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
 			)
 		}
 	}

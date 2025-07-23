@@ -103,7 +103,7 @@ func TestMachineToDelete(t *testing.T) {
 		expect   []*clusterv1.Machine
 	}{
 		{
-			desc: "func=randomDeletePolicy, diff=0",
+			desc: "func=randomDeletionOrder, diff=0",
 			diff: 0,
 			machines: []*clusterv1.Machine{
 				healthyMachine,
@@ -111,7 +111,7 @@ func TestMachineToDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{},
 		},
 		{
-			desc: "func=randomDeletePolicy, diff>len(machines)",
+			desc: "func=randomDeletionOrder, diff>len(machines)",
 			diff: 2,
 			machines: []*clusterv1.Machine{
 				healthyMachine,
@@ -121,75 +121,7 @@ func TestMachineToDelete(t *testing.T) {
 			},
 		},
 		{
-			desc: "func=randomDeletePolicy, diff>betterDelete",
-			diff: 2,
-			machines: []*clusterv1.Machine{
-				healthyMachine,
-				betterDeleteMachine,
-				healthyMachine,
-			},
-			expect: []*clusterv1.Machine{
-				betterDeleteMachine,
-				healthyMachine,
-			},
-		},
-		{
-			desc: "func=randomDeletePolicy, diff<betterDelete",
-			diff: 2,
-			machines: []*clusterv1.Machine{
-				healthyMachine,
-				betterDeleteMachine,
-				betterDeleteMachine,
-				betterDeleteMachine,
-			},
-			expect: []*clusterv1.Machine{
-				betterDeleteMachine,
-				betterDeleteMachine,
-			},
-		},
-		{
-			desc: "func=randomDeletePolicy, diff<=mustDelete",
-			diff: 2,
-			machines: []*clusterv1.Machine{
-				healthyMachine,
-				mustDeleteMachine,
-				betterDeleteMachine,
-				mustDeleteMachine,
-			},
-			expect: []*clusterv1.Machine{
-				mustDeleteMachine,
-				mustDeleteMachine,
-			},
-		},
-		{
-			desc: "func=randomDeletePolicy, diff<=mustDelete+betterDelete",
-			diff: 2,
-			machines: []*clusterv1.Machine{
-				healthyMachine,
-				mustDeleteMachine,
-				healthyMachine,
-				betterDeleteMachine,
-			},
-			expect: []*clusterv1.Machine{
-				mustDeleteMachine,
-				betterDeleteMachine,
-			},
-		},
-		{
-			desc: "func=randomDeletePolicy, diff<=mustDelete+betterDelete+couldDelete",
-			diff: 2,
-			machines: []*clusterv1.Machine{
-				healthyMachine,
-				mustDeleteMachine,
-				healthyMachine,
-			},
-			expect: []*clusterv1.Machine{
-				mustDeleteMachine,
-				healthyMachine,
-			},
-		},
-		{
-			desc: "func=randomDeletePolicy, diff>betterDelete",
+			desc: "func=randomDeletionOrder, diff>betterDelete",
 			diff: 2,
 			machines: []*clusterv1.Machine{
 				healthyMachine,
@@ -202,7 +134,75 @@ func TestMachineToDelete(t *testing.T) {
 			},
 		},
 		{
-			desc: "func=randomDeletePolicy, DeleteMachineAnnotation, diff=1",
+			desc: "func=randomDeletionOrder, diff<betterDelete",
+			diff: 2,
+			machines: []*clusterv1.Machine{
+				healthyMachine,
+				betterDeleteMachine,
+				betterDeleteMachine,
+				betterDeleteMachine,
+			},
+			expect: []*clusterv1.Machine{
+				betterDeleteMachine,
+				betterDeleteMachine,
+			},
+		},
+		{
+			desc: "func=randomDeletionOrder, diff<=mustDelete",
+			diff: 2,
+			machines: []*clusterv1.Machine{
+				healthyMachine,
+				mustDeleteMachine,
+				betterDeleteMachine,
+				mustDeleteMachine,
+			},
+			expect: []*clusterv1.Machine{
+				mustDeleteMachine,
+				mustDeleteMachine,
+			},
+		},
+		{
+			desc: "func=randomDeletionOrder, diff<=mustDelete+betterDelete",
+			diff: 2,
+			machines: []*clusterv1.Machine{
+				healthyMachine,
+				mustDeleteMachine,
+				healthyMachine,
+				betterDeleteMachine,
+			},
+			expect: []*clusterv1.Machine{
+				mustDeleteMachine,
+				betterDeleteMachine,
+			},
+		},
+		{
+			desc: "func=randomDeletionOrder, diff<=mustDelete+betterDelete+couldDelete",
+			diff: 2,
+			machines: []*clusterv1.Machine{
+				healthyMachine,
+				mustDeleteMachine,
+				healthyMachine,
+			},
+			expect: []*clusterv1.Machine{
+				mustDeleteMachine,
+				healthyMachine,
+			},
+		},
+		{
+			desc: "func=randomDeletionOrder, diff>betterDelete",
+			diff: 2,
+			machines: []*clusterv1.Machine{
+				healthyMachine,
+				betterDeleteMachine,
+				healthyMachine,
+			},
+			expect: []*clusterv1.Machine{
+				betterDeleteMachine,
+				healthyMachine,
+			},
+		},
+		{
+			desc: "func=randomDeletionOrder, DeleteMachineAnnotation, diff=1",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				betterDeleteMachine,
@@ -214,7 +214,7 @@ func TestMachineToDelete(t *testing.T) {
 			},
 		},
 		{
-			desc: "func=randomDeletePolicy, MachineWithNoNodeRef, diff=1",
+			desc: "func=randomDeletionOrder, MachineWithNoNodeRef, diff=1",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				healthyMachine,
@@ -226,7 +226,7 @@ func TestMachineToDelete(t *testing.T) {
 			},
 		},
 		{
-			desc: "func=randomDeletePolicy, NodeHealthyConditionFalseMachine, diff=1",
+			desc: "func=randomDeletionOrder, NodeHealthyConditionFalseMachine, diff=1",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				healthyMachine,
@@ -238,7 +238,7 @@ func TestMachineToDelete(t *testing.T) {
 			},
 		},
 		{
-			desc: "func=randomDeletePolicy, NodeHealthyConditionUnknownMachine, diff=1",
+			desc: "func=randomDeletionOrder, NodeHealthyConditionUnknownMachine, diff=1",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				healthyMachine,
@@ -250,7 +250,7 @@ func TestMachineToDelete(t *testing.T) {
 			},
 		},
 		{
-			desc: "func=randomDeletePolicy, HealthCheckSucceededConditionFalseMachine, diff=1",
+			desc: "func=randomDeletionOrder, HealthCheckSucceededConditionFalseMachine, diff=1",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				healthyMachine,
@@ -262,7 +262,7 @@ func TestMachineToDelete(t *testing.T) {
 			},
 		},
 		{
-			desc: "func=randomDeletePolicy, HealthCheckSucceededConditionUnknownMachine, diff=1",
+			desc: "func=randomDeletionOrder, HealthCheckSucceededConditionUnknownMachine, diff=1",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				healthyMachine,
@@ -279,7 +279,7 @@ func TestMachineToDelete(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			g := NewWithT(t)
 
-			result := getMachinesToDeletePrioritized(test.machines, test.diff, randomDeletePolicy)
+			result := getMachinesToDeletePrioritized(test.machines, test.diff, randomDeletionOrder)
 			g.Expect(result).To(BeComparableTo(test.expect))
 		})
 	}
@@ -359,7 +359,7 @@ func TestMachineNewestDelete(t *testing.T) {
 		expect   []*clusterv1.Machine
 	}{
 		{
-			desc: "func=newestDeletePriority, diff=1",
+			desc: "func=newestDeletionOrder, diff=1",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				secondNewest, oldest, secondOldest, mustDeleteMachine, newest,
@@ -367,7 +367,7 @@ func TestMachineNewestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{mustDeleteMachine},
 		},
 		{
-			desc: "func=newestDeletePriority, diff=2",
+			desc: "func=newestDeletionOrder, diff=2",
 			diff: 2,
 			machines: []*clusterv1.Machine{
 				secondNewest, oldest, mustDeleteMachine, secondOldest, newest,
@@ -375,7 +375,7 @@ func TestMachineNewestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{mustDeleteMachine, newest},
 		},
 		{
-			desc: "func=newestDeletePriority, diff=3",
+			desc: "func=newestDeletionOrder, diff=3",
 			diff: 3,
 			machines: []*clusterv1.Machine{
 				secondNewest, mustDeleteMachine, oldest, secondOldest, newest,
@@ -383,7 +383,7 @@ func TestMachineNewestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{mustDeleteMachine, newest, secondNewest},
 		},
 		{
-			desc: "func=newestDeletePriority, diff=1 (DeleteMachineAnnotation)",
+			desc: "func=newestDeletionOrder, diff=1 (DeleteMachineAnnotation)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				secondNewest, oldest, secondOldest, newest, deleteMachineWithMachineAnnotation,
@@ -391,7 +391,7 @@ func TestMachineNewestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{deleteMachineWithMachineAnnotation},
 		},
 		{
-			desc: "func=newestDeletePriority, diff=1 (deleteMachineWithoutNodeRef)",
+			desc: "func=newestDeletionOrder, diff=1 (deleteMachineWithoutNodeRef)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				secondNewest, oldest, secondOldest, newest, deleteMachineWithoutNodeRef,
@@ -399,7 +399,7 @@ func TestMachineNewestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{deleteMachineWithoutNodeRef},
 		},
 		{
-			desc: "func=newestDeletePriority, diff=1 (unhealthy)",
+			desc: "func=newestDeletionOrder, diff=1 (unhealthy)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				secondNewest, oldest, secondOldest, newest, unhealthyMachine,
@@ -407,7 +407,7 @@ func TestMachineNewestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{unhealthyMachine},
 		},
 		{
-			desc: "func=newestDeletePriority, diff=1 (nodeHealthyConditionFalseMachine)",
+			desc: "func=newestDeletionOrder, diff=1 (nodeHealthyConditionFalseMachine)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				secondNewest, oldest, secondOldest, newest, nodeHealthyConditionFalseMachine,
@@ -415,7 +415,7 @@ func TestMachineNewestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{nodeHealthyConditionFalseMachine},
 		},
 		{
-			desc: "func=newestDeletePriority, diff=1 (nodeHealthyConditionUnknownMachine)",
+			desc: "func=newestDeletionOrder, diff=1 (nodeHealthyConditionUnknownMachine)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				// nodeHealthyConditionUnknownMachine is not considered unhealthy with unknown condition.
@@ -429,7 +429,7 @@ func TestMachineNewestDelete(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			g := NewWithT(t)
 
-			result := getMachinesToDeletePrioritized(test.machines, test.diff, newestDeletePriority)
+			result := getMachinesToDeletePrioritized(test.machines, test.diff, newestDeletionOrder)
 			g.Expect(result).To(BeComparableTo(test.expect))
 		})
 	}
@@ -536,7 +536,7 @@ func TestMachineOldestDelete(t *testing.T) {
 		expect   []*clusterv1.Machine
 	}{
 		{
-			desc: "func=oldestDeletePriority, diff=1",
+			desc: "func=oldestDeletionOrder, diff=1",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				empty, secondNewest, oldest, secondOldest, newest,
@@ -544,7 +544,7 @@ func TestMachineOldestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{oldest},
 		},
 		{
-			desc: "func=oldestDeletePriority, diff=2",
+			desc: "func=oldestDeletionOrder, diff=2",
 			diff: 2,
 			machines: []*clusterv1.Machine{
 				secondNewest, oldest, secondOldest, newest, empty,
@@ -552,7 +552,7 @@ func TestMachineOldestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{oldest, secondOldest},
 		},
 		{
-			desc: "func=oldestDeletePriority, diff=3",
+			desc: "func=oldestDeletionOrder, diff=3",
 			diff: 3,
 			machines: []*clusterv1.Machine{
 				secondNewest, oldest, secondOldest, newest, empty,
@@ -560,7 +560,7 @@ func TestMachineOldestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{oldest, secondOldest, secondNewest},
 		},
 		{
-			desc: "func=oldestDeletePriority, diff=4",
+			desc: "func=oldestDeletionOrder, diff=4",
 			diff: 4,
 			machines: []*clusterv1.Machine{
 				secondNewest, oldest, secondOldest, newest, empty,
@@ -568,7 +568,7 @@ func TestMachineOldestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{oldest, secondOldest, secondNewest, newest},
 		},
 		{
-			desc: "func=oldestDeletePriority, diff=1 (DeleteMachineAnnotation)",
+			desc: "func=oldestDeletionOrder, diff=1 (DeleteMachineAnnotation)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				empty, secondNewest, oldest, secondOldest, newest, deleteMachineWithMachineAnnotation,
@@ -576,7 +576,7 @@ func TestMachineOldestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{deleteMachineWithMachineAnnotation},
 		},
 		{
-			desc: "func=oldestDeletePriority, diff=1 (deleteMachineWithoutNodeRef)",
+			desc: "func=oldestDeletionOrder, diff=1 (deleteMachineWithoutNodeRef)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				empty, secondNewest, oldest, secondOldest, newest, deleteMachineWithoutNodeRef,
@@ -584,7 +584,7 @@ func TestMachineOldestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{deleteMachineWithoutNodeRef},
 		},
 		{
-			desc: "func=oldestDeletePriority, diff=1 (unhealthy)",
+			desc: "func=oldestDeletionOrder, diff=1 (unhealthy)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				empty, secondNewest, oldest, secondOldest, newest, unhealthyMachine,
@@ -592,7 +592,7 @@ func TestMachineOldestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{unhealthyMachine},
 		},
 		{
-			desc: "func=oldestDeletePriority, diff=1 (nodeHealthyConditionFalseMachine)",
+			desc: "func=oldestDeletionOrder, diff=1 (nodeHealthyConditionFalseMachine)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				empty, secondNewest, oldest, secondOldest, newest, nodeHealthyConditionFalseMachine,
@@ -600,7 +600,7 @@ func TestMachineOldestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{nodeHealthyConditionFalseMachine},
 		},
 		{
-			desc: "func=oldestDeletePriority, diff=1 (nodeHealthyConditionUnknownMachine)",
+			desc: "func=oldestDeletionOrder, diff=1 (nodeHealthyConditionUnknownMachine)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				empty, secondNewest, oldest, secondOldest, newest, nodeHealthyConditionUnknownMachine,
@@ -610,7 +610,7 @@ func TestMachineOldestDelete(t *testing.T) {
 		},
 		// these two cases ensures the mustDeleteMachine is always picked regardless of the machine names.
 		{
-			desc: "func=oldestDeletePriority, diff=1 (unhealthyMachineA)",
+			desc: "func=oldestDeletionOrder, diff=1 (unhealthyMachineA)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				empty, secondNewest, oldest, secondOldest, newest, mustDeleteMachine, unhealthyMachineA,
@@ -618,7 +618,7 @@ func TestMachineOldestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{mustDeleteMachine},
 		},
 		{
-			desc: "func=oldestDeletePriority, diff=1 (unhealthyMachineZ)",
+			desc: "func=oldestDeletionOrder, diff=1 (unhealthyMachineZ)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				empty, secondNewest, oldest, secondOldest, newest, mustDeleteMachine, unhealthyMachineZ,
@@ -631,7 +631,7 @@ func TestMachineOldestDelete(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			g := NewWithT(t)
 
-			result := getMachinesToDeletePrioritized(test.machines, test.diff, oldestDeletePriority)
+			result := getMachinesToDeletePrioritized(test.machines, test.diff, oldestDeletionOrder)
 			g.Expect(result).To(BeComparableTo(test.expect))
 		})
 	}
@@ -652,64 +652,64 @@ func TestMachineDeleteMultipleSamePriority(t *testing.T) {
 		deletePriority deletePriorityFunc
 	}{
 		{
-			desc:           "multiple with same priority, func=oldestDeletePriority, diff=1",
+			desc:           "multiple with same priority, func=oldestDeletionOrder, diff=1",
 			diff:           1,
-			deletePriority: oldestDeletePriority,
+			deletePriority: oldestDeletionOrder,
 		},
 		{
-			desc:           "multiple with same priority, func=oldestDeletePriority, diff=5",
+			desc:           "multiple with same priority, func=oldestDeletionOrder, diff=5",
 			diff:           5,
-			deletePriority: oldestDeletePriority,
+			deletePriority: oldestDeletionOrder,
 		},
 		{
-			desc:           "multiple with same priority, func=oldestDeletePriority, diff=rand",
+			desc:           "multiple with same priority, func=oldestDeletionOrder, diff=rand",
 			diff:           rand.Intn(len(machines)),
-			deletePriority: oldestDeletePriority,
+			deletePriority: oldestDeletionOrder,
 		},
 		{
-			desc:           "multiple with same priority, func=randomDeletePolicy, diff=1",
+			desc:           "multiple with same priority, func=randomDeletionOrder, diff=1",
 			diff:           1,
-			deletePriority: randomDeletePolicy,
+			deletePriority: randomDeletionOrder,
 		},
 		{
-			desc:           "multiple with same priority, func=randomDeletePolicy, diff=5",
+			desc:           "multiple with same priority, func=randomDeletionOrder, diff=5",
 			diff:           5,
-			deletePriority: randomDeletePolicy,
+			deletePriority: randomDeletionOrder,
 		},
 		{
-			desc:           "multiple with same priority, func=randomDeletePolicy, diff=rand",
+			desc:           "multiple with same priority, func=randomDeletionOrder, diff=rand",
 			diff:           rand.Intn(len(machines)),
-			deletePriority: randomDeletePolicy,
+			deletePriority: randomDeletionOrder,
 		},
 		{
-			desc:           "multiple with same priority, func=newestDeletePriority, diff=1",
+			desc:           "multiple with same priority, func=newestDeletionOrder, diff=1",
 			diff:           1,
-			deletePriority: newestDeletePriority,
+			deletePriority: newestDeletionOrder,
 		},
 		{
-			desc:           "multiple with same priority, func=newestDeletePriority, diff=5",
+			desc:           "multiple with same priority, func=newestDeletionOrder, diff=5",
 			diff:           5,
-			deletePriority: newestDeletePriority,
+			deletePriority: newestDeletionOrder,
 		},
 		{
-			desc:           "multiple with same priority, func=newestDeletePriority, diff=rand",
+			desc:           "multiple with same priority, func=newestDeletionOrder, diff=rand",
 			diff:           rand.Intn(len(machines)),
-			deletePriority: newestDeletePriority,
+			deletePriority: newestDeletionOrder,
 		},
 		{
-			desc:           "multiple with same priority, func=randomDeletePolicy, diff=1",
+			desc:           "multiple with same priority, func=randomDeletionOrder, diff=1",
 			diff:           1,
-			deletePriority: randomDeletePolicy,
+			deletePriority: randomDeletionOrder,
 		},
 		{
-			desc:           "multiple with same priority, func=randomDeletePolicy, diff=5",
+			desc:           "multiple with same priority, func=randomDeletionOrder, diff=5",
 			diff:           5,
-			deletePriority: randomDeletePolicy,
+			deletePriority: randomDeletionOrder,
 		},
 		{
-			desc:           "multiple with same priority, func=randomDeletePolicy, diff=rand",
+			desc:           "multiple with same priority, func=randomDeletionOrder, diff=rand",
 			diff:           rand.Intn(len(machines)),
-			deletePriority: randomDeletePolicy,
+			deletePriority: randomDeletionOrder,
 		},
 	}
 

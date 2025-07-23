@@ -7378,7 +7378,10 @@ spec:
                 format: int32
                 type: integer
               rollout:
-                description: rollout defines the rollout behavior.
+                description: |-
+                  rollout allows you to configure the behaviour of rolling updates to the control plane Machines.
+                  It allows you to require that all Machines are replaced before or after a certain time,
+                  and allows you to define the strategy used during rolling replacements.
                 minProperties: 1
                 properties:
                   after:
@@ -7401,6 +7404,7 @@ spec:
                         description: |-
                           certificatesExpiryDays indicates a rollout needs to be performed if the
                           certificates of the machine will expire within the specified days.
+                          The minimum for this field is 7.
                         format: int32
                         minimum: 7
                         type: integer

@@ -43,7 +43,7 @@ const (
 )
 
 // maps the creation timestamp onto the 0-100 priority range.
-func oldestDeletePriority(machine *clusterv1.Machine) deletePriority {
+func oldestDeletionOrder(machine *clusterv1.Machine) deletePriority {
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
@@ -63,7 +63,7 @@ func oldestDeletePriority(machine *clusterv1.Machine) deletePriority {
 	return deletePriority(float64(betterDelete) * (1.0 - math.Exp(-d.Seconds()/secondsPerTenDays)))
 }
 
-func newestDeletePriority(machine *clusterv1.Machine) deletePriority {
+func newestDeletionOrder(machine *clusterv1.Machine) deletePriority {
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
@@ -73,10 +73,10 @@ func newestDeletePriority(machine *clusterv1.Machine) deletePriority {
 	if !isMachineHealthy(machine) {
 		return betterDelete
 	}
-	return betterDelete - oldestDeletePriority(machine)
+	return betterDelete - oldestDeletionOrder(machine)
 }
 
-func randomDeletePolicy(machine *clusterv1.Machine) deletePriority {
+func randomDeletionOrder(machine *clusterv1.Machine) deletePriority {
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
@@ -126,13 +126,13 @@ func getDeletePriorityFunc(ms *clusterv1.MachineSet) (deletePriorityFunc, error)
 	// Map the Spec.Order value to the appropriate delete priority function
 	switch ms.Spec.Deletion.Order {
 	case clusterv1.RandomMachineSetDeletionOrder:
-		return randomDeletePolicy, nil
+		return randomDeletionOrder, nil
 	case clusterv1.NewestMachineSetDeletionOrder:
-		return newestDeletePriority, nil
+		return newestDeletionOrder, nil
 	case clusterv1.OldestMachineSetDeletionOrder:
-		return oldestDeletePriority, nil
+		return oldestDeletionOrder, nil
 	case "":
-		return randomDeletePolicy, nil
+		return randomDeletionOrder, nil
 	default:
 		return nil, errors.Errorf("Unsupported deletion order %s. Must be one of 'Random', 'Newest', or 'Oldest'", ms.Spec.Deletion.Order)
 	}

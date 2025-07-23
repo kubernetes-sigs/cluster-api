@@ -880,7 +880,8 @@ type MachineDeploymentTopology struct {
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
-	// rollout defines the rollout behavior.
+	// rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.
+	// It allows you to define the strategy used during rolling replacements.
 	// +optional
 	Rollout MachineDeploymentTopologyRolloutSpec `json:"rollout,omitempty,omitzero"`
 

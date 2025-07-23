@@ -95,7 +95,9 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 	// +optional
 	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec,omitempty,omitzero"`
 
-	// rollout defines the rollout behavior.
+	// rollout allows you to configure the behaviour of rolling updates to the control plane Machines.
+	// It allows you to require that all Machines are replaced before or after a certain time,
+	// and allows you to define the strategy used during rolling replacements.
 	// +optional
 	Rollout KubeadmControlPlaneRolloutSpec `json:"rollout,omitempty,omitzero"`
 

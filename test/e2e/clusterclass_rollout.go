@@ -200,6 +200,9 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 						MaxSurge:       &intstr.IntOrString{Type: intstr.Int, IntVal: 5 + rand.Int31n(20)}, //nolint:gosec
 					},
 				}
+				if topology.HealthCheck == nil {
+					topology.HealthCheck = &clusterv1.MachineDeploymentTopologyHealthCheck{}
+				}
 				topology.HealthCheck.Remediation.MaxInFlight = &intstr.IntOrString{Type: intstr.Int, IntVal: 2 + rand.Int31n(20)} //nolint:gosec
 				topology.Deletion = clusterv1.MachineDeploymentTopologyMachineDeletionSpec{
 					Order: clusterv1.NewestMachineSetDeletionOrder,

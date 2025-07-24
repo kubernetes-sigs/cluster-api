@@ -41,7 +41,7 @@ func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	restored := &infrav1.DockerCluster{}
-	ok, err := utilconversion.UnmarshalData(dst, restored)
+	ok, err := utilconversion.UnmarshalData(src, restored)
 	if err != nil {
 		return err
 	}
@@ -153,8 +153,8 @@ func (src *DevCluster) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Recover intent for bool values converted to *bool.
 	initialization := infrav1.DevClusterInitializationStatus{}
-	restoredDockerMachineProvisioned := restored.Status.Initialization.Provisioned
-	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredDockerMachineProvisioned, &initialization.Provisioned)
+	restoredDevClusterProvisioned := restored.Status.Initialization.Provisioned
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restoredDevClusterProvisioned, &initialization.Provisioned)
 	if !reflect.DeepEqual(initialization, infrav1.DevClusterInitializationStatus{}) {
 		dst.Status.Initialization = initialization
 	}

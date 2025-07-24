@@ -1090,7 +1090,7 @@ func assertClusterTopologyBecomesStable(g *WithT, refs map[clusterv1.ContractVer
 		for r, generation := range refs {
 			obj := &unstructured.Unstructured{}
 			obj.SetGroupVersionKind(r.GroupKind().WithVersion(version))
-			err := env.GetClient().Get(ctx, client.ObjectKey{Name: r.Name, Namespace: namespace}, obj)
+			err := env.GetAPIReader().Get(ctx, client.ObjectKey{Name: r.Name, Namespace: namespace}, obj)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(obj.GetGeneration()).To(Equal(generation), "generation is not remaining stable for %s/%s, %s", r.Kind, r.GroupKind().WithVersion(version).GroupVersion().String(), r.Name)
 		}
@@ -1112,10 +1112,10 @@ func setupT1CRDAndWebHooks(g *WithT, ns *corev1.Namespace) (client.Client, *test
 
 	// Set contract label on CRDs
 	// NOTE: for sake of simplicity we are setting v1beta2 contract for v1beta1 API version.
-	err = addOrReplaceContractLabels(ctx, env, "testresourcetemplates.test.cluster.x-k8s.io", testt1v1beta1.GroupVersion.Version)
+	err = addOrReplaceContractLabels(ctx, "testresourcetemplates.test.cluster.x-k8s.io", testt1v1beta1.GroupVersion.Version)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	err = addOrReplaceContractLabels(ctx, env, "testresources.test.cluster.x-k8s.io", testt1v1beta1.GroupVersion.Version)
+	err = addOrReplaceContractLabels(ctx, "testresources.test.cluster.x-k8s.io", testt1v1beta1.GroupVersion.Version)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Install the defaulter webhook for v1beta1 and test it works
@@ -1199,10 +1199,10 @@ func setupT2CRDAndWebHooks(g *WithT, ns *corev1.Namespace, t1CheckObj *testt1v1b
 
 	// Set contract label on CRDs
 	// NOTE: for sake of simplicity we are setting v1beta2 contract both for v1beta1 API version and v1beta2 API version.
-	err = addOrReplaceContractLabels(ctx, env, "testresourcetemplates.test.cluster.x-k8s.io", testt2v1beta1.GroupVersion.Version+"_"+testt2v1beta2.GroupVersion.Version)
+	err = addOrReplaceContractLabels(ctx, "testresourcetemplates.test.cluster.x-k8s.io", testt2v1beta1.GroupVersion.Version+"_"+testt2v1beta2.GroupVersion.Version)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	err = addOrReplaceContractLabels(ctx, env, "testresources.test.cluster.x-k8s.io", testt2v1beta1.GroupVersion.Version+"_"+testt2v1beta2.GroupVersion.Version)
+	err = addOrReplaceContractLabels(ctx, "testresources.test.cluster.x-k8s.io", testt2v1beta1.GroupVersion.Version+"_"+testt2v1beta2.GroupVersion.Version)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Install the defaulter webhook for v1beta2
@@ -1374,11 +1374,11 @@ func addOrReplaceConversionWebhookHandler(ctx context.Context, c client.Client, 
 	return c.Patch(ctx, crdNew, client.MergeFrom(crd))
 }
 
-func addOrReplaceContractLabels(ctx context.Context, c client.Client, crdName string, contractLabelValue string) error {
+func addOrReplaceContractLabels(ctx context.Context, crdName string, contractLabelValue string) error {
 	crd := &apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{Name: crdName},
 	}
-	if err := c.Get(ctx, client.ObjectKeyFromObject(crd), crd); err != nil {
+	if err := env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(crd), crd); err != nil {
 		return err
 	}
 
@@ -1388,5 +1388,5 @@ func addOrReplaceContractLabels(ctx context.Context, c client.Client, crdName st
 		crdNew.Labels = map[string]string{}
 	}
 	crdNew.Labels[clusterv1.GroupVersion.String()] = contractLabelValue
-	return c.Patch(ctx, crdNew, client.MergeFrom(crd))
+	return env.GetClient().Patch(ctx, crdNew, client.MergeFrom(crd))
 }

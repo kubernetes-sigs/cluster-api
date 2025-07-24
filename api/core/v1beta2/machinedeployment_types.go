@@ -31,17 +31,17 @@ const (
 	MachineDeploymentFinalizer = "cluster.x-k8s.io/machinedeployment"
 )
 
-// MachineDeploymentStrategyType defines the type of MachineDeployment rollout strategies.
+// MachineDeploymentRolloutStrategyType defines the type of MachineDeployment rollout strategies.
 // +kubebuilder:validation:Enum=RollingUpdate;OnDelete
-type MachineDeploymentStrategyType string
+type MachineDeploymentRolloutStrategyType string
 
 const (
 	// RollingUpdateMachineDeploymentStrategyType replaces the old MachineSet by new one using rolling update
 	// i.e. gradually scale down the old MachineSet and scale up the new one.
-	RollingUpdateMachineDeploymentStrategyType MachineDeploymentStrategyType = "RollingUpdate"
+	RollingUpdateMachineDeploymentStrategyType MachineDeploymentRolloutStrategyType = "RollingUpdate"
 
 	// OnDeleteMachineDeploymentStrategyType replaces old MachineSets when the deletion of the associated machines are completed.
-	OnDeleteMachineDeploymentStrategyType MachineDeploymentStrategyType = "OnDelete"
+	OnDeleteMachineDeploymentStrategyType MachineDeploymentRolloutStrategyType = "OnDelete"
 
 	// RevisionAnnotation is the revision annotation of a machine deployment's machine sets which records its rollout sequence.
 	RevisionAnnotation = "machinedeployment.clusters.x-k8s.io/revision"
@@ -262,14 +262,11 @@ type MachineDeploymentSpec struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// rolloutAfter is a field to indicate a rollout should be performed
-	// after the specified time even if no changes have been made to the
-	// MachineDeployment.
-	// Example: In the YAML the time can be specified in the RFC3339 format.
-	// To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
-	// use "2023-03-09T09:00:00Z".
+	// rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.
+	// It allows you to require that all Machines are replaced after a certain time,
+	// and allows you to define the strategy used during rolling replacements.
 	// +optional
-	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
+	Rollout MachineDeploymentRolloutSpec `json:"rollout,omitempty,omitzero"`
 
 	// selector is the label selector for machines. Existing MachineSets whose machines are
 	// selected by this will be the ones affected by this deployment.
@@ -281,15 +278,18 @@ type MachineDeploymentSpec struct {
 	// +required
 	Template MachineTemplateSpec `json:"template"`
 
-	// strategy is the deployment strategy to use to replace existing machines with
-	// new ones.
-	// +optional
-	Strategy MachineDeploymentStrategy `json:"strategy,omitempty,omitzero"`
-
 	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
 	// Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
 	// +optional
 	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
+
+	// remediation controls how unhealthy Machines are remediated.
+	// +optional
+	Remediation MachineDeploymentRemediationSpec `json:"remediation,omitempty,omitzero"`
+
+	// deletion contains configuration options for MachineDeployment deletion.
+	// +optional
+	Deletion MachineDeploymentDeletionSpec `json:"deletion,omitempty,omitzero"`
 
 	// paused indicates that the deployment is paused.
 	// +optional
@@ -298,35 +298,41 @@ type MachineDeploymentSpec struct {
 
 // ANCHOR_END: MachineDeploymentSpec
 
-// ANCHOR: MachineDeploymentStrategy
-
-// MachineDeploymentStrategy describes how to replace existing machines
-// with new ones.
+// MachineDeploymentRolloutSpec defines the rollout behavior.
 // +kubebuilder:validation:MinProperties=1
-type MachineDeploymentStrategy struct {
-	// type of deployment. Allowed values are RollingUpdate and OnDelete.
-	// The default is RollingUpdate.
+type MachineDeploymentRolloutSpec struct {
+	// after is a field to indicate a rollout should be performed
+	// after the specified time even if no changes have been made to the
+	// MachineDeployment.
+	// Example: In the YAML the time can be specified in the RFC3339 format.
+	// To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+	// use "2023-03-09T09:00:00Z".
 	// +optional
-	Type MachineDeploymentStrategyType `json:"type,omitempty"`
+	After *metav1.Time `json:"after,omitempty"`
 
-	// rollingUpdate is the rolling update config params. Present only if
-	// MachineDeploymentStrategyType = RollingUpdate.
+	// strategy specifies how to roll out control plane Machines.
 	// +optional
-	RollingUpdate MachineDeploymentStrategyRollingUpdate `json:"rollingUpdate,omitempty,omitzero"`
-
-	// remediation controls the strategy of remediating unhealthy machines
-	// and how remediating operations should occur during the lifecycle of the dependant MachineSets.
-	// +optional
-	Remediation RemediationStrategy `json:"remediation,omitempty,omitzero"`
+	Strategy MachineDeploymentRolloutStrategy `json:"strategy,omitempty,omitzero"`
 }
 
-// ANCHOR_END: MachineDeploymentStrategy
-
-// ANCHOR: MachineDeploymentStrategyRollingUpdate
-
-// MachineDeploymentStrategyRollingUpdate is used to control the desired behavior of rolling update.
+// MachineDeploymentRolloutStrategy describes how to replace existing machines
+// with new ones.
 // +kubebuilder:validation:MinProperties=1
-type MachineDeploymentStrategyRollingUpdate struct {
+type MachineDeploymentRolloutStrategy struct {
+	// type of rollout. Allowed values are RollingUpdate and OnDelete.
+	// Default is RollingUpdate.
+	// +required
+	Type MachineDeploymentRolloutStrategyType `json:"type"`
+
+	// rollingUpdate is the rolling update config params. Present only if
+	// type = RollingUpdate.
+	// +optional
+	RollingUpdate MachineDeploymentRolloutStrategyRollingUpdate `json:"rollingUpdate,omitempty,omitzero"`
+}
+
+// MachineDeploymentRolloutStrategyRollingUpdate is used to control the desired behavior of rolling update.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentRolloutStrategyRollingUpdate struct {
 	// maxUnavailable is the maximum number of machines that can be unavailable during the update.
 	// Value can be an absolute number (ex: 5) or a percentage of desired
 	// machines (ex: 10%).
@@ -357,21 +363,11 @@ type MachineDeploymentStrategyRollingUpdate struct {
 	// at any time during the update is at most 130% of desired machines.
 	// +optional
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
-
-	// deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
-	// Valid values are "Random, "Newest", "Oldest"
-	// When no value is supplied, the default DeletePolicy of MachineSet is used
-	// +optional
-	DeletePolicy MachineSetDeletePolicy `json:"deletePolicy,omitempty"`
 }
 
-// ANCHOR_END: MachineDeploymentStrategyRollingUpdate
-
-// ANCHOR: RemediationStrategy
-
-// RemediationStrategy allows to define how the MachineSet can control scaling operations.
+// MachineDeploymentRemediationSpec controls how unhealthy Machines are remediated.
 // +kubebuilder:validation:MinProperties=1
-type RemediationStrategy struct {
+type MachineDeploymentRemediationSpec struct {
 	// maxInFlight determines how many in flight remediations should happen at the same time.
 	//
 	// Remediation only happens on the MachineSet with the most current revision, while
@@ -390,8 +386,6 @@ type RemediationStrategy struct {
 	// +optional
 	MaxInFlight *intstr.IntOrString `json:"maxInFlight,omitempty"`
 }
-
-// ANCHOR_END: RemediationStrategy
 
 // MachineNamingStrategy allows changing the naming pattern used when creating
 // Machines.
@@ -417,6 +411,15 @@ type MachineNamingStrategy struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Template string `json:"template,omitempty"`
+}
+
+// MachineDeploymentDeletionSpec contains configuration options for MachineDeployment deletion.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentDeletionSpec struct {
+	// order defines the order in which Machines are deleted when downscaling.
+	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+	// +optional
+	Order MachineSetDeletionOrder `json:"order,omitempty"`
 }
 
 // ANCHOR: MachineDeploymentStatus

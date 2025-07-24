@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/blang/semver/v4"
@@ -82,26 +83,9 @@ func defaultKubeadmControlPlaneSpec(s *controlplanev1.KubeadmControlPlaneSpec) {
 		s.Version = "v" + s.Version
 	}
 
-	s.RolloutStrategy = defaultRolloutStrategy(s.RolloutStrategy)
-}
-
-func defaultRolloutStrategy(rolloutStrategy *controlplanev1.RolloutStrategy) *controlplanev1.RolloutStrategy {
-	if rolloutStrategy == nil {
-		rolloutStrategy = &controlplanev1.RolloutStrategy{}
-	}
-
 	// Enforce RollingUpdate strategy and default MaxSurge if not set.
-	if len(rolloutStrategy.Type) == 0 {
-		rolloutStrategy.Type = controlplanev1.RollingUpdateStrategyType
-	}
-	if rolloutStrategy.Type == controlplanev1.RollingUpdateStrategyType {
-		if rolloutStrategy.RollingUpdate == nil {
-			rolloutStrategy.RollingUpdate = &controlplanev1.RollingUpdate{}
-		}
-		rolloutStrategy.RollingUpdate.MaxSurge = intstr.ValueOrDefault(rolloutStrategy.RollingUpdate.MaxSurge, intstr.FromInt32(1))
-	}
-
-	return rolloutStrategy
+	s.Rollout.Strategy.Type = controlplanev1.RollingUpdateStrategyType
+	s.Rollout.Strategy.RollingUpdate.MaxSurge = intstr.ValueOrDefault(s.Rollout.Strategy.RollingUpdate.MaxSurge, intstr.FromInt32(1))
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
@@ -145,8 +129,6 @@ const (
 	featureGates         = "featureGates"
 	timeouts             = "timeouts"
 )
-
-const minimumCertificatesExpiryDays = 7
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
@@ -220,15 +202,12 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		// spec
 		{spec, "replicas"},
 		{spec, "version"},
-		{spec, "remediationStrategy"},
-		{spec, "remediationStrategy", "*"},
+		{spec, "remediation"},
+		{spec, "remediation", "*"},
 		{spec, "machineNamingStrategy"},
 		{spec, "machineNamingStrategy", "*"},
-		{spec, "rolloutAfter"},
-		{spec, "rolloutBefore"},
-		{spec, "rolloutBefore", "*"},
-		{spec, "rolloutStrategy"},
-		{spec, "rolloutStrategy", "*"},
+		{spec, "rollout"},
+		{spec, "rollout", "*"},
 	}
 
 	oldK, ok := oldObj.(*controlplanev1.KubeadmControlPlane)
@@ -370,8 +349,7 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 		allErrs = append(allErrs, field.Invalid(pathPrefix.Child("version"), s.Version, "must be a valid semantic version"))
 	}
 
-	allErrs = append(allErrs, validateRolloutBefore(s.RolloutBefore, pathPrefix.Child("rolloutBefore"))...)
-	allErrs = append(allErrs, validateRolloutStrategy(s.RolloutStrategy, s.Replicas, pathPrefix.Child("rolloutStrategy"))...)
+	allErrs = append(allErrs, validateRolloutStrategy(s.Rollout.Strategy, s.Replicas, pathPrefix.Child("rollout", "strategy"))...)
 
 	if s.MachineNamingStrategy != nil {
 		allErrs = append(allErrs, validateNamingStrategy(s.MachineNamingStrategy, pathPrefix.Child("machineNamingStrategy"))...)
@@ -379,27 +357,11 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 	return allErrs
 }
 
-func validateRolloutBefore(rolloutBefore *controlplanev1.RolloutBefore, pathPrefix *field.Path) field.ErrorList {
+func validateRolloutStrategy(rolloutStrategy controlplanev1.KubeadmControlPlaneRolloutStrategy, replicas *int32, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if rolloutBefore == nil {
-		return allErrs
-	}
-
-	if rolloutBefore.CertificatesExpiryDays != nil {
-		if *rolloutBefore.CertificatesExpiryDays < minimumCertificatesExpiryDays {
-			allErrs = append(allErrs, field.Invalid(pathPrefix.Child("certificatesExpiryDays"), *rolloutBefore.CertificatesExpiryDays, fmt.Sprintf("must be greater than or equal to %v", minimumCertificatesExpiryDays)))
-		}
-	}
-
-	return allErrs
-}
-
-func validateRolloutStrategy(rolloutStrategy *controlplanev1.RolloutStrategy, replicas *int32, pathPrefix *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-
-	if rolloutStrategy == nil {
-		return allErrs
+	if reflect.DeepEqual(rolloutStrategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) {
+		return nil
 	}
 
 	if rolloutStrategy.Type != controlplanev1.RollingUpdateStrategyType {
@@ -407,32 +369,32 @@ func validateRolloutStrategy(rolloutStrategy *controlplanev1.RolloutStrategy, re
 			allErrs,
 			field.Required(
 				pathPrefix.Child("type"),
-				"only RollingUpdateStrategyType is supported",
+				"only RollingUpdate is supported",
 			),
 		)
 	}
 
-	ios1 := intstr.FromInt32(1)
-	ios0 := intstr.FromInt32(0)
-
-	if rolloutStrategy.RollingUpdate.MaxSurge.IntValue() == ios0.IntValue() && (replicas != nil && *replicas < int32(3)) {
-		allErrs = append(
-			allErrs,
-			field.Required(
-				pathPrefix.Child("rollingUpdate"),
-				"when KubeadmControlPlane is configured to scale-in, replica count needs to be at least 3",
-			),
-		)
-	}
-
-	if rolloutStrategy.RollingUpdate.MaxSurge.IntValue() != ios1.IntValue() && rolloutStrategy.RollingUpdate.MaxSurge.IntValue() != ios0.IntValue() {
-		allErrs = append(
-			allErrs,
-			field.Required(
-				pathPrefix.Child("rollingUpdate", "maxSurge"),
-				"value must be 1 or 0",
-			),
-		)
+	if rolloutStrategy.RollingUpdate.MaxSurge != nil {
+		ios1 := intstr.FromInt32(1)
+		ios0 := intstr.FromInt32(0)
+		if rolloutStrategy.RollingUpdate.MaxSurge.IntValue() == ios0.IntValue() && (replicas != nil && *replicas < int32(3)) {
+			allErrs = append(
+				allErrs,
+				field.Required(
+					pathPrefix.Child("rollingUpdate"),
+					"when KubeadmControlPlane is configured to scale-in, replica count needs to be at least 3",
+				),
+			)
+		}
+		if rolloutStrategy.RollingUpdate.MaxSurge.IntValue() != ios1.IntValue() && rolloutStrategy.RollingUpdate.MaxSurge.IntValue() != ios0.IntValue() {
+			allErrs = append(
+				allErrs,
+				field.Required(
+					pathPrefix.Child("rollingUpdate", "maxSurge"),
+					"value must be 1 or 0",
+				),
+			)
+		}
 	}
 
 	return allErrs

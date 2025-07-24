@@ -4043,6 +4043,15 @@ spec:
                               format: int32
                               minimum: 0
                               type: integer
+                            order:
+                              description: |-
+                                order defines the order in which Machines are deleted when downscaling.
+                                Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+                              enum:
+                              - Random
+                              - Newest
+                              - Oldest
+                              type: string
                           type: object
                         failureDomain:
                           description: |-
@@ -4137,6 +4146,26 @@ spec:
                                 the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.
                               minProperties: 1
                               properties:
+                                maxInFlight:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: |-
+                                    maxInFlight determines how many in flight remediations should happen at the same time.
+
+                                    Remediation only happens on the MachineSet with the most current revision, while
+                                    older MachineSets (usually present during rollout operations) aren't allowed to remediate.
+
+                                    Note: In general (independent of remediations), unhealthy machines are always
+                                    prioritized during scale down operations over healthy ones.
+
+                                    MaxInFlight can be set to a fixed number or a percentage.
+                                    Example: when this is set to 20%, the MachineSet controller deletes at most 20% of
+                                    the desired replicas.
+
+                                    If not set, remediation is limited to all machines (bounded by replicas)
+                                    under the active MachineSet's management.
+                                  x-kubernetes-int-or-string: true
                                 templateRef:
                                   description: |-
                                     templateRef is a reference to a remediation template
@@ -4342,102 +4371,72 @@ spec:
                           x-kubernetes-list-map-keys:
                           - conditionType
                           x-kubernetes-list-type: map
-                        strategy:
+                        rollout:
                           description: |-
-                            strategy is the deployment strategy to use to replace existing machines with
-                            new ones.
-                            NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+                            rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.
+                            It allows you to define the strategy used during rolling replacements.
                           minProperties: 1
                           properties:
-                            remediation:
-                              description: |-
-                                remediation controls the strategy of remediating unhealthy machines
-                                and how remediating operations should occur during the lifecycle of the dependant MachineSets.
+                            strategy:
+                              description: strategy specifies how to roll out control
+                                plane Machines.
                               minProperties: 1
                               properties:
-                                maxInFlight:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
+                                rollingUpdate:
                                   description: |-
-                                    maxInFlight determines how many in flight remediations should happen at the same time.
-
-                                    Remediation only happens on the MachineSet with the most current revision, while
-                                    older MachineSets (usually present during rollout operations) aren't allowed to remediate.
-
-                                    Note: In general (independent of remediations), unhealthy machines are always
-                                    prioritized during scale down operations over healthy ones.
-
-                                    MaxInFlight can be set to a fixed number or a percentage.
-                                    Example: when this is set to 20%, the MachineSet controller deletes at most 20% of
-                                    the desired replicas.
-
-                                    If not set, remediation is limited to all machines (bounded by replicas)
-                                    under the active MachineSet's management.
-                                  x-kubernetes-int-or-string: true
-                              type: object
-                            rollingUpdate:
-                              description: |-
-                                rollingUpdate is the rolling update config params. Present only if
-                                MachineDeploymentStrategyType = RollingUpdate.
-                              minProperties: 1
-                              properties:
-                                deletePolicy:
+                                    rollingUpdate is the rolling update config params. Present only if
+                                    type = RollingUpdate.
+                                  minProperties: 1
+                                  properties:
+                                    maxSurge:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      description: |-
+                                        maxSurge is the maximum number of machines that can be scheduled above the
+                                        desired number of machines.
+                                        Value can be an absolute number (ex: 5) or a percentage of
+                                        desired machines (ex: 10%).
+                                        This can not be 0 if MaxUnavailable is 0.
+                                        Absolute number is calculated from percentage by rounding up.
+                                        Defaults to 1.
+                                        Example: when this is set to 30%, the new MachineSet can be scaled
+                                        up immediately when the rolling update starts, such that the total
+                                        number of old and new machines do not exceed 130% of desired
+                                        machines. Once old machines have been killed, new MachineSet can
+                                        be scaled up further, ensuring that total number of machines running
+                                        at any time during the update is at most 130% of desired machines.
+                                      x-kubernetes-int-or-string: true
+                                    maxUnavailable:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      description: |-
+                                        maxUnavailable is the maximum number of machines that can be unavailable during the update.
+                                        Value can be an absolute number (ex: 5) or a percentage of desired
+                                        machines (ex: 10%).
+                                        Absolute number is calculated from percentage by rounding down.
+                                        This can not be 0 if MaxSurge is 0.
+                                        Defaults to 0.
+                                        Example: when this is set to 30%, the old MachineSet can be scaled
+                                        down to 70% of desired machines immediately when the rolling update
+                                        starts. Once new machines are ready, old MachineSet can be scaled
+                                        down further, followed by scaling up the new MachineSet, ensuring
+                                        that the total number of machines available at all times
+                                        during the update is at least 70% of desired machines.
+                                      x-kubernetes-int-or-string: true
+                                  type: object
+                                type:
                                   description: |-
-                                    deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
-                                    Valid values are "Random, "Newest", "Oldest"
-                                    When no value is supplied, the default DeletePolicy of MachineSet is used
+                                    type of rollout. Allowed values are RollingUpdate and OnDelete.
+                                    Default is RollingUpdate.
                                   enum:
-                                  - Random
-                                  - Newest
-                                  - Oldest
+                                  - RollingUpdate
+                                  - OnDelete
                                   type: string
-                                maxSurge:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
-                                  description: |-
-                                    maxSurge is the maximum number of machines that can be scheduled above the
-                                    desired number of machines.
-                                    Value can be an absolute number (ex: 5) or a percentage of
-                                    desired machines (ex: 10%).
-                                    This can not be 0 if MaxUnavailable is 0.
-                                    Absolute number is calculated from percentage by rounding up.
-                                    Defaults to 1.
-                                    Example: when this is set to 30%, the new MachineSet can be scaled
-                                    up immediately when the rolling update starts, such that the total
-                                    number of old and new machines do not exceed 130% of desired
-                                    machines. Once old machines have been killed, new MachineSet can
-                                    be scaled up further, ensuring that total number of machines running
-                                    at any time during the update is at most 130% of desired machines.
-                                  x-kubernetes-int-or-string: true
-                                maxUnavailable:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
-                                  description: |-
-                                    maxUnavailable is the maximum number of machines that can be unavailable during the update.
-                                    Value can be an absolute number (ex: 5) or a percentage of desired
-                                    machines (ex: 10%).
-                                    Absolute number is calculated from percentage by rounding down.
-                                    This can not be 0 if MaxSurge is 0.
-                                    Defaults to 0.
-                                    Example: when this is set to 30%, the old MachineSet can be scaled
-                                    down to 70% of desired machines immediately when the rolling update
-                                    starts. Once new machines are ready, old MachineSet can be scaled
-                                    down further, followed by scaling up the new MachineSet, ensuring
-                                    that the total number of machines available at all times
-                                    during the update is at least 70% of desired machines.
-                                  x-kubernetes-int-or-string: true
+                              required:
+                              - type
                               type: object
-                            type:
-                              description: |-
-                                type of deployment. Allowed values are RollingUpdate and OnDelete.
-                                The default is RollingUpdate.
-                              enum:
-                              - RollingUpdate
-                              - OnDelete
-                              type: string
                           type: object
                       required:
                       - bootstrap

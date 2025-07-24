@@ -635,8 +635,8 @@ func newMachineUpToDateCondition(s *scope) *metav1.Condition {
 
 	upToDate, _, conditionMessages := mdutil.MachineTemplateUpToDate(current, desired)
 
-	if s.owningMachineDeployment.Spec.RolloutAfter != nil {
-		if s.owningMachineDeployment.Spec.RolloutAfter.Time.Before(s.reconciliationTime) && !s.machineSet.CreationTimestamp.After(s.owningMachineDeployment.Spec.RolloutAfter.Time) {
+	if s.owningMachineDeployment.Spec.Rollout.After != nil {
+		if s.owningMachineDeployment.Spec.Rollout.After.Time.Before(s.reconciliationTime) && !s.machineSet.CreationTimestamp.After(s.owningMachineDeployment.Spec.Rollout.After.Time) {
 			upToDate = false
 			conditionMessages = append(conditionMessages, "MachineDeployment spec.rolloutAfter expired")
 		}
@@ -826,7 +826,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 		}
 		return ctrl.Result{}, r.waitForMachineCreation(ctx, machineList)
 	case diff > 0:
-		log.Info(fmt.Sprintf("MachineSet is scaling down to %d replicas by deleting %d machines", *(ms.Spec.Replicas), diff), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "deletePolicy", cmp.Or(ms.Spec.DeletePolicy, clusterv1.RandomMachineSetDeletePolicy))
+		log.Info(fmt.Sprintf("MachineSet is scaling down to %d replicas by deleting %d machines", *(ms.Spec.Replicas), diff), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "order", cmp.Or(ms.Spec.Deletion.Order, clusterv1.RandomMachineSetDeletionOrder))
 
 		deletePriorityFunc, err := getDeletePriorityFunc(ms)
 		if err != nil {
@@ -1387,10 +1387,10 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			return ctrl.Result{}, nil
 		}
 
-		if owner.Spec.Strategy.Remediation.MaxInFlight != nil {
+		if owner.Spec.Remediation.MaxInFlight != nil {
 			var err error
 			replicas := int(ptr.Deref(owner.Spec.Replicas, 1))
-			maxInFlight, err = intstr.GetScaledValueFromIntOrPercent(owner.Spec.Strategy.Remediation.MaxInFlight, replicas, true)
+			maxInFlight, err = intstr.GetScaledValueFromIntOrPercent(owner.Spec.Remediation.MaxInFlight, replicas, true)
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to calculate maxInFlight to remediate machines: %v", err)
 			}
@@ -1419,7 +1419,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineSetMachineRemediationDeferredReason,
-			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", owner.Spec.Strategy.Remediation.MaxInFlight),
+			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", owner.Spec.Remediation.MaxInFlight),
 		}, nil); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -1443,7 +1443,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineSetMachineRemediationDeferredReason,
-			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", owner.Spec.Strategy.Remediation.MaxInFlight),
+			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", owner.Spec.Remediation.MaxInFlight),
 		}, nil); err != nil {
 			return ctrl.Result{}, err
 		}

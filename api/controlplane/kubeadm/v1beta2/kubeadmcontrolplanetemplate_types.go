@@ -88,35 +88,22 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 	// machineTemplate contains information about how machines
 	// should be shaped when creating or updating a control plane.
 	// +optional
-	MachineTemplate *KubeadmControlPlaneTemplateMachineTemplate `json:"machineTemplate,omitempty"`
+	MachineTemplate KubeadmControlPlaneTemplateMachineTemplate `json:"machineTemplate,omitempty,omitzero"`
 
 	// kubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
 	// +optional
 	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec,omitempty,omitzero"`
 
-	// rolloutBefore is a field to indicate a rollout should be performed
-	// if the specified criteria is met.
-	//
+	// rollout allows you to configure the behaviour of rolling updates to the control plane Machines.
+	// It allows you to require that all Machines are replaced before or after a certain time,
+	// and allows you to define the strategy used during rolling replacements.
 	// +optional
-	RolloutBefore *RolloutBefore `json:"rolloutBefore,omitempty"`
+	Rollout KubeadmControlPlaneRolloutSpec `json:"rollout,omitempty,omitzero"`
 
-	// rolloutAfter is a field to indicate a rollout should be performed
-	// after the specified time even if no changes have been made to the
-	// KubeadmControlPlane.
-	//
+	// remediation controls how unhealthy Machines are remediated.
 	// +optional
-	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
-
-	// rolloutStrategy is the RolloutStrategy to use to replace control plane machines with
-	// new ones.
-	// +optional
-	// +kubebuilder:default={type: "RollingUpdate", rollingUpdate: {maxSurge: 1}}
-	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
-
-	// remediationStrategy is the RemediationStrategy that controls how control plane machine remediation happens.
-	// +optional
-	RemediationStrategy *RemediationStrategy `json:"remediationStrategy,omitempty"`
+	Remediation KubeadmControlPlaneRemediationSpec `json:"remediation,omitempty,omitzero"`
 
 	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
 	// InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.

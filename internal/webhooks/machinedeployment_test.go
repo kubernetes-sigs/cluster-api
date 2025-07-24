@@ -77,9 +77,9 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, "test-cluster"))
 	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, "test-cluster"))
 
-	g.Expect(md.Spec.Strategy.Type).To(Equal(clusterv1.RollingUpdateMachineDeploymentStrategyType))
-	g.Expect(md.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()).To(Equal(1))
-	g.Expect(md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()).To(Equal(0))
+	g.Expect(md.Spec.Rollout.Strategy.Type).To(Equal(clusterv1.RollingUpdateMachineDeploymentStrategyType))
+	g.Expect(md.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntValue()).To(Equal(1))
+	g.Expect(md.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable.IntValue()).To(Equal(0))
 
 	g.Expect(md.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
 }
@@ -361,7 +361,8 @@ func TestMachineDeploymentValidation(t *testing.T) {
 		mdName                string
 		selectors             map[string]string
 		labels                map[string]string
-		strategy              clusterv1.MachineDeploymentStrategy
+		strategy              clusterv1.MachineDeploymentRolloutStrategy
+		remediation           clusterv1.MachineDeploymentRemediationSpec
 		expectErr             bool
 		machineNamingStrategy clusterv1.MachineNamingStrategy
 	}{
@@ -429,9 +430,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should return error for invalid maxSurge",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: clusterv1.MachineDeploymentStrategy{
+			strategy: clusterv1.MachineDeploymentRolloutStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
 					MaxUnavailable: &goodMaxUnavailableInt,
 					MaxSurge:       &badMaxSurge,
 				},
@@ -442,9 +443,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should return error for invalid maxUnavailable",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: clusterv1.MachineDeploymentStrategy{
+			strategy: clusterv1.MachineDeploymentRolloutStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
 					MaxUnavailable: &badMaxUnavailable,
 					MaxSurge:       &goodMaxSurgeInt,
 				},
@@ -455,10 +456,8 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should return error for invalid remediation maxInFlight",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: clusterv1.MachineDeploymentStrategy{
-				Remediation: clusterv1.RemediationStrategy{
-					MaxInFlight: &badMaxInFlight,
-				},
+			remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: &badMaxInFlight,
 			},
 			expectErr: true,
 		},
@@ -466,10 +465,8 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should not return error for valid percentage remediation maxInFlight",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: clusterv1.MachineDeploymentStrategy{
-				Remediation: clusterv1.RemediationStrategy{
-					MaxInFlight: &goodMaxInFlightPercentage,
-				},
+			remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: &goodMaxInFlightPercentage,
 			},
 			expectErr: false,
 		},
@@ -477,10 +474,8 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should not return error for valid int remediation maxInFlight",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: clusterv1.MachineDeploymentStrategy{
-				Remediation: clusterv1.RemediationStrategy{
-					MaxInFlight: &goodMaxInFlightInt,
-				},
+			remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: &goodMaxInFlightInt,
 			},
 			expectErr: false,
 		},
@@ -488,9 +483,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should not return error for valid int maxSurge and maxUnavailable",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: clusterv1.MachineDeploymentStrategy{
+			strategy: clusterv1.MachineDeploymentRolloutStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
 					MaxUnavailable: &goodMaxUnavailableInt,
 					MaxSurge:       &goodMaxSurgeInt,
 				},
@@ -501,9 +496,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should not return error for valid percentage string maxSurge and maxUnavailable",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: clusterv1.MachineDeploymentStrategy{
+			strategy: clusterv1.MachineDeploymentRolloutStrategy{
 				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
 					MaxUnavailable: &goodMaxUnavailablePercentage,
 					MaxSurge:       &goodMaxSurgePercentage,
 				},
@@ -533,8 +528,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 		},
 	}
 
-	for i := range tests {
-		tt := tests[i]
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			md := &clusterv1.MachineDeployment{
@@ -542,7 +536,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 					Name: tt.mdName,
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Strategy: tt.strategy,
+					Rollout: clusterv1.MachineDeploymentRolloutSpec{
+						Strategy: tt.strategy,
+					},
 					Selector: metav1.LabelSelector{
 						MatchLabels: tt.selectors,
 					},
@@ -556,6 +552,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 							},
 						},
 					},
+					Remediation:           tt.remediation,
 					MachineNamingStrategy: &tt.machineNamingStrategy,
 				},
 			}

@@ -125,13 +125,17 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 					// verify that all original MachineSets have been deleted.
 					MatchLabels: labels,
 				},
-				Strategy: clusterv1.MachineDeploymentStrategy{
-					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-					RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
-						MaxUnavailable: intOrStrPtr(0),
-						MaxSurge:       intOrStrPtr(1),
-						DeletePolicy:   clusterv1.OldestMachineSetDeletePolicy,
+				Rollout: clusterv1.MachineDeploymentRolloutSpec{
+					Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+						RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+							MaxUnavailable: intOrStrPtr(0),
+							MaxSurge:       intOrStrPtr(1),
+						},
 					},
+				},
+				Deletion: clusterv1.MachineDeploymentDeletionSpec{
+					Order: clusterv1.OldestMachineSetDeletionOrder,
 				},
 				Template: clusterv1.MachineTemplateSpec{
 					ObjectMeta: clusterv1.ObjectMeta{
@@ -215,8 +219,8 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			return len(machineSets.Items)
 		}, timeout).Should(BeEquivalentTo(1))
 
-		t.Log("Verifying that the deployment's deletePolicy was propagated to the machineset")
-		g.Expect(machineSets.Items[0].Spec.DeletePolicy).To(Equal(clusterv1.OldestMachineSetDeletePolicy))
+		t.Log("Verifying that the deployment's deletion.order was propagated to the machineset")
+		g.Expect(machineSets.Items[0].Spec.Deletion.Order).To(Equal(clusterv1.OldestMachineSetDeletionOrder))
 
 		t.Log("Verifying the linked infrastructure template has a cluster owner reference")
 		g.Eventually(func() bool {
@@ -387,22 +391,22 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(BeNil())
 		}).Should(Succeed())
 
-		// Update the DeletePolicy of the MachineDeployment,
+		// Update the deletion.order of the MachineDeployment,
 		// expect the Reconcile to be called and the MachineSet to be updated in-place.
-		t.Log("Updating deletePolicy on the MachineDeployment")
+		t.Log("Updating deletion.order on the MachineDeployment")
 		modifyFunc = func(d *clusterv1.MachineDeployment) {
-			d.Spec.Strategy.RollingUpdate.DeletePolicy = clusterv1.NewestMachineSetDeletePolicy
+			d.Spec.Deletion.Order = clusterv1.NewestMachineSetDeletionOrder
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func(g Gomega) {
 			g.Expect(env.List(ctx, machineSets, msListOpts...)).Should(Succeed())
 			// Verify we still only have 2 MachineSets.
 			g.Expect(machineSets.Items).To(HaveLen(2))
-			// Verify the DeletePolicy value is updated
-			g.Expect(machineSets.Items[0].Spec.DeletePolicy).Should(Equal(clusterv1.NewestMachineSetDeletePolicy))
+			// Verify the deletion.order value is updated
+			g.Expect(machineSets.Items[0].Spec.Deletion.Order).Should(Equal(clusterv1.NewestMachineSetDeletionOrder))
 
 			// Verify that the old machine set retains its delete policy
-			g.Expect(machineSets.Items[1].Spec.DeletePolicy).To(Equal(clusterv1.OldestMachineSetDeletePolicy))
+			g.Expect(machineSets.Items[1].Spec.Deletion.Order).To(Equal(clusterv1.OldestMachineSetDeletionOrder))
 		}).Should(Succeed())
 
 		// Verify that all the MachineSets have the expected OwnerRef.
@@ -560,13 +564,17 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 				// We're using the same labels for spec.selector and spec.template.labels.
 				MatchLabels: labels,
 			},
-			Strategy: clusterv1.MachineDeploymentStrategy{
-				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: clusterv1.MachineDeploymentStrategyRollingUpdate{
-					MaxUnavailable: intOrStrPtr(0),
-					MaxSurge:       intOrStrPtr(1),
-					DeletePolicy:   clusterv1.OldestMachineSetDeletePolicy,
+			Rollout: clusterv1.MachineDeploymentRolloutSpec{
+				Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+					RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+						MaxUnavailable: intOrStrPtr(0),
+						MaxSurge:       intOrStrPtr(1),
+					},
 				},
+			},
+			Deletion: clusterv1.MachineDeploymentDeletionSpec{
+				Order: clusterv1.OldestMachineSetDeletionOrder,
 			},
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{

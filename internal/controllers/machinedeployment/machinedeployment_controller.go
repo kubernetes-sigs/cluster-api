@@ -305,15 +305,15 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		return r.sync(ctx, md, s.machineSets, templateExists)
 	}
 
-	if md.Spec.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
+	if md.Spec.Rollout.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
 		return r.rolloutRolling(ctx, md, s.machineSets, templateExists)
 	}
 
-	if md.Spec.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
+	if md.Spec.Rollout.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
 		return r.rolloutOnDelete(ctx, md, s.machineSets, templateExists)
 	}
 
-	return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Strategy.Type)
+	return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Rollout.Strategy.Type)
 }
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {

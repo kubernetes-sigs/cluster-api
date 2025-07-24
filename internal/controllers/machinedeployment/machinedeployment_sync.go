@@ -321,7 +321,7 @@ func (r *Reconciler) computeDesiredMachineSet(ctx context.Context, deployment *c
 
 	// Set all other in-place mutable fields.
 	desiredMS.Spec.Template.Spec.MinReadySeconds = deployment.Spec.Template.Spec.MinReadySeconds
-	desiredMS.Spec.DeletePolicy = deployment.Spec.Strategy.RollingUpdate.DeletePolicy
+	desiredMS.Spec.Deletion.Order = deployment.Spec.Deletion.Order
 	desiredMS.Spec.Template.Spec.ReadinessGates = deployment.Spec.Template.Spec.ReadinessGates
 	desiredMS.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = deployment.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
 	desiredMS.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = deployment.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds

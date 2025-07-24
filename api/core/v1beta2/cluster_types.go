@@ -880,10 +880,10 @@ type MachineDeploymentTopology struct {
 	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
-	// strategy is the deployment strategy to use to replace existing machines with
-	// new ones.
+	// rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.
+	// It allows you to define the strategy used during rolling replacements.
 	// +optional
-	Strategy MachineDeploymentStrategy `json:"strategy,omitempty,omitzero"`
+	Rollout MachineDeploymentTopologyRolloutSpec `json:"rollout,omitempty,omitzero"`
 
 	// variables can be used to customize the MachineDeployment through patches.
 	// +optional
@@ -976,6 +976,24 @@ type MachineDeploymentTopologyHealthCheckChecks struct {
 // MachineDeploymentTopologyHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.
 // +kubebuilder:validation:MinProperties=1
 type MachineDeploymentTopologyHealthCheckRemediation struct {
+	// maxInFlight determines how many in flight remediations should happen at the same time.
+	//
+	// Remediation only happens on the MachineSet with the most current revision, while
+	// older MachineSets (usually present during rollout operations) aren't allowed to remediate.
+	//
+	// Note: In general (independent of remediations), unhealthy machines are always
+	// prioritized during scale down operations over healthy ones.
+	//
+	// MaxInFlight can be set to a fixed number or a percentage.
+	// Example: when this is set to 20%, the MachineSet controller deletes at most 20% of
+	// the desired replicas.
+	//
+	// If not set, remediation is limited to all machines (bounded by replicas)
+	// under the active MachineSet's management.
+	//
+	// +optional
+	MaxInFlight *intstr.IntOrString `json:"maxInFlight,omitempty"`
+
 	// triggerIf configures if remediations are triggered.
 	// If this field is not set, remediations are always triggered.
 	// +optional
@@ -1018,6 +1036,11 @@ type MachineDeploymentTopologyHealthCheckRemediationTriggerIf struct {
 // MachineDeploymentTopologyMachineDeletionSpec contains configuration options for Machine deletion.
 // +kubebuilder:validation:MinProperties=1
 type MachineDeploymentTopologyMachineDeletionSpec struct {
+	// order defines the order in which Machines are deleted when downscaling.
+	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+	// +optional
+	Order MachineSetDeletionOrder `json:"order,omitempty"`
+
 	// nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
@@ -1037,6 +1060,64 @@ type MachineDeploymentTopologyMachineDeletionSpec struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
+}
+
+// MachineDeploymentTopologyRolloutSpec defines the rollout behavior.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentTopologyRolloutSpec struct {
+	// strategy specifies how to roll out control plane Machines.
+	// +optional
+	Strategy MachineDeploymentTopologyRolloutStrategy `json:"strategy,omitempty,omitzero"`
+}
+
+// MachineDeploymentTopologyRolloutStrategy describes how to replace existing machines
+// with new ones.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentTopologyRolloutStrategy struct {
+	// type of rollout. Allowed values are RollingUpdate and OnDelete.
+	// Default is RollingUpdate.
+	// +required
+	Type MachineDeploymentRolloutStrategyType `json:"type"`
+
+	// rollingUpdate is the rolling update config params. Present only if
+	// type = RollingUpdate.
+	// +optional
+	RollingUpdate MachineDeploymentTopologyRolloutStrategyRollingUpdate `json:"rollingUpdate,omitempty,omitzero"`
+}
+
+// MachineDeploymentTopologyRolloutStrategyRollingUpdate is used to control the desired behavior of rolling update.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentTopologyRolloutStrategyRollingUpdate struct {
+	// maxUnavailable is the maximum number of machines that can be unavailable during the update.
+	// Value can be an absolute number (ex: 5) or a percentage of desired
+	// machines (ex: 10%).
+	// Absolute number is calculated from percentage by rounding down.
+	// This can not be 0 if MaxSurge is 0.
+	// Defaults to 0.
+	// Example: when this is set to 30%, the old MachineSet can be scaled
+	// down to 70% of desired machines immediately when the rolling update
+	// starts. Once new machines are ready, old MachineSet can be scaled
+	// down further, followed by scaling up the new MachineSet, ensuring
+	// that the total number of machines available at all times
+	// during the update is at least 70% of desired machines.
+	// +optional
+	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
+
+	// maxSurge is the maximum number of machines that can be scheduled above the
+	// desired number of machines.
+	// Value can be an absolute number (ex: 5) or a percentage of
+	// desired machines (ex: 10%).
+	// This can not be 0 if MaxUnavailable is 0.
+	// Absolute number is calculated from percentage by rounding up.
+	// Defaults to 1.
+	// Example: when this is set to 30%, the new MachineSet can be scaled
+	// up immediately when the rolling update starts, such that the total
+	// number of old and new machines do not exceed 130% of desired
+	// machines. Once old machines have been killed, new MachineSet can
+	// be scaled up further, ensuring that total number of machines running
+	// at any time during the update is at most 130% of desired machines.
+	// +optional
+	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 }
 
 // MachinePoolTopology specifies the different parameters for a pool of worker nodes in the topology.

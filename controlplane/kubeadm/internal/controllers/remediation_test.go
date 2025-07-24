@@ -348,7 +348,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
-					RemediationStrategy: &controlplanev1.RemediationStrategy{
+					Remediation: controlplanev1.KubeadmControlPlaneRemediationSpec{
 						MaxRetry: utilptr.To[int32](3),
 					},
 				},
@@ -400,7 +400,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
-					RemediationStrategy: &controlplanev1.RemediationStrategy{
+					Remediation: controlplanev1.KubeadmControlPlaneRemediationSpec{
 						MaxRetry: utilptr.To[int32](3),
 					},
 				},
@@ -458,7 +458,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
-					RemediationStrategy: &controlplanev1.RemediationStrategy{
+					Remediation: controlplanev1.KubeadmControlPlaneRemediationSpec{
 						MaxRetry:                utilptr.To[int32](3),
 						MinHealthyPeriodSeconds: utilptr.To(minHealthyPeriod),
 					},
@@ -515,7 +515,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
-					RemediationStrategy: &controlplanev1.RemediationStrategy{
+					Remediation: controlplanev1.KubeadmControlPlaneRemediationSpec{
 						MaxRetry:           utilptr.To[int32](3),
 						RetryPeriodSeconds: utilptr.To(controlplanev1.DefaultMinHealthyPeriodSeconds), // RetryPeriodSeconds not yet expired.
 					},
@@ -566,10 +566,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			KCP: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](1),
-					RolloutStrategy: &controlplanev1.RolloutStrategy{
-						RollingUpdate: &controlplanev1.RollingUpdate{
-							MaxSurge: &intstr.IntOrString{
-								IntVal: 1,
+					Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
+						Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
+							RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
+								MaxSurge: &intstr.IntOrString{
+									IntVal: 1,
+								},
 							},
 						},
 					},
@@ -1484,10 +1486,12 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
-					RolloutStrategy: &controlplanev1.RolloutStrategy{
-						RollingUpdate: &controlplanev1.RollingUpdate{
-							MaxSurge: &intstr.IntOrString{
-								IntVal: 1,
+					Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
+						Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
+							RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
+								MaxSurge: &intstr.IntOrString{
+									IntVal: 1,
+								},
 							},
 						},
 					},
@@ -1600,10 +1604,12 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
-					RolloutStrategy: &controlplanev1.RolloutStrategy{
-						RollingUpdate: &controlplanev1.RollingUpdate{
-							MaxSurge: &intstr.IntOrString{
-								IntVal: 1,
+					Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
+						Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
+							RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
+								MaxSurge: &intstr.IntOrString{
+									IntVal: 1,
+								},
 							},
 						},
 					},

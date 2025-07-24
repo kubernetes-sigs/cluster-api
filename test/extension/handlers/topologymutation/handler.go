@@ -198,13 +198,8 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 
 	kcpTemplate, ok := obj.(*controlplanev1.KubeadmControlPlaneTemplate)
 	if ok {
-		if kcpTemplate.Spec.Template.Spec.RolloutStrategy == nil {
-			kcpTemplate.Spec.Template.Spec.RolloutStrategy = &controlplanev1.RolloutStrategy{}
-		}
-		if kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate == nil {
-			kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate = &controlplanev1.RollingUpdate{}
-		}
-		kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
+		kcpTemplate.Spec.Template.Spec.Rollout.Strategy.Type = controlplanev1.RollingUpdateStrategyType
+		kcpTemplate.Spec.Template.Spec.Rollout.Strategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
 	}
 
 	return nil

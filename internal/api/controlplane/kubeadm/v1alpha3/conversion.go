@@ -98,11 +98,9 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.MachineTemplate.Spec.ReadinessGates = restored.Spec.MachineTemplate.Spec.ReadinessGates
 		dst.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds
 		dst.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
-		dst.Spec.RolloutBefore = restored.Spec.RolloutBefore
+		dst.Spec.Rollout = restored.Spec.Rollout
 
-		if restored.Spec.RemediationStrategy != nil {
-			dst.Spec.RemediationStrategy = restored.Spec.RemediationStrategy
-		}
+		dst.Spec.Remediation = restored.Spec.Remediation
 		if restored.Status.LastRemediation != nil {
 			dst.Status.LastRemediation = restored.Status.LastRemediation
 		}
@@ -173,9 +171,20 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 }
 
 func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, s apimachineryconversion.Scope) error {
-	out.UpgradeAfter = in.RolloutAfter
+	if err := autoConvert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in, out, s); err != nil {
+		return err
+	}
+	out.UpgradeAfter = in.Rollout.After
 	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds)
-	return autoConvert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in, out, s)
+	if !reflect.DeepEqual(in.Rollout.Strategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) {
+		out.RolloutStrategy = &RolloutStrategy{}
+		out.RolloutStrategy.Type = RolloutStrategyType(in.Rollout.Strategy.Type)
+		if in.Rollout.Strategy.RollingUpdate.MaxSurge != nil {
+			out.RolloutStrategy.RollingUpdate = &RollingUpdate{}
+			out.RolloutStrategy.RollingUpdate.MaxSurge = in.Rollout.Strategy.RollingUpdate.MaxSurge
+		}
+	}
+	return nil
 }
 
 func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1alpha3_KubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, s apimachineryconversion.Scope) error {
@@ -185,9 +194,18 @@ func Convert_v1beta2_KubeadmControlPlaneStatus_To_v1alpha3_KubeadmControlPlaneSt
 }
 
 func Convert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(in *KubeadmControlPlaneSpec, out *controlplanev1.KubeadmControlPlaneSpec, s apimachineryconversion.Scope) error {
-	out.RolloutAfter = in.UpgradeAfter
+	if err := autoConvert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(in, out, s); err != nil {
+		return err
+	}
+	out.Rollout.After = in.UpgradeAfter
 	out.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
-	return autoConvert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(in, out, s)
+	if in.RolloutStrategy != nil {
+		out.Rollout.Strategy.Type = controlplanev1.KubeadmControlPlaneRolloutStrategyType(in.RolloutStrategy.Type)
+		if in.RolloutStrategy.RollingUpdate != nil && in.RolloutStrategy.RollingUpdate.MaxSurge != nil {
+			out.Rollout.Strategy.RollingUpdate.MaxSurge = in.RolloutStrategy.RollingUpdate.MaxSurge
+		}
+	}
+	return nil
 }
 
 func Convert_v1alpha3_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, out *controlplanev1.KubeadmControlPlaneStatus, s apimachineryconversion.Scope) error {

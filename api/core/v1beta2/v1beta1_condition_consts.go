@@ -234,7 +234,7 @@ const (
 
 const (
 	// MachineDeploymentAvailableV1Beta1Condition means the MachineDeployment is available, that is, at least the minimum available
-	// machines required (i.e. Spec.Replicas-MaxUnavailable when MachineDeploymentStrategyType = RollingUpdate) are up and running for at least minReadySeconds.
+	// machines required (i.e. Spec.Replicas-MaxUnavailable when spec.rollout.strategy.type = RollingUpdate) are up and running for at least minReadySeconds.
 	MachineDeploymentAvailableV1Beta1Condition ConditionType = "Available"
 
 	// MachineSetReadyV1Beta1Condition reports a summary of current status of the MachineSet owned by the MachineDeployment.

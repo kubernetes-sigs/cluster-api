@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -796,14 +797,46 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		minReadySeconds = machineDeploymentTopology.MinReadySeconds
 	}
 
-	strategy := machineDeploymentClass.Strategy
-	if !reflect.DeepEqual(machineDeploymentTopology.Strategy, clusterv1.MachineDeploymentStrategy{}) {
-		strategy = machineDeploymentTopology.Strategy
+	var rollout clusterv1.MachineDeploymentRolloutSpec
+	if !reflect.DeepEqual(machineDeploymentClass.Rollout, clusterv1.MachineDeploymentRolloutSpec{}) {
+		rollout = clusterv1.MachineDeploymentRolloutSpec{
+			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: machineDeploymentClass.Rollout.Strategy.Type,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxUnavailable: machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+					MaxSurge:       machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxSurge,
+				},
+			},
+		}
+	}
+	if !reflect.DeepEqual(machineDeploymentTopology.Rollout, clusterv1.MachineDeploymentTopologyRolloutSpec{}) {
+		rollout = clusterv1.MachineDeploymentRolloutSpec{
+			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: machineDeploymentTopology.Rollout.Strategy.Type,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxUnavailable: machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+					MaxSurge:       machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxSurge,
+				},
+			},
+		}
+	}
+
+	var remediationMaxInFlight *intstr.IntOrString
+	if machineDeploymentClass.HealthCheck != nil && machineDeploymentClass.HealthCheck.Remediation.MaxInFlight != nil {
+		remediationMaxInFlight = machineDeploymentClass.HealthCheck.Remediation.MaxInFlight
+	}
+	if machineDeploymentTopology.HealthCheck != nil && machineDeploymentTopology.HealthCheck.Remediation.MaxInFlight != nil {
+		remediationMaxInFlight = machineDeploymentTopology.HealthCheck.Remediation.MaxInFlight
 	}
 
 	failureDomain := machineDeploymentClass.FailureDomain
 	if machineDeploymentTopology.FailureDomain != "" {
 		failureDomain = machineDeploymentTopology.FailureDomain
+	}
+
+	deletionOrder := machineDeploymentClass.Deletion.Order
+	if machineDeploymentTopology.Deletion.Order != "" {
+		deletionOrder = machineDeploymentTopology.Deletion.Order
 	}
 
 	nodeDrainTimeout := machineDeploymentClass.Deletion.NodeDrainTimeoutSeconds
@@ -851,7 +884,13 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: s.Current.Cluster.Name,
-			Strategy:    strategy,
+			Rollout:     rollout,
+			Deletion: clusterv1.MachineDeploymentDeletionSpec{
+				Order: deletionOrder,
+			},
+			Remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: remediationMaxInFlight,
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       s.Current.Cluster.Name,

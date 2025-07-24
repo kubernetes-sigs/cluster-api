@@ -19,7 +19,6 @@ package tree
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -90,10 +89,9 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 
 	// Adds cluster infra
 	clusterInfra, err := external.GetObjectFromContractVersionedRef(ctx, c, cluster.Spec.InfrastructureRef, cluster.Namespace)
-	if err != nil {
-		return nil, errors.Wrap(err, "get InfraCluster reference from Cluster")
+	if err == nil {
+		tree.Add(cluster, clusterInfra, ObjectMetaName("ClusterInfrastructure"))
 	}
-	tree.Add(cluster, clusterInfra, ObjectMetaName("ClusterInfrastructure"))
 
 	if options.ShowClusterResourceSets {
 		addClusterResourceSetsToObjectTree(ctx, c, cluster, tree)

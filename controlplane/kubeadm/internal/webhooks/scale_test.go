@@ -65,11 +65,13 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 				},
 			},
 			Replicas: ptr.To[int32](1),
-			RolloutStrategy: &controlplanev1.RolloutStrategy{
-				Type: controlplanev1.RollingUpdateStrategyType,
-				RollingUpdate: &controlplanev1.RollingUpdate{
-					MaxSurge: &intstr.IntOrString{
-						IntVal: 1,
+			Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
+				Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
+					Type: controlplanev1.RollingUpdateStrategyType,
+					RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
+						MaxSurge: &intstr.IntOrString{
+							IntVal: 1,
+						},
 					},
 				},
 			},

@@ -7318,9 +7318,9 @@ spec:
                 required:
                 - spec
                 type: object
-              remediationStrategy:
-                description: remediationStrategy is the RemediationStrategy that controls
-                  how control plane machine remediation happens.
+              remediation:
+                description: remediation controls how unhealthy Machines are remediated.
+                minProperties: 1
                 properties:
                   maxRetry:
                     description: "maxRetry is the Max number of retries while attempting
@@ -7377,63 +7377,73 @@ spec:
                   This is a pointer to distinguish between explicit zero and not specified.
                 format: int32
                 type: integer
-              rolloutAfter:
+              rollout:
                 description: |-
-                  rolloutAfter is a field to indicate a rollout should be performed
-                  after the specified time even if no changes have been made to the
-                  KubeadmControlPlane.
-                  Example: In the YAML the time can be specified in the RFC3339 format.
-                  To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
-                  use "2023-03-09T09:00:00Z".
-                format: date-time
-                type: string
-              rolloutBefore:
-                description: |-
-                  rolloutBefore is a field to indicate a rollout should be performed
-                  if the specified criteria is met.
+                  rollout allows you to configure the behaviour of rolling updates to the control plane Machines.
+                  It allows you to require that all Machines are replaced before or after a certain time,
+                  and allows you to define the strategy used during rolling replacements.
+                minProperties: 1
                 properties:
-                  certificatesExpiryDays:
+                  after:
                     description: |-
-                      certificatesExpiryDays indicates a rollout needs to be performed if the
-                      certificates of the machine will expire within the specified days.
-                    format: int32
-                    type: integer
-                type: object
-              rolloutStrategy:
-                default:
-                  rollingUpdate:
-                    maxSurge: 1
-                  type: RollingUpdate
-                description: |-
-                  rolloutStrategy is the RolloutStrategy to use to replace control plane machines with
-                  new ones.
-                properties:
-                  rollingUpdate:
-                    description: |-
-                      rollingUpdate is the rolling update config params. Present only if
-                      RolloutStrategyType = RollingUpdate.
-                    properties:
-                      maxSurge:
-                        anyOf:
-                        - type: integer
-                        - type: string
-                        description: |-
-                          maxSurge is the maximum number of control planes that can be scheduled above or under the
-                          desired number of control planes.
-                          Value can be an absolute number 1 or 0.
-                          Defaults to 1.
-                          Example: when this is set to 1, the control plane can be scaled
-                          up immediately when the rolling update starts.
-                        x-kubernetes-int-or-string: true
-                    type: object
-                  type:
-                    description: |-
-                      type of rollout. Currently the only supported strategy is
-                      "RollingUpdate".
-                      Default is RollingUpdate.
-                    enum:
-                    - RollingUpdate
+                      after is a field to indicate a rollout should be performed
+                      after the specified time even if no changes have been made to the
+                      KubeadmControlPlane.
+                      Example: In the YAML the time can be specified in the RFC3339 format.
+                      To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+                      use "2023-03-09T09:00:00Z".
+                    format: date-time
                     type: string
+                  before:
+                    description: |-
+                      before is a field to indicate a rollout should be performed
+                      if the specified criteria is met.
+                    minProperties: 1
+                    properties:
+                      certificatesExpiryDays:
+                        description: |-
+                          certificatesExpiryDays indicates a rollout needs to be performed if the
+                          certificates of the machine will expire within the specified days.
+                          The minimum for this field is 7.
+                        format: int32
+                        minimum: 7
+                        type: integer
+                    type: object
+                  strategy:
+                    description: strategy specifies how to roll out control plane
+                      Machines.
+                    minProperties: 1
+                    properties:
+                      rollingUpdate:
+                        description: |-
+                          rollingUpdate is the rolling update config params. Present only if
+                          type = RollingUpdate.
+                        minProperties: 1
+                        properties:
+                          maxSurge:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: |-
+                              maxSurge is the maximum number of control planes that can be scheduled above or under the
+                              desired number of control planes.
+                              Value can be an absolute number 1 or 0.
+                              Defaults to 1.
+                              Example: when this is set to 1, the control plane can be scaled
+                              up immediately when the rolling update starts.
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      type:
+                        description: |-
+                          type of rollout. Currently the only supported strategy is
+                          "RollingUpdate".
+                          Default is RollingUpdate.
+                        enum:
+                        - RollingUpdate
+                        type: string
+                    required:
+                    - type
+                    type: object
                 type: object
               version:
                 description: |-

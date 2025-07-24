@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -96,6 +97,10 @@ func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *randfill.Fi
 						fuzzed := metav1.Unix(int64(sec), int64(nsec)).Rfc3339Copy()
 						input.Time = fuzzed.Time
 					}
+				},
+				// Custom fuzzer for intstr.IntOrString which does not get fuzzed otherwise.
+				func(in *intstr.IntOrString, c randfill.Continue) {
+					*in = intstr.FromInt32(c.Int31n(50))
 				},
 			}
 		},

@@ -49,7 +49,7 @@ func getKubeadmControlPlane(ctx context.Context, proxy cluster.Proxy, name, name
 
 // setRolloutAfterOnKCP sets KubeadmControlPlane.spec.rolloutAfter.
 func setRolloutAfterOnKCP(ctx context.Context, proxy cluster.Proxy, name, namespace string) error {
-	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf(`{"spec":{"rolloutAfter":"%v"}}`, time.Now().Format(time.RFC3339))))
+	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf(`{"spec":{"rollout":{"after":"%v"}}}`, time.Now().Format(time.RFC3339))))
 	return patchKubeadmControlPlane(ctx, proxy, name, namespace, patch)
 }
 

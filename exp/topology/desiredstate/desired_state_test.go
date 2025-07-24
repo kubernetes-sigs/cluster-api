@@ -1751,12 +1751,18 @@ func TestComputeMachineDeployment(t *testing.T) {
 	clusterClassFailureDomain := "A"
 	clusterClassDuration := int32(20)
 	var clusterClassMinReadySeconds int32 = 20
-	clusterClassStrategy := clusterv1.MachineDeploymentStrategy{
+	clusterClassStrategy := clusterv1.MachineDeploymentClassRolloutStrategy{
 		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
-		Remediation: clusterv1.RemediationStrategy{
+	}
+	clusterClassMDStrategy := clusterv1.MachineDeploymentRolloutStrategy{
+		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+	}
+	clusterClassHealthCheck := &clusterv1.MachineDeploymentClassHealthCheck{
+		Remediation: clusterv1.MachineDeploymentClassHealthCheckRemediation{
 			MaxInFlight: ptr.To(intstr.FromInt32(5)),
 		},
 	}
+	clusterClassDeletionOrder := clusterv1.NewestMachineSetDeletionOrder
 	clusterClassReadinessGates := []clusterv1.MachineReadinessGate{
 		{ConditionType: "foo"},
 	}
@@ -1778,6 +1784,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 		WithNodeDeletionTimeout(&clusterClassDuration).
 		WithMinReadySeconds(&clusterClassMinReadySeconds).
 		WithStrategy(clusterClassStrategy).
+		WithDeletionOrder(clusterClassDeletionOrder).
+		WithMachineHealthCheckClass(clusterClassHealthCheck).
 		Build()
 	mcds := []clusterv1.MachineDeploymentClass{*md1}
 	fakeClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1822,12 +1830,18 @@ func TestComputeMachineDeployment(t *testing.T) {
 	topologyFailureDomain := "B"
 	topologyDuration := int32(10)
 	var topologyMinReadySeconds int32 = 10
-	topologyStrategy := clusterv1.MachineDeploymentStrategy{
+	topologyStrategy := clusterv1.MachineDeploymentTopologyRolloutStrategy{
 		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-		Remediation: clusterv1.RemediationStrategy{
-			MaxInFlight: ptr.To(intstr.FromInt32(5)),
+	}
+	topologyMDStrategy := clusterv1.MachineDeploymentRolloutStrategy{
+		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+	}
+	topologyHealthCheck := &clusterv1.MachineDeploymentTopologyHealthCheck{
+		Remediation: clusterv1.MachineDeploymentTopologyHealthCheckRemediation{
+			MaxInFlight: ptr.To(intstr.FromInt32(1)),
 		},
 	}
+	topologyDeletionOrder := clusterv1.OldestMachineSetDeletionOrder
 	readinessGates := []clusterv1.MachineReadinessGate{
 		{ConditionType: "foo"},
 		{ConditionType: "bar"},
@@ -1851,13 +1865,17 @@ func TestComputeMachineDeployment(t *testing.T) {
 		Replicas:       &replicas,
 		FailureDomain:  topologyFailureDomain,
 		ReadinessGates: readinessGates,
+		HealthCheck:    topologyHealthCheck,
 		Deletion: clusterv1.MachineDeploymentTopologyMachineDeletionSpec{
+			Order:                          topologyDeletionOrder,
 			NodeDrainTimeoutSeconds:        &topologyDuration,
 			NodeVolumeDetachTimeoutSeconds: &topologyDuration,
 			NodeDeletionTimeoutSeconds:     &topologyDuration,
 		},
 		MinReadySeconds: &topologyMinReadySeconds,
-		Strategy:        topologyStrategy,
+		Rollout: clusterv1.MachineDeploymentTopologyRolloutSpec{
+			Strategy: topologyStrategy,
+		},
 	}
 
 	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {
@@ -1886,9 +1904,11 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		actualMd := actual.Object
 		g.Expect(*actualMd.Spec.Replicas).To(Equal(replicas))
-		g.Expect(actualMd.Spec.Strategy).To(BeComparableTo(topologyStrategy))
+		g.Expect(actualMd.Spec.Rollout.Strategy).To(BeComparableTo(topologyMDStrategy))
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(topologyMinReadySeconds)))
 		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
+		g.Expect(actualMd.Spec.Remediation.MaxInFlight).To(Equal(topologyHealthCheck.Remediation.MaxInFlight))
+		g.Expect(actualMd.Spec.Deletion.Order).To(Equal(topologyDeletionOrder))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(topologyDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(topologyDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(topologyDuration))
@@ -1934,7 +1954,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Class:    "linux-worker",
 			Name:     "big-pool-of-machines",
 			Replicas: &replicas,
-			// missing ReadinessGates, FailureDomain, NodeDrainTimeoutSeconds, NodeVolumeDetachTimeoutSeconds, NodeDeletionTimeoutSeconds, MinReadySeconds, Strategy
+			// missing ReadinessGates, FailureDomain, NodeDrainTimeoutSeconds, NodeVolumeDetachTimeoutSeconds, NodeDeletionTimeoutSeconds, MinReadySeconds, Strategy, deletion.Order, remediation
 		}
 
 		e := generator{}
@@ -1944,10 +1964,12 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		// checking only values from CC defaults
 		actualMd := actual.Object
-		g.Expect(actualMd.Spec.Strategy).To(BeComparableTo(clusterClassStrategy))
+		g.Expect(actualMd.Spec.Rollout.Strategy).To(BeComparableTo(clusterClassMDStrategy))
 		g.Expect(actualMd.Spec.Template.Spec.MinReadySeconds).To(HaveValue(Equal(clusterClassMinReadySeconds)))
 		g.Expect(actualMd.Spec.Template.Spec.FailureDomain).To(Equal(clusterClassFailureDomain))
 		g.Expect(actualMd.Spec.Template.Spec.ReadinessGates).To(Equal(clusterClassReadinessGates))
+		g.Expect(actualMd.Spec.Remediation.MaxInFlight).To(Equal(clusterClassHealthCheck.Remediation.MaxInFlight))
+		g.Expect(actualMd.Spec.Deletion.Order).To(Equal(clusterClassDeletionOrder))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(clusterClassDuration))
@@ -2392,7 +2414,7 @@ func TestComputeMachinePool(t *testing.T) {
 			Class:    "linux-worker",
 			Name:     "big-pool-of-machines",
 			Replicas: &replicas,
-			// missing FailureDomain, NodeDrainTimeoutSeconds, NodeVolumeDetachTimeoutSeconds, NodeDeletionTimeoutSeconds, MinReadySeconds, Strategy
+			// missing FailureDomain, NodeDrainTimeoutSeconds, NodeVolumeDetachTimeoutSeconds, NodeDeletionTimeoutSeconds, MinReadySeconds
 		}
 
 		e := generator{}

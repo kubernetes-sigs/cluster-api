@@ -135,9 +135,7 @@ func validateKubeadmControlPlaneTemplateResourceSpec(s controlplanev1.KubeadmCon
 	allErrs := field.ErrorList{}
 
 	allErrs = append(allErrs, validateRolloutStrategy(s.Rollout.Strategy, nil, pathPrefix.Child("rollout", "strategy"))...)
-	if s.MachineNamingStrategy != nil {
-		allErrs = append(allErrs, validateNamingStrategy(s.MachineNamingStrategy, pathPrefix.Child("machineNamingStrategy"))...)
-	}
+	allErrs = append(allErrs, validateNaming(s.MachineNaming, pathPrefix.Child("machineNaming"))...)
 
 	// Validate the metadata of the MachineTemplate
 	allErrs = append(allErrs, s.MachineTemplate.ObjectMeta.Validate(pathPrefix.Child("machineTemplate", "metadata"))...)

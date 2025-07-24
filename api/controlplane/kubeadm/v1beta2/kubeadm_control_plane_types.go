@@ -454,10 +454,10 @@ type KubeadmControlPlaneSpec struct {
 	// +optional
 	Remediation KubeadmControlPlaneRemediationSpec `json:"remediation,omitempty,omitzero"`
 
-	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
+	// machineNaming allows changing the naming pattern used when creating Machines.
 	// InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.
 	// +optional
-	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
+	MachineNaming MachineNamingSpec `json:"machineNaming,omitempty,omitzero"`
 }
 
 // KubeadmControlPlaneMachineTemplate defines the template for Machines
@@ -637,9 +637,10 @@ type KubeadmControlPlaneRemediationSpec struct {
 	MinHealthyPeriodSeconds *int32 `json:"minHealthyPeriodSeconds,omitempty"`
 }
 
-// MachineNamingStrategy allows changing the naming pattern used when creating Machines.
+// MachineNamingSpec allows changing the naming pattern used when creating Machines.
 // InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.
-type MachineNamingStrategy struct {
+// +kubebuilder:validation:MinProperties=1
+type MachineNamingSpec struct {
 	// template defines the template to use for generating the names of the Machine objects.
 	// If not defined, it will fallback to `{{ .kubeadmControlPlane.name }}-{{ .random }}`.
 	// If the generated name string exceeds 63 characters, it will be trimmed to 58 characters and will

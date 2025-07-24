@@ -360,7 +360,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 				},
 			},
 			Version: "v1.16.6",
-			MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
+			MachineNaming: controlplanev1.MachineNamingSpec{
 				Template: "{{ .kubeadmControlPlane.name }}" + namingTemplateKey + "-{{ .random }}",
 			},
 		},
@@ -547,7 +547,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 							CertificatesDir: "foo",
 						},
 					},
-					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
+					MachineNaming: controlplanev1.MachineNamingSpec{
 						Template: "{{ .kubeadmControlPlane.name }}" + namingTemplateKey + "-{{ .random }}",
 					},
 				},
@@ -584,7 +584,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 							CertificatesDir: "foo",
 						},
 					},
-					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
+					MachineNaming: controlplanev1.MachineNamingSpec{
 						Template: "{{ .kubeadmControlPlane.name }}" + namingTemplateKey,
 					},
 				},
@@ -616,7 +616,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 							CertificatesDir: "foo",
 						},
 					},
-					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
+					MachineNaming: controlplanev1.MachineNamingSpec{
 						Template: "{{ .random }}" + fmt.Sprintf("%059d", 0),
 					},
 				},
@@ -653,7 +653,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 							CertificatesDir: "foo",
 						},
 					},
-					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
+					MachineNaming: controlplanev1.MachineNamingSpec{
 						Template: "some-hardcoded-name-{{ .doesnotexistindata }}-{{ .random }}", // invalid template
 					},
 				},
@@ -759,7 +759,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 							CertificatesDir: "foo",
 						},
 					},
-					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
+					MachineNaming: controlplanev1.MachineNamingSpec{
 						Template: "{{ .kubeadmControlPlane.name }}" + namingTemplateKey + "-{{ .random }}",
 					},
 				},
@@ -798,7 +798,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 							CertificatesDir: "foo",
 						},
 					},
-					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
+					MachineNaming: controlplanev1.MachineNamingSpec{
 						Template: "{{ .kubeadmControlPlane.name }}" + namingTemplateKey + "-{{ .random }}",
 					},
 				},
@@ -838,7 +838,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 							CertificatesDir: "foo",
 						},
 					},
-					MachineNamingStrategy: &controlplanev1.MachineNamingStrategy{
+					MachineNaming: controlplanev1.MachineNamingSpec{
 						Template: "{{ .kubeadmControlPlane.name }}" + namingTemplateKey + "-{{ .random }}",
 					},
 				},

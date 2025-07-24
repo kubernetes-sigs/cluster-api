@@ -199,8 +199,8 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 	currentRef := cluster.Spec.InfrastructureRef
 
 	nameTemplate := "{{ .cluster.name }}-{{ .random }}"
-	if s.Blueprint.ClusterClass.Spec.Infrastructure.NamingStrategy != nil && s.Blueprint.ClusterClass.Spec.Infrastructure.NamingStrategy.Template != "" {
-		nameTemplate = s.Blueprint.ClusterClass.Spec.Infrastructure.NamingStrategy.Template
+	if s.Blueprint.ClusterClass.Spec.Infrastructure.Naming.Template != "" {
+		nameTemplate = s.Blueprint.ClusterClass.Spec.Infrastructure.Naming.Template
 	}
 
 	infrastructureCluster, err := templateToObject(templateToInput{
@@ -297,8 +297,8 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 	controlPlaneAnnotations := util.MergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations)
 
 	nameTemplate := "{{ .cluster.name }}-{{ .random }}"
-	if s.Blueprint.ClusterClass.Spec.ControlPlane.NamingStrategy != nil && s.Blueprint.ClusterClass.Spec.ControlPlane.NamingStrategy.Template != "" {
-		nameTemplate = s.Blueprint.ClusterClass.Spec.ControlPlane.NamingStrategy.Template
+	if s.Blueprint.ClusterClass.Spec.ControlPlane.Naming.Template != "" {
+		nameTemplate = s.Blueprint.ClusterClass.Spec.ControlPlane.Naming.Template
 	}
 
 	controlPlane, err := templateToObject(templateToInput{
@@ -864,8 +864,8 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	desiredInfraMachineTemplateRef := contract.ObjToContractVersionedObjectReference(desiredMachineDeployment.InfrastructureMachineTemplate)
 
 	nameTemplate := "{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}"
-	if machineDeploymentClass.NamingStrategy != nil && machineDeploymentClass.NamingStrategy.Template != "" {
-		nameTemplate = machineDeploymentClass.NamingStrategy.Template
+	if machineDeploymentClass.Naming.Template != "" {
+		nameTemplate = machineDeploymentClass.Naming.Template
 	}
 
 	name, err := topologynames.MachineDeploymentNameGenerator(nameTemplate, s.Current.Cluster.Name, machineDeploymentTopology.Name).GenerateName()
@@ -1188,8 +1188,8 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 	desiredInfraMachinePoolRef := contract.ObjToContractVersionedObjectReference(desiredMachinePool.InfrastructureMachinePoolObject)
 
 	nameTemplate := "{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}"
-	if machinePoolClass.NamingStrategy != nil && machinePoolClass.NamingStrategy.Template != "" {
-		nameTemplate = machinePoolClass.NamingStrategy.Template
+	if machinePoolClass.Naming.Template != "" {
+		nameTemplate = machinePoolClass.Naming.Template
 	}
 
 	name, err := topologynames.MachinePoolNameGenerator(nameTemplate, s.Current.Cluster.Name, machinePoolTopology.Name).GenerateName()

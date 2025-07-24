@@ -872,11 +872,11 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 // while for an existing Machine we have to use the name of the existing Machine.
 func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, existingMachine *clusterv1.Machine) (*clusterv1.Machine, error) {
 	nameTemplate := "{{ .machineSet.name }}-{{ .random }}"
-	if machineSet.Spec.MachineNamingStrategy != nil && machineSet.Spec.MachineNamingStrategy.Template != "" {
-		nameTemplate = machineSet.Spec.MachineNamingStrategy.Template
+	if machineSet.Spec.MachineNaming.Template != "" {
+		nameTemplate = machineSet.Spec.MachineNaming.Template
 		// This should never happen as this is validated on admission.
 		if !strings.Contains(nameTemplate, "{{ .random }}") {
-			return nil, errors.New("cannot generate Machine name: {{ .random }} is missing in machineNamingStrategy.template")
+			return nil, errors.New("cannot generate Machine name: {{ .random }} is missing in machineNaming.template")
 		}
 	}
 

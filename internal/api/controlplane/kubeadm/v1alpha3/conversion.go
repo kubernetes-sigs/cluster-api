@@ -105,9 +105,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Status.LastRemediation = restored.Status.LastRemediation
 		}
 
-		if restored.Spec.MachineNamingStrategy != nil {
-			dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
-		}
+		dst.Spec.MachineNaming = restored.Spec.MachineNaming
 
 		bootstrapv1alpha3.RestoreKubeadmConfigSpec(&dst.Spec.KubeadmConfigSpec, &restored.Spec.KubeadmConfigSpec)
 

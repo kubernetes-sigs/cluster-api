@@ -820,7 +820,7 @@ func autoConvert_v1beta2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec
 	if err := Convert_v1beta2_MachineTemplateSpec_To_v1alpha3_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.MachineNaming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_Pointer_bool_To_bool(&in.Paused, &out.Paused, s); err != nil {
@@ -1306,7 +1306,7 @@ func autoConvert_v1beta2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *v1beta2.M
 	if err := Convert_v1beta2_MachineTemplateSpec_To_v1alpha3_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.MachineNaming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	return nil
 }

@@ -184,6 +184,11 @@ func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(
 			out.RolloutStrategy.RollingUpdate.MaxSurge = in.Rollout.Strategy.RollingUpdate.MaxSurge
 		}
 	}
+	if in.MachineNaming.Template != "" {
+		out.MachineNamingStrategy = &MachineNamingStrategy{
+			Template: in.MachineNaming.Template,
+		}
+	}
 
 	return nil
 }
@@ -209,6 +214,9 @@ func Convert_v1beta1_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(
 		if in.RolloutStrategy.RollingUpdate != nil && in.RolloutStrategy.RollingUpdate.MaxSurge != nil {
 			out.Rollout.Strategy.RollingUpdate.MaxSurge = in.RolloutStrategy.RollingUpdate.MaxSurge
 		}
+	}
+	if in.MachineNamingStrategy != nil {
+		out.MachineNaming.Template = in.MachineNamingStrategy.Template
 	}
 
 	return nil
@@ -247,6 +255,11 @@ func Convert_v1beta2_KubeadmControlPlaneTemplateResourceSpec_To_v1beta1_KubeadmC
 			out.RolloutStrategy.RollingUpdate.MaxSurge = in.Rollout.Strategy.RollingUpdate.MaxSurge
 		}
 	}
+	if in.MachineNaming.Template != "" {
+		out.MachineNamingStrategy = &MachineNamingStrategy{
+			Template: in.MachineNaming.Template,
+		}
+	}
 
 	return nil
 }
@@ -278,6 +291,9 @@ func Convert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1beta2_KubeadmC
 		if in.RolloutStrategy.RollingUpdate != nil && in.RolloutStrategy.RollingUpdate.MaxSurge != nil {
 			out.Rollout.Strategy.RollingUpdate.MaxSurge = in.RolloutStrategy.RollingUpdate.MaxSurge
 		}
+	}
+	if in.MachineNamingStrategy != nil {
+		out.MachineNaming.Template = in.MachineNamingStrategy.Template
 	}
 
 	return nil

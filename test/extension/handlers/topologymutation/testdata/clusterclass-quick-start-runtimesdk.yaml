@@ -13,7 +13,7 @@ spec:
         kind: DockerMachineTemplate
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         name: quick-start-control-plane
-    namingStrategy:
+    naming:
       template: "{{ .cluster.name }}-cp-{{ .random }}"
   infrastructure:
     templateRef:
@@ -23,7 +23,7 @@ spec:
   workers:
     machineDeployments:
     - class: default-worker
-      namingStrategy:
+      naming:
         template: "{{ .cluster.name }}-md-{{ .machineDeployment.topologyName }}-{{ .random }}"
       bootstrap:
         templateRef:
@@ -37,7 +37,7 @@ spec:
           name: quick-start-default-worker-machinetemplate
     machinePools:
     - class: default-worker
-      namingStrategy:
+      naming:
         template: "{{ .cluster.name }}-mp-{{ .machinePool.topologyName }}-{{ .random }}"
       bootstrap:
         templateRef:

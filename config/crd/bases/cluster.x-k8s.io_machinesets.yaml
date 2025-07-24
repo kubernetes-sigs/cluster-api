@@ -1654,10 +1654,11 @@ spec:
                     - Oldest
                     type: string
                 type: object
-              machineNamingStrategy:
+              machineNaming:
                 description: |-
-                  machineNamingStrategy allows changing the naming pattern used when creating Machines.
+                  machineNaming allows changing the naming pattern used when creating Machines.
                   Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
+                minProperties: 1
                 properties:
                   template:
                     description: |-

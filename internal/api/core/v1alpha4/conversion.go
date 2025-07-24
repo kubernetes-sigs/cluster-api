@@ -248,8 +248,8 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.AvailabilityGates = restored.Spec.AvailabilityGates
 	dst.Spec.ControlPlane.HealthCheck = restored.Spec.ControlPlane.HealthCheck
 	dst.Spec.ControlPlane.ReadinessGates = restored.Spec.ControlPlane.ReadinessGates
-	dst.Spec.ControlPlane.NamingStrategy = restored.Spec.ControlPlane.NamingStrategy
-	dst.Spec.Infrastructure.NamingStrategy = restored.Spec.Infrastructure.NamingStrategy
+	dst.Spec.ControlPlane.Naming = restored.Spec.ControlPlane.Naming
+	dst.Spec.Infrastructure.Naming = restored.Spec.Infrastructure.Naming
 	dst.Spec.ControlPlane.Deletion.NodeDrainTimeoutSeconds = restored.Spec.ControlPlane.Deletion.NodeDrainTimeoutSeconds
 	dst.Spec.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds
 	dst.Spec.ControlPlane.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.ControlPlane.Deletion.NodeDeletionTimeoutSeconds
@@ -259,7 +259,7 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Workers.MachineDeployments[i].HealthCheck = restored.Spec.Workers.MachineDeployments[i].HealthCheck
 		dst.Spec.Workers.MachineDeployments[i].ReadinessGates = restored.Spec.Workers.MachineDeployments[i].ReadinessGates
 		dst.Spec.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Workers.MachineDeployments[i].FailureDomain
-		dst.Spec.Workers.MachineDeployments[i].NamingStrategy = restored.Spec.Workers.MachineDeployments[i].NamingStrategy
+		dst.Spec.Workers.MachineDeployments[i].Naming = restored.Spec.Workers.MachineDeployments[i].Naming
 		dst.Spec.Workers.MachineDeployments[i].Deletion.Order = restored.Spec.Workers.MachineDeployments[i].Deletion.Order
 		dst.Spec.Workers.MachineDeployments[i].Deletion.NodeDrainTimeoutSeconds = restored.Spec.Workers.MachineDeployments[i].Deletion.NodeDrainTimeoutSeconds
 		dst.Spec.Workers.MachineDeployments[i].Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Workers.MachineDeployments[i].Deletion.NodeVolumeDetachTimeoutSeconds
@@ -430,11 +430,7 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
 	dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
 	dst.Status.UpToDateReplicas = restored.Status.UpToDateReplicas
-
-	if restored.Spec.MachineNamingStrategy != nil {
-		dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
-	}
-
+	dst.Spec.MachineNaming = restored.Spec.MachineNaming
 	return nil
 }
 
@@ -525,10 +521,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 		dst.Spec.Rollout.After = restored.Spec.Rollout.After
 		dst.Spec.Remediation = restored.Spec.Remediation
-
-		if restored.Spec.MachineNamingStrategy != nil {
-			dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
-		}
+		dst.Spec.MachineNaming = restored.Spec.MachineNaming
 		dst.Status.Conditions = restored.Status.Conditions
 		dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
 		dst.Status.ReadyReplicas = restored.Status.ReadyReplicas

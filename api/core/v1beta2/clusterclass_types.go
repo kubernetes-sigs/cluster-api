@@ -137,9 +137,9 @@ type InfrastructureClass struct {
 	// +required
 	TemplateRef ClusterClassTemplateReference `json:"templateRef,omitempty,omitzero"`
 
-	// namingStrategy allows changing the naming pattern used when creating the infrastructure cluster object.
+	// naming allows changing the naming pattern used when creating the infrastructure cluster object.
 	// +optional
-	NamingStrategy *InfrastructureClassNamingStrategy `json:"namingStrategy,omitempty"`
+	Naming InfrastructureClassNamingSpec `json:"naming,omitempty,omitzero"`
 }
 
 // ControlPlaneClass defines the class for the control plane.
@@ -173,9 +173,9 @@ type ControlPlaneClass struct {
 	// +optional
 	HealthCheck *ControlPlaneClassHealthCheck `json:"healthCheck,omitempty"`
 
-	// namingStrategy allows changing the naming pattern used when creating the control plane provider object.
+	// naming allows changing the naming pattern used when creating the control plane provider object.
 	// +optional
-	NamingStrategy *ControlPlaneClassNamingStrategy `json:"namingStrategy,omitempty"`
+	Naming ControlPlaneClassNamingSpec `json:"naming,omitempty,omitzero"`
 
 	// deletion contains configuration options for Machine deletion.
 	// +optional
@@ -325,8 +325,9 @@ type ControlPlaneClassMachineDeletionSpec struct {
 	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
 }
 
-// ControlPlaneClassNamingStrategy defines the naming strategy for control plane objects.
-type ControlPlaneClassNamingStrategy struct {
+// ControlPlaneClassNamingSpec defines the naming strategy for control plane objects.
+// +kubebuilder:validation:MinProperties=1
+type ControlPlaneClassNamingSpec struct {
 	// template defines the template to use for generating the name of the ControlPlane object.
 	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
@@ -340,8 +341,9 @@ type ControlPlaneClassNamingStrategy struct {
 	Template string `json:"template,omitempty"`
 }
 
-// InfrastructureClassNamingStrategy defines the naming strategy for infrastructure objects.
-type InfrastructureClassNamingStrategy struct {
+// InfrastructureClassNamingSpec defines the naming strategy for infrastructure objects.
+// +kubebuilder:validation:MinProperties=1
+type InfrastructureClassNamingSpec struct {
 	// template defines the template to use for generating the name of the Infrastructure object.
 	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
@@ -413,9 +415,9 @@ type MachineDeploymentClass struct {
 	// +kubebuilder:validation:MaxLength=256
 	FailureDomain string `json:"failureDomain,omitempty"`
 
-	// namingStrategy allows changing the naming pattern used when creating the MachineDeployment.
+	// naming allows changing the naming pattern used when creating the MachineDeployment.
 	// +optional
-	NamingStrategy *MachineDeploymentClassNamingStrategy `json:"namingStrategy,omitempty"`
+	Naming MachineDeploymentClassNamingSpec `json:"naming,omitempty,omitzero"`
 
 	// deletion contains configuration options for Machine deletion.
 	// +optional
@@ -600,8 +602,9 @@ type MachineDeploymentClassMachineDeletionSpec struct {
 	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
 }
 
-// MachineDeploymentClassNamingStrategy defines the naming strategy for machine deployment objects.
-type MachineDeploymentClassNamingStrategy struct {
+// MachineDeploymentClassNamingSpec defines the naming strategy for machine deployment objects.
+// +kubebuilder:validation:MinProperties=1
+type MachineDeploymentClassNamingSpec struct {
 	// template defines the template to use for generating the name of the MachineDeployment object.
 	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
@@ -710,9 +713,9 @@ type MachinePoolClass struct {
 	// +kubebuilder:validation:items:MaxLength=256
 	FailureDomains []string `json:"failureDomains,omitempty"`
 
-	// namingStrategy allows changing the naming pattern used when creating the MachinePool.
+	// naming allows changing the naming pattern used when creating the MachinePool.
 	// +optional
-	NamingStrategy *MachinePoolClassNamingStrategy `json:"namingStrategy,omitempty"`
+	Naming MachinePoolClassNamingSpec `json:"naming,omitempty,omitzero"`
 
 	// deletion contains configuration options for Machine deletion.
 	// +optional
@@ -755,8 +758,9 @@ type MachinePoolClassMachineDeletionSpec struct {
 	NodeDeletionTimeoutSeconds *int32 `json:"nodeDeletionTimeoutSeconds,omitempty"`
 }
 
-// MachinePoolClassNamingStrategy defines the naming strategy for machine pool objects.
-type MachinePoolClassNamingStrategy struct {
+// MachinePoolClassNamingSpec defines the naming strategy for MachinePool objects.
+// +kubebuilder:validation:MinProperties=1
+type MachinePoolClassNamingSpec struct {
 	// template defines the template to use for generating the name of the MachinePool object.
 	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}`.
 	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will

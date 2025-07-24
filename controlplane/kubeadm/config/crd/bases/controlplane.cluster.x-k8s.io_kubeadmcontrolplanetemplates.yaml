@@ -5565,10 +5565,11 @@ spec:
                             format: int32
                             type: integer
                         type: object
-                      machineNamingStrategy:
+                      machineNaming:
                         description: |-
-                          machineNamingStrategy allows changing the naming pattern used when creating Machines.
+                          machineNaming allows changing the naming pattern used when creating Machines.
                           InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.
+                        minProperties: 1
                         properties:
                           template:
                             description: |-

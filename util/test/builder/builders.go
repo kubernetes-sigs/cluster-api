@@ -349,8 +349,8 @@ type ClusterClassBuilder struct {
 	controlPlaneNodeDrainTimeout              *int32
 	controlPlaneNodeVolumeDetachTimeout       *int32
 	controlPlaneNodeDeletionTimeout           *int32
-	controlPlaneNamingStrategy                *clusterv1.ControlPlaneClassNamingStrategy
-	infraClusterNamingStrategy                *clusterv1.InfrastructureClassNamingStrategy
+	controlPlaneNaming                        *clusterv1.ControlPlaneClassNamingSpec
+	infraClusterNaming                        *clusterv1.InfrastructureClassNamingSpec
 	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
 	machinePoolClasses                        []clusterv1.MachinePoolClass
 	variables                                 []clusterv1.ClusterClassVariable
@@ -424,15 +424,15 @@ func (c *ClusterClassBuilder) WithControlPlaneNodeDeletionTimeout(t *int32) *Clu
 	return c
 }
 
-// WithControlPlaneNamingStrategy sets the NamingStrategy for the ControlPlane to the ClusterClassBuilder.
-func (c *ClusterClassBuilder) WithControlPlaneNamingStrategy(n *clusterv1.ControlPlaneClassNamingStrategy) *ClusterClassBuilder {
-	c.controlPlaneNamingStrategy = n
+// WithControlPlaneNaming sets the Naming for the ControlPlane to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithControlPlaneNaming(n *clusterv1.ControlPlaneClassNamingSpec) *ClusterClassBuilder {
+	c.controlPlaneNaming = n
 	return c
 }
 
-// WithInfraClusterStrategy sets the NamingStrategy for the infra cluster to the ClusterClassBuilder.
-func (c *ClusterClassBuilder) WithInfraClusterStrategy(n *clusterv1.InfrastructureClassNamingStrategy) *ClusterClassBuilder {
-	c.infraClusterNamingStrategy = n
+// WithInfraClusterNaming sets the Naming for the infra cluster to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithInfraClusterNaming(n *clusterv1.InfrastructureClassNamingSpec) *ClusterClassBuilder {
+	c.infraClusterNaming = n
 	return c
 }
 
@@ -529,11 +529,11 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 			TemplateRef: objToClusterClassTemplateRef(c.controlPlaneInfrastructureMachineTemplate),
 		}
 	}
-	if c.controlPlaneNamingStrategy != nil {
-		obj.Spec.ControlPlane.NamingStrategy = c.controlPlaneNamingStrategy
+	if c.controlPlaneNaming != nil {
+		obj.Spec.ControlPlane.Naming = *c.controlPlaneNaming
 	}
-	if c.infraClusterNamingStrategy != nil {
-		obj.Spec.Infrastructure.NamingStrategy = c.infraClusterNamingStrategy
+	if c.infraClusterNaming != nil {
+		obj.Spec.Infrastructure.Naming = *c.infraClusterNaming
 	}
 
 	obj.Spec.Workers.MachineDeployments = c.machineDeploymentClasses
@@ -557,7 +557,7 @@ type MachineDeploymentClassBuilder struct {
 	minReadySeconds               *int32
 	strategy                      clusterv1.MachineDeploymentClassRolloutStrategy
 	deletionOrder                 clusterv1.MachineSetDeletionOrder
-	namingStrategy                *clusterv1.MachineDeploymentClassNamingStrategy
+	naming                        *clusterv1.MachineDeploymentClassNamingSpec
 }
 
 // MachineDeploymentClass returns a MachineDeploymentClassBuilder with the given name and namespace.
@@ -645,9 +645,9 @@ func (m *MachineDeploymentClassBuilder) WithDeletionOrder(deletionOrder clusterv
 	return m
 }
 
-// WithNamingStrategy sets the NamingStrategy for the MachineDeploymentClassBuilder.
-func (m *MachineDeploymentClassBuilder) WithNamingStrategy(n *clusterv1.MachineDeploymentClassNamingStrategy) *MachineDeploymentClassBuilder {
-	m.namingStrategy = n
+// WithNaming sets the Naming for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithNaming(n *clusterv1.MachineDeploymentClassNamingSpec) *MachineDeploymentClassBuilder {
+	m.naming = n
 	return m
 }
 
@@ -689,8 +689,8 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 	}
 	obj.Rollout.Strategy = m.strategy
 	obj.Deletion.Order = m.deletionOrder
-	if m.namingStrategy != nil {
-		obj.NamingStrategy = m.namingStrategy
+	if m.naming != nil {
+		obj.Naming = *m.naming
 	}
 	return obj
 }
@@ -707,7 +707,7 @@ type MachinePoolClassBuilder struct {
 	nodeVolumeDetachTimeout           *int32
 	nodeDeletionTimeout               *int32
 	minReadySeconds                   *int32
-	namingStrategy                    *clusterv1.MachinePoolClassNamingStrategy
+	naming                            *clusterv1.MachinePoolClassNamingSpec
 }
 
 // MachinePoolClass returns a MachinePoolClassBuilder with the given name and namespace.
@@ -771,9 +771,9 @@ func (m *MachinePoolClassBuilder) WithMinReadySeconds(t *int32) *MachinePoolClas
 	return m
 }
 
-// WithNamingStrategy sets the NamingStrategy for the MachinePoolClassBuilder.
-func (m *MachinePoolClassBuilder) WithNamingStrategy(n *clusterv1.MachinePoolClassNamingStrategy) *MachinePoolClassBuilder {
-	m.namingStrategy = n
+// WithNaming sets the Naming for the MachinePoolClassBuilder.
+func (m *MachinePoolClassBuilder) WithNaming(n *clusterv1.MachinePoolClassNamingSpec) *MachinePoolClassBuilder {
+	m.naming = n
 	return m
 }
 
@@ -807,8 +807,8 @@ func (m *MachinePoolClassBuilder) Build() *clusterv1.MachinePoolClass {
 	if m.minReadySeconds != nil {
 		obj.MinReadySeconds = m.minReadySeconds
 	}
-	if m.namingStrategy != nil {
-		obj.NamingStrategy = m.namingStrategy
+	if m.naming != nil {
+		obj.Naming = *m.naming
 	}
 	return obj
 }

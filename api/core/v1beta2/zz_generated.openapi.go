@@ -63,7 +63,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassHealthCheckRemediationTriggerIf":         schema_cluster_api_api_core_v1beta2_ControlPlaneClassHealthCheckRemediationTriggerIf(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec":                     schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineDeletionSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate":           schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy":                          schema_cluster_api_api_core_v1beta2_ControlPlaneClassNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingSpec":                              schema_cluster_api_api_core_v1beta2_ControlPlaneClassNamingSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopology":                                     schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyHealthCheck":                          schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheck(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyHealthCheckChecks":                    schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheckChecks(ref),
@@ -74,7 +74,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ExternalPatchDefinition":                                  schema_cluster_api_api_core_v1beta2_ExternalPatchDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain":                                            schema_cluster_api_api_core_v1beta2_FailureDomain(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClass":                                      schema_cluster_api_api_core_v1beta2_InfrastructureClass(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClassNamingStrategy":                        schema_cluster_api_api_core_v1beta2_InfrastructureClassNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClassNamingSpec":                            schema_cluster_api_api_core_v1beta2_InfrastructureClassNamingSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.JSONPatch":                                                schema_cluster_api_api_core_v1beta2_JSONPatch(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.JSONPatchValue":                                           schema_cluster_api_api_core_v1beta2_JSONPatchValue(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.JSONSchemaProps":                                          schema_cluster_api_api_core_v1beta2_JSONSchemaProps(ref),
@@ -91,7 +91,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassHealthCheckRemediationTriggerIf":    schema_cluster_api_api_core_v1beta2_MachineDeploymentClassHealthCheckRemediationTriggerIf(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate":             schema_cluster_api_api_core_v1beta2_MachineDeploymentClassInfrastructureTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec":                schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineDeletionSpec(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy":                     schema_cluster_api_api_core_v1beta2_MachineDeploymentClassNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingSpec":                         schema_cluster_api_api_core_v1beta2_MachineDeploymentClassNamingSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutSpec":                        schema_cluster_api_api_core_v1beta2_MachineDeploymentClassRolloutSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutStrategy":                    schema_cluster_api_api_core_v1beta2_MachineDeploymentClassRolloutStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutStrategyRollingUpdate":       schema_cluster_api_api_core_v1beta2_MachineDeploymentClassRolloutStrategyRollingUpdate(ref),
@@ -134,14 +134,14 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckV1Beta1DeprecatedStatus":                schema_cluster_api_api_core_v1beta2_MachineHealthCheckV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineInitializationStatus":                              schema_cluster_api_api_core_v1beta2_MachineInitializationStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineList":                                              schema_cluster_api_api_core_v1beta2_MachineList(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy":                                    schema_cluster_api_api_core_v1beta2_MachineNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingSpec":                                        schema_cluster_api_api_core_v1beta2_MachineNamingSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNodeReference":                                     schema_cluster_api_api_core_v1beta2_MachineNodeReference(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePool":                                              schema_cluster_api_api_core_v1beta2_MachinePool(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClass":                                         schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate":                        schema_cluster_api_api_core_v1beta2_MachinePoolClassBootstrapTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate":                   schema_cluster_api_api_core_v1beta2_MachinePoolClassInfrastructureTemplate(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassMachineDeletionSpec":                      schema_cluster_api_api_core_v1beta2_MachinePoolClassMachineDeletionSpec(ref),
-		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy":                           schema_cluster_api_api_core_v1beta2_MachinePoolClassNamingStrategy(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingSpec":                               schema_cluster_api_api_core_v1beta2_MachinePoolClassNamingSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolDeprecatedStatus":                              schema_cluster_api_api_core_v1beta2_MachinePoolDeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolInitializationStatus":                          schema_cluster_api_api_core_v1beta2_MachinePoolInitializationStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolList":                                          schema_cluster_api_api_core_v1beta2_MachinePoolList(ref),
@@ -1518,10 +1518,11 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassHealthCheck"),
 						},
 					},
-					"namingStrategy": {
+					"naming": {
 						SchemaProps: spec.SchemaProps{
-							Description: "namingStrategy allows changing the naming pattern used when creating the control plane provider object.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy"),
+							Description: "naming allows changing the naming pattern used when creating the control plane provider object.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingSpec"),
 						},
 					},
 					"deletion": {
@@ -1558,7 +1559,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -1745,11 +1746,11 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineInfrastructureT
 	}
 }
 
-func schema_cluster_api_api_core_v1beta2_ControlPlaneClassNamingStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_cluster_api_api_core_v1beta2_ControlPlaneClassNamingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ControlPlaneClassNamingStrategy defines the naming strategy for control plane objects.",
+				Description: "ControlPlaneClassNamingSpec defines the naming strategy for control plane objects.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"template": {
@@ -2149,10 +2150,11 @@ func schema_cluster_api_api_core_v1beta2_InfrastructureClass(ref common.Referenc
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference"),
 						},
 					},
-					"namingStrategy": {
+					"naming": {
 						SchemaProps: spec.SchemaProps{
-							Description: "namingStrategy allows changing the naming pattern used when creating the infrastructure cluster object.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClassNamingStrategy"),
+							Description: "naming allows changing the naming pattern used when creating the infrastructure cluster object.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClassNamingSpec"),
 						},
 					},
 				},
@@ -2160,15 +2162,15 @@ func schema_cluster_api_api_core_v1beta2_InfrastructureClass(ref common.Referenc
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClassNamingStrategy"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClassNamingSpec"},
 	}
 }
 
-func schema_cluster_api_api_core_v1beta2_InfrastructureClassNamingStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_cluster_api_api_core_v1beta2_InfrastructureClassNamingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "InfrastructureClassNamingStrategy defines the naming strategy for infrastructure objects.",
+				Description: "InfrastructureClassNamingSpec defines the naming strategy for infrastructure objects.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"template": {
@@ -2784,10 +2786,11 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 							Format:      "",
 						},
 					},
-					"namingStrategy": {
+					"naming": {
 						SchemaProps: spec.SchemaProps{
-							Description: "namingStrategy allows changing the naming pattern used when creating the MachineDeployment.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy"),
+							Description: "naming allows changing the naming pattern used when creating the MachineDeployment.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingSpec"),
 						},
 					},
 					"deletion": {
@@ -2838,7 +2841,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassHealthCheck", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -3061,11 +3064,11 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineDeletionSp
 	}
 }
 
-func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassNamingStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassNamingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentClassNamingStrategy defines the naming strategy for machine deployment objects.",
+				Description: "MachineDeploymentClassNamingSpec defines the naming strategy for machine deployment objects.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"template": {
@@ -3403,10 +3406,11 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"),
 						},
 					},
-					"machineNamingStrategy": {
+					"machineNaming": {
 						SchemaProps: spec.SchemaProps{
-							Description: "machineNamingStrategy allows changing the naming pattern used when creating Machines. Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy"),
+							Description: "machineNaming allows changing the naming pattern used when creating Machines. Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingSpec"),
 						},
 					},
 					"remediation": {
@@ -3435,7 +3439,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRemediationSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRemediationSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentRolloutSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
 	}
 }
 
@@ -4759,11 +4763,11 @@ func schema_cluster_api_api_core_v1beta2_MachineList(ref common.ReferenceCallbac
 	}
 }
 
-func schema_cluster_api_api_core_v1beta2_MachineNamingStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_cluster_api_api_core_v1beta2_MachineNamingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineNamingStrategy allows changing the naming pattern used when creating Machines. Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.",
+				Description: "MachineNamingSpec allows changing the naming pattern used when creating Machines. Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"template": {
@@ -4908,10 +4912,11 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCa
 							},
 						},
 					},
-					"namingStrategy": {
+					"naming": {
 						SchemaProps: spec.SchemaProps{
-							Description: "namingStrategy allows changing the naming pattern used when creating the MachinePool.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy"),
+							Description: "naming allows changing the naming pattern used when creating the MachinePool.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingSpec"),
 						},
 					},
 					"deletion": {
@@ -4933,7 +4938,7 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClass(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassBootstrapTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassInfrastructureTemplate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassMachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachinePoolClassNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"},
 	}
 }
 
@@ -5017,11 +5022,11 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolClassMachineDeletionSpec(ref
 	}
 }
 
-func schema_cluster_api_api_core_v1beta2_MachinePoolClassNamingStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_cluster_api_api_core_v1beta2_MachinePoolClassNamingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachinePoolClassNamingStrategy defines the naming strategy for machine pool objects.",
+				Description: "MachinePoolClassNamingSpec defines the naming strategy for MachinePool objects.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"template": {
@@ -5755,10 +5760,11 @@ func schema_cluster_api_api_core_v1beta2_MachineSetSpec(ref common.ReferenceCall
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"),
 						},
 					},
-					"machineNamingStrategy": {
+					"machineNaming": {
 						SchemaProps: spec.SchemaProps{
-							Description: "machineNamingStrategy allows changing the naming pattern used when creating Machines. Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy"),
+							Description: "machineNaming allows changing the naming pattern used when creating Machines. Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingSpec"),
 						},
 					},
 					"deletion": {
@@ -5773,7 +5779,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSetSpec(ref common.ReferenceCall
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingStrategy", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNamingSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec"},
 	}
 }
 

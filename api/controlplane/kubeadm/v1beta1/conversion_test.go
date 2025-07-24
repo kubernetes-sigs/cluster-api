@@ -173,6 +173,9 @@ func spokeKubeadmControlPlane(in *KubeadmControlPlane, c randfill.Continue) {
 	if reflect.DeepEqual(in.Spec.RolloutAfter, &metav1.Time{}) {
 		in.Spec.RolloutAfter = nil
 	}
+	if reflect.DeepEqual(in.Spec.MachineNamingStrategy, &MachineNamingStrategy{}) {
+		in.Spec.MachineNamingStrategy = nil
+	}
 }
 
 func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, c randfill.Continue) {
@@ -254,6 +257,9 @@ func spokeKubeadmControlPlaneTemplate(in *KubeadmControlPlaneTemplate, c randfil
 	}
 	if reflect.DeepEqual(in.Spec.Template.Spec.RolloutAfter, &metav1.Time{}) {
 		in.Spec.Template.Spec.RolloutAfter = nil
+	}
+	if reflect.DeepEqual(in.Spec.Template.Spec.MachineNamingStrategy, &MachineNamingStrategy{}) {
+		in.Spec.Template.Spec.MachineNamingStrategy = nil
 	}
 }
 

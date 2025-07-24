@@ -18,19 +18,22 @@ package desiredstate
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -962,6 +965,27 @@ func TestComputeControlPlane(t *testing.T) {
 }
 
 func TestComputeControlPlaneVersion(t *testing.T) {
+	var testGVKs = []schema.GroupVersionKind{
+		{
+			Group:   "refAPIGroup1",
+			Kind:    "refKind1",
+			Version: "v1beta4",
+		},
+	}
+
+	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+		for _, gvk := range testGVKs {
+			if gvk.GroupKind() == gk {
+				return schema.GroupVersion{
+					Group:   gk.Group,
+					Version: gvk.Version,
+				}.String(), nil
+			}
+		}
+		return "", fmt.Errorf("unknown GroupVersionKind: %v", gk)
+	}
+	clusterv1beta1.SetAPIVersionGetter(apiVersionGetter)
+
 	t.Run("Compute control plane version under various circumstances", func(t *testing.T) {
 		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
@@ -1208,6 +1232,14 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 									conversion.DataAnnotation:          "should be cleaned up",
 								},
 							},
+							// Add some more fields to check that conversion implemented when calling RuntimeExtension are properly handled.
+							Spec: clusterv1.ClusterSpec{
+								InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+									APIGroup: "refAPIGroup1",
+									Kind:     "refKind1",
+									Name:     "refName1",
+								},
+							},
 						},
 						ControlPlane: &scope.ControlPlaneState{Object: tt.controlPlaneObj},
 					},
@@ -1229,7 +1261,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 						beforeClusterUpgradeGVH: tt.hookResponse,
 					}).
-					WithCallAllExtensionValidations(validateCleanupCluster).
+					WithCallAllExtensionValidations(validateClusterParameter(s.Current.Cluster)).
 					Build()
 
 				fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
@@ -1549,7 +1581,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 						afterControlPlaneUpgradeGVH: tt.hookResponse,
 					}).
-					WithCallAllExtensionValidations(validateCleanupCluster).
+					WithCallAllExtensionValidations(validateClusterParameter(tt.s.Current.Cluster)).
 					WithCatalog(catalog).
 					Build()
 
@@ -3553,25 +3585,53 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 	}
 }
 
-func validateCleanupCluster(req runtimehooksv1.RequestObject) error {
-	var cluster clusterv1beta1.Cluster
-	switch req := req.(type) {
-	case *runtimehooksv1.BeforeClusterUpgradeRequest:
-		cluster = req.Cluster
-	case *runtimehooksv1.AfterControlPlaneUpgradeRequest:
-		cluster = req.Cluster
-	default:
-		return fmt.Errorf("unhandled request type %T", req)
-	}
+func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runtimehooksv1.RequestObject) error {
+	// return a func that allows to check if expected transformations are applied to the Cluster parameter which is
+	// included in the payload for lifecycle hooks calls.
+	return func(req runtimehooksv1.RequestObject) error {
+		var cluster clusterv1beta1.Cluster
+		switch req := req.(type) {
+		case *runtimehooksv1.BeforeClusterUpgradeRequest:
+			cluster = req.Cluster
+		case *runtimehooksv1.AfterControlPlaneUpgradeRequest:
+			cluster = req.Cluster
+		default:
+			return fmt.Errorf("unhandled request type %T", req)
+		}
 
-	if cluster.GetManagedFields() != nil {
-		return errors.New("managedFields should have been cleaned up")
+		// check if managed fields and well know annotations have been removed from the Cluster parameter included in the payload lifecycle hooks calls.
+		if cluster.GetManagedFields() != nil {
+			return errors.New("managedFields should have been cleaned up")
+		}
+		if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
+			return errors.New("last-applied-configuration annotation should have been cleaned up")
+		}
+		if _, ok := cluster.Annotations[conversion.DataAnnotation]; ok {
+			return errors.New("conversion annotation should have been cleaned up")
+		}
+
+		// check the Cluster parameter included in the payload lifecycle hooks calls has been properly converted from v1beta2 to v1beta1.
+		// Note: to perform this check we convert the parameter back to v1beta2 and compare with the original cluster +/- expected transformations.
+		v1beta2Cluster := &clusterv1.Cluster{}
+		if err := cluster.ConvertTo(v1beta2Cluster); err != nil {
+			return err
+		}
+
+		originalClusterCopy := originalCluster.DeepCopy()
+		originalClusterCopy.SetManagedFields(nil)
+		if originalClusterCopy.Annotations != nil {
+			annotations := maps.Clone(cluster.Annotations)
+			delete(annotations, corev1.LastAppliedConfigAnnotation)
+			delete(annotations, conversion.DataAnnotation)
+			originalClusterCopy.Annotations = annotations
+		}
+
+		// drop conditions, it is not possible to round trip without the data annotation.
+		originalClusterCopy.Status.Conditions = nil
+
+		if !apiequality.Semantic.DeepEqual(originalClusterCopy, v1beta2Cluster) {
+			return errors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, v1beta2Cluster))
+		}
+		return nil
 	}
-	if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
-		return errors.New("last-applied-configuration annotation should have been cleaned up")
-	}
-	if _, ok := cluster.Annotations[conversion.DataAnnotation]; ok {
-		return errors.New("conversion annotation should have been cleaned up")
-	}
-	return nil
 }

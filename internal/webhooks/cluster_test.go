@@ -57,7 +57,7 @@ func TestClusterTopologyDefaultNamespaces(t *testing.T) {
 		WithTopology(builder.ClusterTopology().
 			WithClass("foo").
 			WithVersion("v1.19.1").
-			WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyHealthCheck{
+			WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 				Remediation: clusterv1.ControlPlaneTopologyHealthCheckRemediation{
 					TemplateRef: &clusterv1.MachineHealthCheckRemediationTemplateReference{},
 				},
@@ -65,7 +65,7 @@ func TestClusterTopologyDefaultNamespaces(t *testing.T) {
 			WithMachineDeployment(
 				builder.MachineDeploymentTopology("md1").
 					WithClass("aa").
-					WithMachineHealthCheck(&clusterv1.MachineDeploymentTopologyHealthCheck{
+					WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
 						Remediation: clusterv1.MachineDeploymentTopologyHealthCheckRemediation{
 							TemplateRef: &clusterv1.MachineHealthCheckRemediationTemplateReference{},
 						},
@@ -2181,7 +2181,6 @@ func TestClusterTopologyValidation(t *testing.T) {
 // TestClusterTopologyValidationWithClient tests the additional cases introduced in new validation in the webhook package.
 func TestClusterTopologyValidationWithClient(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-	g := NewWithT(t)
 
 	tests := []struct {
 		name            string
@@ -2248,7 +2247,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithClass("clusterclass").
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
-						WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyHealthCheck{
+						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 							Enabled: ptr.To(true),
 						}).
 						Build()).
@@ -2266,7 +2265,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithClass("clusterclass").
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
-						WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyHealthCheck{
+						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 							Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
 								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{},
 							},
@@ -2287,7 +2286,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithClass("clusterclass").
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
-						WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyHealthCheck{
+						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 							Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
 								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 									{
@@ -2312,13 +2311,23 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithClass("clusterclass").
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
-						WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyHealthCheck{
+						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 							Enabled: ptr.To(true),
 						}).
 						Build()).
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
-				WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneClassHealthCheck{}).
+				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
+					Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
+						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+							{
+								Type:           corev1.NodeReady,
+								Status:         corev1.ConditionUnknown,
+								TimeoutSeconds: 5 * 60,
+							},
+						},
+					},
+				}).
 				Build(),
 			classReconciled: true,
 			wantErr:         false,
@@ -2331,7 +2340,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithClass("clusterclass").
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
-						WithControlPlaneMachineHealthCheck(&clusterv1.ControlPlaneTopologyHealthCheck{
+						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 							Enabled: ptr.To(true),
 							Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
 								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
@@ -2361,7 +2370,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithMachineDeployment(
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
-								WithMachineHealthCheck(&clusterv1.MachineDeploymentTopologyHealthCheck{
+								WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
 									Enabled: ptr.To(true),
 								}).
 								Build(),
@@ -2387,7 +2396,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithMachineDeployment(
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
-								WithMachineHealthCheck(&clusterv1.MachineDeploymentTopologyHealthCheck{
+								WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
 									Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
 										UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{},
 									},
@@ -2415,7 +2424,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithMachineDeployment(
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
-								WithMachineHealthCheck(&clusterv1.MachineDeploymentTopologyHealthCheck{
+								WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
 									Enabled: ptr.To(true),
 								}).
 								Build(),
@@ -2425,7 +2434,17 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("worker-class").
-						WithMachineHealthCheckClass(&clusterv1.MachineDeploymentClassHealthCheck{}).
+						WithMachineHealthCheckClass(clusterv1.MachineDeploymentClassHealthCheck{
+							Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
+								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+									{
+										Type:           corev1.NodeReady,
+										Status:         corev1.ConditionUnknown,
+										TimeoutSeconds: 5 * 60,
+									},
+								},
+							},
+						}).
 						Build(),
 				).
 				Build(),
@@ -2443,7 +2462,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithMachineDeployment(
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
-								WithMachineHealthCheck(&clusterv1.MachineDeploymentTopologyHealthCheck{
+								WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
 									Enabled: ptr.To(true),
 									Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
 										UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
@@ -2468,7 +2487,9 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(*testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
 			if tt.classReconciled {
 				conditions.Set(tt.class, metav1.Condition{

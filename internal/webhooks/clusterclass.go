@@ -189,12 +189,11 @@ func validateUpdatesToMachineHealthCheckClasses(clusters []clusterv1.Cluster, ol
 	var allErrs field.ErrorList
 
 	// Check if the MachineHealthCheck for the control plane is dropped.
-	if oldClusterClass.Spec.ControlPlane.HealthCheck != nil && newClusterClass.Spec.ControlPlane.HealthCheck == nil {
+	if oldClusterClass.Spec.ControlPlane.HealthCheck.IsDefined() && !newClusterClass.Spec.ControlPlane.HealthCheck.IsDefined() {
 		// Make sure that none of the clusters are using this MachineHealthCheck.
 		clustersUsingMHC := []string{}
 		for _, cluster := range clusters {
-			if cluster.Spec.Topology.ControlPlane.HealthCheck != nil &&
-				cluster.Spec.Topology.ControlPlane.HealthCheck.Enabled != nil &&
+			if cluster.Spec.Topology.ControlPlane.HealthCheck.Enabled != nil &&
 				*cluster.Spec.Topology.ControlPlane.HealthCheck.Enabled &&
 				!cluster.Spec.Topology.ControlPlane.HealthCheck.IsDefined() {
 				clustersUsingMHC = append(clustersUsingMHC, cluster.Name)
@@ -216,13 +215,12 @@ func validateUpdatesToMachineHealthCheckClasses(clusters []clusterv1.Cluster, ol
 			continue
 		}
 		// If the MachineHealthCheck is dropped then check that no cluster is using it.
-		if oldMdClass.HealthCheck != nil && newMdClass.HealthCheck == nil {
+		if oldMdClass.HealthCheck.IsDefined() && !newMdClass.HealthCheck.IsDefined() {
 			clustersUsingMHC := []string{}
 			for _, cluster := range clusters {
 				for _, mdTopology := range cluster.Spec.Topology.Workers.MachineDeployments {
 					if mdTopology.Class == newMdClass.Class {
-						if mdTopology.HealthCheck != nil &&
-							mdTopology.HealthCheck.Enabled != nil &&
+						if mdTopology.HealthCheck.Enabled != nil &&
 							*mdTopology.HealthCheck.Enabled &&
 							!mdTopology.HealthCheck.IsDefined() {
 							clustersUsingMHC = append(clustersUsingMHC, cluster.Name)
@@ -373,26 +371,21 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 	var allErrs field.ErrorList
 
 	// Validate ControlPlane MachineHealthCheck if defined.
-	if clusterClass.Spec.ControlPlane.HealthCheck != nil {
-		fldPath := field.NewPath("spec", "controlPlane", "healthCheck")
+	fldPath := field.NewPath("spec", "controlPlane", "healthCheck")
 
-		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
-		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
+	allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
+	allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 
-		// Ensure ControlPlane does not define a MachineHealthCheck if it does not define MachineInfrastructure.
-		if clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
-			allErrs = append(allErrs, field.Forbidden(
-				fldPath.Child("machineInfrastructure"),
-				"can be set only if spec.controlPlane.machineInfrastructure is set",
-			))
-		}
+	// Ensure ControlPlane does not define a MachineHealthCheck if it does not define MachineInfrastructure.
+	if clusterClass.Spec.ControlPlane.HealthCheck.IsDefined() && clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
+		allErrs = append(allErrs, field.Forbidden(
+			fldPath,
+			"can be set only if spec.controlPlane.machineInfrastructure is set",
+		))
 	}
 
 	// Validate MachineDeployment MachineHealthChecks.
 	for _, md := range clusterClass.Spec.Workers.MachineDeployments {
-		if md.HealthCheck == nil {
-			continue
-		}
 		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("healthCheck")
 
 		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, md.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)

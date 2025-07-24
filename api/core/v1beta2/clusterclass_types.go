@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta2
 
 import (
+	"reflect"
+
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -171,7 +173,7 @@ type ControlPlaneClass struct {
 	// This field is supported if and only if the ControlPlane provider template
 	// referenced above is Machine based and supports setting replicas.
 	// +optional
-	HealthCheck *ControlPlaneClassHealthCheck `json:"healthCheck,omitempty"`
+	HealthCheck ControlPlaneClassHealthCheck `json:"healthCheck,omitempty,omitzero"`
 
 	// naming allows changing the naming pattern used when creating the control plane provider object.
 	// +optional
@@ -224,6 +226,11 @@ type ControlPlaneClassHealthCheck struct {
 	//
 	// +optional
 	Remediation ControlPlaneClassHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
+}
+
+// IsDefined returns true if one of checks and remediation are not zero.
+func (m *ControlPlaneClassHealthCheck) IsDefined() bool {
+	return !reflect.ValueOf(m.Checks).IsZero() || !reflect.ValueOf(m.Remediation).IsZero()
 }
 
 // ControlPlaneClassHealthCheckChecks are the checks that are used to evaluate if a control plane Machine is healthy.
@@ -405,7 +412,7 @@ type MachineDeploymentClass struct {
 
 	// healthCheck defines a MachineHealthCheck for this MachineDeploymentClass.
 	// +optional
-	HealthCheck *MachineDeploymentClassHealthCheck `json:"healthCheck,omitempty"`
+	HealthCheck MachineDeploymentClassHealthCheck `json:"healthCheck,omitempty,omitzero"`
 
 	// failureDomain is the failure domain the machines will be created in.
 	// Must match the name of a FailureDomain from the Cluster status.
@@ -478,6 +485,11 @@ type MachineDeploymentClassHealthCheck struct {
 	//
 	// +optional
 	Remediation MachineDeploymentClassHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
+}
+
+// IsDefined returns true if one of checks and remediation are not zero.
+func (m *MachineDeploymentClassHealthCheck) IsDefined() bool {
+	return !reflect.ValueOf(m.Checks).IsZero() || !reflect.ValueOf(m.Remediation).IsZero()
 }
 
 // MachineDeploymentClassHealthCheckChecks are the checks that are used to evaluate if a MachineDeployment Machine is healthy.

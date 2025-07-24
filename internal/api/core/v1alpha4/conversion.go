@@ -131,9 +131,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.Topology.Variables = restored.Spec.Topology.Variables
 			dst.Spec.Topology.ControlPlane.Variables = restored.Spec.Topology.ControlPlane.Variables
 
-			if restored.Spec.Topology.ControlPlane.HealthCheck != nil {
-				dst.Spec.Topology.ControlPlane.HealthCheck = restored.Spec.Topology.ControlPlane.HealthCheck
-			}
+			dst.Spec.Topology.ControlPlane.HealthCheck = restored.Spec.Topology.ControlPlane.HealthCheck
 
 			if restored.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds != nil {
 				dst.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds = restored.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds

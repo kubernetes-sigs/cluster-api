@@ -192,6 +192,11 @@ func spokeKubeadmControlPlane(in *KubeadmControlPlane, c randfill.Continue) {
 	in.Spec.MachineTemplate.InfrastructureRef.ResourceVersion = ""
 	in.Spec.MachineTemplate.InfrastructureRef.FieldPath = ""
 
+	if in.Spec.RolloutStrategy != nil {
+		if reflect.DeepEqual(in.Spec.RolloutStrategy.RollingUpdate, &RollingUpdate{}) {
+			in.Spec.RolloutStrategy.RollingUpdate = nil
+		}
+	}
 	if reflect.DeepEqual(in.Spec.RolloutStrategy, &RolloutStrategy{}) {
 		in.Spec.RolloutStrategy = nil
 	}
@@ -209,6 +214,11 @@ func spokeKubeadmControlPlaneTemplateResource(in *KubeadmControlPlaneTemplateRes
 	in.Spec.MachineTemplate.ObjectMeta = clusterv1alpha4.ObjectMeta{}
 	in.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{}
 
+	if in.Spec.RolloutStrategy != nil {
+		if reflect.DeepEqual(in.Spec.RolloutStrategy.RollingUpdate, &RollingUpdate{}) {
+			in.Spec.RolloutStrategy.RollingUpdate = nil
+		}
+	}
 	if reflect.DeepEqual(in.Spec.RolloutStrategy, &RolloutStrategy{}) {
 		in.Spec.RolloutStrategy = nil
 	}

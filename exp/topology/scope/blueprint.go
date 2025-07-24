@@ -54,7 +54,7 @@ type ControlPlaneBlueprint struct {
 
 	// HealthCheck holds the MachineHealthCheckClass for this ControlPlane.
 	// +optional
-	HealthCheck *clusterv1.ControlPlaneClassHealthCheck
+	HealthCheck clusterv1.ControlPlaneClassHealthCheck
 }
 
 // MachineDeploymentBlueprint holds the templates required for computing the desired state of a managed MachineDeployment;
@@ -73,7 +73,7 @@ type MachineDeploymentBlueprint struct {
 
 	// HealthCheck holds the MachineHealthCheckClass for this MachineDeployment.
 	// +optional
-	HealthCheck *clusterv1.MachineDeploymentClassHealthCheck
+	HealthCheck clusterv1.MachineDeploymentClassHealthCheck
 }
 
 // MachinePoolBlueprint holds the templates required for computing the desired state of a managed MachinePool;
@@ -103,12 +103,11 @@ func (b *ClusterBlueprint) IsControlPlaneMachineHealthCheckEnabled() bool {
 		return false
 	}
 	// If no MachineHealthCheck is defined in the ClusterClass or in the Cluster Topology then return false.
-	if b.ClusterClass.Spec.ControlPlane.HealthCheck == nil &&
-		(b.Topology.ControlPlane.HealthCheck == nil || !b.Topology.ControlPlane.HealthCheck.IsDefined()) {
+	if !b.ClusterClass.Spec.ControlPlane.HealthCheck.IsDefined() && !b.Topology.ControlPlane.HealthCheck.IsDefined() {
 		return false
 	}
 	// If `enable` is not set then consider it as true. A MachineHealthCheck will be created from either ClusterClass or Cluster Topology.
-	if b.Topology.ControlPlane.HealthCheck == nil || b.Topology.ControlPlane.HealthCheck.Enabled == nil {
+	if b.Topology.ControlPlane.HealthCheck.Enabled == nil {
 		return true
 	}
 	// If `enable` is explicitly set, use the value.
@@ -117,11 +116,7 @@ func (b *ClusterBlueprint) IsControlPlaneMachineHealthCheckEnabled() bool {
 
 // ControlPlaneMachineHealthCheckClass returns the MachineHealthCheckClass that should be used to create the MachineHealthCheck object.
 func (b *ClusterBlueprint) ControlPlaneMachineHealthCheckClass() (clusterv1.MachineHealthCheckChecks, clusterv1.MachineHealthCheckRemediation) {
-	if b.Topology.ControlPlane.HealthCheck == nil && b.ControlPlane.HealthCheck == nil {
-		return clusterv1.MachineHealthCheckChecks{}, clusterv1.MachineHealthCheckRemediation{}
-	}
-
-	if b.Topology.ControlPlane.HealthCheck != nil && b.Topology.ControlPlane.HealthCheck.IsDefined() {
+	if b.Topology.ControlPlane.HealthCheck.IsDefined() {
 		return clusterv1.MachineHealthCheckChecks{
 				NodeStartupTimeoutSeconds: b.Topology.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds,
 				UnhealthyNodeConditions:   b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyNodeConditions,
@@ -148,18 +143,18 @@ func (b *ClusterBlueprint) ControlPlaneMachineHealthCheckClass() (clusterv1.Mach
 
 // HasControlPlaneMachineHealthCheck returns true if the ControlPlaneClass has both MachineInfrastructure and a MachineHealthCheck defined.
 func (b *ClusterBlueprint) HasControlPlaneMachineHealthCheck() bool {
-	return b.HasControlPlaneInfrastructureMachine() && b.ClusterClass.Spec.ControlPlane.HealthCheck != nil
+	return b.HasControlPlaneInfrastructureMachine() && b.ClusterClass.Spec.ControlPlane.HealthCheck.IsDefined()
 }
 
 // IsMachineDeploymentMachineHealthCheckEnabled returns true if a MachineHealthCheck should be created for the MachineDeployment.
 // Returns false otherwise.
 func (b *ClusterBlueprint) IsMachineDeploymentMachineHealthCheckEnabled(md *clusterv1.MachineDeploymentTopology) bool {
 	// If no MachineHealthCheck is defined in the ClusterClass or in the Cluster Topology then return false.
-	if b.MachineDeployments[md.Class].HealthCheck == nil && (md.HealthCheck == nil || !md.HealthCheck.IsDefined()) {
+	if !b.MachineDeployments[md.Class].HealthCheck.IsDefined() && !md.HealthCheck.IsDefined() {
 		return false
 	}
 	// If `enable` is not set then consider it as true. A MachineHealthCheck will be created from either ClusterClass or Cluster Topology.
-	if md.HealthCheck == nil || md.HealthCheck.Enabled == nil {
+	if md.HealthCheck.Enabled == nil {
 		return true
 	}
 	// If `enable` is explicitly set, use the value.
@@ -168,11 +163,7 @@ func (b *ClusterBlueprint) IsMachineDeploymentMachineHealthCheckEnabled(md *clus
 
 // MachineDeploymentMachineHealthCheckClass return the MachineHealthCheckClass that should be used to create the MachineHealthCheck object.
 func (b *ClusterBlueprint) MachineDeploymentMachineHealthCheckClass(md *clusterv1.MachineDeploymentTopology) (clusterv1.MachineHealthCheckChecks, clusterv1.MachineHealthCheckRemediation) {
-	if md.HealthCheck == nil && b.MachineDeployments[md.Class].HealthCheck == nil {
-		return clusterv1.MachineHealthCheckChecks{}, clusterv1.MachineHealthCheckRemediation{}
-	}
-
-	if md.HealthCheck != nil && md.HealthCheck.IsDefined() {
+	if md.HealthCheck.IsDefined() {
 		return clusterv1.MachineHealthCheckChecks{
 				NodeStartupTimeoutSeconds: md.HealthCheck.Checks.NodeStartupTimeoutSeconds,
 				UnhealthyNodeConditions:   md.HealthCheck.Checks.UnhealthyNodeConditions,

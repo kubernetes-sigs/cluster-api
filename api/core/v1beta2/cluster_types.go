@@ -614,7 +614,7 @@ type ControlPlaneTopology struct {
 	// healthCheck allows to enable, disable and override control plane health check
 	// configuration from the ClusterClass for this control plane.
 	// +optional
-	HealthCheck *ControlPlaneTopologyHealthCheck `json:"healthCheck,omitempty"`
+	HealthCheck ControlPlaneTopologyHealthCheck `json:"healthCheck,omitempty,omitzero"`
 
 	// deletion contains configuration options for Machine deletion.
 	// +optional
@@ -689,7 +689,7 @@ type ControlPlaneTopologyHealthCheck struct {
 	Remediation ControlPlaneTopologyHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
 }
 
-// IsDefined returns true if both checks and remediation are zero.
+// IsDefined returns true if one of checks and remediation are not zero.
 func (m *ControlPlaneTopologyHealthCheck) IsDefined() bool {
 	return !reflect.ValueOf(m.Checks).IsZero() || !reflect.ValueOf(m.Remediation).IsZero()
 }
@@ -852,7 +852,7 @@ type MachineDeploymentTopology struct {
 	// healthCheck allows to enable, disable and override MachineDeployment health check
 	// configuration from the ClusterClass for this MachineDeployment.
 	// +optional
-	HealthCheck *MachineDeploymentTopologyHealthCheck `json:"healthCheck,omitempty"`
+	HealthCheck MachineDeploymentTopologyHealthCheck `json:"healthCheck,omitempty,omitzero"`
 
 	// deletion contains configuration options for Machine deletion.
 	// +optional
@@ -938,7 +938,7 @@ type MachineDeploymentTopologyHealthCheck struct {
 	Remediation MachineDeploymentTopologyHealthCheckRemediation `json:"remediation,omitempty,omitzero"`
 }
 
-// IsDefined returns true if both checks and remediation are zero.
+// IsDefined returns true if one of checks and remediation are not zero.
 func (m *MachineDeploymentTopologyHealthCheck) IsDefined() bool {
 	return !reflect.ValueOf(m.Checks).IsZero() || !reflect.ValueOf(m.Remediation).IsZero()
 }

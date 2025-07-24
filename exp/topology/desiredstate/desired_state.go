@@ -822,10 +822,10 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 
 	var remediationMaxInFlight *intstr.IntOrString
-	if machineDeploymentClass.HealthCheck != nil && machineDeploymentClass.HealthCheck.Remediation.MaxInFlight != nil {
+	if machineDeploymentClass.HealthCheck.Remediation.MaxInFlight != nil {
 		remediationMaxInFlight = machineDeploymentClass.HealthCheck.Remediation.MaxInFlight
 	}
-	if machineDeploymentTopology.HealthCheck != nil && machineDeploymentTopology.HealthCheck.Remediation.MaxInFlight != nil {
+	if machineDeploymentTopology.HealthCheck.Remediation.MaxInFlight != nil {
 		remediationMaxInFlight = machineDeploymentTopology.HealthCheck.Remediation.MaxInFlight
 	}
 

@@ -167,6 +167,11 @@ func spokeKubeadmControlPlane(in *KubeadmControlPlane, c randfill.Continue) {
 	if reflect.DeepEqual(in.Spec.RolloutBefore, &RolloutBefore{}) {
 		in.Spec.RolloutBefore = nil
 	}
+	if in.Spec.RolloutStrategy != nil {
+		if reflect.DeepEqual(in.Spec.RolloutStrategy.RollingUpdate, &RollingUpdate{}) {
+			in.Spec.RolloutStrategy.RollingUpdate = nil
+		}
+	}
 	if reflect.DeepEqual(in.Spec.RolloutStrategy, &RolloutStrategy{}) {
 		in.Spec.RolloutStrategy = nil
 	}
@@ -251,6 +256,11 @@ func spokeKubeadmControlPlaneTemplate(in *KubeadmControlPlaneTemplate, c randfil
 
 	if reflect.DeepEqual(in.Spec.Template.Spec.RolloutBefore, &RolloutBefore{}) {
 		in.Spec.Template.Spec.RolloutBefore = nil
+	}
+	if in.Spec.Template.Spec.RolloutStrategy != nil {
+		if reflect.DeepEqual(in.Spec.Template.Spec.RolloutStrategy.RollingUpdate, &RollingUpdate{}) {
+			in.Spec.Template.Spec.RolloutStrategy.RollingUpdate = nil
+		}
 	}
 	if reflect.DeepEqual(in.Spec.Template.Spec.RolloutStrategy, &RolloutStrategy{}) {
 		in.Spec.Template.Spec.RolloutStrategy = nil

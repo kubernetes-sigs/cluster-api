@@ -119,7 +119,7 @@ type ClusterTopologyBuilder struct {
 	workers               clusterv1.WorkersTopology
 	version               string
 	controlPlaneReplicas  int32
-	controlPlaneMHC       *clusterv1.ControlPlaneTopologyHealthCheck
+	controlPlaneMHC       clusterv1.ControlPlaneTopologyHealthCheck
 	variables             []clusterv1.ClusterVariable
 	controlPlaneVariables []clusterv1.ClusterVariable
 }
@@ -162,7 +162,7 @@ func (c *ClusterTopologyBuilder) WithControlPlaneVariables(variables ...clusterv
 }
 
 // WithControlPlaneMachineHealthCheck adds ControlPlaneTopologyHealthCheck used as the MachineHealthCheck value.
-func (c *ClusterTopologyBuilder) WithControlPlaneMachineHealthCheck(mhc *clusterv1.ControlPlaneTopologyHealthCheck) *ClusterTopologyBuilder {
+func (c *ClusterTopologyBuilder) WithControlPlaneMachineHealthCheck(mhc clusterv1.ControlPlaneTopologyHealthCheck) *ClusterTopologyBuilder {
 	c.controlPlaneMHC = mhc
 	return c
 }
@@ -216,7 +216,7 @@ type MachineDeploymentTopologyBuilder struct {
 	class       string
 	name        string
 	replicas    *int32
-	mhc         *clusterv1.MachineDeploymentTopologyHealthCheck
+	mhc         clusterv1.MachineDeploymentTopologyHealthCheck
 	variables   []clusterv1.ClusterVariable
 }
 
@@ -252,7 +252,7 @@ func (m *MachineDeploymentTopologyBuilder) WithVariables(variables ...clusterv1.
 }
 
 // WithMachineHealthCheck adds MachineDeploymentTopologyHealthCheck used as the MachineHealthCheck value.
-func (m *MachineDeploymentTopologyBuilder) WithMachineHealthCheck(mhc *clusterv1.MachineDeploymentTopologyHealthCheck) *MachineDeploymentTopologyBuilder {
+func (m *MachineDeploymentTopologyBuilder) WithMachineHealthCheck(mhc clusterv1.MachineDeploymentTopologyHealthCheck) *MachineDeploymentTopologyBuilder {
 	m.mhc = mhc
 	return m
 }
@@ -345,7 +345,7 @@ type ClusterClassBuilder struct {
 	controlPlaneReadinessGates                []clusterv1.MachineReadinessGate
 	controlPlaneTemplate                      *unstructured.Unstructured
 	controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
-	controlPlaneMHC                           *clusterv1.ControlPlaneClassHealthCheck
+	controlPlaneMHC                           clusterv1.ControlPlaneClassHealthCheck
 	controlPlaneNodeDrainTimeout              *int32
 	controlPlaneNodeVolumeDetachTimeout       *int32
 	controlPlaneNodeDeletionTimeout           *int32
@@ -401,7 +401,7 @@ func (c *ClusterClassBuilder) WithControlPlaneInfrastructureMachineTemplate(t *u
 }
 
 // WithControlPlaneMachineHealthCheck adds a MachineHealthCheck for the ControlPlane to the ClusterClassBuilder.
-func (c *ClusterClassBuilder) WithControlPlaneMachineHealthCheck(mhc *clusterv1.ControlPlaneClassHealthCheck) *ClusterClassBuilder {
+func (c *ClusterClassBuilder) WithControlPlaneMachineHealthCheck(mhc clusterv1.ControlPlaneClassHealthCheck) *ClusterClassBuilder {
 	c.controlPlaneMHC = mhc
 	return c
 }
@@ -512,9 +512,7 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 	if c.controlPlaneTemplate != nil {
 		obj.Spec.ControlPlane.TemplateRef = objToClusterClassTemplateRef(c.controlPlaneTemplate)
 	}
-	if c.controlPlaneMHC != nil {
-		obj.Spec.ControlPlane.HealthCheck = c.controlPlaneMHC
-	}
+	obj.Spec.ControlPlane.HealthCheck = c.controlPlaneMHC
 	if c.controlPlaneNodeDrainTimeout != nil {
 		obj.Spec.ControlPlane.Deletion.NodeDrainTimeoutSeconds = c.controlPlaneNodeDrainTimeout
 	}
@@ -548,7 +546,7 @@ type MachineDeploymentClassBuilder struct {
 	bootstrapTemplate             *unstructured.Unstructured
 	labels                        map[string]string
 	annotations                   map[string]string
-	machineHealthCheckClass       *clusterv1.MachineDeploymentClassHealthCheck
+	machineHealthCheckClass       clusterv1.MachineDeploymentClassHealthCheck
 	readinessGates                []clusterv1.MachineReadinessGate
 	failureDomain                 *string
 	nodeDrainTimeout              *int32
@@ -592,7 +590,7 @@ func (m *MachineDeploymentClassBuilder) WithAnnotations(annotations map[string]s
 }
 
 // WithMachineHealthCheckClass sets the MachineHealthCheckClass for the MachineDeploymentClassBuilder.
-func (m *MachineDeploymentClassBuilder) WithMachineHealthCheckClass(mhc *clusterv1.MachineDeploymentClassHealthCheck) *MachineDeploymentClassBuilder {
+func (m *MachineDeploymentClassBuilder) WithMachineHealthCheckClass(mhc clusterv1.MachineDeploymentClassHealthCheck) *MachineDeploymentClassBuilder {
 	m.machineHealthCheckClass = mhc
 	return m
 }
@@ -666,9 +664,7 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 	if m.infrastructureMachineTemplate != nil {
 		obj.Infrastructure.TemplateRef = objToClusterClassTemplateRef(m.infrastructureMachineTemplate)
 	}
-	if m.machineHealthCheckClass != nil {
-		obj.HealthCheck = m.machineHealthCheckClass
-	}
+	obj.HealthCheck = m.machineHealthCheckClass
 	if m.readinessGates != nil {
 		obj.ReadinessGates = m.readinessGates
 	}

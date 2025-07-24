@@ -761,11 +761,7 @@ func (in *ControlPlaneClass) DeepCopyInto(out *ControlPlaneClass) {
 		*out = new(ControlPlaneClassMachineInfrastructureTemplate)
 		**out = **in
 	}
-	if in.HealthCheck != nil {
-		in, out := &in.HealthCheck, &out.HealthCheck
-		*out = new(ControlPlaneClassHealthCheck)
-		(*in).DeepCopyInto(*out)
-	}
+	in.HealthCheck.DeepCopyInto(&out.HealthCheck)
 	out.Naming = in.Naming
 	in.Deletion.DeepCopyInto(&out.Deletion)
 	if in.ReadinessGates != nil {
@@ -938,11 +934,7 @@ func (in *ControlPlaneTopology) DeepCopyInto(out *ControlPlaneTopology) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.HealthCheck != nil {
-		in, out := &in.HealthCheck, &out.HealthCheck
-		*out = new(ControlPlaneTopologyHealthCheck)
-		(*in).DeepCopyInto(*out)
-	}
+	in.HealthCheck.DeepCopyInto(&out.HealthCheck)
 	in.Deletion.DeepCopyInto(&out.Deletion)
 	if in.ReadinessGates != nil {
 		in, out := &in.ReadinessGates, &out.ReadinessGates
@@ -1519,11 +1511,7 @@ func (in *MachineDeploymentClass) DeepCopyInto(out *MachineDeploymentClass) {
 	in.Metadata.DeepCopyInto(&out.Metadata)
 	out.Bootstrap = in.Bootstrap
 	out.Infrastructure = in.Infrastructure
-	if in.HealthCheck != nil {
-		in, out := &in.HealthCheck, &out.HealthCheck
-		*out = new(MachineDeploymentClassHealthCheck)
-		(*in).DeepCopyInto(*out)
-	}
+	in.HealthCheck.DeepCopyInto(&out.HealthCheck)
 	out.Naming = in.Naming
 	in.Deletion.DeepCopyInto(&out.Deletion)
 	if in.MinReadySeconds != nil {
@@ -2003,11 +1991,7 @@ func (in *MachineDeploymentTopology) DeepCopyInto(out *MachineDeploymentTopology
 		*out = new(int32)
 		**out = **in
 	}
-	if in.HealthCheck != nil {
-		in, out := &in.HealthCheck, &out.HealthCheck
-		*out = new(MachineDeploymentTopologyHealthCheck)
-		(*in).DeepCopyInto(*out)
-	}
+	in.HealthCheck.DeepCopyInto(&out.HealthCheck)
 	in.Deletion.DeepCopyInto(&out.Deletion)
 	if in.MinReadySeconds != nil {
 		in, out := &in.MinReadySeconds, &out.MinReadySeconds

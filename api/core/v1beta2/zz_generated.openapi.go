@@ -1515,6 +1515,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 					"healthCheck": {
 						SchemaProps: spec.SchemaProps{
 							Description: "healthCheck defines a MachineHealthCheck for this ControlPlaneClass. This field is supported if and only if the ControlPlane provider template referenced above is Machine based and supports setting replicas.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassHealthCheck"),
 						},
 					},
@@ -1790,6 +1791,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopology(ref common.Referen
 					"healthCheck": {
 						SchemaProps: spec.SchemaProps{
 							Description: "healthCheck allows to enable, disable and override control plane health check configuration from the ClusterClass for this control plane.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopologyHealthCheck"),
 						},
 					},
@@ -2776,6 +2778,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClass(ref common.Refer
 					"healthCheck": {
 						SchemaProps: spec.SchemaProps{
 							Description: "healthCheck defines a MachineHealthCheck for this MachineDeploymentClass.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentClassHealthCheck"),
 						},
 					},
@@ -3582,6 +3585,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 					"healthCheck": {
 						SchemaProps: spec.SchemaProps{
 							Description: "healthCheck allows to enable, disable and override MachineDeployment health check configuration from the ClusterClass for this MachineDeployment.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeploymentTopologyHealthCheck"),
 						},
 					},

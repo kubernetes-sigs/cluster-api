@@ -371,21 +371,26 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 	var allErrs field.ErrorList
 
 	// Validate ControlPlane MachineHealthCheck if defined.
-	fldPath := field.NewPath("spec", "controlPlane", "healthCheck")
+	if clusterClass.Spec.ControlPlane.HealthCheck.IsDefined() {
+		fldPath := field.NewPath("spec", "controlPlane", "healthCheck")
 
-	allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
-	allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
+		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
+		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 
-	// Ensure ControlPlane does not define a MachineHealthCheck if it does not define MachineInfrastructure.
-	if clusterClass.Spec.ControlPlane.HealthCheck.IsDefined() && clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
-		allErrs = append(allErrs, field.Forbidden(
-			fldPath,
-			"can be set only if spec.controlPlane.machineInfrastructure is set",
-		))
+		// Ensure ControlPlane does not define a MachineHealthCheck if it does not define MachineInfrastructure.
+		if clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
+			allErrs = append(allErrs, field.Forbidden(
+				fldPath,
+				"can be only set if spec.controlPlane.machineInfrastructure is set",
+			))
+		}
 	}
 
 	// Validate MachineDeployment MachineHealthChecks.
 	for _, md := range clusterClass.Spec.Workers.MachineDeployments {
+		if !md.HealthCheck.IsDefined() {
+			continue
+		}
 		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("healthCheck")
 
 		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, md.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)

@@ -2132,7 +2132,17 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
-				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{}).
+				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
+					Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
+						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+							{
+								Type:           corev1.NodeReady,
+								Status:         corev1.ConditionUnknown,
+								TimeoutSeconds: 5 * 60,
+							},
+						},
+					},
+				}).
 				Build(),
 			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
 				WithInfrastructureClusterTemplate(
@@ -2170,7 +2180,17 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
-				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{}).
+				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
+					Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
+						UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+							{
+								Type:           corev1.NodeReady,
+								Status:         corev1.ConditionUnknown,
+								TimeoutSeconds: 5 * 60,
+							},
+						},
+					},
+				}).
 				Build(),
 			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
 				WithInfrastructureClusterTemplate(
@@ -2263,7 +2283,17 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
 						WithBootstrapTemplate(
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
-						WithMachineHealthCheckClass(clusterv1.MachineDeploymentClassHealthCheck{}).
+						WithMachineHealthCheckClass(clusterv1.MachineDeploymentClassHealthCheck{
+							Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
+								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+									{
+										Type:           corev1.NodeReady,
+										Status:         corev1.ConditionUnknown,
+										TimeoutSeconds: 5 * 60,
+									},
+								},
+							},
+						}).
 						Build(),
 				).
 				Build(),
@@ -2320,7 +2350,17 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
 						WithBootstrapTemplate(
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
-						WithMachineHealthCheckClass(clusterv1.MachineDeploymentClassHealthCheck{}).
+						WithMachineHealthCheckClass(clusterv1.MachineDeploymentClassHealthCheck{
+							Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
+								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+									{
+										Type:           corev1.NodeReady,
+										Status:         corev1.ConditionUnknown,
+										TimeoutSeconds: 5 * 60,
+									},
+								},
+							},
+						}).
 						Build(),
 				).
 				Build(),

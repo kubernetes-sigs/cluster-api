@@ -57,7 +57,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "should return true if MachineHealthCheck if defined in ClusterClass, not defined in cluster topology and enable is not set",
+			name: "should return true if MachineHealthCheck is defined in ClusterClass, not defined in cluster topology and enable is not set",
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
 					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
@@ -80,11 +80,21 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "should return false if MachineHealthCheck if defined in ClusterClass, not defined in cluster topology and enable is false",
+			name: "should return false if MachineHealthCheck is defined in ClusterClass, not defined in cluster topology and enable is false",
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
 					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
-					WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{}).
+					WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
+						Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
+							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+								{
+									Type:           corev1.NodeReady,
+									Status:         corev1.ConditionUnknown,
+									TimeoutSeconds: 5 * 60,
+								},
+							},
+						},
+					}).
 					Build(),
 				Topology: builder.ClusterTopology().
 					WithClass("cluster-class").
@@ -96,7 +106,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "should return true if MachineHealthCheck if defined in ClusterClass, not defined in cluster topology and enable is true",
+			name: "should return true if MachineHealthCheck is defined in ClusterClass, not defined in cluster topology and enable is true",
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
 					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
@@ -122,7 +132,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "should return true if MachineHealthCheck if defined in cluster topology, not defined in ClusterClass and enable is not set",
+			name: "should return true if MachineHealthCheck is defined in cluster topology, not defined in ClusterClass and enable is not set",
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
 					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
@@ -145,7 +155,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "should return false if MachineHealthCheck if defined in cluster topology, not defined in ClusterClass and enable is false",
+			name: "should return false if MachineHealthCheck is defined in cluster topology, not defined in ClusterClass and enable is false",
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
 					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
@@ -169,7 +179,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "should return true if MachineHealthCheck if defined in cluster topology, not defined in ClusterClass and enable is true",
+			name: "should return true if MachineHealthCheck is defined in cluster topology, not defined in ClusterClass and enable is true",
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
 					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
@@ -350,7 +360,17 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 			blueprint: &ClusterBlueprint{
 				MachineDeployments: map[string]*MachineDeploymentBlueprint{
 					"worker-class": {
-						HealthCheck: clusterv1.MachineDeploymentClassHealthCheck{},
+						HealthCheck: clusterv1.MachineDeploymentClassHealthCheck{
+							Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
+								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+									{
+										Type:           corev1.NodeReady,
+										Status:         corev1.ConditionUnknown,
+										TimeoutSeconds: 5 * 60,
+									},
+								},
+							},
+						},
 					},
 				},
 			},

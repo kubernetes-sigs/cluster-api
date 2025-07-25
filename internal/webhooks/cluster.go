@@ -655,7 +655,7 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 		if clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
 			allErrs = append(allErrs, field.Forbidden(
 				fldPath,
-				"can be set only if spec.controlPlane.machineInfrastructure is set in ClusterClass",
+				"can be only set if spec.controlPlane.machineInfrastructure is set in ClusterClass",
 			))
 		}
 		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, cluster.Spec.Topology.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)

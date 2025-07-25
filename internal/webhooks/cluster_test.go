@@ -2267,7 +2267,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 							Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
-								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{},
+								UnhealthyNodeConditions:   []clusterv1.UnhealthyNodeCondition{},
+								NodeStartupTimeoutSeconds: ptr.To(int32(30)),
 							},
 						}).
 						Build()).
@@ -2398,7 +2399,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 								WithClass("worker-class").
 								WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
 									Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
-										UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{},
+										UnhealthyNodeConditions:   []clusterv1.UnhealthyNodeCondition{},
+										NodeStartupTimeoutSeconds: ptr.To(int32(30)),
 									},
 								}).
 								Build(),

@@ -19,7 +19,7 @@ package mdutil
 import (
 	"fmt"
 	"math/rand"
-	"sort"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -167,7 +167,7 @@ func TestMachineSetsByDecreasingReplicas(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// sort the machine sets and verify the sorted list
 			g := NewWithT(t)
-			sort.Sort(MachineSetsByDecreasingReplicas(tt.machineSets))
+			slices.SortFunc(tt.machineSets, SortByDecreasingReplicas)
 			g.Expect(tt.machineSets).To(BeComparableTo(tt.want))
 		})
 	}

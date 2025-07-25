@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -366,17 +366,20 @@ func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClie
 	}
 
 	// Sort parsed versions by semantic version order.
-	sort.SliceStable(versionCandidates, func(i, j int) bool {
+	slices.SortStableFunc(versionCandidates, func(i, j semver.Version) int {
 		// Prioritize pre-release versions over releases. For example v2.0.0-alpha > v1.0.0
 		// If both are pre-releases, sort by semantic version order as usual.
-		if len(versionCandidates[i].Pre) == 0 && len(versionCandidates[j].Pre) > 0 {
-			return false
+		if len(i.Pre) == 0 && len(j.Pre) > 0 {
+			return 1
 		}
-		if len(versionCandidates[j].Pre) == 0 && len(versionCandidates[i].Pre) > 0 {
-			return true
+		if len(j.Pre) == 0 && len(i.Pre) > 0 {
+			return -1
 		}
 
-		return versionCandidates[j].LT(versionCandidates[i])
+		if j.LT(i) {
+			return -1
+		}
+		return 1
 	})
 
 	// Limit the number of searchable versions by 5.
@@ -877,11 +880,14 @@ func (c *E2EConfig) getVersions(provider string, contract string) []string {
 		}
 	}
 
-	sort.Slice(versions, func(i, j int) bool {
+	slices.SortFunc(versions, func(i, j string) int {
 		// NOTE: Ignoring errors because the validity of the format is ensured by Validation.
-		vI, _ := version.ParseSemantic(versions[i])
-		vJ, _ := version.ParseSemantic(versions[j])
-		return vI.LessThan(vJ)
+		vI, _ := version.ParseSemantic(i)
+		vJ, _ := version.ParseSemantic(j)
+		if vI.LessThan(vJ) {
+			return -1
+		}
+		return 1
 	})
 	return versions
 }

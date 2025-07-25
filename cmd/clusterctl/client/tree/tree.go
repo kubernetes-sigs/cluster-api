@@ -18,6 +18,7 @@ package tree
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -149,8 +150,11 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 
 		// The loop below will process the next node and decide if it belongs in a group. Since objects in the same group
 		// must have the same Kind, we sort by Kind so objects of the same Kind will be together in the list.
-		sort.Slice(siblings, func(i, j int) bool {
-			return siblings[i].GetObjectKind().GroupVersionKind().Kind < siblings[j].GetObjectKind().GroupVersionKind().Kind
+		slices.SortFunc(siblings, func(i, j client.Object) int {
+			if i.GetObjectKind().GroupVersionKind().Kind < j.GetObjectKind().GroupVersionKind().Kind {
+				return -1
+			}
+			return 1
 		})
 
 		for i := range siblings {

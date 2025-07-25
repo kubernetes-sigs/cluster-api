@@ -19,7 +19,7 @@ package config
 import (
 	"net/url"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/drone/envsubst/v2"
@@ -510,8 +510,11 @@ func (p *providersClient) List() ([]Provider, error) {
 	}
 
 	// ensure provider configurations are consistently sorted
-	sort.Slice(providers, func(i, j int) bool {
-		return providers[i].Less(providers[j])
+	slices.SortFunc(providers, func(i, j Provider) int {
+		if i.Less(j) {
+			return -1
+		}
+		return 1
 	})
 
 	return providers, nil

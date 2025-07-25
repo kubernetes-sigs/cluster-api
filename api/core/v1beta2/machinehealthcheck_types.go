@@ -46,8 +46,6 @@ var (
 	DefaultNodeStartupTimeoutSeconds = int32(600)
 )
 
-// ANCHOR: MachineHealthCheckSpec
-
 // MachineHealthCheckSpec defines the desired state of MachineHealthCheck.
 type MachineHealthCheckSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
@@ -203,10 +201,6 @@ func (r *MachineHealthCheckRemediationTemplateReference) GroupVersionKind() sche
 	return schema.FromAPIVersionAndKind(r.APIVersion, r.Kind)
 }
 
-// ANCHOR_END: MachineHealthCHeckSpec
-
-// ANCHOR: UnhealthyNodeCondition
-
 // UnhealthyNodeCondition represents a Node condition type and value with a timeout
 // specified as a duration.  When the named condition has been in the given
 // status for at least the timeout value, a node is considered unhealthy.
@@ -231,10 +225,6 @@ type UnhealthyNodeCondition struct {
 	// +kubebuilder:validation:Minimum=0
 	TimeoutSeconds int32 `json:"timeoutSeconds"`
 }
-
-// ANCHOR_END: UnhealthyNodeCondition
-
-// ANCHOR: MachineHealthCheckStatus
 
 // MachineHealthCheckStatus defines the observed state of MachineHealthCheck.
 // +kubebuilder:validation:MinProperties=1
@@ -299,8 +289,6 @@ type MachineHealthCheckV1Beta1DeprecatedStatus struct {
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
 }
-
-// ANCHOR_END: MachineHealthCheckStatus
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=machinehealthchecks,shortName=mhc;mhcs,scope=Namespaced,categories=cluster-api

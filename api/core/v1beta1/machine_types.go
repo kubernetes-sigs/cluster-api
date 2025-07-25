@@ -375,8 +375,6 @@ const (
 	MachineDeletingDeletionCompletedV1Beta2Reason = DeletionCompletedV1Beta2Reason
 )
 
-// ANCHOR: MachineSpec
-
 // MachineSpec defines the desired state of Machine.
 type MachineSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
@@ -482,10 +480,6 @@ type MachineReadinessGate struct {
 	// +optional
 	Polarity ConditionPolarity `json:"polarity,omitempty"`
 }
-
-// ANCHOR_END: MachineSpec
-
-// ANCHOR: MachineStatus
 
 // MachineStatus defines the observed state of Machine.
 type MachineStatus struct {
@@ -605,8 +599,6 @@ type MachineV1Beta2Status struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-// ANCHOR_END: MachineStatus
-
 // MachineDeletionStatus is the deletion state of the Machine.
 type MachineDeletionStatus struct {
 	// nodeDrainStartTime is the time when the drain of the node started and is used to determine
@@ -647,8 +639,6 @@ func (m *MachineStatus) GetTypedPhase() MachinePhase {
 	}
 }
 
-// ANCHOR: Bootstrap
-
 // Bootstrap encapsulates fields to configure the Machine’s bootstrapping mechanism.
 type Bootstrap struct {
 	// configRef is a reference to a bootstrap provider-specific resource
@@ -665,8 +655,6 @@ type Bootstrap struct {
 	// +kubebuilder:validation:MaxLength=253
 	DataSecretName *string `json:"dataSecretName,omitempty"`
 }
-
-// ANCHOR_END: Bootstrap
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=machines,shortName=ma,scope=Namespaced,categories=cluster-api

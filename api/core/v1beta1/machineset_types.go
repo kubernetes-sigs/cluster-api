@@ -35,8 +35,6 @@ const (
 	MachineSetFinalizer = "cluster.x-k8s.io/machineset"
 )
 
-// ANCHOR: MachineSetSpec
-
 // MachineSetSpec defines the desired state of MachineSet.
 type MachineSetSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
@@ -233,10 +231,6 @@ const (
 	MachineSetDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
-// ANCHOR_END: MachineSetSpec
-
-// ANCHOR: MachineTemplateSpec
-
 // MachineTemplateSpec describes the data needed to create a Machine from a template.
 type MachineTemplateSpec struct {
 	// metadata is the standard object's metadata.
@@ -249,8 +243,6 @@ type MachineTemplateSpec struct {
 	// +optional
 	Spec MachineSpec `json:"spec,omitempty"`
 }
-
-// ANCHOR_END: MachineTemplateSpec
 
 // MachineSetDeletePolicy defines how priority is assigned to nodes to delete when
 // downscaling a MachineSet. Defaults to "Random".
@@ -278,8 +270,6 @@ const (
 	// It then prioritizes the oldest Machines for deletion based on the Machine's CreationTimestamp.
 	OldestMachineSetDeletePolicy MachineSetDeletePolicy = "Oldest"
 )
-
-// ANCHOR: MachineSetStatus
 
 // MachineSetStatus defines the observed state of MachineSet.
 type MachineSetStatus struct {
@@ -385,8 +375,6 @@ type MachineSetV1Beta2Status struct {
 	// +optional
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 }
-
-// ANCHOR_END: MachineSetStatus
 
 // Validate validates the MachineSet fields.
 func (m *MachineSet) Validate() field.ErrorList {

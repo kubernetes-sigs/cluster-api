@@ -47,8 +47,6 @@ var (
 	DefaultNodeStartupTimeout = metav1.Duration{Duration: 10 * time.Minute}
 )
 
-// ANCHOR: MachineHealthCheckSpec
-
 // MachineHealthCheckSpec defines the desired state of MachineHealthCheck.
 type MachineHealthCheckSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
@@ -118,10 +116,6 @@ type MachineHealthCheckSpec struct {
 	RemediationTemplate *corev1.ObjectReference `json:"remediationTemplate,omitempty"`
 }
 
-// ANCHOR_END: MachineHealthCHeckSpec
-
-// ANCHOR: UnhealthyCondition
-
 // UnhealthyCondition represents a Node condition type and value with a timeout
 // specified as a duration.  When the named condition has been in the given
 // status for at least the timeout value, a node is considered unhealthy.
@@ -145,10 +139,6 @@ type UnhealthyCondition struct {
 	// +required
 	Timeout metav1.Duration `json:"timeout"`
 }
-
-// ANCHOR_END: UnhealthyCondition
-
-// ANCHOR: MachineHealthCheckStatus
 
 // MachineHealthCheckStatus defines the observed state of MachineHealthCheck.
 type MachineHealthCheckStatus struct {
@@ -199,8 +189,6 @@ type MachineHealthCheckV1Beta2Status struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
-
-// ANCHOR_END: MachineHealthCheckStatus
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=machinehealthchecks,shortName=mhc;mhcs,scope=Namespaced,categories=cluster-api

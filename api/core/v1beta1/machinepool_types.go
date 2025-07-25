@@ -64,8 +64,6 @@ const (
 ).
 */
 
-// ANCHOR: MachinePoolSpec
-
 // MachinePoolSpec defines the desired state of MachinePool.
 type MachinePoolSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
@@ -105,10 +103,6 @@ type MachinePoolSpec struct {
 	// +kubebuilder:validation:items:MaxLength=256
 	FailureDomains []string `json:"failureDomains,omitempty"`
 }
-
-// ANCHOR_END: MachinePoolSpec
-
-// ANCHOR: MachinePoolStatus
 
 // MachinePoolStatus defines the observed state of MachinePool.
 type MachinePoolStatus struct {
@@ -208,8 +202,6 @@ type MachinePoolV1Beta2Status struct {
 	// +optional
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 }
-
-// ANCHOR_END: MachinePoolStatus
 
 // MachinePoolPhase is a string representation of a MachinePool Phase.
 //

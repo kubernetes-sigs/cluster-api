@@ -236,8 +236,6 @@ const (
 	MachineDeploymentDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
-// ANCHOR: MachineDeploymentSpec
-
 // MachineDeploymentSpec defines the desired state of MachineDeployment.
 type MachineDeploymentSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
@@ -325,10 +323,6 @@ type MachineDeploymentSpec struct {
 	ProgressDeadlineSeconds *int32 `json:"progressDeadlineSeconds,omitempty"`
 }
 
-// ANCHOR_END: MachineDeploymentSpec
-
-// ANCHOR: MachineDeploymentStrategy
-
 // MachineDeploymentStrategy describes how to replace existing machines
 // with new ones.
 type MachineDeploymentStrategy struct {
@@ -348,10 +342,6 @@ type MachineDeploymentStrategy struct {
 	// +optional
 	Remediation *RemediationStrategy `json:"remediation,omitempty"`
 }
-
-// ANCHOR_END: MachineDeploymentStrategy
-
-// ANCHOR: MachineRollingUpdateDeployment
 
 // MachineRollingUpdateDeployment is used to control the desired behavior of rolling update.
 type MachineRollingUpdateDeployment struct {
@@ -394,10 +384,6 @@ type MachineRollingUpdateDeployment struct {
 	DeletePolicy *string `json:"deletePolicy,omitempty"`
 }
 
-// ANCHOR_END: MachineRollingUpdateDeployment
-
-// ANCHOR: RemediationStrategy
-
 // RemediationStrategy allows to define how the MachineSet can control scaling operations.
 type RemediationStrategy struct {
 	// maxInFlight determines how many in flight remediations should happen at the same time.
@@ -418,8 +404,6 @@ type RemediationStrategy struct {
 	// +optional
 	MaxInFlight *intstr.IntOrString `json:"maxInFlight,omitempty"`
 }
-
-// ANCHOR_END: RemediationStrategy
 
 // MachineNamingStrategy allows changing the naming pattern used when creating
 // Machines.
@@ -446,8 +430,6 @@ type MachineNamingStrategy struct {
 	// +kubebuilder:validation:MaxLength=256
 	Template string `json:"template,omitempty"`
 }
-
-// ANCHOR: MachineDeploymentStatus
 
 // MachineDeploymentStatus defines the observed state of MachineDeployment.
 type MachineDeploymentStatus struct {
@@ -530,8 +512,6 @@ type MachineDeploymentV1Beta2Status struct {
 	// +optional
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 }
-
-// ANCHOR_END: MachineDeploymentStatus
 
 // MachineDeploymentPhase indicates the progress of the machine deployment.
 type MachineDeploymentPhase string

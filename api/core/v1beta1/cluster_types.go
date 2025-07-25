@@ -458,8 +458,6 @@ const (
 	ClusterDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
-// ANCHOR: ClusterSpec
-
 // ClusterSpec defines the desired state of Cluster.
 type ClusterSpec struct {
 	// paused can be used to prevent controllers from processing the Cluster and all its associated objects.
@@ -904,10 +902,6 @@ type MachinePoolVariables struct {
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 
-// ANCHOR_END: ClusterSpec
-
-// ANCHOR: ClusterNetwork
-
 // ClusterNetwork specifies the different networking
 // parameters for a cluster.
 type ClusterNetwork struct {
@@ -931,10 +925,6 @@ type ClusterNetwork struct {
 	ServiceDomain string `json:"serviceDomain,omitempty"`
 }
 
-// ANCHOR_END: ClusterNetwork
-
-// ANCHOR: NetworkRanges
-
 // NetworkRanges represents ranges of network addresses.
 type NetworkRanges struct {
 	// cidrBlocks is a list of CIDR blocks.
@@ -951,10 +941,6 @@ func (n NetworkRanges) String() string {
 	}
 	return strings.Join(n.CIDRBlocks, ",")
 }
-
-// ANCHOR_END: NetworkRanges
-
-// ANCHOR: ClusterStatus
 
 // ClusterStatus defines the observed state of Cluster.
 type ClusterStatus struct {
@@ -1081,8 +1067,6 @@ type WorkersStatus struct {
 	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 }
 
-// ANCHOR_END: ClusterStatus
-
 // SetTypedPhase sets the Phase field to the string representation of ClusterPhase.
 func (c *ClusterStatus) SetTypedPhase(p ClusterPhase) {
 	c.Phase = string(p)
@@ -1103,8 +1087,6 @@ func (c *ClusterStatus) GetTypedPhase() ClusterPhase {
 		return ClusterPhaseUnknown
 	}
 }
-
-// ANCHOR: APIEndpoint
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
@@ -1133,8 +1115,6 @@ func (v APIEndpoint) IsValid() bool {
 func (v APIEndpoint) String() string {
 	return net.JoinHostPort(v.Host, fmt.Sprintf("%d", v.Port))
 }
-
-// ANCHOR_END: APIEndpoint
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=clusters,shortName=cl,scope=Namespaced,categories=cluster-api

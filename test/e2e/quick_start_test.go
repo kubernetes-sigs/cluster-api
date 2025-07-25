@@ -159,7 +159,7 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 			SkipCleanup:           skipCleanup,
 			Flavor:                ptr.To("topology-dualstack-ipv4-primary"),
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				By("Running kubetest dualstack tests")
+				By("Running kubetest dualstack tests gke")
 				// Start running the dualstack test suite from kubetest.
 				Expect(kubetest.Run(
 					ctx,

@@ -1248,6 +1248,7 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1alpha4_MachineDeployment
 	if err := Convert_v1beta2_ObjectMeta_To_v1alpha4_ObjectMeta(&in.Metadata, &out.Metadata, s); err != nil {
 		return err
 	}
+	// WARNING: in.Version requires manual conversion: does not exist in peer-type
 	out.Class = in.Class
 	out.Name = in.Name
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type

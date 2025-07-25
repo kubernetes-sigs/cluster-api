@@ -1986,6 +1986,11 @@ func (in *MachineDeploymentStatus) DeepCopy() *MachineDeploymentStatus {
 func (in *MachineDeploymentTopology) DeepCopyInto(out *MachineDeploymentTopology) {
 	*out = *in
 	in.Metadata.DeepCopyInto(&out.Metadata)
+	if in.Version != nil {
+		in, out := &in.Version, &out.Version
+		*out = new(string)
+		**out = **in
+	}
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(int32)

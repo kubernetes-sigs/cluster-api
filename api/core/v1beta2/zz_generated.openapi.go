@@ -3552,6 +3552,13 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta"),
 						},
 					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the Kubernetes version of the worker group, can only be used if auto-upgrade is disabled.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"class": {
 						SchemaProps: spec.SchemaProps{
 							Description: "class is the name of the MachineDeploymentClass used to create the set of worker nodes. This should match one of the deployment classes defined in the ClusterClass object mentioned in the `Cluster.Spec.Class` field.",

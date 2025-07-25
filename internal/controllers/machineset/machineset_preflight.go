@@ -212,6 +212,7 @@ func (r *Reconciler) kubeadmVersionPreflightCheck(cpSemver, msSemver semver.Vers
 	return nil
 }
 
+// TODO: this preflight check should always be skipped for MachineSets that are removed from topology auto version mgmt
 func (r *Reconciler) controlPlaneVersionPreflightCheck(cluster *clusterv1.Cluster, cpVersion, msVersion string) preflightCheckErrorMessage {
 	if feature.Gates.Enabled(feature.ClusterTopology) && cluster.Spec.Topology != nil {
 		if cpVersion != msVersion {

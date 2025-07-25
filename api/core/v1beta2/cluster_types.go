@@ -1513,6 +1513,18 @@ func (v APIEndpoint) String() string {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="ClusterClass",type="string",JSONPath=".spec.topology.classRef.name",description="ClusterClass of this Cluster, empty if the Cluster is not using a ClusterClass"
+// +kubebuilder:printcolumn:name="Available",type="string",JSONPath=`.status.conditions[?(@.type=="Available")].status`,description="Cluster pass all availability checks"
+// +kubebuilder:printcolumn:name="CP Desired",type=integer,JSONPath=".status.controlPlane.desiredReplicas",description="The desired number of control plane machines"
+// +kubebuilder:printcolumn:name="CP Current",type="integer",JSONPath=".status.controlPlane.replicas",description="The number of control plane machines",priority=10
+// +kubebuilder:printcolumn:name="CP Ready",type="integer",JSONPath=".status.controlPlane.readyReplicas",description="The number of control plane machines with Ready condition true",priority=10
+// +kubebuilder:printcolumn:name="CP Available",type=integer,JSONPath=".status.controlPlane.availableReplicas",description="The number of control plane machines with Available condition true"
+// +kubebuilder:printcolumn:name="CP Up-to-date",type=integer,JSONPath=".status.controlPlane.upToDateReplicas",description="The number of control plane machines with UpToDate condition true"
+// +kubebuilder:printcolumn:name="W Desired",type=integer,JSONPath=".status.workers.desiredReplicas",description="The desired number of worker machines"
+// +kubebuilder:printcolumn:name="W Current",type="integer",JSONPath=".status.workers.replicas",description="The number of worker machines",priority=10
+// +kubebuilder:printcolumn:name="W Ready",type="integer",JSONPath=".status.workers.readyReplicas",description="The number of worker machines with Ready condition true",priority=10
+// +kubebuilder:printcolumn:name="W Available",type=integer,JSONPath=".status.workers.availableReplicas",description="The number of worker machines with Available condition true"
+// +kubebuilder:printcolumn:name="W Up-to-date",type=integer,JSONPath=".status.workers.upToDateReplicas",description="The number of worker machines with UpToDate condition true"
+// +kubebuilder:printcolumn:name="Paused",type="string",JSONPath=`.status.conditions[?(@.type=="Paused")].status`,description="Reconciliation paused",priority=10
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Cluster"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.topology.version",description="Kubernetes version associated with this Cluster"

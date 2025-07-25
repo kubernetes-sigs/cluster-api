@@ -2817,6 +2817,15 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
+      type: string
+    - description: Variables ready
+      jsonPath: .status.conditions[?(@.type=="VariablesReady")].status
+      name: Variables Ready
+      type: string
     - description: Time duration since creation of ClusterClass
       jsonPath: .metadata.creationTimestamp
       name: Age

@@ -1479,11 +1479,45 @@ spec:
       type: string
     - description: Node name associated with this machine
       jsonPath: .status.nodeRef.name
-      name: NodeName
+      name: Node Name
       type: string
     - description: Provider ID
       jsonPath: .spec.providerID
-      name: ProviderID
+      name: Provider ID
+      priority: 10
+      type: string
+    - description: Machine pass all readiness checks
+      jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - description: Machine is Ready for at least MinReadySeconds
+      jsonPath: .status.conditions[?(@.type=="Available")].status
+      name: Available
+      type: string
+    - description: ' Machine spec matches the spec of the Machine''s owner resource,
+        e.g. MachineDeployment'
+      jsonPath: .status.conditions[?(@.type=="UpToDate")].status
+      name: Up-to-date
+      type: string
+    - description: Internal IP of the machine
+      jsonPath: .status.addresses[?(@.type=="InternalIP")].address
+      name: Internal-IP
+      priority: 10
+      type: string
+    - description: External IP of the machine
+      jsonPath: .status.addresses[?(@.type=="ExternalIP")].address
+      name: External-IP
+      priority: 10
+      type: string
+    - description: OS Image reported by the node
+      jsonPath: .status.nodeInfo.osImage
+      name: OS-Image
+      priority: 10
+      type: string
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
       type: string
     - description: Machine status such as Terminating/Pending/Running/Failed etc
       jsonPath: .status.phase

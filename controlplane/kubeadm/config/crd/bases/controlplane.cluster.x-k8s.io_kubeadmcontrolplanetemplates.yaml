@@ -3334,6 +3334,10 @@ spec:
     storage: false
     subresources: {}
   - additionalPrinterColumns:
+    - description: Name of the ClusterClass owning this template
+      jsonPath: .metadata.ownerReferences[?(@.kind=="ClusterClass")].name
+      name: ClusterClass
+      type: string
     - description: Time duration since creation of KubeadmControlPlaneTemplate
       jsonPath: .metadata.creationTimestamp
       name: Age

@@ -718,8 +718,15 @@ type Bootstrap struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".spec.clusterName",description="Cluster"
-// +kubebuilder:printcolumn:name="NodeName",type="string",JSONPath=".status.nodeRef.name",description="Node name associated with this machine"
-// +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
+// +kubebuilder:printcolumn:name="Node Name",type="string",JSONPath=".status.nodeRef.name",description="Node name associated with this machine"
+// +kubebuilder:printcolumn:name="Provider ID",type="string",JSONPath=".spec.providerID",description="Provider ID",priority=10
+// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.conditions[?(@.type=="Ready")].status`,description="Machine pass all readiness checks"
+// +kubebuilder:printcolumn:name="Available",type="string",JSONPath=`.status.conditions[?(@.type=="Available")].status`,description="Machine is Ready for at least MinReadySeconds"
+// +kubebuilder:printcolumn:name="Up-to-date",type="string",JSONPath=`.status.conditions[?(@.type=="UpToDate")].status`,description=" Machine spec matches the spec of the Machine's owner resource, e.g. MachineDeployment"
+// +kubebuilder:printcolumn:name="Internal-IP",type="string",JSONPath=`.status.addresses[?(@.type=="InternalIP")].address`,description="Internal IP of the machine",priority=10
+// +kubebuilder:printcolumn:name="External-IP",type="string",JSONPath=`.status.addresses[?(@.type=="ExternalIP")].address`,description="External IP of the machine",priority=10
+// +kubebuilder:printcolumn:name="OS-Image",type="string",JSONPath=`.status.nodeInfo.osImage`,description="OS Image reported by the node",priority=10
+// +kubebuilder:printcolumn:name="Paused",type="string",JSONPath=`.status.conditions[?(@.type=="Paused")].status`,description="Reconciliation paused",priority=10
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="Machine status such as Terminating/Pending/Running/Failed etc"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Machine"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.version",description="Kubernetes version associated with this Machine"

@@ -995,16 +995,17 @@ spec:
       type: string
     - description: Number of machines currently monitored
       jsonPath: .status.expectedMachines
-      name: ExpectedMachines
+      name: Replicas
       type: integer
-    - description: Maximum number of unhealthy machines allowed
-      jsonPath: .spec.remediation.triggerIf.unhealthyLessThanOrEqualTo
-      name: UnhealthyLessThanOrEqualTo
-      type: string
     - description: Current observed healthy machines
       jsonPath: .status.currentHealthy
-      name: CurrentHealthy
+      name: Healthy
       type: integer
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
+      type: string
     - description: Time duration since creation of MachineHealthCheck
       jsonPath: .metadata.creationTimestamp
       name: Age

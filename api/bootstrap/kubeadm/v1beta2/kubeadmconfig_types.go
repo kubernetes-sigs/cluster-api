@@ -518,6 +518,8 @@ type KubeadmConfigV1Beta1DeprecatedStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels['cluster\\.x-k8s\\.io/cluster-name']",description="Cluster"
+// +kubebuilder:printcolumn:name="Paused",type="string",JSONPath=`.status.conditions[?(@.type=="Paused")].status`,description="Reconciliation paused",priority=10
+// +kubebuilder:printcolumn:name="Data secret created",type="string",JSONPath=`.status.initialization.dataSecretCreated`,description="Boostrap secret is created"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmConfig"
 
 // KubeadmConfig is the Schema for the kubeadmconfigs API.

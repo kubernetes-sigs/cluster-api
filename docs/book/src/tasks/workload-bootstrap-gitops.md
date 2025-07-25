@@ -14,7 +14,7 @@ Follow the quickstart setup guide for your provider but ensure that CAAPH is ins
 Add the labels `argoCDChart: enabled` and `guestbook: enabled` to your desired workload cluster yaml file in the `Cluster` metadata section, for example:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: my-cluster

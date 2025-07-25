@@ -4089,6 +4089,15 @@ spec:
       jsonPath: .metadata.labels['cluster\.x-k8s\.io/cluster-name']
       name: Cluster
       type: string
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
+      type: string
+    - description: Boostrap secret is created
+      jsonPath: .status.initialization.dataSecretCreated
+      name: Data secret created
+      type: string
     - description: Time duration since creation of KubeadmConfig
       jsonPath: .metadata.creationTimestamp
       name: Age

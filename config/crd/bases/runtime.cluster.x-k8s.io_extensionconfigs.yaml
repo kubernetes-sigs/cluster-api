@@ -361,6 +361,15 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
+      type: string
+    - description: ExtensionConfig discovered
+      jsonPath: .status.conditions[?(@.type=="Discovered")].status
+      name: Discovered
+      type: string
     - description: Time duration since creation of ExtensionConfig
       jsonPath: .metadata.creationTimestamp
       name: Age

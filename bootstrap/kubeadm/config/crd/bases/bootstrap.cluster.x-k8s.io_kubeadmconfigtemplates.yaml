@@ -3926,6 +3926,10 @@ spec:
     storage: false
     subresources: {}
   - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .metadata.labels['cluster\.x-k8s\.io/cluster-name']
+      name: Cluster
+      type: string
     - description: Time duration since creation of KubeadmConfigTemplate
       jsonPath: .metadata.creationTimestamp
       name: Age

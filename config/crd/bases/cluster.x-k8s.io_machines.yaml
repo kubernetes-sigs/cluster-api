@@ -1477,13 +1477,31 @@ spec:
       jsonPath: .spec.clusterName
       name: Cluster
       type: string
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
+      type: string
     - description: Node name associated with this machine
       jsonPath: .status.nodeRef.name
-      name: NodeName
+      name: Node Name
       type: string
     - description: Provider ID
       jsonPath: .spec.providerID
-      name: ProviderID
+      name: Provider ID
+      type: string
+    - description: Machine pass all readiness checks
+      jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - description: Machine is Ready for at least MinReadySeconds
+      jsonPath: .status.conditions[?(@.type=="Available")].status
+      name: Available
+      type: string
+    - description: ' Machine spec matches the spec of the Machine''s owner resource,
+        e.g. MachineDeployment'
+      jsonPath: .status.conditions[?(@.type=="UpToDate")].status
+      name: Up to date
       type: string
     - description: Machine status such as Terminating/Pending/Running/Failed etc
       jsonPath: .status.phase
@@ -1496,6 +1514,21 @@ spec:
     - description: Kubernetes version associated with this Machine
       jsonPath: .spec.version
       name: Version
+      type: string
+    - description: OS Image reported by the node
+      jsonPath: .status.nodeInfo.osImage
+      name: OS Image
+      priority: 10
+      type: string
+    - description: Kernel Version reported by the node
+      jsonPath: .status.nodeInfo.kernelVersion
+      name: Kernel version
+      priority: 10
+      type: string
+    - description: ContainerRuntime Version reported by the node
+      jsonPath: .status.nodeInfo.containerRuntimeVersion
+      name: Container runtime version
+      priority: 10
       type: string
     name: v1beta2
     schema:

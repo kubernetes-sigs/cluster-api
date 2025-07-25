@@ -24,7 +24,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -310,30 +309,10 @@ func TestHandler_GeneratePatches(t *testing.T) {
 			},
 		}),
 	}
-	kubeadmControlPlaneTemplate := controlplanev1.KubeadmControlPlaneTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlaneTemplate",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
-	}
-	dockerMachineTemplate := infrav1.DockerMachineTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "DockerMachineTemplate",
-			APIVersion: infrav1.GroupVersion.String(),
-		},
-	}
-	dockerMachinePoolTemplate := infraexpv1.DockerMachinePoolTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "DockerMachinePoolTemplate",
-			APIVersion: infrav1.GroupVersion.String(),
-		},
-	}
-	dockerClusterTemplate := infrav1.DockerClusterTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "DockerClusterTemplate",
-			APIVersion: infrav1.GroupVersion.String(),
-		},
-	}
+	kubeadmControlPlaneTemplate := controlplanev1.KubeadmControlPlaneTemplate{}
+	dockerMachineTemplate := infrav1.DockerMachineTemplate{}
+	dockerMachinePoolTemplate := infraexpv1.DockerMachinePoolTemplate{}
+	dockerClusterTemplate := infrav1.DockerClusterTemplate{}
 	tests := []struct {
 		name             string
 		requestItems     []runtimehooksv1.GeneratePatchesRequestItem

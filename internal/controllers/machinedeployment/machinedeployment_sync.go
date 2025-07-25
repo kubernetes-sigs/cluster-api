@@ -274,10 +274,6 @@ func (r *Reconciler) computeDesiredMachineSet(ctx context.Context, deployment *c
 
 	// Construct the basic MachineSet.
 	desiredMS := &clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: deployment.Namespace,

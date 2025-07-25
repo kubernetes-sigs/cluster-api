@@ -870,10 +870,6 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 
 	desiredMachineDeploymentObj := &clusterv1.MachineDeployment{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineDeployment",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: s.Current.Cluster.Namespace,
@@ -1194,10 +1190,6 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 	}
 
 	desiredMachinePoolObj := &clusterv1.MachinePool{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachinePool",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: s.Current.Cluster.Namespace,
@@ -1478,10 +1470,6 @@ func templateToTemplate(in templateToInput) (*unstructured.Unstructured, error) 
 func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Object, selector *metav1.LabelSelector, cluster *clusterv1.Cluster, mhcChecks clusterv1.MachineHealthCheckChecks, mhcRemediation clusterv1.MachineHealthCheckRemediation) *clusterv1.MachineHealthCheck {
 	// Create a MachineHealthCheck with the spec given in the ClusterClass.
 	mhc := &clusterv1.MachineHealthCheck{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineHealthCheck",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      healthCheckTarget.GetName(),
 			Namespace: healthCheckTarget.GetNamespace(),

@@ -2495,10 +2495,6 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 // newRunningMachine creates a Machine object with a Status.Phase == Running.
 func newRunningMachine(c *clusterv1.Cluster, labels map[string]string) *clusterv1.Machine {
 	return &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-mhc-machine-",
 			Namespace:    c.Namespace,

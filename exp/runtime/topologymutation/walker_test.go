@@ -25,7 +25,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
@@ -60,18 +59,8 @@ func Test_WalkTemplates(t *testing.T) {
 		}
 		return nil
 	}
-	kubeadmControlPlaneTemplate := controlplanev1.KubeadmControlPlaneTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlaneTemplate",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
-	}
-	kubeadmConfigTemplate := bootstrapv1.KubeadmConfigTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmConfigTemplate",
-			APIVersion: bootstrapv1.GroupVersion.String(),
-		},
-	}
+	kubeadmControlPlaneTemplate := controlplanev1.KubeadmControlPlaneTemplate{}
+	kubeadmConfigTemplate := bootstrapv1.KubeadmConfigTemplate{}
 	tests := []struct {
 		name             string
 		globalVariables  []runtimehooksv1.Variable

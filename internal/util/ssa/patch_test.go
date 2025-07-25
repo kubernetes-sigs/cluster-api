@@ -90,10 +90,6 @@ func TestPatch(t *testing.T) {
 	t.Run("Test patch with Machine", func(*testing.T) {
 		// Build the test object to work with.
 		initialObject := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: clusterv1.GroupVersion.String(),
-				Kind:       "Machine",
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "machine-1",
 				Namespace: ns.Name,
@@ -126,8 +122,6 @@ func TestPatch(t *testing.T) {
 		// 1. Create the object
 		createObject := initialObject.DeepCopy()
 		g.Expect(Patch(ctx, env.GetClient(), fieldManager, createObject)).To(Succeed())
-		// Verify that gvk is still set
-		g.Expect(createObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
 
 		// 2. Update the object and verify that the request was not cached as the object was changed.
 		// Get the original object.
@@ -143,8 +137,6 @@ func TestPatch(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		// Update the object
 		g.Expect(Patch(ctx, env.GetClient(), fieldManager, modifiedObject, WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
-		// Verify that gvk is still set
-		g.Expect(modifiedObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
 		// Verify that request was not cached (as it changed the object)
 		g.Expect(ssaCache.Has(requestIdentifier, initialObject.GetObjectKind().GroupVersionKind().Kind)).To(BeFalse())
 
@@ -172,7 +164,5 @@ func TestPatch(t *testing.T) {
 		g.Expect(Patch(ctx, env.GetClient(), fieldManager, modifiedObject, WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
 		// Verify that request was cached (as it did not change the object)
 		g.Expect(ssaCache.Has(requestIdentifier, initialObject.GetObjectKind().GroupVersionKind().Kind)).To(BeTrue())
-		// Verify that gvk is still set
-		g.Expect(modifiedObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
 	})
 }

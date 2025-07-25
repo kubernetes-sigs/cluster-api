@@ -65,10 +65,6 @@ func TestUpdateCoreDNS(t *testing.T) {
 	}
 
 	depl := &appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      coreDNSKey,
 			Namespace: metav1.NamespaceSystem,
@@ -1185,10 +1181,6 @@ func (m *fakeMigrator) Migrate(_, _, _ string, _ bool) (string, error) {
 
 func newCoreDNSInfoDeploymentWithimage(image string) *appsv1.Deployment {
 	return &appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      coreDNSKey,
 			Namespace: metav1.NamespaceSystem,

@@ -3427,10 +3427,6 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 	healthCheckTarget := builder.MachineDeployment("ns1", "md1").Build()
 	cluster := builder.Cluster("ns1", "cluster1").Build()
 	want := &clusterv1.MachineHealthCheck{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineHealthCheck",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "md1",
 			Namespace: "ns1",

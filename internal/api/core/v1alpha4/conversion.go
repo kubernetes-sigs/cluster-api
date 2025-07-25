@@ -1003,7 +1003,9 @@ func Convert_v1beta2_MachineStatus_To_v1alpha4_MachineStatus(in *clusterv1.Machi
 	if err := autoConvert_v1beta2_MachineStatus_To_v1alpha4_MachineStatus(in, out, s); err != nil {
 		return err
 	}
-	out.LastUpdated = ptr.To(in.LastUpdated)
+	if !reflect.DeepEqual(in.LastUpdated, metav1.Time{}) {
+		out.LastUpdated = ptr.To(in.LastUpdated)
+	}
 	return nil
 }
 

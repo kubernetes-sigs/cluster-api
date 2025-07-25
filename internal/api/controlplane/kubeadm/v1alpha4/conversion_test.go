@@ -195,6 +195,9 @@ func spokeKubeadmControlPlane(in *KubeadmControlPlane, c randfill.Continue) {
 	if reflect.DeepEqual(in.Spec.RolloutStrategy, &RolloutStrategy{}) {
 		in.Spec.RolloutStrategy = nil
 	}
+	if reflect.DeepEqual(in.Spec.RolloutAfter, &metav1.Time{}) {
+		in.Spec.RolloutAfter = nil
+	}
 }
 
 func spokeKubeadmControlPlaneTemplateResource(in *KubeadmControlPlaneTemplateResource, c randfill.Continue) {
@@ -208,6 +211,9 @@ func spokeKubeadmControlPlaneTemplateResource(in *KubeadmControlPlaneTemplateRes
 
 	if reflect.DeepEqual(in.Spec.RolloutStrategy, &RolloutStrategy{}) {
 		in.Spec.RolloutStrategy = nil
+	}
+	if reflect.DeepEqual(in.Spec.RolloutAfter, &metav1.Time{}) {
+		in.Spec.RolloutAfter = nil
 	}
 }
 
@@ -252,6 +258,9 @@ func spokeBootstrapToken(in *bootstrapv1alpha4.BootstrapToken, c randfill.Contin
 
 	if in.TTL != nil {
 		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if reflect.DeepEqual(in.Expires, &metav1.Time{}) {
+		in.Expires = nil
 	}
 }
 

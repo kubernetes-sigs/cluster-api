@@ -180,6 +180,9 @@ func spokeMachineStatus(in *MachineStatus, c randfill.Continue) {
 			Kind:       "Node",
 		}
 	}
+	if reflect.DeepEqual(in.LastUpdated, &metav1.Time{}) {
+		in.LastUpdated = nil
+	}
 }
 
 func MachineSetFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {

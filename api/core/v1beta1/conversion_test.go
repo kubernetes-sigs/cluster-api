@@ -531,6 +531,20 @@ func spokeMachineStatus(in *MachineStatus, c randfill.Continue) {
 			Kind:       "Node",
 		}
 	}
+	if reflect.DeepEqual(in.LastUpdated, &metav1.Time{}) {
+		in.LastUpdated = nil
+	}
+	if reflect.DeepEqual(in.CertificatesExpiryDate, &metav1.Time{}) {
+		in.CertificatesExpiryDate = nil
+	}
+	if in.Deletion != nil {
+		if reflect.DeepEqual(in.Deletion.NodeDrainStartTime, &metav1.Time{}) {
+			in.Deletion.NodeDrainStartTime = nil
+		}
+		if reflect.DeepEqual(in.Deletion.WaitForNodeVolumeDetachStartTime, &metav1.Time{}) {
+			in.Deletion.WaitForNodeVolumeDetachStartTime = nil
+		}
+	}
 }
 
 func MachineSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
@@ -637,6 +651,9 @@ func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) 
 		if reflect.DeepEqual(in.Strategy, &MachineDeploymentStrategy{}) {
 			in.Strategy = nil
 		}
+	}
+	if reflect.DeepEqual(in.RolloutAfter, &metav1.Time{}) {
+		in.RolloutAfter = nil
 	}
 }
 

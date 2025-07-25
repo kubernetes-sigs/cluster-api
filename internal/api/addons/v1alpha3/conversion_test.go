@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/randfill"
 
@@ -39,8 +40,8 @@ func TestFuzzyConversion(t *testing.T) {
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{ClusterResourceSetFuzzFuncs},
 	}))
 	t.Run("for ClusterResourceSetBinding", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &addonsv1.ClusterResourceSetBinding{},
-		Spoke: &ClusterResourceSetBinding{},
+		Hub:         &addonsv1.ClusterResourceSetBinding{},
+		Spoke:       &ClusterResourceSetBinding{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{ClusterResourceSetBindingFuzzFuncs},
 	}))
 }
@@ -74,6 +75,13 @@ func spokeClusterResourceSetBindingSpec(in *ClusterResourceSetBindingSpec, c ran
 	for i, b := range in.Bindings {
 		if b != nil && reflect.DeepEqual(*b, ResourceSetBinding{}) {
 			in.Bindings[i] = nil
+		}
+		if in.Bindings[i] != nil {
+			for j, r := range in.Bindings[i].Resources {
+				if reflect.DeepEqual(r.LastAppliedTime, &metav1.Time{}) {
+					in.Bindings[i].Resources[j].LastAppliedTime = nil
+				}
+			}
 		}
 	}
 }

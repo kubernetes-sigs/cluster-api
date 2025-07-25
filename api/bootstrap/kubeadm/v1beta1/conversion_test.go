@@ -165,6 +165,9 @@ func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
 	if in.TTL != nil {
 		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
+	if reflect.DeepEqual(in.Expires, &metav1.Time{}) {
+		in.Expires = nil
+	}
 }
 
 func spokeDiscovery(in *Discovery, c randfill.Continue) {

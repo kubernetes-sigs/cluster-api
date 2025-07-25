@@ -151,7 +151,9 @@ func Convert_v1beta2_ResourceBinding_To_v1alpha3_ResourceBinding(in *addonsv1.Re
 	if err := autoConvert_v1beta2_ResourceBinding_To_v1alpha3_ResourceBinding(in, out, s); err != nil {
 		return err
 	}
-	out.LastAppliedTime = ptr.To(in.LastAppliedTime)
+	if !reflect.DeepEqual(in.LastAppliedTime, metav1.Time{}) {
+		out.LastAppliedTime = ptr.To(in.LastAppliedTime)
+	}
 	return nil
 }
 

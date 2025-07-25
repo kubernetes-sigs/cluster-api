@@ -122,7 +122,7 @@ func (i IgnorePaths) ApplyToHelper(opts *HelperOptions) {
 	opts.IgnorePaths = i
 }
 
-// DropEmptyStructAndNil instruct the Helper to drop all fields with values equals to empty struct.
+// DropEmptyStructAndNil instructs the Helper to drop all fields with values equal to empty struct or nil.
 // NOTE: This is required when using typed objects, because the DefaultUnstructuredConverter does
 // not handle omitzero (yet).
 type DropEmptyStructAndNil bool

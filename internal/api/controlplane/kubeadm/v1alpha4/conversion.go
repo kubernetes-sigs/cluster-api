@@ -267,7 +267,9 @@ func Convert_v1beta2_KubeadmControlPlaneTemplateResourceSpec_To_v1alpha4_Kubeadm
 	if err := bootstrapv1alpha4.Convert_v1beta2_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
-	out.RolloutAfter = ptr.To(in.Rollout.After)
+	if !reflect.DeepEqual(in.Rollout.After, metav1.Time{}) {
+		out.RolloutAfter = ptr.To(in.Rollout.After)
+	}
 	if !reflect.DeepEqual(in.Rollout.Strategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) {
 		out.RolloutStrategy = &RolloutStrategy{}
 		out.RolloutStrategy.Type = RolloutStrategyType(in.Rollout.Strategy.Type)
@@ -295,7 +297,9 @@ func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec
 	if err := autoConvert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in, out, scope); err != nil {
 		return err
 	}
-	out.RolloutAfter = ptr.To(in.Rollout.After)
+	if !reflect.DeepEqual(in.Rollout.After, metav1.Time{}) {
+		out.RolloutAfter = ptr.To(in.Rollout.After)
+	}
 	if !reflect.DeepEqual(in.Rollout.Strategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) {
 		out.RolloutStrategy = &RolloutStrategy{}
 		out.RolloutStrategy.Type = RolloutStrategyType(in.Rollout.Strategy.Type)

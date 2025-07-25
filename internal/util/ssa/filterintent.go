@@ -35,7 +35,7 @@ type FilterObjectInput struct {
 	// NOTE: ignore paths which point to an array are not supported by the current implementation.
 	IgnorePaths []contract.Path
 
-	// DropEmptyStructAndNil instruct the Helper to drop all fields with values equals to empty struct.
+	// DropEmptyStructAndNil instructs the Helper to drop all fields with values equal to empty struct or nil.
 	// NOTE: This is required when using typed objects, because the DefaultUnstructuredConverter does
 	// not handle omitzero (yet).
 	DropEmptyStructAndNil bool

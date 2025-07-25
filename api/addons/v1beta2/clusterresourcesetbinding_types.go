@@ -22,8 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ANCHOR: ResourceBinding
-
 // ResourceBinding shows the status of a resource that belongs to a ClusterResourceSet matched by the owner cluster of the ClusterResourceSetBinding object.
 type ResourceBinding struct {
 	// ResourceRef specifies a resource.
@@ -44,8 +42,6 @@ type ResourceBinding struct {
 	// +required
 	Applied bool `json:"applied"`
 }
-
-// ANCHOR_END: ResourceBinding
 
 // ResourceSetBinding keeps info on all of the resources in a ClusterResourceSet.
 type ResourceSetBinding struct {
@@ -132,8 +128,6 @@ type ClusterResourceSetBinding struct {
 	Spec ClusterResourceSetBindingSpec `json:"spec,omitempty,omitzero"`
 }
 
-// ANCHOR: ClusterResourceSetBindingSpec
-
 // ClusterResourceSetBindingSpec defines the desired state of ClusterResourceSetBinding.
 type ClusterResourceSetBindingSpec struct {
 	// bindings is a list of ClusterResourceSets and their resources.
@@ -148,8 +142,6 @@ type ClusterResourceSetBindingSpec struct {
 	// +kubebuilder:validation:MaxLength=63
 	ClusterName string `json:"clusterName"`
 }
-
-// ANCHOR_END: ClusterResourceSetBindingSpec
 
 // +kubebuilder:object:root=true
 

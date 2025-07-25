@@ -1483,8 +1483,6 @@ func (r *ClusterClassTemplateReference) GroupVersionKind() schema.GroupVersionKi
 	return schema.FromAPIVersionAndKind(r.APIVersion, r.Kind)
 }
 
-// ANCHOR: ClusterClassStatus
-
 // ClusterClassStatus defines the observed state of the ClusterClass.
 // +kubebuilder:validation:MinProperties=1
 type ClusterClassStatus struct {
@@ -1609,8 +1607,6 @@ func (c *ClusterClass) GetConditions() []metav1.Condition {
 func (c *ClusterClass) SetConditions(conditions []metav1.Condition) {
 	c.Status.Conditions = conditions
 }
-
-// ANCHOR_END: ClusterClassStatus
 
 // +kubebuilder:object:root=true
 

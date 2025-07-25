@@ -1136,8 +1136,6 @@ type LocalObjectTemplate struct {
 	Ref *corev1.ObjectReference `json:"ref"`
 }
 
-// ANCHOR: ClusterClassStatus
-
 // ClusterClassStatus defines the observed state of the ClusterClass.
 type ClusterClassStatus struct {
 	// variables is a list of ClusterClassStatusVariable that are defined for the ClusterClass.
@@ -1244,8 +1242,6 @@ func (c *ClusterClass) SetV1Beta2Conditions(conditions []metav1.Condition) {
 	}
 	c.Status.V1Beta2.Conditions = conditions
 }
-
-// ANCHOR_END: ClusterClassStatus
 
 // +kubebuilder:object:root=true
 

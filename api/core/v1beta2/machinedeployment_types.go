@@ -232,8 +232,6 @@ const (
 	MachineDeploymentDeletingInternalErrorReason = InternalErrorReason
 )
 
-// ANCHOR: MachineDeploymentSpec
-
 // MachineDeploymentSpec defines the desired state of MachineDeployment.
 type MachineDeploymentSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
@@ -295,8 +293,6 @@ type MachineDeploymentSpec struct {
 	// +optional
 	Paused *bool `json:"paused,omitempty"`
 }
-
-// ANCHOR_END: MachineDeploymentSpec
 
 // MachineDeploymentRolloutSpec defines the rollout behavior.
 // +kubebuilder:validation:MinProperties=1
@@ -423,8 +419,6 @@ type MachineDeploymentDeletionSpec struct {
 	Order MachineSetDeletionOrder `json:"order,omitempty"`
 }
 
-// ANCHOR: MachineDeploymentStatus
-
 // MachineDeploymentStatus defines the observed state of MachineDeployment.
 // +kubebuilder:validation:MinProperties=1
 type MachineDeploymentStatus struct {
@@ -528,8 +522,6 @@ type MachineDeploymentV1Beta1DeprecatedStatus struct {
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
 }
-
-// ANCHOR_END: MachineDeploymentStatus
 
 // MachineDeploymentPhase indicates the progress of the machine deployment.
 type MachineDeploymentPhase string

@@ -22,8 +22,6 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
-// ANCHOR: ExtensionConfigSpec
-
 // ExtensionConfigSpec defines the desired state of ExtensionConfig.
 type ExtensionConfigSpec struct {
 	// clientConfig defines how to communicate with the Extension server.
@@ -110,10 +108,6 @@ type ServiceReference struct {
 	Port *int32 `json:"port,omitempty"`
 }
 
-// ANCHOR_END: ExtensionConfigSpec
-
-// ANCHOR: ExtensionConfigStatus
-
 // ExtensionConfigStatus defines the observed state of ExtensionConfig.
 type ExtensionConfigStatus struct {
 	// handlers defines the current ExtensionHandlers supported by an Extension.
@@ -197,8 +191,6 @@ const (
 	// FailurePolicyFail means that an error when calling the extension is propagated as an error.
 	FailurePolicyFail FailurePolicy = "Fail"
 )
-
-// ANCHOR_END: ExtensionConfigStatus
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=extensionconfigs,shortName=ext,scope=Cluster,categories=cluster-api

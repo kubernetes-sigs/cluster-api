@@ -21,8 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ANCHOR: ConditionSeverity
-
 // ConditionSeverity expresses the severity of a Condition Type failing.
 // +kubebuilder:validation:MaxLength=32
 type ConditionSeverity string
@@ -41,18 +39,10 @@ const (
 	ConditionSeverityNone ConditionSeverity = ""
 )
 
-// ANCHOR_END: ConditionSeverity
-
-// ANCHOR: ConditionType
-
 // ConditionType is a valid value for Condition.Type.
 // +kubebuilder:validation:MinLength=1
 // +kubebuilder:validation:MaxLength=256
 type ConditionType string
-
-// ANCHOR_END: ConditionType
-
-// ANCHOR: Condition
 
 // Condition defines an observation of a Cluster API resource operational state.
 type Condition struct {
@@ -94,11 +84,5 @@ type Condition struct {
 	Message string `json:"message,omitempty"`
 }
 
-// ANCHOR_END: Condition
-
-// ANCHOR: Conditions
-
 // Conditions provide observations of the operational state of a Cluster API resource.
 type Conditions []Condition
-
-// ANCHOR_END: Conditions

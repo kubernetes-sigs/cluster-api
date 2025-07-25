@@ -16,8 +16,6 @@ limitations under the License.
 
 package v1beta1
 
-// ANCHOR: CommonConditions
-
 // Common ConditionTypes used by Cluster API objects.
 const (
 	// ReadyCondition defines the Ready condition type that summarizes the operational state of a Cluster API object.
@@ -52,8 +50,6 @@ const (
 	// NOTE: This reason is used only as a fallback when the infrastructure object is not reporting its own ready condition.
 	WaitingForInfrastructureFallbackReason = "WaitingForInfrastructure"
 )
-
-// ANCHOR_END: CommonConditions
 
 // Conditions and condition Reasons for the ClusterClass object.
 const (

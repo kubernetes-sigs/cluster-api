@@ -51,8 +51,6 @@ const (
 	ClusterResourceSetFinalizer = "addons.cluster.x-k8s.io"
 )
 
-// ANCHOR: ClusterResourceSetSpec
-
 // ClusterResourceSetSpec defines the desired state of ClusterResourceSet.
 type ClusterResourceSetSpec struct {
 	// clusterSelector is the label selector for Clusters. The Clusters that are
@@ -72,8 +70,6 @@ type ClusterResourceSetSpec struct {
 	// +optional
 	Strategy string `json:"strategy,omitempty"`
 }
-
-// ANCHOR_END: ClusterResourceSetSpec
 
 // ClusterResourceSetResourceKind is a string representation of a ClusterResourceSet resource kind.
 type ClusterResourceSetResourceKind string
@@ -115,8 +111,6 @@ func (c *ClusterResourceSetSpec) SetTypedStrategy(p ClusterResourceSetStrategy) 
 	c.Strategy = string(p)
 }
 
-// ANCHOR: ClusterResourceSetStatus
-
 // ClusterResourceSetStatus defines the observed state of ClusterResourceSet.
 type ClusterResourceSetStatus struct {
 	// observedGeneration reflects the generation of the most recently observed ClusterResourceSet.
@@ -143,8 +137,6 @@ type ClusterResourceSetV1Beta2Status struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
-
-// ANCHOR_END: ClusterResourceSetStatus
 
 // GetConditions returns the set of conditions for this object.
 func (m *ClusterResourceSet) GetConditions() clusterv1beta1.Conditions {

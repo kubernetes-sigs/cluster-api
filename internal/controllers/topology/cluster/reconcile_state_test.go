@@ -1883,7 +1883,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 	// Create InfrastructureMachineTemplates for test cases
 	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()
 
-	mhcClass := &clusterv1.ControlPlaneClassHealthCheck{
+	mhcClass := clusterv1.ControlPlaneClassHealthCheck{
 		Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
 			UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 				{
@@ -3971,9 +3971,7 @@ func prepareControlPlaneBluePrint(in *scope.ControlPlaneBlueprint, namespace str
 			s.InfrastructureMachineTemplate.SetNamespace(namespace)
 		}
 	}
-	if in.HealthCheck != nil {
-		s.HealthCheck = in.HealthCheck.DeepCopy()
-	}
+	s.HealthCheck = *in.HealthCheck.DeepCopy()
 	if in.Template != nil {
 		s.Template = in.Template.DeepCopy()
 		if s.Template.GetNamespace() == metav1.NamespaceDefault {

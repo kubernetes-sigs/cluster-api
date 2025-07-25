@@ -1757,7 +1757,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 	clusterClassMDStrategy := clusterv1.MachineDeploymentRolloutStrategy{
 		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
 	}
-	clusterClassHealthCheck := &clusterv1.MachineDeploymentClassHealthCheck{
+	clusterClassHealthCheck := clusterv1.MachineDeploymentClassHealthCheck{
 		Remediation: clusterv1.MachineDeploymentClassHealthCheckRemediation{
 			MaxInFlight: ptr.To(intstr.FromInt32(5)),
 		},
@@ -1771,7 +1771,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		WithAnnotations(annotations).
 		WithInfrastructureTemplate(workerInfrastructureMachineTemplate).
 		WithBootstrapTemplate(workerBootstrapTemplate).
-		WithMachineHealthCheckClass(&clusterv1.MachineDeploymentClassHealthCheck{
+		WithMachineHealthCheckClass(clusterv1.MachineDeploymentClassHealthCheck{
 			Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 				UnhealthyNodeConditions:   unhealthyNodeConditions,
 				NodeStartupTimeoutSeconds: nodeTimeoutDuration,
@@ -1816,7 +1816,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				},
 				BootstrapTemplate:             workerBootstrapTemplate,
 				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
-				HealthCheck: &clusterv1.MachineDeploymentClassHealthCheck{
+				HealthCheck: clusterv1.MachineDeploymentClassHealthCheck{
 					Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 						UnhealthyNodeConditions:   unhealthyNodeConditions,
 						NodeStartupTimeoutSeconds: ptr.To(int32(1)),
@@ -1836,7 +1836,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 	topologyMDStrategy := clusterv1.MachineDeploymentRolloutStrategy{
 		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 	}
-	topologyHealthCheck := &clusterv1.MachineDeploymentTopologyHealthCheck{
+	topologyHealthCheck := clusterv1.MachineDeploymentTopologyHealthCheck{
 		Remediation: clusterv1.MachineDeploymentTopologyHealthCheckRemediation{
 			MaxInFlight: ptr.To(intstr.FromInt32(1)),
 		},
@@ -1992,7 +1992,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 					},
 					BootstrapTemplate:             workerBootstrapTemplate,
 					InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
-					HealthCheck: &clusterv1.MachineDeploymentClassHealthCheck{
+					HealthCheck: clusterv1.MachineDeploymentClassHealthCheck{
 						Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 							UnhealthyNodeConditions:   unhealthyNodeConditions,
 							NodeStartupTimeoutSeconds: ptr.To(int32(1)),

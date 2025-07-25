@@ -61,12 +61,12 @@ func TestGetBlueprint(t *testing.T) {
 		Build()
 	workerBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "workerbootstraptemplate1").
 		Build()
-	cpMachineHealthCheck := &clusterv1.ControlPlaneClassHealthCheck{
+	cpMachineHealthCheck := clusterv1.ControlPlaneClassHealthCheck{
 		Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
 			NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 		},
 	}
-	mdMachineHealthCheck := &clusterv1.MachineDeploymentClassHealthCheck{
+	mdMachineHealthCheck := clusterv1.MachineDeploymentClassHealthCheck{
 		Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 			NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 		},

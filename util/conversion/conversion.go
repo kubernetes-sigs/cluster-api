@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/randfill"
 )
@@ -106,8 +107,17 @@ func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *randfill.Fi
 					*input = &metav1.Time{Time: fuzzed.Time}
 				},
 				// Custom fuzzer for intstr.IntOrString which does not get fuzzed otherwise.
-				func(in *intstr.IntOrString, c randfill.Continue) {
-					*in = intstr.FromInt32(c.Int31n(50))
+				func(in **intstr.IntOrString, c randfill.Continue) {
+					if c.Bool() {
+						// Leave the IntOrString sometimes nil to also get coverage for this case.
+						return
+					}
+					if c.Bool() {
+						// Set the IntOrString sometimes empty to also get coverage for this case.
+						*in = &intstr.IntOrString{}
+						return
+					}
+					*in = ptr.To(intstr.FromInt32(c.Int31n(50)))
 				},
 			}
 		},

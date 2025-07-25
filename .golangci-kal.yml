@@ -196,7 +196,7 @@ linters:
       linters:
         - kubeapilinter
     - path: "api/core/v1beta2/*|api/controlplane/kubeadm/v1beta2/*"
-      text: "optionalfields: field (Naming|MachineNaming|Deletion) is optional and should (be a pointer|have the omitempty tag)"
+      text: "optionalfields: field (Naming|HealthCheck|MachineNaming|Deletion) is optional and should (be a pointer|have the omitempty tag)"
       linters:
         - kubeapilinter
 

@@ -291,9 +291,7 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 		machineDeploymentClass.Metadata.DeepCopyInto(&machineDeploymentBlueprint.Metadata)
 		machineDeploymentBlueprint.InfrastructureMachineTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Infrastructure.TemplateRef))
 		machineDeploymentBlueprint.BootstrapTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, machineDeploymentClass.Bootstrap.TemplateRef))
-		if machineDeploymentClass.HealthCheck != nil {
-			machineDeploymentBlueprint.HealthCheck = machineDeploymentClass.HealthCheck
-		}
+		machineDeploymentBlueprint.HealthCheck = machineDeploymentClass.HealthCheck
 		s.Blueprint.MachineDeployments[machineDeploymentClass.Class] = machineDeploymentBlueprint
 	}
 

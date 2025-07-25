@@ -31,7 +31,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -821,11 +820,8 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		}
 	}
 
-	var remediationMaxInFlight *intstr.IntOrString
-	if machineDeploymentClass.HealthCheck != nil && machineDeploymentClass.HealthCheck.Remediation.MaxInFlight != nil {
-		remediationMaxInFlight = machineDeploymentClass.HealthCheck.Remediation.MaxInFlight
-	}
-	if machineDeploymentTopology.HealthCheck != nil && machineDeploymentTopology.HealthCheck.Remediation.MaxInFlight != nil {
+	remediationMaxInFlight := machineDeploymentClass.HealthCheck.Remediation.MaxInFlight
+	if machineDeploymentTopology.HealthCheck.Remediation.MaxInFlight != nil {
 		remediationMaxInFlight = machineDeploymentTopology.HealthCheck.Remediation.MaxInFlight
 	}
 

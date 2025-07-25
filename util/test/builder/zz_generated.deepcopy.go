@@ -133,11 +133,7 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 		in, out := &in.controlPlaneInfrastructureMachineTemplate, &out.controlPlaneInfrastructureMachineTemplate
 		*out = (*in).DeepCopy()
 	}
-	if in.controlPlaneMHC != nil {
-		in, out := &in.controlPlaneMHC, &out.controlPlaneMHC
-		*out = new(v1beta2.ControlPlaneClassHealthCheck)
-		(*in).DeepCopyInto(*out)
-	}
+	in.controlPlaneMHC.DeepCopyInto(&out.controlPlaneMHC)
 	if in.controlPlaneNodeDrainTimeout != nil {
 		in, out := &in.controlPlaneNodeDrainTimeout, &out.controlPlaneNodeDrainTimeout
 		*out = new(int32)
@@ -221,11 +217,7 @@ func (in *ClusterClassBuilder) DeepCopy() *ClusterClassBuilder {
 func (in *ClusterTopologyBuilder) DeepCopyInto(out *ClusterTopologyBuilder) {
 	*out = *in
 	in.workers.DeepCopyInto(&out.workers)
-	if in.controlPlaneMHC != nil {
-		in, out := &in.controlPlaneMHC, &out.controlPlaneMHC
-		*out = new(v1beta2.ControlPlaneTopologyHealthCheck)
-		(*in).DeepCopyInto(*out)
-	}
+	in.controlPlaneMHC.DeepCopyInto(&out.controlPlaneMHC)
 	if in.variables != nil {
 		in, out := &in.variables, &out.variables
 		*out = make([]v1beta2.ClusterVariable, len(*in))
@@ -531,11 +523,7 @@ func (in *MachineDeploymentClassBuilder) DeepCopyInto(out *MachineDeploymentClas
 			(*out)[key] = val
 		}
 	}
-	if in.machineHealthCheckClass != nil {
-		in, out := &in.machineHealthCheckClass, &out.machineHealthCheckClass
-		*out = new(v1beta2.MachineDeploymentClassHealthCheck)
-		(*in).DeepCopyInto(*out)
-	}
+	in.machineHealthCheckClass.DeepCopyInto(&out.machineHealthCheckClass)
 	if in.readinessGates != nil {
 		in, out := &in.readinessGates, &out.readinessGates
 		*out = make([]v1beta2.MachineReadinessGate, len(*in))
@@ -599,11 +587,7 @@ func (in *MachineDeploymentTopologyBuilder) DeepCopyInto(out *MachineDeploymentT
 		*out = new(int32)
 		**out = **in
 	}
-	if in.mhc != nil {
-		in, out := &in.mhc, &out.mhc
-		*out = new(v1beta2.MachineDeploymentTopologyHealthCheck)
-		(*in).DeepCopyInto(*out)
-	}
+	in.mhc.DeepCopyInto(&out.mhc)
 	if in.variables != nil {
 		in, out := &in.variables, &out.variables
 		*out = make([]v1beta2.ClusterVariable, len(*in))

@@ -171,6 +171,11 @@ func spokeKubeadmControlPlane(in *KubeadmControlPlane, c randfill.Continue) {
 	in.Spec.InfrastructureTemplate.ResourceVersion = ""
 	in.Spec.InfrastructureTemplate.FieldPath = ""
 
+	if in.Spec.RolloutStrategy != nil {
+		if reflect.DeepEqual(in.Spec.RolloutStrategy.RollingUpdate, &RollingUpdate{}) {
+			in.Spec.RolloutStrategy.RollingUpdate = nil
+		}
+	}
 	if reflect.DeepEqual(in.Spec.RolloutStrategy, &RolloutStrategy{}) {
 		in.Spec.RolloutStrategy = nil
 	}

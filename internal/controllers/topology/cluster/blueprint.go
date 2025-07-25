@@ -86,10 +86,7 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 			return nil, errors.Wrapf(err, "failed to get bootstrap config template for ClusterClass %s, MachineDeployment class %q", klog.KObj(blueprint.ClusterClass), machineDeploymentClass.Class)
 		}
 
-		// If the machineDeploymentClass defines a MachineHealthCheck add it to the blueprint.
-		if machineDeploymentClass.HealthCheck != nil {
-			machineDeploymentBlueprint.HealthCheck = machineDeploymentClass.HealthCheck
-		}
+		machineDeploymentBlueprint.HealthCheck = machineDeploymentClass.HealthCheck
 		blueprint.MachineDeployments[machineDeploymentClass.Class] = machineDeploymentBlueprint
 	}
 

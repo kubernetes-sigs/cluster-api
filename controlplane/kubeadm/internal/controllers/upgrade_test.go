@@ -106,7 +106,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 	result, err := r.initializeControlPlane(ctx, controlPlane)
-	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: initializationRequeueAfter}))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// initial setup
@@ -128,7 +128,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	needingUpgrade := collections.FromMachineList(initialMachine)
 	controlPlane.Machines = needingUpgrade
 	result, err = r.upgradeControlPlane(ctx, controlPlane, needingUpgrade)
-	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: scaleRequeueAfter}))
 	g.Expect(err).ToNot(HaveOccurred())
 	bothMachines := &clusterv1.MachineList{}
 	g.Eventually(func(g Gomega) {
@@ -171,7 +171,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	// run upgrade the second time, expect we scale down
 	result, err = r.upgradeControlPlane(ctx, controlPlane, machinesRequireUpgrade)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: scaleRequeueAfter}))
 	finalMachine := &clusterv1.MachineList{}
 	g.Eventually(func(g Gomega) {
 		g.Expect(env.List(ctx, finalMachine, client.InNamespace(cluster.Namespace))).To(Succeed())
@@ -262,7 +262,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	controlPlane.Machines = needingUpgrade
 
 	result, err = r.upgradeControlPlane(ctx, controlPlane, needingUpgrade)
-	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: scaleRequeueAfter}))
 	g.Expect(err).ToNot(HaveOccurred())
 	remainingMachines := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(ctx, remainingMachines, client.InNamespace(cluster.Namespace))).To(Succeed())

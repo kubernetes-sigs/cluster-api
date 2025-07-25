@@ -1698,7 +1698,7 @@ func TestUpToDate(t *testing.T) {
 				Before: controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{
 					CertificatesExpiryDays: 60, // rollout if certificates will expire in less then 60 days.
 				},
-				After: ptr.To(metav1.Time{Time: reconciliationTime.Add(10 * 24 * time.Hour)}), // rollout 10 days from now.
+				After: metav1.Time{Time: reconciliationTime.Add(10 * 24 * time.Hour)}, // rollout 10 days from now.
 			},
 		},
 	}
@@ -1714,7 +1714,7 @@ func TestUpToDate(t *testing.T) {
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{APIGroup: clusterv1.GroupVersionInfrastructure.Group, Kind: "AWSMachine", Name: "infra-machine1"},
 		},
 		Status: clusterv1.MachineStatus{
-			CertificatesExpiryDate: &metav1.Time{Time: reconciliationTime.Add(100 * 24 * time.Hour)}, // certificates will expire in 100 days from now.
+			CertificatesExpiryDate: metav1.Time{Time: reconciliationTime.Add(100 * 24 * time.Hour)}, // certificates will expire in 100 days from now.
 		},
 	}
 
@@ -1781,7 +1781,7 @@ func TestUpToDate(t *testing.T) {
 			name: "rollout after expired",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
-				kcp.Spec.Rollout.After = ptr.To(metav1.Time{Time: reconciliationTime.Add(-1 * 24 * time.Hour)}) // one day ago
+				kcp.Spec.Rollout.After = metav1.Time{Time: reconciliationTime.Add(-1 * 24 * time.Hour)} // one day ago
 				return kcp
 			}(),
 			machine:                 defaultMachine, // created two days ago

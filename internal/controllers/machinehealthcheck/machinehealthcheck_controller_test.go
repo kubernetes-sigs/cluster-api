@@ -2640,18 +2640,15 @@ func createMachinesWithNodes(
 		fmt.Printf("machine created: %s\n", machine.GetName())
 
 		// Before moving on we want to ensure that the machine has a valid
-		// status. That is, LastUpdated should not be nil.
-		g.Eventually(func() *metav1.Time {
+		// status. That is, LastUpdated should be set.
+		g.Eventually(func(g Gomega) {
 			k := client.ObjectKey{
 				Name:      machine.GetName(),
 				Namespace: machine.GetNamespace(),
 			}
-			err := env.Get(ctx, k, machine)
-			if err != nil {
-				return nil
-			}
-			return machine.Status.LastUpdated
-		}, timeout, 100*time.Millisecond).ShouldNot(BeNil())
+			g.Expect(env.Get(ctx, k, machine)).To(Succeed())
+			g.Expect(machine.Status.LastUpdated.IsZero()).To(BeFalse())
+		}, timeout, 100*time.Millisecond).Should(Succeed())
 
 		machinePatchHelper, err := patch.NewHelper(machine, env.Client)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2695,7 +2692,7 @@ func createMachinesWithNodes(
 		// original time so that the patch works. That is, ensure the
 		// precision isn't lost during conversions.
 		lastUp := metav1.NewTime(machine.Status.LastUpdated.Add(time.Second))
-		machine.Status.LastUpdated = &lastUp
+		machine.Status.LastUpdated = lastUp
 
 		// Patch the machine to record the status changes
 		g.Expect(machinePatchHelper.Patch(ctx, machine)).To(Succeed())

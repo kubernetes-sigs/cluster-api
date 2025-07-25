@@ -133,6 +133,9 @@ func spokeKubeadmControlPlaneSpec(in *KubeadmControlPlaneSpec, c randfill.Contin
 	if in.NodeDrainTimeout != nil {
 		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
+	if reflect.DeepEqual(in.UpgradeAfter, &metav1.Time{}) {
+		in.UpgradeAfter = nil
+	}
 }
 
 func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c randfill.Continue) {
@@ -216,6 +219,9 @@ func spokeBootstrapToken(in *bootstrapv1alpha3.BootstrapToken, c randfill.Contin
 
 	if in.TTL != nil {
 		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if reflect.DeepEqual(in.Expires, &metav1.Time{}) {
+		in.Expires = nil
 	}
 }
 

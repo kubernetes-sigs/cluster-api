@@ -45,13 +45,13 @@ func TestIsResourceApplied(t *testing.T) {
 				ResourceRef:     resourceRefApplySucceeded,
 				Applied:         true,
 				Hash:            "xyz",
-				LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			},
 			{
 				ResourceRef:     resourceRefApplyFailed,
 				Applied:         false,
 				Hash:            "",
-				LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			},
 		},
 	}
@@ -108,7 +108,7 @@ func TestResourceSetBindingGetResourceBinding(t *testing.T) {
 		ResourceRef:     resourceRefApplyFailed,
 		Applied:         false,
 		Hash:            "",
-		LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+		LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 	}
 	crsBinding := &ResourceSetBinding{
 		ClusterResourceSetName: "test-clusterResourceSet",
@@ -117,7 +117,7 @@ func TestResourceSetBindingGetResourceBinding(t *testing.T) {
 				ResourceRef:     resourceRefApplySucceeded,
 				Applied:         true,
 				Hash:            "xyz",
-				LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			},
 			resourceRefApplyFailedBinding,
 		},
@@ -163,7 +163,7 @@ func TestSetResourceBinding(t *testing.T) {
 				ResourceRef:     resourceRefApplyFailed,
 				Applied:         false,
 				Hash:            "",
-				LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			},
 		},
 	}
@@ -171,7 +171,7 @@ func TestSetResourceBinding(t *testing.T) {
 		ResourceRef:     resourceRefApplyFailed,
 		Applied:         true,
 		Hash:            "xyz",
-		LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+		LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 	}
 
 	newResourceBinding := ResourceBinding{
@@ -181,7 +181,7 @@ func TestSetResourceBinding(t *testing.T) {
 		},
 		Applied:         false,
 		Hash:            "xyz",
-		LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+		LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 	}
 
 	tests := []struct {

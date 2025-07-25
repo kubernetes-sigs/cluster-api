@@ -485,12 +485,12 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 	}
 
 	// If RolloutAfter is not set, pick the first matching MachineSet.
-	if deployment.Spec.Rollout.After == nil {
+	if deployment.Spec.Rollout.After.IsZero() {
 		return matchingMachineSets[0], "", nil
 	}
 
 	// If reconciliation time is before RolloutAfter, pick the first matching MachineSet.
-	if reconciliationTime.Before(deployment.Spec.Rollout.After) {
+	if reconciliationTime.Before(&deployment.Spec.Rollout.After) {
 		return matchingMachineSets[0], "", nil
 	}
 

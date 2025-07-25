@@ -215,15 +215,15 @@ func IsReady() Func {
 
 // ShouldRolloutAfter returns a filter to find all machines where
 // CreationTimestamp < rolloutAfter < reconciliationTIme.
-func ShouldRolloutAfter(reconciliationTime, rolloutAfter *metav1.Time) Func {
+func ShouldRolloutAfter(reconciliationTime *metav1.Time, rolloutAfter metav1.Time) Func {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
 			return false
 		}
-		if reconciliationTime == nil || rolloutAfter == nil {
+		if reconciliationTime == nil || rolloutAfter.IsZero() {
 			return false
 		}
-		return machine.CreationTimestamp.Before(rolloutAfter) && rolloutAfter.Before(reconciliationTime)
+		return machine.CreationTimestamp.Before(&rolloutAfter) && rolloutAfter.Before(reconciliationTime)
 	}
 }
 
@@ -235,7 +235,7 @@ func ShouldRolloutBefore(reconciliationTime *metav1.Time, rolloutBefore controlp
 		if rolloutBefore.CertificatesExpiryDays == 0 {
 			return false
 		}
-		if machine == nil || machine.Status.CertificatesExpiryDate == nil {
+		if machine == nil || machine.Status.CertificatesExpiryDate.IsZero() {
 			return false
 		}
 		certsExpiryTime := machine.Status.CertificatesExpiryDate.Time

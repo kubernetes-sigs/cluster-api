@@ -244,10 +244,7 @@ func (in *KubeadmControlPlaneRolloutBeforeSpec) DeepCopy() *KubeadmControlPlaneR
 func (in *KubeadmControlPlaneRolloutSpec) DeepCopyInto(out *KubeadmControlPlaneRolloutSpec) {
 	*out = *in
 	out.Before = in.Before
-	if in.After != nil {
-		in, out := &in.After, &out.After
-		*out = (*in).DeepCopy()
-	}
+	in.After.DeepCopyInto(&out.After)
 	in.Strategy.DeepCopyInto(&out.Strategy)
 }
 

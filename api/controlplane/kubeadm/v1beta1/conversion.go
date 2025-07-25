@@ -173,7 +173,9 @@ func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(
 		out.RolloutBefore = &RolloutBefore{}
 		out.RolloutBefore.CertificatesExpiryDays = ptr.To(in.Rollout.Before.CertificatesExpiryDays)
 	}
-	out.RolloutAfter = in.Rollout.After
+	if !reflect.DeepEqual(in.Rollout.After, metav1.Time{}) {
+		out.RolloutAfter = ptr.To(in.Rollout.After)
+	}
 	if !reflect.DeepEqual(in.Rollout.Strategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) {
 		out.RolloutStrategy = &RolloutStrategy{}
 		out.RolloutStrategy.Type = RolloutStrategyType(in.Rollout.Strategy.Type)
@@ -199,7 +201,9 @@ func Convert_v1beta1_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(
 	if in.RolloutBefore != nil && in.RolloutBefore.CertificatesExpiryDays != nil {
 		out.Rollout.Before.CertificatesExpiryDays = *in.RolloutBefore.CertificatesExpiryDays
 	}
-	out.Rollout.After = in.RolloutAfter
+	if in.RolloutAfter != nil && !reflect.DeepEqual(in.RolloutAfter, &metav1.Time{}) {
+		out.Rollout.After = *in.RolloutAfter
+	}
 	if in.RolloutStrategy != nil {
 		out.Rollout.Strategy.Type = controlplanev1.KubeadmControlPlaneRolloutStrategyType(in.RolloutStrategy.Type)
 		if in.RolloutStrategy.RollingUpdate != nil && in.RolloutStrategy.RollingUpdate.MaxSurge != nil {
@@ -232,7 +236,9 @@ func Convert_v1beta2_KubeadmControlPlaneTemplateResourceSpec_To_v1beta1_KubeadmC
 		out.RolloutBefore = &RolloutBefore{}
 		out.RolloutBefore.CertificatesExpiryDays = ptr.To(in.Rollout.Before.CertificatesExpiryDays)
 	}
-	out.RolloutAfter = in.Rollout.After
+	if !reflect.DeepEqual(in.Rollout.After, metav1.Time{}) {
+		out.RolloutAfter = ptr.To(in.Rollout.After)
+	}
 	if !reflect.DeepEqual(in.Rollout.Strategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) {
 		out.RolloutStrategy = &RolloutStrategy{}
 		out.RolloutStrategy.Type = RolloutStrategyType(in.Rollout.Strategy.Type)
@@ -264,7 +270,9 @@ func Convert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1beta2_KubeadmC
 	if in.RolloutBefore != nil && in.RolloutBefore.CertificatesExpiryDays != nil {
 		out.Rollout.Before.CertificatesExpiryDays = *in.RolloutBefore.CertificatesExpiryDays
 	}
-	out.Rollout.After = in.RolloutAfter
+	if in.RolloutAfter != nil && !reflect.DeepEqual(in.RolloutAfter, &metav1.Time{}) {
+		out.Rollout.After = *in.RolloutAfter
+	}
 	if in.RolloutStrategy != nil {
 		out.Rollout.Strategy.Type = controlplanev1.KubeadmControlPlaneRolloutStrategyType(in.RolloutStrategy.Type)
 		if in.RolloutStrategy.RollingUpdate != nil && in.RolloutStrategy.RollingUpdate.MaxSurge != nil {

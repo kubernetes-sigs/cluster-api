@@ -452,7 +452,9 @@ func aggregateStaleMachines(machines []*clusterv1.Machine) string {
 			if deletingCondition != nil &&
 				deletingCondition.Status == metav1.ConditionTrue &&
 				deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeReason &&
-				machine.Status.Deletion != nil && time.Since(machine.Status.Deletion.NodeDrainStartTime.Time) > 5*time.Minute {
+				machine.Status.Deletion != nil &&
+				!machine.Status.Deletion.NodeDrainStartTime.Time.IsZero() &&
+				time.Since(machine.Status.Deletion.NodeDrainStartTime.Time) > 5*time.Minute {
 				if strings.Contains(deletingCondition.Message, "cannot evict pod as it would violate the pod's disruption budget.") {
 					delayReasons.Insert("PodDisruptionBudgets")
 				}

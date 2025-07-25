@@ -308,7 +308,7 @@ type MachineDeploymentRolloutSpec struct {
 	// To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
 	// use "2023-03-09T09:00:00Z".
 	// +optional
-	After *metav1.Time `json:"after,omitempty"`
+	After metav1.Time `json:"after,omitempty,omitzero"`
 
 	// strategy specifies how to roll out control plane Machines.
 	// +optional

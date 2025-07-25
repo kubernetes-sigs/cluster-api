@@ -68,9 +68,9 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// For dry run we use the same options as for the intent but with adding metadata.managedFields
 	// to ensure that changes to ownership are detected.
 	filterObjectInput := &ssa.FilterObjectInput{
-		AllowedPaths:    append(dryRunCtx.helperOptions.AllowedPaths, []string{"metadata", "managedFields"}),
-		IgnorePaths:     dryRunCtx.helperOptions.IgnorePaths,
-		DropEmptyStruct: dryRunCtx.helperOptions.DropEmptyStruct,
+		AllowedPaths:          append(dryRunCtx.helperOptions.AllowedPaths, []string{"metadata", "managedFields"}),
+		IgnorePaths:           dryRunCtx.helperOptions.IgnorePaths,
+		DropEmptyStructAndNil: dryRunCtx.helperOptions.DropEmptyStructAndNil,
 	}
 
 	// Add TopologyDryRunAnnotation to notify validation webhooks to skip immutability checks.

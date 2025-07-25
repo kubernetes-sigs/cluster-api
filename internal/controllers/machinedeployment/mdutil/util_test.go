@@ -388,7 +388,7 @@ func TestFindNewMachineSet(t *testing.T) {
 	deployment.Spec.Template.Spec.InfrastructureRef.Name = "new-infra-ref"
 
 	deploymentWithRolloutAfter := deployment.DeepCopy()
-	deploymentWithRolloutAfter.Spec.Rollout.After = &rolloutAfter
+	deploymentWithRolloutAfter.Spec.Rollout.After = rolloutAfter
 
 	matchingMS := generateMS(deployment)
 
@@ -512,7 +512,7 @@ func TestFindOldMachineSets(t *testing.T) {
 	deployment := generateDeployment("nginx")
 
 	deploymentWithRolloutAfter := deployment.DeepCopy()
-	deploymentWithRolloutAfter.Spec.Rollout.After = &rolloutAfter
+	deploymentWithRolloutAfter.Spec.Rollout.After = rolloutAfter
 
 	newMS := generateMS(deployment)
 	newMS.Name = "aa"

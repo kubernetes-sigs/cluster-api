@@ -468,7 +468,7 @@ func (r EvictionResult) DrainCompleted() bool {
 }
 
 // ConditionMessage returns a condition message for the case where a drain is not completed.
-func (r EvictionResult) ConditionMessage(nodeDrainStartTime *metav1.Time) string {
+func (r EvictionResult) ConditionMessage(nodeDrainStartTime metav1.Time) string {
 	if r.DrainCompleted() {
 		return ""
 	}

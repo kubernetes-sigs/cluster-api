@@ -584,7 +584,7 @@ func autoConvert_v1beta1_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapT
 	out.Token = (*v1beta2.BootstrapTokenString)(unsafe.Pointer(in.Token))
 	out.Description = in.Description
 	// WARNING: in.TTL requires manual conversion: does not exist in peer-type
-	out.Expires = (*v1.Time)(unsafe.Pointer(in.Expires))
+	// WARNING: in.Expires requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	out.Usages = *(*[]string)(unsafe.Pointer(&in.Usages))
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
 	return nil
@@ -594,7 +594,7 @@ func autoConvert_v1beta2_BootstrapToken_To_v1beta1_BootstrapToken(in *v1beta2.Bo
 	out.Token = (*BootstrapTokenString)(unsafe.Pointer(in.Token))
 	out.Description = in.Description
 	// WARNING: in.TTLSeconds requires manual conversion: does not exist in peer-type
-	out.Expires = (*v1.Time)(unsafe.Pointer(in.Expires))
+	// WARNING: in.Expires requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	out.Usages = *(*[]string)(unsafe.Pointer(&in.Usages))
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
 	return nil

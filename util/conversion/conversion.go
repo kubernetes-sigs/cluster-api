@@ -89,14 +89,21 @@ func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *randfill.Fi
 				// fuzzed and always resulted in `nil` values.
 				// This implementation is somewhat similar to the one provided
 				// in the metafuzzer.Funcs.
-				func(input *metav1.Time, c randfill.Continue) {
-					if input != nil {
-						var sec, nsec uint32
-						c.Fill(&sec)
-						c.Fill(&nsec)
-						fuzzed := metav1.Unix(int64(sec), int64(nsec)).Rfc3339Copy()
-						input.Time = fuzzed.Time
+				func(input **metav1.Time, c randfill.Continue) {
+					if c.Bool() {
+						// Leave the Time sometimes nil to also get coverage for this case.
+						return
 					}
+					if c.Bool() {
+						// Set the Time sometimes empty to also get coverage for this case.
+						*input = &metav1.Time{}
+						return
+					}
+					var sec, nsec uint32
+					c.Fill(&sec)
+					c.Fill(&nsec)
+					fuzzed := metav1.Unix(int64(sec), int64(nsec)).Rfc3339Copy()
+					*input = &metav1.Time{Time: fuzzed.Time}
 				},
 				// Custom fuzzer for intstr.IntOrString which does not get fuzzed otherwise.
 				func(in *intstr.IntOrString, c randfill.Continue) {

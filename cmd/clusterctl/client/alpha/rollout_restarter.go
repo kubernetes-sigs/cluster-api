@@ -39,7 +39,7 @@ func (r *rollout) ObjectRestarter(ctx context.Context, proxy cluster.Proxy, ref 
 		if ptr.Deref(deployment.Spec.Paused, false) {
 			return errors.Errorf("can't restart paused MachineDeployment (run rollout resume first): %v/%v", ref.Kind, ref.Name)
 		}
-		if deployment.Spec.Rollout.After != nil && deployment.Spec.Rollout.After.After(time.Now()) {
+		if !deployment.Spec.Rollout.After.IsZero() && deployment.Spec.Rollout.After.After(time.Now()) {
 			return errors.Errorf("can't update MachineDeployment (remove 'spec.rollout.after' first): %v/%v", ref.Kind, ref.Name)
 		}
 		if err := setRolloutAfterOnMachineDeployment(ctx, proxy, ref.Name, ref.Namespace); err != nil {
@@ -53,7 +53,7 @@ func (r *rollout) ObjectRestarter(ctx context.Context, proxy cluster.Proxy, ref 
 		if annotations.HasPaused(kcp.GetObjectMeta()) {
 			return errors.Errorf("can't restart paused KubeadmControlPlane (remove annotation 'cluster.x-k8s.io/paused' first): %v/%v", ref.Kind, ref.Name)
 		}
-		if kcp.Spec.Rollout.After != nil && kcp.Spec.Rollout.After.After(time.Now()) {
+		if !kcp.Spec.Rollout.After.IsZero() && kcp.Spec.Rollout.After.After(time.Now()) {
 			return errors.Errorf("can't update KubeadmControlPlane (remove 'spec.rollout.after' first): %v/%v", ref.Kind, ref.Name)
 		}
 		if err := setRolloutAfterOnKCP(ctx, proxy, ref.Name, ref.Namespace); err != nil {

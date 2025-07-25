@@ -703,7 +703,9 @@ func calculateDeletingConditionForSummary(machine *clusterv1.Machine) conditions
 		msg = fmt.Sprintf("Machine deletion in progress, stage: %s", deletingCondition.Reason)
 		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) > time.Minute*15 {
 			msg = fmt.Sprintf("Machine deletion in progress since more than 15m, stage: %s", deletingCondition.Reason)
-			if deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeReason && time.Since(machine.Status.Deletion.NodeDrainStartTime.Time) > 5*time.Minute {
+			if deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeReason &&
+				!machine.Status.Deletion.NodeDrainStartTime.Time.IsZero() &&
+				time.Since(machine.Status.Deletion.NodeDrainStartTime.Time) > 5*time.Minute {
 				delayReasons := []string{}
 				if strings.Contains(deletingCondition.Message, "cannot evict pod as it would violate the pod's disruption budget.") {
 					delayReasons = append(delayReasons, "PodDisruptionBudgets")
@@ -810,7 +812,6 @@ func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {
 
 	// If the phase has changed, update the LastUpdated timestamp
 	if m.Status.Phase != originalPhase {
-		now := metav1.Now()
-		m.Status.LastUpdated = &now
+		m.Status.LastUpdated = metav1.Now()
 	}
 }

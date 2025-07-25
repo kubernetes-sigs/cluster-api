@@ -1713,7 +1713,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 						},
 					},
 					Deletion: &clusterv1.MachineDeletionStatus{
-						NodeDrainStartTime: &metav1.Time{Time: time.Now().Add(-6 * time.Minute)},
+						NodeDrainStartTime: metav1.Time{Time: time.Now().Add(-6 * time.Minute)},
 					},
 				},
 			},
@@ -1748,7 +1748,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 						},
 					},
 					Deletion: &clusterv1.MachineDeletionStatus{
-						WaitForNodeVolumeDetachStartTime: &metav1.Time{Time: time.Now().Add(-6 * time.Minute)},
+						WaitForNodeVolumeDetachStartTime: metav1.Time{Time: time.Now().Add(-6 * time.Minute)},
 					},
 				},
 			},
@@ -2056,7 +2056,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhasePending))
 			// LastUpdated should be set as the phase changes
-			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.IsZero()).To(BeFalse())
 			return true
 		}, 10*time.Second).Should(BeTrue())
 	})
@@ -2111,7 +2111,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioning))
 			// Verify that the LastUpdated timestamp was updated
-			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.IsZero()).To(BeFalse())
 			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
@@ -2201,7 +2201,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			g.Expect(machine.Spec.FailureDomain).To(Equal("us-east-2a"))
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 			// Verify that the LastUpdated timestamp was updated
-			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.IsZero()).To(BeFalse())
 			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
@@ -2279,7 +2279,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 			g.Expect(machine.Status.Addresses).To(BeEmpty())
 			// Verify that the LastUpdated timestamp was updated
-			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.IsZero()).To(BeFalse())
 			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
@@ -2356,7 +2356,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 			// Verify that the LastUpdated timestamp was updated
-			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.IsZero()).To(BeFalse())
 			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
@@ -2418,7 +2418,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
 			// Verify that the LastUpdated timestamp was updated
-			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.IsZero()).To(BeFalse())
 			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
@@ -2515,7 +2515,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			g.Expect(nodeHealthyCondition.Status).To(Equal(corev1.ConditionFalse))
 			g.Expect(nodeHealthyCondition.Reason).To(Equal(clusterv1.DeletingV1Beta1Reason))
 			// Verify that the LastUpdated timestamp was updated
-			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.IsZero()).To(BeFalse())
 			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())

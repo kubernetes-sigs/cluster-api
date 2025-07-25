@@ -174,7 +174,9 @@ func Convert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec
 	if err := autoConvert_v1beta2_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in, out, s); err != nil {
 		return err
 	}
-	out.UpgradeAfter = in.Rollout.After
+	if !reflect.DeepEqual(in.Rollout.After, metav1.Time{}) {
+		out.UpgradeAfter = ptr.To(in.Rollout.After)
+	}
 	out.NodeDrainTimeout = clusterv1.ConvertFromSeconds(in.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds)
 	if !reflect.DeepEqual(in.Rollout.Strategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) {
 		out.RolloutStrategy = &RolloutStrategy{}
@@ -197,7 +199,9 @@ func Convert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec
 	if err := autoConvert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta2_KubeadmControlPlaneSpec(in, out, s); err != nil {
 		return err
 	}
-	out.Rollout.After = in.UpgradeAfter
+	if in.UpgradeAfter != nil && !reflect.DeepEqual(in.UpgradeAfter, &metav1.Time{}) {
+		out.Rollout.After = *in.UpgradeAfter
+	}
 	out.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeDrainTimeout)
 	if in.RolloutStrategy != nil {
 		out.Rollout.Strategy.Type = controlplanev1.KubeadmControlPlaneRolloutStrategyType(in.RolloutStrategy.Type)

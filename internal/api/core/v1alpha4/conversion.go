@@ -752,7 +752,13 @@ func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1alpha4_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, out *clusterv1.MachineStatus, s apimachineryconversion.Scope) error {
 	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
-	return autoConvert_v1alpha4_MachineStatus_To_v1beta2_MachineStatus(in, out, s)
+	if err := autoConvert_v1alpha4_MachineStatus_To_v1beta2_MachineStatus(in, out, s); err != nil {
+		return err
+	}
+	if in.LastUpdated != nil && !reflect.DeepEqual(in.LastUpdated, &metav1.Time{}) {
+		out.LastUpdated = *in.LastUpdated
+	}
+	return nil
 }
 
 func Convert_v1beta2_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in *clusterv1.ClusterClassSpec, out *ClusterClassSpec, s apimachineryconversion.Scope) error {
@@ -994,7 +1000,13 @@ func Convert_v1beta2_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(in *c
 func Convert_v1beta2_MachineStatus_To_v1alpha4_MachineStatus(in *clusterv1.MachineStatus, out *MachineStatus, s apimachineryconversion.Scope) error {
 	// MachineStatus.CertificatesExpiryDate has been added in v1beta1.
 	// V1Beta2 was added in v1beta1.
-	return autoConvert_v1beta2_MachineStatus_To_v1alpha4_MachineStatus(in, out, s)
+	if err := autoConvert_v1beta2_MachineStatus_To_v1alpha4_MachineStatus(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.LastUpdated, metav1.Time{}) {
+		out.LastUpdated = ptr.To(in.LastUpdated)
+	}
+	return nil
 }
 
 func Convert_v1beta2_ClusterClass_To_v1alpha4_ClusterClass(in *clusterv1.ClusterClass, out *ClusterClass, s apimachineryconversion.Scope) error {

@@ -485,8 +485,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			if m.Status.Deletion == nil {
 				m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
 			}
-			if m.Status.Deletion.NodeDrainStartTime == nil {
-				m.Status.Deletion.NodeDrainStartTime = ptr.To(metav1.Now())
+			if m.Status.Deletion.NodeDrainStartTime.IsZero() {
+				m.Status.Deletion.NodeDrainStartTime = metav1.Now()
 			}
 
 			// The DrainingSucceededCondition never exists before the node is drained for the first time.
@@ -526,8 +526,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			if m.Status.Deletion == nil {
 				m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
 			}
-			if m.Status.Deletion.WaitForNodeVolumeDetachStartTime == nil {
-				m.Status.Deletion.WaitForNodeVolumeDetachStartTime = ptr.To(metav1.Now())
+			if m.Status.Deletion.WaitForNodeVolumeDetachStartTime.IsZero() {
+				m.Status.Deletion.WaitForNodeVolumeDetachStartTime = metav1.Now()
 			}
 
 			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time.
@@ -682,7 +682,7 @@ func (r *Reconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
 	}
 
 	// if the NodeDrainStartTime does not exist
-	if machine.Status.Deletion.NodeDrainStartTime == nil {
+	if machine.Status.Deletion.NodeDrainStartTime.IsZero() {
 		return false
 	}
 
@@ -701,7 +701,7 @@ func (r *Reconciler) nodeVolumeDetachTimeoutExceeded(machine *clusterv1.Machine)
 	}
 
 	// if the WaitForNodeVolumeDetachStartTime does not exist
-	if machine.Status.Deletion.WaitForNodeVolumeDetachStartTime == nil {
+	if machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.IsZero() {
 		return false
 	}
 

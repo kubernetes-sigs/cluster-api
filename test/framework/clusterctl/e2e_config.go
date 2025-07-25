@@ -508,14 +508,9 @@ func (c *E2EConfig) AbsPaths(basePath string) {
 		provider := &c.Providers[i]
 		for j := range provider.Versions {
 			version := &provider.Versions[j]
-			if version.Type != URLSource && version.Value != "" {
-				if !filepath.IsAbs(version.Value) {
-					version.Value = filepath.Join(basePath, version.Value)
-				}
-			} else if version.Type == URLSource && version.Value != "" {
-				// Skip error, will be checked later when loading contents from URL
+			if version.Value != "" {
+				// Skip error, will be checked later when loading contents from URL or file path
 				u, _ := url.Parse(version.Value)
-
 				if u != nil {
 					switch u.Scheme {
 					case "", fileURIScheme:

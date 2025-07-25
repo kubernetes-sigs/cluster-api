@@ -364,7 +364,7 @@ metadata:
 spec:
   controlPlane:
     ...
-    namingStrategy:
+    naming:
       template: "{{ .cluster.name }}-{{ .random }}"
   ...
 ```
@@ -395,7 +395,7 @@ spec:
     machineDeployments:
     - class: default-worker
       ...
-      namingStrategy:
+      naming:
         template: "{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}"
 ```
 
@@ -425,7 +425,7 @@ spec:
     machinePools:
     - class: default-worker
       ...
-      namingStrategy:
+      naming:
         template: "{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}"
 ```
 

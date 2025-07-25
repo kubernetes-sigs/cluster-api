@@ -278,10 +278,10 @@ type MachineDeploymentSpec struct {
 	// +required
 	Template MachineTemplateSpec `json:"template"`
 
-	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
+	// machineNaming allows changing the naming pattern used when creating Machines.
 	// Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
 	// +optional
-	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
+	MachineNaming MachineNamingSpec `json:"machineNaming,omitempty,omitzero"`
 
 	// remediation controls how unhealthy Machines are remediated.
 	// +optional
@@ -387,10 +387,11 @@ type MachineDeploymentRemediationSpec struct {
 	MaxInFlight *intstr.IntOrString `json:"maxInFlight,omitempty"`
 }
 
-// MachineNamingStrategy allows changing the naming pattern used when creating
+// MachineNamingSpec allows changing the naming pattern used when creating
 // Machines.
 // Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
-type MachineNamingStrategy struct {
+// +kubebuilder:validation:MinProperties=1
+type MachineNamingSpec struct {
 	// template defines the template to use for generating the names of the
 	// Machine objects.
 	// If not defined, it will fallback to `{{ .machineSet.name }}-{{ .random }}`.

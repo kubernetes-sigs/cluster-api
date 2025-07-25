@@ -252,9 +252,7 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		}
 	}
 
-	if newMD.Spec.MachineNamingStrategy != nil {
-		allErrs = append(allErrs, validateMDMachineNamingStrategy(newMD.Spec.MachineNamingStrategy, specPath.Child("machineNamingStrategy"))...)
-	}
+	allErrs = append(allErrs, validateMDMachineNaming(newMD.Spec.MachineNaming, specPath.Child("machineNaming"))...)
 
 	// Validate the metadata of the template.
 	allErrs = append(allErrs, newMD.Spec.Template.Validate(specPath.Child("template", "metadata"))...)
@@ -314,24 +312,24 @@ func validateRemediationMaxInFlight(fldPath *field.Path, maxInFlight *intstr.Int
 	return allErrs
 }
 
-func validateMDMachineNamingStrategy(machineNamingStrategy *clusterv1.MachineNamingStrategy, pathPrefix *field.Path) field.ErrorList {
+func validateMDMachineNaming(machineNaming clusterv1.MachineNamingSpec, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if machineNamingStrategy.Template != "" {
-		if !strings.Contains(machineNamingStrategy.Template, "{{ .random }}") {
+	if machineNaming.Template != "" {
+		if !strings.Contains(machineNaming.Template, "{{ .random }}") {
 			allErrs = append(allErrs,
 				field.Invalid(
 					pathPrefix.Child("template"),
-					machineNamingStrategy.Template,
+					machineNaming.Template,
 					"invalid template, {{ .random }} is missing",
 				))
 		}
-		name, err := topologynames.MachineSetMachineNameGenerator(machineNamingStrategy.Template, "cluster", "machineset").GenerateName()
+		name, err := topologynames.MachineSetMachineNameGenerator(machineNaming.Template, "cluster", "machineset").GenerateName()
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
 					pathPrefix.Child("template"),
-					machineNamingStrategy.Template,
+					machineNaming.Template,
 					fmt.Sprintf("invalid template: %v", err),
 				))
 		} else {
@@ -339,7 +337,7 @@ func validateMDMachineNamingStrategy(machineNamingStrategy *clusterv1.MachineNam
 				allErrs = append(allErrs,
 					field.Invalid(
 						pathPrefix.Child("template"),
-						machineNamingStrategy.Template,
+						machineNaming.Template,
 						fmt.Sprintf("invalid template, generated names would not be valid Kubernetes object names: %v", err),
 					))
 			}

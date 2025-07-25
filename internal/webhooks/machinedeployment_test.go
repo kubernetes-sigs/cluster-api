@@ -356,15 +356,15 @@ func TestMachineDeploymentValidation(t *testing.T) {
 	goodMaxUnavailableInt := intstr.FromInt32(0)
 	goodMaxInFlightInt := intstr.FromInt32(5)
 	tests := []struct {
-		name                  string
-		md                    *clusterv1.MachineDeployment
-		mdName                string
-		selectors             map[string]string
-		labels                map[string]string
-		strategy              clusterv1.MachineDeploymentRolloutStrategy
-		remediation           clusterv1.MachineDeploymentRemediationSpec
-		expectErr             bool
-		machineNamingStrategy clusterv1.MachineNamingStrategy
+		name          string
+		md            *clusterv1.MachineDeployment
+		mdName        string
+		selectors     map[string]string
+		labels        map[string]string
+		strategy      clusterv1.MachineDeploymentRolloutStrategy
+		remediation   clusterv1.MachineDeploymentRemediationSpec
+		expectErr     bool
+		machineNaming clusterv1.MachineNamingSpec
 	}{
 		{
 			name:      "pass with name of under 63 characters",
@@ -506,22 +506,22 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name: "should not return error when MachineNamingStrategy have {{ .random }}",
-			machineNamingStrategy: clusterv1.MachineNamingStrategy{
+			name: "should not return error when MachineNamingSpec have {{ .random }}",
+			machineNaming: clusterv1.MachineNamingSpec{
 				Template: "{{ .machineSet.name }}-{{ .random }}",
 			},
 			expectErr: false,
 		},
 		{
-			name: "should return error when MachineNamingStrategy does not have {{ .random }}",
-			machineNamingStrategy: clusterv1.MachineNamingStrategy{
+			name: "should return error when MachineNamingSpec does not have {{ .random }}",
+			machineNaming: clusterv1.MachineNamingSpec{
 				Template: "{{ .machineSet.name }}",
 			},
 			expectErr: true,
 		},
 		{
-			name: "should return error when MachineNamingStrategy does not follow DNS1123Subdomain rules",
-			machineNamingStrategy: clusterv1.MachineNamingStrategy{
+			name: "should return error when MachineNamingSpec does not follow DNS1123Subdomain rules",
+			machineNaming: clusterv1.MachineNamingSpec{
 				Template: "{{ .machineSet.name }}-{{ .random }}-",
 			},
 			expectErr: true,
@@ -552,8 +552,8 @@ func TestMachineDeploymentValidation(t *testing.T) {
 							},
 						},
 					},
-					Remediation:           tt.remediation,
-					MachineNamingStrategy: &tt.machineNamingStrategy,
+					Remediation:   tt.remediation,
+					MachineNaming: tt.machineNaming,
 				},
 			}
 

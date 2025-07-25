@@ -355,6 +355,24 @@ func spokeClusterClass(in *ClusterClass, c randfill.Continue) {
 		}
 		in.Spec.Workers.MachineDeployments[i] = md
 	}
+	if reflect.DeepEqual(in.Spec.InfrastructureNamingStrategy, &InfrastructureNamingStrategy{}) {
+		in.Spec.InfrastructureNamingStrategy = nil
+	}
+	if reflect.DeepEqual(in.Spec.ControlPlane.NamingStrategy, &ControlPlaneClassNamingStrategy{}) {
+		in.Spec.ControlPlane.NamingStrategy = nil
+	}
+	for i, md := range in.Spec.Workers.MachineDeployments {
+		if reflect.DeepEqual(md.NamingStrategy, &MachineDeploymentClassNamingStrategy{}) {
+			md.NamingStrategy = nil
+		}
+		in.Spec.Workers.MachineDeployments[i] = md
+	}
+	for i, mp := range in.Spec.Workers.MachinePools {
+		if reflect.DeepEqual(mp.NamingStrategy, &MachinePoolClassNamingStrategy{}) {
+			mp.NamingStrategy = nil
+		}
+		in.Spec.Workers.MachinePools[i] = mp
+	}
 }
 
 func spokeClusterClassStatus(in *ClusterClassStatus, c randfill.Continue) {
@@ -579,6 +597,10 @@ func spokeMachineSet(in *MachineSet, c randfill.Continue) {
 	fillMachineSpec(&in.Spec.Template.Spec, c, in.Namespace)
 
 	dropEmptyStringsMachineSpec(&in.Spec.Template.Spec)
+
+	if reflect.DeepEqual(in.Spec.MachineNamingStrategy, &MachineNamingStrategy{}) {
+		in.Spec.MachineNamingStrategy = nil
+	}
 }
 
 func spokeMachineSetStatus(in *MachineSetStatus, c randfill.Continue) {
@@ -624,6 +646,10 @@ func spokeMachineDeployment(in *MachineDeployment, c randfill.Continue) {
 	fillMachineSpec(&in.Spec.Template.Spec, c, in.Namespace)
 
 	dropEmptyStringsMachineSpec(&in.Spec.Template.Spec)
+
+	if reflect.DeepEqual(in.Spec.MachineNamingStrategy, &MachineNamingStrategy{}) {
+		in.Spec.MachineNamingStrategy = nil
+	}
 }
 
 func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) {

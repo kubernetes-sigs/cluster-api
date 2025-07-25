@@ -957,7 +957,7 @@ func autoConvert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *v1b
 		out.MachineInfrastructure = nil
 	}
 	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
-	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.Naming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	return nil
@@ -1087,7 +1087,7 @@ func autoConvert_v1beta2_MachineDeploymentClass_To_v1alpha4_MachineDeploymentCla
 	// WARNING: in.Infrastructure requires manual conversion: does not exist in peer-type
 	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
-	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.Naming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
@@ -1162,7 +1162,7 @@ func autoConvert_v1beta2_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec
 	if err := Convert_v1beta2_MachineTemplateSpec_To_v1alpha4_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.MachineNaming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_Pointer_bool_To_bool(&in.Paused, &out.Paused, s); err != nil {
@@ -1711,7 +1711,7 @@ func autoConvert_v1beta2_MachineSetSpec_To_v1alpha4_MachineSetSpec(in *v1beta2.M
 	if err := Convert_v1beta2_MachineTemplateSpec_To_v1alpha4_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.MachineNaming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	return nil
 }

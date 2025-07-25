@@ -104,9 +104,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Status.LastRemediation = restored.Status.LastRemediation
 		}
 
-		if restored.Spec.MachineNamingStrategy != nil {
-			dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
-		}
+		dst.Spec.MachineNaming = restored.Spec.MachineNaming
 
 		bootstrapv1alpha4.RestoreKubeadmConfigSpec(&dst.Spec.KubeadmConfigSpec, &restored.Spec.KubeadmConfigSpec)
 		dst.Status.Conditions = restored.Status.Conditions
@@ -194,9 +192,7 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.Rollout.Before = restored.Spec.Template.Spec.Rollout.Before
 		dst.Spec.Template.Spec.Remediation = restored.Spec.Template.Spec.Remediation
 
-		if restored.Spec.Template.Spec.MachineNamingStrategy != nil {
-			dst.Spec.Template.Spec.MachineNamingStrategy = restored.Spec.Template.Spec.MachineNamingStrategy
-		}
+		dst.Spec.Template.Spec.MachineNaming = restored.Spec.Template.Spec.MachineNaming
 
 		bootstrapv1alpha4.RestoreKubeadmConfigSpec(&dst.Spec.Template.Spec.KubeadmConfigSpec, &restored.Spec.Template.Spec.KubeadmConfigSpec)
 	}

@@ -2567,7 +2567,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{"k1": "v1"},
 					},
-					MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+					MachineNaming: clusterv1.MachineNamingSpec{
 						Template: "{{ .machineSet.name }}" + namingTemplateKey + "-{{ .random }}",
 					},
 					Template: machineTemplateSpec,
@@ -2596,7 +2596,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{"k1": "v1"},
 					},
-					MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+					MachineNaming: clusterv1.MachineNamingSpec{
 						Template: "{{ .machineSet.name }}" + namingTemplateKey,
 					},
 					Template: machineTemplateSpec,
@@ -2621,7 +2621,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{"k1": "v1"},
 					},
-					MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+					MachineNaming: clusterv1.MachineNamingSpec{
 						Template: "{{ .random }}" + fmt.Sprintf("%059d", 0),
 					},
 					Template: machineTemplateSpec,
@@ -2650,7 +2650,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{"k1": "v1"},
 					},
-					MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+					MachineNaming: clusterv1.MachineNamingSpec{
 						Template: "some-hardcoded-name-{{ .doesnotexistindata }}-{{ .random }}", // invalid template
 					},
 					Template: machineTemplateSpec,

@@ -3154,9 +3154,10 @@ spec:
                           More info: http://kubernetes.io/docs/user-guide/labels
                         type: object
                     type: object
-                  namingStrategy:
-                    description: namingStrategy allows changing the naming pattern
-                      used when creating the control plane provider object.
+                  naming:
+                    description: naming allows changing the naming pattern used when
+                      creating the control plane provider object.
+                    minProperties: 1
                     properties:
                       template:
                         description: |-
@@ -3256,9 +3257,10 @@ spec:
                   infrastructure is a reference to a local struct that holds the details
                   for provisioning the infrastructure cluster for the Cluster.
                 properties:
-                  namingStrategy:
-                    description: namingStrategy allows changing the naming pattern
-                      used when creating the infrastructure cluster object.
+                  naming:
+                    description: naming allows changing the naming pattern used when
+                      creating the infrastructure cluster object.
+                    minProperties: 1
                     properties:
                       template:
                         description: |-
@@ -4311,9 +4313,10 @@ spec:
                           format: int32
                           minimum: 0
                           type: integer
-                        namingStrategy:
-                          description: namingStrategy allows changing the naming pattern
-                            used when creating the MachineDeployment.
+                        naming:
+                          description: naming allows changing the naming pattern used
+                            when creating the MachineDeployment.
+                          minProperties: 1
                           properties:
                             template:
                               description: |-
@@ -4626,9 +4629,10 @@ spec:
                           format: int32
                           minimum: 0
                           type: integer
-                        namingStrategy:
-                          description: namingStrategy allows changing the naming pattern
-                            used when creating the MachinePool.
+                        naming:
+                          description: naming allows changing the naming pattern used
+                            when creating the MachinePool.
+                          minProperties: 1
                           properties:
                             template:
                               description: |-

@@ -153,14 +153,14 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.controlPlaneNamingStrategy != nil {
-		in, out := &in.controlPlaneNamingStrategy, &out.controlPlaneNamingStrategy
-		*out = new(v1beta2.ControlPlaneClassNamingStrategy)
+	if in.controlPlaneNaming != nil {
+		in, out := &in.controlPlaneNaming, &out.controlPlaneNaming
+		*out = new(v1beta2.ControlPlaneClassNamingSpec)
 		**out = **in
 	}
-	if in.infraClusterNamingStrategy != nil {
-		in, out := &in.infraClusterNamingStrategy, &out.infraClusterNamingStrategy
-		*out = new(v1beta2.InfrastructureClassNamingStrategy)
+	if in.infraClusterNaming != nil {
+		in, out := &in.infraClusterNaming, &out.infraClusterNaming
+		*out = new(v1beta2.InfrastructureClassNamingSpec)
 		**out = **in
 	}
 	if in.machineDeploymentClasses != nil {
@@ -567,9 +567,9 @@ func (in *MachineDeploymentClassBuilder) DeepCopyInto(out *MachineDeploymentClas
 		**out = **in
 	}
 	in.strategy.DeepCopyInto(&out.strategy)
-	if in.namingStrategy != nil {
-		in, out := &in.namingStrategy, &out.namingStrategy
-		*out = new(v1beta2.MachineDeploymentClassNamingStrategy)
+	if in.naming != nil {
+		in, out := &in.naming, &out.naming
+		*out = new(v1beta2.MachineDeploymentClassNamingSpec)
 		**out = **in
 	}
 }
@@ -763,9 +763,9 @@ func (in *MachinePoolClassBuilder) DeepCopyInto(out *MachinePoolClassBuilder) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.namingStrategy != nil {
-		in, out := &in.namingStrategy, &out.namingStrategy
-		*out = new(v1beta2.MachinePoolClassNamingStrategy)
+	if in.naming != nil {
+		in, out := &in.naming, &out.naming
+		*out = new(v1beta2.MachinePoolClassNamingSpec)
 		**out = **in
 	}
 }

@@ -78,10 +78,10 @@ type MachineSetSpec struct {
 	// +required
 	Template MachineTemplateSpec `json:"template"`
 
-	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
+	// machineNaming allows changing the naming pattern used when creating Machines.
 	// Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
 	// +optional
-	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
+	MachineNaming MachineNamingSpec `json:"machineNaming,omitempty,omitzero"`
 
 	// deletion contains configuration options for MachineSet deletion.
 	// +optional

@@ -344,10 +344,7 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
 	dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
 	dst.Status.UpToDateReplicas = restored.Status.UpToDateReplicas
-
-	if restored.Spec.MachineNamingStrategy != nil {
-		dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
-	}
+	dst.Spec.MachineNaming = restored.Spec.MachineNaming
 	return nil
 }
 
@@ -428,11 +425,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	if ok {
 		dst.Spec.Deletion.Order = restored.Spec.Deletion.Order
 		dst.Spec.Remediation = restored.Spec.Remediation
-
-		if restored.Spec.MachineNamingStrategy != nil {
-			dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
-		}
-
+		dst.Spec.MachineNaming = restored.Spec.MachineNaming
 		dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 		dst.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
 		dst.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds

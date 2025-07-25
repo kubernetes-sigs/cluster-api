@@ -159,16 +159,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*ControlPlaneClassNamingStrategy)(nil), (*v1beta2.ControlPlaneClassNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ControlPlaneClassNamingStrategy_To_v1beta2_ControlPlaneClassNamingStrategy(a.(*ControlPlaneClassNamingStrategy), b.(*v1beta2.ControlPlaneClassNamingStrategy), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.ControlPlaneClassNamingStrategy)(nil), (*ControlPlaneClassNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ControlPlaneClassNamingStrategy_To_v1beta1_ControlPlaneClassNamingStrategy(a.(*v1beta2.ControlPlaneClassNamingStrategy), b.(*ControlPlaneClassNamingStrategy), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*ControlPlaneVariables)(nil), (*v1beta2.ControlPlaneVariables)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ControlPlaneVariables_To_v1beta2_ControlPlaneVariables(a.(*ControlPlaneVariables), b.(*v1beta2.ControlPlaneVariables), scope)
 	}); err != nil {
@@ -231,16 +221,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.MachineDeployment)(nil), (*MachineDeployment)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachineDeployment_To_v1beta1_MachineDeployment(a.(*v1beta2.MachineDeployment), b.(*MachineDeployment), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*MachineDeploymentClassNamingStrategy)(nil), (*v1beta2.MachineDeploymentClassNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachineDeploymentClassNamingStrategy_To_v1beta2_MachineDeploymentClassNamingStrategy(a.(*MachineDeploymentClassNamingStrategy), b.(*v1beta2.MachineDeploymentClassNamingStrategy), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachineDeploymentClassNamingStrategy)(nil), (*MachineDeploymentClassNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachineDeploymentClassNamingStrategy_To_v1beta1_MachineDeploymentClassNamingStrategy(a.(*v1beta2.MachineDeploymentClassNamingStrategy), b.(*MachineDeploymentClassNamingStrategy), scope)
 	}); err != nil {
 		return err
 	}
@@ -354,16 +334,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*MachineNamingStrategy)(nil), (*v1beta2.MachineNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachineNamingStrategy_To_v1beta2_MachineNamingStrategy(a.(*MachineNamingStrategy), b.(*v1beta2.MachineNamingStrategy), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachineNamingStrategy)(nil), (*MachineNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachineNamingStrategy_To_v1beta1_MachineNamingStrategy(a.(*v1beta2.MachineNamingStrategy), b.(*MachineNamingStrategy), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*MachinePool)(nil), (*v1beta2.MachinePool)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachinePool_To_v1beta2_MachinePool(a.(*MachinePool), b.(*v1beta2.MachinePool), scope)
 	}); err != nil {
@@ -371,16 +341,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.MachinePool)(nil), (*MachinePool)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachinePool_To_v1beta1_MachinePool(a.(*v1beta2.MachinePool), b.(*MachinePool), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*MachinePoolClassNamingStrategy)(nil), (*v1beta2.MachinePoolClassNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachinePoolClassNamingStrategy_To_v1beta2_MachinePoolClassNamingStrategy(a.(*MachinePoolClassNamingStrategy), b.(*v1beta2.MachinePoolClassNamingStrategy), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachinePoolClassNamingStrategy)(nil), (*MachinePoolClassNamingStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachinePoolClassNamingStrategy_To_v1beta1_MachinePoolClassNamingStrategy(a.(*v1beta2.MachinePoolClassNamingStrategy), b.(*MachinePoolClassNamingStrategy), scope)
 	}); err != nil {
 		return err
 	}
@@ -1718,15 +1678,7 @@ func autoConvert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *Cont
 		out.MachineInfrastructure = nil
 	}
 	// WARNING: in.MachineHealthCheck requires manual conversion: does not exist in peer-type
-	if in.NamingStrategy != nil {
-		in, out := &in.NamingStrategy, &out.NamingStrategy
-		*out = new(v1beta2.ControlPlaneClassNamingStrategy)
-		if err := Convert_v1beta1_ControlPlaneClassNamingStrategy_To_v1beta2_ControlPlaneClassNamingStrategy(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.NamingStrategy = nil
-	}
+	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
@@ -1749,42 +1701,10 @@ func autoConvert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *v1be
 		out.MachineInfrastructure = nil
 	}
 	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
-	if in.NamingStrategy != nil {
-		in, out := &in.NamingStrategy, &out.NamingStrategy
-		*out = new(ControlPlaneClassNamingStrategy)
-		if err := Convert_v1beta2_ControlPlaneClassNamingStrategy_To_v1beta1_ControlPlaneClassNamingStrategy(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.NamingStrategy = nil
-	}
+	// WARNING: in.Naming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	return nil
-}
-
-func autoConvert_v1beta1_ControlPlaneClassNamingStrategy_To_v1beta2_ControlPlaneClassNamingStrategy(in *ControlPlaneClassNamingStrategy, out *v1beta2.ControlPlaneClassNamingStrategy, s conversion.Scope) error {
-	if err := v1.Convert_Pointer_string_To_string(&in.Template, &out.Template, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta1_ControlPlaneClassNamingStrategy_To_v1beta2_ControlPlaneClassNamingStrategy is an autogenerated conversion function.
-func Convert_v1beta1_ControlPlaneClassNamingStrategy_To_v1beta2_ControlPlaneClassNamingStrategy(in *ControlPlaneClassNamingStrategy, out *v1beta2.ControlPlaneClassNamingStrategy, s conversion.Scope) error {
-	return autoConvert_v1beta1_ControlPlaneClassNamingStrategy_To_v1beta2_ControlPlaneClassNamingStrategy(in, out, s)
-}
-
-func autoConvert_v1beta2_ControlPlaneClassNamingStrategy_To_v1beta1_ControlPlaneClassNamingStrategy(in *v1beta2.ControlPlaneClassNamingStrategy, out *ControlPlaneClassNamingStrategy, s conversion.Scope) error {
-	if err := v1.Convert_string_To_Pointer_string(&in.Template, &out.Template, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta2_ControlPlaneClassNamingStrategy_To_v1beta1_ControlPlaneClassNamingStrategy is an autogenerated conversion function.
-func Convert_v1beta2_ControlPlaneClassNamingStrategy_To_v1beta1_ControlPlaneClassNamingStrategy(in *v1beta2.ControlPlaneClassNamingStrategy, out *ControlPlaneClassNamingStrategy, s conversion.Scope) error {
-	return autoConvert_v1beta2_ControlPlaneClassNamingStrategy_To_v1beta1_ControlPlaneClassNamingStrategy(in, out, s)
 }
 
 func autoConvert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in *ControlPlaneTopology, out *v1beta2.ControlPlaneTopology, s conversion.Scope) error {
@@ -2275,15 +2195,7 @@ func autoConvert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClas
 	if err := v1.Convert_Pointer_string_To_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
 		return err
 	}
-	if in.NamingStrategy != nil {
-		in, out := &in.NamingStrategy, &out.NamingStrategy
-		*out = new(v1beta2.MachineDeploymentClassNamingStrategy)
-		if err := Convert_v1beta1_MachineDeploymentClassNamingStrategy_To_v1beta2_MachineDeploymentClassNamingStrategy(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.NamingStrategy = nil
-	}
+	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
@@ -2302,44 +2214,12 @@ func autoConvert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClas
 	if err := v1.Convert_string_To_Pointer_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
 		return err
 	}
-	if in.NamingStrategy != nil {
-		in, out := &in.NamingStrategy, &out.NamingStrategy
-		*out = new(MachineDeploymentClassNamingStrategy)
-		if err := Convert_v1beta2_MachineDeploymentClassNamingStrategy_To_v1beta1_MachineDeploymentClassNamingStrategy(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.NamingStrategy = nil
-	}
+	// WARNING: in.Naming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-func autoConvert_v1beta1_MachineDeploymentClassNamingStrategy_To_v1beta2_MachineDeploymentClassNamingStrategy(in *MachineDeploymentClassNamingStrategy, out *v1beta2.MachineDeploymentClassNamingStrategy, s conversion.Scope) error {
-	if err := v1.Convert_Pointer_string_To_string(&in.Template, &out.Template, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta1_MachineDeploymentClassNamingStrategy_To_v1beta2_MachineDeploymentClassNamingStrategy is an autogenerated conversion function.
-func Convert_v1beta1_MachineDeploymentClassNamingStrategy_To_v1beta2_MachineDeploymentClassNamingStrategy(in *MachineDeploymentClassNamingStrategy, out *v1beta2.MachineDeploymentClassNamingStrategy, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachineDeploymentClassNamingStrategy_To_v1beta2_MachineDeploymentClassNamingStrategy(in, out, s)
-}
-
-func autoConvert_v1beta2_MachineDeploymentClassNamingStrategy_To_v1beta1_MachineDeploymentClassNamingStrategy(in *v1beta2.MachineDeploymentClassNamingStrategy, out *MachineDeploymentClassNamingStrategy, s conversion.Scope) error {
-	if err := v1.Convert_string_To_Pointer_string(&in.Template, &out.Template, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta2_MachineDeploymentClassNamingStrategy_To_v1beta1_MachineDeploymentClassNamingStrategy is an autogenerated conversion function.
-func Convert_v1beta2_MachineDeploymentClassNamingStrategy_To_v1beta1_MachineDeploymentClassNamingStrategy(in *v1beta2.MachineDeploymentClassNamingStrategy, out *MachineDeploymentClassNamingStrategy, s conversion.Scope) error {
-	return autoConvert_v1beta2_MachineDeploymentClassNamingStrategy_To_v1beta1_MachineDeploymentClassNamingStrategy(in, out, s)
 }
 
 func autoConvert_v1beta1_MachineDeploymentList_To_v1beta2_MachineDeploymentList(in *MachineDeploymentList, out *v1beta2.MachineDeploymentList, s conversion.Scope) error {
@@ -2393,7 +2273,7 @@ func autoConvert_v1beta1_MachineDeploymentSpec_To_v1beta2_MachineDeploymentSpec(
 		return err
 	}
 	// WARNING: in.Strategy requires manual conversion: does not exist in peer-type
-	out.MachineNamingStrategy = (*v1beta2.MachineNamingStrategy)(unsafe.Pointer(in.MachineNamingStrategy))
+	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.RevisionHistoryLimit requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_bool_To_Pointer_bool(&in.Paused, &out.Paused, s); err != nil {
@@ -2411,7 +2291,7 @@ func autoConvert_v1beta2_MachineDeploymentSpec_To_v1beta1_MachineDeploymentSpec(
 	if err := Convert_v1beta2_MachineTemplateSpec_To_v1beta1_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	out.MachineNamingStrategy = (*MachineNamingStrategy)(unsafe.Pointer(in.MachineNamingStrategy))
+	// WARNING: in.MachineNaming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	if err := v1.Convert_Pointer_bool_To_bool(&in.Paused, &out.Paused, s); err != nil {
@@ -2890,26 +2770,6 @@ func Convert_v1beta2_MachineList_To_v1beta1_MachineList(in *v1beta2.MachineList,
 	return autoConvert_v1beta2_MachineList_To_v1beta1_MachineList(in, out, s)
 }
 
-func autoConvert_v1beta1_MachineNamingStrategy_To_v1beta2_MachineNamingStrategy(in *MachineNamingStrategy, out *v1beta2.MachineNamingStrategy, s conversion.Scope) error {
-	out.Template = in.Template
-	return nil
-}
-
-// Convert_v1beta1_MachineNamingStrategy_To_v1beta2_MachineNamingStrategy is an autogenerated conversion function.
-func Convert_v1beta1_MachineNamingStrategy_To_v1beta2_MachineNamingStrategy(in *MachineNamingStrategy, out *v1beta2.MachineNamingStrategy, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachineNamingStrategy_To_v1beta2_MachineNamingStrategy(in, out, s)
-}
-
-func autoConvert_v1beta2_MachineNamingStrategy_To_v1beta1_MachineNamingStrategy(in *v1beta2.MachineNamingStrategy, out *MachineNamingStrategy, s conversion.Scope) error {
-	out.Template = in.Template
-	return nil
-}
-
-// Convert_v1beta2_MachineNamingStrategy_To_v1beta1_MachineNamingStrategy is an autogenerated conversion function.
-func Convert_v1beta2_MachineNamingStrategy_To_v1beta1_MachineNamingStrategy(in *v1beta2.MachineNamingStrategy, out *MachineNamingStrategy, s conversion.Scope) error {
-	return autoConvert_v1beta2_MachineNamingStrategy_To_v1beta1_MachineNamingStrategy(in, out, s)
-}
-
 func autoConvert_v1beta1_MachinePool_To_v1beta2_MachinePool(in *MachinePool, out *v1beta2.MachinePool, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1beta1_MachinePoolSpec_To_v1beta2_MachinePoolSpec(&in.Spec, &out.Spec, s); err != nil {
@@ -2946,15 +2806,7 @@ func autoConvert_v1beta1_MachinePoolClass_To_v1beta2_MachinePoolClass(in *Machin
 	out.Class = in.Class
 	// WARNING: in.Template requires manual conversion: does not exist in peer-type
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
-	if in.NamingStrategy != nil {
-		in, out := &in.NamingStrategy, &out.NamingStrategy
-		*out = new(v1beta2.MachinePoolClassNamingStrategy)
-		if err := Convert_v1beta1_MachinePoolClassNamingStrategy_To_v1beta2_MachinePoolClassNamingStrategy(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.NamingStrategy = nil
-	}
+	// WARNING: in.NamingStrategy requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
@@ -2968,42 +2820,10 @@ func autoConvert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(in *v1beta
 	// WARNING: in.Bootstrap requires manual conversion: does not exist in peer-type
 	// WARNING: in.Infrastructure requires manual conversion: does not exist in peer-type
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
-	if in.NamingStrategy != nil {
-		in, out := &in.NamingStrategy, &out.NamingStrategy
-		*out = new(MachinePoolClassNamingStrategy)
-		if err := Convert_v1beta2_MachinePoolClassNamingStrategy_To_v1beta1_MachinePoolClassNamingStrategy(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.NamingStrategy = nil
-	}
+	// WARNING: in.Naming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	return nil
-}
-
-func autoConvert_v1beta1_MachinePoolClassNamingStrategy_To_v1beta2_MachinePoolClassNamingStrategy(in *MachinePoolClassNamingStrategy, out *v1beta2.MachinePoolClassNamingStrategy, s conversion.Scope) error {
-	if err := v1.Convert_Pointer_string_To_string(&in.Template, &out.Template, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta1_MachinePoolClassNamingStrategy_To_v1beta2_MachinePoolClassNamingStrategy is an autogenerated conversion function.
-func Convert_v1beta1_MachinePoolClassNamingStrategy_To_v1beta2_MachinePoolClassNamingStrategy(in *MachinePoolClassNamingStrategy, out *v1beta2.MachinePoolClassNamingStrategy, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachinePoolClassNamingStrategy_To_v1beta2_MachinePoolClassNamingStrategy(in, out, s)
-}
-
-func autoConvert_v1beta2_MachinePoolClassNamingStrategy_To_v1beta1_MachinePoolClassNamingStrategy(in *v1beta2.MachinePoolClassNamingStrategy, out *MachinePoolClassNamingStrategy, s conversion.Scope) error {
-	if err := v1.Convert_string_To_Pointer_string(&in.Template, &out.Template, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta2_MachinePoolClassNamingStrategy_To_v1beta1_MachinePoolClassNamingStrategy is an autogenerated conversion function.
-func Convert_v1beta2_MachinePoolClassNamingStrategy_To_v1beta1_MachinePoolClassNamingStrategy(in *v1beta2.MachinePoolClassNamingStrategy, out *MachinePoolClassNamingStrategy, s conversion.Scope) error {
-	return autoConvert_v1beta2_MachinePoolClassNamingStrategy_To_v1beta1_MachinePoolClassNamingStrategy(in, out, s)
 }
 
 func autoConvert_v1beta1_MachinePoolList_To_v1beta2_MachinePoolList(in *MachinePoolList, out *v1beta2.MachinePoolList, s conversion.Scope) error {
@@ -3314,7 +3134,7 @@ func autoConvert_v1beta1_MachineSetSpec_To_v1beta2_MachineSetSpec(in *MachineSet
 	if err := Convert_v1beta1_MachineTemplateSpec_To_v1beta2_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	out.MachineNamingStrategy = (*v1beta2.MachineNamingStrategy)(unsafe.Pointer(in.MachineNamingStrategy))
+	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -3325,7 +3145,7 @@ func autoConvert_v1beta2_MachineSetSpec_To_v1beta1_MachineSetSpec(in *v1beta2.Ma
 	if err := Convert_v1beta2_MachineTemplateSpec_To_v1beta1_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	out.MachineNamingStrategy = (*MachineNamingStrategy)(unsafe.Pointer(in.MachineNamingStrategy))
+	// WARNING: in.MachineNaming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	return nil
 }

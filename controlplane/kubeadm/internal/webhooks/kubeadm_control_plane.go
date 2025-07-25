@@ -204,8 +204,8 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		{spec, "version"},
 		{spec, "remediation"},
 		{spec, "remediation", "*"},
-		{spec, "machineNamingStrategy"},
-		{spec, "machineNamingStrategy", "*"},
+		{spec, "machineNaming"},
+		{spec, "machineNaming", "*"},
 		{spec, "rollout"},
 		{spec, "rollout", "*"},
 	}
@@ -350,10 +350,7 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 	}
 
 	allErrs = append(allErrs, validateRolloutStrategy(s.Rollout.Strategy, s.Replicas, pathPrefix.Child("rollout", "strategy"))...)
-
-	if s.MachineNamingStrategy != nil {
-		allErrs = append(allErrs, validateNamingStrategy(s.MachineNamingStrategy, pathPrefix.Child("machineNamingStrategy"))...)
-	}
+	allErrs = append(allErrs, validateNaming(s.MachineNaming, pathPrefix.Child("machineNaming"))...)
 	return allErrs
 }
 
@@ -400,24 +397,24 @@ func validateRolloutStrategy(rolloutStrategy controlplanev1.KubeadmControlPlaneR
 	return allErrs
 }
 
-func validateNamingStrategy(machineNamingStrategy *controlplanev1.MachineNamingStrategy, pathPrefix *field.Path) field.ErrorList {
+func validateNaming(machineNaming controlplanev1.MachineNamingSpec, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if machineNamingStrategy.Template != "" {
-		if !strings.Contains(machineNamingStrategy.Template, "{{ .random }}") {
+	if machineNaming.Template != "" {
+		if !strings.Contains(machineNaming.Template, "{{ .random }}") {
 			allErrs = append(allErrs,
 				field.Invalid(
 					pathPrefix.Child("template"),
-					machineNamingStrategy.Template,
+					machineNaming.Template,
 					"invalid template, {{ .random }} is missing",
 				))
 		}
-		name, err := topologynames.KCPMachineNameGenerator(machineNamingStrategy.Template, "cluster", "kubeadmcontrolplane").GenerateName()
+		name, err := topologynames.KCPMachineNameGenerator(machineNaming.Template, "cluster", "kubeadmcontrolplane").GenerateName()
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
 					pathPrefix.Child("template"),
-					machineNamingStrategy.Template,
+					machineNaming.Template,
 					fmt.Sprintf("invalid template: %v", err),
 				))
 		} else {
@@ -425,7 +422,7 @@ func validateNamingStrategy(machineNamingStrategy *controlplanev1.MachineNamingS
 				allErrs = append(allErrs,
 					field.Invalid(
 						pathPrefix.Child("template"),
-						machineNamingStrategy.Template,
+						machineNaming.Template,
 						fmt.Sprintf("invalid template, generated names would not be valid Kubernetes object names: %v", err),
 					))
 			}

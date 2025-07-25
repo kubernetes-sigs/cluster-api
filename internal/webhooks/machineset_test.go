@@ -677,29 +677,29 @@ func TestMachineSetTemplateMetadataValidation(t *testing.T) {
 	}
 }
 
-func TestMachineSetMachineNamingStrategyValidation(t *testing.T) {
+func TestMachineSetMachineNamingValidation(t *testing.T) {
 	tests := []struct {
-		name                  string
-		machineNamingStrategy clusterv1.MachineNamingStrategy
-		expectErr             bool
+		name          string
+		machineNaming clusterv1.MachineNamingSpec
+		expectErr     bool
 	}{
 		{
-			name: "should not return error when MachineNamingStrategy have {{ .random }}",
-			machineNamingStrategy: clusterv1.MachineNamingStrategy{
+			name: "should not return error when MachineNamingSpec have {{ .random }}",
+			machineNaming: clusterv1.MachineNamingSpec{
 				Template: "{{ .machineSet.name }}-{{ .random }}",
 			},
 			expectErr: false,
 		},
 		{
-			name: "should return error when MachineNamingStrategy does not have {{ .random }}",
-			machineNamingStrategy: clusterv1.MachineNamingStrategy{
+			name: "should return error when MachineNamingSpec does not have {{ .random }}",
+			machineNaming: clusterv1.MachineNamingSpec{
 				Template: "{{ .machineSet.name }}",
 			},
 			expectErr: true,
 		},
 		{
-			name: "should return error when MachineNamingStrategy does not follow DNS1123Subdomain rules",
-			machineNamingStrategy: clusterv1.MachineNamingStrategy{
+			name: "should return error when MachineNamingSpec does not follow DNS1123Subdomain rules",
+			machineNaming: clusterv1.MachineNamingSpec{
 				Template: "{{ .machineSet.name }}-{{ .random }}-",
 			},
 			expectErr: true,
@@ -711,7 +711,7 @@ func TestMachineSetMachineNamingStrategyValidation(t *testing.T) {
 			g := NewWithT(t)
 			ms := &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
-					MachineNamingStrategy: &tt.machineNamingStrategy,
+					MachineNaming: tt.machineNaming,
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{

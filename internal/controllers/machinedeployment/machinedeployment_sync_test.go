@@ -562,7 +562,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 			Deletion: clusterv1.MachineDeploymentDeletionSpec{
 				Order: clusterv1.RandomMachineSetDeletionOrder,
 			},
-			MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+			MachineNaming: clusterv1.MachineNamingSpec{
 				Template: "{{ .machineSet.name }}" + namingTemplateKey + "-{{ .random }}",
 			},
 			Selector: metav1.LabelSelector{
@@ -605,7 +605,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 			},
 			Selector: metav1.LabelSelector{MatchLabels: map[string]string{"k1": "v1"}},
 			Template: *deployment.Spec.Template.DeepCopy(),
-			MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+			MachineNaming: clusterv1.MachineNamingSpec{
 				Template: "{{ .machineSet.name }}" + namingTemplateKey + "-{{ .random }}",
 			},
 		},
@@ -820,8 +820,8 @@ func assertMachineSet(g *WithT, actualMS *clusterv1.MachineSet, expectedMS *clus
 	// Check MachineTemplateSpec
 	g.Expect(actualMS.Spec.Template.Spec).Should(BeComparableTo(expectedMS.Spec.Template.Spec))
 
-	// Check MachineNamingStrategy
-	g.Expect(actualMS.Spec.MachineNamingStrategy.Template).Should(BeComparableTo(expectedMS.Spec.MachineNamingStrategy.Template))
+	// Check MachineNamingSpec
+	g.Expect(actualMS.Spec.MachineNaming.Template).Should(BeComparableTo(expectedMS.Spec.MachineNaming.Template))
 }
 
 // asserts the conditions set on the Getter object.

@@ -1,0 +1,134 @@
+# Configuration for alloy - https://github.com/grafana/alloy/blob/main/operations/helm/charts/alloy/values.yaml
+alloy:
+  configMap:
+    create: true
+    content: |-
+      discovery.kubernetes "kubernetes_pods" {
+        role = "pod"
+      }
+
+      discovery.relabel "kubernetes_pods" {
+        targets = discovery.kubernetes.kubernetes_pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_controller_name"]
+          regex         = "([0-9a-z-.]+?)(-[0-9a-f]{8,10})?"
+          target_label  = "__tmp_controller_name"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name", "__meta_kubernetes_pod_label_app", "__tmp_controller_name", "__meta_kubernetes_pod_name"]
+          regex         = "^;*([^;]+)(;.*)?$"
+          target_label  = "app"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_instance", "__meta_kubernetes_pod_label_instance"]
+          regex         = "^;*([^;]+)(;.*)?$"
+          target_label  = "instance"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_component", "__meta_kubernetes_pod_label_component"]
+          regex         = "^;*([^;]+)(;.*)?$"
+          target_label  = "component"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node_name"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+
+        rule {
+          source_labels = ["namespace", "app"]
+          separator     = "/"
+          target_label  = "job"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+          separator     = "/"
+          target_label  = "__path__"
+          replacement   = "/var/log/pods/*$1/*.log"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_annotationpresent_kubernetes_io_config_hash", "__meta_kubernetes_pod_annotation_kubernetes_io_config_hash", "__meta_kubernetes_pod_container_name"]
+          separator     = "/"
+          regex         = "true/(.*)"
+          target_label  = "__path__"
+          replacement   = "/var/log/pods/*$1/*.log"
+        }
+      }
+
+      local.file_match "kubernetes_pods" {
+        path_targets = discovery.relabel.kubernetes_pods.output
+      }
+
+      loki.process "kubernetes_pods" {
+        forward_to = [loki.write.default.receiver]
+
+        stage.cri { }
+
+        stage.json {
+          expressions = {
+            Cluster             = "join('/',[Cluster.namespace,Cluster.name])",
+            KubeadmControlPlane = "join('/',[KubeadmControlPlane.namespace,KubeadmControlPlane.name])",
+            Machine             = "join('/',[Machine.namespace,Machine.name])",
+            MachineDeployment   = "join('/',[MachineDeployment.namespace,MachineDeployment.name])",
+            MachinePool         = "join('/',[MachinePool.namespace,MachinePool.name])",
+            MachineSet          = "join('/',[MachineSet.namespace,MachineSet.name])",
+            controller          = "",
+          }
+        }
+
+        stage.labels {
+          values = {
+            Cluster             = null,
+            KubeadmControlPlane = null,
+            Machine             = null,
+            MachineDeployment   = null,
+            MachinePool         = null,
+            MachineSet          = null,
+            controller          = null,
+          }
+        }
+      }
+
+      loki.source.file "kubernetes_pods" {
+        targets               = local.file_match.kubernetes_pods.targets
+        forward_to            = [loki.process.kubernetes_pods.receiver]
+        legacy_positions_file = "/run/promtail/positions.yaml"
+      }
+
+      loki.write "default" {
+        endpoint {
+          url       = "http://loki:3100/loki/api/v1/push"
+          tenant_id = "1"
+        }
+        external_labels = {}
+      }    
+  mounts:
+    varlog: true
+    run:
+      enabled: true
+      path: /run
+  podSecurityContext:
+    runAsUser: 0
+    runAsGroup: 0
+    fsGroup: 0

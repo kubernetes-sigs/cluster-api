@@ -640,7 +640,6 @@ func TestMachineFinalizer(t *testing.T) {
 func TestMachineOwnerReference(t *testing.T) {
 	bootstrapData := "some valid data"
 	testCluster := &clusterv1.Cluster{
-		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
 	}
 
@@ -1407,7 +1406,6 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 
 func TestIsNodeDrainedAllowed(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
-		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
 	}
 
@@ -1972,7 +1970,6 @@ func TestDrainNode_withCaching(t *testing.T) {
 
 func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
-		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
 	}
 
@@ -2144,7 +2141,6 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	testCluster := &clusterv1.Cluster{
-		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
 	}
 

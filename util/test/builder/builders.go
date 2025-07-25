@@ -89,10 +89,6 @@ func (c *ClusterBuilder) WithTopology(topology *clusterv1.Topology) *ClusterBuil
 // Build returns a Cluster with the attributes added to the ClusterBuilder.
 func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 	obj := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        c.name,
 			Namespace:   c.namespace,
@@ -481,10 +477,6 @@ func (c *ClusterClassBuilder) WithWorkerMachinePoolClasses(mpcs ...clusterv1.Mac
 // Build takes the objects and variables in the ClusterClass builder and uses them to create a ClusterClass object.
 func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 	obj := &clusterv1.ClusterClass{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ClusterClass",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.name,
 			Namespace: c.namespace,
@@ -1701,10 +1693,6 @@ func (m *MachinePoolBuilder) WithMinReadySeconds(minReadySeconds int32) *Machine
 // Build creates a new MachinePool with the variables and objects passed to the MachinePoolBuilder.
 func (m *MachinePoolBuilder) Build() *clusterv1.MachinePool {
 	obj := &clusterv1.MachinePool{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MachinePool",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        m.name,
 			Namespace:   m.namespace,
@@ -1831,10 +1819,6 @@ func (m *MachineDeploymentBuilder) WithMinReadySeconds(minReadySeconds int32) *M
 // Build creates a new MachineDeployment with the variables and objects passed to the MachineDeploymentBuilder.
 func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 	obj := &clusterv1.MachineDeployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MachineDeployment",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        m.name,
 			Namespace:   m.namespace,
@@ -1938,10 +1922,6 @@ func (m *MachineSetBuilder) WithOwnerReferences(ownerRefs []metav1.OwnerReferenc
 // Build creates a new MachineSet with the variables and objects passed to the MachineSetBuilder.
 func (m *MachineSetBuilder) Build() *clusterv1.MachineSet {
 	obj := &clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MachineSet",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            m.name,
 			Namespace:       m.namespace,
@@ -2013,10 +1993,6 @@ func (m *MachineBuilder) WithLabels(labels map[string]string) *MachineBuilder {
 // Build produces a Machine object from the information passed to the MachineBuilder.
 func (m *MachineBuilder) Build() *clusterv1.Machine {
 	machine := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Machine",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: m.namespace,
 			Name:      m.name,
@@ -2148,10 +2124,6 @@ func (m *MachineHealthCheckBuilder) WithMaxUnhealthy(maxUnhealthy *intstr.IntOrS
 func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
 	// create a MachineHealthCheck with the spec given in the ClusterClass
 	mhc := &clusterv1.MachineHealthCheck{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MachineHealthCheck",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            m.name,
 			Namespace:       m.namespace,

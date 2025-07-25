@@ -502,7 +502,6 @@ func TestMachineSetReconciler(t *testing.T) {
 
 func TestMachineSetOwnerReference(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
-		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: testClusterName},
 	}
 
@@ -1236,10 +1235,6 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	g.Expect(env.Create(ctx, bootstrapConfig, client.FieldOwner(classicManager))).To(Succeed())
 
 	inPlaceMutatingMachine := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			UID:       "abc-123-uid",
 			Name:      "in-place-mutating-machine",
@@ -1274,10 +1269,6 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	g.Expect(env.Create(ctx, inPlaceMutatingMachine, client.FieldOwner(classicManager))).To(Succeed())
 
 	deletingMachine := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			UID:         "abc-123-uid",
 			Name:        "deleting-machine",

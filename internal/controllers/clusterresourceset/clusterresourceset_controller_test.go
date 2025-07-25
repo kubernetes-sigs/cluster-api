@@ -944,7 +944,6 @@ metadata:
 		defer teardown(t, g, ns)
 
 		fakeService := &corev1.Service{
-			TypeMeta: metav1.TypeMeta{Kind: "Service", APIVersion: "v1"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "fake",
 				Namespace: metav1.NamespaceDefault,
@@ -1137,10 +1136,6 @@ func configMapHasBeenUpdated(env *envtest.Environment, key client.ObjectKey, new
 
 func configMap(name, namespace string, data map[string]string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "ConfigMap",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,

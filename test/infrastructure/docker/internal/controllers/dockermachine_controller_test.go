@@ -67,7 +67,6 @@ func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
 
 func newCluster(clusterName string, dockerCluster *infrav1.DockerCluster) *clusterv1.Cluster {
 	cluster := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterName,
 		},
@@ -84,7 +83,6 @@ func newCluster(clusterName string, dockerCluster *infrav1.DockerCluster) *clust
 
 func newDockerCluster(clusterName, dockerName string) *infrav1.DockerCluster {
 	return &infrav1.DockerCluster{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: dockerName,
 			OwnerReferences: []metav1.OwnerReference{
@@ -119,7 +117,6 @@ func newMachine(clusterName, machineName string, dockerMachine *infrav1.DockerMa
 
 func newDockerMachine(dockerMachineName, machineName string) *infrav1.DockerMachine {
 	return &infrav1.DockerMachine{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            dockerMachineName,
 			ResourceVersion: "999",

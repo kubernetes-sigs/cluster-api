@@ -2227,6 +2227,8 @@ func Convert_v1beta2_MachineAddress_To_v1beta1_MachineAddress(in *v1beta2.Machin
 func autoConvert_v1beta1_MachineDeletionStatus_To_v1beta2_MachineDeletionStatus(in *MachineDeletionStatus, out *v1beta2.MachineDeletionStatus, s conversion.Scope) error {
 	out.NodeDrainStartTime = (*v1.Time)(unsafe.Pointer(in.NodeDrainStartTime))
 	out.WaitForNodeVolumeDetachStartTime = (*v1.Time)(unsafe.Pointer(in.WaitForNodeVolumeDetachStartTime))
+	out.WaitForPreDrainHookStartTime = (*v1.Time)(unsafe.Pointer(in.WaitForPreDrainHookStartTime))
+	out.WaitForPreTerminateHookStartTime = (*v1.Time)(unsafe.Pointer(in.WaitForPreTerminateHookStartTime))
 	return nil
 }
 
@@ -2238,6 +2240,8 @@ func Convert_v1beta1_MachineDeletionStatus_To_v1beta2_MachineDeletionStatus(in *
 func autoConvert_v1beta2_MachineDeletionStatus_To_v1beta1_MachineDeletionStatus(in *v1beta2.MachineDeletionStatus, out *MachineDeletionStatus, s conversion.Scope) error {
 	out.NodeDrainStartTime = (*v1.Time)(unsafe.Pointer(in.NodeDrainStartTime))
 	out.WaitForNodeVolumeDetachStartTime = (*v1.Time)(unsafe.Pointer(in.WaitForNodeVolumeDetachStartTime))
+	out.WaitForPreDrainHookStartTime = (*v1.Time)(unsafe.Pointer(in.WaitForPreDrainHookStartTime))
+	out.WaitForPreTerminateHookStartTime = (*v1.Time)(unsafe.Pointer(in.WaitForPreTerminateHookStartTime))
 	return nil
 }
 

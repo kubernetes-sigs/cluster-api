@@ -36,9 +36,9 @@ func NewFakeClusterCache(workloadClient client.Client, clusterKey client.ObjectK
 				watches:      sets.Set[string]{}.Insert(watchObjects...),
 			},
 			healthChecking: clusterAccessorLockedHealthCheckingState{
-				lastProbeTimestamp:        time.Now(),
-				lastProbeSuccessTimestamp: time.Now(),
-				consecutiveFailures:       0,
+				lastProbeTime:        time.Now(),
+				lastProbeSuccessTime: time.Now(),
+				consecutiveFailures:  0,
 			},
 		},
 	}

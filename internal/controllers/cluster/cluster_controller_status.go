@@ -30,8 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -72,6 +74,8 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	setWorkersReplicas(ctx, s.cluster, clusterv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, workerMachines, s.getDescendantsSucceeded)
 
 	// conditions
+	healthCheckingState := r.ClusterCache.GetHealthCheckingState(ctx, client.ObjectKeyFromObject(s.cluster))
+	setRemoteConnectionProbeCondition(ctx, s.cluster, healthCheckingState, r.RemoteConnectionGracePeriod)
 	setInfrastructureReadyCondition(ctx, s.cluster, s.infraCluster, s.infraClusterIsNotFound)
 	setControlPlaneAvailableCondition(ctx, s.cluster, s.controlPlane, s.controlPlaneIsNotFound)
 	setControlPlaneInitializedCondition(ctx, s.cluster, s.controlPlane, controlPlaneContractVersion, s.descendants.controlPlaneMachines, s.infraClusterIsNotFound, s.getDescendantsSucceeded)
@@ -287,6 +291,44 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 	cluster.Status.Workers.ReadyReplicas = readyReplicas
 	cluster.Status.Workers.AvailableReplicas = availableReplicas
 	cluster.Status.Workers.UpToDateReplicas = upToDateReplicas
+}
+
+func setRemoteConnectionProbeCondition(_ context.Context, cluster *clusterv1.Cluster, healthCheckingState clustercache.HealthCheckingState, remoteConnectionGracePeriod time.Duration) {
+	// ClusterCache did not try to connect often enough yet, either during controller startup or when a new Cluster is created.
+	if healthCheckingState.LastProbeSuccessTime.IsZero() && healthCheckingState.ConsecutiveFailures < 5 {
+		// If condition is not set, set it.
+		if !conditions.Has(cluster, clusterv1.ClusterRemoteConnectionProbeCondition) {
+			conditions.Set(cluster, metav1.Condition{
+				Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.ClusterRemoteConnectionProbeFailedReason,
+				Message: "Remote connection not established yet",
+			})
+		}
+		return
+	}
+
+	if time.Since(healthCheckingState.LastProbeSuccessTime) > remoteConnectionGracePeriod {
+		var msg string
+		if healthCheckingState.LastProbeSuccessTime.IsZero() {
+			msg = "Remote connection probe failed"
+		} else {
+			msg = fmt.Sprintf("Remote connection probe failed, probe last succeeded at %s", healthCheckingState.LastProbeSuccessTime.Format(time.RFC3339))
+		}
+		conditions.Set(cluster, metav1.Condition{
+			Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.ClusterRemoteConnectionProbeFailedReason,
+			Message: msg,
+		})
+		return
+	}
+
+	conditions.Set(cluster, metav1.Condition{
+		Type:   clusterv1.ClusterRemoteConnectionProbeCondition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ClusterRemoteConnectionProbeSucceededReason,
+	})
 }
 
 func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Cluster, infraCluster *unstructured.Unstructured, infraClusterIsNotFound bool) {

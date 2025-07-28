@@ -1263,7 +1263,11 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
-	v1beta1conditions.SetAggregate(ms, clusterv1.MachinesReadyV1Beta1Condition, collections.FromMachines(filteredMachines...).ConditionGetters(), v1beta1conditions.AddSourceRef())
+	if len(filteredMachines) > 0 {
+		v1beta1conditions.SetAggregate(ms, clusterv1.MachinesReadyV1Beta1Condition, collections.FromMachines(filteredMachines...).ConditionGetters(), v1beta1conditions.AddSourceRef())
+	} else {
+		v1beta1conditions.MarkTrue(ms, clusterv1.MachinesReadyV1Beta1Condition)
+	}
 
 	return nil
 }

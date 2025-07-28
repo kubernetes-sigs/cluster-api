@@ -567,18 +567,18 @@ Below you can find a summary table that also shows how changes will be rolled ou
 
 #### MachineSet Print columns
 
-| Current       | To be                   |
-|---------------|-------------------------|
-| `NAME`        | `NAME`                  |
-| `CLUSTER`     | `CLUSTER`               |
-| `DESIRED` (*) | `DESIRED`               |
-| `REPLICAS`    | `CURRENT` (renamed) (*) |
-| `READY`       | `READY` (updated)       |
-| `AVAILABLE`   | `AVAILABLE` (updated)   |
-| `AGE`         | `UP-TO-DATE` (new)      |
-| `VERSION`     | `PAUSED` (new) (*)      |
-|               | `AGE`                   |
-|               | `VERSION`               |
+| Current       | To be                 |
+|---------------|-----------------------|
+| `NAME`        | `NAME`                |
+| `CLUSTER`     | `CLUSTER`             |
+| `DESIRED` (*) | `DESIRED`             |
+| `REPLICAS`    | `CURRENT` (renamed)   |
+| `READY`       | `READY` (updated)     |
+| `AVAILABLE`   | `AVAILABLE` (updated) |
+| `AGE`         | `UP-TO-DATE` (new)    |
+| `VERSION`     | `PAUSED` (new) (*)    |
+|               | `AGE`                 |
+|               | `VERSION`             |
 
 (*) visible only when using `kubectl get -o wide`
 
@@ -690,7 +690,7 @@ Below you can find a summary table that also shows how changes will be rolled ou
 | `CLUSTER`               | `CLUSTER`              |
 | `DESIRED` (*)           | `AVAILABLE` (new)      |
 | `REPLICAS`              | `DESIRED`              |
-| `READY`                 | `CURRENT` (*)          |
+| `READY`                 | `CURRENT` (renamed)    |
 | `UPDATED` (renamed)     | `READY`                |
 | `UNAVAILABLE` (deleted) | `AVAILABLE` (new)      |
 | `PHASE`                 | `UP-TO-DATE` (renamed) |
@@ -1050,20 +1050,20 @@ Notes:
 
 #### KubeadmControlPlane Print columns
 
-| Current                 | To be                   |
-|-------------------------|-------------------------|
-| `NAME`                  | `NAME`                  |
-| `CLUSTER`               | `CLUSTER`               |
-| `DESIRED` (*)           | `AVAILABLE` (new)       |
-| `REPLICAS`              | `DESIRED`               |
-| `READY`                 | `CURRENT` (*)           |
-| `UPDATED` (renamed)     | `READY`                 |
-| `UNAVAILABLE` (deleted) | `AVAILABLE` (new)       |
-| `AGE`                   | `UP-TO-DATE` (renamed)  |
-| `VERSION`               | `PAUSED` (new)          |
-|                         | `INITIALIZED` (new) (*) |
-|                         | `AGE`                   |
-|                         | `VERSION`               |
+| Current                 | To be                  |
+|-------------------------|------------------------|
+| `NAME`                  | `NAME`                 |
+| `CLUSTER`               | `CLUSTER`              |
+| `DESIRED` (*)           | `AVAILABLE` (new)      |
+| `REPLICAS`              | `DESIRED`              |
+| `READY`                 | `CURRENT` (renamed)    |
+| `UPDATED` (renamed)     | `READY`                |
+| `UNAVAILABLE` (deleted) | `AVAILABLE` (new)      |
+| `AGE`                   | `UP-TO-DATE` (renamed) |
+| `VERSION`               | `PAUSED` (new) (*)     |
+|                         | `INITIALIZED` (new)    |
+|                         | `AGE`                  |
+|                         | `VERSION`              |
 
 (*) visible only when using `kubectl get -o wide`
 
@@ -1208,7 +1208,7 @@ Below you can find a summary table that also shows how changes will be rolled ou
 | `NAME`        | `NAME`                 |
 | `CLUSTER`     | `CLUSTER`              |
 | `DESIRED` (*) | `DESIRED`              |
-| `REPLICAS`    | `CURRENT` (*)          |
+| `REPLICAS`    | `CURRENT` (renamed)    |
 | `PHASE`       | `READY`                |
 | `AGE`         | `AVAILABLE` (new)      |
 | `VERSION`     | `UP-TO-DATE` (renamed) |

@@ -2152,6 +2152,59 @@ spec:
       jsonPath: .spec.topology.classRef.name
       name: ClusterClass
       type: string
+    - description: Cluster pass all availability checks
+      jsonPath: .status.conditions[?(@.type=="Available")].status
+      name: Available
+      type: string
+    - description: The desired number of control plane machines
+      jsonPath: .status.controlPlane.desiredReplicas
+      name: CP Desired
+      type: integer
+    - description: The number of control plane machines
+      jsonPath: .status.controlPlane.replicas
+      name: CP Current
+      priority: 10
+      type: integer
+    - description: The number of control plane machines with Ready condition true
+      jsonPath: .status.controlPlane.readyReplicas
+      name: CP Ready
+      priority: 10
+      type: integer
+    - description: The number of control plane machines with Available condition true
+      jsonPath: .status.controlPlane.availableReplicas
+      name: CP Available
+      type: integer
+    - description: The number of control plane machines with UpToDate condition true
+      jsonPath: .status.controlPlane.upToDateReplicas
+      name: CP Up-to-date
+      type: integer
+    - description: The desired number of worker machines
+      jsonPath: .status.workers.desiredReplicas
+      name: W Desired
+      type: integer
+    - description: The number of worker machines
+      jsonPath: .status.workers.replicas
+      name: W Current
+      priority: 10
+      type: integer
+    - description: The number of worker machines with Ready condition true
+      jsonPath: .status.workers.readyReplicas
+      name: W Ready
+      priority: 10
+      type: integer
+    - description: The number of worker machines with Available condition true
+      jsonPath: .status.workers.availableReplicas
+      name: W Available
+      type: integer
+    - description: The number of worker machines with UpToDate condition true
+      jsonPath: .status.workers.upToDateReplicas
+      name: W Up-to-date
+      type: integer
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
+      type: string
     - description: Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed
       jsonPath: .status.phase
       name: Phase

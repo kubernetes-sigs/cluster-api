@@ -33,6 +33,7 @@ type KubeadmControlPlaneTemplateSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubeadmcontrolplanetemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="ClusterClass",type="string",JSONPath=`.metadata.ownerReferences[?(@.kind=="ClusterClass")].name`,description="Name of the ClusterClass owning this template"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmControlPlaneTemplate"
 
 // KubeadmControlPlaneTemplate is the Schema for the kubeadmcontrolplanetemplates API.

@@ -3926,6 +3926,14 @@ spec:
     storage: false
     subresources: {}
   - additionalPrinterColumns:
+    - description: Name of the ClusterClass owning this template
+      jsonPath: .metadata.ownerReferences[?(@.kind=="ClusterClass")].name
+      name: ClusterClass
+      type: string
+    - description: Name of the Cluster owning this template
+      jsonPath: .metadata.ownerReferences[?(@.kind=="Cluster")].name
+      name: Cluster
+      type: string
     - description: Time duration since creation of KubeadmConfigTemplate
       jsonPath: .metadata.creationTimestamp
       name: Age

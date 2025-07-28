@@ -437,30 +437,27 @@ Notes:
 
 #### Machine Print columns
 
-| Current       | To be                         |
-|---------------|-------------------------------|
-| `NAME`        | `NAME`                        |
-| `CLUSTER`     | `CLUSTER`                     |
-| `NODE NAME`   | `PAUSED` (new) (*)            |
-| `PROVIDER ID` | `NODE NAME`                   |
-| `PHASE`       | `PROVIDER ID`                 |
-| `AGE`         | `READY` (new)                 |
-| `VERSION`     | `AVAILABLE` (new)             |
-|               | `UP-TO-DATE` (new)            |
-|               | `PHASE`                       |
-|               | `AGE`                         |
-|               | `VERSION`                     |
-|               | `OS-IMAGE` (new) (*)          |
-|               | `KERNEL-VERSION` (new) (*)    |
-|               | `CONTAINER-RUNTIME` (new) (*) |
+| Current       | To be                   |
+|---------------|-------------------------|
+| `NAME`        | `NAME`                  |
+| `CLUSTER`     | `CLUSTER`               |
+| `NODE NAME`   | `NODE NAME`             |
+| `PROVIDER ID` | `PROVIDER ID` (*)       |
+| `PHASE`       | `READY` (new)           |
+| `AGE`         | `AVAILABLE` (new)       |
+| `VERSION`     | `UP-TO-DATE` (new)      |
+|               | `INTERNAL-IP` (new) (*) |
+|               | `EXTERNAL-IP` (new) (*) |
+|               | `OS-IMAGE` (new) (*)    |
+|               | `PAUSED` (new) (*)      |
+|               | `PHASE`                 |
+|               | `AGE`                   |
+|               | `VERSION`               |
 
 (*) visible only when using `kubectl get -o wide`
 
 Notes:
 - Print columns are not subject to any deprecation rule, so it is possible to iteratively improve print columns without waiting for the next API version.
-- During the implementation we are going to verify the resulting layout and eventually make final adjustments to the column list.
-- During the implementation we are going to explore if it is possible to add `INTERNAL-IP` (new) (*), `EXTERNAL-IP` after `VERSION` / before `OS-IMAGE`.
-  Might be something like `$.status.addresses[?(@.type == 'InternalIP')].address` works
 
 ### Changes to MachineSet resource
 
@@ -570,25 +567,23 @@ Below you can find a summary table that also shows how changes will be rolled ou
 
 #### MachineSet Print columns
 
-| Current       | To be                   |
-|---------------|-------------------------|
-| `NAME`        | `NAME`                  |
-| `CLUSTER`     | `CLUSTER`               |
-| `DESIRED` (*) | `PAUSED` (new) (*)      |
-| `REPLICAS`    | `DESIRED`               |
-| `READY`       | `CURRENT` (renamed) (*) |
-| `AVAILABLE`   | `READY` (updated)       |
-| `AGE`         | `AVAILABLE` (updated)   |
-| `VERSION`     | `UP-TO-DATE` (new)      |
-|               | `AGE`                   |
-|               | `VERSION`               |
+| Current       | To be                 |
+|---------------|-----------------------|
+| `NAME`        | `NAME`                |
+| `CLUSTER`     | `CLUSTER`             |
+| `DESIRED` (*) | `DESIRED`             |
+| `REPLICAS`    | `CURRENT` (renamed)   |
+| `READY`       | `READY` (updated)     |
+| `AVAILABLE`   | `AVAILABLE` (updated) |
+| `AGE`         | `UP-TO-DATE` (new)    |
+| `VERSION`     | `PAUSED` (new) (*)    |
+|               | `AGE`                 |
+|               | `VERSION`             |
 
 (*) visible only when using `kubectl get -o wide`
 
 Notes:
 - Print columns are not subject to any deprecation rule, so it is possible to iteratively improve print columns without waiting for the next API version.
-- During the implementation we are going to verify the resulting layout and eventually make final adjustments to the column list.
-- During the implementation we should consider if to add columns for bootstrapRef and infraRef resource (same could apply to other resources)
 - In k8s Deployment and ReplicaSet have different print columns for replica counters; this proposal enforces replicas
   counter columns consistent across all resources.
 
@@ -693,21 +688,21 @@ Below you can find a summary table that also shows how changes will be rolled ou
 |-------------------------|------------------------|
 | `NAME`                  | `NAME`                 |
 | `CLUSTER`               | `CLUSTER`              |
-| `DESIRED` (*)           | `PAUSED` (new) (*)     |
+| `DESIRED` (*)           | `AVAILABLE` (new)      |
 | `REPLICAS`              | `DESIRED`              |
-| `READY`                 | `CURRENT` (*)          |
+| `READY`                 | `CURRENT` (renamed)    |
 | `UPDATED` (renamed)     | `READY`                |
 | `UNAVAILABLE` (deleted) | `AVAILABLE` (new)      |
 | `PHASE`                 | `UP-TO-DATE` (renamed) |
-| `AGE`                   | `PHASE`                |
-| `VERSION`               | `AGE`                  |
+| `AGE`                   | `PAUSED` (new) (*)     |
+| `VERSION`               | `PHASE`                |
+|                         | `AGE`                  |
 |                         | `VERSION`              |
 
 (*) visible only when using `kubectl get -o wide`
 
 Notes:
 - Print columns are not subject to any deprecation rule, so it is possible to iteratively improve print columns without waiting for the next API version.
-- During the implementation we are going to verify the resulting layout and eventually make final adjustments to the column list.
 
 ### Changes to Cluster resource
 
@@ -931,10 +926,9 @@ type ClusterAvailabilityGate struct {
 |-----------------|-----------------------|
 | `NAME`          | `NAME`                |
 | `CLUSTER CLASS` | `CLUSTER CLASS`       |
-| `PHASE`         | `PAUSED` (new) (*)    |
-| `AGE`           | `AVAILABLE` (new)     |
-| `VERSION`       | `CP_DESIRED` (new)    |
-|                 | `CP_CURRENT`(new) (*) |
+| `PHASE`         | `AVAILABLE` (new)     |
+| `AGE`           | `CP_DESIRED` (new)    |
+| `VERSION`       | `CP_CURRENT`(new) (*) |
 |                 | `CP_READY` (new) (*)  |
 |                 | `CP_AVAILABLE` (new)  |
 |                 | `CP_UP-TO-DATE` (new) |
@@ -943,6 +937,7 @@ type ClusterAvailabilityGate struct {
 |                 | `W_READY` (new) (*)   |
 |                 | `W_AVAILABLE` (new)   |
 |                 | `W_UP-TO-DATE` (new)  |
+|                 | `PAUSED` (new) (*)    |
 |                 | `PHASE`               |
 |                 | `AGE`                 |
 |                 | `VERSION`             |
@@ -951,7 +946,6 @@ type ClusterAvailabilityGate struct {
 
 Notes:
 - Print columns are not subject to any deprecation rule, so it is possible to iteratively improve print columns without waiting for the next API version.
-- During the implementation we are going to verify the resulting layout and eventually make final adjustments to the column list.
 
 ### Changes to KubeadmControlPlane (KCP) resource
 
@@ -1060,13 +1054,14 @@ Notes:
 |-------------------------|------------------------|
 | `NAME`                  | `NAME`                 |
 | `CLUSTER`               | `CLUSTER`              |
-| `DESIRED` (*)           | `PAUSED` (new) (*)     |
-| `REPLICAS`              | `INITIALIZED` (new)    |
-| `READY`                 | `DESIRED`              |
-| `UPDATED` (renamed)     | `CURRENT` (*)          |
-| `UNAVAILABLE` (deleted) | `READY`                |
-| `AGE`                   | `AVAILABLE` (new)      |
-| `VERSION`               | `UP-TO-DATE` (renamed) |
+| `DESIRED` (*)           | `AVAILABLE` (new)      |
+| `REPLICAS`              | `DESIRED`              |
+| `READY`                 | `CURRENT` (renamed)    |
+| `UPDATED` (renamed)     | `READY`                |
+| `UNAVAILABLE` (deleted) | `AVAILABLE` (new)      |
+| `AGE`                   | `UP-TO-DATE` (renamed) |
+| `VERSION`               | `PAUSED` (new) (*)     |
+|                         | `INITIALIZED` (new)    |
 |                         | `AGE`                  |
 |                         | `VERSION`              |
 
@@ -1074,7 +1069,6 @@ Notes:
 
 Notes:
 - Print columns are not subject to any deprecation rule, so it is possible to iteratively improve print columns without waiting for the next API version.
-- During the implementation we are going to verify the resulting layout and eventually make final adjustments to the column list.
 
 ### Changes to MachinePool resource
 
@@ -1213,21 +1207,20 @@ Below you can find a summary table that also shows how changes will be rolled ou
 |---------------|------------------------|
 | `NAME`        | `NAME`                 |
 | `CLUSTER`     | `CLUSTER`              |
-| `DESIRED` (*) | `PAUSED` (new) (*)     |
-| `REPLICAS`    | `DESIRED`              |
-| `PHASE`       | `CURRENT` (*)          |
-| `AGE`         | `READY`                |
-| `VERSION`     | `AVAILABLE` (new)      |
-|               | `UP-TO-DATE` (renamed) |
+| `DESIRED` (*) | `DESIRED`              |
+| `REPLICAS`    | `CURRENT` (renamed)    |
+| `PHASE`       | `READY`                |
+| `AGE`         | `AVAILABLE` (new)      |
+| `VERSION`     | `UP-TO-DATE` (renamed) |
+|               | `PAUSED` (new) (*)     |
 |               | `PHASE`                |
 |               | `AGE`                  |
 |               | `VERSION`              |
-
+ 
 (*) visible only when using `kubectl get -o wide`
 
 Notes:
 - Print columns are not subject to any deprecation rule, so it is possible to iteratively improve print columns without waiting for the next API version.
-- During the implementation we are going to verify the resulting layout and eventually make final adjustments to the column list.
 
 ### Changes to Cluster API contract
 
@@ -1538,3 +1531,4 @@ Transition from v1beta1 API/contract to v1beta2 contract is detailed in previous
   - [10000 feet overview](https://docs.google.com/presentation/d/1hhgCufOIuqHz6YR_RUPGo0uTjfm5YafjCb6JHY1_clY/edit?usp=sharing)
 - [x] 2024-09-16: Proposal approved
 - [x] 2025-01-30: v1beta2 tentative date moved from Apr 2025 to Aug 2025
+- [x] 2025-07-28: align print columns to v1beta2 API

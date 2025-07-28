@@ -1614,14 +1614,30 @@ spec:
       jsonPath: .spec.clusterName
       name: Cluster
       type: string
-    - description: Total number of machines desired by this MachinePool
+    - description: The desired number of machines
       jsonPath: .spec.replicas
       name: Desired
-      priority: 10
       type: integer
-    - description: MachinePool replicas count
+    - description: The number of machines
       jsonPath: .status.replicas
-      name: Replicas
+      name: Current
+      type: integer
+    - description: The number of machines with Ready condition true
+      jsonPath: .status.readyReplicas
+      name: Ready
+      type: integer
+    - description: The number of machines with Available condition true
+      jsonPath: .status.availableReplicas
+      name: Available
+      type: integer
+    - description: The number of machines with UpToDate condition true
+      jsonPath: .status.upToDateReplicas
+      name: Up-to-date
+      type: integer
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
       type: string
     - description: MachinePool status such as Terminating/Pending/Provisioning/Running/Failed
         etc

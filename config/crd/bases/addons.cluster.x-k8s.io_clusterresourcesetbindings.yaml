@@ -306,6 +306,10 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
     - description: Time duration since creation of ClusterResourceSetBinding
       jsonPath: .metadata.creationTimestamp
       name: Age
@@ -413,5 +417,4 @@ spec:
         type: object
     served: true
     storage: true
-    subresources:
-      status: {}
+    subresources: {}

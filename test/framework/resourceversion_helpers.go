@@ -24,7 +24,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -32,10 +32,10 @@ import (
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
-// ValidateResourceVersionStable checks that resource versions are stable.
+// ValidateResourceVersionStable checks that resourceVersions are stable.
 func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, namespace string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) {
-	// Wait until resource versions are stable for a bit.
-	byf("Check Resource versions are stable")
+	// Wait until resourceVersions are stable for a bit.
+	byf("Check resourceVersions are stable")
 	var previousResourceVersions map[string]string
 	var previousObjects map[string]client.Object
 	Eventually(func(g Gomega) {
@@ -43,21 +43,21 @@ func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, name
 		g.Expect(err).ToNot(HaveOccurred())
 
 		defer func() {
-			// Set current resource versions as previous resource versions for the next try.
+			// Set current resourceVersions as previous resourceVersions for the next try.
 			previousResourceVersions = objectsWithResourceVersion
 			previousObjects = objects
 		}()
 		// This is intentionally failing on the first run.
 		g.Expect(objectsWithResourceVersion).To(BeComparableTo(previousResourceVersions))
-	}, 1*time.Minute, 15*time.Second).Should(Succeed(), "Resource versions never became stable")
+	}, 1*time.Minute, 15*time.Second).Should(Succeed(), "resourceVersions never became stable")
 
-	// Verify resource versions are stable for a while.
-	byf("Check Resource versions remain stable")
+	// Verify resourceVersions are stable for a while.
+	byf("Check resourceVersions remain stable")
 	Consistently(func(g Gomega) {
 		objectsWithResourceVersion, objects, err := getObjectsWithResourceVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(objectsWithResourceVersion).To(BeComparableTo(previousResourceVersions), printObjectDiff(previousObjects, objects))
-	}, 2*time.Minute, 15*time.Second).Should(Succeed(), "Resource versions didn't stay stable")
+	}, 2*time.Minute, 15*time.Second).Should(Succeed(), "resourceVersions didn't stay stable")
 }
 
 func printObjectDiff(previousObjects, newObjects map[string]client.Object) func() string {
@@ -123,16 +123,13 @@ func getObjectsWithResourceVersion(ctx context.Context, proxy ClusterProxy, name
 	objects := map[string]client.Object{}
 	for _, node := range graph {
 		nodeNamespacedName := client.ObjectKey{Namespace: node.Object.Namespace, Name: node.Object.Name}
-		obj := &metav1.PartialObjectMetadata{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: node.Object.APIVersion,
-				Kind:       node.Object.Kind,
-			},
-		}
+		obj := &unstructured.Unstructured{}
+		obj.SetAPIVersion(node.Object.APIVersion)
+		obj.SetKind(node.Object.Kind)
 		if err := proxy.GetClient().Get(ctx, nodeNamespacedName, obj); err != nil {
 			return nil, nil, err
 		}
-		objectsWithResourceVersion[fmt.Sprintf("%s/%s/%s", node.Object.Kind, node.Object.Namespace, node.Object.Name)] = obj.ResourceVersion
+		objectsWithResourceVersion[fmt.Sprintf("%s/%s/%s", node.Object.Kind, node.Object.Namespace, node.Object.Name)] = obj.GetResourceVersion()
 		objects[fmt.Sprintf("%s/%s/%s", node.Object.Kind, node.Object.Namespace, node.Object.Name)] = obj
 	}
 	return objectsWithResourceVersion, objects, nil

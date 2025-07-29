@@ -78,6 +78,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeJoinConfigurationFuzzer,
 		spokeJoinControlPlaneFuzzer,
 		spokeTimeoutsFuzzer,
+		hubClusterConfigurationFuzzer,
 		hubJoinConfigurationFuzzer,
 		hubHostPathMountFuzzer,
 		hubBootstrapTokenDiscoveryFuzzer,
@@ -183,6 +184,30 @@ func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
 	}
 }
 
+func hubClusterConfigurationFuzzer(in *bootstrapv1.ClusterConfiguration, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in != nil {
+		in.CertificateValidityPeriodDays = c.Int31n(3*365 + 1)
+		in.CACertificateValidityPeriodDays = c.Int31n(100*365 + 1)
+
+		if in.APIServer.ExtraEnvs != nil && *in.APIServer.ExtraEnvs == nil {
+			in.APIServer.ExtraEnvs = nil
+		}
+		if in.ControllerManager.ExtraEnvs != nil && *in.ControllerManager.ExtraEnvs == nil {
+			in.ControllerManager.ExtraEnvs = nil
+		}
+		if in.Scheduler.ExtraEnvs != nil && *in.Scheduler.ExtraEnvs == nil {
+			in.Scheduler.ExtraEnvs = nil
+		}
+		if in.Etcd.Local != nil {
+			if in.Etcd.Local.ExtraEnvs != nil && *in.Etcd.Local.ExtraEnvs == nil {
+				in.Etcd.Local.ExtraEnvs = nil
+			}
+		}
+	}
+}
+
 func hubJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
@@ -213,11 +238,4 @@ func hubNodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, 
 	if obj.Taints != nil && *obj.Taints == nil {
 		obj.Taints = nil
 	}
-}
-
-func hubClusterConfigurationFuzzer(obj *bootstrapv1.ClusterConfiguration, c randfill.Continue) {
-	c.FillNoCustom(obj)
-
-	obj.CertificateValidityPeriodDays = c.Int31n(3*365 + 1)
-	obj.CACertificateValidityPeriodDays = c.Int31n(100*365 + 1)
 }

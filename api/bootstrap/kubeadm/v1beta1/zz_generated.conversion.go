@@ -1878,7 +1878,7 @@ func autoConvert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *v1be
 	}
 	out.DataDir = in.DataDir
 	// WARNING: in.ExtraArgs requires manual conversion: inconvertible types (map[string]string vs []sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg)
-	out.ExtraEnvs = *(*[]v1beta2.EnvVar)(unsafe.Pointer(&in.ExtraEnvs))
+	// WARNING: in.ExtraEnvs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.EnvVar vs *[]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.EnvVar)
 	out.ServerCertSANs = *(*[]string)(unsafe.Pointer(&in.ServerCertSANs))
 	out.PeerCertSANs = *(*[]string)(unsafe.Pointer(&in.PeerCertSANs))
 	return nil
@@ -1890,7 +1890,7 @@ func autoConvert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(in *v1beta2.LocalEtcd, o
 	}
 	out.DataDir = in.DataDir
 	// WARNING: in.ExtraArgs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg vs map[string]string)
-	out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(&in.ExtraEnvs))
+	// WARNING: in.ExtraEnvs requires manual conversion: inconvertible types (*[]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.EnvVar vs []sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.EnvVar)
 	out.ServerCertSANs = *(*[]string)(unsafe.Pointer(&in.ServerCertSANs))
 	out.PeerCertSANs = *(*[]string)(unsafe.Pointer(&in.PeerCertSANs))
 	return nil

@@ -148,8 +148,12 @@ func Convert_upstreamv1beta4_BootstrapToken_To_v1beta2_BootstrapToken(in *Bootst
 }
 
 func Convert_upstreamv1beta4_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstrapv1.APIServer, s apimachineryconversion.Scope) error {
-	out.ExtraArgs = *(*[]bootstrapv1.Arg)(unsafe.Pointer(&in.ExtraArgs))    //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
-	out.ExtraEnvs = *(*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	out.ExtraArgs = *(*[]bootstrapv1.Arg)(unsafe.Pointer(&in.ExtraArgs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	if err := convert_upstreamv1beta4_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s); err != nil {
 		return err
 	}
@@ -157,15 +161,32 @@ func Convert_upstreamv1beta4_APIServer_To_v1beta2_APIServer(in *APIServer, out *
 }
 
 func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_ControllerManager(in *ControlPlaneComponent, out *bootstrapv1.ControllerManager, s apimachineryconversion.Scope) error {
-	out.ExtraArgs = *(*[]bootstrapv1.Arg)(unsafe.Pointer(&in.ExtraArgs))    //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
-	out.ExtraEnvs = *(*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	out.ExtraArgs = *(*[]bootstrapv1.Arg)(unsafe.Pointer(&in.ExtraArgs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	return convert_upstreamv1beta4_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
 
 func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_Scheduler(in *ControlPlaneComponent, out *bootstrapv1.Scheduler, s apimachineryconversion.Scope) error {
-	out.ExtraArgs = *(*[]bootstrapv1.Arg)(unsafe.Pointer(&in.ExtraArgs))    //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
-	out.ExtraEnvs = *(*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	out.ExtraArgs = *(*[]bootstrapv1.Arg)(unsafe.Pointer(&in.ExtraArgs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	return convert_upstreamv1beta4_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
+}
+
+func Convert_upstreamv1beta4_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstrapv1.LocalEtcd, s apimachineryconversion.Scope) error {
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
+	return autoConvert_upstreamv1beta4_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
 }
 
 func convert_upstreamv1beta4_ExtraVolumes_To_v1beta2_ExtraVolumes(in *[]HostPathMount, out *[]bootstrapv1.HostPathMount, s apimachineryconversion.Scope) error {
@@ -187,8 +208,12 @@ func convert_upstreamv1beta4_ExtraVolumes_To_v1beta2_ExtraVolumes(in *[]HostPath
 func Convert_v1beta2_APIServer_To_upstreamv1beta4_APIServer(in *bootstrapv1.APIServer, out *APIServer, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in kubeadm v1beta4 version:
 	// - TimeoutForControlPlane (this field has been migrated to Init/JoinConfiguration; migration is handled by ConvertFromClusterConfiguration custom converters.
-	out.ExtraArgs = *(*[]Arg)(unsafe.Pointer(&in.ExtraArgs))    //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
-	out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	out.ExtraArgs = *(*[]Arg)(unsafe.Pointer(&in.ExtraArgs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	if err := convert_v1beta2_ExtraVolumes_To_upstreamv1beta4_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s); err != nil {
 		return err
 	}
@@ -197,16 +222,33 @@ func Convert_v1beta2_APIServer_To_upstreamv1beta4_APIServer(in *bootstrapv1.APIS
 
 func Convert_v1beta2_ControllerManager_To_upstreamv1beta4_ControlPlaneComponent(in *bootstrapv1.ControllerManager, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	// Following fields require a custom conversions.
-	out.ExtraArgs = *(*[]Arg)(unsafe.Pointer(&in.ExtraArgs))    //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
-	out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	out.ExtraArgs = *(*[]Arg)(unsafe.Pointer(&in.ExtraArgs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	return convert_v1beta2_ExtraVolumes_To_upstreamv1beta4_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
 
 func Convert_v1beta2_Scheduler_To_upstreamv1beta4_ControlPlaneComponent(in *bootstrapv1.Scheduler, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	// Following fields require a custom conversions.
-	out.ExtraArgs = *(*[]Arg)(unsafe.Pointer(&in.ExtraArgs))    //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
-	out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	out.ExtraArgs = *(*[]Arg)(unsafe.Pointer(&in.ExtraArgs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	return convert_v1beta2_ExtraVolumes_To_upstreamv1beta4_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
+}
+
+func Convert_v1beta2_LocalEtcd_To_upstreamv1beta4_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apimachineryconversion.Scope) error {
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
+	return autoConvert_v1beta2_LocalEtcd_To_upstreamv1beta4_LocalEtcd(in, out, s)
 }
 
 func convert_v1beta2_ExtraVolumes_To_upstreamv1beta4_ExtraVolumes(in *[]bootstrapv1.HostPathMount, out *[]HostPathMount, s apimachineryconversion.Scope) error {

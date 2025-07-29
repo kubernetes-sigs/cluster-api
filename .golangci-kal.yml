@@ -158,6 +158,10 @@ linters:
       text: "optionalfields: field Taints is optional but the underlying type does not need to be a pointer. The pointer should be removed."
       linters:
         - kubeapilinter
+    - path: "api/bootstrap/kubeadm/v1beta2/kubeadm_types.go"
+      text: "optionalfields: field ExtraEnvs is optional and does not allow the zero value. The field does not need to be a pointer."
+      linters:
+        - kubeapilinter
     # KAL does not handle omitzero correctly yet: https://github.com/kubernetes-sigs/kube-api-linter/pull/115
     - path: "api/.*"
       text: "optionalfields: field (Status|Initialization) is optional and should (be a pointer|have the omitempty tag)"

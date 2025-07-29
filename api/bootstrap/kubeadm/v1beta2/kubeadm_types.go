@@ -233,7 +233,7 @@ type APIServer struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
-	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
+	ExtraEnvs *[]EnvVar `json:"extraEnvs,omitempty"`
 
 	// certSANs sets extra Subject Alternative Names for the API Server signing cert.
 	// +optional
@@ -274,7 +274,7 @@ type ControllerManager struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
-	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
+	ExtraEnvs *[]EnvVar `json:"extraEnvs,omitempty"`
 }
 
 // Scheduler holds settings necessary for scheduler deployments in the cluster.
@@ -306,7 +306,7 @@ type Scheduler struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
-	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
+	ExtraEnvs *[]EnvVar `json:"extraEnvs,omitempty"`
 }
 
 // DNS defines the DNS addon that should be used in the cluster.
@@ -507,7 +507,7 @@ type LocalEtcd struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
-	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
+	ExtraEnvs *[]EnvVar `json:"extraEnvs,omitempty"`
 
 	// serverCertSANs sets extra Subject Alternative Names for the etcd server signing cert.
 	// +optional

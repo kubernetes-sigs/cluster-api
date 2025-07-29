@@ -1862,7 +1862,7 @@ func TestOmittableFieldsClusterConfiguration(t *testing.T) {
 				Etcd: bootstrapv1.Etcd{
 					Local: &bootstrapv1.LocalEtcd{
 						ExtraArgs:      []bootstrapv1.Arg{},
-						ExtraEnvs:      []bootstrapv1.EnvVar{},
+						ExtraEnvs:      ptr.To([]bootstrapv1.EnvVar{}),
 						ServerCertSANs: []string{},
 						PeerCertSANs:   []string{},
 					},
@@ -1873,18 +1873,18 @@ func TestOmittableFieldsClusterConfiguration(t *testing.T) {
 				APIServer: bootstrapv1.APIServer{
 					ExtraArgs:    []bootstrapv1.Arg{},
 					ExtraVolumes: []bootstrapv1.HostPathMount{},
-					ExtraEnvs:    []bootstrapv1.EnvVar{},
+					ExtraEnvs:    ptr.To([]bootstrapv1.EnvVar{}),
 					CertSANs:     []string{},
 				},
 				ControllerManager: bootstrapv1.ControllerManager{
 					ExtraArgs:    []bootstrapv1.Arg{},
 					ExtraVolumes: []bootstrapv1.HostPathMount{},
-					ExtraEnvs:    []bootstrapv1.EnvVar{},
+					ExtraEnvs:    ptr.To([]bootstrapv1.EnvVar{}),
 				},
 				Scheduler: bootstrapv1.Scheduler{
 					ExtraArgs:    []bootstrapv1.Arg{},
 					ExtraVolumes: []bootstrapv1.HostPathMount{},
-					ExtraEnvs:    []bootstrapv1.EnvVar{},
+					ExtraEnvs:    ptr.To([]bootstrapv1.EnvVar{}),
 				},
 				FeatureGates: map[string]bool{},
 			},

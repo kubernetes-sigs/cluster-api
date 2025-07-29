@@ -558,7 +558,7 @@ def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
         clusterclass_name + ".clusterclass:apply",
         argv = ["bash", "-c", apply_clusterclass_cmd],
         env = dictionary_to_list_of_string(substitutions),
-        resource = clusterclass_name,
+        resource = clusterclass_name + ".clusterclass",
         icon_name = "note_add",
         text = "Apply `" + clusterclass_name + "` ClusterClass",
         inputs = [
@@ -570,7 +570,7 @@ def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
         clusterclass_name + ".clusterclass:delete",
         argv = ["bash", "-c", delete_clusterclass_cmd],
         env = dictionary_to_list_of_string(substitutions),
-        resource = clusterclass_name,
+        resource = clusterclass_name + ".clusterclass",
         icon_name = "delete_forever",
         text = "Delete `" + clusterclass_name + "` ClusterClass",
         inputs = [

@@ -41,6 +41,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/util/container"
+	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -155,6 +156,7 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		{spec, kubeadmConfigSpec, clusterConfiguration, controllerManager, "*"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, scheduler},
 		{spec, kubeadmConfigSpec, clusterConfiguration, scheduler, "*"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "certificateValidityPeriodDays"},
 		// spec.kubeadmConfigSpec.initConfiguration
 		{spec, kubeadmConfigSpec, initConfiguration, nodeRegistration},
 		{spec, kubeadmConfigSpec, initConfiguration, nodeRegistration, "*"},
@@ -349,13 +351,15 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 		allErrs = append(allErrs, field.Invalid(pathPrefix.Child("version"), s.Version, "must be a valid semantic version"))
 	}
 
-	allErrs = append(allErrs, validateRolloutStrategy(s.Rollout.Strategy, s.Replicas, pathPrefix.Child("rollout", "strategy"))...)
+	allErrs = append(allErrs, validateRolloutAndCertValidityFields(s.Rollout, s.KubeadmConfigSpec.ClusterConfiguration, s.Replicas, pathPrefix)...)
 	allErrs = append(allErrs, validateNaming(s.MachineNaming, pathPrefix.Child("machineNaming"))...)
 	return allErrs
 }
 
-func validateRolloutStrategy(rolloutStrategy controlplanev1.KubeadmControlPlaneRolloutStrategy, replicas *int32, pathPrefix *field.Path) field.ErrorList {
+func validateRolloutAndCertValidityFields(rolloutSpec controlplanev1.KubeadmControlPlaneRolloutSpec, clusterConfiguration *bootstrapv1.ClusterConfiguration, replicas *int32, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
+
+	rolloutStrategy := rolloutSpec.Strategy
 
 	if reflect.DeepEqual(rolloutStrategy, controlplanev1.KubeadmControlPlaneRolloutStrategy{}) {
 		return nil
@@ -365,7 +369,7 @@ func validateRolloutStrategy(rolloutStrategy controlplanev1.KubeadmControlPlaneR
 		allErrs = append(
 			allErrs,
 			field.Required(
-				pathPrefix.Child("type"),
+				pathPrefix.Child("rollout", "strategy", "type"),
 				"only RollingUpdate is supported",
 			),
 		)
@@ -378,7 +382,7 @@ func validateRolloutStrategy(rolloutStrategy controlplanev1.KubeadmControlPlaneR
 			allErrs = append(
 				allErrs,
 				field.Required(
-					pathPrefix.Child("rollingUpdate"),
+					pathPrefix.Child("rollout", "strategy", "rollingUpdate"),
 					"when KubeadmControlPlane is configured to scale-in, replica count needs to be at least 3",
 				),
 			)
@@ -387,10 +391,46 @@ func validateRolloutStrategy(rolloutStrategy controlplanev1.KubeadmControlPlaneR
 			allErrs = append(
 				allErrs,
 				field.Required(
-					pathPrefix.Child("rollingUpdate", "maxSurge"),
+					pathPrefix.Child("rollout", "strategy", "rollingUpdate", "maxSurge"),
 					"value must be 1 or 0",
 				),
 			)
+		}
+	}
+
+	if clusterConfiguration == nil {
+		return allErrs
+	}
+
+	if clusterConfiguration.CertificateValidityPeriodDays != 0 {
+		if clusterConfiguration.CACertificateValidityPeriodDays != 0 {
+			if clusterConfiguration.CertificateValidityPeriodDays > clusterConfiguration.CACertificateValidityPeriodDays {
+				allErrs = append(allErrs,
+					field.Invalid(
+						pathPrefix.Child("kubeadmConfigSpec", "clusterConfiguration", "certificateValidityPeriodDays"),
+						clusterConfiguration.CertificateValidityPeriodDays,
+						fmt.Sprintf("must be less than or equal to caCertificateValidityPeriodDays (%d)", clusterConfiguration.CACertificateValidityPeriodDays),
+					),
+				)
+			}
+		} else if clusterConfiguration.CertificateValidityPeriodDays > secret.DefaultCACertificatesExpiryDays {
+			allErrs = append(allErrs,
+				field.Invalid(
+					pathPrefix.Child("kubeadmConfigSpec", "clusterConfiguration", "certificateValidityPeriodDays"),
+					clusterConfiguration.CertificateValidityPeriodDays,
+					fmt.Sprintf("must be less than or equal to the default value of caCertificateValidityPeriodDays (%d)", secret.DefaultCACertificatesExpiryDays),
+				),
+			)
+		}
+
+		if rolloutSpec.Before.CertificatesExpiryDays != 0 {
+			if rolloutSpec.Before.CertificatesExpiryDays >= clusterConfiguration.CertificateValidityPeriodDays {
+				allErrs = append(allErrs,
+					field.Invalid(
+						pathPrefix.Child("rollout", "before", "certificatesExpiryDays"),
+						rolloutSpec.Before.CertificatesExpiryDays,
+						fmt.Sprintf("must be less than certificateValidityPeriodDays (%d)", clusterConfiguration.CertificateValidityPeriodDays)))
+			}
 		}
 	}
 

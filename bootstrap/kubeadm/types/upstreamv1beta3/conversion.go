@@ -307,3 +307,7 @@ func (src *ClusterConfiguration) GetAdditionalData(data *upstream.AdditionalData
 		data.ControlPlaneComponentHealthCheckSeconds = clusterv1.ConvertToSeconds(src.APIServer.TimeoutForControlPlane)
 	}
 }
+
+func Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta3_ClusterConfiguration(in *bootstrapv1.ClusterConfiguration, out *ClusterConfiguration, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_ClusterConfiguration_To_upstreamv1beta3_ClusterConfiguration(in, out, s)
+}

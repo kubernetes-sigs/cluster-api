@@ -3540,6 +3540,7 @@ spec:
                   - name
                   type: object
                 maxItems: 1000
+                minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
               variables:
@@ -3596,6 +3597,7 @@ spec:
                             openAPIV3Schema defines the schema of a variable via OpenAPI v3
                             schema. The schema is a subset of the schema used in
                             Kubernetes CRDs.
+                          minProperties: 1
                           properties:
                             additionalProperties:
                               description: |-
@@ -3754,6 +3756,7 @@ spec:
                                 minLength: 1
                                 type: string
                               maxItems: 1000
+                              minItems: 1
                               type: array
                               x-kubernetes-list-type: atomic
                             type:
@@ -3921,6 +3924,7 @@ spec:
                                 - rule
                                 type: object
                               maxItems: 100
+                              minItems: 1
                               type: array
                               x-kubernetes-list-map-keys:
                               - rule
@@ -3929,6 +3933,7 @@ spec:
                               description: |-
                                 x-metadata is the metadata of a variable or a nested field within a variable.
                                 It can be used to add additional data for higher level tools.
+                              minProperties: 1
                               properties:
                                 annotations:
                                   additionalProperties:
@@ -3956,6 +3961,7 @@ spec:
                   - schema
                   type: object
                 maxItems: 1000
+                minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
               workers:
@@ -4456,6 +4462,7 @@ spec:
                       - infrastructure
                       type: object
                     maxItems: 100
+                    minItems: 1
                     type: array
                     x-kubernetes-list-map-keys:
                     - class
@@ -4663,6 +4670,7 @@ spec:
                       - infrastructure
                       type: object
                     maxItems: 100
+                    minItems: 1
                     type: array
                     x-kubernetes-list-map-keys:
                     - class
@@ -4872,6 +4880,7 @@ spec:
                                   openAPIV3Schema defines the schema of a variable via OpenAPI v3
                                   schema. The schema is a subset of the schema used in
                                   Kubernetes CRDs.
+                                minProperties: 1
                                 properties:
                                   additionalProperties:
                                     description: |-
@@ -5030,6 +5039,7 @@ spec:
                                       minLength: 1
                                       type: string
                                     maxItems: 1000
+                                    minItems: 1
                                     type: array
                                     x-kubernetes-list-type: atomic
                                   type:
@@ -5206,6 +5216,7 @@ spec:
                                       - rule
                                       type: object
                                     maxItems: 100
+                                    minItems: 1
                                     type: array
                                     x-kubernetes-list-map-keys:
                                     - rule
@@ -5214,6 +5225,7 @@ spec:
                                     description: |-
                                       x-metadata is the metadata of a variable or a nested field within a variable.
                                       It can be used to add additional data for higher level tools.
+                                    minProperties: 1
                                     properties:
                                       annotations:
                                         additionalProperties:

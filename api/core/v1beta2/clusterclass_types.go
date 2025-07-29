@@ -123,6 +123,7 @@ type ClusterClassSpec struct {
 	// in the Cluster topology and are then used in patches.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=1000
 	Variables []ClusterClassVariable `json:"variables,omitempty"`
 
@@ -131,6 +132,7 @@ type ClusterClassSpec struct {
 	// Note: Patches will be applied in the order of the array.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=1000
 	Patches []ClusterClassPatch `json:"patches,omitempty"`
 }
@@ -374,6 +376,7 @@ type WorkersClass struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=class
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	MachineDeployments []MachineDeploymentClass `json:"machineDeployments,omitempty"`
 
@@ -382,6 +385,7 @@ type WorkersClass struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=class
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	MachinePools []MachinePoolClass `json:"machinePools,omitempty"`
 }
@@ -852,6 +856,7 @@ type VariableSchema struct {
 // JSONSchemaProps is a JSON-Schema following Specification Draft 4 (http://json-schema.org/).
 // This struct has been initially copied from apiextensionsv1.JSONSchemaProps, but all fields
 // which are not supported in CAPI have been removed.
+// +kubebuilder:validation:MinProperties=1
 type JSONSchemaProps struct {
 	// description is a human-readable description of this variable.
 	// +optional
@@ -903,6 +908,7 @@ type JSONSchemaProps struct {
 	// NOTE: Can only be set if type is object.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=1000
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -1004,6 +1010,7 @@ type JSONSchemaProps struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=rule
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	XValidations []ValidationRule `json:"x-kubernetes-validations,omitempty"`
 
@@ -1063,6 +1070,7 @@ type JSONSchemaProps struct {
 
 // VariableSchemaMetadata is the metadata of a variable or a nested field within a variable.
 // It can be used to add additional data for higher level tools.
+// +kubebuilder:validation:MinProperties=1
 type VariableSchemaMetadata struct {
 	// labels is a map of string keys and values that can be used to organize and categorize
 	// (scope and select) variables.

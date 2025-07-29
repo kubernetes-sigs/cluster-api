@@ -78,6 +78,7 @@ type InitConfiguration struct {
 	// This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	BootstrapTokens []BootstrapToken `json:"bootstrapTokens,omitempty"`
 
@@ -101,6 +102,7 @@ type InitConfiguration struct {
 	// This option takes effect only on Kubernetes >=1.22.0.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -202,6 +204,7 @@ type APIServer struct {
 	// extraVolumes is an extra set of host volumes, mounted to the control plane component.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	ExtraVolumes []HostPathMount `json:"extraVolumes,omitempty"`
 
@@ -210,12 +213,14 @@ type APIServer struct {
 	// This option takes effect only on Kubernetes >=1.31.0.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 
 	// certSANs sets extra Subject Alternative Names for the API Server signing cert.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=253
@@ -240,6 +245,7 @@ type ControllerManager struct {
 	// extraVolumes is an extra set of host volumes, mounted to the control plane component.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	ExtraVolumes []HostPathMount `json:"extraVolumes,omitempty"`
 
@@ -248,6 +254,7 @@ type ControllerManager struct {
 	// This option takes effect only on Kubernetes >=1.31.0.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 }
@@ -270,6 +277,7 @@ type Scheduler struct {
 	// extraVolumes is an extra set of host volumes, mounted to the control plane component.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	ExtraVolumes []HostPathMount `json:"extraVolumes,omitempty"`
 
@@ -278,6 +286,7 @@ type Scheduler struct {
 	// This option takes effect only on Kubernetes >=1.31.0.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 }
@@ -367,6 +376,7 @@ type NodeRegistrationOptions struct {
 	// Value 'all' ignores errors from all checks.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512
@@ -416,6 +426,7 @@ type BootstrapToken struct {
 	// for establishing bidirectional trust, but that can be changed here.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -425,6 +436,7 @@ type BootstrapToken struct {
 	// used for authentication
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -446,6 +458,7 @@ type Etcd struct {
 }
 
 // LocalEtcd describes that kubeadm should run an etcd cluster locally.
+// +kubebuilder:validation:MinProperties=1
 type LocalEtcd struct {
 	// ImageMeta allows to customize the container used for etcd
 	ImageMeta `json:",inline"`
@@ -474,12 +487,14 @@ type LocalEtcd struct {
 	// This option takes effect only on Kubernetes >=1.31.0.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 
 	// serverCertSANs sets extra Subject Alternative Names for the etcd server signing cert.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=253
@@ -488,6 +503,7 @@ type LocalEtcd struct {
 	// peerCertSANs sets extra Subject Alternative Names for the etcd peer signing cert.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=253
@@ -560,6 +576,7 @@ type JoinConfiguration struct {
 	// This option takes effect only on Kubernetes >=1.22.0.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
@@ -605,6 +622,7 @@ type Discovery struct {
 }
 
 // BootstrapTokenDiscovery is used to set the options for bootstrap token based discovery.
+// +kubebuilder:validation:MinProperties=1
 type BootstrapTokenDiscovery struct {
 	// token is a token used to validate cluster information
 	// fetched from the control-plane.
@@ -629,6 +647,7 @@ type BootstrapTokenDiscovery struct {
 	// openssl x509 -pubkey -in ca.crt openssl rsa -pubin -outform der 2>&/dev/null | openssl dgst -sha256 -hex
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512
@@ -678,6 +697,7 @@ type FileDiscoveryKubeConfig struct {
 // KubeConfigCluster contains information about how to communicate with a kubernetes cluster.
 //
 // Adapted from clientcmdv1.Cluster.
+// +kubebuilder:validation:MinProperties=1
 type KubeConfigCluster struct {
 	// server is the address of the kubernetes cluster (https://hostname:port).
 	//
@@ -729,6 +749,7 @@ type KubeConfigCluster struct {
 // Either authProvider or exec must be filled.
 //
 // Adapted from clientcmdv1.AuthInfo.
+// +kubebuilder:validation:MinProperties=1
 type KubeConfigUser struct {
 	// authProvider specifies a custom authentication plugin for the kubernetes cluster.
 	// +optional
@@ -767,6 +788,7 @@ type KubeConfigAuthExec struct {
 	// args is the arguments to pass to the command when executing it.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512
@@ -777,6 +799,7 @@ type KubeConfigAuthExec struct {
 	// to pass argument to the plugin.
 	// +optional
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	Env []KubeConfigAuthExecEnv `json:"env,omitempty"`
 
@@ -897,6 +920,7 @@ func NewBootstrapTokenString(token string) (*BootstrapTokenString, error) {
 }
 
 // Patches contains options related to applying patches to components deployed by kubeadm.
+// +kubebuilder:validation:MinProperties=1
 type Patches struct {
 	// directory is a path to a directory that contains files named "target[suffix][+patchtype].extension".
 	// For example, "kube-apiserver0+merge.yaml" or just "etcd.json". "target" can be one of
@@ -935,6 +959,7 @@ type EnvVar struct {
 }
 
 // Timeouts holds various timeouts that apply to kubeadm commands.
+// +kubebuilder:validation:MinProperties=1
 type Timeouts struct {
 	// controlPlaneComponentHealthCheckSeconds is the amount of time to wait for a control plane
 	// component, such as the API server, to be healthy during "kubeadm init" and "kubeadm join".

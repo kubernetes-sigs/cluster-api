@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -200,28 +199,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 			retRes = ctrl.Result{}
 		}
 	}()
-
-	lastProbeSuccessTime := r.ClusterCache.GetLastProbeSuccessTimestamp(ctx, client.ObjectKeyFromObject(cluster))
-	if time.Since(lastProbeSuccessTime) > r.RemoteConnectionGracePeriod {
-		var msg string
-		if lastProbeSuccessTime.IsZero() {
-			msg = "Remote connection probe failed"
-		} else {
-			msg = fmt.Sprintf("Remote connection probe failed, probe last succeeded at %s", lastProbeSuccessTime.Format(time.RFC3339))
-		}
-		conditions.Set(cluster, metav1.Condition{
-			Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
-			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.ClusterRemoteConnectionProbeFailedReason,
-			Message: msg,
-		})
-	} else {
-		conditions.Set(cluster, metav1.Condition{
-			Type:   clusterv1.ClusterRemoteConnectionProbeCondition,
-			Status: metav1.ConditionTrue,
-			Reason: clusterv1.ClusterRemoteConnectionProbeSucceededReason,
-		})
-	}
 
 	alwaysReconcile := []clusterReconcileFunc{
 		r.reconcileInfrastructure,

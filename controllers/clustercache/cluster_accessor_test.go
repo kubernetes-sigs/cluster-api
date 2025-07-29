@@ -81,9 +81,14 @@ func TestConnect(t *testing.T) {
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("error creating REST config: error getting kubeconfig secret: Secret \"test-cluster-kubeconfig\" not found"))
 	g.Expect(accessor.Connected(ctx)).To(BeFalse())
-	g.Expect(accessor.lockedState.lastConnectionCreationErrorTimestamp.IsZero()).To(BeFalse())
-	accessor.lockedState.lastConnectionCreationErrorTimestamp = time.Time{} // so we can compare in the next line
-	g.Expect(accessor.lockedState).To(Equal(clusterAccessorLockedState{}))
+	g.Expect(accessor.lockedState.lastConnectionCreationErrorTime.IsZero()).To(BeFalse())
+	g.Expect(accessor.lockedState).To(Equal(clusterAccessorLockedState{
+		lastConnectionCreationErrorTime: accessor.lockedState.lastConnectionCreationErrorTime,
+		healthChecking: clusterAccessorLockedHealthCheckingState{
+			lastProbeTime:       accessor.lockedState.healthChecking.lastProbeTime,
+			consecutiveFailures: 1,
+		},
+	}))
 
 	// Create invalid kubeconfig Secret
 	kubeconfigBytes := kubeconfig.FromEnvTestConfig(env.Config, testCluster)
@@ -100,7 +105,7 @@ func TestConnect(t *testing.T) {
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("error creating HTTP client and mapper: cluster is not reachable: the server could not find the requested resource"))
 	g.Expect(accessor.Connected(ctx)).To(BeFalse())
-	g.Expect(accessor.lockedState.lastConnectionCreationErrorTimestamp.IsZero()).To(BeFalse())
+	g.Expect(accessor.lockedState.lastConnectionCreationErrorTime.IsZero()).To(BeFalse())
 
 	// Cleanup invalid kubeconfig Secret
 	g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed())
@@ -127,8 +132,8 @@ func TestConnect(t *testing.T) {
 
 	g.Expect(accessor.lockedState.clientCertificatePrivateKey).ToNot(BeNil())
 
-	g.Expect(accessor.lockedState.healthChecking.lastProbeTimestamp.IsZero()).To(BeFalse())
-	g.Expect(accessor.lockedState.healthChecking.lastProbeSuccessTimestamp.IsZero()).To(BeFalse())
+	g.Expect(accessor.lockedState.healthChecking.lastProbeTime.IsZero()).To(BeFalse())
+	g.Expect(accessor.lockedState.healthChecking.lastProbeSuccessTime.IsZero()).To(BeFalse())
 	g.Expect(accessor.lockedState.healthChecking.consecutiveFailures).To(Equal(0))
 
 	// Get client and test Get & List
@@ -201,8 +206,8 @@ func TestDisconnect(t *testing.T) {
 	// Verify health checking state was preserved
 	g.Expect(accessor.lockedState.clientCertificatePrivateKey).ToNot(BeNil())
 
-	g.Expect(accessor.lockedState.healthChecking.lastProbeTimestamp.IsZero()).To(BeFalse())
-	g.Expect(accessor.lockedState.healthChecking.lastProbeSuccessTimestamp.IsZero()).To(BeFalse())
+	g.Expect(accessor.lockedState.healthChecking.lastProbeTime.IsZero()).To(BeFalse())
+	g.Expect(accessor.lockedState.healthChecking.lastProbeSuccessTime.IsZero()).To(BeFalse())
 }
 
 func TestHealthCheck(t *testing.T) {

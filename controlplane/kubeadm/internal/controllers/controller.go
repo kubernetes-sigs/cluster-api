@@ -904,9 +904,26 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 		return nil
 	}
 
+	healthCheckingState := r.ClusterCache.GetHealthCheckingState(ctx, client.ObjectKeyFromObject(controlPlane.Cluster))
+
+	// ClusterCache did not try to connect often enough yet, either during controller startup or when a new Cluster is created.
+	if healthCheckingState.LastProbeSuccessTime.IsZero() && healthCheckingState.ConsecutiveFailures < 5 {
+		// If conditions are not set, set them to ConnectionDown.
+		// Note: This will allow to keep reporting last known status in case there are temporary connection errors.
+		setConditionsToUnknown(setConditionsToUnknownInput{
+			ControlPlane:                        controlPlane,
+			Overwrite:                           false, // Don't overwrite.
+			EtcdClusterHealthyReason:            controlplanev1.KubeadmControlPlaneEtcdClusterConnectionDownReason,
+			ControlPlaneComponentsHealthyReason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsConnectionDownReason,
+			StaticPodReason:                     controlplanev1.KubeadmControlPlaneMachinePodConnectionDownReason,
+			EtcdMemberHealthyReason:             controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownReason,
+			Message:                             "Remote connection not established yet",
+		})
+		return errors.Errorf("connection to the workload cluster not established yet")
+	}
+
 	// Remote conditions grace period is counted from the later of last probe success and control plane initialized.
-	lastProbeSuccessTime := r.ClusterCache.GetLastProbeSuccessTimestamp(ctx, client.ObjectKeyFromObject(controlPlane.Cluster))
-	if time.Since(maxTime(lastProbeSuccessTime, controlPlaneInitialized.LastTransitionTime.Time)) > r.RemoteConditionsGracePeriod {
+	if time.Since(maxTime(healthCheckingState.LastProbeSuccessTime, controlPlaneInitialized.LastTransitionTime.Time)) > r.RemoteConditionsGracePeriod {
 		// Overwrite conditions to ConnectionDown.
 		setConditionsToUnknown(setConditionsToUnknownInput{
 			ControlPlane:                        controlPlane,
@@ -915,7 +932,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 			ControlPlaneComponentsHealthyReason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsConnectionDownReason,
 			StaticPodReason:                     controlplanev1.KubeadmControlPlaneMachinePodConnectionDownReason,
 			EtcdMemberHealthyReason:             controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownReason,
-			Message:                             lastProbeSuccessMessage(lastProbeSuccessTime),
+			Message:                             lastProbeSuccessMessage(healthCheckingState.LastProbeSuccessTime),
 		})
 		return errors.Errorf("connection to the workload cluster is down")
 	}
@@ -935,7 +952,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 				ControlPlaneComponentsHealthyReason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsConnectionDownReason,
 				StaticPodReason:                     controlplanev1.KubeadmControlPlaneMachinePodConnectionDownReason,
 				EtcdMemberHealthyReason:             controlplanev1.KubeadmControlPlaneMachineEtcdMemberConnectionDownReason,
-				Message:                             lastProbeSuccessMessage(lastProbeSuccessTime),
+				Message:                             lastProbeSuccessMessage(healthCheckingState.LastProbeSuccessTime),
 			})
 			return errors.Wrap(err, "cannot get client for the workload cluster")
 		}

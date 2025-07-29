@@ -152,8 +152,8 @@ type ClusterCache interface {
 	// If there is no connection to the workload cluster ErrClusterNotConnected will be returned.
 	Watch(ctx context.Context, cluster client.ObjectKey, watcher Watcher) error
 
-	// GetLastProbeSuccessTimestamp returns the time when the health probe was successfully executed last.
-	GetLastProbeSuccessTimestamp(ctx context.Context, cluster client.ObjectKey) time.Time
+	// GetHealthCheckingState returns the health checking state of a Cluster.
+	GetHealthCheckingState(ctx context.Context, cluster client.ObjectKey) HealthCheckingState
 
 	// GetClusterSource returns a Source of Cluster events.
 	// The mapFunc will be used to map from Cluster to reconcile.Request.
@@ -164,6 +164,21 @@ type ClusterCache interface {
 	// as a parameter, but then the existing mapFuncs we already use in our Reconcilers wouldn't work and we would
 	// have to implement new ones.
 	GetClusterSource(controllerName string, mapFunc func(ctx context.Context, cluster client.Object) []ctrl.Request, opts ...GetClusterSourceOption) source.Source
+}
+
+// HealthCheckingState holds the health checking state for a Cluster.
+type HealthCheckingState struct {
+	// LastProbeTime is the time when a health probe was executed last.
+	// Note: client creations are also counted as probes.
+	LastProbeTime time.Time
+
+	// LastProbeSuccessTime is the time when a health probe was successfully executed last.
+	// Note: client creations are also counted as probes.
+	LastProbeSuccessTime time.Time
+
+	// ConsecutiveFailures is the number of consecutive health probe failures.
+	// Note: client creations are also counted as probes.
+	ConsecutiveFailures int
 }
 
 // ErrClusterNotConnected is returned by the ClusterCache when e.g. a Client cannot be returned
@@ -262,7 +277,7 @@ func (o *GetClusterSourceOptions) ApplyOptions(opts []GetClusterSourceOption) *G
 
 // WatchForProbeFailure will configure the Cluster source to enqueue reconcile.Requests if the health probe
 // didn't succeed for the configured duration.
-// For example if WatchForProbeFailure is set to 5m, an event will be sent if LastProbeSuccessTimestamp
+// For example if WatchForProbeFailure is set to 5m, an event will be sent if LastProbeSuccessTime
 // is 5m in the past (i.e. health probes didn't succeed in the last 5m).
 type WatchForProbeFailure time.Duration
 
@@ -353,11 +368,11 @@ type clusterSource struct {
 	// ch is the channel on which to send events.
 	ch chan event.GenericEvent
 
-	// sendEventAfterProbeFailureDurations are the durations after LastProbeSuccessTimestamp
+	// sendEventAfterProbeFailureDurations are the durations after LastProbeSuccessTime
 	// after which we have to send events.
 	sendEventAfterProbeFailureDurations []time.Duration
 
-	// lastEventSentTimeByCluster are the timestamps when we last sent an event for a cluster.
+	// lastEventSentTimeByCluster are the times when we last sent an event for a cluster.
 	lastEventSentTimeByCluster map[client.ObjectKey]time.Time
 }
 
@@ -401,12 +416,12 @@ func (cc *clusterCache) Watch(ctx context.Context, cluster client.ObjectKey, wat
 	return accessor.Watch(ctx, watcher)
 }
 
-func (cc *clusterCache) GetLastProbeSuccessTimestamp(ctx context.Context, cluster client.ObjectKey) time.Time {
+func (cc *clusterCache) GetHealthCheckingState(ctx context.Context, cluster client.ObjectKey) HealthCheckingState {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
-		return time.Time{}
+		return HealthCheckingState{}
 	}
-	return accessor.GetLastProbeSuccessTimestamp(ctx)
+	return accessor.GetHealthCheckingState(ctx)
 }
 
 const (
@@ -452,10 +467,10 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 	// Try to connect, if not connected.
 	connected := accessor.Connected(ctx)
 	if !connected {
-		lastConnectionCreationErrorTimestamp := accessor.GetLastConnectionCreationErrorTimestamp(ctx)
+		lastConnectionCreationErrorTime := accessor.GetLastConnectionCreationErrorTime(ctx)
 
 		// Requeue, if connection creation failed within the ConnectionCreationRetryInterval.
-		if requeueAfter, requeue := shouldRequeue(time.Now(), lastConnectionCreationErrorTimestamp, accessor.config.ConnectionCreationRetryInterval); requeue {
+		if requeueAfter, requeue := shouldRequeue(time.Now(), lastConnectionCreationErrorTime, accessor.config.ConnectionCreationRetryInterval); requeue {
 			log.V(6).Info(fmt.Sprintf("Requeuing after %s as connection creation already failed within the last %s",
 				requeueAfter.Truncate(time.Second/10), accessor.config.ConnectionCreationRetryInterval))
 			requeueAfterDurations = append(requeueAfterDurations, requeueAfter)
@@ -475,10 +490,10 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 
 	// Run the health probe, if connected.
 	if connected {
-		lastProbeTimestamp := accessor.GetLastProbeTimestamp(ctx)
+		healthCheckingState := accessor.GetHealthCheckingState(ctx)
 
 		// Requeue, if health probe was already run within the HealthProbe.Interval.
-		if requeueAfter, requeue := shouldRequeue(time.Now(), lastProbeTimestamp, accessor.config.HealthProbe.Interval); requeue {
+		if requeueAfter, requeue := shouldRequeue(time.Now(), healthCheckingState.LastProbeTime, accessor.config.HealthProbe.Interval); requeue {
 			log.V(6).Info(fmt.Sprintf("Requeuing after %s as health probe was already run within the last %s",
 				requeueAfter.Truncate(time.Second/10), accessor.config.HealthProbe.Interval))
 			requeueAfterDurations = append(requeueAfterDurations, requeueAfter)
@@ -515,8 +530,7 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 	}
 
 	// Send events to cluster sources.
-	lastProbeSuccessTime := accessor.GetLastProbeSuccessTimestamp(ctx)
-	cc.sendEventsToClusterSources(ctx, cluster, time.Now(), lastProbeSuccessTime, didConnect, didDisconnect)
+	cc.sendEventsToClusterSources(ctx, cluster, time.Now(), accessor.GetHealthCheckingState(ctx).LastProbeSuccessTime, didConnect, didDisconnect)
 
 	// Requeue based on requeueAfterDurations (fallback to defaultRequeueAfter).
 	return reconcile.Result{RequeueAfter: minDurationOrDefault(requeueAfterDurations, defaultRequeueAfter)}, nil

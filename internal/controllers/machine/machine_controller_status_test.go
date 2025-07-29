@@ -930,6 +930,79 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			},
 		},
 		{
+			name: "connection down, preserve conditions as they have been set before (probe did not succeed yet)",
+			cluster: func() *clusterv1.Cluster {
+				c := defaultCluster.DeepCopy()
+				for i, condition := range c.Status.Conditions {
+					if condition.Type == clusterv1.ClusterControlPlaneInitializedCondition {
+						c.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+					}
+				}
+				return c
+			}(),
+			machine: func() *clusterv1.Machine {
+				m := defaultMachine.DeepCopy()
+				conditions.Set(m, metav1.Condition{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineNodeHealthyReason,
+				})
+				conditions.Set(m, metav1.Condition{
+					Type:    clusterv1.MachineNodeReadyCondition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineNodeReadyReason,
+					Message: "kubelet is posting ready status",
+				})
+				return m
+			}(),
+			node:                 nil,
+			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
+			lastProbeSuccessTime: time.Time{}, // probe did not succeed yet
+			expectConditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineNodeHealthyReason,
+				},
+				{
+					Type:    clusterv1.MachineNodeReadyCondition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineNodeReadyReason,
+					Message: "kubelet is posting ready status",
+				},
+			},
+		},
+		{
+			name: "connection down, set conditions as they haven't been set before (probe did not succeed yet)",
+			cluster: func() *clusterv1.Cluster {
+				c := defaultCluster.DeepCopy()
+				for i, condition := range c.Status.Conditions {
+					if condition.Type == clusterv1.ClusterControlPlaneInitializedCondition {
+						c.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+					}
+				}
+				return c
+			}(),
+			machine:              defaultMachine.DeepCopy(),
+			node:                 nil,
+			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
+			lastProbeSuccessTime: time.Time{}, // probe did not succeed yet
+			expectConditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineNodeReadyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeConnectionDownReason,
+					Message: "Remote connection not established yet",
+				},
+				{
+					Type:    clusterv1.MachineNodeHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeConnectionDownReason,
+					Message: "Remote connection not established yet",
+				},
+			},
+		},
+		{
 			name: "connection down, preserve conditions as they have been set before (remote conditions grace period not passed yet)",
 			cluster: func() *clusterv1.Cluster {
 				c := defaultCluster.DeepCopy()
@@ -1082,7 +1155,10 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setNodeHealthyAndReadyConditions(ctx, tc.cluster, tc.machine, tc.node, tc.nodeGetErr, tc.lastProbeSuccessTime, 5*time.Minute)
+			healthCheckingState := clustercache.HealthCheckingState{
+				LastProbeSuccessTime: tc.lastProbeSuccessTime,
+			}
+			setNodeHealthyAndReadyConditions(ctx, tc.cluster, tc.machine, tc.node, tc.nodeGetErr, healthCheckingState, 5*time.Minute)
 			g.Expect(tc.machine.GetConditions()).To(conditions.MatchConditions(tc.expectConditions, conditions.IgnoreLastTransitionTime(true)))
 		})
 	}

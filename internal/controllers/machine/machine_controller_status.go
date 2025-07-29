@@ -56,8 +56,8 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	// Update status from the Node external resource.
 	// Note: some of the status fields are managed in reconcileNode, e.g. status.NodeRef, etc.
 	// here we are taking care only of the delta (condition).
-	lastProbeSuccessTime := r.ClusterCache.GetLastProbeSuccessTimestamp(ctx, client.ObjectKeyFromObject(s.cluster))
-	setNodeHealthyAndReadyConditions(ctx, s.cluster, s.machine, s.node, s.nodeGetError, lastProbeSuccessTime, r.RemoteConditionsGracePeriod)
+	healthCheckingState := r.ClusterCache.GetHealthCheckingState(ctx, client.ObjectKeyFromObject(s.cluster))
+	setNodeHealthyAndReadyConditions(ctx, s.cluster, s.machine, s.node, s.nodeGetError, healthCheckingState, r.RemoteConditionsGracePeriod)
 
 	// Updates Machine status not observed from Bootstrap Config, InfraMachine or Node (update Machine's own status).
 	// Note: some of the status are set in reconcileCertificateExpiry (e.g.status.CertificatesExpiryDate),
@@ -255,7 +255,7 @@ func infrastructureReadyFallBackMessage(kind string, ready bool) string {
 	return fmt.Sprintf("%s status.initialization.provisioned is %t", kind, ready)
 }
 
-func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, node *corev1.Node, nodeGetErr error, lastProbeSuccessTime time.Time, remoteConditionsGracePeriod time.Duration) {
+func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, node *corev1.Node, nodeGetErr error, healthCheckingState clustercache.HealthCheckingState, remoteConditionsGracePeriod time.Duration) {
 	if !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		setNodeConditions(machine, metav1.ConditionUnknown,
 			clusterv1.MachineNodeInspectionFailedReason,
@@ -271,12 +271,25 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 		return
 	}
 
+	// ClusterCache did not try to connect often enough yet, either during controller startup or when a new Cluster is created.
+	if healthCheckingState.LastProbeSuccessTime.IsZero() && healthCheckingState.ConsecutiveFailures < 5 {
+		// If conditions are not set, set them to ConnectionDown.
+		// Note: This will allow to keep reporting last known status in case there are temporary connection errors.
+		if !conditions.Has(machine, clusterv1.MachineNodeReadyCondition) ||
+			!conditions.Has(machine, clusterv1.MachineNodeHealthyCondition) {
+			setNodeConditions(machine, metav1.ConditionUnknown,
+				clusterv1.MachineNodeConnectionDownReason,
+				"Remote connection not established yet")
+		}
+		return
+	}
+
 	// Remote conditions grace period is counted from the later of last probe success and control plane initialized.
-	if time.Since(maxTime(lastProbeSuccessTime, controlPlaneInitialized.LastTransitionTime.Time)) > remoteConditionsGracePeriod {
+	if time.Since(maxTime(healthCheckingState.LastProbeSuccessTime, controlPlaneInitialized.LastTransitionTime.Time)) > remoteConditionsGracePeriod {
 		// Overwrite conditions to ConnectionDown.
 		setNodeConditions(machine, metav1.ConditionUnknown,
 			clusterv1.MachineNodeConnectionDownReason,
-			lastProbeSuccessMessage(lastProbeSuccessTime))
+			lastProbeSuccessMessage(healthCheckingState.LastProbeSuccessTime))
 		return
 	}
 
@@ -289,7 +302,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 				!conditions.Has(machine, clusterv1.MachineNodeHealthyCondition) {
 				setNodeConditions(machine, metav1.ConditionUnknown,
 					clusterv1.MachineNodeConnectionDownReason,
-					lastProbeSuccessMessage(lastProbeSuccessTime))
+					lastProbeSuccessMessage(healthCheckingState.LastProbeSuccessTime))
 			}
 			return
 		}

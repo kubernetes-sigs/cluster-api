@@ -131,7 +131,6 @@ func TestReconcileNode(t *testing.T) {
 			expectResult: ctrl.Result{},
 			expectError:  false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.NodeRef).ToNot(BeNil())
 				g.Expect(m.Status.NodeRef.Name).To(Equal("test-node-1"))
 				g.Expect(m.Status.NodeInfo).ToNot(BeNil())
 				g.Expect(m.Status.NodeInfo.MachineID).To(Equal("foo"))
@@ -151,7 +150,7 @@ func TestReconcileNode(t *testing.T) {
 					ProviderID: "aws://us-east-1/test-node-1",
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &clusterv1.MachineNodeReference{
+					NodeRef: clusterv1.MachineNodeReference{
 						Name: "test-node-1",
 					},
 				},
@@ -177,7 +176,7 @@ func TestReconcileNode(t *testing.T) {
 					ProviderID: "aws://us-east-1/test-node-1",
 				},
 				Status: clusterv1.MachineStatus{
-					NodeRef: &clusterv1.MachineNodeReference{
+					NodeRef: clusterv1.MachineNodeReference{
 						Name: "test-node-1",
 					},
 				},
@@ -239,7 +238,7 @@ func TestGetNode(t *testing.T) {
 			Namespace:    ns.Name,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
 				Kind:     builder.GenericControlPlaneKind,
 				Name:     "cp1",
@@ -389,7 +388,7 @@ func TestNodeLabelSync(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
 				Kind:     builder.GenericControlPlaneKind,
 				Name:     "cp1",
@@ -419,7 +418,7 @@ func TestNodeLabelSync(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: defaultCluster.Name,
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: clusterv1.GroupVersionBootstrap.Group,
 					Kind:     "GenericBootstrapConfig",
 					Name:     "bootstrap-config1",
@@ -1336,7 +1335,7 @@ func newFakeMachineSpec(clusterName string) clusterv1.MachineSpec {
 	return clusterv1.MachineSpec{
 		ClusterName: clusterName,
 		Bootstrap: clusterv1.Bootstrap{
-			ConfigRef: &clusterv1.ContractVersionedObjectReference{
+			ConfigRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: "bootstrap.cluster.x-k8s.io",
 				Kind:     "KubeadmConfigTemplate",
 				Name:     fmt.Sprintf("%s-md-0", clusterName),

@@ -207,7 +207,7 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
 		nameGenerator:         topologynames.InfraClusterNameGenerator(nameTemplate, cluster.Name),
-		currentObjectName:     ptr.Deref(currentRef, clusterv1.ContractVersionedObjectReference{}).Name,
+		currentObjectName:     currentRef.Name,
 		// Note: It is not possible to add an ownerRef to Cluster at this stage, otherwise the provisioning
 		// of the infrastructure cluster starts no matter of the object being actually referenced by the Cluster itself.
 	})
@@ -305,7 +305,7 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
 		nameGenerator:         topologynames.ControlPlaneNameGenerator(nameTemplate, cluster.Name),
-		currentObjectName:     ptr.Deref(currentRef, clusterv1.ContractVersionedObjectReference{}).Name,
+		currentObjectName:     currentRef.Name,
 		labels:                controlPlaneLabels,
 		annotations:           controlPlaneAnnotations,
 		// Note: It is not possible to add an ownerRef to Cluster at this stage, otherwise the provisioning
@@ -733,7 +733,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 
 	// Compute the bootstrap template.
 	currentMachineDeployment := s.Current.MachineDeployments[machineDeploymentTopology.Name]
-	var currentBootstrapTemplateRef *clusterv1.ContractVersionedObjectReference
+	var currentBootstrapTemplateRef clusterv1.ContractVersionedObjectReference
 	if currentMachineDeployment != nil && currentMachineDeployment.BootstrapTemplate != nil {
 		currentBootstrapTemplateRef = currentMachineDeployment.Object.Spec.Template.Spec.Bootstrap.ConfigRef
 	}
@@ -743,7 +743,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		templateClonedFromRef: contract.ObjToRef(machineDeploymentBlueprint.BootstrapTemplate),
 		cluster:               s.Current.Cluster,
 		nameGenerator:         topologynames.SimpleNameGenerator(topologynames.BootstrapTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name)),
-		currentObjectName:     ptr.Deref(currentBootstrapTemplateRef, clusterv1.ContractVersionedObjectReference{}).Name,
+		currentObjectName:     currentBootstrapTemplateRef.Name,
 		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
 		// in case of errors in between creating this template and creating/updating the MachineDeployment object
 		// with the reference to this template.
@@ -892,7 +892,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 					ClusterName:       s.Current.Cluster.Name,
 					Version:           version,
 					Bootstrap:         clusterv1.Bootstrap{ConfigRef: desiredBootstrapTemplateRef},
-					InfrastructureRef: *desiredInfraMachineTemplateRef,
+					InfrastructureRef: desiredInfraMachineTemplateRef,
 					FailureDomain:     failureDomain,
 					Deletion: clusterv1.MachineDeletionSpec{
 						NodeDrainTimeoutSeconds:        nodeDrainTimeout,
@@ -1028,7 +1028,7 @@ func (g *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeplo
 //   - the mdTopology has the ClusterTopologyHoldUpgradeSequenceAnnotation annotation.
 //   - another md topology which is before mdTopology in the workers.machineDeployments list has the
 //     ClusterTopologyHoldUpgradeSequenceAnnotation annotation.
-func isMachineDeploymentDeferred(clusterTopology *clusterv1.Topology, mdTopology clusterv1.MachineDeploymentTopology) bool {
+func isMachineDeploymentDeferred(clusterTopology clusterv1.Topology, mdTopology clusterv1.MachineDeploymentTopology) bool {
 	// If mdTopology has the ClusterTopologyDeferUpgradeAnnotation annotation => md is deferred.
 	if _, ok := mdTopology.Metadata.Annotations[clusterv1.ClusterTopologyDeferUpgradeAnnotation]; ok {
 		return true
@@ -1096,7 +1096,7 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 
 	// Compute the bootstrap config.
 	currentMachinePool := s.Current.MachinePools[machinePoolTopology.Name]
-	var currentBootstrapConfigRef *clusterv1.ContractVersionedObjectReference
+	var currentBootstrapConfigRef clusterv1.ContractVersionedObjectReference
 	if currentMachinePool != nil && currentMachinePool.BootstrapObject != nil {
 		currentBootstrapConfigRef = currentMachinePool.Object.Spec.Template.Spec.Bootstrap.ConfigRef
 	}
@@ -1106,7 +1106,7 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 		templateClonedFromRef: contract.ObjToRef(machinePoolBlueprint.BootstrapTemplate),
 		cluster:               s.Current.Cluster,
 		nameGenerator:         topologynames.SimpleNameGenerator(topologynames.BootstrapConfigNamePrefix(s.Current.Cluster.Name, machinePoolTopology.Name)),
-		currentObjectName:     ptr.Deref(currentBootstrapConfigRef, clusterv1.ContractVersionedObjectReference{}).Name,
+		currentObjectName:     currentBootstrapConfigRef.Name,
 		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
 		// in case of errors in between creating this template and creating/updating the MachinePool object
 		// with the reference to this template.
@@ -1210,7 +1210,7 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 					ClusterName:       s.Current.Cluster.Name,
 					Version:           version,
 					Bootstrap:         clusterv1.Bootstrap{ConfigRef: desiredBootstrapConfigRef},
-					InfrastructureRef: *desiredInfraMachinePoolRef,
+					InfrastructureRef: desiredInfraMachinePoolRef,
 					Deletion: clusterv1.MachineDeletionSpec{
 						NodeDrainTimeoutSeconds:        nodeDrainTimeout,
 						NodeVolumeDetachTimeoutSeconds: nodeVolumeDetachTimeout,
@@ -1325,7 +1325,7 @@ func (g *generator) computeMachinePoolVersion(s *scope.Scope, machinePoolTopolog
 //   - the mpTopology has the ClusterTopologyHoldUpgradeSequenceAnnotation annotation.
 //   - another mp topology which is before mpTopology in the workers.machinePools list has the
 //     ClusterTopologyHoldUpgradeSequenceAnnotation annotation.
-func isMachinePoolDeferred(clusterTopology *clusterv1.Topology, mpTopology clusterv1.MachinePoolTopology) bool {
+func isMachinePoolDeferred(clusterTopology clusterv1.Topology, mpTopology clusterv1.MachinePoolTopology) bool {
 	// If mpTopology has the ClusterTopologyDeferUpgradeAnnotation annotation => mp is deferred.
 	if _, ok := mpTopology.Metadata.Annotations[clusterv1.ClusterTopologyDeferUpgradeAnnotation]; ok {
 		return true

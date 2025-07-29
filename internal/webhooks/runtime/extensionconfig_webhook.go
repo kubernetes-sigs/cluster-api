@@ -63,7 +63,7 @@ func (webhook *ExtensionConfig) Default(_ context.Context, obj runtime.Object) e
 	if extensionConfig.Spec.NamespaceSelector == nil {
 		extensionConfig.Spec.NamespaceSelector = &metav1.LabelSelector{}
 	}
-	if extensionConfig.Spec.ClientConfig.Service != nil {
+	if extensionConfig.Spec.ClientConfig.Service.IsDefined() {
 		if extensionConfig.Spec.ClientConfig.Service.Port == nil {
 			extensionConfig.Spec.ClientConfig.Service.Port = ptr.To[int32](443)
 		}
@@ -131,13 +131,13 @@ func validateExtensionConfigSpec(e *runtimev1.ExtensionConfig) field.ErrorList {
 
 	specPath := field.NewPath("spec")
 
-	if e.Spec.ClientConfig.URL == "" && e.Spec.ClientConfig.Service == nil {
+	if e.Spec.ClientConfig.URL == "" && !e.Spec.ClientConfig.Service.IsDefined() {
 		allErrs = append(allErrs, field.Required(
 			specPath.Child("clientConfig"),
 			"either url or service must be defined",
 		))
 	}
-	if e.Spec.ClientConfig.URL != "" && e.Spec.ClientConfig.Service != nil {
+	if e.Spec.ClientConfig.URL != "" && e.Spec.ClientConfig.Service.IsDefined() {
 		allErrs = append(allErrs, field.Forbidden(
 			specPath.Child("clientConfig"),
 			"only one of url or service can be defined",
@@ -162,7 +162,7 @@ func validateExtensionConfigSpec(e *runtimev1.ExtensionConfig) field.ErrorList {
 	}
 
 	// Validate Service if defined
-	if e.Spec.ClientConfig.Service != nil {
+	if e.Spec.ClientConfig.Service.IsDefined() {
 		// Validate that the name is not empty and is a Valid RFC1123 name.
 		if e.Spec.ClientConfig.Service.Name == "" {
 			allErrs = append(allErrs, field.Required(

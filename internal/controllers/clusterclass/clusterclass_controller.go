@@ -218,9 +218,7 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, s *scope) 
 		clusterClass.Spec.Infrastructure.TemplateRef,
 		clusterClass.Spec.ControlPlane.TemplateRef,
 	}
-	if clusterClass.Spec.ControlPlane.MachineInfrastructure != nil {
-		refs = append(refs, clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef)
-	}
+	refs = append(refs, clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef)
 	for _, mdClass := range clusterClass.Spec.Workers.MachineDeployments {
 		refs = append(refs, mdClass.Bootstrap.TemplateRef, mdClass.Infrastructure.TemplateRef)
 	}
@@ -238,7 +236,7 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, s *scope) 
 	outdatedRefs := []outdatedRef{}
 	for i := range refs {
 		// Skip empty refs.
-		if reflect.DeepEqual(refs[i], clusterv1.ClusterClassTemplateReference{}) {
+		if !refs[i].IsDefined() {
 			continue
 		}
 

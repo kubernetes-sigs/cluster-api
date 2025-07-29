@@ -218,6 +218,7 @@ func schema_cluster_api_api_core_v1beta2_Bootstrap(ref common.ReferenceCallback)
 					"configRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "configRef is a reference to a bootstrap provider-specific resource that holds configuration details. The reference is optional to allow users/operators to specify Bootstrap.DataSecretName without the need of a controller.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference"),
 						},
 					},
@@ -1163,18 +1164,21 @@ func schema_cluster_api_api_core_v1beta2_ClusterSpec(ref common.ReferenceCallbac
 					"controlPlaneRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "controlPlaneRef is an optional reference to a provider-specific resource that holds the details for provisioning the Control Plane for a Cluster.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference"),
 						},
 					},
 					"infrastructureRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "infrastructureRef is a reference to a provider-specific resource that holds the details for provisioning infrastructure for a cluster in said provider.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference"),
 						},
 					},
 					"topology": {
 						SchemaProps: spec.SchemaProps{
 							Description: "topology encapsulates the topology for the cluster. NOTE: It is required to enable the ClusterTopology feature gate flag to activate managed topologies support; this feature is highly experimental, and parts of it might still be not implemented.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.Topology"),
 						},
 					},
@@ -1496,6 +1500,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClass(ref common.ReferenceC
 					"machineInfrastructure": {
 						SchemaProps: spec.SchemaProps{
 							Description: "machineInfrastructure defines the metadata and infrastructure information for control plane machines.\n\nThis field is supported if and only if the control plane provider template referenced above is Machine based and supports setting replicas.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClassMachineInfrastructureTemplate"),
 						},
 					},
@@ -1638,6 +1643,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassHealthCheckRemediation
 					"templateRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "templateRef is a reference to a remediation template provided by an infrastructure provider.\n\nThis field is completely optional, when filled, the MachineHealthCheck controller creates a new object from the template referenced and hands off remediation of the machine to a controller that lives outside of Cluster API.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckRemediationTemplateReference"),
 						},
 					},
@@ -1920,6 +1926,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheckRemediat
 					"templateRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "templateRef is a reference to a remediation template provided by an infrastructure provider.\n\nThis field is completely optional, when filled, the MachineHealthCheck controller creates a new object from the template referenced and hands off remediation of the machine to a controller that lives outside of Cluster API.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckRemediationTemplateReference"),
 						},
 					},
@@ -2464,6 +2471,7 @@ func schema_cluster_api_api_core_v1beta2_JSONSchemaProps(ref common.ReferenceCal
 					"x-metadata": {
 						SchemaProps: spec.SchemaProps{
 							Description: "x-metadata is the metadata of a variable or a nested field within a variable. It can be used to add additional data for higher level tools.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.VariableSchemaMetadata"),
 						},
 					},
@@ -2946,6 +2954,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassHealthCheckRemedi
 					"templateRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "templateRef is a reference to a remediation template provided by an infrastructure provider.\n\nThis field is completely optional, when filled, the MachineHealthCheck controller creates a new object from the template referenced and hands off remediation of the machine to a controller that lives outside of Cluster API.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckRemediationTemplateReference"),
 						},
 					},
@@ -3727,6 +3736,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyHealthCheckRem
 					"templateRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "templateRef is a reference to a remediation template provided by an infrastructure provider.\n\nThis field is completely optional, when filled, the MachineHealthCheck controller creates a new object from the template referenced and hands off remediation of the machine to a controller that lives outside of Cluster API.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckRemediationTemplateReference"),
 						},
 					},
@@ -4426,6 +4436,7 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckRemediation(ref commo
 					"templateRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "templateRef is a reference to a remediation template provided by an infrastructure provider.\n\nThis field is completely optional, when filled, the MachineHealthCheck controller creates a new object from the template referenced and hands off remediation of the machine to a controller that lives outside of Cluster API.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineHealthCheckRemediationTemplateReference"),
 						},
 					},
@@ -6040,6 +6051,7 @@ func schema_cluster_api_api_core_v1beta2_MachineStatus(ref common.ReferenceCallb
 					"nodeRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "nodeRef will point to the corresponding Node if it exists.",
+							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNodeReference"),
 						},
 					},

@@ -158,7 +158,7 @@ func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
 	var allErrs field.ErrorList
 	specPath := field.NewPath("spec")
 
-	if newMS.Spec.Template.Spec.Bootstrap.ConfigRef == nil && newMS.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
+	if !newMS.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() && newMS.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
 		allErrs = append(
 			allErrs,
 			field.Required(

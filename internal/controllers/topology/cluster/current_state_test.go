@@ -1208,7 +1208,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 	tests := []struct {
 		name                     string
 		templateFromClusterClass *unstructured.Unstructured
-		currentRef               *clusterv1.ContractVersionedObjectReference
+		currentRef               clusterv1.ContractVersionedObjectReference
 		isCurrentTemplate        bool
 		objs                     []client.Object
 		want                     *corev1.ObjectReference
@@ -1220,7 +1220,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerClusterTemplate",
 			}},
-			currentRef: &clusterv1.ContractVersionedObjectReference{
+			currentRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:     "DockerCluster",
 				Name:     "my-cluster-abc",
@@ -1240,7 +1240,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 				"kind":       builder.GenericBootstrapConfigKind,
 			}},
-			currentRef: &clusterv1.ContractVersionedObjectReference{
+			currentRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionBootstrap.Group,
 				Kind:     builder.GenericBootstrapConfigKind,
 				Name:     "my-cluster-abc",
@@ -1260,7 +1260,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 				"kind":       "DifferentConfigTemplate",
 			}},
-			currentRef: &clusterv1.ContractVersionedObjectReference{
+			currentRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionBootstrap.Group,
 				Kind:     builder.GenericBootstrapConfigKind,
 				Name:     "my-cluster-abc",
@@ -1281,7 +1281,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 				"apiVersion": "different.bootstrap.cluster.x-k8s.io/v1beta2",
 				"kind":       builder.GenericBootstrapConfigKind,
 			}},
-			currentRef: &clusterv1.ContractVersionedObjectReference{
+			currentRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionBootstrap.Group,
 				Kind:     builder.GenericBootstrapConfigKind,
 				Name:     "my-cluster-abc",

@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
@@ -131,6 +133,33 @@ func Convert_v1beta2_ExtensionHandler_To_v1alpha1_ExtensionHandler(in *runtimev1
 
 	if in.FailurePolicy != "" {
 		out.FailurePolicy = ptr.To(FailurePolicy(in.FailurePolicy))
+	}
+	return nil
+}
+
+func Convert_v1alpha1_ClientConfig_To_v1beta2_ClientConfig(in *ClientConfig, out *runtimev1.ClientConfig, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha1_ClientConfig_To_v1beta2_ClientConfig(in, out, s); err != nil {
+		return err
+	}
+
+	if in.Service != nil {
+		if err := Convert_v1alpha1_ServiceReference_To_v1beta2_ServiceReference(in.Service, &out.Service, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_ClientConfig_To_v1alpha1_ClientConfig(in *runtimev1.ClientConfig, out *ClientConfig, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_ClientConfig_To_v1alpha1_ClientConfig(in, out, s); err != nil {
+		return err
+	}
+
+	if !reflect.DeepEqual(in.Service, runtimev1.ServiceReference{}) {
+		out.Service = &ServiceReference{}
+		if err := Convert_v1beta2_ServiceReference_To_v1alpha1_ServiceReference(&in.Service, out.Service, s); err != nil {
+			return err
+		}
 	}
 	return nil
 }

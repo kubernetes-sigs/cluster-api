@@ -74,7 +74,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: builder.BootstrapGroupVersion.Group,
 							Kind:     builder.TestBootstrapConfigKind,
 							Name:     "bootstrap-config1",
@@ -828,7 +828,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: builder.BootstrapGroupVersion.Group,
 							Kind:     builder.TestBootstrapConfigKind,
 							Name:     "bootstrap-config1",
@@ -975,7 +975,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								ConfigRef: &clusterv1.ContractVersionedObjectReference{
+								ConfigRef: clusterv1.ContractVersionedObjectReference{
 									APIGroup: builder.BootstrapGroupVersion.Group,
 									Kind:     builder.TestBootstrapConfigKind,
 									Name:     "bootstrap-config1",
@@ -1066,7 +1066,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								ConfigRef: &clusterv1.ContractVersionedObjectReference{
+								ConfigRef: clusterv1.ContractVersionedObjectReference{
 									APIGroup: builder.BootstrapGroupVersion.Group,
 									Kind:     builder.TestBootstrapConfigKind,
 									Name:     "bootstrap-config1",
@@ -1143,7 +1143,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: builder.BootstrapGroupVersion.Group,
 							Kind:     builder.TestBootstrapConfigKind,
 							Name:     "bootstrap-config1",
@@ -1222,7 +1222,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								ConfigRef: &clusterv1.ContractVersionedObjectReference{
+								ConfigRef: clusterv1.ContractVersionedObjectReference{
 									APIGroup: builder.BootstrapGroupVersion.Group,
 									Kind:     builder.TestBootstrapConfigKind,
 									Name:     "bootstrap-config1",
@@ -1425,7 +1425,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			g.Expect(machineList.Items).To(HaveLen(2))
 			for i := range machineList.Items {
 				machine := &machineList.Items[i]
-				_, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+				_, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, machine.Spec.InfrastructureRef, machine.Namespace)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
@@ -1496,7 +1496,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			g.Expect(machineList.Items).To(HaveLen(2))
 			for i := range machineList.Items {
 				machine := &machineList.Items[i]
-				_, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+				_, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, machine.Spec.InfrastructureRef, machine.Namespace)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
@@ -1723,7 +1723,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			Namespace:    ns.Name,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
 				Kind:     builder.GenericControlPlaneKind,
 				Name:     "cp1",
@@ -1746,7 +1746,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: builder.BootstrapGroupVersion.Group,
 							Kind:     builder.TestBootstrapConfigKind,
 							Name:     "bootstrap-config1",
@@ -2140,7 +2140,7 @@ func getMachines(replicas int, mpName, clusterName, nsName string) []clusterv1.M
 			Spec: clusterv1.MachineSpec{
 				ClusterName: clusterName,
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					ConfigRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: builder.BootstrapGroupVersion.Group,
 						Kind:     builder.GenericBootstrapConfigKind,
 						Name:     fmt.Sprintf("bootstrap-config-%d", i),
@@ -2173,7 +2173,7 @@ func getMachinePool(replicas int, mpName, clusterName, nsName string) clusterv1.
 				Spec: clusterv1.MachineSpec{
 					ClusterName: clusterName,
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: builder.BootstrapGroupVersion.Group,
 							Kind:     builder.GenericBootstrapConfigKind,
 							Name:     "bootstrap-config1",

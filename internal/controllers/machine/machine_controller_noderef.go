@@ -91,7 +91,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 
 			// While a NodeRef is set in the status, failing to get that node means the node is deleted.
 			// If Status.NodeRef is not set before, node still can be in the provisioning state.
-			if machine.Status.NodeRef != nil {
+			if machine.Status.NodeRef.IsDefined() {
 				v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeNotFoundV1Beta1Reason, clusterv1.ConditionSeverityError, "")
 				return ctrl.Result{}, errors.Wrapf(err, "no matching Node for Machine %q in namespace %q", machine.Name, machine.Namespace)
 			}
@@ -108,8 +108,8 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	s.node = node
 
 	// Set the Machine NodeRef.
-	if machine.Status.NodeRef == nil {
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{
+	if !machine.Status.NodeRef.IsDefined() {
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{
 			Name: s.node.Name,
 		}
 		log.Info("Infrastructure provider reporting spec.providerID, Kubernetes node is now available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", machine.Spec.ProviderID, "Node", klog.KRef("", machine.Status.NodeRef.Name))

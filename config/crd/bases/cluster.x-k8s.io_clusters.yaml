@@ -2305,6 +2305,7 @@ spec:
                           minLength: 1
                           type: string
                         maxItems: 100
+                        minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
                     required:
@@ -2326,6 +2327,7 @@ spec:
                           minLength: 1
                           type: string
                         maxItems: 100
+                        minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
                     required:

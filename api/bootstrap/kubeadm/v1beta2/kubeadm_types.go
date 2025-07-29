@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -112,11 +113,16 @@ type InitConfiguration struct {
 	// patches contains options related to applying patches to components deployed by kubeadm during
 	// "kubeadm init". The minimum kubernetes version needed to support Patches is v1.22
 	// +optional
-	Patches *Patches `json:"patches,omitempty"`
+	Patches Patches `json:"patches,omitempty,omitzero"`
 
 	// timeouts holds various timeouts that apply to kubeadm commands.
 	// +optional
-	Timeouts *Timeouts `json:"timeouts,omitempty"`
+	Timeouts Timeouts `json:"timeouts,omitempty,omitzero"`
+}
+
+// IsDefined returns true if the InitConfiguration is defined.
+func (r *InitConfiguration) IsDefined() bool {
+	return !reflect.DeepEqual(r, &InitConfiguration{})
 }
 
 // ClusterConfiguration contains cluster-wide configuration for a kubeadm cluster.
@@ -202,6 +208,11 @@ type ClusterConfiguration struct {
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=36500
 	CACertificateValidityPeriodDays int32 `json:"caCertificateValidityPeriodDays,omitempty"`
+}
+
+// IsDefined returns true if the ClusterConfiguration is defined.
+func (r *ClusterConfiguration) IsDefined() bool {
+	return !reflect.DeepEqual(r, &ClusterConfiguration{})
 }
 
 // APIServer holds settings necessary for API server deployments in the cluster.
@@ -312,13 +323,6 @@ type Scheduler struct {
 // DNS defines the DNS addon that should be used in the cluster.
 // +kubebuilder:validation:MinProperties=1
 type DNS struct {
-	// ImageMeta allows to customize the image used for the DNS component
-	ImageMeta `json:",inline"`
-}
-
-// ImageMeta allows to customize the image used for components that are not
-// originated from the Kubernetes/Kubernetes release process.
-type ImageMeta struct {
 	// imageRepository sets the container registry to pull images from.
 	// if not set, the ImageRepository defined in ClusterConfiguration will be used instead.
 	// +optional
@@ -467,19 +471,32 @@ type Etcd struct {
 	// local provides configuration knobs for configuring the local etcd instance
 	// Local and External are mutually exclusive
 	// +optional
-	Local *LocalEtcd `json:"local,omitempty"`
+	Local LocalEtcd `json:"local,omitempty,omitzero"`
 
 	// external describes how to connect to an external etcd cluster
 	// Local and External are mutually exclusive
 	// +optional
-	External *ExternalEtcd `json:"external,omitempty"`
+	External ExternalEtcd `json:"external,omitempty,omitzero"`
 }
 
 // LocalEtcd describes that kubeadm should run an etcd cluster locally.
 // +kubebuilder:validation:MinProperties=1
 type LocalEtcd struct {
-	// ImageMeta allows to customize the container used for etcd
-	ImageMeta `json:",inline"`
+	// imageRepository sets the container registry to pull images from.
+	// if not set, the ImageRepository defined in ClusterConfiguration will be used instead.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ImageRepository string `json:"imageRepository,omitempty"`
+
+	// imageTag allows to specify a tag for the image.
+	// In case this value is set, kubeadm does not change automatically the version of the above components during upgrades.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	ImageTag string `json:"imageTag,omitempty"`
+
+	// TODO: evaluate if we need also a ImageName based on user feedbacks
 
 	// dataDir is the directory etcd will place its data.
 	// Defaults to "/var/lib/etcd".
@@ -528,6 +545,11 @@ type LocalEtcd struct {
 	PeerCertSANs []string `json:"peerCertSANs,omitempty"`
 }
 
+// IsDefined returns true if the LocalEtcd is defined.
+func (r *LocalEtcd) IsDefined() bool {
+	return !reflect.DeepEqual(r, &LocalEtcd{})
+}
+
 // ExternalEtcd describes an external etcd cluster.
 // Kubeadm has no knowledge of where certificate files live and they must be supplied.
 type ExternalEtcd struct {
@@ -560,6 +582,11 @@ type ExternalEtcd struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	KeyFile string `json:"keyFile,omitempty"`
+}
+
+// IsDefined returns true if the ExternalEtcd is defined.
+func (r *ExternalEtcd) IsDefined() bool {
+	return !reflect.DeepEqual(r, &ExternalEtcd{})
 }
 
 // JoinConfiguration contains elements describing a particular node.
@@ -604,11 +631,16 @@ type JoinConfiguration struct {
 	// patches contains options related to applying patches to components deployed by kubeadm during
 	// "kubeadm join". The minimum kubernetes version needed to support Patches is v1.22
 	// +optional
-	Patches *Patches `json:"patches,omitempty"`
+	Patches Patches `json:"patches,omitempty,omitzero"`
 
 	// timeouts holds various timeouts that apply to kubeadm commands.
 	// +optional
-	Timeouts *Timeouts `json:"timeouts,omitempty"`
+	Timeouts Timeouts `json:"timeouts,omitempty,omitzero"`
+}
+
+// IsDefined returns true if the JoinConfiguration is defined.
+func (r *JoinConfiguration) IsDefined() bool {
+	return !reflect.DeepEqual(r, &JoinConfiguration{})
 }
 
 // JoinControlPlane contains elements describing an additional control plane instance to be deployed on the joining node.
@@ -624,12 +656,12 @@ type Discovery struct {
 	// bootstrapToken is used to set the options for bootstrap token based discovery
 	// BootstrapToken and File are mutually exclusive
 	// +optional
-	BootstrapToken *BootstrapTokenDiscovery `json:"bootstrapToken,omitempty"`
+	BootstrapToken BootstrapTokenDiscovery `json:"bootstrapToken,omitempty,omitzero"`
 
 	// file is used to specify a file or URL to a kubeconfig file from which to load cluster information
 	// BootstrapToken and File are mutually exclusive
 	// +optional
-	File *FileDiscovery `json:"file,omitempty"`
+	File FileDiscovery `json:"file,omitempty,omitzero"`
 
 	// tlsBootstrapToken is a token used for TLS bootstrapping.
 	// If .BootstrapToken is set, this field is defaulted to .BootstrapToken.Token, but can be overridden.
@@ -679,6 +711,11 @@ type BootstrapTokenDiscovery struct {
 	UnsafeSkipCAVerification *bool `json:"unsafeSkipCAVerification,omitempty"`
 }
 
+// IsDefined returns true if the BootstrapTokenDiscovery is defined.
+func (r *BootstrapTokenDiscovery) IsDefined() bool {
+	return !reflect.DeepEqual(r, &BootstrapTokenDiscovery{})
+}
+
 // FileDiscovery is used to specify a file or URL to a kubeconfig file from which to load cluster information.
 type FileDiscovery struct {
 	// kubeConfigPath is used to specify the actual file path or URL to the kubeconfig file from which to load cluster information
@@ -694,7 +731,12 @@ type FileDiscovery struct {
 	// Certificate Authority (certificate-authority-data field) is gathered from the cluster's CA secret.
 	//
 	// +optional
-	KubeConfig *FileDiscoveryKubeConfig `json:"kubeConfig,omitempty"`
+	KubeConfig FileDiscoveryKubeConfig `json:"kubeConfig,omitempty,omitzero"`
+}
+
+// IsDefined returns true if the FileDiscovery is defined.
+func (r *FileDiscovery) IsDefined() bool {
+	return !reflect.DeepEqual(r, &FileDiscovery{})
 }
 
 // FileDiscoveryKubeConfig contains elements describing how to generate the kubeconfig for bootstrapping.
@@ -705,12 +747,17 @@ type FileDiscoveryKubeConfig struct {
 	// - Server with the Cluster's ControlPlaneEndpoint.
 	// - CertificateAuthorityData with the Cluster's CA certificate.
 	// +optional
-	Cluster *KubeConfigCluster `json:"cluster,omitempty"`
+	Cluster KubeConfigCluster `json:"cluster,omitempty,omitzero"`
 
 	// user contains information that describes identity information.
 	// This is used to tell the kubernetes cluster who you are.
 	// +required
 	User KubeConfigUser `json:"user,omitempty,omitzero"`
+}
+
+// IsDefined returns true if the FileDiscoveryKubeConfig is defined.
+func (r *FileDiscoveryKubeConfig) IsDefined() bool {
+	return !reflect.DeepEqual(r, &FileDiscoveryKubeConfig{})
 }
 
 // KubeConfigCluster contains information about how to communicate with a kubernetes cluster.
@@ -762,6 +809,11 @@ type KubeConfigCluster struct {
 	ProxyURL string `json:"proxyURL,omitempty"`
 }
 
+// IsDefined returns true if the KubeConfigCluster is defined.
+func (r *KubeConfigCluster) IsDefined() bool {
+	return !reflect.DeepEqual(r, &KubeConfigCluster{})
+}
+
 // KubeConfigUser contains information that describes identity information.
 // This is used to tell the kubernetes cluster who you are.
 //
@@ -772,11 +824,11 @@ type KubeConfigCluster struct {
 type KubeConfigUser struct {
 	// authProvider specifies a custom authentication plugin for the kubernetes cluster.
 	// +optional
-	AuthProvider *KubeConfigAuthProvider `json:"authProvider,omitempty"`
+	AuthProvider KubeConfigAuthProvider `json:"authProvider,omitempty,omitzero"`
 
 	// exec specifies a custom exec-based authentication plugin for the kubernetes cluster.
 	// +optional
-	Exec *KubeConfigAuthExec `json:"exec,omitempty"`
+	Exec KubeConfigAuthExec `json:"exec,omitempty,omitzero"`
 }
 
 // KubeConfigAuthProvider holds the configuration for a specified auth provider.
@@ -790,6 +842,11 @@ type KubeConfigAuthProvider struct {
 	// config holds the parameters for the authentication plugin.
 	// +optional
 	Config map[string]string `json:"config,omitempty"`
+}
+
+// IsDefined returns true if the KubeConfigAuthProvider is defined.
+func (r *KubeConfigAuthProvider) IsDefined() bool {
+	return !reflect.DeepEqual(r, &KubeConfigAuthProvider{})
 }
 
 // KubeConfigAuthExec specifies a command to provide client credentials. The command is exec'd
@@ -837,6 +894,11 @@ type KubeConfigAuthExec struct {
 	// reading this environment variable.
 	// +optional
 	ProvideClusterInfo *bool `json:"provideClusterInfo,omitempty"`
+}
+
+// IsDefined returns true if the KubeConfigAuthExec is defined.
+func (r *KubeConfigAuthExec) IsDefined() bool {
+	return !reflect.DeepEqual(r, &KubeConfigAuthExec{})
 }
 
 // KubeConfigAuthExecEnv is used for setting environment variables when executing an exec-based

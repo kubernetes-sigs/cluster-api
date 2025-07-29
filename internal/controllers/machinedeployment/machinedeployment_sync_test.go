@@ -577,7 +577,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 					Version:           "v1.25.3",
 					InfrastructureRef: infraRef,
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &bootstrapRef,
+						ConfigRef: bootstrapRef,
 					},
 					MinReadySeconds: ptr.To[int32](3),
 					ReadinessGates:  []clusterv1.MachineReadinessGate{{ConditionType: "foo"}},

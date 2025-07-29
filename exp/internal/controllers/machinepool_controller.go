@@ -326,14 +326,14 @@ func (r *MachinePoolReconciler) isMachinePoolNodeDeleteTimeoutPassed(machinePool
 // reconcileDeleteExternal tries to delete external references, returning true if it cannot find any.
 func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, machinePool *clusterv1.MachinePool) (bool, error) {
 	objects := []*unstructured.Unstructured{}
-	references := []*clusterv1.ContractVersionedObjectReference{
+	references := []clusterv1.ContractVersionedObjectReference{
 		machinePool.Spec.Template.Spec.Bootstrap.ConfigRef,
-		&machinePool.Spec.Template.Spec.InfrastructureRef,
+		machinePool.Spec.Template.Spec.InfrastructureRef,
 	}
 
 	// Loop over the references and try to retrieve it with the client.
 	for _, ref := range references {
-		if ref == nil {
+		if !ref.IsDefined() {
 			continue
 		}
 

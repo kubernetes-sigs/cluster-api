@@ -62,6 +62,10 @@ func spokeExtensionConfig(in *ExtensionConfig, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	dropEmptyStringsExtensionConfig(in)
+
+	if in.Spec.ClientConfig.Service != nil && reflect.DeepEqual(in.Spec.ClientConfig.Service, &ServiceReference{}) {
+		in.Spec.ClientConfig.Service = nil
+	}
 }
 
 func spokeExtensionConfigStatus(in *ExtensionConfigStatus, c randfill.Continue) {

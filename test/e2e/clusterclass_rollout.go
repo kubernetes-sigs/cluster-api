@@ -1163,7 +1163,7 @@ func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.Clu
 	} else {
 		controlPlaneInfrastructureMachineTemplateRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(res.ControlPlane)
 		g.Expect(err).ToNot(HaveOccurred())
-		res.ControlPlaneInfrastructureMachineTemplate, err = external.GetObjectFromContractVersionedRef(ctx, mgmtClient, controlPlaneInfrastructureMachineTemplateRef, res.ControlPlane.GetNamespace())
+		res.ControlPlaneInfrastructureMachineTemplate, err = external.GetObjectFromContractVersionedRef(ctx, mgmtClient, *controlPlaneInfrastructureMachineTemplateRef, res.ControlPlane.GetNamespace())
 		g.Expect(err).ToNot(HaveOccurred())
 	}
 	controlPlaneMachineList := &clusterv1.MachineList{}
@@ -1195,7 +1195,7 @@ func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.Clu
 		g.Expect(err).ToNot(HaveOccurred())
 		res.BootstrapConfigTemplateByMachineDeployment[md.Name] = bootstrapConfigTemplate
 
-		infrastructureMachineTemplate, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, &md.Spec.Template.Spec.InfrastructureRef, md.Namespace)
+		infrastructureMachineTemplate, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, md.Spec.Template.Spec.InfrastructureRef, md.Namespace)
 		g.Expect(err).ToNot(HaveOccurred())
 		res.InfrastructureMachineTemplateByMachineDeployment[md.Name] = infrastructureMachineTemplate
 
@@ -1233,7 +1233,7 @@ func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.Clu
 		g.Expect(err).ToNot(HaveOccurred())
 		res.BootstrapConfigByMachinePool[mp.Name] = bootstrapConfig
 
-		infrastructureMachinePool, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, &mp.Spec.Template.Spec.InfrastructureRef, mp.Namespace)
+		infrastructureMachinePool, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, mp.Spec.Template.Spec.InfrastructureRef, mp.Namespace)
 		g.Expect(err).ToNot(HaveOccurred())
 		res.InfrastructureMachinePoolByMachinePool[mp.Name] = infrastructureMachinePool
 	}
@@ -1247,11 +1247,11 @@ func addMachineObjects(ctx context.Context, mgmtClient, workloadClient client.Cl
 	g.Expect(err).ToNot(HaveOccurred())
 	res.BootstrapConfigByMachine[machine.Name] = bootstrapConfig
 
-	infrastructureMachine, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, &machine.Spec.InfrastructureRef, machine.Namespace)
+	infrastructureMachine, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, machine.Spec.InfrastructureRef, machine.Namespace)
 	g.Expect(err).ToNot(HaveOccurred())
 	res.InfrastructureMachineByMachine[machine.Name] = infrastructureMachine
 
-	g.Expect(machine.Status.NodeRef).ToNot(BeNil())
+	g.Expect(machine.Status.NodeRef.IsDefined()).To(BeTrue())
 	node := &corev1.Node{}
 	g.Expect(workloadClient.Get(ctx, client.ObjectKey{Namespace: "", Name: machine.Status.NodeRef.Name}, node)).To(Succeed())
 	res.NodesByMachine[machine.Name] = node

@@ -138,7 +138,7 @@ func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMach
 		g.Expect(err).ToNot(HaveOccurred())
 		count := 0
 		for _, machine := range machines.Items {
-			if machine.Status.NodeRef != nil {
+			if machine.Status.NodeRef.IsDefined() {
 				count++
 			}
 		}
@@ -294,7 +294,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 
 		log.Logf("Patching the new infrastructure ref to Machine Deployment %s", klog.KObj(deployment))
 		// Retrieve infra object.
-		infraRef := &deployment.Spec.Template.Spec.InfrastructureRef
+		infraRef := deployment.Spec.Template.Spec.InfrastructureRef
 		var infraObj *unstructured.Unstructured
 		Eventually(func() error {
 			infraObj, err = external.GetObjectFromContractVersionedRef(ctx, mgmtClient, infraRef, deployment.Namespace)
@@ -314,7 +314,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 		patchHelper, err := patch.NewHelper(deployment, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 		infraRef.Name = newInfraObjName
-		deployment.Spec.Template.Spec.InfrastructureRef = *infraRef
+		deployment.Spec.Template.Spec.InfrastructureRef = infraRef
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, deployment)
 		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch new infrastructure ref to MachineDeployment %s", klog.KObj(deployment))
@@ -550,7 +550,7 @@ func ScaleAndWaitMachineDeployment(ctx context.Context, input ScaleAndWaitMachin
 		}
 		nodeRefCount := 0
 		for _, machine := range machines.Items {
-			if machine.Status.NodeRef != nil {
+			if machine.Status.NodeRef.IsDefined() {
 				nodeRefCount++
 			}
 		}
@@ -686,7 +686,7 @@ func ScaleAndWaitMachineDeploymentTopology(ctx context.Context, input ScaleAndWa
 		}
 		nodeRefCount := 0
 		for _, machine := range machines.Items {
-			if machine.Status.NodeRef != nil {
+			if machine.Status.NodeRef.IsDefined() {
 				nodeRefCount++
 			}
 		}

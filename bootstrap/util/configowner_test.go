@@ -221,7 +221,7 @@ func TestHasNodeRefs(t *testing.T) {
 				Initialization: clusterv1.MachineInitializationStatus{
 					InfrastructureProvisioned: ptr.To(true),
 				},
-				NodeRef: &clusterv1.MachineNodeReference{
+				NodeRef: clusterv1.MachineNodeReference{
 					Name: "node-0",
 				},
 			},

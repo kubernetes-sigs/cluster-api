@@ -50,7 +50,7 @@ func WaitForClusterMachineNodeRefs(ctx context.Context, input WaitForClusterMach
 			if err != nil {
 				return
 			}
-			if machine.Status.NodeRef != nil {
+			if machine.Status.NodeRef.IsDefined() {
 				count++
 			}
 		}
@@ -78,7 +78,7 @@ func WaitForClusterMachinesReady(ctx context.Context, input WaitForClusterMachin
 			if err != nil {
 				return
 			}
-			if machine.Status.NodeRef == nil {
+			if !machine.Status.NodeRef.IsDefined() {
 				continue
 			}
 			node := &corev1.Node{}

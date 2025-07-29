@@ -361,7 +361,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		}, input.E2EConfig.GetIntervals(specName, "wait-control-plane")...)
 
 		By("Upgrading the self-hosted Cluster")
-		if clusterResources.Cluster.Spec.Topology != nil {
+		if clusterResources.Cluster.Spec.Topology.IsDefined() {
 			// Cluster is using ClusterClass, upgrade via topology.
 			By("Upgrading the Cluster topology")
 			framework.UpgradeClusterTopologyAndWaitForUpgrade(ctx, framework.UpgradeClusterTopologyAndWaitForUpgradeInput{

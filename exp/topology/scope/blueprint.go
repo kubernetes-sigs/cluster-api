@@ -26,7 +26,7 @@ import (
 // including the ClusterClass and all the referenced templates.
 type ClusterBlueprint struct {
 	// Topology holds the topology info from Cluster.Spec.
-	Topology *clusterv1.Topology
+	Topology clusterv1.Topology
 
 	// ClusterClass holds the ClusterClass object referenced from Cluster.Spec.Topology.
 	ClusterClass *clusterv1.ClusterClass
@@ -93,7 +93,7 @@ type MachinePoolBlueprint struct {
 
 // HasControlPlaneInfrastructureMachine checks whether the clusterClass mandates the controlPlane has infrastructureMachines.
 func (b *ClusterBlueprint) HasControlPlaneInfrastructureMachine() bool {
-	return b.ClusterClass.Spec.ControlPlane.MachineInfrastructure != nil
+	return b.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined()
 }
 
 // IsControlPlaneMachineHealthCheckEnabled returns true if a MachineHealthCheck should be created for the control plane.

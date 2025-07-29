@@ -204,7 +204,7 @@ func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersion
 		}
 
 		// Return early if the InfrastructureRef is nil.
-		if cluster.Spec.InfrastructureRef == nil {
+		if !cluster.Spec.InfrastructureRef.IsDefined() {
 			return nil
 		}
 		gk := gvk.GroupKind()

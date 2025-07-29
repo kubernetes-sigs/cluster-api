@@ -1530,7 +1530,9 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Spec: clusterv1.ClusterSpec{
-							ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{},
+							ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+								Name: "cp1",
+							},
 						},
 						Status: clusterv1.ClusterStatus{
 							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
@@ -1582,7 +1584,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							},
 						},
 						Status: clusterv1.MachineStatus{
-							NodeRef: nil,
+							NodeRef: clusterv1.MachineNodeReference{}, // Not set
 						},
 					},
 				},
@@ -1628,7 +1630,9 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							},
 						},
 						Status: clusterv1.MachineStatus{
-							NodeRef: &clusterv1.MachineNodeReference{},
+							NodeRef: clusterv1.MachineNodeReference{
+								Name: "machine1",
+							},
 						},
 					},
 				},

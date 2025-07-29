@@ -91,8 +91,8 @@ func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 
 		// In this case (reconcileInfrastructureCluster reported creation of the infrastructure cluster object, reconcileControlPlane - which is expected to create the control plane object - failed),
 		// if the creation of the control plane actually did not happen, blank out ControlPlaneRef from desired cluster.
-		if s.Current.Cluster.Spec.ControlPlaneRef == nil && !createdControlPlane {
-			s.Desired.Cluster.Spec.ControlPlaneRef = nil
+		if !s.Current.Cluster.Spec.ControlPlaneRef.IsDefined() && !createdControlPlane {
+			s.Desired.Cluster.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{}
 		}
 	}
 
@@ -186,7 +186,7 @@ func (r *Reconciler) callAfterHooks(ctx context.Context, s *scope.Scope) error {
 
 func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *scope.Scope) error {
 	// If the cluster topology is being created then track to intent to call the AfterControlPlaneInitialized hook so that we can call it later.
-	if s.Current.Cluster.Spec.InfrastructureRef == nil && s.Current.Cluster.Spec.ControlPlaneRef == nil {
+	if !s.Current.Cluster.Spec.InfrastructureRef.IsDefined() && !s.Current.Cluster.Spec.ControlPlaneRef.IsDefined() {
 		if err := hooks.MarkAsPending(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneInitialized); err != nil {
 			return err
 		}
@@ -754,7 +754,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 	bootstrapCleanupFunc := func() {}
 	createdBootstrap, err := r.reconcileReferencedTemplate(bootstrapCtx, reconcileReferencedTemplateInput{
 		cluster:              cluster,
-		ref:                  desiredMD.Object.Spec.Template.Spec.Bootstrap.ConfigRef,
+		ref:                  &desiredMD.Object.Spec.Template.Spec.Bootstrap.ConfigRef,
 		current:              currentMD.BootstrapTemplate,
 		desired:              desiredMD.BootstrapTemplate,
 		templateNamePrefix:   topologynames.BootstrapTemplateNamePrefix(cluster.Name, mdTopologyName),
@@ -1297,8 +1297,8 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 		return true, nil
 	}
 
-	if in.ref == nil {
-		return false, errors.Errorf("failed to rotate %s: ref should not be nil", in.desired.GetKind())
+	if in.ref == nil || !in.ref.IsDefined() {
+		return false, errors.Errorf("failed to rotate %s: ref should be set", in.desired.GetKind())
 	}
 
 	// Check if the current and desired referenced object are compatible.

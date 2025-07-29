@@ -67,13 +67,7 @@ func (v *ScaleValidator) Handle(ctx context.Context, req admission.Request) admi
 		return admission.Denied("replicas cannot be 0")
 	}
 
-	externalEtcd := false
-	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
-		if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil {
-			externalEtcd = true
-		}
-	}
-
+	externalEtcd := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External.IsDefined()
 	if !externalEtcd {
 		if scale.Spec.Replicas%2 == 0 {
 			return admission.Denied("replicas cannot be an even number when etcd is stacked")

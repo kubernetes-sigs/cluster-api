@@ -67,16 +67,14 @@ var (
 type Certificates []*Certificate
 
 // NewCertificatesForInitialControlPlane returns a list of certificates configured for a control plane node.
-func NewCertificatesForInitialControlPlane(config *bootstrapv1.ClusterConfiguration) Certificates {
+func NewCertificatesForInitialControlPlane(config bootstrapv1.ClusterConfiguration) Certificates {
 	var validityPeriodDays int32
 	certificatesDir := DefaultCertificatesDir
-	if config != nil {
-		if config.CertificatesDir != "" {
-			certificatesDir = config.CertificatesDir
-		}
-		if config.CACertificateValidityPeriodDays != 0 {
-			validityPeriodDays = config.CACertificateValidityPeriodDays
-		}
+	if config.CertificatesDir != "" {
+		certificatesDir = config.CertificatesDir
+	}
+	if config.CACertificateValidityPeriodDays != 0 {
+		validityPeriodDays = config.CACertificateValidityPeriodDays
 	}
 
 	certificates := Certificates{
@@ -108,7 +106,7 @@ func NewCertificatesForInitialControlPlane(config *bootstrapv1.ClusterConfigurat
 	}
 
 	// TODO make sure all the fields are actually defined and return an error if not
-	if config != nil && config.Etcd.External != nil {
+	if config.Etcd.External.IsDefined() {
 		etcdCert = &Certificate{
 			Purpose:  EtcdCA,
 			CertFile: config.Etcd.External.CAFile,
@@ -128,9 +126,9 @@ func NewCertificatesForInitialControlPlane(config *bootstrapv1.ClusterConfigurat
 }
 
 // NewControlPlaneJoinCerts gets any certs that exist and writes them to disk.
-func NewControlPlaneJoinCerts(config *bootstrapv1.ClusterConfiguration) Certificates {
+func NewControlPlaneJoinCerts(config bootstrapv1.ClusterConfiguration) Certificates {
 	certificatesDir := DefaultCertificatesDir
-	if config != nil && config.CertificatesDir != "" {
+	if config.CertificatesDir != "" {
 		certificatesDir = config.CertificatesDir
 	}
 
@@ -158,7 +156,7 @@ func NewControlPlaneJoinCerts(config *bootstrapv1.ClusterConfiguration) Certific
 	}
 
 	// TODO make sure all the fields are actually defined and return an error if not
-	if config != nil && config.Etcd.External != nil {
+	if config.Etcd.External.IsDefined() {
 		etcdCert = &Certificate{
 			Purpose:  EtcdCA,
 			CertFile: config.Etcd.External.CAFile,

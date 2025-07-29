@@ -365,12 +365,12 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "refAPIGroup1",
 						Kind:     "refKind1",
 						Name:     "refName1",
 					},
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "refAPIGroup1",
 						Kind:     "refKind1",
 						Name:     "refName1",
@@ -398,12 +398,12 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "refAPIGroup1",
 						Kind:     "refKind1",
 						Name:     "refName1",
 					},
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "refAPIGroup1",
 						Kind:     "refKind1",
 						Name:     "refName1",
@@ -431,12 +431,12 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "refAPIGroup1",
 						Kind:     "refKind1",
 						Name:     "refName1",
 					},
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "refAPIGroup1",
 						Kind:     "refKind1",
 						Name:     "refName1",
@@ -461,8 +461,16 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					Namespace: "test-ns",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef:   &clusterv1.ContractVersionedObjectReference{},
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "refAPIGroup1",
+						Kind:     "refKind1",
+						Name:     "refName1",
+					},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "refAPIGroup1",
+						Kind:     "refKind1",
+						Name:     "refName1",
+					},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -575,7 +583,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should not be called if it is not marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -605,7 +613,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should not be called if the control plane is starting a new upgrade - hook is marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -642,7 +650,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should not be called if the control plane is upgrading - hook is marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -679,7 +687,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should be called if the control plane is scaling - hook is not marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -694,7 +702,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 							},
 						},
-						Spec: clusterv1.ClusterSpec{Topology: &clusterv1.Topology{}},
+						Spec: clusterv1.ClusterSpec{Topology: clusterv1.Topology{}},
 					},
 					ControlPlane: &scope.ControlPlaneState{
 						Object: controlPlaneObj,
@@ -715,7 +723,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should not be called if the control plane is pending an upgrade - hook is marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -752,7 +760,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should not be called if the control plane is stable at desired version but MDs are upgrading - hook is marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -790,7 +798,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should not be called if the control plane is stable at desired version but MPs are upgrading - hook is marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -828,7 +836,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should not be called if the control plane is stable at desired version but MDs are pending create - hook is marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -866,7 +874,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should not be called if the control plane is stable at desired version but MPs are pending create - hook is marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -904,7 +912,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should not be called if the control plane is stable at desired version but MDs are pending upgrade - hook is marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -942,7 +950,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should not be called if the control plane is stable at desired version but MPs are pending upgrade - hook is marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -980,7 +988,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should not be called if the control plane is stable at desired version but MDs upgrade is deferred - hook is marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -1018,7 +1026,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should not be called if the control plane is stable at desired version but MPs upgrade is deferred - hook is marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -1056,7 +1064,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should be called if the control plane, MDs, and MPs are stable at the topology version - success response should unmark the hook",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -1072,7 +1080,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 							},
 						},
 						Spec: clusterv1.ClusterSpec{
-							Topology: &clusterv1.Topology{
+							Topology: clusterv1.Topology{
 								Version: topologyVersion,
 							},
 						},
@@ -1093,7 +1101,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			name: "hook should be called if the control plane, MDs, and MPs are stable at the topology version - failure response should leave the hook marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
 						},
@@ -1109,7 +1117,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 							},
 						},
 						Spec: clusterv1.ClusterSpec{
-							Topology: &clusterv1.Topology{
+							Topology: clusterv1.Topology{
 								Version: topologyVersion,
 							},
 						},
@@ -1655,7 +1663,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 				ClusterClass: &clusterv1.ClusterClass{},
 			}
 			if tt.class.InfrastructureMachineTemplate != nil {
-				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
 					TemplateRef: objToClusterClassTemplateRef(tt.class.InfrastructureMachineTemplate),
 				}
 			}
@@ -1848,7 +1856,7 @@ func TestReconcileControlPlaneCleanup(t *testing.T) {
 			ClusterClass: &clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
 					ControlPlane: clusterv1.ControlPlaneClass{
-						MachineInfrastructure: &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+						MachineInfrastructure: clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
 							TemplateRef: objToClusterClassTemplateRef(infrastructureMachineTemplate),
 						},
 					},
@@ -2006,7 +2014,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 				ClusterClass: &clusterv1.ClusterClass{},
 			}
 			if tt.class.InfrastructureMachineTemplate != nil {
-				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
 					TemplateRef: objToClusterClassTemplateRef(tt.class.InfrastructureMachineTemplate),
 				}
 			}
@@ -2360,7 +2368,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 
 					// Copy over the name of the newly created InfrastructureRef and Bootstrap.ConfigRef because they get a generated name
 					wantMachineDeploymentState.Object.Spec.Template.Spec.InfrastructureRef.Name = gotMachineDeployment.Spec.Template.Spec.InfrastructureRef.Name
-					if gotMachineDeployment.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+					if gotMachineDeployment.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 						wantMachineDeploymentState.Object.Spec.Template.Spec.Bootstrap.ConfigRef.Name = gotMachineDeployment.Spec.Template.Spec.Bootstrap.ConfigRef.Name
 					}
 
@@ -2386,7 +2394,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 					}
 
 					// Compare InfrastructureMachineTemplate.
-					gotInfrastructureMachineTemplateRef := &gotMachineDeployment.Spec.Template.Spec.InfrastructureRef
+					gotInfrastructureMachineTemplateRef := gotMachineDeployment.Spec.Template.Spec.InfrastructureRef
 					gotInfrastructureMachineTemplate, err := external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), gotInfrastructureMachineTemplateRef, gotMachineDeployment.Namespace)
 					g.Expect(err).ToNot(HaveOccurred())
 
@@ -2442,7 +2450,7 @@ func TestReconcileMachineDeploymentsCleanup(t *testing.T) {
 		_, err = external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), gotBootstrapTemplateRef, md1.Object.Namespace)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 
-		gotInfrastructureMachineTemplateRef := &md1.Object.Spec.Template.Spec.InfrastructureRef
+		gotInfrastructureMachineTemplateRef := md1.Object.Spec.Template.Spec.InfrastructureRef
 		_, err = external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), gotInfrastructureMachineTemplateRef, md1.Object.Namespace)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
@@ -2491,7 +2499,7 @@ func TestReconcileMachineDeploymentsCleanup(t *testing.T) {
 		_, err = external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), newBootstrapTemplateRef, md2WithTemplateChanges.Object.Namespace)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 
-		newInfrastructureMachineTemplateRef := &md2WithTemplateChanges.Object.Spec.Template.Spec.InfrastructureRef
+		newInfrastructureMachineTemplateRef := md2WithTemplateChanges.Object.Spec.Template.Spec.InfrastructureRef
 		_, err = external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), newInfrastructureMachineTemplateRef, md2WithTemplateChanges.Object.Namespace)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
@@ -2767,7 +2775,7 @@ func TestReconcileMachinePools(t *testing.T) {
 
 					// Copy over the name of the newly created InfrastructureRef and Bootsrap.ConfigRef because they get a generated name
 					wantMachinePoolState.Object.Spec.Template.Spec.InfrastructureRef.Name = gotMachinePool.Spec.Template.Spec.InfrastructureRef.Name
-					if gotMachinePool.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+					if gotMachinePool.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 						wantMachinePoolState.Object.Spec.Template.Spec.Bootstrap.ConfigRef.Name = gotMachinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Name
 					}
 					// expect default value for the node deletion timeout.
@@ -2795,7 +2803,7 @@ func TestReconcileMachinePools(t *testing.T) {
 					}
 
 					// Compare InfrastructureMachinePoolObject.
-					gotInfrastructureMachinePoolObjectRef := &gotMachinePool.Spec.Template.Spec.InfrastructureRef
+					gotInfrastructureMachinePoolObjectRef := gotMachinePool.Spec.Template.Spec.InfrastructureRef
 					gotInfrastructureMachinePoolObject, err := external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), gotInfrastructureMachinePoolObjectRef, gotMachinePool.Namespace)
 					g.Expect(err).ToNot(HaveOccurred())
 
@@ -2852,7 +2860,7 @@ func TestReconcileMachinePoolsCleanup(t *testing.T) {
 		_, err = external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), gotBootstrapObjectRef, mp1.Object.Namespace)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 
-		gotInfrastructureMachinePoolObjectRef := &mp1.Object.Spec.Template.Spec.InfrastructureRef
+		gotInfrastructureMachinePoolObjectRef := mp1.Object.Spec.Template.Spec.InfrastructureRef
 		_, err = external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), gotInfrastructureMachinePoolObjectRef, mp1.Object.Namespace)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
@@ -3651,8 +3659,8 @@ func TestReconcileState(t *testing.T) {
 		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentCluster), got)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(got.Spec.InfrastructureRef).ToNot(BeNil())
-		g.Expect(got.Spec.ControlPlaneRef).To(BeNil())
+		g.Expect(got.Spec.InfrastructureRef.IsDefined()).To(BeTrue())
+		g.Expect(got.Spec.ControlPlaneRef.IsDefined()).To(BeFalse())
 
 		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, currentCluster, clusterClass, ict, cpt)).To(Succeed())
 	})
@@ -3711,8 +3719,8 @@ func TestReconcileState(t *testing.T) {
 		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentCluster), got)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(got.Spec.InfrastructureRef).ToNot(BeNil())
-		g.Expect(got.Spec.ControlPlaneRef).ToNot(BeNil())
+		g.Expect(got.Spec.InfrastructureRef.IsDefined()).To(BeTrue())
+		g.Expect(got.Spec.ControlPlaneRef.IsDefined()).To(BeTrue())
 
 		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, controlPlane, currentCluster, clusterClass, ict, cpt)).To(Succeed())
 	})
@@ -3766,8 +3774,8 @@ func TestReconcileState(t *testing.T) {
 		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentCluster), got)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(got.Spec.InfrastructureRef).ToNot(BeNil())
-		g.Expect(got.Spec.ControlPlaneRef).To(BeNil())
+		g.Expect(got.Spec.InfrastructureRef.IsDefined()).To(BeTrue())
+		g.Expect(got.Spec.ControlPlaneRef.IsDefined()).To(BeFalse())
 
 		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, controlPlane, currentCluster)).To(Succeed())
 	})

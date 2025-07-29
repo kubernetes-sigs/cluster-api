@@ -191,7 +191,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineD
 	if err := machineset.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, md.Namespace); err != nil {
 		return errors.Wrapf(err, "failed to delete %s %s for MachineDeployment %s", ref.Kind, klog.KRef(md.Namespace, ref.Name), klog.KObj(md))
 	}
-	ref = &md.Spec.Template.Spec.InfrastructureRef
+	ref = md.Spec.Template.Spec.InfrastructureRef
 	if err := machineset.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, md.Namespace); err != nil {
 		return errors.Wrapf(err, "failed to delete %s %s for MachineDeployment %s", ref.Kind, klog.KRef(md.Namespace, ref.Name), klog.KObj(md))
 	}

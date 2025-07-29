@@ -66,27 +66,23 @@ loopmembers:
 }
 
 // UpdateEtcdLocalInKubeadmConfigMap sets etcd local configuration in the kubeadm config map.
-func (w *Workload) UpdateEtcdLocalInKubeadmConfigMap(etcdLocal *bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration) {
+func (w *Workload) UpdateEtcdLocalInKubeadmConfigMap(etcdLocal bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration) {
 	return func(c *bootstrapv1.ClusterConfiguration) {
-		if c.Etcd.Local != nil {
-			c.Etcd.Local = etcdLocal
-		}
+		c.Etcd.Local = etcdLocal
 	}
 }
 
 // UpdateEtcdExternalInKubeadmConfigMap sets etcd external configuration in the kubeadm config map.
-func (w *Workload) UpdateEtcdExternalInKubeadmConfigMap(etcdExternal *bootstrapv1.ExternalEtcd) func(*bootstrapv1.ClusterConfiguration) {
+func (w *Workload) UpdateEtcdExternalInKubeadmConfigMap(etcdExternal bootstrapv1.ExternalEtcd) func(*bootstrapv1.ClusterConfiguration) {
 	return func(c *bootstrapv1.ClusterConfiguration) {
-		if c.Etcd.External != nil {
-			c.Etcd.External = etcdExternal
-		}
+		c.Etcd.External = etcdExternal
 	}
 }
 
 // RemoveEtcdMemberForMachine removes the etcd member from the target cluster's etcd cluster.
 // Removing the last remaining member of the cluster is not supported.
 func (w *Workload) RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error {
-	if machine == nil || machine.Status.NodeRef == nil {
+	if machine == nil || !machine.Status.NodeRef.IsDefined() {
 		// Nothing to do, no node for Machine
 		return nil
 	}
@@ -136,13 +132,13 @@ func (w *Workload) removeMemberForNode(ctx context.Context, name string) error {
 
 // ForwardEtcdLeadership forwards etcd leadership to the first follower.
 func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
-	if machine == nil || machine.Status.NodeRef == nil {
+	if machine == nil || !machine.Status.NodeRef.IsDefined() {
 		return nil
 	}
 	if leaderCandidate == nil {
 		return errors.New("leader candidate cannot be nil")
 	}
-	if leaderCandidate.Status.NodeRef == nil {
+	if !leaderCandidate.Status.NodeRef.IsDefined() {
 		return errors.New("leader candidate has no node reference")
 	}
 

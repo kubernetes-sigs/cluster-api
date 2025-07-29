@@ -61,7 +61,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				Name:      "test-cluster",
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
 					Kind:     builder.GenericControlPlaneKind,
 					Name:     "cp1",
@@ -224,7 +224,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		t.Log("Verifying the linked infrastructure template has a cluster owner reference")
 		g.Eventually(func() bool {
-			obj, err := external.GetObjectFromContractVersionedRef(ctx, env, &deployment.Spec.Template.Spec.InfrastructureRef, deployment.Namespace)
+			obj, err := external.GetObjectFromContractVersionedRef(ctx, env, deployment.Spec.Template.Spec.InfrastructureRef, deployment.Namespace)
 			if err != nil {
 				return false
 			}
@@ -452,7 +452,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 					continue
 				}
 
-				if m.Status.NodeRef == nil {
+				if !m.Status.NodeRef.IsDefined() {
 					providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, m.Namespace, infraResource, g)
 					fakeMachineNodeRef(&m, providerID, g)
 				}
@@ -515,7 +515,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 				Name:      "test-cluster",
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
 					Kind:     builder.GenericControlPlaneKind,
 					Name:     "cp1",

@@ -30,7 +30,6 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
@@ -108,7 +107,7 @@ func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitFo
 		}
 		count := 0
 		for _, machine := range machineList.Items {
-			if machine.Status.NodeRef != nil {
+			if machine.Status.NodeRef.IsDefined() {
 				count++
 			}
 		}
@@ -145,7 +144,7 @@ func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input Wait
 		}
 		count := 0
 		for _, machine := range machineList.Items {
-			if machine.Status.NodeRef != nil {
+			if machine.Status.NodeRef.IsDefined() {
 				count++
 			}
 		}
@@ -337,14 +336,6 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	if input.UpgradeMachineTemplate != nil {
 		input.ControlPlane.Spec.MachineTemplate.Spec.InfrastructureRef.Name = *input.UpgradeMachineTemplate
 	}
-	// If the ClusterConfiguration is not specified, create an empty one.
-	if input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
-		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration = new(bootstrapv1.ClusterConfiguration)
-	}
-
-	if input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local == nil {
-		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = new(bootstrapv1.LocalEtcd)
-	}
 
 	if input.EtcdImageTag != "" {
 		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageTag = input.EtcdImageTag
@@ -439,7 +430,7 @@ func ScaleAndWaitControlPlane(ctx context.Context, input ScaleAndWaitControlPlan
 		}
 		nodeRefCount := 0
 		for _, machine := range machines.Items {
-			if machine.Status.NodeRef != nil {
+			if machine.Status.NodeRef.IsDefined() {
 				nodeRefCount++
 			}
 		}

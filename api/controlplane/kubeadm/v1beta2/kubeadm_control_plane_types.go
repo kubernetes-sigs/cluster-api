@@ -715,7 +715,7 @@ type KubeadmControlPlaneStatus struct {
 
 	// lastRemediation stores info about last remediation performed.
 	// +optional
-	LastRemediation *LastRemediationStatus `json:"lastRemediation,omitempty"`
+	LastRemediation LastRemediationStatus `json:"lastRemediation,omitempty,omitzero"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional

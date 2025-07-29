@@ -535,12 +535,8 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 // enforces all the expected owner ref on them.
 func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context.Context, controlPlane *internal.ControlPlane) error {
 	// Generate Cluster Certificates if needed
-	config := controlPlane.KCP.Spec.KubeadmConfigSpec.DeepCopy()
-	config.JoinConfiguration = nil
-	if config.ClusterConfiguration == nil {
-		config.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
-	}
-	certificates := secret.NewCertificatesForInitialControlPlane(config.ClusterConfiguration)
+	clusterConfiguration := controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.DeepCopy()
+	certificates := secret.NewCertificatesForInitialControlPlane(*clusterConfiguration)
 	controllerRef := metav1.NewControllerRef(controlPlane.KCP, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	if err := certificates.LookupOrGenerateCached(ctx, r.SecretCachingClient, r.Client, util.ObjectKey(controlPlane.Cluster), *controllerRef); err != nil {
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.CertificatesAvailableV1Beta1Condition, controlplanev1.CertificatesGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
@@ -751,7 +747,7 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(_ context.C
 	}
 
 	controlPlaneRef := c.Spec.ControlPlaneRef
-	if controlPlaneRef != nil && controlPlaneRef.Kind == kubeadmControlPlaneKind {
+	if controlPlaneRef.IsDefined() && controlPlaneRef.Kind == kubeadmControlPlaneKind {
 		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: c.Namespace, Name: controlPlaneRef.Name}}}
 	}
 
@@ -1122,7 +1118,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 	// so we can ignore this case.
 	nodeNames := []string{}
 	for _, machine := range controlPlane.Machines {
-		if machine.Status.NodeRef == nil {
+		if !machine.Status.NodeRef.IsDefined() {
 			// If there are provisioning machines (machines without a node yet), return.
 			return nil
 		}
@@ -1272,7 +1268,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context
 			continue
 		}
 
-		if m.Status.NodeRef == nil {
+		if !m.Status.NodeRef.IsDefined() {
 			// Skip if the Machine is still provisioning.
 			continue
 		}
@@ -1327,7 +1323,7 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 		ref := m.Spec.Bootstrap.ConfigRef
 
 		// TODO instead of returning error here, we should instead Event and add a watch on potentially adoptable Machines
-		if ref == nil || ref.Kind != "KubeadmConfig" {
+		if !ref.IsDefined() || ref.Kind != "KubeadmConfig" {
 			return errors.Errorf("unable to adopt Machine %v/%v: expected a ConfigRef of kind KubeadmConfig but instead found %v", m.Namespace, m.Name, ref)
 		}
 

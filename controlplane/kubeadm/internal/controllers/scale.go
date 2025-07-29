@@ -185,7 +185,7 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		// Block when we expect an upgrade to be propagated for topology clusters.
-		if controlPlane.Cluster.Spec.Topology != nil && controlPlane.Cluster.Spec.Topology.Version != controlPlane.KCP.Spec.Version {
+		if controlPlane.Cluster.Spec.Topology.IsDefined() && controlPlane.Cluster.Spec.Topology.Version != controlPlane.KCP.Spec.Version {
 			logger.Info(fmt.Sprintf("Waiting for a version upgrade to %s to be propagated from Cluster.spec.topology", controlPlane.Cluster.Spec.Topology.Version))
 			controlPlane.PreflightCheckResults.TopologyVersionMismatch = true
 			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
@@ -223,7 +223,7 @@ loopmachines:
 			}
 		}
 
-		if machine.Status.NodeRef == nil {
+		if !machine.Status.NodeRef.IsDefined() {
 			// The conditions will only ever be set on a Machine if we're able to correlate a Machine to a Node.
 			// Correlating Machines to Nodes requires the nodeRef to be set.
 			// Instead of confusing users with errors about that the conditions are not set, let's point them

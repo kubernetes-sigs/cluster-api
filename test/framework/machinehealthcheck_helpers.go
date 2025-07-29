@@ -151,7 +151,7 @@ func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Cont
 		}
 
 		for _, machine := range machines {
-			if machine.Status.NodeRef == nil {
+			if !machine.Status.NodeRef.IsDefined() {
 				return false
 			}
 			node := &corev1.Node{}

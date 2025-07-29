@@ -288,7 +288,7 @@ func (r *Reconciler) getMachinesFromMHC(ctx context.Context, mhc *clusterv1.Mach
 // getNodeFromMachine fetches the node from a local or remote cluster for a
 // given machine.
 func (r *Reconciler) getNodeFromMachine(ctx context.Context, clusterClient client.Reader, machine *clusterv1.Machine) (*corev1.Node, error) {
-	if machine.Status.NodeRef == nil {
+	if !machine.Status.NodeRef.IsDefined() {
 		return nil, nil
 	}
 

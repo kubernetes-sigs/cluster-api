@@ -60,7 +60,9 @@ func TestSetPhases(t *testing.T) {
 				},
 				Status: clusterv1.ClusterStatus{},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Name: "infra1",
+					},
 				},
 			},
 
@@ -76,7 +78,9 @@ func TestSetPhases(t *testing.T) {
 					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Name: "infra1",
+					},
 				},
 			},
 
@@ -89,7 +93,9 @@ func TestSetPhases(t *testing.T) {
 					Name: "test-cluster",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Name: "infra1",
+					},
 					ControlPlaneEndpoint: clusterv1.APIEndpoint{
 						Host: "1.2.3.4",
 						Port: 8443,
@@ -113,7 +119,9 @@ func TestSetPhases(t *testing.T) {
 						Host: "1.2.3.4",
 						Port: 8443,
 					},
-					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{},
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+						Name: "cp1",
+					},
 				},
 				Status: clusterv1.ClusterStatus{
 					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}, // Note, this is automatically set when there is no cluster infrastructure (no-op).
@@ -134,7 +142,9 @@ func TestSetPhases(t *testing.T) {
 					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Name: "infra1",
+					},
 				},
 			},
 
@@ -167,24 +177,24 @@ func TestSetControlPlaneReplicas(t *testing.T) {
 	}{
 		{
 			name:                   "counters should be nil for a cluster with control plane, control plane does not exist",
-			cluster:                fakeCluster("c", controlPlaneRef{}),
+			cluster:                fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane:           nil,
 			controlPlaneIsNotFound: true,
 		},
 		{
 			name:                   "counters should be nil for a cluster with control plane, unexpected error reading the CP",
-			cluster:                fakeCluster("c", controlPlaneRef{}),
+			cluster:                fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane:           nil,
 			controlPlaneIsNotFound: false,
 		},
 		{
 			name:         "counters should be nil for a cluster with control plane, but not reporting counters",
-			cluster:      fakeCluster("c", controlPlaneRef{}),
+			cluster:      fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane: fakeControlPlane("cp"),
 		},
 		{
 			name:                    "set counters for cluster with control plane, reporting counters",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane:            fakeControlPlane("cp", desiredReplicas(3), currentReplicas(2), readyReplicas(1), availableReplicas(2), upToDateReplicas(0)),
 			expectDesiredReplicas:   ptr.To(int32(3)),
 			expectReplicas:          ptr.To(int32(2)),
@@ -253,17 +263,17 @@ func TestSetWorkersReplicas(t *testing.T) {
 	}{
 		{
 			name:                    "counters should be nil if failed to get descendants",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			getDescendantsSucceeded: false,
 		},
 		{
 			name:                    "counter should be nil there are no objects to count",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			getDescendantsSucceeded: true,
 		},
 		{
 			name:    "counter should be nil if descendants are not reporting counters",
-			cluster: fakeCluster("c", controlPlaneRef{}),
+			cluster: fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1"),
 			}},
@@ -282,7 +292,7 @@ func TestSetWorkersReplicas(t *testing.T) {
 		},
 		{
 			name:    "should count workers from different objects",
-			cluster: fakeCluster("c", controlPlaneRef{}),
+			cluster: fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", desiredReplicas(1), currentReplicas(2), readyReplicas(3), availableReplicas(4), upToDateReplicas(5)),
 			}},
@@ -923,7 +933,7 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 	}{
 		{
 			name:                    "unknown if failed to get descendants",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			getDescendantsSucceeded: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.ClusterWorkersAvailableCondition,
@@ -934,7 +944,7 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 		},
 		{
 			name:                    "true if no descendants",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.ClusterWorkersAvailableCondition,
@@ -944,7 +954,7 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 		},
 		{
 			name:    "descendants do not report available",
-			cluster: fakeCluster("c", controlPlaneRef{}),
+			cluster: fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1"),
 			}},
@@ -962,7 +972,7 @@ func TestSetWorkersAvailableCondition(t *testing.T) {
 		},
 		{
 			name:    "descendants report available",
-			cluster: fakeCluster("c", controlPlaneRef{}),
+			cluster: fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
 					Type:    clusterv1.MachineDeploymentAvailableCondition,
@@ -1568,7 +1578,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 	}{
 		{
 			name:                    "cluster with controlplane, unknown if failed to get descendants",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane:            nil,
 			controlPlaneIsNotFound:  true,
 			getDescendantsSucceeded: false,
@@ -1581,7 +1591,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 		},
 		{
 			name:                    "cluster with controlplane, unknown if failed to get control plane",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane:            nil,
 			controlPlaneIsNotFound:  false,
 			getDescendantsSucceeded: true,
@@ -1594,7 +1604,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 		},
 		{
 			name:                    "cluster with controlplane, false if no control plane & descendants",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlaneIsNotFound:  true,
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -1605,7 +1615,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 		},
 		{
 			name:         "cluster with controlplane, control plane & descendants do not report rolling out",
-			cluster:      fakeCluster("c", controlPlaneRef{}),
+			cluster:      fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane: fakeControlPlane("cp1"),
 			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1"),
@@ -1624,7 +1634,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 		},
 		{
 			name:    "cluster with controlplane, control plane and descendants report rolling out",
-			cluster: fakeCluster("c", controlPlaneRef{}),
+			cluster: fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane: fakeControlPlane("cp1", condition{
 				Type:    clusterv1.ClusterRollingOutCondition,
 				Status:  metav1.ConditionTrue,
@@ -1659,7 +1669,7 @@ func TestSetRollingOutCondition(t *testing.T) {
 		},
 		{
 			name:         "cluster with controlplane, control plane not reporting conditions, descendants report rolling out",
-			cluster:      fakeCluster("c", controlPlaneRef{}),
+			cluster:      fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane: fakeControlPlane("cp1"),
 			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
@@ -1764,7 +1774,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 	}{
 		{
 			name:                    "cluster with controlplane, unknown if failed to get descendants",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane:            nil,
 			controlPlaneIsNotFound:  true,
 			getDescendantsSucceeded: false,
@@ -1777,7 +1787,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:                    "cluster with controlplane, unknown if failed to get control plane",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane:            nil,
 			controlPlaneIsNotFound:  false,
 			getDescendantsSucceeded: true,
@@ -1790,7 +1800,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:                    "cluster with controlplane, false if no control plane & descendants",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlaneIsNotFound:  true,
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -1801,7 +1811,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:         "cluster with controlplane, control plane & descendants do not report scaling up",
-			cluster:      fakeCluster("c", controlPlaneRef{}),
+			cluster:      fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane: fakeControlPlane("cp1"),
 			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1"),
@@ -1830,7 +1840,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:    "cluster with controlplane, control plane and descendants report scaling up",
-			cluster: fakeCluster("c", controlPlaneRef{}),
+			cluster: fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane: fakeControlPlane("cp1", condition{
 				Type:    clusterv1.ClusterScalingUpCondition,
 				Status:  metav1.ConditionTrue,
@@ -1880,7 +1890,7 @@ func TestSetScalingUpCondition(t *testing.T) {
 		},
 		{
 			name:         "cluster with controlplane, control plane not reporting conditions, descendants report scaling up",
-			cluster:      fakeCluster("c", controlPlaneRef{}),
+			cluster:      fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane: fakeControlPlane("cp1"),
 			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
@@ -2015,7 +2025,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 	}{
 		{
 			name:                    "cluster with controlplane, unknown if failed to get descendants",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane:            nil,
 			controlPlaneIsNotFound:  true,
 			getDescendantsSucceeded: false,
@@ -2028,7 +2038,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 		},
 		{
 			name:                    "cluster with controlplane, unknown if failed to get control plane",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane:            nil,
 			controlPlaneIsNotFound:  false,
 			getDescendantsSucceeded: true,
@@ -2041,7 +2051,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 		},
 		{
 			name:                    "cluster with controlplane, false if no control plane & descendants",
-			cluster:                 fakeCluster("c", controlPlaneRef{}),
+			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlaneIsNotFound:  true,
 			getDescendantsSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -2052,7 +2062,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 		},
 		{
 			name:         "cluster with controlplane, control plane & descendants do not report scaling down",
-			cluster:      fakeCluster("c", controlPlaneRef{}),
+			cluster:      fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane: fakeControlPlane("cp1"),
 			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1"),
@@ -2081,7 +2091,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 		},
 		{
 			name:    "cluster with controlplane, control plane and descendants report scaling down",
-			cluster: fakeCluster("c", controlPlaneRef{}),
+			cluster: fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane: fakeControlPlane("cp1", condition{
 				Type:    clusterv1.ClusterScalingDownCondition,
 				Status:  metav1.ConditionTrue,
@@ -2131,7 +2141,7 @@ func TestSetScalingDownCondition(t *testing.T) {
 		},
 		{
 			name:         "cluster with controlplane, control plane not reporting conditions, descendants report scaling down",
-			cluster:      fakeCluster("c", controlPlaneRef{}),
+			cluster:      fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane: fakeControlPlane("cp1"),
 			machinePools: clusterv1.MachinePoolList{Items: []clusterv1.MachinePool{
 				*fakeMachinePool("mp1", condition{
@@ -2425,7 +2435,7 @@ func TestSetAvailableCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: nil, // not using CC
+					Topology: clusterv1.Topology{}, // not using CC
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -2452,7 +2462,7 @@ func TestSetAvailableCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: nil, // not using CC
+					Topology: clusterv1.Topology{}, // not using CC
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -2500,7 +2510,7 @@ func TestSetAvailableCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: nil, // not using CC
+					Topology: clusterv1.Topology{}, // not using CC
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -2555,7 +2565,11 @@ func TestSetAvailableCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{}, // using CC
+					Topology: clusterv1.Topology{ // using CC
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "class",
+						},
+					},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -2796,7 +2810,11 @@ func TestSetAvailableCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{}, // using CC
+					Topology: clusterv1.Topology{ // using CC
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "class",
+						},
+					},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -2849,7 +2867,11 @@ func TestSetAvailableCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{}, // using CC
+					Topology: clusterv1.Topology{ // using CC
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "class",
+						},
+					},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -2903,7 +2925,11 @@ func TestSetAvailableCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{}, // using CC
+					Topology: clusterv1.Topology{ // using CC
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "class",
+						},
+					},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -2958,7 +2984,11 @@ func TestSetAvailableCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{}, // using CC
+					Topology: clusterv1.Topology{ // using CC
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "class",
+						},
+					},
 				},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
@@ -3146,13 +3176,13 @@ func fakeMachine(name string, options ...fakeMachineOption) *clusterv1.Machine {
 type controlPlaneRef clusterv1.ContractVersionedObjectReference
 
 func (r controlPlaneRef) ApplyToCluster(c *clusterv1.Cluster) {
-	c.Spec.ControlPlaneRef = ptr.To(clusterv1.ContractVersionedObjectReference(r))
+	c.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference(r)
 }
 
 type infrastructureRef clusterv1.ContractVersionedObjectReference
 
 func (r infrastructureRef) ApplyToCluster(c *clusterv1.Cluster) {
-	c.Spec.InfrastructureRef = ptr.To(clusterv1.ContractVersionedObjectReference(r))
+	c.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference(r)
 }
 
 type infrastructureProvisioned bool
@@ -3352,13 +3382,17 @@ func (t creationTimestamp) ApplyToMachine(m *clusterv1.Machine) {
 type nodeRef clusterv1.MachineNodeReference
 
 func (r nodeRef) ApplyToMachine(m *clusterv1.Machine) {
-	m.Status.NodeRef = ptr.To(clusterv1.MachineNodeReference(r))
+	m.Status.NodeRef = clusterv1.MachineNodeReference(r)
 }
 
 type topology bool
 
 func (r topology) ApplyToCluster(c *clusterv1.Cluster) {
-	c.Spec.Topology = &clusterv1.Topology{}
+	c.Spec.Topology = clusterv1.Topology{
+		ClassRef: clusterv1.ClusterClassRef{
+			Name: "class",
+		},
+	}
 }
 
 type controlPlane bool

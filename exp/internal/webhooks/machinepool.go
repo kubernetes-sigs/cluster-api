@@ -155,7 +155,7 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 		)
 	}
 	var allErrs field.ErrorList
-	if newObj.Spec.Template.Spec.Bootstrap.ConfigRef == nil && newObj.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
+	if !newObj.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() && newObj.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
 		allErrs = append(
 			allErrs,
 			field.Required(

@@ -252,7 +252,7 @@ func (o *objectMover) checkProvisioningCompleted(ctx context.Context, graph *obj
 			continue
 		}
 
-		if clusterObj.Spec.ControlPlaneRef != nil && !ptr.Deref(clusterObj.Status.Initialization.ControlPlaneInitialized, false) {
+		if clusterObj.Spec.ControlPlaneRef.IsDefined() && !ptr.Deref(clusterObj.Status.Initialization.ControlPlaneInitialized, false) {
 			errList = append(errList, errors.Errorf("cannot start the move operation while the control plane for %q %s/%s is not yet initialized", clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName()))
 			continue
 		}
@@ -271,7 +271,7 @@ func (o *objectMover) checkProvisioningCompleted(ctx context.Context, graph *obj
 			return err
 		}
 
-		if machineObj.Status.NodeRef == nil {
+		if !machineObj.Status.NodeRef.IsDefined() {
 			errList = append(errList, errors.Errorf("cannot start the move operation while %q %s/%s is still provisioning the node", machineObj.GroupVersionKind(), machineObj.GetNamespace(), machineObj.GetName()))
 		}
 	}

@@ -563,7 +563,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 		Spec: bootstrapv1.KubeadmConfigTemplateSpec{
 			Template: bootstrapv1.KubeadmConfigTemplateResource{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							KubeletExtraArgs: []bootstrapv1.Arg{
 								{

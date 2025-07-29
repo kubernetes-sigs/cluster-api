@@ -519,7 +519,7 @@ type MachineStatus struct {
 
 	// nodeRef will point to the corresponding Node if it exists.
 	// +optional
-	NodeRef *MachineNodeReference `json:"nodeRef,omitempty"`
+	NodeRef MachineNodeReference `json:"nodeRef,omitempty,omitzero"`
 
 	// nodeInfo is a set of ids/uuids to uniquely identify the node.
 	// More info: https://kubernetes.io/docs/concepts/nodes/node/#info
@@ -569,6 +569,14 @@ type MachineNodeReference struct {
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name,omitempty"`
+}
+
+// IsDefined returns true if the MachineNodeReference is set.
+func (r *MachineNodeReference) IsDefined() bool {
+	if r == nil {
+		return false
+	}
+	return r.Name != ""
 }
 
 // MachineInitializationStatus provides observations of the Machine initialization process.
@@ -703,7 +711,7 @@ type Bootstrap struct {
 	// allow users/operators to specify Bootstrap.DataSecretName without
 	// the need of a controller.
 	// +optional
-	ConfigRef *ContractVersionedObjectReference `json:"configRef,omitempty"`
+	ConfigRef ContractVersionedObjectReference `json:"configRef,omitempty,omitzero"`
 
 	// dataSecretName is the name of the secret that stores the bootstrap data script.
 	// If nil, the Machine should remain in the Pending state.

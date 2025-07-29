@@ -386,6 +386,14 @@ type ContractVersionedObjectReference struct {
 	APIGroup string `json:"apiGroup,omitempty"`
 }
 
+// IsDefined returns true if the ContractVersionedObjectReference is set.
+func (r *ContractVersionedObjectReference) IsDefined() bool {
+	if r == nil {
+		return false
+	}
+	return r.Kind != "" || r.Name != "" || r.APIGroup != ""
+}
+
 // GroupKind returns the GroupKind of the reference.
 func (r *ContractVersionedObjectReference) GroupKind() schema.GroupKind {
 	return schema.GroupKind{

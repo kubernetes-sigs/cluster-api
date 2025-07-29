@@ -38,12 +38,10 @@ func TestUpdateCoreDNS(t *testing.T) {
 	validKCP := &controlplanev1.KubeadmControlPlane{
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					DNS: bootstrapv1.DNS{
-						ImageMeta: bootstrapv1.ImageMeta{
-							ImageRepository: "",
-							ImageTag:        "",
-						},
+						ImageRepository: "",
+						ImageTag:        "",
 					},
 					ImageRepository: "",
 				},
@@ -172,22 +170,11 @@ func TestUpdateCoreDNS(t *testing.T) {
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{},
 						},
 					},
 					Version: "v1.23.0",
-				},
-			},
-			objs:      []client.Object{badCM},
-			expectErr: false,
-		},
-		{
-			name: "returns early without error if KCP ClusterConfiguration is nil",
-			kcp: &controlplanev1.KubeadmControlPlane{
-				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
-					Version:           "v1.23.0",
 				},
 			},
 			objs:      []client.Object{badCM},
@@ -215,14 +202,12 @@ func TestUpdateCoreDNS(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								ImageMeta: bootstrapv1.ImageMeta{
-									// image is older than what's already
-									// installed.
-									ImageRepository: "k8s.gcr.io/some-folder/coredns",
-									ImageTag:        "1.1.2",
-								},
+								// image is older than what's already
+								// installed.
+								ImageRepository: "k8s.gcr.io/some-folder/coredns",
+								ImageTag:        "1.1.2",
 							},
 						},
 					},
@@ -237,13 +222,11 @@ func TestUpdateCoreDNS(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								ImageMeta: bootstrapv1.ImageMeta{
-									// provide an newer image to update to
-									ImageRepository: "k8s.gcr.io/some-folder/coredns",
-									ImageTag:        "1.7.2",
-								},
+								// provide an newer image to update to
+								ImageRepository: "k8s.gcr.io/some-folder/coredns",
+								ImageTag:        "1.7.2",
 							},
 						},
 					},
@@ -259,13 +242,11 @@ func TestUpdateCoreDNS(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								ImageMeta: bootstrapv1.ImageMeta{
-									// provide an newer image to update to
-									ImageRepository: "k8s.gcr.io/some-folder/coredns",
-									ImageTag:        "1.7.2",
-								},
+								// provide an newer image to update to
+								ImageRepository: "k8s.gcr.io/some-folder/coredns",
+								ImageTag:        "1.7.2",
 							},
 						},
 					},
@@ -283,13 +264,11 @@ func TestUpdateCoreDNS(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								ImageMeta: bootstrapv1.ImageMeta{
-									// provide an newer image to update to
-									ImageRepository: "k8s.gcr.io/some-repo",
-									ImageTag:        "1.7.2",
-								},
+								// provide an newer image to update to
+								ImageRepository: "k8s.gcr.io/some-repo",
+								ImageTag:        "1.7.2",
 							},
 						},
 					},
@@ -309,13 +288,11 @@ func TestUpdateCoreDNS(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								ImageMeta: bootstrapv1.ImageMeta{
-									// provide an newer image to update to
-									ImageRepository: "k8s.gcr.io/some-repo",
-									ImageTag:        "1.8.0",
-								},
+								// provide an newer image to update to
+								ImageRepository: "k8s.gcr.io/some-repo",
+								ImageTag:        "1.8.0",
 							},
 						},
 					},
@@ -335,12 +312,10 @@ func TestUpdateCoreDNS(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								ImageMeta: bootstrapv1.ImageMeta{
-									ImageRepository: "k8s.gcr.io",
-									ImageTag:        "1.7.0",
-								},
+								ImageRepository: "k8s.gcr.io",
+								ImageTag:        "1.7.0",
 							},
 						},
 					},
@@ -360,12 +335,10 @@ func TestUpdateCoreDNS(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								ImageMeta: bootstrapv1.ImageMeta{
-									ImageRepository: "k8s.gcr.io",
-									ImageTag:        "1.7.0",
-								},
+								ImageRepository: "k8s.gcr.io",
+								ImageTag:        "1.7.0",
 							},
 						},
 					},
@@ -384,12 +357,10 @@ func TestUpdateCoreDNS(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								ImageMeta: bootstrapv1.ImageMeta{
-									ImageRepository: "k8s.gcr.io",
-									ImageTag:        "v1.8.0", // NOTE: ImageTags requires the v prefix
-								},
+								ImageRepository: "k8s.gcr.io",
+								ImageTag:        "v1.8.0", // NOTE: ImageTags requires the v prefix
 							},
 						},
 					},
@@ -409,12 +380,10 @@ func TestUpdateCoreDNS(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								ImageMeta: bootstrapv1.ImageMeta{
-									ImageRepository: "k8s.gcr.io",
-									ImageTag:        "v1.8.0", // NOTE: ImageTags requires the v prefix
-								},
+								ImageRepository: "k8s.gcr.io",
+								ImageTag:        "v1.8.0", // NOTE: ImageTags requires the v prefix
 							},
 						},
 					},
@@ -433,12 +402,10 @@ func TestUpdateCoreDNS(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								ImageMeta: bootstrapv1.ImageMeta{
-									ImageRepository: "k8s.gcr.io",
-									ImageTag:        "v1.8.1", // NOTE: ImageTags requires the v prefix
-								},
+								ImageRepository: "k8s.gcr.io",
+								ImageTag:        "v1.8.1", // NOTE: ImageTags requires the v prefix
 							},
 						},
 					},
@@ -458,12 +425,10 @@ func TestUpdateCoreDNS(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							DNS: bootstrapv1.DNS{
-								ImageMeta: bootstrapv1.ImageMeta{
-									ImageRepository: "k8s.gcr.io",
-									ImageTag:        "v1.8.1", // NOTE: ImageTags requires the v prefix
-								},
+								ImageRepository: "k8s.gcr.io",
+								ImageTag:        "v1.8.1", // NOTE: ImageTags requires the v prefix
 							},
 						},
 					},
@@ -794,22 +759,20 @@ func TestGetCoreDNSInfo(t *testing.T) {
 		emptyDepl := newCoreDNSInfoDeploymentWithimage("")
 		emptyDepl.Spec.Template.Spec.Containers = []corev1.Container{}
 
-		clusterConfig := &bootstrapv1.ClusterConfiguration{
+		clusterConfig := bootstrapv1.ClusterConfiguration{
 			DNS: bootstrapv1.DNS{
-				ImageMeta: bootstrapv1.ImageMeta{
-					ImageRepository: "myrepo",
-					ImageTag:        "1.7.2-foobar.1",
-				},
+				ImageRepository: "myrepo",
+				ImageTag:        "1.7.2-foobar.1",
 			},
 		}
-		badImgTagDNS := clusterConfig.DeepCopy()
+		badImgTagDNS := *clusterConfig.DeepCopy()
 		badImgTagDNS.DNS.ImageTag = "v1X6.2-foobar.1"
 
 		tests := []struct {
 			name          string
 			expectErr     bool
 			objs          []client.Object
-			clusterConfig *bootstrapv1.ClusterConfiguration
+			clusterConfig bootstrapv1.ClusterConfiguration
 			expectedInfo  coreDNSInfo
 		}{
 			{
@@ -828,12 +791,10 @@ func TestGetCoreDNSInfo(t *testing.T) {
 			{
 				name: "uses global config ImageRepository if DNS ImageRepository is not set",
 				objs: []client.Object{newCoreDNSInfoDeploymentWithimage("registry.gcr.io/some-folder/coredns:1.6.2"), cm},
-				clusterConfig: &bootstrapv1.ClusterConfiguration{
+				clusterConfig: bootstrapv1.ClusterConfiguration{
 					ImageRepository: "globalRepo/sub-path",
 					DNS: bootstrapv1.DNS{
-						ImageMeta: bootstrapv1.ImageMeta{
-							ImageTag: "1.7.2-foobar.1",
-						},
+						ImageTag: "1.7.2-foobar.1",
 					},
 				},
 				expectedInfo: coreDNSInfo{
@@ -848,13 +809,11 @@ func TestGetCoreDNSInfo(t *testing.T) {
 			{
 				name: "uses DNS ImageRepository config if both global and DNS-level are set",
 				objs: []client.Object{newCoreDNSInfoDeploymentWithimage("registry.gcr.io/some-folder/coredns:1.6.2"), cm},
-				clusterConfig: &bootstrapv1.ClusterConfiguration{
+				clusterConfig: bootstrapv1.ClusterConfiguration{
 					ImageRepository: "globalRepo",
 					DNS: bootstrapv1.DNS{
-						ImageMeta: bootstrapv1.ImageMeta{
-							ImageRepository: "dnsRepo",
-							ImageTag:        "1.7.2-foobar.1",
-						},
+						ImageRepository: "dnsRepo",
+						ImageTag:        "1.7.2-foobar.1",
 					},
 				},
 				expectedInfo: coreDNSInfo{
@@ -869,11 +828,9 @@ func TestGetCoreDNSInfo(t *testing.T) {
 			{
 				name: "rename to coredns/coredns when upgrading to coredns=1.8.0 (k8s.gcr.io)",
 				objs: []client.Object{newCoreDNSInfoDeploymentWithimage("k8s.gcr.io/coredns:1.6.2"), cm},
-				clusterConfig: &bootstrapv1.ClusterConfiguration{
+				clusterConfig: bootstrapv1.ClusterConfiguration{
 					DNS: bootstrapv1.DNS{
-						ImageMeta: bootstrapv1.ImageMeta{
-							ImageTag: "1.8.0",
-						},
+						ImageTag: "1.8.0",
 					},
 				},
 				expectedInfo: coreDNSInfo{
@@ -888,11 +845,9 @@ func TestGetCoreDNSInfo(t *testing.T) {
 			{
 				name: "rename to coredns/coredns when upgrading to coredns=1.8.0 (registry.k8s.io)",
 				objs: []client.Object{newCoreDNSInfoDeploymentWithimage("registry.k8s.io/coredns:1.6.2"), cm},
-				clusterConfig: &bootstrapv1.ClusterConfiguration{
+				clusterConfig: bootstrapv1.ClusterConfiguration{
 					DNS: bootstrapv1.DNS{
-						ImageMeta: bootstrapv1.ImageMeta{
-							ImageTag: "1.8.0",
-						},
+						ImageTag: "1.8.0",
 					},
 				},
 				expectedInfo: coreDNSInfo{
@@ -998,10 +953,8 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 				kind: ClusterConfiguration
 				`),
 			newDNS: bootstrapv1.DNS{
-				ImageMeta: bootstrapv1.ImageMeta{
-					ImageRepository: "example.com/k8s",
-					ImageTag:        "v1.2.3",
-				},
+				ImageRepository: "example.com/k8s",
+				ImageTag:        "v1.2.3",
 			},
 			wantClusterConfiguration: utilyaml.Raw(`
 				apiServer: {}

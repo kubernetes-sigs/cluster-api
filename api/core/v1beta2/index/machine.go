@@ -55,7 +55,7 @@ func MachineByNodeName(o client.Object) []string {
 	if !ok {
 		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
 	}
-	if machine.Status.NodeRef != nil {
+	if machine.Status.NodeRef.IsDefined() {
 		return []string{machine.Status.NodeRef.Name}
 	}
 	return nil

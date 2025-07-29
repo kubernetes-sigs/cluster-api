@@ -89,8 +89,8 @@ type WorkloadCluster interface {
 	// Upgrade related tasks.
 	UpdateImageRepositoryInKubeadmConfigMap(imageRepository string) func(*bootstrapv1.ClusterConfiguration)
 	UpdateFeatureGatesInKubeadmConfigMap(kubeadmConfigSpec bootstrapv1.KubeadmConfigSpec, kubernetesVersion semver.Version) func(*bootstrapv1.ClusterConfiguration)
-	UpdateEtcdLocalInKubeadmConfigMap(localEtcd *bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration)
-	UpdateEtcdExternalInKubeadmConfigMap(externalEtcd *bootstrapv1.ExternalEtcd) func(*bootstrapv1.ClusterConfiguration)
+	UpdateEtcdLocalInKubeadmConfigMap(localEtcd bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration)
+	UpdateEtcdExternalInKubeadmConfigMap(externalEtcd bootstrapv1.ExternalEtcd) func(*bootstrapv1.ClusterConfiguration)
 	UpdateAPIServerInKubeadmConfigMap(apiServer bootstrapv1.APIServer) func(*bootstrapv1.ClusterConfiguration)
 	UpdateControllerManagerInKubeadmConfigMap(controllerManager bootstrapv1.ControllerManager) func(*bootstrapv1.ClusterConfiguration)
 	UpdateSchedulerInKubeadmConfigMap(scheduler bootstrapv1.Scheduler) func(*bootstrapv1.ClusterConfiguration)
@@ -184,10 +184,6 @@ const (
 func DefaultFeatureGates(kubeadmConfigSpec *bootstrapv1.KubeadmConfigSpec, kubernetesVersion semver.Version) {
 	if version.Compare(kubernetesVersion, minKubernetesVersionControlPlaneKubeletLocalMode, version.WithoutPreReleases()) < 0 {
 		return
-	}
-
-	if kubeadmConfigSpec.ClusterConfiguration == nil {
-		kubeadmConfigSpec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
 	}
 
 	if kubeadmConfigSpec.ClusterConfiguration.FeatureGates == nil {
@@ -363,13 +359,11 @@ func (w *Workload) GetAPIServerCertificateExpiry(ctx context.Context, kubeadmCon
 // calculateAPIServerPort calculates the kube-apiserver bind port based
 // on a KubeadmConfig.
 func calculateAPIServerPort(config *bootstrapv1.KubeadmConfig) int32 {
-	if config.Spec.InitConfiguration != nil &&
-		config.Spec.InitConfiguration.LocalAPIEndpoint.BindPort != 0 {
+	if config.Spec.InitConfiguration.LocalAPIEndpoint.BindPort != 0 {
 		return config.Spec.InitConfiguration.LocalAPIEndpoint.BindPort
 	}
 
-	if config.Spec.JoinConfiguration != nil &&
-		config.Spec.JoinConfiguration.ControlPlane != nil &&
+	if config.Spec.JoinConfiguration.ControlPlane != nil &&
 		config.Spec.JoinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort != 0 {
 		return config.Spec.JoinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort
 	}
@@ -492,10 +486,9 @@ func patchKubeProxyImage(ds *appsv1.DaemonSet, image string) {
 }
 
 // ImageRepositoryFromClusterConfig returns the image repository to use.
-func ImageRepositoryFromClusterConfig(clusterConfig *bootstrapv1.ClusterConfiguration) string {
+func ImageRepositoryFromClusterConfig(clusterConfig bootstrapv1.ClusterConfiguration) string {
 	// If ImageRepository is explicitly specified, return early.
-	if clusterConfig != nil &&
-		clusterConfig.ImageRepository != "" {
+	if clusterConfig.ImageRepository != "" {
 		return clusterConfig.ImageRepository
 	}
 

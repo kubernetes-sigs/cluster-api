@@ -101,7 +101,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// If the owner cluster is in deletion process, delete its ClusterResourceSetBinding
 	if !cluster.DeletionTimestamp.IsZero() {
 		if feature.Gates.Enabled(feature.RuntimeSDK) && feature.Gates.Enabled(feature.ClusterTopology) {
-			if cluster.Spec.Topology != nil && !hooks.IsOkToDelete(cluster) {
+			if cluster.Spec.Topology.IsDefined() && !hooks.IsOkToDelete(cluster) {
 				// If the Cluster is not yet ready to be deleted then do not delete the ClusterResourceSetBinding.
 				return ctrl.Result{}, nil
 			}

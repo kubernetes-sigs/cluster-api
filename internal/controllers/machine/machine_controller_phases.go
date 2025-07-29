@@ -45,7 +45,7 @@ import (
 var externalReadyWait = 30 * time.Second
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
-func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *clusterv1.ContractVersionedObjectReference) (*unstructured.Unstructured, error) {
+func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref clusterv1.ContractVersionedObjectReference) (*unstructured.Unstructured, error) {
 	obj, err := r.ensureExternalOwnershipAndWatch(ctx, cluster, m, ref)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 
 // ensureExternalOwnershipAndWatch ensures that only the Machine owns the external object,
 // adds a watch to the external object if one does not already exist and adds the necessary labels.
-func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *clusterv1.ContractVersionedObjectReference) (*unstructured.Unstructured, error) {
+func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref clusterv1.ContractVersionedObjectReference) (*unstructured.Unstructured, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, m.Namespace)
@@ -153,7 +153,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	m := s.machine
 
 	// If the Bootstrap ref is nil (and so the machine should use user generated data secret), return.
-	if m.Spec.Bootstrap.ConfigRef == nil {
+	if !m.Spec.Bootstrap.ConfigRef.IsDefined() {
 		return ctrl.Result{}, nil
 	}
 
@@ -246,7 +246,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	m := s.machine
 
 	// Call generic external reconciler.
-	obj, err := r.reconcileExternal(ctx, cluster, m, &m.Spec.InfrastructureRef)
+	obj, err := r.reconcileExternal(ctx, cluster, m, m.Spec.InfrastructureRef)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			s.infraMachineIsNotFound = true
@@ -440,7 +440,7 @@ func hasOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj 
 // .spec.controlPlaneRef.
 func getControlPlaneGKForMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) *schema.GroupKind {
 	if _, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]; ok {
-		if cluster.Spec.ControlPlaneRef != nil {
+		if cluster.Spec.ControlPlaneRef.IsDefined() {
 			gvk := cluster.Spec.ControlPlaneRef.GroupKind()
 			return &gvk
 		}

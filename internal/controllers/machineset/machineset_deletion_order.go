@@ -139,7 +139,7 @@ func getDeletePriorityFunc(ms *clusterv1.MachineSet) (deletePriorityFunc, error)
 }
 
 func isMachineHealthy(machine *clusterv1.Machine) bool {
-	if machine.Status.NodeRef == nil {
+	if !machine.Status.NodeRef.IsDefined() {
 		return false
 	}
 	// Note: for the sake of prioritization, we are not making any assumption about Health when ConditionUnknown.

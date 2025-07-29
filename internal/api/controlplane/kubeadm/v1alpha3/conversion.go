@@ -101,9 +101,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Rollout = restored.Spec.Rollout
 
 		dst.Spec.Remediation = restored.Spec.Remediation
-		if restored.Status.LastRemediation != nil {
-			dst.Status.LastRemediation = restored.Status.LastRemediation
-		}
+		dst.Status.LastRemediation = restored.Status.LastRemediation
 
 		dst.Spec.MachineNaming = restored.Spec.MachineNaming
 

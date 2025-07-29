@@ -130,9 +130,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		dst.Spec.AvailabilityGates = restored.Spec.AvailabilityGates
-		if restored.Spec.Topology != nil {
-			dst.Spec.Topology = restored.Spec.Topology
-		}
+		dst.Spec.Topology = restored.Spec.Topology
 		dst.Status.Conditions = restored.Status.Conditions
 		dst.Status.ControlPlane = restored.Status.ControlPlane
 		dst.Status.Workers = restored.Status.Workers
@@ -148,7 +146,7 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	if src.Spec.InfrastructureRef != nil {
+	if src.Spec.InfrastructureRef.IsDefined() {
 		infraRef, err := convertToObjectReference(src.Spec.InfrastructureRef, src.Namespace)
 		if err != nil {
 			return err
@@ -156,7 +154,7 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.InfrastructureRef = infraRef
 	}
 
-	if src.Spec.ControlPlaneRef != nil {
+	if src.Spec.ControlPlaneRef.IsDefined() {
 		controlPlaneRef, err := convertToObjectReference(src.Spec.ControlPlaneRef, src.Namespace)
 		if err != nil {
 			return err
@@ -751,10 +749,6 @@ func Convert_v1beta2_ClusterStatus_To_v1alpha3_ClusterStatus(in *clusterv1.Clust
 	return nil
 }
 
-func Convert_v1alpha3_Bootstrap_To_v1beta2_Bootstrap(in *Bootstrap, out *clusterv1.Bootstrap, s apimachineryconversion.Scope) error {
-	return autoConvert_v1alpha3_Bootstrap_To_v1beta2_Bootstrap(in, out, s)
-}
-
 func Convert_v1alpha3_MachineRollingUpdateDeployment_To_v1beta2_MachineDeploymentRolloutStrategyRollingUpdate(in *MachineRollingUpdateDeployment, out *clusterv1.MachineDeploymentRolloutStrategyRollingUpdate, _ apimachineryconversion.Scope) error {
 	out.MaxUnavailable = in.MaxUnavailable
 	out.MaxSurge = in.MaxSurge
@@ -782,8 +776,7 @@ func Convert_v1alpha3_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(i
 	out.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeStartupTimeout)
 	out.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MaxUnhealthy
 	if in.RemediationTemplate != nil {
-		out.Remediation.TemplateRef = &clusterv1.MachineHealthCheckRemediationTemplateReference{}
-		if err := clusterv1beta1.Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.RemediationTemplate, out.Remediation.TemplateRef, s); err != nil {
+		if err := clusterv1beta1.Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.RemediationTemplate, &out.Remediation.TemplateRef, s); err != nil {
 			return err
 		}
 	}
@@ -805,9 +798,9 @@ func Convert_v1beta2_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(i
 	}
 	out.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.Checks.NodeStartupTimeoutSeconds)
 	out.MaxUnhealthy = in.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo
-	if in.Remediation.TemplateRef != nil {
+	if in.Remediation.TemplateRef.IsDefined() {
 		out.RemediationTemplate = &corev1.ObjectReference{}
-		if err := clusterv1beta1.Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(in.Remediation.TemplateRef, out.RemediationTemplate, s); err != nil {
+		if err := clusterv1beta1.Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(&in.Remediation.TemplateRef, out.RemediationTemplate, s); err != nil {
 			return err
 		}
 	}
@@ -855,6 +848,13 @@ func Convert_v1beta2_MachineStatus_To_v1alpha3_MachineStatus(in *clusterv1.Machi
 	if !reflect.DeepEqual(in.LastUpdated, metav1.Time{}) {
 		out.LastUpdated = ptr.To(in.LastUpdated)
 	}
+	if in.NodeRef.IsDefined() {
+		out.NodeRef = &corev1.ObjectReference{
+			Name:       in.NodeRef.Name,
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Node",
+		}
+	}
 	return nil
 }
 
@@ -899,6 +899,9 @@ func Convert_v1alpha3_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, 
 	}
 	if in.LastUpdated != nil && !reflect.DeepEqual(in.LastUpdated, &metav1.Time{}) {
 		out.LastUpdated = *in.LastUpdated
+	}
+	if in.NodeRef != nil && !reflect.DeepEqual(in.NodeRef, &corev1.ObjectReference{}) {
+		out.NodeRef.Name = in.NodeRef.Name
 	}
 	return nil
 }
@@ -1019,12 +1022,37 @@ func Convert_v1alpha3_MachineSpec_To_v1beta2_MachineSpec(in *MachineSpec, out *c
 	return nil
 }
 
+func Convert_v1alpha3_Bootstrap_To_v1beta2_Bootstrap(in *Bootstrap, out *clusterv1.Bootstrap, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha3_Bootstrap_To_v1beta2_Bootstrap(in, out, s); err != nil {
+		return err
+	}
+	if in.ConfigRef != nil {
+		if err := clusterv1beta1.Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(in.ConfigRef, &out.ConfigRef, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_Bootstrap_To_v1alpha3_Bootstrap(in *clusterv1.Bootstrap, out *Bootstrap, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_Bootstrap_To_v1alpha3_Bootstrap(in, out, s); err != nil {
+		return err
+	}
+	if in.ConfigRef.IsDefined() {
+		out.ConfigRef = &corev1.ObjectReference{}
+		if err := clusterv1beta1.Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(&in.ConfigRef, out.ConfigRef, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func convertMachineSpecToContractVersionedObjectReference(src *MachineSpec, dst *clusterv1.MachineSpec) error {
 	infraRef, err := convertToContractVersionedObjectReference(&src.InfrastructureRef)
 	if err != nil {
 		return err
 	}
-	dst.InfrastructureRef = *infraRef
+	dst.InfrastructureRef = infraRef
 
 	if src.Bootstrap.ConfigRef != nil {
 		bootstrapRef, err := convertToContractVersionedObjectReference(src.Bootstrap.ConfigRef)
@@ -1038,13 +1066,13 @@ func convertMachineSpecToContractVersionedObjectReference(src *MachineSpec, dst 
 }
 
 func convertMachineSpecToObjectReference(src *clusterv1.MachineSpec, dst *MachineSpec, namespace string) error {
-	infraRef, err := convertToObjectReference(&src.InfrastructureRef, namespace)
+	infraRef, err := convertToObjectReference(src.InfrastructureRef, namespace)
 	if err != nil {
 		return err
 	}
 	dst.InfrastructureRef = *infraRef
 
-	if src.Bootstrap.ConfigRef != nil {
+	if src.Bootstrap.ConfigRef.IsDefined() {
 		bootstrapRef, err := convertToObjectReference(src.Bootstrap.ConfigRef, namespace)
 		if err != nil {
 			return err
@@ -1055,23 +1083,23 @@ func convertMachineSpecToObjectReference(src *clusterv1.MachineSpec, dst *Machin
 	return nil
 }
 
-func convertToContractVersionedObjectReference(ref *corev1.ObjectReference) (*clusterv1.ContractVersionedObjectReference, error) {
+func convertToContractVersionedObjectReference(ref *corev1.ObjectReference) (clusterv1.ContractVersionedObjectReference, error) {
 	var apiGroup string
 	if ref.APIVersion != "" {
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert object: failed to parse apiVersion: %v", err)
+			return clusterv1.ContractVersionedObjectReference{}, fmt.Errorf("failed to convert object: failed to parse apiVersion: %v", err)
 		}
 		apiGroup = gv.Group
 	}
-	return &clusterv1.ContractVersionedObjectReference{
+	return clusterv1.ContractVersionedObjectReference{
 		APIGroup: apiGroup,
 		Kind:     ref.Kind,
 		Name:     ref.Name,
 	}, nil
 }
 
-func convertToObjectReference(ref *clusterv1.ContractVersionedObjectReference, namespace string) (*corev1.ObjectReference, error) {
+func convertToObjectReference(ref clusterv1.ContractVersionedObjectReference, namespace string) (*corev1.ObjectReference, error) {
 	apiVersion, err := apiVersionGetter(schema.GroupKind{
 		Group: ref.APIGroup,
 		Kind:  ref.Kind,

@@ -141,7 +141,7 @@ func (f *FakeCluster) Objs() []client.Object {
 			// Labels: cluster.x-k8s.io/cluster-name=cluster MISSING??
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: fakeinfrastructure.GroupVersion.Group,
 				Kind:     clusterInfrastructure.Kind,
 				Name:     clusterInfrastructure.Name,
@@ -150,7 +150,7 @@ func (f *FakeCluster) Objs() []client.Object {
 	}
 
 	if f.topologyClass != nil {
-		cluster.Spec.Topology = &clusterv1.Topology{
+		cluster.Spec.Topology = clusterv1.Topology{
 			ClassRef: clusterv1.ClusterClassRef{
 				Name: *f.topologyClass,
 			},
@@ -372,7 +372,7 @@ func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []client.Object {
 	setUID(controlPlane)
 
 	// sets the reference from the cluster to the plane object
-	cluster.Spec.ControlPlaneRef = &clusterv1.ContractVersionedObjectReference{
+	cluster.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{
 		APIGroup: fakecontrolplane.GroupVersion.Group,
 		Kind:     controlPlane.Kind,
 		Name:     controlPlane.Name,
@@ -536,7 +536,7 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []client.Object {
 	}
 
 	// if the bootstrapConfig doesn't use a static secret, add the GenericBootstrapConfigTemplate to the object list
-	if bootstrapConfig.ConfigRef != nil {
+	if bootstrapConfig.ConfigRef.IsDefined() {
 		objs = append(objs, machinePoolBootstrap)
 	}
 
@@ -575,7 +575,7 @@ func NewStaticBootstrapConfig(name string) *clusterv1.Bootstrap {
 // - the DataSecretName is nil.
 func NewBootstrapConfigTemplate(machineBootstrapTemplate *fakebootstrap.GenericBootstrapConfigTemplate) *clusterv1.Bootstrap {
 	return &clusterv1.Bootstrap{
-		ConfigRef: &clusterv1.ContractVersionedObjectReference{
+		ConfigRef: clusterv1.ContractVersionedObjectReference{
 			APIGroup: machineBootstrapTemplate.GroupVersionKind().Group,
 			Kind:     machineBootstrapTemplate.Kind,
 			Name:     machineBootstrapTemplate.Name,
@@ -588,7 +588,7 @@ func NewBootstrapConfigTemplate(machineBootstrapTemplate *fakebootstrap.GenericB
 // - the DataSecretName is nil.
 func NewBootstrapConfig(machineBootstrap *fakebootstrap.GenericBootstrapConfig) *clusterv1.Bootstrap {
 	return &clusterv1.Bootstrap{
-		ConfigRef: &clusterv1.ContractVersionedObjectReference{
+		ConfigRef: clusterv1.ContractVersionedObjectReference{
 			APIGroup: machineBootstrap.GroupVersionKind().Group,
 			Kind:     machineBootstrap.Kind,
 			Name:     machineBootstrap.Name,
@@ -713,7 +713,7 @@ func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []client.Object
 	}
 
 	// if the bootstrapConfig doesn't use a static secret, add the GenericBootstrapConfigTemplate to the object list
-	if bootstrapConfig.ConfigRef != nil {
+	if bootstrapConfig.ConfigRef.IsDefined() {
 		objs = append(objs, machineDeploymentBootstrap)
 	}
 
@@ -792,7 +792,7 @@ func (f *FakeMachineSet) Objs(cluster *clusterv1.Cluster, machineDeployment *clu
 
 		// additionally the machine has ref to the same infra and bootstrap templates defined in the MachineDeployment
 		machineSet.Spec.Template.Spec.InfrastructureRef = *machineDeployment.Spec.Template.Spec.InfrastructureRef.DeepCopy()
-		machineSet.Spec.Template.Spec.Bootstrap.ConfigRef = machineDeployment.Spec.Template.Spec.Bootstrap.ConfigRef.DeepCopy()
+		machineSet.Spec.Template.Spec.Bootstrap.ConfigRef = *machineDeployment.Spec.Template.Spec.Bootstrap.ConfigRef.DeepCopy()
 
 		objs = append(objs, machineSet)
 	} else {
@@ -858,7 +858,7 @@ func (f *FakeMachineSet) Objs(cluster *clusterv1.Cluster, machineDeployment *clu
 		machineSet.Spec.Template.Spec.Bootstrap = *bootstrapConfig
 
 		// if the bootstrapConfig doesn't use a static secret, add the GenericBootstrapConfigTemplate to the object list
-		if bootstrapConfig.ConfigRef != nil {
+		if bootstrapConfig.ConfigRef.IsDefined() {
 			objs = append(objs, machineSetBootstrap)
 		}
 
@@ -1044,7 +1044,7 @@ func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machi
 
 	if machinePool == nil {
 		machine.Spec.Bootstrap = *bootstrapConfig
-		if machine.Spec.Bootstrap.ConfigRef != nil {
+		if machine.Spec.Bootstrap.ConfigRef.IsDefined() {
 			machineBootstrap.SetOwnerReferences([]metav1.OwnerReference{
 				{
 					APIVersion: machine.APIVersion,

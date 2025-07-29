@@ -259,7 +259,7 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 		},
 	}
 
-	clusterCerts := secret.NewCertificatesForInitialControlPlane(&bootstrapv1.ClusterConfiguration{})
+	clusterCerts := secret.NewCertificatesForInitialControlPlane(bootstrapv1.ClusterConfiguration{})
 	g.Expect(clusterCerts.Generate()).To(Succeed())
 	caCert := clusterCerts.GetByPurpose(secret.ClusterCA)
 	existingCACertSecret := caCert.AsSecret(
@@ -386,7 +386,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 		g.Expect(m.Name).NotTo(BeEmpty())
 		g.Expect(m.Name).To(HavePrefix(kcp.Name + namingTemplateKey))
 
-		infraObj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, &m.Spec.InfrastructureRef, m.Namespace)
+		infraObj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, m.Spec.InfrastructureRef, m.Namespace)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericInfrastructureMachineTemplate.GetName()))
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind().String()))
@@ -457,7 +457,7 @@ func TestCloneConfigsAndGenerateMachineFail(t *testing.T) {
 	}
 
 	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
-		JoinConfiguration: &bootstrapv1.JoinConfiguration{},
+		JoinConfiguration: bootstrapv1.JoinConfiguration{},
 	}
 
 	// Try to break Infra Cloning
@@ -501,7 +501,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 		APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 		Name:     "infra",
 	}
-	bootstrapRef := &clusterv1.ContractVersionedObjectReference{
+	bootstrapRef := clusterv1.ContractVersionedObjectReference{
 		Kind:     "BootstrapKind",
 		APIGroup: clusterv1.GroupVersionBootstrap.Group,
 		Name:     "bootstrap",
@@ -541,7 +541,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							CertificatesDir: "foo",
 						},
 					},
@@ -578,7 +578,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							CertificatesDir: "foo",
 						},
 					},
@@ -610,7 +610,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							CertificatesDir: "foo",
 						},
 					},
@@ -647,7 +647,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							CertificatesDir: "foo",
 						},
 					},
@@ -679,7 +679,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							CertificatesDir: "foo",
 						},
 					},
@@ -718,7 +718,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							CertificatesDir: "foo",
 						},
 					},
@@ -753,7 +753,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							CertificatesDir: "foo",
 						},
 					},
@@ -792,7 +792,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							CertificatesDir: "foo",
 						},
 					},
@@ -832,7 +832,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						},
 					},
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							CertificatesDir: "foo",
 						},
 					},

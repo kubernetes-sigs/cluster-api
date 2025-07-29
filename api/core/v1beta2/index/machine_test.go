@@ -40,7 +40,7 @@ func TestIndexMachineByNodeName(t *testing.T) {
 			name: "when the machine has valid a NodeRef",
 			object: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
-					NodeRef: &clusterv1.MachineNodeReference{
+					NodeRef: clusterv1.MachineNodeReference{
 						Name: "node1",
 					},
 				},

@@ -124,6 +124,11 @@ linters:
       text: "Properties should not use a map type, use a list type with a unique name/identifier instead"
       linters:
         - kubeapilinter
+    # It's simpler to check these fields against nil vs. using reflect.DeepEqual everywhere.
+    - path: "api/core/v1beta2/clusterclass_types.go"
+      text: "optionalfields: field (AdditionalProperties|Items|Not) (is optional and does not allow the zero value. It must have the omitzero tag|is optional and does not have a valid zero value. The field does not need to be a pointer)"
+      linters:
+        - kubeapilinter
 
     ## Removal of bool fields of existing types requires further discussion
     - path: "api/bootstrap/kubeadm/v1beta2|api/controlplane/kubeadm/v1beta2|api/core/v1beta2|api/addons/v1beta2"
@@ -211,8 +216,12 @@ linters:
         - kubeapilinter
 
     # TODO: Excludes that should be removed once https://github.com/kubernetes-sigs/kube-api-linter/issues/132 will be fixed
-    - path: "api/ipam/v1beta2/ipaddressclaim_types.go"
-      text: "optionalfields: field AddressRef is optional and has a valid zero value \\({}\\), but the validation is not complete \\(e.g. min properties/adding required fields\\). The field should be a pointer to allow the zero value to be set. If the zero value is not a valid use case, complete the validation and remove the pointer."
+    - path: "api/.*"
+      text: "optionalfields: field (.*) is optional and (should have the omitempty tag|should be a pointer)"
+      linters:
+        - kubeapilinter
+    - path: "api/.*"
+      text: "optionalfields: field (.*) is optional and has a valid zero value \\({}\\), but the validation is not complete \\(e.g. min properties/adding required fields\\). The field should be a pointer to allow the zero value to be set. If the zero value is not a valid use case, complete the validation and remove the pointer."
       linters:
         - kubeapilinter
 issues:

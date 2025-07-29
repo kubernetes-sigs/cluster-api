@@ -171,7 +171,7 @@ type ControlPlaneClass struct {
 	// referenced above is Machine based and supports setting replicas.
 	//
 	// +optional
-	MachineInfrastructure *ControlPlaneClassMachineInfrastructureTemplate `json:"machineInfrastructure,omitempty"`
+	MachineInfrastructure ControlPlaneClassMachineInfrastructureTemplate `json:"machineInfrastructure,omitempty,omitzero"`
 
 	// healthCheck defines a MachineHealthCheck for this ControlPlaneClass.
 	// This field is supported if and only if the ControlPlane provider template
@@ -282,7 +282,7 @@ type ControlPlaneClassHealthCheckRemediation struct {
 	// creates a new object from the template referenced and hands off remediation of the machine to
 	// a controller that lives outside of Cluster API.
 	// +optional
-	TemplateRef *MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty"`
+	TemplateRef MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty,omitzero"`
 }
 
 // ControlPlaneClassHealthCheckRemediationTriggerIf configures if remediations are triggered.
@@ -561,7 +561,7 @@ type MachineDeploymentClassHealthCheckRemediation struct {
 	// creates a new object from the template referenced and hands off remediation of the machine to
 	// a controller that lives outside of Cluster API.
 	// +optional
-	TemplateRef *MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty"`
+	TemplateRef MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty,omitzero"`
 }
 
 // MachineDeploymentClassHealthCheckRemediationTriggerIf configures if remediations are triggered.
@@ -1017,7 +1017,7 @@ type JSONSchemaProps struct {
 	// x-metadata is the metadata of a variable or a nested field within a variable.
 	// It can be used to add additional data for higher level tools.
 	// +optional
-	XMetadata *VariableSchemaMetadata `json:"x-metadata,omitempty"`
+	XMetadata VariableSchemaMetadata `json:"x-metadata,omitempty,omitzero"`
 
 	// x-kubernetes-int-or-string specifies that this value is
 	// either an integer or a string. If this is true, an empty
@@ -1476,9 +1476,17 @@ type ClusterClassTemplateReference struct {
 	APIVersion string `json:"apiVersion,omitempty"`
 }
 
+// IsDefined returns true if the ClusterClassTemplateReference is set.
+func (r *ClusterClassTemplateReference) IsDefined() bool {
+	if r == nil {
+		return false
+	}
+	return r.Kind != "" || r.Name != "" || r.APIVersion != ""
+}
+
 // ToObjectReference returns an object reference for the ClusterClassTemplateReference in a given namespace.
 func (r *ClusterClassTemplateReference) ToObjectReference(namespace string) *corev1.ObjectReference {
-	if r == nil {
+	if r == nil || !r.IsDefined() {
 		return nil
 	}
 	return &corev1.ObjectReference{

@@ -57,19 +57,9 @@ func TestClusterTopologyDefaultNamespaces(t *testing.T) {
 		WithTopology(builder.ClusterTopology().
 			WithClass("foo").
 			WithVersion("v1.19.1").
-			WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
-				Remediation: clusterv1.ControlPlaneTopologyHealthCheckRemediation{
-					TemplateRef: &clusterv1.MachineHealthCheckRemediationTemplateReference{},
-				},
-			}).
 			WithMachineDeployment(
 				builder.MachineDeploymentTopology("md1").
 					WithClass("aa").
-					WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
-						Remediation: clusterv1.MachineDeploymentTopologyHealthCheckRemediation{
-							TemplateRef: &clusterv1.MachineHealthCheckRemediationTemplateReference{},
-						},
-					}).
 					Build()).
 			Build()).
 		Build()
@@ -1328,7 +1318,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					return
 				}
 				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(cluster.Spec.Topology).To(BeComparableTo(tt.expect))
+				g.Expect(cluster.Spec.Topology).To(BeComparableTo(*tt.expect))
 			})
 
 			// Test if defaulting works in combination with validation.
@@ -1422,7 +1412,11 @@ func TestClusterValidation(t *testing.T) {
 					builder.InfrastructureClusterTemplate("fooNamespace", "infra1").Build()).
 				WithControlPlane(
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
-				WithTopology(&clusterv1.Topology{}).
+				WithTopology(&clusterv1.Topology{
+					ClassRef: clusterv1.ClusterClassRef{
+						Name: "class",
+					},
+				}).
 				Build(),
 		},
 		{
@@ -2274,7 +2268,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						Build()).
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
-				WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
+				WithControlPlaneInfrastructureMachineTemplate(builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpinframachinetemplate").Build()).
 				Build(),
 			classReconciled: true,
 			wantErr:         false,
@@ -2355,7 +2349,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						Build()).
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
-				WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
+				WithControlPlaneInfrastructureMachineTemplate(builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpinframachinetemplate").Build()).
 				Build(),
 			classReconciled: true,
 			wantErr:         false,
@@ -3173,7 +3167,7 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 
 			// Create and updated cluster which uses the name of the second class from the test definition in its '.spec.topology.'
 			updatedCluster := tt.cluster.DeepCopy()
-			updatedCluster.Spec.Topology = tt.updatedTopology
+			updatedCluster.Spec.Topology = ptr.Deref(tt.updatedTopology, clusterv1.Topology{})
 
 			// Checks the return error.
 			warnings, err := c.ValidateUpdate(ctx, tt.cluster, updatedCluster)

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -424,7 +425,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			controlPlane: &internal.ControlPlane{
 				Cluster: &clusterv1.Cluster{
 					Spec: clusterv1.ClusterSpec{
-						Topology: &clusterv1.Topology{
+						Topology: clusterv1.Topology{
 							Version: "v1.32.0",
 						},
 					},
@@ -618,7 +619,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 			controlPlane: &internal.ControlPlane{
 				Cluster: &clusterv1.Cluster{
 					Spec: clusterv1.ClusterSpec{
-						Topology: &clusterv1.Topology{
+						Topology: clusterv1.Topology{
 							Version: "v1.32.0",
 						},
 					},
@@ -964,8 +965,8 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
 						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-								Etcd: bootstrapv1.Etcd{Local: &bootstrapv1.LocalEtcd{}},
+							ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{Local: bootstrapv1.LocalEtcd{}},
 							},
 						},
 					},
@@ -998,7 +999,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1030,7 +1031,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1038,7 +1039,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m2"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m2"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1046,7 +1047,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m3"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m3"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m3"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1073,8 +1074,8 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
 						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-								Etcd: bootstrapv1.Etcd{Local: &bootstrapv1.LocalEtcd{}},
+							ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{Local: bootstrapv1.LocalEtcd{}},
 							},
 						},
 					},
@@ -1102,8 +1103,8 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
 						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-								Etcd: bootstrapv1.Etcd{Local: &bootstrapv1.LocalEtcd{}},
+							ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{Local: bootstrapv1.LocalEtcd{}},
 							},
 						},
 					},
@@ -1131,8 +1132,8 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
 						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-								Etcd: bootstrapv1.Etcd{Local: &bootstrapv1.LocalEtcd{}},
+							ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{Local: bootstrapv1.LocalEtcd{}},
 							},
 						},
 					},
@@ -1169,7 +1170,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1177,7 +1178,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m2"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m2"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1185,7 +1186,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m3"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m3"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m3"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy},
 						},
 					},
@@ -1219,7 +1220,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1227,7 +1228,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m2"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m2"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1235,7 +1236,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m3"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m3"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m3"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s},
 						},
 					},
@@ -1271,7 +1272,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1279,7 +1280,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m2"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m2"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy},
 						},
 					},
@@ -1287,7 +1288,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m3"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m3"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m3"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy},
 						},
 					},
@@ -1322,14 +1323,14 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m2"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m2"},
 							Conditions: []metav1.Condition{apiServerPodHealthyUnknown, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1362,7 +1363,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1370,7 +1371,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m2"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m2"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1378,7 +1379,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m3"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m3"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m3"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s},
 						},
 					},
@@ -1386,7 +1387,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m4"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m4"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m4"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m4"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s},
 						},
 					},
@@ -1423,7 +1424,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1431,7 +1432,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m2"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m2"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1439,7 +1440,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m3"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m3"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m3"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s},
 						},
 					},
@@ -1447,7 +1448,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m4"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m4"},
 						Status: clusterv1.MachineStatus{
-							NodeRef: nil,
+							NodeRef: clusterv1.MachineNodeReference{},
 							// Note this is not a real use case, but it helps to validate that machine m4 is bound to an etcd member and counted as healthy.
 							// If instead we use unknown or false conditions, it would not be possible to understand if the best effort binding happened or the etcd member was considered unhealthy because without a machine match.
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
@@ -1486,7 +1487,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1494,7 +1495,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m2"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m2"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1502,7 +1503,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m3"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m3"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m3"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1510,7 +1511,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m4"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m4"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    nil,
+							NodeRef:    clusterv1.MachineNodeReference{},
 							Conditions: []metav1.Condition{apiServerPodHealthyUnknown, controllerManagerPodHealthyUnknown, schedulerPodHealthyUnknown, etcdPodHealthyUnknown, etcdMemberHealthyUnknown11s},
 						},
 					},
@@ -1547,7 +1548,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1555,7 +1556,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m2"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m2"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1563,7 +1564,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m3"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m3-does-not-exist"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m3-does-not-exist"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1598,7 +1599,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1606,7 +1607,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m2"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m2"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1614,7 +1615,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m3"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m3"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m3"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s},
 						},
 					},
@@ -1622,7 +1623,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m4"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m4"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m4"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m4"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberNotHealthy11s},
 						},
 					},
@@ -1662,14 +1663,14 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m2"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m2"},
 							Conditions: []metav1.Condition{apiServerPodHealthyUnknown, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1702,7 +1703,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1710,7 +1711,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m2"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m2"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m2"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m2"},
 							Conditions: []metav1.Condition{apiServerPodNotHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1718,7 +1719,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m3"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m3"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m3"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m3"},
 							Conditions: []metav1.Condition{apiServerPodNotHealthy11s, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1784,8 +1785,10 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
 						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-								Etcd: bootstrapv1.Etcd{External: &bootstrapv1.ExternalEtcd{}},
+							ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{External: bootstrapv1.ExternalEtcd{
+									Endpoints: []string{"1.2.3.4"},
+								}},
 							},
 						},
 					},
@@ -1829,8 +1832,10 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
 						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-								Etcd: bootstrapv1.Etcd{External: &bootstrapv1.ExternalEtcd{}},
+							ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{External: bootstrapv1.ExternalEtcd{
+									Endpoints: []string{"1.2.3.4"},
+								}},
 							},
 						},
 					},
@@ -1887,7 +1892,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -1926,7 +1931,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m1"},
 						Status: clusterv1.MachineStatus{
-							NodeRef:    &clusterv1.MachineNodeReference{Name: "m1"},
+							NodeRef:    clusterv1.MachineNodeReference{Name: "m1"},
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},
 						},
 					},
@@ -2026,7 +2031,7 @@ func TestKubeadmControlPlaneReconciler_setLastRemediation(t *testing.T) {
 		err := setLastRemediation(ctx, controlPlane)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Status.LastRemediation).To(BeNil())
+		g.Expect(reflect.DeepEqual(controlPlane.KCP.Status.LastRemediation, controlplanev1.LastRemediationStatus{})).To(BeTrue())
 	})
 	t.Run("Remediation in progress", func(t *testing.T) {
 		g := NewWithT(t)
@@ -2070,7 +2075,6 @@ func TestKubeadmControlPlaneReconciler_setLastRemediation(t *testing.T) {
 		err = setLastRemediation(ctx, controlPlane)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Status.LastRemediation).ToNot(BeNil())
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(r1.Machine))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Time.Time).To(BeTemporally("==", r1.Timestamp.Time), cmp.Diff(controlPlane.KCP.Status.LastRemediation.Time.Time, r1.Timestamp.Time))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(r1.RetryCount)))
@@ -2102,7 +2106,6 @@ func TestKubeadmControlPlaneReconciler_setLastRemediation(t *testing.T) {
 		err = setLastRemediation(ctx, controlPlane)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Status.LastRemediation).ToNot(BeNil())
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(r2.Machine))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Time.Time).To(BeTemporally("==", r2.Timestamp.Time), cmp.Diff(controlPlane.KCP.Status.LastRemediation.Time.Time, r2.Timestamp.Time))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(r2.RetryCount)))

@@ -30,7 +30,7 @@ import (
 func TestNewControlPlaneJoinCertsStacked(t *testing.T) {
 	g := NewWithT(t)
 
-	config := &bootstrapv1.ClusterConfiguration{}
+	config := bootstrapv1.ClusterConfiguration{}
 	certs := secret.NewControlPlaneJoinCerts(config)
 	g.Expect(certs.GetByPurpose(secret.EtcdCA).KeyFile).NotTo(BeEmpty())
 }
@@ -38,9 +38,11 @@ func TestNewControlPlaneJoinCertsStacked(t *testing.T) {
 func TestNewControlPlaneJoinCertsExternal(t *testing.T) {
 	g := NewWithT(t)
 
-	config := &bootstrapv1.ClusterConfiguration{
+	config := bootstrapv1.ClusterConfiguration{
 		Etcd: bootstrapv1.Etcd{
-			External: &bootstrapv1.ExternalEtcd{},
+			External: bootstrapv1.ExternalEtcd{
+				Endpoints: []string{"1.2.3.4"},
+			},
 		},
 	}
 
@@ -51,7 +53,7 @@ func TestNewControlPlaneJoinCertsExternal(t *testing.T) {
 func TestNewControlPlaneJoinCertsAsFilesNotPanicsWhenEmpty(t *testing.T) {
 	g := NewWithT(t)
 
-	config := &bootstrapv1.ClusterConfiguration{}
+	config := bootstrapv1.ClusterConfiguration{}
 	certs := secret.NewControlPlaneJoinCerts(config)
 	g.Expect(certs.AsFiles()).To(BeEmpty())
 }
@@ -76,7 +78,7 @@ func TestNewCertificatesForInitialControlPlane(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			clusterCerts := secret.NewCertificatesForInitialControlPlane(&bootstrapv1.ClusterConfiguration{
+			clusterCerts := secret.NewCertificatesForInitialControlPlane(bootstrapv1.ClusterConfiguration{
 				CACertificateValidityPeriodDays: test.caCertificateValidityPeriodDays,
 			})
 			g.Expect(clusterCerts.Generate()).To(Succeed())

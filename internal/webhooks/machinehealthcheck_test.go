@@ -47,9 +47,6 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 					},
 				},
 			},
-			Remediation: clusterv1.MachineHealthCheckRemediation{
-				TemplateRef: &clusterv1.MachineHealthCheckRemediationTemplateReference{},
-			},
 		},
 	}
 	webhook := &MachineHealthCheck{}

@@ -79,7 +79,7 @@ var (
 		APIVersion: "refAPIVersion1",
 	}
 
-	fakeContractVersionedRef1 = &clusterv1.ContractVersionedObjectReference{
+	fakeContractVersionedRef1 = clusterv1.ContractVersionedObjectReference{
 		APIGroup: "refAPIGroup1",
 		Kind:     "refKind1",
 		Name:     "refName1",
@@ -197,7 +197,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			Topology: &clusterv1.Topology{
+			Topology: clusterv1.Topology{
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Metadata: clusterv1.ObjectMeta{
 						Labels:      map[string]string{"l2": ""},
@@ -321,7 +321,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		currentInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cluster1-template1").Build()
 
 		controlPlane := builder.ControlPlane(metav1.NamespaceDefault, "controlplane").Build()
-		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(controlPlane, contract.ObjToContractVersionedObjectReference(currentInfrastructureMachineTemplate))
+		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(controlPlane, ptr.To(contract.ObjToContractVersionedObjectReference(currentInfrastructureMachineTemplate)))
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
@@ -406,7 +406,7 @@ func TestComputeControlPlane(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			Topology: &clusterv1.Topology{
+			Topology: clusterv1.Topology{
 				Version: version,
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Metadata: clusterv1.ObjectMeta{
@@ -538,7 +538,7 @@ func TestComputeControlPlane(t *testing.T) {
 				Namespace: metav1.NamespaceDefault,
 			},
 			Spec: clusterv1.ClusterSpec{
-				Topology: &clusterv1.Topology{
+				Topology: clusterv1.Topology{
 					Version: version,
 					ControlPlane: clusterv1.ControlPlaneTopology{
 						Metadata: clusterv1.ObjectMeta{
@@ -583,7 +583,7 @@ func TestComputeControlPlane(t *testing.T) {
 				Namespace: metav1.NamespaceDefault,
 			},
 			Spec: clusterv1.ClusterSpec{
-				Topology: &clusterv1.Topology{
+				Topology: clusterv1.Topology{
 					Version: version,
 					ControlPlane: clusterv1.ControlPlaneTopology{
 						Metadata: clusterv1.ObjectMeta{
@@ -1204,7 +1204,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				g := NewWithT(t)
 
 				s := &scope.Scope{
-					Blueprint: &scope.ClusterBlueprint{Topology: &clusterv1.Topology{
+					Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
 						Version: tt.topologyVersion,
 						ControlPlane: clusterv1.ControlPlaneTopology{
 							Replicas: ptr.To[int32](2),
@@ -1234,7 +1234,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 							},
 							// Add some more fields to check that conversion implemented when calling RuntimeExtension are properly handled.
 							Spec: clusterv1.ClusterSpec{
-								InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+								InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 									APIGroup: "refAPIGroup1",
 									Kind:     "refKind1",
 									Name:     "refName1",
@@ -1370,7 +1370,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				name: "should not call hook if it is not marked",
 				s: &scope.Scope{
 					Blueprint: &scope.ClusterBlueprint{
-						Topology: &clusterv1.Topology{
+						Topology: clusterv1.Topology{
 							Version:      topologyVersion,
 							ControlPlane: clusterv1.ControlPlaneTopology{},
 						},
@@ -1398,7 +1398,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				name: "should not call hook if the control plane is provisioning - there is intent to call hook",
 				s: &scope.Scope{
 					Blueprint: &scope.ClusterBlueprint{
-						Topology: &clusterv1.Topology{
+						Topology: clusterv1.Topology{
 							Version:      topologyVersion,
 							ControlPlane: clusterv1.ControlPlaneTopology{},
 						},
@@ -1429,7 +1429,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				name: "should not call hook if the control plane is upgrading - there is intent to call hook",
 				s: &scope.Scope{
 					Blueprint: &scope.ClusterBlueprint{
-						Topology: &clusterv1.Topology{
+						Topology: clusterv1.Topology{
 							Version:      topologyVersion,
 							ControlPlane: clusterv1.ControlPlaneTopology{},
 						},
@@ -1460,7 +1460,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				name: "should call hook if the control plane is at desired version - non blocking response should remove hook from pending hooks list and allow MD upgrades",
 				s: &scope.Scope{
 					Blueprint: &scope.ClusterBlueprint{
-						Topology: &clusterv1.Topology{
+						Topology: clusterv1.Topology{
 							Version:      topologyVersion,
 							ControlPlane: clusterv1.ControlPlaneTopology{},
 						},
@@ -1493,7 +1493,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				name: "should call hook if the control plane is at desired version - blocking response should leave the hook in pending hooks list and block MD upgrades",
 				s: &scope.Scope{
 					Blueprint: &scope.ClusterBlueprint{
-						Topology: &clusterv1.Topology{
+						Topology: clusterv1.Topology{
 							Version:      topologyVersion,
 							ControlPlane: clusterv1.ControlPlaneTopology{},
 						},
@@ -1526,7 +1526,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				name: "should call hook if the control plane is at desired version - failure response should leave the hook in pending hooks list",
 				s: &scope.Scope{
 					Blueprint: &scope.ClusterBlueprint{
-						Topology: &clusterv1.Topology{
+						Topology: clusterv1.Topology{
 							Version:      topologyVersion,
 							ControlPlane: clusterv1.ControlPlaneTopology{},
 						},
@@ -1645,7 +1645,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			Build()
 
 		s := &scope.Scope{
-			Blueprint: &scope.ClusterBlueprint{Topology: &clusterv1.Topology{
+			Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
 				Version: "v1.2.3",
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](2),
@@ -1799,7 +1799,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			Topology: &clusterv1.Topology{
+			Topology: clusterv1.Topology{
 				Version: version,
 			},
 		},
@@ -2043,7 +2043,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: contract.ObjToContractVersionedObjectReference(workerBootstrapTemplate),
 						},
-						InfrastructureRef: *contract.ObjToContractVersionedObjectReference(workerInfrastructureMachineTemplate),
+						InfrastructureRef: contract.ObjToContractVersionedObjectReference(workerInfrastructureMachineTemplate),
 					},
 				},
 			},
@@ -2296,7 +2296,7 @@ func TestComputeMachinePool(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			Topology: &clusterv1.Topology{
+			Topology: clusterv1.Topology{
 				Version: version,
 			},
 		},
@@ -2449,7 +2449,7 @@ func TestComputeMachinePool(t *testing.T) {
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: contract.ObjToContractVersionedObjectReference(workerBootstrapConfig),
 						},
-						InfrastructureRef: *contract.ObjToContractVersionedObjectReference(workerInfrastructureMachinePool),
+						InfrastructureRef: contract.ObjToContractVersionedObjectReference(workerInfrastructureMachinePool),
 					},
 				},
 			},
@@ -2754,7 +2754,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			g := NewWithT(t)
 
 			s := &scope.Scope{
-				Blueprint: &scope.ClusterBlueprint{Topology: &clusterv1.Topology{
+				Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
 					Version: tt.topologyVersion,
 					ControlPlane: clusterv1.ControlPlaneTopology{
 						Replicas: ptr.To[int32](2),
@@ -2923,7 +2923,7 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			g := NewWithT(t)
 
 			s := &scope.Scope{
-				Blueprint: &scope.ClusterBlueprint{Topology: &clusterv1.Topology{
+				Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
 					Version: tt.topologyVersion,
 					ControlPlane: clusterv1.ControlPlaneTopology{
 						Replicas: ptr.To[int32](2),
@@ -2973,7 +2973,7 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 }
 
 func TestIsMachineDeploymentDeferred(t *testing.T) {
-	clusterTopology := &clusterv1.Topology{
+	clusterTopology := clusterv1.Topology{
 		Workers: clusterv1.WorkersTopology{
 			MachineDeployments: []clusterv1.MachineDeploymentTopology{
 				{
@@ -3056,7 +3056,7 @@ func TestIsMachineDeploymentDeferred(t *testing.T) {
 }
 
 func TestIsMachinePoolDeferred(t *testing.T) {
-	clusterTopology := &clusterv1.Topology{
+	clusterTopology := clusterv1.Topology{
 		Workers: clusterv1.WorkersTopology{
 			MachinePools: []clusterv1.MachinePoolTopology{
 				{

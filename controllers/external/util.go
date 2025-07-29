@@ -51,8 +51,8 @@ func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference) (*un
 }
 
 // GetObjectFromContractVersionedRef uses the client and reference to get an external, unstructured object.
-func GetObjectFromContractVersionedRef(ctx context.Context, c client.Reader, ref *clusterv1.ContractVersionedObjectReference, namespace string) (*unstructured.Unstructured, error) {
-	if ref == nil {
+func GetObjectFromContractVersionedRef(ctx context.Context, c client.Reader, ref clusterv1.ContractVersionedObjectReference, namespace string) (*unstructured.Unstructured, error) {
+	if !ref.IsDefined() {
 		return nil, errors.Errorf("cannot get object - object reference not set")
 	}
 
@@ -126,10 +126,10 @@ type CreateFromTemplateInput struct {
 }
 
 // CreateFromTemplate uses the client and the reference to create a new object from the template.
-func CreateFromTemplate(ctx context.Context, in *CreateFromTemplateInput) (*unstructured.Unstructured, *clusterv1.ContractVersionedObjectReference, error) {
+func CreateFromTemplate(ctx context.Context, in *CreateFromTemplateInput) (*unstructured.Unstructured, clusterv1.ContractVersionedObjectReference, error) {
 	from, err := Get(ctx, in.Client, in.TemplateRef)
 	if err != nil {
-		return nil, nil, err
+		return nil, clusterv1.ContractVersionedObjectReference{}, err
 	}
 	generateTemplateInput := &GenerateTemplateInput{
 		Template:    from,
@@ -143,15 +143,15 @@ func CreateFromTemplate(ctx context.Context, in *CreateFromTemplateInput) (*unst
 	}
 	to, err := GenerateTemplate(generateTemplateInput)
 	if err != nil {
-		return nil, nil, err
+		return nil, clusterv1.ContractVersionedObjectReference{}, err
 	}
 
 	// Create the external clone.
 	if err := in.Client.Create(ctx, to); err != nil {
-		return nil, nil, err
+		return nil, clusterv1.ContractVersionedObjectReference{}, err
 	}
 
-	return to, &clusterv1.ContractVersionedObjectReference{
+	return to, clusterv1.ContractVersionedObjectReference{
 		APIGroup: to.GroupVersionKind().Group,
 		Kind:     to.GetKind(),
 		Name:     to.GetName(),

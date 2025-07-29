@@ -392,7 +392,7 @@ func newFakeMachineSpec(clusterName string) clusterv1.MachineSpec {
 	return clusterv1.MachineSpec{
 		ClusterName: clusterName,
 		Bootstrap: clusterv1.Bootstrap{
-			ConfigRef: &clusterv1.ContractVersionedObjectReference{
+			ConfigRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: "bootstrap.cluster.x-k8s.io",
 				Kind:     "KubeadmConfigTemplate",
 				Name:     fmt.Sprintf("%s-md-0", clusterName),

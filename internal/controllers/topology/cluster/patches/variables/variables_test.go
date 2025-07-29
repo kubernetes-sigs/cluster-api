@@ -39,7 +39,7 @@ func TestGlobal(t *testing.T) {
 	clusterUID := "8a35f406-6b9b-4b78-8c93-a7f878d90623"
 	tests := []struct {
 		name                        string
-		clusterTopology             *clusterv1.Topology
+		clusterTopology             clusterv1.Topology
 		cluster                     *clusterv1.Cluster
 		variableDefinitionsForPatch map[string]bool
 		want                        []runtimehooksv1.Variable
@@ -47,7 +47,7 @@ func TestGlobal(t *testing.T) {
 		{
 			name:                        "Should calculate global variables",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			clusterTopology: &clusterv1.Topology{
+			clusterTopology: clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
 						Name:  "location",
@@ -78,7 +78,7 @@ func TestGlobal(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ClassRef: clusterv1.ClusterClassRef{
 							Name: "clusterClass1",
 						},
@@ -133,7 +133,7 @@ func TestGlobal(t *testing.T) {
 		{
 			name:                        "Should calculate global variables based on the variables defined for the patch",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			clusterTopology: &clusterv1.Topology{
+			clusterTopology: clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
 						Name:  "location",
@@ -157,7 +157,7 @@ func TestGlobal(t *testing.T) {
 					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ClassRef: clusterv1.ClusterClassRef{
 							Name: "clusterClass1",
 						},
@@ -211,7 +211,7 @@ func TestGlobal(t *testing.T) {
 		{
 			name:                        "Should calculate when serviceDomain is not set",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			clusterTopology: &clusterv1.Topology{
+			clusterTopology: clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
 						Name:  "location",
@@ -236,7 +236,7 @@ func TestGlobal(t *testing.T) {
 					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ClassRef: clusterv1.ClusterClassRef{
 							Name: "clusterClass1",
 						},
@@ -288,7 +288,7 @@ func TestGlobal(t *testing.T) {
 		{
 			name:                        "Should calculate where some variables are nil",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			clusterTopology: &clusterv1.Topology{
+			clusterTopology: clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
 						Name:  "location",
@@ -313,7 +313,7 @@ func TestGlobal(t *testing.T) {
 					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ClassRef: clusterv1.ClusterClassRef{
 							Name: "clusterClass1",
 						},
@@ -361,7 +361,7 @@ func TestGlobal(t *testing.T) {
 		{
 			name:                        "Should calculate where ClusterNetwork is nil",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			clusterTopology: &clusterv1.Topology{
+			clusterTopology: clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
 						Name:  "location",
@@ -386,7 +386,7 @@ func TestGlobal(t *testing.T) {
 					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						ClassRef: clusterv1.ClusterClassRef{
 							Name: "clusterClass1",
 						},

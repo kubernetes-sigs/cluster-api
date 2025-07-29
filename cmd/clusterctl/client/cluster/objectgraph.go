@@ -154,7 +154,7 @@ func (n *node) captureAdditionalInformation(obj *unstructured.Unstructured) erro
 		if err := localScheme.Convert(obj, cluster, nil); err != nil {
 			return errors.Wrapf(err, "failed to convert object %s to Cluster", n.identityStr())
 		}
-		if cluster.Spec.Topology != nil {
+		if cluster.Spec.Topology.IsDefined() {
 			if n.additionalInfo == nil {
 				n.additionalInfo = map[string]interface{}{}
 			}
@@ -526,10 +526,8 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 		_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.ControlPlane.TemplateRef.ToObjectReference(cc.Namespace))
 		errs = append(errs, err)
 
-		if cc.Spec.ControlPlane.MachineInfrastructure != nil {
-			_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.ControlPlane.MachineInfrastructure.TemplateRef.ToObjectReference(cc.Namespace))
-			errs = append(errs, err)
-		}
+		_, err = o.fetchRef(ctx, discoveryBackoff, cc.Spec.ControlPlane.MachineInfrastructure.TemplateRef.ToObjectReference(cc.Namespace))
+		errs = append(errs, err)
 
 		for _, mdClass := range cc.Spec.Workers.MachineDeployments {
 			_, err = o.fetchRef(ctx, discoveryBackoff, mdClass.Infrastructure.TemplateRef.ToObjectReference(cc.Namespace))
@@ -822,7 +820,7 @@ func (o *objectGraph) setShouldNotDelete(ctx context.Context, namespace string) 
 		}
 
 		// ignore cluster not using a CC.
-		if cluster.Spec.Topology == nil {
+		if !cluster.Spec.Topology.IsDefined() {
 			continue
 		}
 

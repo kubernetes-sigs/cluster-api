@@ -188,7 +188,7 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 	}
 	specPath := field.NewPath("spec")
 
-	if newMD.Spec.Template.Spec.Bootstrap.ConfigRef == nil && newMD.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
+	if !newMD.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() && newMD.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
 		allErrs = append(
 			allErrs,
 			field.Required(

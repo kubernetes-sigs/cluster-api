@@ -59,7 +59,7 @@ func TestReconcile(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
 				Kind:     builder.GenericControlPlaneKind,
 				Name:     "cp1",
@@ -741,7 +741,7 @@ func createCluster(g Gomega, testCluster testCluster) {
 			Namespace: testCluster.cluster.Namespace,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
 				Kind:     builder.GenericControlPlaneKind,
 				Name:     "cp1",

@@ -42,7 +42,7 @@ func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scop
 
 	// Reference to the InfrastructureCluster can be nil and is expected to be on the first reconcile.
 	// In this case the method should still be allowed to continue.
-	if currentState.Cluster.Spec.InfrastructureRef != nil {
+	if currentState.Cluster.Spec.InfrastructureRef.IsDefined() {
 		infra, err := r.getCurrentInfrastructureClusterState(ctx, s.Blueprint.InfrastructureClusterTemplate, currentState.Cluster)
 		if err != nil {
 			return nil, err
@@ -53,7 +53,7 @@ func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scop
 	// Reference to the ControlPlane can be nil, and is expected to be on the first reconcile. In this case the method
 	// should still be allowed to continue.
 	currentState.ControlPlane = &scope.ControlPlaneState{}
-	if currentState.Cluster.Spec.ControlPlaneRef != nil {
+	if currentState.Cluster.Spec.ControlPlaneRef.IsDefined() {
 		cp, err := r.getCurrentControlPlaneState(ctx, s.Blueprint.ControlPlane, s.Blueprint.HasControlPlaneInfrastructureMachine(), currentState.Cluster)
 		if err != nil {
 			return nil, err
@@ -152,7 +152,7 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, blueprintC
 			return res, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate reference for %s %s", res.Object.GetKind(), klog.KObj(res.Object))
 		}
 	}
-	ref, err = alignRefAPIVersion(ctx, r.Client, blueprintControlPlane.InfrastructureMachineTemplate, machineInfrastructureRef, res.Object.GetNamespace(), true)
+	ref, err = alignRefAPIVersion(ctx, r.Client, blueprintControlPlane.InfrastructureMachineTemplate, *machineInfrastructureRef, res.Object.GetNamespace(), true)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s %s", res.Object.GetKind(), klog.KObj(res.Object))
 	}
@@ -229,12 +229,12 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 		if m.DeletionTimestamp.IsZero() {
 			// Gets the bootstrapRef.
 			bootstrapContractVersionedRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
-			if bootstrapContractVersionedRef == nil {
+			if !bootstrapContractVersionedRef.IsDefined() {
 				return nil, fmt.Errorf("MachineDeployment %s does not have a reference to a Bootstrap Config", klog.KObj(m))
 			}
 			// Gets the infraRef.
-			infraContractVersionedRef := &m.Spec.Template.Spec.InfrastructureRef
-			if infraContractVersionedRef.Name == "" {
+			infraContractVersionedRef := m.Spec.Template.Spec.InfrastructureRef
+			if !infraContractVersionedRef.IsDefined() {
 				return nil, fmt.Errorf("MachineDeployment %s does not have a reference to a InfrastructureMachineTemplate", klog.KObj(m))
 			}
 
@@ -353,12 +353,12 @@ func (r *Reconciler) getCurrentMachinePoolState(ctx context.Context, blueprintMa
 
 		// Gets the bootstrapRef.
 		bootstrapContractVersionedRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
-		if bootstrapContractVersionedRef == nil {
+		if !bootstrapContractVersionedRef.IsDefined() {
 			return nil, fmt.Errorf("MachinePool %s does not have a reference to a Bootstrap Config", klog.KObj(m))
 		}
 		// Gets the infraRef.
-		infraContractVersionedRef := &m.Spec.Template.Spec.InfrastructureRef
-		if infraContractVersionedRef.Name == "" {
+		infraContractVersionedRef := m.Spec.Template.Spec.InfrastructureRef
+		if !infraContractVersionedRef.IsDefined() {
 			return nil, fmt.Errorf("MachinePool %s does not have a reference to a InfrastructureMachinePool", klog.KObj(m))
 		}
 
@@ -423,7 +423,7 @@ func (r *Reconciler) getCurrentMachinePoolState(ctx context.Context, blueprintMa
 // This is required so the topology controller can diff current and desired state objects of the same version during reconcile.
 // If Group or Kind was changed in the ClusterClass, apiVersion is looked up from the corresponding CRD. This will end up with a diff and a rollout anyway.
 // Only bootstrap template refs in a ClusterClass can change their group and kind.
-func alignRefAPIVersion(ctx context.Context, c client.Reader, templateFromClusterClass *unstructured.Unstructured, currentRef *clusterv1.ContractVersionedObjectReference, namespace string, isCurrentTemplate bool) (*corev1.ObjectReference, error) {
+func alignRefAPIVersion(ctx context.Context, c client.Reader, templateFromClusterClass *unstructured.Unstructured, currentRef clusterv1.ContractVersionedObjectReference, namespace string, isCurrentTemplate bool) (*corev1.ObjectReference, error) {
 	apiVersion := ""
 	// Use apiVersion from ClusterClass if group and kind is the same.
 	if templateFromClusterClass != nil && templateFromClusterClass.GroupVersionKind().Group == currentRef.APIGroup {

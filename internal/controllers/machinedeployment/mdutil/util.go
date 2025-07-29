@@ -392,9 +392,9 @@ func MachineTemplateUpToDate(current, desired *clusterv1.MachineTemplateSpec) (u
 	// struct to catch cases when either configRef or dataSecretName is set in current vs desired (usually MachineTemplates
 	// have ConfigRef != nil, might be in some edge case dataSecret are used, but switching from one to another is not a
 	// common operation so it is acceptable to handle it in this way).
-	if currentCopy.Spec.Bootstrap.ConfigRef != nil {
+	if currentCopy.Spec.Bootstrap.ConfigRef.IsDefined() {
 		if !reflect.DeepEqual(currentCopy.Spec.Bootstrap, desiredCopy.Spec.Bootstrap) {
-			logMessages = append(logMessages, fmt.Sprintf("spec.bootstrap.configRef %s %s, %s %s required", currentCopy.Spec.Bootstrap.ConfigRef.Kind, currentCopy.Spec.Bootstrap.ConfigRef.Name, ptr.Deref(desiredCopy.Spec.Bootstrap.ConfigRef, clusterv1.ContractVersionedObjectReference{}).Kind, ptr.Deref(desiredCopy.Spec.Bootstrap.ConfigRef, clusterv1.ContractVersionedObjectReference{}).Name))
+			logMessages = append(logMessages, fmt.Sprintf("spec.bootstrap.configRef %s %s, %s %s required", currentCopy.Spec.Bootstrap.ConfigRef.Kind, currentCopy.Spec.Bootstrap.ConfigRef.Name, desiredCopy.Spec.Bootstrap.ConfigRef.Kind, desiredCopy.Spec.Bootstrap.ConfigRef.Name))
 			// Note: dropping "Template" suffix because conditions message will surface on machine.
 			conditionMessages = append(conditionMessages, fmt.Sprintf("%s is not up-to-date", strings.TrimSuffix(currentCopy.Spec.Bootstrap.ConfigRef.Kind, clusterv1.TemplateSuffix)))
 		}

@@ -36,17 +36,16 @@ func Convert_v1alpha3_JoinConfiguration_To_v1beta2_JoinConfiguration(in *JoinCon
 		return err
 	}
 	if in.Discovery.Timeout != nil {
-		if out.Timeouts == nil {
-			out.Timeouts = &bootstrapv1.Timeouts{}
-		}
 		out.Timeouts.TLSBootstrapSeconds = clusterv1.ConvertToSeconds(in.Discovery.Timeout)
 	}
 	return nil
 }
 
-func Convert_v1alpha3_DNS_To_v1beta2_DNS(in *DNS, out *bootstrapv1.DNS, s apimachineryconversion.Scope) error {
+func Convert_v1alpha3_DNS_To_v1beta2_DNS(in *DNS, out *bootstrapv1.DNS, _ apimachineryconversion.Scope) error {
 	// DNS.Type does not exist in CABPK v1beta1 version, because it always was CoreDNS.
-	return autoConvert_v1alpha3_DNS_To_v1beta2_DNS(in, out, s)
+	out.ImageRepository = in.ImageRepository
+	out.ImageTag = in.ImageTag
+	return nil
 }
 
 func Convert_v1alpha3_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstrapv1.APIServer, s apimachineryconversion.Scope) error {
@@ -84,11 +83,26 @@ func convert_v1alpha3_ExtraVolumes_To_v1beta2_ExtraVolumes(in *[]HostPathMount, 
 
 func Convert_v1alpha3_Discovery_To_v1beta2_Discovery(in *Discovery, out *bootstrapv1.Discovery, s apimachineryconversion.Scope) error {
 	// Discovery.Timeout does not exist in CABPK, because CABPK aligns to upstreamV1Beta4.
-	return autoConvert_v1alpha3_Discovery_To_v1beta2_Discovery(in, out, s)
+	if err := autoConvert_v1alpha3_Discovery_To_v1beta2_Discovery(in, out, s); err != nil {
+		return err
+	}
+	if in.BootstrapToken != nil {
+		if err := Convert_v1alpha3_BootstrapTokenDiscovery_To_v1beta2_BootstrapTokenDiscovery(in.BootstrapToken, &out.BootstrapToken, s); err != nil {
+			return err
+		}
+	}
+	if in.File != nil {
+		if err := Convert_v1alpha3_FileDiscovery_To_v1beta2_FileDiscovery(in.File, &out.File, s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func Convert_v1alpha3_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstrapv1.LocalEtcd, s apimachineryconversion.Scope) error {
 	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
+	out.ImageRepository = in.ImageRepository
+	out.ImageTag = in.ImageTag
 	return autoConvert_v1alpha3_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
 }
 
@@ -148,6 +162,8 @@ func Convert_v1beta2_LocalEtcd_To_v1alpha3_LocalEtcd(in *bootstrapv1.LocalEtcd, 
 	// Following fields require a custom conversions.
 	// Note: there is a potential info loss when there are two values for the same arg but this is accepted because the kubeadm v1beta1 API does not allow this use case.
 	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
+	out.ImageRepository = in.ImageRepository
+	out.ImageTag = in.ImageTag
 	return autoConvert_v1beta2_LocalEtcd_To_v1alpha3_LocalEtcd(in, out, s)
 }
 
@@ -162,9 +178,7 @@ func Convert_v1beta2_JoinConfiguration_To_v1alpha3_JoinConfiguration(in *bootstr
 		return err
 	}
 
-	if in.Timeouts != nil {
-		out.Discovery.Timeout = clusterv1.ConvertFromSeconds(in.Timeouts.TLSBootstrapSeconds)
-	}
+	out.Discovery.Timeout = clusterv1.ConvertFromSeconds(in.Timeouts.TLSBootstrapSeconds)
 	return nil
 }
 

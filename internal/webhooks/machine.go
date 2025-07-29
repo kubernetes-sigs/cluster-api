@@ -110,7 +110,7 @@ func (webhook *Machine) ValidateDelete(_ context.Context, _ runtime.Object) (adm
 func (webhook *Machine) validate(oldM, newM *clusterv1.Machine) error {
 	var allErrs field.ErrorList
 	specPath := field.NewPath("spec")
-	if newM.Spec.Bootstrap.ConfigRef == nil && newM.Spec.Bootstrap.DataSecretName == nil {
+	if !newM.Spec.Bootstrap.ConfigRef.IsDefined() && newM.Spec.Bootstrap.DataSecretName == nil {
 		// MachinePool Machines don't have a bootstrap configRef, so don't require it. The bootstrap config is instead owned by the MachinePool.
 		if !labels.IsMachinePoolOwned(newM) {
 			allErrs = append(

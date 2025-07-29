@@ -120,7 +120,7 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
-						XMetadata: &clusterv1.VariableSchemaMetadata{
+						XMetadata: clusterv1.VariableSchemaMetadata{
 							Labels: map[string]string{
 								"some-label": "some-label-value",
 							},
@@ -257,7 +257,7 @@ func assertControlPlaneTemplate(ctx context.Context, actualClusterClass *cluster
 	}
 
 	// If the control plane has machine infra assert that the infra machine template has the correct owner reference.
-	if actualClusterClass.Spec.ControlPlane.MachineInfrastructure != nil {
+	if actualClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
 		actualInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate("", "").Build()
 		actualInfrastructureMachineTemplateKey := client.ObjectKey{
 			Namespace: ns.Name,
@@ -425,7 +425,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type: "integer",
-							XMetadata: &clusterv1.VariableSchemaMetadata{
+							XMetadata: clusterv1.VariableSchemaMetadata{
 								Labels: map[string]string{
 									"some-label": "some-label-value",
 								},
@@ -483,7 +483,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
-									XMetadata: &clusterv1.VariableSchemaMetadata{
+									XMetadata: clusterv1.VariableSchemaMetadata{
 										Labels: map[string]string{
 											"some-label": "some-label-value",
 										},
@@ -625,7 +625,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
-									XMetadata: &clusterv1.VariableSchemaMetadata{
+									XMetadata: clusterv1.VariableSchemaMetadata{
 										Labels: map[string]string{
 											"some-label": "some-label-value",
 										},
@@ -654,7 +654,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
-									XMetadata: &clusterv1.VariableSchemaMetadata{
+									XMetadata: clusterv1.VariableSchemaMetadata{
 										Labels: map[string]string{
 											"some-label": "some-label-value",
 										},
@@ -689,7 +689,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
-									XMetadata: &clusterv1.VariableSchemaMetadata{
+									XMetadata: clusterv1.VariableSchemaMetadata{
 										Labels: map[string]string{
 											"some-label": "some-label-value",
 										},
@@ -903,7 +903,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
-									XMetadata: &clusterv1.VariableSchemaMetadata{
+									XMetadata: clusterv1.VariableSchemaMetadata{
 										Labels: map[string]string{
 											"some-label": "some-label-value",
 										},

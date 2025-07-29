@@ -71,7 +71,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				Name:      testClusterName,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
 					Kind:     builder.GenericControlPlaneKind,
 					Name:     "cp1",
@@ -131,7 +131,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				ClusterName: testCluster.Name,
 				Version:     version,
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					ConfigRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: clusterv1.GroupVersionBootstrap.Group,
 						Kind:     "GenericBootstrapConfigTemplate",
 						Name:     "ms-template",
@@ -271,7 +271,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		t.Log("Verifying the linked infrastructure template has a cluster owner reference")
 		g.Eventually(func() bool {
-			obj, err := external.GetObjectFromContractVersionedRef(ctx, env, &instance.Spec.Template.Spec.InfrastructureRef, instance.Namespace)
+			obj, err := external.GetObjectFromContractVersionedRef(ctx, env, instance.Spec.Template.Spec.InfrastructureRef, instance.Namespace)
 			if err != nil {
 				return false
 			}
@@ -362,7 +362,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Set the infrastructure reference as ready.
 		for _, m := range machines.Items {
-			fakeBootstrapRefDataSecretCreated(*m.Spec.Bootstrap.ConfigRef, m.Namespace, bootstrapResource, g)
+			fakeBootstrapRefDataSecretCreated(m.Spec.Bootstrap.ConfigRef, m.Namespace, bootstrapResource, g)
 			fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, m.Namespace, infraResource, g)
 		}
 
@@ -427,7 +427,7 @@ func TestMachineSetReconciler(t *testing.T) {
 			}
 
 			g.Expect(m.Spec.Version).To(BeEquivalentTo("v1.14.2"))
-			fakeBootstrapRefDataSecretCreated(*m.Spec.Bootstrap.ConfigRef, m.Namespace, bootstrapResource, g)
+			fakeBootstrapRefDataSecretCreated(m.Spec.Bootstrap.ConfigRef, m.Namespace, bootstrapResource, g)
 			providerID := fakeInfrastructureRefProvisioned(m.Spec.InfrastructureRef, m.Namespace, infraResource, g)
 			fakeMachineNodeRef(&m, providerID, g)
 		}
@@ -1099,7 +1099,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 				Name:      testClusterName,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
 					Kind:     builder.GenericControlPlaneKind,
 					Name:     "cp1",
@@ -1167,7 +1167,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 					ClusterName: testCluster.Name,
 					Version:     version,
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: clusterv1.GroupVersionBootstrap.Group,
 							Kind:     "GenericBootstrapConfigTemplate",
 							Name:     "ms-template",
@@ -1263,7 +1263,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 				Kind:     infraMachine.GetKind(),
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
 					Name:     bootstrapConfig.GetName(),
 					APIGroup: bootstrapConfig.GroupVersionKind().Group,
 					Kind:     bootstrapConfig.GetKind(),
@@ -2320,7 +2320,7 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 						ClusterName: testCluster.Name,
 						Version:     "v1.14.2",
 						Bootstrap: clusterv1.Bootstrap{
-							ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							ConfigRef: clusterv1.ContractVersionedObjectReference{
 								APIGroup: clusterv1.GroupVersionBootstrap.Group,
 								Kind:     builder.GenericBootstrapConfigTemplateKind,
 								Name:     "ms-template",
@@ -2482,7 +2482,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 			Version:           "v1.25.3",
 			InfrastructureRef: infraRef,
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &bootstrapRef,
+				ConfigRef: bootstrapRef,
 			},
 			Deletion: clusterv1.MachineDeletionSpec{
 				NodeDrainTimeoutSeconds:        duration10s,
@@ -2532,7 +2532,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 		Name:     "infra-machine-1",
 		APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 	}
-	existingMachine.Spec.Bootstrap.ConfigRef = &clusterv1.ContractVersionedObjectReference{
+	existingMachine.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{
 		Kind:     "GenericBootstrapConfig",
 		Name:     "bootstrap-config-1",
 		APIGroup: clusterv1.GroupVersionBootstrap.Group,
@@ -2548,7 +2548,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 	// Pre-existing finalizer should be preserved.
 	expectedUpdatedMachine.Finalizers = []string{"pre-existing-finalizer", clusterv1.MachineFinalizer}
 	expectedUpdatedMachine.Spec.InfrastructureRef = *existingMachine.Spec.InfrastructureRef.DeepCopy()
-	expectedUpdatedMachine.Spec.Bootstrap.ConfigRef = existingMachine.Spec.Bootstrap.ConfigRef.DeepCopy()
+	expectedUpdatedMachine.Spec.Bootstrap.ConfigRef = *existingMachine.Spec.Bootstrap.ConfigRef.DeepCopy()
 
 	tests := []computeDesiredMachineTestCase{
 		{

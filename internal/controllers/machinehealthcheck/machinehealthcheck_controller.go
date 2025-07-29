@@ -378,7 +378,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger, healthy []healthCheckTarget, m *clusterv1.MachineHealthCheck) []error {
 	errList := []error{}
 	for _, t := range healthy {
-		if m.Spec.Remediation.TemplateRef != nil {
+		if m.Spec.Remediation.TemplateRef.IsDefined() {
 			// Get remediation request object
 			obj, err := r.getExternalRemediationRequest(ctx, m, t.Machine.Name)
 			if err != nil {
@@ -428,7 +428,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 		if annotations.IsPaused(cluster, t.Machine) {
 			logger.Info("Machine has failed health check, but machine is paused so skipping remediation", "reason", condition.Reason, "message", condition.Message)
 		} else {
-			if m.Spec.Remediation.TemplateRef != nil {
+			if m.Spec.Remediation.TemplateRef.IsDefined() {
 				// If external remediation request already exists,
 				// return early
 				if r.externalRemediationRequestExists(ctx, m, t.Machine.Name) {
@@ -639,7 +639,7 @@ func getMachineFromNode(ctx context.Context, c client.Client, nodeName string) (
 	items := []*clusterv1.Machine{}
 	for i := range machineList.Items {
 		machine := &machineList.Items[i]
-		if machine.Status.NodeRef != nil && machine.Status.NodeRef.Name == nodeName {
+		if machine.Status.NodeRef.IsDefined() && machine.Status.NodeRef.Name == nodeName {
 			items = append(items, machine)
 		}
 	}

@@ -381,7 +381,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 }
 
 // lookupMDTopology looks up the MachineDeploymentTopology based on a mdTopologyName in a topology.
-func lookupMDTopology(topology *clusterv1.Topology, mdTopologyName string) (*clusterv1.MachineDeploymentTopology, error) {
+func lookupMDTopology(topology clusterv1.Topology, mdTopologyName string) (*clusterv1.MachineDeploymentTopology, error) {
 	for _, mdTopology := range topology.Workers.MachineDeployments {
 		if mdTopology.Name == mdTopologyName {
 			return &mdTopology, nil
@@ -391,7 +391,7 @@ func lookupMDTopology(topology *clusterv1.Topology, mdTopologyName string) (*clu
 }
 
 // lookupMPTopology looks up the MachinePoolTopology based on a mpTopologyName in a topology.
-func lookupMPTopology(topology *clusterv1.Topology, mpTopologyName string) (*clusterv1.MachinePoolTopology, error) {
+func lookupMPTopology(topology clusterv1.Topology, mpTopologyName string) (*clusterv1.MachinePoolTopology, error) {
 	for _, mpTopology := range topology.Workers.MachinePools {
 		if mpTopology.Name == mpTopologyName {
 			return &mpTopology, nil

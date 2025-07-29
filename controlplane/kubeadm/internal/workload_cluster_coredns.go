@@ -81,11 +81,6 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 		return nil
 	}
 
-	// Return early if the configuration is nil.
-	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
-		return nil
-	}
-
 	clusterConfig := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
 
 	// Get the CoreDNS info needed for the upgrade.
@@ -129,7 +124,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 }
 
 // getCoreDNSInfo returns all necessary coredns based information.
-func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv1.ClusterConfiguration) (*coreDNSInfo, error) {
+func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig bootstrapv1.ClusterConfiguration) (*coreDNSInfo, error) {
 	// Get the CoreDNS configmap and corefile.
 	key := ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}
 	cm, err := w.getConfigMap(ctx, key)

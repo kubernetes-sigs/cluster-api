@@ -42,7 +42,7 @@ func TestUpdateEtcdExternalInKubeadmConfigMap(t *testing.T) {
 	tests := []struct {
 		name                     string
 		clusterConfigurationData string
-		externalEtcd             *bootstrapv1.ExternalEtcd
+		externalEtcd             bootstrapv1.ExternalEtcd
 		wantClusterConfiguration string
 	}{
 		{
@@ -53,7 +53,7 @@ func TestUpdateEtcdExternalInKubeadmConfigMap(t *testing.T) {
 				etcd:
 				  external: {}
 				`),
-			externalEtcd: &bootstrapv1.ExternalEtcd{
+			externalEtcd: bootstrapv1.ExternalEtcd{
 				Endpoints: []string{"1.2.3.4"},
 				CAFile:    "/tmp/ca_file.pem",
 				CertFile:  "/tmp/cert_file.crt",
@@ -75,29 +75,6 @@ func TestUpdateEtcdExternalInKubeadmConfigMap(t *testing.T) {
 				kubernetesVersion: v1.23.1
 				networking: {}
 				scheduler: {}
-				`),
-		},
-		{
-			name: "no op when local etcd configuration already exists",
-			clusterConfigurationData: utilyaml.Raw(`
-				apiVersion: kubeadm.k8s.io/v1beta3
-				kind: ClusterConfiguration
-				kubernetesVersion: v1.23.1
-				etcd:
-				  local: {}
-				`),
-			externalEtcd: &bootstrapv1.ExternalEtcd{
-				Endpoints: []string{"1.2.3.4"},
-				CAFile:    "/tmp/ca_file.pem",
-				CertFile:  "/tmp/cert_file.crt",
-				KeyFile:   "/tmp/key_file.key",
-			},
-			wantClusterConfiguration: utilyaml.Raw(`
-				apiVersion: kubeadm.k8s.io/v1beta3
-				kind: ClusterConfiguration
-				kubernetesVersion: v1.23.1
-				etcd:
-				  local: {}
 				`),
 		},
 	}
@@ -137,7 +114,7 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 		name                     string
 		version                  semver.Version
 		clusterConfigurationData string
-		localEtcd                *bootstrapv1.LocalEtcd
+		localEtcd                bootstrapv1.LocalEtcd
 		wantClusterConfiguration string
 	}{
 		{
@@ -149,11 +126,9 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 				etcd:
 				  local: {}
 				`),
-			localEtcd: &bootstrapv1.LocalEtcd{
-				ImageMeta: bootstrapv1.ImageMeta{
-					ImageRepository: "example.com/k8s",
-					ImageTag:        "v1.6.0",
-				},
+			localEtcd: bootstrapv1.LocalEtcd{
+				ImageRepository: "example.com/k8s",
+				ImageTag:        "v1.6.0",
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "foo",
@@ -180,36 +155,6 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 				`),
 		},
 		{
-			name:    "no op when external etcd configuration already exists (<1.31)",
-			version: semver.MustParse("1.23.1"),
-			clusterConfigurationData: utilyaml.Raw(`
-				apiVersion: kubeadm.k8s.io/v1beta3
-				kind: ClusterConfiguration
-				kubernetesVersion: v1.23.1
-				etcd:
-				  external: {}
-				`),
-			localEtcd: &bootstrapv1.LocalEtcd{
-				ImageMeta: bootstrapv1.ImageMeta{
-					ImageRepository: "example.com/k8s",
-					ImageTag:        "v1.6.0",
-				},
-				ExtraArgs: []bootstrapv1.Arg{
-					{
-						Name:  "foo",
-						Value: "bar",
-					},
-				},
-			},
-			wantClusterConfiguration: utilyaml.Raw(`
-				apiVersion: kubeadm.k8s.io/v1beta3
-				kind: ClusterConfiguration
-				kubernetesVersion: v1.23.1
-				etcd:
-				  external: {}
-				`),
-		},
-		{
 			name:    "it should set local etcd configuration with local etcd (>=1.31)",
 			version: semver.MustParse("1.31.1"),
 			clusterConfigurationData: utilyaml.Raw(`
@@ -218,11 +163,9 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 				etcd:
 				  local: {}
 				`),
-			localEtcd: &bootstrapv1.LocalEtcd{
-				ImageMeta: bootstrapv1.ImageMeta{
-					ImageRepository: "example.com/k8s",
-					ImageTag:        "v1.6.0",
-				},
+			localEtcd: bootstrapv1.LocalEtcd{
+				ImageRepository: "example.com/k8s",
+				ImageTag:        "v1.6.0",
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "foo",
@@ -248,36 +191,6 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 				networking: {}
 				proxy: {}
 				scheduler: {}
-				`),
-		},
-		{
-			name:    "no op when external etcd configuration already exists (>=1.31)",
-			version: semver.MustParse("1.31.1"),
-			clusterConfigurationData: utilyaml.Raw(`
-				apiVersion: kubeadm.k8s.io/v1beta4
-				kind: ClusterConfiguration
-				kubernetesVersion: v1.31.1
-				etcd:
-				  external: {}
-				`),
-			localEtcd: &bootstrapv1.LocalEtcd{
-				ImageMeta: bootstrapv1.ImageMeta{
-					ImageRepository: "example.com/k8s",
-					ImageTag:        "v1.6.0",
-				},
-				ExtraArgs: []bootstrapv1.Arg{
-					{
-						Name:  "foo",
-						Value: "bar",
-					},
-				},
-			},
-			wantClusterConfiguration: utilyaml.Raw(`
-				apiVersion: kubeadm.k8s.io/v1beta4
-				kind: ClusterConfiguration
-				kubernetesVersion: v1.31.1
-				etcd:
-				  external: {}
 				`),
 		},
 	}
@@ -315,7 +228,7 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 func TestRemoveEtcdMemberForMachine(t *testing.T) {
 	machine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
-			NodeRef: &clusterv1.MachineNodeReference{
+			NodeRef: clusterv1.MachineNodeReference{
 				Name: "cp1",
 			},
 		},
@@ -352,7 +265,7 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 			name: "does nothing if the machine has no node",
 			machine: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
-					NodeRef: nil,
+					NodeRef: clusterv1.MachineNodeReference{},
 				},
 			},
 			expectErr: false,
@@ -466,7 +379,7 @@ func TestForwardEtcdLeadership(t *testing.T) {
 			{
 				name: "does nothing if machine's NodeRef is nil",
 				machine: defaultMachine(func(m *clusterv1.Machine) {
-					m.Status.NodeRef = nil
+					m.Status.NodeRef = clusterv1.MachineNodeReference{}
 				}),
 				expectErr: false,
 			},
@@ -480,7 +393,7 @@ func TestForwardEtcdLeadership(t *testing.T) {
 				name:    "returns an error if the leader candidate's noderef is nil",
 				machine: defaultMachine(),
 				leaderCandidate: defaultMachine(func(m *clusterv1.Machine) {
-					m.Status.NodeRef = nil
+					m.Status.NodeRef = clusterv1.MachineNodeReference{}
 				}),
 				expectErr: true,
 			},
@@ -787,7 +700,7 @@ func (c *fakeEtcdClientGenerator) forLeader(_ context.Context, _ []string) (*etc
 func defaultMachine(transforms ...func(m *clusterv1.Machine)) *clusterv1.Machine {
 	m := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
-			NodeRef: &clusterv1.MachineNodeReference{
+			NodeRef: clusterv1.MachineNodeReference{
 				Name: "machine-node",
 			},
 		},

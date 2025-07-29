@@ -110,35 +110,22 @@ func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue
 	c.FillNoCustom(in)
 
 	// enforce ControlPlaneComponentHealthCheckSeconds to be equal on init and join configuration
-	var initControlPlaneComponentHealthCheckSeconds *int32
-	if in.InitConfiguration != nil && in.InitConfiguration.Timeouts != nil {
-		initControlPlaneComponentHealthCheckSeconds = in.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
-	}
-	if (in.JoinConfiguration != nil && in.JoinConfiguration.Timeouts != nil) || initControlPlaneComponentHealthCheckSeconds != nil {
-		if in.JoinConfiguration == nil {
-			in.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
-		if in.JoinConfiguration.Timeouts == nil {
-			in.JoinConfiguration.Timeouts = &bootstrapv1.Timeouts{}
-		}
+	initControlPlaneComponentHealthCheckSeconds := in.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
+	if in.JoinConfiguration.IsDefined() || initControlPlaneComponentHealthCheckSeconds != nil {
 		in.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
 	}
 
-	if in.ClusterConfiguration != nil {
-		if in.ClusterConfiguration.APIServer.ExtraEnvs != nil && *in.ClusterConfiguration.APIServer.ExtraEnvs == nil {
-			in.ClusterConfiguration.APIServer.ExtraEnvs = nil
-		}
-		if in.ClusterConfiguration.ControllerManager.ExtraEnvs != nil && *in.ClusterConfiguration.ControllerManager.ExtraEnvs == nil {
-			in.ClusterConfiguration.ControllerManager.ExtraEnvs = nil
-		}
-		if in.ClusterConfiguration.Scheduler.ExtraEnvs != nil && *in.ClusterConfiguration.Scheduler.ExtraEnvs == nil {
-			in.ClusterConfiguration.Scheduler.ExtraEnvs = nil
-		}
-		if in.ClusterConfiguration.Etcd.Local != nil {
-			if in.ClusterConfiguration.Etcd.Local.ExtraEnvs != nil && *in.ClusterConfiguration.Etcd.Local.ExtraEnvs == nil {
-				in.ClusterConfiguration.Etcd.Local.ExtraEnvs = nil
-			}
-		}
+	if in.ClusterConfiguration.APIServer.ExtraEnvs != nil && *in.ClusterConfiguration.APIServer.ExtraEnvs == nil {
+		in.ClusterConfiguration.APIServer.ExtraEnvs = nil
+	}
+	if in.ClusterConfiguration.ControllerManager.ExtraEnvs != nil && *in.ClusterConfiguration.ControllerManager.ExtraEnvs == nil {
+		in.ClusterConfiguration.ControllerManager.ExtraEnvs = nil
+	}
+	if in.ClusterConfiguration.Scheduler.ExtraEnvs != nil && *in.ClusterConfiguration.Scheduler.ExtraEnvs == nil {
+		in.ClusterConfiguration.Scheduler.ExtraEnvs = nil
+	}
+	if in.ClusterConfiguration.Etcd.Local.ExtraEnvs != nil && *in.ClusterConfiguration.Etcd.Local.ExtraEnvs == nil {
+		in.ClusterConfiguration.Etcd.Local.ExtraEnvs = nil
 	}
 }
 
@@ -246,6 +233,28 @@ func spokeDiscovery(in *bootstrapv1beta1.Discovery, c randfill.Continue) {
 	if in.Timeout != nil {
 		in.Timeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
+	if in.File != nil {
+		if in.File.KubeConfig != nil {
+			if in.File.KubeConfig.Cluster != nil && reflect.DeepEqual(in.File.KubeConfig.Cluster, &bootstrapv1beta1.KubeConfigCluster{}) {
+				in.File.KubeConfig.Cluster = nil
+			}
+			if in.File.KubeConfig.User.AuthProvider != nil && reflect.DeepEqual(in.File.KubeConfig.User.AuthProvider, &bootstrapv1beta1.KubeConfigAuthProvider{}) {
+				in.File.KubeConfig.User.AuthProvider = nil
+			}
+			if in.File.KubeConfig.User.Exec != nil && reflect.DeepEqual(in.File.KubeConfig.User.Exec, &bootstrapv1beta1.KubeConfigAuthExec{}) {
+				in.File.KubeConfig.User.Exec = nil
+			}
+			if reflect.DeepEqual(in.File.KubeConfig, &bootstrapv1beta1.FileDiscoveryKubeConfig{}) {
+				in.File.KubeConfig = nil
+			}
+		}
+		if reflect.DeepEqual(in.File, &bootstrapv1beta1.FileDiscovery{}) {
+			in.File = nil
+		}
+	}
+	if in.BootstrapToken != nil && reflect.DeepEqual(in.BootstrapToken, &bootstrapv1beta1.BootstrapTokenDiscovery{}) {
+		in.BootstrapToken = nil
+	}
 }
 
 func spokeKubeadmConfigSpec(in *bootstrapv1beta1.KubeadmConfigSpec, c randfill.Continue) {
@@ -255,6 +264,33 @@ func spokeKubeadmConfigSpec(in *bootstrapv1beta1.KubeadmConfigSpec, c randfill.C
 	in.UseExperimentalRetryJoin = false
 
 	dropEmptyStringsKubeadmConfigSpec(in)
+
+	if in.InitConfiguration != nil && in.InitConfiguration.Patches != nil && reflect.DeepEqual(in.InitConfiguration.Patches, &bootstrapv1beta1.Patches{}) {
+		in.InitConfiguration.Patches = nil
+	}
+	if in.JoinConfiguration != nil && in.JoinConfiguration.Patches != nil && reflect.DeepEqual(in.JoinConfiguration.Patches, &bootstrapv1beta1.Patches{}) {
+		in.JoinConfiguration.Patches = nil
+	}
+	if in.Ignition != nil {
+		if in.Ignition.ContainerLinuxConfig != nil && reflect.DeepEqual(in.Ignition.ContainerLinuxConfig, &bootstrapv1beta1.ContainerLinuxConfig{}) {
+			in.Ignition.ContainerLinuxConfig = nil
+		}
+		if reflect.DeepEqual(in.Ignition, &bootstrapv1beta1.IgnitionSpec{}) {
+			in.Ignition = nil
+		}
+	}
+	if in.DiskSetup != nil && reflect.DeepEqual(in.DiskSetup, &bootstrapv1beta1.DiskSetup{}) {
+		in.DiskSetup = nil
+	}
+	if in.NTP != nil && reflect.DeepEqual(in.NTP, &bootstrapv1beta1.NTP{}) {
+		in.NTP = nil
+	}
+	for i, file := range in.Files {
+		if file.ContentFrom != nil && reflect.DeepEqual(file.ContentFrom, &bootstrapv1beta1.FileSource{}) {
+			file.ContentFrom = nil
+		}
+		in.Files[i] = file
+	}
 }
 
 func spokeClusterConfiguration(in *bootstrapv1beta1.ClusterConfiguration, c randfill.Continue) {
@@ -266,6 +302,13 @@ func spokeClusterConfiguration(in *bootstrapv1beta1.ClusterConfiguration, c rand
 	in.Networking.DNSDomain = ""
 	in.KubernetesVersion = ""
 	in.ClusterName = ""
+
+	if in.Etcd.Local != nil && reflect.DeepEqual(in.Etcd.Local, &bootstrapv1beta1.LocalEtcd{}) {
+		in.Etcd.Local = nil
+	}
+	if in.Etcd.External != nil && reflect.DeepEqual(in.Etcd.External, &bootstrapv1beta1.ExternalEtcd{}) {
+		in.Etcd.External = nil
+	}
 }
 
 func spokeKubeadmControlPlaneTemplate(in *KubeadmControlPlaneTemplate, c randfill.Continue) {

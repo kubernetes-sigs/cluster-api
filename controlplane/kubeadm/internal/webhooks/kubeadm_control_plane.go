@@ -98,7 +98,7 @@ func (webhook *KubeadmControlPlane) ValidateCreate(_ context.Context, obj runtim
 
 	spec := k.Spec
 	allErrs := validateKubeadmControlPlaneSpec(spec, field.NewPath("spec"))
-	allErrs = append(allErrs, validateClusterConfiguration(nil, spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
+	allErrs = append(allErrs, validateClusterConfiguration(nil, &spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, spec.KubeadmConfigSpec.Validate(field.NewPath("spec", "kubeadmConfigSpec"))...)
 	if len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), k.Name, allErrs)
@@ -259,7 +259,7 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 	}
 
 	allErrs = append(allErrs, webhook.validateVersion(oldK, newK)...)
-	allErrs = append(allErrs, validateClusterConfiguration(oldK.Spec.KubeadmConfigSpec.ClusterConfiguration, newK.Spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
+	allErrs = append(allErrs, validateClusterConfiguration(&oldK.Spec.KubeadmConfigSpec.ClusterConfiguration, &newK.Spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, webhook.validateCoreDNSVersion(oldK, newK)...)
 	allErrs = append(allErrs, newK.Spec.KubeadmConfigSpec.Validate(field.NewPath("spec", "kubeadmConfigSpec"))...)
 
@@ -294,13 +294,7 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 		)
 	}
 
-	externalEtcd := false
-	if s.KubeadmConfigSpec.ClusterConfiguration != nil {
-		if s.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil {
-			externalEtcd = true
-		}
-	}
-
+	externalEtcd := s.KubeadmConfigSpec.ClusterConfiguration.Etcd.External.IsDefined()
 	if !externalEtcd {
 		if s.Replicas != nil && *s.Replicas%2 == 0 {
 			allErrs = append(
@@ -356,7 +350,7 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 	return allErrs
 }
 
-func validateRolloutAndCertValidityFields(rolloutSpec controlplanev1.KubeadmControlPlaneRolloutSpec, clusterConfiguration *bootstrapv1.ClusterConfiguration, replicas *int32, pathPrefix *field.Path) field.ErrorList {
+func validateRolloutAndCertValidityFields(rolloutSpec controlplanev1.KubeadmControlPlaneRolloutSpec, clusterConfiguration bootstrapv1.ClusterConfiguration, replicas *int32, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	rolloutStrategy := rolloutSpec.Strategy
@@ -396,10 +390,6 @@ func validateRolloutAndCertValidityFields(rolloutSpec controlplanev1.KubeadmCont
 				),
 			)
 		}
-	}
-
-	if clusterConfiguration == nil {
-		return allErrs
 	}
 
 	if clusterConfiguration.CertificateValidityPeriodDays != 0 {
@@ -503,7 +493,7 @@ func validateClusterConfiguration(oldClusterConfiguration, newClusterConfigurati
 	}
 
 	// TODO: Remove when kubeadm types include OpenAPI validation
-	if newClusterConfiguration.Etcd.Local != nil && !container.ImageTagIsValid(newClusterConfiguration.Etcd.Local.ImageTag) {
+	if newClusterConfiguration.Etcd.Local.IsDefined() && !container.ImageTagIsValid(newClusterConfiguration.Etcd.Local.ImageTag) {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
@@ -513,7 +503,7 @@ func validateClusterConfiguration(oldClusterConfiguration, newClusterConfigurati
 		)
 	}
 
-	if newClusterConfiguration.Etcd.Local != nil && newClusterConfiguration.Etcd.External != nil {
+	if newClusterConfiguration.Etcd.Local.IsDefined() && newClusterConfiguration.Etcd.External.IsDefined() {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
@@ -525,7 +515,8 @@ func validateClusterConfiguration(oldClusterConfiguration, newClusterConfigurati
 
 	// update validations
 	if oldClusterConfiguration != nil {
-		if (newClusterConfiguration.Etcd.External != nil && oldClusterConfiguration.Etcd.External == nil) || (newClusterConfiguration.Etcd.External == nil && oldClusterConfiguration.Etcd.External != nil) {
+		if (newClusterConfiguration.Etcd.External.IsDefined() && !oldClusterConfiguration.Etcd.External.IsDefined()) ||
+			(!newClusterConfiguration.Etcd.External.IsDefined() && oldClusterConfiguration.Etcd.External.IsDefined()) {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
@@ -590,9 +581,6 @@ func paths(path []string, diff map[string]interface{}) [][]string {
 }
 
 func (webhook *KubeadmControlPlane) validateCoreDNSVersion(oldK, newK *controlplanev1.KubeadmControlPlane) (allErrs field.ErrorList) {
-	if newK.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || oldK.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
-		return allErrs
-	}
 	// return if either current or target versions is empty
 	if newK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag == "" || oldK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag == "" {
 		return allErrs

@@ -61,7 +61,7 @@ func CalculateTemplatesInUse(md *clusterv1.MachineDeployment, msList []*clusterv
 		}
 
 		bootstrapRef := ms.Spec.Template.Spec.Bootstrap.ConfigRef
-		infrastructureRef := &ms.Spec.Template.Spec.InfrastructureRef
+		infrastructureRef := ms.Spec.Template.Spec.InfrastructureRef
 		addTemplateRef(templatesInUse, bootstrapRef, infrastructureRef)
 	}
 
@@ -73,15 +73,15 @@ func CalculateTemplatesInUse(md *clusterv1.MachineDeployment, msList []*clusterv
 
 	//  Otherwise, the templates of the MachineDeployment are still in use.
 	bootstrapRef := md.Spec.Template.Spec.Bootstrap.ConfigRef
-	infrastructureRef := &md.Spec.Template.Spec.InfrastructureRef
+	infrastructureRef := md.Spec.Template.Spec.InfrastructureRef
 	addTemplateRef(templatesInUse, bootstrapRef, infrastructureRef)
 	return templatesInUse, nil
 }
 
 // DeleteTemplateIfUnused deletes the template (ref), if it is not in use (i.e. in templatesInUse).
-func DeleteTemplateIfUnused(ctx context.Context, c client.Client, templatesInUse map[string]bool, ref *clusterv1.ContractVersionedObjectReference, namespace string) error {
+func DeleteTemplateIfUnused(ctx context.Context, c client.Client, templatesInUse map[string]bool, ref clusterv1.ContractVersionedObjectReference, namespace string) error {
 	// If ref is nil, do nothing (this can happen, because bootstrap templates are optional).
-	if ref == nil {
+	if !ref.IsDefined() {
 		return nil
 	}
 
@@ -114,9 +114,9 @@ func DeleteTemplateIfUnused(ctx context.Context, c client.Client, templatesInUse
 }
 
 // addTemplateRef adds the refs to the refMap with the templateRefID as key.
-func addTemplateRef(refMap map[string]bool, refs ...*clusterv1.ContractVersionedObjectReference) {
+func addTemplateRef(refMap map[string]bool, refs ...clusterv1.ContractVersionedObjectReference) {
 	for _, ref := range refs {
-		if ref != nil {
+		if ref.IsDefined() {
 			refMap[templateRefID(ref)] = true
 		}
 	}
@@ -124,8 +124,8 @@ func addTemplateRef(refMap map[string]bool, refs ...*clusterv1.ContractVersioned
 
 // templateRefID returns the templateRefID of a ObjectReference in the format: g/k/name.
 // Note: We don't include the version as references with different versions should be treated as equal.
-func templateRefID(ref *clusterv1.ContractVersionedObjectReference) string {
-	if ref == nil {
+func templateRefID(ref clusterv1.ContractVersionedObjectReference) string {
+	if !ref.IsDefined() {
 		return ""
 	}
 

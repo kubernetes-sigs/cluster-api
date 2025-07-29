@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"fmt"
+	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -54,15 +55,15 @@ var (
 type KubeadmConfigSpec struct {
 	// clusterConfiguration along with InitConfiguration are the configurations necessary for the init command
 	// +optional
-	ClusterConfiguration *ClusterConfiguration `json:"clusterConfiguration,omitempty"`
+	ClusterConfiguration ClusterConfiguration `json:"clusterConfiguration,omitempty,omitzero"`
 
 	// initConfiguration along with ClusterConfiguration are the configurations necessary for the init command
 	// +optional
-	InitConfiguration *InitConfiguration `json:"initConfiguration,omitempty"`
+	InitConfiguration InitConfiguration `json:"initConfiguration,omitempty,omitzero"`
 
 	// joinConfiguration is the kubeadm configuration for the join command
 	// +optional
-	JoinConfiguration *JoinConfiguration `json:"joinConfiguration,omitempty"`
+	JoinConfiguration JoinConfiguration `json:"joinConfiguration,omitempty,omitzero"`
 
 	// files specifies extra files to be passed to user_data upon creation.
 	// +optional
@@ -73,7 +74,7 @@ type KubeadmConfigSpec struct {
 
 	// diskSetup specifies options for the creation of partition tables and file systems on devices.
 	// +optional
-	DiskSetup *DiskSetup `json:"diskSetup,omitempty"`
+	DiskSetup DiskSetup `json:"diskSetup,omitempty,omitzero"`
 
 	// mounts specifies a list of mount points to be setup.
 	// +optional
@@ -124,7 +125,7 @@ type KubeadmConfigSpec struct {
 
 	// ntp specifies NTP configuration
 	// +optional
-	NTP *NTP `json:"ntp,omitempty"`
+	NTP NTP `json:"ntp,omitempty,omitzero"`
 
 	// format specifies the output format of the bootstrap data.
 	// Defaults to cloud-config if not set.
@@ -138,7 +139,7 @@ type KubeadmConfigSpec struct {
 
 	// ignition contains Ignition specific configuration.
 	// +optional
-	Ignition *IgnitionSpec `json:"ignition,omitempty"`
+	Ignition IgnitionSpec `json:"ignition,omitempty,omitzero"`
 }
 
 // Validate ensures the KubeadmConfigSpec is valid.
@@ -150,40 +151,29 @@ func (c *KubeadmConfigSpec) Validate(pathPrefix *field.Path) field.ErrorList {
 	allErrs = append(allErrs, c.validateIgnition(pathPrefix)...)
 
 	// Validate JoinConfiguration.
-	if c.JoinConfiguration != nil {
-		if c.JoinConfiguration.Discovery.File != nil {
-			if kfg := c.JoinConfiguration.Discovery.File.KubeConfig; kfg != nil {
-				userPath := pathPrefix.Child("joinConfiguration", "discovery", "file", "kubeconfig", "user")
-				if kfg.User.AuthProvider == nil && kfg.User.Exec == nil {
-					allErrs = append(allErrs,
-						field.Invalid(
-							userPath,
-							kfg.User,
-							"at least one of authProvider or exec must be defined",
-						),
-					)
-				}
-				if kfg.User.AuthProvider != nil && kfg.User.Exec != nil {
-					allErrs = append(allErrs,
-						field.Invalid(
-							userPath,
-							kfg.User,
-							"either authProvider or exec must be defined",
-						),
-					)
-				}
-			}
+	if c.JoinConfiguration.IsDefined() {
+		kfg := c.JoinConfiguration.Discovery.File.KubeConfig
+		userPath := pathPrefix.Child("joinConfiguration", "discovery", "file", "kubeconfig", "user")
+		// Note: MinProperties=1 on User ensures that at least one of AuthProvider or Exec is set
+		if kfg.User.AuthProvider.IsDefined() && kfg.User.Exec.IsDefined() {
+			allErrs = append(allErrs,
+				field.Invalid(
+					userPath,
+					kfg.User,
+					"only one of authProvider or exec must be defined",
+				),
+			)
 		}
 	}
 
 	// Validate timeouts
 	// Note: When v1beta1 will be removed, we can drop this limitation.
 	tInit := "unset"
-	if c.InitConfiguration != nil && c.InitConfiguration.Timeouts != nil && c.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
+	if c.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
 		tInit = fmt.Sprintf("%d", *c.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
 	}
 	tJoin := "unset"
-	if c.JoinConfiguration != nil && c.JoinConfiguration.Timeouts != nil && c.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
+	if c.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
 		tJoin = fmt.Sprintf("%d", *c.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
 	}
 	if tInit != tJoin {
@@ -211,7 +201,7 @@ func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorLis
 
 	for i := range c.Files {
 		file := c.Files[i]
-		if file.Content != "" && file.ContentFrom != nil {
+		if file.Content != "" && file.ContentFrom.IsDefined() {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
@@ -224,7 +214,7 @@ func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorLis
 		// n.b.: if we ever add types besides Secret as a ContentFrom
 		// Source, we must add webhook validation here for one of the
 		// sources being non-nil.
-		if file.ContentFrom != nil {
+		if file.ContentFrom.IsDefined() {
 			if file.ContentFrom.Secret.Name == "" {
 				allErrs = append(
 					allErrs,
@@ -313,7 +303,7 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 				pathPrefix.Child("format"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))
 		}
 
-		if c.Ignition != nil {
+		if c.Ignition.IsDefined() {
 			allErrs = append(allErrs, field.Forbidden(
 				pathPrefix.Child("ignition"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))
 		}
@@ -322,7 +312,7 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 	}
 
 	if c.Format != Ignition {
-		if c.Ignition != nil {
+		if c.Ignition.IsDefined() {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
@@ -368,10 +358,6 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 				cannotUseWithIgnition,
 			),
 		)
-	}
-
-	if c.DiskSetup == nil {
-		return allErrs
 	}
 
 	for i, partition := range c.DiskSetup.Partitions {
@@ -421,7 +407,12 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 type IgnitionSpec struct {
 	// containerLinuxConfig contains CLC specific configuration.
 	// +optional
-	ContainerLinuxConfig *ContainerLinuxConfig `json:"containerLinuxConfig,omitempty"`
+	ContainerLinuxConfig ContainerLinuxConfig `json:"containerLinuxConfig,omitempty,omitzero"`
+}
+
+// IsDefined returns true if the IgnitionSpec is defined.
+func (r *IgnitionSpec) IsDefined() bool {
+	return !reflect.DeepEqual(r, &IgnitionSpec{})
 }
 
 // ContainerLinuxConfig contains CLC-specific configuration.
@@ -441,6 +432,11 @@ type ContainerLinuxConfig struct {
 	// strict controls if AdditionalConfig should be strictly parsed. If so, warnings are treated as errors.
 	// +optional
 	Strict *bool `json:"strict,omitempty"`
+}
+
+// IsDefined returns true if the ContainerLinuxConfig is defined.
+func (r *ContainerLinuxConfig) IsDefined() bool {
+	return !reflect.DeepEqual(r, &ContainerLinuxConfig{})
 }
 
 // KubeadmConfigStatus defines the observed state of KubeadmConfig.
@@ -641,7 +637,7 @@ type File struct {
 
 	// contentFrom is a referenced source of content to populate the file.
 	// +optional
-	ContentFrom *FileSource `json:"contentFrom,omitempty"`
+	ContentFrom FileSource `json:"contentFrom,omitempty,omitzero"`
 }
 
 // FileSource is a union of all possible external source types for file data.
@@ -651,6 +647,11 @@ type FileSource struct {
 	// secret represents a secret that should populate this file.
 	// +required
 	Secret SecretFileSource `json:"secret,omitempty,omitzero"`
+}
+
+// IsDefined returns true if the FileSource is defined.
+func (r *FileSource) IsDefined() bool {
+	return !reflect.DeepEqual(r, &FileSource{})
 }
 
 // SecretFileSource adapts a Secret into a FileSource.
@@ -785,6 +786,11 @@ type NTP struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
+// IsDefined returns true if the NTP is defined.
+func (r *NTP) IsDefined() bool {
+	return !reflect.DeepEqual(r, &NTP{})
+}
+
 // DiskSetup defines input for generated disk_setup and fs_setup in cloud-init.
 // +kubebuilder:validation:MinProperties=1
 type DiskSetup struct {
@@ -799,6 +805,11 @@ type DiskSetup struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=100
 	Filesystems []Filesystem `json:"filesystems,omitempty"`
+}
+
+// IsDefined returns true if the DiskSetup is defined.
+func (r *DiskSetup) IsDefined() bool {
+	return !reflect.DeepEqual(r, &DiskSetup{})
 }
 
 // Partition defines how to create and layout a partition.

@@ -106,7 +106,7 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *clusterv1.MachinePool) {
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a MachinePool.
-func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, m *clusterv1.MachinePool, ref *clusterv1.ContractVersionedObjectReference) (external.ReconcileOutput, error) {
+func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, m *clusterv1.MachinePool, ref clusterv1.ContractVersionedObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, m.Namespace)
@@ -184,7 +184,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, s *scope
 	m := s.machinePool
 	// Call generic external reconciler if we have an external reference.
 	var bootstrapConfig *unstructured.Unstructured
-	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+	if m.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 		bootstrapReconcileResult, err := r.reconcileExternal(ctx, m, m.Spec.Template.Spec.Bootstrap.ConfigRef)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -254,7 +254,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 	cluster := s.cluster
 	mp := s.machinePool
 	// Call generic external reconciler.
-	infraReconcileResult, err := r.reconcileExternal(ctx, mp, &mp.Spec.Template.Spec.InfrastructureRef)
+	infraReconcileResult, err := r.reconcileExternal(ctx, mp, mp.Spec.Template.Spec.InfrastructureRef)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
 			log.Error(err, "infrastructure reference could not be found")

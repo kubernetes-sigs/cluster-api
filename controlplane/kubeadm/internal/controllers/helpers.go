@@ -145,7 +145,7 @@ func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Contex
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.Context, controlPlane *internal.ControlPlane) error {
-	ref := &controlPlane.KCP.Spec.MachineTemplate.Spec.InfrastructureRef
+	ref := controlPlane.KCP.Spec.MachineTemplate.Spec.InfrastructureRef
 	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
 		return nil
 	}
@@ -225,7 +225,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 			clusterv1.ConditionSeverityError, "%s", err.Error())
 		return nil, errors.Wrap(err, "failed to clone infrastructure template")
 	}
-	machine.Spec.InfrastructureRef = *infraRef
+	machine.Spec.InfrastructureRef = infraRef
 
 	// Clone the bootstrap configuration
 	bootstrapConfig, bootstrapRef, err := r.generateKubeadmConfig(ctx, kcp, cluster, bootstrapSpec, machine.Name)
@@ -272,7 +272,7 @@ func (r *KubeadmControlPlaneReconciler) cleanupFromGeneration(ctx context.Contex
 	return kerrors.NewAggregate(errs)
 }
 
-func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, spec *bootstrapv1.KubeadmConfigSpec, name string) (*bootstrapv1.KubeadmConfig, *clusterv1.ContractVersionedObjectReference, error) {
+func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, spec *bootstrapv1.KubeadmConfigSpec, name string) (*bootstrapv1.KubeadmConfig, clusterv1.ContractVersionedObjectReference, error) {
 	// Create an owner reference without a controller reference because the owning controller is the machine controller
 	owner := metav1.OwnerReference{
 		APIVersion: controlplanev1.GroupVersion.String(),
@@ -293,10 +293,10 @@ func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Contex
 	}
 
 	if err := r.Client.Create(ctx, bootstrapConfig); err != nil {
-		return nil, nil, errors.Wrap(err, "failed to create bootstrap configuration")
+		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrap(err, "failed to create bootstrap configuration")
 	}
 
-	return bootstrapConfig, &clusterv1.ContractVersionedObjectReference{
+	return bootstrapConfig, clusterv1.ContractVersionedObjectReference{
 		APIGroup: bootstrapv1.GroupVersion.Group,
 		Kind:     "KubeadmConfig",
 		Name:     bootstrapConfig.GetName(),
@@ -379,7 +379,7 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 		// Machine's bootstrap config may be missing ClusterConfiguration if it is not the first machine in the control plane.
 		// We store ClusterConfiguration as annotation here to detect any changes in KCP ClusterConfiguration and rollout the machine if any.
 		// Nb. This annotation is read when comparing the KubeadmConfig to check if a machine needs to be rolled out.
-		clusterConfigurationAnnotation, err := internal.ClusterConfigurationToMachineAnnotationValue(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
+		clusterConfigurationAnnotation, err := internal.ClusterConfigurationToMachineAnnotationValue(&kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
 		if err != nil {
 			return nil, err
 		}
@@ -481,7 +481,7 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 	// Set machines readiness gates
 	allReadinessGates := []clusterv1.MachineReadinessGate{}
 	allReadinessGates = append(allReadinessGates, mandatoryMachineReadinessGates...)
-	isEtcdManaged := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External == nil
+	isEtcdManaged := !kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External.IsDefined()
 	if isEtcdManaged {
 		allReadinessGates = append(allReadinessGates, etcdMandatoryMachineReadinessGates...)
 	}

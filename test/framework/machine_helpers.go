@@ -238,7 +238,7 @@ func PatchNodeCondition(ctx context.Context, input PatchNodeConditionInput) {
 	Expect(input.Machine).ToNot(BeNil(), "Invalid argument. input.Machine can't be nil when calling PatchNodeConditions")
 
 	log.Logf("Patching the node condition to the node")
-	Expect(input.Machine.Status.NodeRef).ToNot(BeNil())
+	Expect(input.Machine.Status.NodeRef.IsDefined()).To(BeTrue())
 	node := &corev1.Node{}
 	Eventually(func() error {
 		return input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: input.Machine.Status.NodeRef.Name}, node)
@@ -289,7 +289,7 @@ func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCh
 // MachineNodeRefCheck is a MachineStatusCheck ensuring that a NodeRef is assigned to the machine.
 func MachineNodeRefCheck() MachineStatusCheck {
 	return func(machine *clusterv1.Machine) error {
-		if machine.Status.NodeRef == nil {
+		if !machine.Status.NodeRef.IsDefined() {
 			return errors.Errorf("NodeRef is not assigned to the machine %s", klog.KObj(machine))
 		}
 		return nil

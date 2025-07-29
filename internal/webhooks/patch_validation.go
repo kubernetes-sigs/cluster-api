@@ -192,7 +192,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 		if selectorMatchTemplate(selector, class.Spec.ControlPlane.TemplateRef) {
 			match = true
 		}
-		if class.Spec.ControlPlane.MachineInfrastructure != nil &&
+		if class.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() &&
 			selectorMatchTemplate(selector, class.Spec.ControlPlane.MachineInfrastructure.TemplateRef) {
 			match = true
 		}

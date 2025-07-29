@@ -378,7 +378,7 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 
 		// Ensure ControlPlane does not define a MachineHealthCheck if it does not define MachineInfrastructure.
-		if clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
+		if !clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
 			allErrs = append(allErrs, field.Forbidden(
 				fldPath,
 				"can be only set if spec.controlPlane.machineInfrastructure is set",

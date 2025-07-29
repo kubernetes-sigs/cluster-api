@@ -65,7 +65,7 @@ type ClusterResourceSetSpec struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
-	Resources []ResourceRef `json:"resources,omitempty"`
+	Resources []ResourceRef `json:"resources"`
 
 	// strategy is the strategy to be used during applying resources. Defaults to ApplyOnce. This field is immutable.
 	// +kubebuilder:validation:Enum=ApplyOnce;Reconcile

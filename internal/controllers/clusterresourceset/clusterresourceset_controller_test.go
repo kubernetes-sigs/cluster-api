@@ -238,6 +238,7 @@ metadata:
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
 				},
+				Resources: []addonsv1.ResourceRef{{Name: configmapName, Kind: "ConfigMap"}},
 			},
 		}
 		// Create the ClusterResourceSet.
@@ -596,6 +597,7 @@ metadata:
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
 				},
+				Resources: []addonsv1.ResourceRef{{Name: configmapName, Kind: "ConfigMap"}},
 			},
 		}
 		// Create the ClusterResourceSet.

@@ -102,7 +102,7 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 			allErrs = append(
 				allErrs,
 				field.Required(
-					field.NewPath("spec", "topology", "class"),
+					field.NewPath("spec", "topology", "classRef"),
 					"classRef.name cannot be empty",
 				),
 			)

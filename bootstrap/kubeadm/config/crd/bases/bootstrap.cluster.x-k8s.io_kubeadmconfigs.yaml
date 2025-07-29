@@ -4138,6 +4138,7 @@ spec:
                   minLength: 1
                   type: string
                 maxItems: 1000
+                minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
               clusterConfiguration:
@@ -4157,6 +4158,7 @@ spec:
                           minLength: 1
                           type: string
                         maxItems: 100
+                        minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
                       extraArgs:
@@ -4315,6 +4317,7 @@ spec:
                           - name
                           type: object
                         maxItems: 100
+                        minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
                       extraVolumes:
@@ -4355,6 +4358,7 @@ spec:
                           - name
                           type: object
                         maxItems: 100
+                        minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
                     type: object
@@ -4543,6 +4547,7 @@ spec:
                           - name
                           type: object
                         maxItems: 100
+                        minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
                       extraVolumes:
@@ -4583,6 +4588,7 @@ spec:
                           - name
                           type: object
                         maxItems: 100
+                        minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
                     type: object
@@ -4658,6 +4664,7 @@ spec:
                         description: |-
                           local provides configuration knobs for configuring the local etcd instance
                           Local and External are mutually exclusive
+                        minProperties: 1
                         properties:
                           dataDir:
                             description: |-
@@ -4823,6 +4830,7 @@ spec:
                               - name
                               type: object
                             maxItems: 100
+                            minItems: 1
                             type: array
                             x-kubernetes-list-type: atomic
                           imageRepository:
@@ -4847,6 +4855,7 @@ spec:
                               minLength: 1
                               type: string
                             maxItems: 100
+                            minItems: 1
                             type: array
                             x-kubernetes-list-type: atomic
                           serverCertSANs:
@@ -4857,6 +4866,7 @@ spec:
                               minLength: 1
                               type: string
                             maxItems: 100
+                            minItems: 1
                             type: array
                             x-kubernetes-list-type: atomic
                         type: object
@@ -5043,6 +5053,7 @@ spec:
                           - name
                           type: object
                         maxItems: 100
+                        minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
                       extraVolumes:
@@ -5083,6 +5094,7 @@ spec:
                           - name
                           type: object
                         maxItems: 100
+                        minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
                     type: object
@@ -5090,6 +5102,7 @@ spec:
               diskSetup:
                 description: diskSetup specifies options for the creation of partition
                   tables and file systems on devices.
+                minProperties: 1
                 properties:
                   filesystems:
                     description: filesystems specifies the list of file systems to
@@ -5260,6 +5273,7 @@ spec:
                   - path
                   type: object
                 maxItems: 200
+                minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
               format:
@@ -5272,9 +5286,11 @@ spec:
                 type: string
               ignition:
                 description: ignition contains Ignition specific configuration.
+                minProperties: 1
                 properties:
                   containerLinuxConfig:
                     description: containerLinuxConfig contains CLC specific configuration.
+                    minProperties: 1
                     properties:
                       additionalConfig:
                         description: |-
@@ -5325,6 +5341,7 @@ spec:
                             minLength: 1
                             type: string
                           maxItems: 100
+                          minItems: 1
                           type: array
                           x-kubernetes-list-type: atomic
                         token:
@@ -5348,12 +5365,14 @@ spec:
                             minLength: 1
                             type: string
                           maxItems: 100
+                          minItems: 1
                           type: array
                           x-kubernetes-list-type: atomic
                       required:
                       - token
                       type: object
                     maxItems: 100
+                    minItems: 1
                     type: array
                     x-kubernetes-list-type: atomic
                   localAPIEndpoint:
@@ -5403,6 +5422,7 @@ spec:
                           minLength: 1
                           type: string
                         maxItems: 50
+                        minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
                       imagePullPolicy:
@@ -5505,6 +5525,7 @@ spec:
                     description: |-
                       patches contains options related to applying patches to components deployed by kubeadm during
                       "kubeadm init". The minimum kubernetes version needed to support Patches is v1.22
+                    minProperties: 1
                     properties:
                       directory:
                         description: |-
@@ -5532,11 +5553,13 @@ spec:
                       minLength: 1
                       type: string
                     maxItems: 50
+                    minItems: 1
                     type: array
                     x-kubernetes-list-type: atomic
                   timeouts:
                     description: timeouts holds various timeouts that apply to kubeadm
                       commands.
+                    minProperties: 1
                     properties:
                       controlPlaneComponentHealthCheckSeconds:
                         description: |-
@@ -5634,6 +5657,7 @@ spec:
                         description: |-
                           bootstrapToken is used to set the options for bootstrap token based discovery
                           BootstrapToken and File are mutually exclusive
+                        minProperties: 1
                         properties:
                           apiServerEndpoint:
                             description: apiServerEndpoint is an IP or domain name
@@ -5656,6 +5680,7 @@ spec:
                               minLength: 1
                               type: string
                             maxItems: 100
+                            minItems: 1
                             type: array
                             x-kubernetes-list-type: atomic
                           token:
@@ -5692,6 +5717,7 @@ spec:
                                   By default the following fields are automatically populated:
                                   - Server with the Cluster's ControlPlaneEndpoint.
                                   - CertificateAuthorityData with the Cluster's CA certificate.
+                                minProperties: 1
                                 properties:
                                   certificateAuthorityData:
                                     description: |-
@@ -5741,6 +5767,7 @@ spec:
                                 description: |-
                                   user contains information that describes identity information.
                                   This is used to tell the kubernetes cluster who you are.
+                                minProperties: 1
                                 properties:
                                   authProvider:
                                     description: authProvider specifies a custom authentication
@@ -5781,6 +5808,7 @@ spec:
                                           minLength: 1
                                           type: string
                                         maxItems: 100
+                                        minItems: 1
                                         type: array
                                         x-kubernetes-list-type: atomic
                                       command:
@@ -5815,6 +5843,7 @@ spec:
                                           - value
                                           type: object
                                         maxItems: 100
+                                        minItems: 1
                                         type: array
                                         x-kubernetes-list-type: atomic
                                       provideClusterInfo:
@@ -5874,6 +5903,7 @@ spec:
                           minLength: 1
                           type: string
                         maxItems: 50
+                        minItems: 1
                         type: array
                         x-kubernetes-list-type: atomic
                       imagePullPolicy:
@@ -5976,6 +6006,7 @@ spec:
                     description: |-
                       patches contains options related to applying patches to components deployed by kubeadm during
                       "kubeadm join". The minimum kubernetes version needed to support Patches is v1.22
+                    minProperties: 1
                     properties:
                       directory:
                         description: |-
@@ -6003,11 +6034,13 @@ spec:
                       minLength: 1
                       type: string
                     maxItems: 50
+                    minItems: 1
                     type: array
                     x-kubernetes-list-type: atomic
                   timeouts:
                     description: timeouts holds various timeouts that apply to kubeadm
                       commands.
+                    minProperties: 1
                     properties:
                       controlPlaneComponentHealthCheckSeconds:
                         description: |-
@@ -6067,12 +6100,16 @@ spec:
                     maxLength: 512
                     minLength: 1
                     type: string
+                  maxItems: 100
+                  minItems: 1
                   type: array
                 maxItems: 100
+                minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
               ntp:
                 description: ntp specifies NTP configuration
+                minProperties: 1
                 properties:
                   enabled:
                     description: enabled specifies whether NTP should be enabled
@@ -6097,6 +6134,7 @@ spec:
                   minLength: 1
                   type: string
                 maxItems: 1000
+                minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
               preKubeadmCommands:
@@ -6109,6 +6147,7 @@ spec:
                   minLength: 1
                   type: string
                 maxItems: 1000
+                minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
               users:
@@ -6208,6 +6247,7 @@ spec:
                   - name
                   type: object
                 maxItems: 100
+                minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
               verbosity:

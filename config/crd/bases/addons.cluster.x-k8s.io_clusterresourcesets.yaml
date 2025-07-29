@@ -726,6 +726,7 @@ spec:
                   - name
                   type: object
                 maxItems: 100
+                minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
               strategy:
@@ -737,6 +738,7 @@ spec:
                 type: string
             required:
             - clusterSelector
+            - resources
             type: object
           status:
             description: status is the observed state of ClusterResourceSet.

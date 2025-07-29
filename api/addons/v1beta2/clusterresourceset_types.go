@@ -61,10 +61,11 @@ type ClusterResourceSetSpec struct {
 	ClusterSelector metav1.LabelSelector `json:"clusterSelector"`
 
 	// resources is a list of Secrets/ConfigMaps where each contains 1 or more resources to be applied to remote clusters.
-	// +optional
+	// +required
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
-	Resources []ResourceRef `json:"resources,omitempty"`
+	Resources []ResourceRef `json:"resources"`
 
 	// strategy is the strategy to be used during applying resources. Defaults to ApplyOnce. This field is immutable.
 	// +kubebuilder:validation:Enum=ApplyOnce;Reconcile

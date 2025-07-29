@@ -372,9 +372,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 		recorder:            record.NewFakeRecorder(32),
 	}
 
-	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
-		JoinConfiguration: &bootstrapv1.JoinConfiguration{},
-	}
+	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{}
 	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, "")
 	g.Expect(err).To(Succeed())
 

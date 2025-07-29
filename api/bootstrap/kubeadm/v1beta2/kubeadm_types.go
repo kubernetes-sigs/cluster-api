@@ -73,6 +73,7 @@ const (
 
 // InitConfiguration contains a list of elements that is specific "kubeadm init"-only runtime
 // information.
+// +kubebuilder:validation:MinProperties=1
 type InitConfiguration struct {
 	// bootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create.
 	// This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
@@ -117,6 +118,7 @@ type InitConfiguration struct {
 }
 
 // ClusterConfiguration contains cluster-wide configuration for a kubeadm cluster.
+// +kubebuilder:validation:MinProperties=1
 type ClusterConfiguration struct {
 	// etcd holds configuration for etcd.
 	// NB: This value defaults to a Local (stacked) etcd
@@ -529,6 +531,7 @@ type ExternalEtcd struct {
 }
 
 // JoinConfiguration contains elements describing a particular node.
+// +kubebuilder:validation:MinProperties=1
 type JoinConfiguration struct {
 	// nodeRegistration holds fields that relate to registering the new control-plane node to the cluster.
 	// When used in the context of control plane nodes, NodeRegistration should remain consistent

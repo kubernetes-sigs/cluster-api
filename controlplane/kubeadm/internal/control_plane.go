@@ -223,9 +223,6 @@ func getGetFailureDomainIDs(failureDomains []clusterv1.FailureDomain) []string {
 // InitialControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for an initializing control plane.
 func (c *ControlPlane) InitialControlPlaneConfig() *bootstrapv1.KubeadmConfigSpec {
 	bootstrapSpec := c.KCP.Spec.KubeadmConfigSpec.DeepCopy()
-	if bootstrapSpec.InitConfiguration == nil {
-		bootstrapSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}
-	}
 	bootstrapSpec.JoinConfiguration = nil
 	return bootstrapSpec
 }

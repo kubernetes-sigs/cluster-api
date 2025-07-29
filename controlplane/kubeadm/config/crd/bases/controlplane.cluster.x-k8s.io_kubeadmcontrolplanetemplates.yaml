@@ -3423,6 +3423,7 @@ spec:
                           clusterConfiguration:
                             description: clusterConfiguration along with InitConfiguration
                               are the configurations necessary for the init command
+                            minProperties: 1
                             properties:
                               apiServer:
                                 description: apiServer contains extra settings for
@@ -4644,6 +4645,7 @@ spec:
                           initConfiguration:
                             description: initConfiguration along with ClusterConfiguration
                               are the configurations necessary for the init command
+                            minProperties: 1
                             properties:
                               bootstrapTokens:
                                 description: |-
@@ -4949,6 +4951,7 @@ spec:
                           joinConfiguration:
                             description: joinConfiguration is the kubeadm configuration
                               for the join command
+                            minProperties: 1
                             properties:
                               caCertPath:
                                 description: |-

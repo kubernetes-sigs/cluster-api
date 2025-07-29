@@ -1740,8 +1740,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 
 	// Existing KubeadmConfig
 	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
-		Users:             []bootstrapv1.User{{Name: "test-user"}},
-		JoinConfiguration: &bootstrapv1.JoinConfiguration{},
+		Users: []bootstrapv1.User{{Name: "test-user"}},
 	}
 	existingKubeadmConfig := &bootstrapv1.KubeadmConfig{
 		TypeMeta: metav1.TypeMeta{

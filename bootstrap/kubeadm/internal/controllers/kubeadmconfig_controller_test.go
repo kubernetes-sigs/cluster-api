@@ -426,6 +426,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 		name    string
 		request ctrl.Request
 		objects []client.Object
+		lock    bool
 	}{
 		{
 			name: "requeue worker when control plane is not yet initialized",
@@ -454,6 +455,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 				controlPlaneJoinMachine,
 				controlPlaneJoinConfig,
 			},
+			lock: true,
 		},
 	}
 	for _, tc := range testcases {
@@ -466,6 +468,10 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 				Client:              myclient,
 				SecretCachingClient: myclient,
 				KubeadmInitLock:     &myInitLocker{},
+			}
+
+			if tc.lock {
+				k.KubeadmInitLock.Lock(ctx, nil, nil)
 			}
 
 			result, err := k.Reconcile(ctx, tc.request)
@@ -1944,6 +1950,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 			}
 
 			wc := newWorkerJoinKubeadmConfig(metav1.NamespaceDefault, "worker-join-cfg")
+			wc.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 			wc.Spec.JoinConfiguration.Discovery.BootstrapToken = tc.discovery
 			key := client.ObjectKey{Namespace: wc.Namespace, Name: wc.Name}
 			err := myclient.Create(ctx, wc)
@@ -2576,11 +2583,7 @@ func newKubeadmConfig(namespace, name string) *bootstrapv1.KubeadmConfig {
 
 // newKubeadmConfig return a CABPK KubeadmConfig object with a worker JoinConfiguration.
 func newWorkerJoinKubeadmConfig(namespace, name string) *bootstrapv1.KubeadmConfig {
-	return bootstrapbuilder.KubeadmConfig(namespace, name).
-		WithJoinConfig(&bootstrapv1.JoinConfiguration{
-			ControlPlane: nil,
-		}).
-		Build()
+	return bootstrapbuilder.KubeadmConfig(namespace, name).Build()
 }
 
 // newKubeadmConfig returns a CABPK KubeadmConfig object with a ControlPlane JoinConfiguration.
@@ -2594,10 +2597,7 @@ func newControlPlaneJoinKubeadmConfig(namespace, name string) *bootstrapv1.Kubea
 
 // newControlPlaneJoinConfig returns a CABPK KubeadmConfig object with a ControlPlane InitConfiguration and ClusterConfiguration.
 func newControlPlaneInitKubeadmConfig(namespace, name string) *bootstrapv1.KubeadmConfig {
-	return bootstrapbuilder.KubeadmConfig(namespace, name).
-		WithInitConfig(&bootstrapv1.InitConfiguration{}).
-		WithClusterConfig(&bootstrapv1.ClusterConfiguration{}).
-		Build()
+	return bootstrapbuilder.KubeadmConfig(namespace, name).Build()
 }
 
 // addKubeadmConfigToMachine adds the config details to the passed Machine, and adds the Machine to the KubeadmConfig as an ownerReference.

@@ -494,12 +494,6 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	// if the machine has not ClusterConfiguration and InitConfiguration, requeue
-	if scope.Config.Spec.InitConfiguration == nil && scope.Config.Spec.ClusterConfiguration == nil {
-		scope.Info("Control plane is not ready, requeuing joining control planes until ready.")
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-	}
-
 	machine := &clusterv1.Machine{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(scope.ConfigOwner.Object, machine); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "cannot convert %s to Machine", scope.ConfigOwner.GetKind())

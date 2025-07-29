@@ -59,9 +59,13 @@ func (in *APIServer) DeepCopyInto(out *APIServer) {
 	}
 	if in.ExtraEnvs != nil {
 		in, out := &in.ExtraEnvs, &out.ExtraEnvs
-		*out = make([]EnvVar, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+		*out = new([]EnvVar)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]EnvVar, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
 		}
 	}
 	if in.CertSANs != nil {
@@ -236,9 +240,13 @@ func (in *ControllerManager) DeepCopyInto(out *ControllerManager) {
 	}
 	if in.ExtraEnvs != nil {
 		in, out := &in.ExtraEnvs, &out.ExtraEnvs
-		*out = make([]EnvVar, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+		*out = new([]EnvVar)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]EnvVar, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
 		}
 	}
 }
@@ -1096,9 +1104,13 @@ func (in *LocalEtcd) DeepCopyInto(out *LocalEtcd) {
 	}
 	if in.ExtraEnvs != nil {
 		in, out := &in.ExtraEnvs, &out.ExtraEnvs
-		*out = make([]EnvVar, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+		*out = new([]EnvVar)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]EnvVar, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
 		}
 	}
 	if in.ServerCertSANs != nil {
@@ -1276,9 +1288,13 @@ func (in *Scheduler) DeepCopyInto(out *Scheduler) {
 	}
 	if in.ExtraEnvs != nil {
 		in, out := &in.ExtraEnvs, &out.ExtraEnvs
-		*out = make([]EnvVar, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+		*out = new([]EnvVar)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]EnvVar, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
 		}
 	}
 }

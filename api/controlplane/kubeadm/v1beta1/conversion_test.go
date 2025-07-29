@@ -123,6 +123,23 @@ func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue
 		}
 		in.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
 	}
+
+	if in.ClusterConfiguration != nil {
+		if in.ClusterConfiguration.APIServer.ExtraEnvs != nil && *in.ClusterConfiguration.APIServer.ExtraEnvs == nil {
+			in.ClusterConfiguration.APIServer.ExtraEnvs = nil
+		}
+		if in.ClusterConfiguration.ControllerManager.ExtraEnvs != nil && *in.ClusterConfiguration.ControllerManager.ExtraEnvs == nil {
+			in.ClusterConfiguration.ControllerManager.ExtraEnvs = nil
+		}
+		if in.ClusterConfiguration.Scheduler.ExtraEnvs != nil && *in.ClusterConfiguration.Scheduler.ExtraEnvs == nil {
+			in.ClusterConfiguration.Scheduler.ExtraEnvs = nil
+		}
+		if in.ClusterConfiguration.Etcd.Local != nil {
+			if in.ClusterConfiguration.Etcd.Local.ExtraEnvs != nil && *in.ClusterConfiguration.Etcd.Local.ExtraEnvs == nil {
+				in.ClusterConfiguration.Etcd.Local.ExtraEnvs = nil
+			}
+		}
+	}
 }
 
 func hubNodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {

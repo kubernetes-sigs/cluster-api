@@ -417,7 +417,8 @@ func dropOmittableFields(spec *bootstrapv1.KubeadmConfigSpec) {
 			if len(spec.ClusterConfiguration.Etcd.Local.ExtraArgs) == 0 {
 				spec.ClusterConfiguration.Etcd.Local.ExtraArgs = nil
 			}
-			if len(spec.ClusterConfiguration.Etcd.Local.ExtraEnvs) == 0 {
+			if spec.ClusterConfiguration.Etcd.Local.ExtraEnvs != nil &&
+				len(*spec.ClusterConfiguration.Etcd.Local.ExtraEnvs) == 0 {
 				spec.ClusterConfiguration.Etcd.Local.ExtraEnvs = nil
 			}
 			if len(spec.ClusterConfiguration.Etcd.Local.ServerCertSANs) == 0 {
@@ -434,7 +435,8 @@ func dropOmittableFields(spec *bootstrapv1.KubeadmConfigSpec) {
 		if len(spec.ClusterConfiguration.APIServer.ExtraArgs) == 0 {
 			spec.ClusterConfiguration.APIServer.ExtraArgs = nil
 		}
-		if len(spec.ClusterConfiguration.APIServer.ExtraEnvs) == 0 {
+		if spec.ClusterConfiguration.APIServer.ExtraEnvs != nil &&
+			len(*spec.ClusterConfiguration.APIServer.ExtraEnvs) == 0 {
 			spec.ClusterConfiguration.APIServer.ExtraEnvs = nil
 		}
 		if len(spec.ClusterConfiguration.APIServer.ExtraVolumes) == 0 {
@@ -446,7 +448,8 @@ func dropOmittableFields(spec *bootstrapv1.KubeadmConfigSpec) {
 		if len(spec.ClusterConfiguration.ControllerManager.ExtraArgs) == 0 {
 			spec.ClusterConfiguration.ControllerManager.ExtraArgs = nil
 		}
-		if len(spec.ClusterConfiguration.ControllerManager.ExtraEnvs) == 0 {
+		if spec.ClusterConfiguration.ControllerManager.ExtraEnvs != nil &&
+			len(*spec.ClusterConfiguration.ControllerManager.ExtraEnvs) == 0 {
 			spec.ClusterConfiguration.ControllerManager.ExtraEnvs = nil
 		}
 		if len(spec.ClusterConfiguration.ControllerManager.ExtraVolumes) == 0 {
@@ -455,7 +458,8 @@ func dropOmittableFields(spec *bootstrapv1.KubeadmConfigSpec) {
 		if len(spec.ClusterConfiguration.Scheduler.ExtraArgs) == 0 {
 			spec.ClusterConfiguration.Scheduler.ExtraArgs = nil
 		}
-		if len(spec.ClusterConfiguration.Scheduler.ExtraEnvs) == 0 {
+		if spec.ClusterConfiguration.Scheduler.ExtraEnvs != nil &&
+			len(*spec.ClusterConfiguration.Scheduler.ExtraEnvs) == 0 {
 			spec.ClusterConfiguration.Scheduler.ExtraEnvs = nil
 		}
 		if len(spec.ClusterConfiguration.Scheduler.ExtraVolumes) == 0 {

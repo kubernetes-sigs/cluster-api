@@ -386,7 +386,11 @@ func Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *boot
 func Convert_v1beta2_APIServer_To_v1beta1_APIServer(in *bootstrapv1.APIServer, out *APIServer, s apimachineryconversion.Scope) error {
 	// Following fields require a custom conversions.
 	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
-	out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	if err := convert_v1beta2_ExtraVolumes_To_v1beta1_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s); err != nil {
 		return err
 	}
@@ -396,14 +400,22 @@ func Convert_v1beta2_APIServer_To_v1beta1_APIServer(in *bootstrapv1.APIServer, o
 func Convert_v1beta2_ControllerManager_To_v1beta1_ControlPlaneComponent(in *bootstrapv1.ControllerManager, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	// Following fields require a custom conversions.
 	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
-	out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	return convert_v1beta2_ExtraVolumes_To_v1beta1_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
 
 func Convert_v1beta2_Scheduler_To_v1beta1_ControlPlaneComponent(in *bootstrapv1.Scheduler, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	// Following fields require a custom conversions.
 	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
-	out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	return convert_v1beta2_ExtraVolumes_To_v1beta1_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
 
@@ -424,6 +436,11 @@ func convert_v1beta2_ExtraVolumes_To_v1beta1_ExtraVolumes(in *[]bootstrapv1.Host
 func Convert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apimachineryconversion.Scope) error {
 	// Following fields require a custom conversions.
 	out.ExtraArgs = bootstrapv1.ConvertFromArgs(in.ExtraArgs)
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	return autoConvert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(in, out, s)
 }
 
@@ -452,7 +469,11 @@ func Convert_v1beta2_BootstrapToken_To_v1beta1_BootstrapToken(in *bootstrapv1.Bo
 func Convert_v1beta1_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstrapv1.APIServer, s apimachineryconversion.Scope) error {
 	// TimeoutForControlPlane has been removed in v1beta2
 	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
-	out.ExtraEnvs = *(*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	if err := convert_v1beta1_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s); err != nil {
 		return err
 	}
@@ -461,13 +482,21 @@ func Convert_v1beta1_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstra
 
 func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControllerManager(in *ControlPlaneComponent, out *bootstrapv1.ControllerManager, s apimachineryconversion.Scope) error {
 	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
-	out.ExtraEnvs = *(*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	return convert_v1beta1_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
 
 func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_Scheduler(in *ControlPlaneComponent, out *bootstrapv1.Scheduler, s apimachineryconversion.Scope) error {
 	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
-	out.ExtraEnvs = *(*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	return convert_v1beta1_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
 
@@ -501,6 +530,11 @@ func Convert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *Cl
 
 func Convert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstrapv1.LocalEtcd, s apimachineryconversion.Scope) error {
 	out.ExtraArgs = bootstrapv1.ConvertToArgs(in.ExtraArgs)
+	if in.ExtraEnvs == nil {
+		out.ExtraEnvs = nil
+	} else {
+		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	}
 	return autoConvert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
 }
 

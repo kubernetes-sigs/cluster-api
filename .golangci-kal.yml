@@ -204,6 +204,11 @@ linters:
       linters:
         - kubeapilinter
 
+    # TODO: Excludes that should be removed once we will get the new version of the requiredfields linter
+    - path: "api/.*"
+      text: "requiredfields: field .* is marked as required, but has the omitempty tag"
+      linters:
+        - kubeapilinter
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0

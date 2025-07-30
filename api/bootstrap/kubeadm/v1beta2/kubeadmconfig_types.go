@@ -819,7 +819,7 @@ type Partition struct {
 	// Use with caution. Default is 'false'.
 	// +optional
 	Overwrite *bool `json:"overwrite,omitempty"`
-	
+
 	// tableType specifies the tupe of partition table. The following are supported:
 	// 'mbr': default and setups a MS-DOS partition table
 	// 'gpt': setups a GPT partition table

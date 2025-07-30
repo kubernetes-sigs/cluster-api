@@ -880,7 +880,7 @@ type HostPathMount struct {
 	// readOnly controls write access to the volume
 	// +optional
 	ReadOnly *bool `json:"readOnly,omitempty"`
-	
+
 	// pathType is the type of the HostPath.
 	// +optional
 	PathType corev1.HostPathType `json:"pathType,omitempty"`

@@ -391,7 +391,7 @@ type MachineSpec struct {
 	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
 	// +required
-	InfrastructureRef ContractVersionedObjectReference `json:"infrastructureRef"`
+	InfrastructureRef ContractVersionedObjectReference `json:"infrastructureRef,omitempty,omitzero"`
 
 	// version defines the desired Kubernetes version.
 	// This field is meant to be optionally used by bootstrap providers.

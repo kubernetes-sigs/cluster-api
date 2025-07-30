@@ -540,7 +540,7 @@ type ClusterAvailabilityGate struct {
 type Topology struct {
 	// classRef is the ref to the ClusterClass that should be used for the topology.
 	// +required
-	ClassRef ClusterClassRef `json:"classRef"`
+	ClassRef ClusterClassRef `json:"classRef,omitempty,omitzero"`
 
 	// version is the Kubernetes version of the cluster.
 	// +required

@@ -650,7 +650,7 @@ type File struct {
 type FileSource struct {
 	// secret represents a secret that should populate this file.
 	// +required
-	Secret SecretFileSource `json:"secret"`
+	Secret SecretFileSource `json:"secret,omitempty,omitzero"`
 }
 
 // SecretFileSource adapts a Secret into a FileSource.
@@ -677,7 +677,7 @@ type SecretFileSource struct {
 type PasswdSource struct {
 	// secret represents a secret that should populate this password.
 	// +required
-	Secret SecretPasswdSource `json:"secret"`
+	Secret SecretPasswdSource `json:"secret,omitempty,omitzero"`
 }
 
 // SecretPasswdSource adapts a Secret into a PasswdSource.

@@ -409,12 +409,12 @@ type MachineDeploymentClass struct {
 	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of worker Machines.
 	// +required
-	Bootstrap MachineDeploymentClassBootstrapTemplate `json:"bootstrap"`
+	Bootstrap MachineDeploymentClassBootstrapTemplate `json:"bootstrap,omitempty,omitzero"`
 
 	// infrastructure contains the infrastructure template reference to be used
 	// for the creation of worker Machines.
 	// +required
-	Infrastructure MachineDeploymentClassInfrastructureTemplate `json:"infrastructure"`
+	Infrastructure MachineDeploymentClassInfrastructureTemplate `json:"infrastructure,omitempty,omitzero"`
 
 	// healthCheck defines a MachineHealthCheck for this MachineDeploymentClass.
 	// +optional
@@ -714,12 +714,12 @@ type MachinePoolClass struct {
 	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of the Machines in the MachinePool.
 	// +required
-	Bootstrap MachinePoolClassBootstrapTemplate `json:"bootstrap"`
+	Bootstrap MachinePoolClassBootstrapTemplate `json:"bootstrap,omitempty,omitzero"`
 
 	// infrastructure contains the infrastructure template reference to be used
 	// for the creation of the MachinePool.
 	// +required
-	Infrastructure MachinePoolClassInfrastructureTemplate `json:"infrastructure"`
+	Infrastructure MachinePoolClassInfrastructureTemplate `json:"infrastructure,omitempty,omitzero"`
 
 	// failureDomains is the list of failure domains the MachinePool should be attached to.
 	// Must match a key in the FailureDomains map stored on the cluster object.
@@ -820,7 +820,7 @@ type ClusterClassVariable struct {
 
 	// schema defines the schema of the variable.
 	// +required
-	Schema VariableSchema `json:"schema"`
+	Schema VariableSchema `json:"schema,omitempty,omitzero"`
 }
 
 // ClusterClassVariableMetadata is the metadata of a variable.
@@ -848,7 +848,7 @@ type VariableSchema struct {
 	// schema. The schema is a subset of the schema used in
 	// Kubernetes CRDs.
 	// +required
-	OpenAPIV3Schema JSONSchemaProps `json:"openAPIV3Schema"`
+	OpenAPIV3Schema JSONSchemaProps `json:"openAPIV3Schema,omitempty,omitzero"`
 }
 
 // Adapted from https://github.com/kubernetes/apiextensions-apiserver/blob/v0.28.5/pkg/apis/apiextensions/v1/types_jsonschema.go#L40
@@ -1244,15 +1244,16 @@ type ClusterClassPatch struct {
 type PatchDefinition struct {
 	// selector defines on which templates the patch should be applied.
 	// +required
-	Selector PatchSelector `json:"selector"`
+	Selector PatchSelector `json:"selector,omitempty,omitzero"`
 
 	// jsonPatches defines the patches which should be applied on the templates
 	// matching the selector.
 	// Note: Patches will be applied in the order of the array.
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +required
 	// +listType=atomic
-	JSONPatches []JSONPatch `json:"jsonPatches"`
+	JSONPatches []JSONPatch `json:"jsonPatches,omitempty"`
 }
 
 // PatchSelector defines on which templates the patch should be applied.
@@ -1586,7 +1587,7 @@ type ClusterClassStatusVariableDefinition struct {
 
 	// schema defines the schema of the variable.
 	// +required
-	Schema VariableSchema `json:"schema"`
+	Schema VariableSchema `json:"schema,omitempty,omitzero"`
 }
 
 // GetV1Beta1Conditions returns the set of conditions for this object.

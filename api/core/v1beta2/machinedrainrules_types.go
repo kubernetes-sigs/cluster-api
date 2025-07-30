@@ -47,7 +47,7 @@ const (
 type MachineDrainRuleSpec struct {
 	// drain configures if and how Pods are drained.
 	// +required
-	Drain MachineDrainRuleDrainConfig `json:"drain"`
+	Drain MachineDrainRuleDrainConfig `json:"drain,omitempty,omitzero"`
 
 	// machines defines to which Machines this MachineDrainRule should be applied.
 	//
@@ -212,7 +212,7 @@ type MachineDrainRule struct {
 
 	// spec defines the spec of a MachineDrainRule.
 	// +required
-	Spec MachineDrainRuleSpec `json:"spec"`
+	Spec MachineDrainRuleSpec `json:"spec,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

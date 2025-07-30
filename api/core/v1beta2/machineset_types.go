@@ -74,7 +74,7 @@ type MachineSetSpec struct {
 	// insufficient replicas are detected.
 	// Object references to custom resources are treated as templates.
 	// +required
-	Template MachineTemplateSpec `json:"template"`
+	Template MachineTemplateSpec `json:"template,omitempty,omitzero"`
 
 	// machineNaming allows changing the naming pattern used when creating Machines.
 	// Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
@@ -243,7 +243,7 @@ type MachineTemplateSpec struct {
 	// spec is the specification of the desired behavior of the machine.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +required
-	Spec MachineSpec `json:"spec"`
+	Spec MachineSpec `json:"spec,omitempty,omitzero"`
 }
 
 // MachineSetDeletionOrder defines how priority is assigned to nodes to delete when

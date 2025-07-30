@@ -27,7 +27,7 @@ import (
 type KubeadmControlPlaneTemplateSpec struct {
 	// template defines the desired state of KubeadmControlPlaneTemplate.
 	// +required
-	Template KubeadmControlPlaneTemplateResource `json:"template"`
+	Template KubeadmControlPlaneTemplateResource `json:"template,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

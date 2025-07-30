@@ -47,6 +47,7 @@ import (
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
@@ -725,6 +726,13 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			Byf("[%d] Verify v1beta2 Available and Ready conditions (if exist) to be true for Cluster and Machines", i)
 			verifyV1Beta2ConditionsTrueV1Beta1(ctx, managementClusterProxy.GetClient(), workloadCluster.Name, workloadCluster.Namespace,
 				[]string{clusterv1.AvailableCondition, clusterv1.ReadyCondition})
+
+			// If this is the last step of the upgrade sequence check hat the resourceVersions are stable, i.e. it verifies there are no
+			// continuous reconciles when everything should be stable.
+			if i == len(input.Upgrades)-1 {
+				By("Checking that resourceVersions are stable")
+				framework.ValidateResourceVersionStable(ctx, managementClusterProxy, workloadCluster.Namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(workloadCluster.Name))
+			}
 
 			// Note: It is a known issue on Kubernetes < v1.29 that SSA sometimes fail:
 			// https://github.com/kubernetes/kubernetes/issues/117356

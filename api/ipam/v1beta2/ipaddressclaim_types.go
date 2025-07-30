@@ -50,7 +50,7 @@ type IPAddressClaimSpec struct {
 
 	// poolRef is a reference to the pool from which an IP address should be created.
 	// +required
-	PoolRef IPPoolReference `json:"poolRef"`
+	PoolRef IPPoolReference `json:"poolRef,omitempty,omitzero"`
 }
 
 // IPAddressClaimStatus is the observed status of a IPAddressClaim.

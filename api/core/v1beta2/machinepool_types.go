@@ -79,7 +79,7 @@ type MachinePoolSpec struct {
 
 	// template describes the machines that will be created.
 	// +required
-	Template MachineTemplateSpec `json:"template"`
+	Template MachineTemplateSpec `json:"template,omitempty,omitzero"`
 
 	// providerIDList are the identification IDs of machine instances provided by the provider.
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.

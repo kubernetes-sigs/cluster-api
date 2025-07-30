@@ -26,7 +26,7 @@ import (
 type ExtensionConfigSpec struct {
 	// clientConfig defines how to communicate with the Extension server.
 	// +required
-	ClientConfig ClientConfig `json:"clientConfig"`
+	ClientConfig ClientConfig `json:"clientConfig,omitempty,omitzero"`
 
 	// namespaceSelector decides whether to call the hook for an object based
 	// on whether the namespace for that object matches the selector.
@@ -163,7 +163,7 @@ type ExtensionHandler struct {
 
 	// requestHook defines the versioned runtime hook which this ExtensionHandler serves.
 	// +required
-	RequestHook GroupVersionHook `json:"requestHook"`
+	RequestHook GroupVersionHook `json:"requestHook,omitempty,omitzero"`
 
 	// timeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.
 	// Defaults to 10 if not set.

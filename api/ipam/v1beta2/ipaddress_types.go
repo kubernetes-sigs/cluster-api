@@ -24,11 +24,11 @@ import (
 type IPAddressSpec struct {
 	// claimRef is a reference to the claim this IPAddress was created for.
 	// +required
-	ClaimRef IPAddressClaimReference `json:"claimRef"`
+	ClaimRef IPAddressClaimReference `json:"claimRef,omitempty,omitzero"`
 
 	// poolRef is a reference to the pool that this IPAddress was created from.
 	// +required
-	PoolRef IPPoolReference `json:"poolRef"`
+	PoolRef IPPoolReference `json:"poolRef,omitempty,omitzero"`
 
 	// address is the IP address.
 	// +required

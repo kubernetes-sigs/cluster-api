@@ -437,7 +437,7 @@ type KubeadmControlPlaneSpec struct {
 	// machineTemplate contains information about how machines
 	// should be shaped when creating or updating a control plane.
 	// +required
-	MachineTemplate KubeadmControlPlaneMachineTemplate `json:"machineTemplate"`
+	MachineTemplate KubeadmControlPlaneMachineTemplate `json:"machineTemplate,omitempty,omitzero"`
 
 	// kubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
@@ -480,7 +480,7 @@ type KubeadmControlPlaneMachineTemplateSpec struct {
 	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
 	// +required
-	InfrastructureRef clusterv1.ContractVersionedObjectReference `json:"infrastructureRef"`
+	InfrastructureRef clusterv1.ContractVersionedObjectReference `json:"infrastructureRef,omitempty,omitzero"`
 
 	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition;
 	// KubeadmControlPlane will always add readinessGates for the condition it is setting on the Machine:

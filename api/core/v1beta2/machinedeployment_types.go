@@ -274,7 +274,7 @@ type MachineDeploymentSpec struct {
 
 	// template describes the machines that will be created.
 	// +required
-	Template MachineTemplateSpec `json:"template"`
+	Template MachineTemplateSpec `json:"template,omitempty,omitzero"`
 
 	// machineNaming allows changing the naming pattern used when creating Machines.
 	// Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.

@@ -710,7 +710,7 @@ type FileDiscoveryKubeConfig struct {
 	// user contains information that describes identity information.
 	// This is used to tell the kubernetes cluster who you are.
 	// +required
-	User KubeConfigUser `json:"user"`
+	User KubeConfigUser `json:"user,omitempty,omitzero"`
 }
 
 // KubeConfigCluster contains information about how to communicate with a kubernetes cluster.

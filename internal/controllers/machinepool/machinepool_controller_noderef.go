@@ -73,7 +73,7 @@ func (r *Reconciler) reconcileNodeRefs(ctx context.Context, s *scope) (ctrl.Resu
 		// Validate that the UIDs in NodeRefs are still valid
 		if s.nodeRefMap != nil {
 			// Create a name-to-node mapping for efficient lookup
-			nodeNameMap := make(map[string]*corev1.Node)
+			nodeNameMap := make(map[string]*corev1.Node, len(s.nodeRefMap))
 			for _, node := range s.nodeRefMap {
 				nodeNameMap[node.Name] = node
 			}

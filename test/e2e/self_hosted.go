@@ -334,6 +334,20 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		}, "3m", "30s").ShouldNot(HaveOccurred(), "MachineList should be available after move to self-hosted cluster")
 		Expect(validateMachineRollout(preMoveMachineList, postMoveMachineList)).To(BeTrue(), "Machines should not roll out after move to self-hosted cluster")
 
+		Byf("Verify Cluster Available condition is true")
+		framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
+			Getter:    selfHostedClusterProxy.GetClient(),
+			Name:      clusterResources.Cluster.Name,
+			Namespace: clusterResources.Cluster.Namespace,
+		})
+
+		Byf("Verify Machines Ready condition is true")
+		framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
+			Lister:    selfHostedClusterProxy.GetClient(),
+			Name:      clusterResources.Cluster.Name,
+			Namespace: clusterResources.Cluster.Namespace,
+		})
+
 		if input.SkipUpgrade {
 			// Only do upgrade step if defined by test input.
 			return
@@ -431,14 +445,14 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 
 		Byf("Verify Cluster Available condition is true")
 		framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
-			Getter:    input.BootstrapClusterProxy.GetClient(),
+			Getter:    selfHostedClusterProxy.GetClient(),
 			Name:      clusterResources.Cluster.Name,
 			Namespace: clusterResources.Cluster.Namespace,
 		})
 
 		Byf("Verify Machines Ready condition is true")
 		framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
-			Lister:    input.BootstrapClusterProxy.GetClient(),
+			Lister:    selfHostedClusterProxy.GetClient(),
 			Name:      clusterResources.Cluster.Name,
 			Namespace: clusterResources.Cluster.Namespace,
 		})

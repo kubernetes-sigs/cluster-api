@@ -723,25 +723,27 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				upgrade.PostUpgrade(managementClusterProxy, workloadCluster.Namespace, workloadCluster.Name)
 			}
 
-			Byf("[%d] Verify Cluster Available condition is true", i)
-			framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
-				Getter:    managementClusterProxy.GetClient(),
-				Name:      workloadCluster.Name,
-				Namespace: workloadCluster.Namespace,
-			})
-
-			Byf("[%d] Verify Machines Ready condition is true", i)
-			framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
-				Lister:    managementClusterProxy.GetClient(),
-				Name:      workloadCluster.Name,
-				Namespace: workloadCluster.Namespace,
-			})
-
 			// If this is the last step of the upgrade sequence check hat the resourceVersions are stable, i.e. it verifies there are no
 			// continuous reconciles when everything should be stable.
 			if i == len(input.Upgrades)-1 {
-				By("Checking that resourceVersions are stable")
+				By("[%d] Checking that resourceVersions are stable")
 				framework.ValidateResourceVersionStable(ctx, managementClusterProxy, workloadCluster.Namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(workloadCluster.Name))
+
+				// NOTE: Checks on conditions works on v1beta2 only, so running this checks only in the last step which is
+				// always current version.
+				Byf("[%d] Verify Cluster Available condition is true", i)
+				framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
+					Getter:    managementClusterProxy.GetClient(),
+					Name:      workloadCluster.Name,
+					Namespace: workloadCluster.Namespace,
+				})
+
+				Byf("[%d] Verify Machines Ready condition is true", i)
+				framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
+					Lister:    managementClusterProxy.GetClient(),
+					Name:      workloadCluster.Name,
+					Namespace: workloadCluster.Namespace,
+				})
 			}
 
 			// Note: It is a known issue on Kubernetes < v1.29 that SSA sometimes fail:

@@ -432,7 +432,7 @@ type KubeadmControlPlaneSpec struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Version string `json:"version"`
+	Version string `json:"version,omitempty"`
 
 	// machineTemplate contains information about how machines
 	// should be shaped when creating or updating a control plane.
@@ -805,7 +805,7 @@ type LastRemediationStatus struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	Machine string `json:"machine"`
+	Machine string `json:"machine,omitempty"`
 
 	// time is when last remediation happened. It is represented in RFC3339 form and is in UTC.
 	// +required

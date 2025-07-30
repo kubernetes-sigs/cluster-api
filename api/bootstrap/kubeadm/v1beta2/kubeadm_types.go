@@ -545,21 +545,21 @@ type ExternalEtcd struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	CAFile string `json:"caFile"`
+	CAFile string `json:"caFile,omitempty"`
 
 	// certFile is an SSL certification file used to secure etcd communication.
 	// Required if using a TLS connection.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	CertFile string `json:"certFile"`
+	CertFile string `json:"certFile,omitempty"`
 
 	// keyFile is an SSL key file used to secure etcd communication.
 	// Required if using a TLS connection.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	KeyFile string `json:"keyFile"`
+	KeyFile string `json:"keyFile,omitempty"`
 }
 
 // JoinConfiguration contains elements describing a particular node.
@@ -685,7 +685,7 @@ type FileDiscovery struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	KubeConfigPath string `json:"kubeConfigPath"`
+	KubeConfigPath string `json:"kubeConfigPath,omitempty"`
 
 	// kubeConfig is used (optionally) to generate a KubeConfig based on the KubeadmConfig's information.
 	// The file is generated at the path specified in KubeConfigPath.
@@ -785,7 +785,7 @@ type KubeConfigAuthProvider struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// config holds the parameters for the authentication plugin.
 	// +optional
@@ -802,7 +802,7 @@ type KubeConfigAuthExec struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1024
-	Command string `json:"command"`
+	Command string `json:"command,omitempty"`
 
 	// args is the arguments to pass to the command when executing it.
 	// +optional
@@ -846,12 +846,13 @@ type KubeConfigAuthExecEnv struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
+
 	// value of the environment variable
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	Value string `json:"value"`
+	Value string `json:"value,omitempty"`
 }
 
 // HostPathMount contains elements describing volumes that are mounted from the
@@ -861,21 +862,25 @@ type HostPathMount struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
+
 	// hostPath is the path in the host that will be mounted inside
 	// the pod.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	HostPath string `json:"hostPath"`
+	HostPath string `json:"hostPath,omitempty"`
+
 	// mountPath is the path inside the pod where hostPath will be mounted.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	MountPath string `json:"mountPath"`
+	MountPath string `json:"mountPath,omitempty"`
+
 	// readOnly controls write access to the volume
 	// +optional
 	ReadOnly *bool `json:"readOnly,omitempty"`
+
 	// pathType is the type of the HostPath.
 	// +optional
 	PathType corev1.HostPathType `json:"pathType,omitempty"`
@@ -963,7 +968,7 @@ type Arg struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// value is the Value of the extraArg.
 	// +required

@@ -404,7 +404,7 @@ type MachineDeploymentClass struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Class string `json:"class"`
+	Class string `json:"class,omitempty"`
 
 	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of worker Machines.
@@ -709,7 +709,7 @@ type MachinePoolClass struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Class string `json:"class"`
+	Class string `json:"class,omitempty"`
 
 	// bootstrap contains the bootstrap template reference to be used
 	// for the creation of the Machines in the MachinePool.
@@ -800,7 +800,7 @@ type ClusterClassVariable struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// required specifies if the variable is required.
 	// Note: this applies to the variable as a whole and thus the
@@ -1137,7 +1137,7 @@ type ValidationRule struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=4096
-	Rule string `json:"rule"`
+	Rule string `json:"rule,omitempty"`
 	// message represents the message displayed when validation fails. The message is required if the Rule contains
 	// line breaks. The message must not contain line breaks.
 	// If unset, the message is "failed rule: {Rule}".
@@ -1208,7 +1208,7 @@ type ClusterClassPatch struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// description is a human-readable description of this patch.
 	// +optional
@@ -1267,7 +1267,7 @@ type PatchSelector struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=317
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$`
-	APIVersion string `json:"apiVersion"`
+	APIVersion string `json:"apiVersion,omitempty"`
 
 	// kind filters templates by kind.
 	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
@@ -1275,7 +1275,7 @@ type PatchSelector struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
-	Kind string `json:"kind"`
+	Kind string `json:"kind,omitempty"`
 
 	// matchResources selects templates based on where they are referenced.
 	// +required
@@ -1337,7 +1337,7 @@ type JSONPatch struct {
 	// Note: Only `add`, `replace` and `remove` are supported.
 	// +required
 	// +kubebuilder:validation:Enum=add;replace;remove
-	Op string `json:"op"`
+	Op string `json:"op,omitempty"`
 
 	// path defines the path of the patch.
 	// Note: Only the spec of a template can be patched, thus the path has to start with /spec/.
@@ -1347,7 +1347,7 @@ type JSONPatch struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	Path string `json:"path"`
+	Path string `json:"path,omitempty"`
 
 	// value defines the value of the patch.
 	// Note: Either Value or ValueFrom is required for add and replace
@@ -1456,7 +1456,7 @@ type ClusterClassTemplateReference struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
-	Kind string `json:"kind"`
+	Kind string `json:"kind,omitempty"`
 
 	// name of the template.
 	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
@@ -1464,7 +1464,7 @@ type ClusterClassTemplateReference struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// apiVersion of the template.
 	// apiVersion must be fully qualified domain name followed by / and a version.
@@ -1472,7 +1472,7 @@ type ClusterClassTemplateReference struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=317
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$`
-	APIVersion string `json:"apiVersion"`
+	APIVersion string `json:"apiVersion,omitempty"`
 }
 
 // ToObjectReference returns an object reference for the ClusterClassTemplateReference in a given namespace.
@@ -1545,7 +1545,7 @@ type ClusterClassStatusVariable struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// definitionsConflict specifies whether or not there are conflicting definitions for a single variable name.
 	// +optional
@@ -1566,7 +1566,7 @@ type ClusterClassStatusVariableDefinition struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	From string `json:"from"`
+	From string `json:"from,omitempty"`
 
 	// required specifies if the variable is required.
 	// Note: this applies to the variable as a whole and thus the

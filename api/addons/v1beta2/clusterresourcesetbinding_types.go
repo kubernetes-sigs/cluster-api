@@ -49,7 +49,7 @@ type ResourceSetBinding struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	ClusterResourceSetName string `json:"clusterResourceSetName"`
+	ClusterResourceSetName string `json:"clusterResourceSetName,omitempty"`
 
 	// resources is a list of resources that the ClusterResourceSet has.
 	// +optional
@@ -140,7 +140,7 @@ type ClusterResourceSetBindingSpec struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	ClusterName string `json:"clusterName"`
+	ClusterName string `json:"clusterName,omitempty"`
 }
 
 // +kubebuilder:object:root=true

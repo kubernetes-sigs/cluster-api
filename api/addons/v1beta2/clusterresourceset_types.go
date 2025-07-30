@@ -88,12 +88,12 @@ type ResourceRef struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// kind of the resource. Supported kinds are: Secrets and ConfigMaps.
 	// +kubebuilder:validation:Enum=Secret;ConfigMap
 	// +required
-	Kind string `json:"kind"`
+	Kind string `json:"kind,omitempty"`
 }
 
 // ClusterResourceSetStrategy is a string representation of a ClusterResourceSet Strategy.

@@ -611,7 +611,7 @@ type File struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	Path string `json:"path"`
+	Path string `json:"path,omitempty"`
 
 	// owner specifies the ownership of the file, e.g. "root:root".
 	// +optional
@@ -662,13 +662,13 @@ type SecretFileSource struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// key is the key in the secret's data map for this value.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Key string `json:"key"`
+	Key string `json:"key,omitempty"`
 }
 
 // PasswdSource is a union of all possible external source types for passwd data.
@@ -689,13 +689,13 @@ type SecretPasswdSource struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// key is the key in the secret's data map for this value.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Key string `json:"key"`
+	Key string `json:"key,omitempty"`
 }
 
 // User defines the input for a generated user in cloud-init.
@@ -704,7 +704,7 @@ type User struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// gecos specifies the gecos to use for the user
 	// +optional
@@ -807,16 +807,19 @@ type Partition struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Device string `json:"device"`
+	Device string `json:"device,omitempty"`
+
 	// layout specifies the device layout.
 	// If it is true, a single partition will be created for the entire device.
 	// When layout is false, it means don't partition or ignore existing partitioning.
 	// +required
 	Layout bool `json:"layout"`
+
 	// overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.
 	// Use with caution. Default is 'false'.
 	// +optional
 	Overwrite *bool `json:"overwrite,omitempty"`
+
 	// tableType specifies the tupe of partition table. The following are supported:
 	// 'mbr': default and setups a MS-DOS partition table
 	// 'gpt': setups a GPT partition table
@@ -831,13 +834,13 @@ type Filesystem struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Device string `json:"device"`
+	Device string `json:"device,omitempty"`
 
 	// filesystem specifies the file system type.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
-	Filesystem string `json:"filesystem"`
+	Filesystem string `json:"filesystem,omitempty"`
 
 	// label specifies the file system label to be used. If set to None, no label is used.
 	// +optional

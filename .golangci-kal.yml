@@ -210,9 +210,8 @@ linters:
       linters:
         - kubeapilinter
 
-    # TODO: Excludes that should be removed once we https://github.com/kubernetes-sigs/kube-api-linter/issues/132 will be fixed
+    # TODO: Excludes that should be removed once https://github.com/kubernetes-sigs/kube-api-linter/issues/132 will be fixed
     - path: "api/ipam/v1beta2/ipaddressclaim_types.go"
-      #text: "optionalfields: field AddressRef is optional and has a valid zero value ({}), but the validation is not complete (e.g. min properties/adding required fields). The field should be a pointer to allow the zero value to be set. If the zero value is not a valid use case, complete the validation and remove the pointer."
       text: "optionalfields: field AddressRef is optional and has a valid zero value \\({}\\), but the validation is not complete \\(e.g. min properties/adding required fields\\). The field should be a pointer to allow the zero value to be set. If the zero value is not a valid use case, complete the validation and remove the pointer."
       linters:
         - kubeapilinter

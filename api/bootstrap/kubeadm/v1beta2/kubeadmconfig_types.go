@@ -813,7 +813,7 @@ type Partition struct {
 	// If it is true, a single partition will be created for the entire device.
 	// When layout is false, it means don't partition or ignore existing partitioning.
 	// +required
-	Layout bool `json:"layout,omitempty"`
+	Layout bool `json:"layout"`
 
 	// overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.
 	// Use with caution. Default is 'false'.

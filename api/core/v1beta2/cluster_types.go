@@ -525,7 +525,7 @@ type ClusterAvailabilityGate struct {
 	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=316
-	ConditionType string `json:"conditionType"`
+	ConditionType string `json:"conditionType,omitempty"`
 
 	// polarity of the conditionType specified in this availabilityGate.
 	// Valid values are Positive, Negative and omitted.
@@ -546,7 +546,7 @@ type Topology struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Version string `json:"version"`
+	Version string `json:"version,omitempty"`
 
 	// controlPlane describes the cluster control plane.
 	// +optional
@@ -578,7 +578,7 @@ type ClusterClassRef struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// namespace is the namespace of the ClusterClass that should be used for the topology.
 	// If namespace is empty or not set, it is defaulted to the namespace of the Cluster object.
@@ -822,7 +822,7 @@ type MachineDeploymentTopology struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Class string `json:"class"`
+	Class string `json:"class,omitempty"`
 
 	// name is the unique identifier for this MachineDeploymentTopology.
 	// The value is used with other unique identifiers to create a MachineDeployment's Name
@@ -831,7 +831,7 @@ type MachineDeploymentTopology struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// failureDomain is the failure domain the machines will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
@@ -1132,7 +1132,7 @@ type MachinePoolTopology struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Class string `json:"class"`
+	Class string `json:"class,omitempty"`
 
 	// name is the unique identifier for this MachinePoolTopology.
 	// The value is used with other unique identifiers to create a MachinePool's Name
@@ -1141,7 +1141,7 @@ type MachinePoolTopology struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// failureDomains is the list of failure domains the machine pool will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
@@ -1208,7 +1208,7 @@ type ClusterVariable struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// value of the variable.
 	// Note: the value will be validated against the schema of the corresponding ClusterClassVariable
@@ -1608,7 +1608,7 @@ type FailureDomain struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// controlPlane determines if this failure domain is suitable for use by control plane machines.
 	// +optional

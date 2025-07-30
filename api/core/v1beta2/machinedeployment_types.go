@@ -238,7 +238,7 @@ type MachineDeploymentSpec struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	ClusterName string `json:"clusterName"`
+	ClusterName string `json:"clusterName,omitempty"`
 
 	// replicas is the number of desired machines.
 	// This is a pointer to distinguish between explicit zero and not specified.

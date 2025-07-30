@@ -298,7 +298,7 @@ type MachineAddress struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Address string `json:"address"`
+	Address string `json:"address,omitempty"`
 }
 
 // MachineAddresses is a slice of MachineAddress items to be used by infrastructure providers.
@@ -365,7 +365,7 @@ type ContractVersionedObjectReference struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
-	Kind string `json:"kind"`
+	Kind string `json:"kind,omitempty"`
 
 	// name of the resource being referenced.
 	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
@@ -373,7 +373,7 @@ type ContractVersionedObjectReference struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// apiGroup is the group of the resource being referenced.
 	// apiGroup must be fully qualified domain name.
@@ -383,7 +383,7 @@ type ContractVersionedObjectReference struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
-	APIGroup string `json:"apiGroup"`
+	APIGroup string `json:"apiGroup,omitempty"`
 }
 
 // GroupKind returns the GroupKind of the reference.

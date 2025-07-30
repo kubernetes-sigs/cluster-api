@@ -87,13 +87,13 @@ type ServiceReference struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	Namespace string `json:"namespace"`
+	Namespace string `json:"namespace,omitempty"`
 
 	// name is the name of the service.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// path is an optional URL path and if present may be any string permissible in
 	// a URL. If a path is set it will be used as prefix to the hook-specific path.
@@ -159,7 +159,7 @@ type ExtensionHandler struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// requestHook defines the versioned runtime hook which this ExtensionHandler serves.
 	// +required
@@ -183,13 +183,13 @@ type GroupVersionHook struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	APIVersion string `json:"apiVersion"`
+	APIVersion string `json:"apiVersion,omitempty"`
 
 	// hook is the name of the hook.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	Hook string `json:"hook"`
+	Hook string `json:"hook,omitempty"`
 }
 
 // FailurePolicy specifies how unrecognized errors when calling the ExtensionHandler are handled.

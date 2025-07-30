@@ -82,4 +82,3 @@ func GetLatestReleaseOfMinor(ctx context.Context, minorRelease string) (string, 
 	releaseMarker := fmt.Sprintf(latestReleaseMarkerPrefix, minorRelease)
 	return clusterctl.ResolveRelease(ctx, releaseMarker)
 }
-

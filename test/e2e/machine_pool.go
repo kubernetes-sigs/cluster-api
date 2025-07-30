@@ -30,7 +30,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -142,15 +141,16 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolInput) {
 
 		Byf("Verify Cluster Available condition is true")
 		framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
-			Getter:  input.BootstrapClusterProxy.GetClient(),
-			Cluster: clusterResources.Cluster,
+			Getter:    input.BootstrapClusterProxy.GetClient(),
+			Name:      clusterResources.Cluster.Name,
+			Namespace: clusterResources.Cluster.Namespace,
 		})
 
 		Byf("Verify Machines Ready condition is true")
 		framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
-			Lister:      input.BootstrapClusterProxy.GetClient(),
-			ClusterName: clusterResources.Cluster.Name,
-			Namespace:   clusterResources.Cluster.Namespace,
+			Lister:    input.BootstrapClusterProxy.GetClient(),
+			Name:      clusterResources.Cluster.Name,
+			Namespace: clusterResources.Cluster.Namespace,
 		})
 
 		By("PASSED!")

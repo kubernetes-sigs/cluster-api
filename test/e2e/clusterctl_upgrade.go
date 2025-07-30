@@ -811,53 +811,6 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 	})
 }
 
-// verifyV1Beta2ConditionsTrueV1Beta1 checks the Cluster and Machines of a Cluster that
-// the given v1beta2 condition types are set to true without a message, if they exist.
-func verifyV1Beta2ConditionsTrueV1Beta1(ctx context.Context, c client.Client, clusterName, clusterNamespace string, v1beta2conditionTypes []string) {
-	cluster := &clusterv1beta1.Cluster{}
-	key := client.ObjectKey{
-		Namespace: clusterNamespace,
-		Name:      clusterName,
-	}
-	Eventually(func() error {
-		return c.Get(ctx, key, cluster)
-	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "Failed to get Cluster object %s", klog.KRef(clusterNamespace, clusterName))
-
-	if cluster.Status.V1Beta2 != nil && len(cluster.Status.V1Beta2.Conditions) > 0 {
-		for _, conditionType := range v1beta2conditionTypes {
-			for _, condition := range cluster.Status.V1Beta2.Conditions {
-				if condition.Type != conditionType {
-					continue
-				}
-				Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The v1beta2 condition %q on the Cluster should be set to true", conditionType)
-				Expect(condition.Message).To(BeEmpty(), "The v1beta2 condition %q on the Cluster should have an empty message", conditionType)
-			}
-		}
-	}
-
-	machineList := &clusterv1beta1.MachineList{}
-	Eventually(func() error {
-		return c.List(ctx, machineList, client.InNamespace(clusterNamespace),
-			client.MatchingLabels{
-				clusterv1.ClusterNameLabel: clusterName,
-			})
-	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "Failed to list Machines for Cluster %s", klog.KObj(cluster))
-	for _, machine := range machineList.Items {
-		if machine.Status.V1Beta2 == nil || len(machine.Status.V1Beta2.Conditions) == 0 {
-			continue
-		}
-		for _, conditionType := range v1beta2conditionTypes {
-			for _, condition := range machine.Status.V1Beta2.Conditions {
-				if condition.Type != conditionType {
-					continue
-				}
-				Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The v1beta2 condition %q on the Machine %q should be set to true", conditionType, machine.Name)
-				Expect(condition.Message).To(BeEmpty(), "The v1beta2 condition %q on the Machine %q should have an empty message", conditionType, machine.Name)
-			}
-		}
-	}
-}
-
 func setupClusterctl(ctx context.Context, clusterctlBinaryURL, clusterctlConfigPath string) (string, string) {
 	clusterctlBinaryPath := downloadToTmpFile(ctx, clusterctlBinaryURL)
 

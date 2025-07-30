@@ -56,7 +56,7 @@ func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, name
 	Consistently(func(g Gomega) {
 		objectsWithResourceVersion, objects, err := getObjectsWithResourceVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(objectsWithResourceVersion).To(BeComparableTo(previousResourceVersions), printObjectDiff(previousObjects, objects))
+		g.Expect(previousResourceVersions).To(BeComparableTo(objectsWithResourceVersion), printObjectDiff(previousObjects, objects))
 	}, 2*time.Minute, 15*time.Second).Should(Succeed(), "resourceVersions didn't stay stable")
 }
 
@@ -132,5 +132,37 @@ func getObjectsWithResourceVersion(ctx context.Context, proxy ClusterProxy, name
 		objectsWithResourceVersion[fmt.Sprintf("%s/%s/%s", node.Object.Kind, node.Object.Namespace, node.Object.Name)] = obj.GetResourceVersion()
 		objects[fmt.Sprintf("%s/%s/%s", node.Object.Kind, node.Object.Namespace, node.Object.Name)] = obj
 	}
+
+	// Drop KubeConfig owned by MachinePools (and corresponding dataSecret), because they can change when the token.
+	keysToDelete := sets.Set[string]{}
+	for key, obj := range objects {
+		if obj.GetObjectKind().GroupVersionKind().Kind != "KubeadmConfig" {
+			continue
+		}
+
+		isControlledByMachinePool := false
+		for _, ref := range obj.GetOwnerReferences() {
+			if ref.Controller != nil && *ref.Controller && ref.Kind == "MachinePool" {
+				isControlledByMachinePool = true
+				break
+			}
+		}
+		if !isControlledByMachinePool {
+			continue
+		}
+
+		keysToDelete.Insert(key)
+		if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
+			if dataSecretName, ok, err := unstructured.NestedString(objUnstructured.Object, "status", "dataSecretName"); ok && err == nil {
+				keysToDelete.Insert(fmt.Sprintf("Secret/%s/%s", obj.GetNamespace(), dataSecretName))
+			}
+		}
+	}
+
+	for _, key := range keysToDelete.UnsortedList() {
+		delete(objectsWithResourceVersion, key)
+		delete(objects, key)
+	}
+
 	return objectsWithResourceVersion, objects, nil
 }

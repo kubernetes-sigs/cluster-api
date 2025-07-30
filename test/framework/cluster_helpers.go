@@ -22,10 +22,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -429,4 +431,65 @@ func DescribeAllCluster(ctx context.Context, input DescribeAllClusterInput) {
 			Name:                 c.Name,
 		})
 	}
+}
+
+type VerifyClusterAvailableInput struct {
+	Getter    Getter
+	Name      string
+	Namespace string
+}
+
+// VerifyClusterAvailable verifies that the Cluster's Available condition is set to true.
+func VerifyClusterAvailable(ctx context.Context, input VerifyClusterAvailableInput) {
+	cluster := &clusterv1.Cluster{}
+	key := client.ObjectKey{
+		Name:      input.Name,
+		Namespace: input.Namespace,
+	}
+
+	// Wait for the cluster Available condition to stabilize.
+	Eventually(func(g Gomega) {
+		g.Expect(input.Getter.Get(ctx, key, cluster)).To(Succeed())
+		for _, condition := range cluster.Status.Conditions {
+			if condition.Type == clusterv1.AvailableCondition {
+				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The Available condition on the Cluster should be set to true")
+				g.Expect(condition.Message).To(BeEmpty(), "The Available condition on the Cluster should have an empty message")
+				return
+			}
+		}
+	}, 5*time.Minute, 10*time.Second).Should(Succeed(), "Failed to verify Cluster Available condition for %s", klog.KRef(input.Namespace, input.Name))
+}
+
+type VerifyMachinesReadyInput struct {
+	Lister    Lister
+	Name      string
+	Namespace string
+}
+
+// VerifyMachinesReady verifies that all Machines' Ready condition is set to true.
+func VerifyMachinesReady(ctx context.Context, input VerifyMachinesReadyInput) {
+	machineList := &clusterv1.MachineList{}
+
+	// Wait for all machines to have Ready condition set to true.
+	Eventually(func(g Gomega) {
+		g.Expect(input.Lister.List(ctx, machineList, client.InNamespace(input.Namespace),
+			client.MatchingLabels{
+				clusterv1.ClusterNameLabel: input.Name,
+			})).To(Succeed())
+
+		g.Expect(machineList.Items).ToNot(BeEmpty(), "No machines found for cluster %s", input.Name)
+
+		for _, machine := range machineList.Items {
+			readyConditionFound := false
+			for _, condition := range machine.Status.Conditions {
+				if condition.Type == clusterv1.ReadyCondition {
+					readyConditionFound = true
+					g.Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The Ready condition on Machine %q should be set to true", machine.Name)
+					g.Expect(condition.Message).To(BeEmpty(), "The Ready condition on Machine %q should have an empty message", machine.Name)
+					break
+				}
+			}
+			g.Expect(readyConditionFound).To(BeTrue(), "Machine %q should have a Ready condition", machine.Name)
+		}
+	}, 5*time.Minute, 10*time.Second).Should(Succeed(), "Failed to verify Machines Ready condition for Cluster %s", klog.KRef(input.Namespace, input.Name))
 }

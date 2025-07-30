@@ -859,6 +859,31 @@ func Convert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in *bo
 	return autoConvert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in, out, s)
 }
 
+func Convert_v1beta1_User_To_v1beta2_User(in *User, out *bootstrapv1.User, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_User_To_v1beta2_User(in, out, s); err != nil {
+		return err
+	}
+	if in.PasswdFrom != nil {
+		if err := Convert_v1beta1_PasswdSource_To_v1beta2_PasswdSource(in.PasswdFrom, &out.PasswdFrom, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_User_To_v1beta1_User(in *bootstrapv1.User, out *User, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_User_To_v1beta1_User(in, out, s); err != nil {
+		return err
+	}
+	if in.PasswdFrom.IsDefined() {
+		out.PasswdFrom = &PasswdSource{}
+		if err := Convert_v1beta2_PasswdSource_To_v1beta1_PasswdSource(&in.PasswdFrom, out.PasswdFrom, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func Convert_v1beta1_File_To_v1beta2_File(in *File, out *bootstrapv1.File, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta1_File_To_v1beta2_File(in, out, s); err != nil {
 		return err

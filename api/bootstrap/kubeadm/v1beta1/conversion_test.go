@@ -168,6 +168,12 @@ func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c randfill.Continue) {
 		}
 		in.Files[i] = file
 	}
+	for i, user := range in.Users {
+		if user.PasswdFrom != nil && reflect.DeepEqual(user.PasswdFrom, &PasswdSource{}) {
+			user.PasswdFrom = nil
+		}
+		in.Users[i] = user
+	}
 }
 
 func spokeClusterConfiguration(in *ClusterConfiguration, c randfill.Continue) {

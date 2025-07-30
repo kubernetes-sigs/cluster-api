@@ -1026,12 +1026,12 @@ func (r *KubeadmConfigReconciler) resolveUsers(ctx context.Context, cfg *bootstr
 
 	for i := range cfg.Spec.Users {
 		in := cfg.Spec.Users[i]
-		if in.PasswdFrom != nil {
+		if in.PasswdFrom.IsDefined() {
 			data, err := r.resolveSecretPasswordContent(ctx, cfg.Namespace, in)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to resolve passwd source")
 			}
-			in.PasswdFrom = nil
+			in.PasswdFrom = bootstrapv1.PasswdSource{}
 			passwdContent := string(data)
 			in.Passwd = passwdContent
 		}

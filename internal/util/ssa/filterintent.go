@@ -17,7 +17,9 @@ limitations under the License.
 package ssa
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -82,52 +84,71 @@ func FilterObject(obj *unstructured.Unstructured, input *FilterObjectInput) {
 // all of them are defined in reconcile_state.go and are targeting well-known fields inside nested maps.
 // Allowed paths / ignore paths which point to an array are not supported by the current implementation.
 func FilterIntent(ctx *FilterIntentInput) bool {
-	value, ok := ctx.Value.(map[string]interface{})
-	if !ok {
-		return false
-	}
-
 	gotDeletions := false
-	for field := range value {
-		fieldCtx := &FilterIntentInput{
-			// Compose the Path for the nested field.
-			Path: ctx.Path.Append(field),
-			// Gets the original and the modified Value for the field.
-			Value: value[field],
-			// Carry over global values from the context.
-			ShouldFilter:          ctx.ShouldFilter,
-			DropEmptyStructAndNil: ctx.DropEmptyStructAndNil,
-		}
 
-		// If the field should be filtered out, delete it from the modified object.
-		if fieldCtx.ShouldFilter != nil && fieldCtx.ShouldFilter(fieldCtx.Path) {
-			delete(value, field)
-			gotDeletions = true
-			continue
-		}
+	switch value := ctx.Value.(type) {
+	case map[string]interface{}:
+		for field := range value {
+			fieldCtx := &FilterIntentInput{
+				// Compose the Path for the nested field.
+				Path: ctx.Path.Append(field),
+				// Gets the original and the modified Value for the field.
+				Value: value[field],
+				// Carry over global values from the context.
+				ShouldFilter:          ctx.ShouldFilter,
+				DropEmptyStructAndNil: ctx.DropEmptyStructAndNil,
+			}
 
-		// If empty struct should be dropped and the value is a empty struct, delete it from the modified object.
-		if fieldCtx.DropEmptyStructAndNil && reflect.DeepEqual(fieldCtx.Value, map[string]interface{}{}) {
-			delete(value, field)
-			gotDeletions = true
-			continue
-		}
-		// If nil should be dropped and the value is nil, delete it from the modified object.
-		if fieldCtx.DropEmptyStructAndNil && reflect.DeepEqual(fieldCtx.Value, nil) {
-			delete(value, field)
-			gotDeletions = true
-			continue
-		}
-
-		// Process nested fields and get in return if FilterIntent removed fields.
-		if FilterIntent(fieldCtx) {
-			// Ensure we are not leaving empty maps around.
-			if v, ok := fieldCtx.Value.(map[string]interface{}); ok && len(v) == 0 {
+			// If the field should be filtered out, delete it from the modified object.
+			if fieldCtx.ShouldFilter != nil && fieldCtx.ShouldFilter(fieldCtx.Path) {
 				delete(value, field)
 				gotDeletions = true
+				continue
+			}
+
+			// TODO: Can be removed once we bumped to k8s.io v0.34 because the DefaultUnstructuredConverter will then handle omitzero
+			if strings.HasPrefix(fieldCtx.Path.String(), "spec") && fieldCtx.DropEmptyStructAndNil {
+				// If empty struct should be dropped and the value is a empty struct, delete it from the modified object.
+				if reflect.DeepEqual(fieldCtx.Value, map[string]interface{}{}) {
+					delete(value, field)
+					gotDeletions = true
+					continue
+				}
+				// If nil should be dropped and the value is nil, delete it from the modified object.
+				if reflect.DeepEqual(fieldCtx.Value, nil) {
+					delete(value, field)
+					gotDeletions = true
+					continue
+				}
+			}
+
+			// Process nested fields and get in return if FilterIntent removed fields.
+			if FilterIntent(fieldCtx) {
+				gotDeletions = true
+				// Ensure we are not leaving empty maps around.
+				if v, ok := fieldCtx.Value.(map[string]interface{}); ok && len(v) == 0 {
+					delete(value, field)
+				}
+			}
+		}
+	case []interface{}:
+		// TODO: Can be removed once we bumped to k8s.io v0.34 because the DefaultUnstructuredConverter will then handle omitzero
+		if strings.HasPrefix(ctx.Path.String(), "spec") && ctx.DropEmptyStructAndNil {
+			for i, v := range value {
+				fieldCtx := &FilterIntentInput{
+					// Compose the Path for the nested field.
+					Path: ctx.Path.Append(fmt.Sprintf("[%d]", i)),
+					// Not supporting ShouldFilter within arrays, so not setting it.
+					Value:                 v,
+					DropEmptyStructAndNil: ctx.DropEmptyStructAndNil,
+				}
+				if FilterIntent(fieldCtx) {
+					gotDeletions = true
+				}
 			}
 		}
 	}
+
 	return gotDeletions
 }
 

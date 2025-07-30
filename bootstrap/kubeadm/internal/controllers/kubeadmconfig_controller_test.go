@@ -2445,7 +2445,7 @@ func TestKubeadmConfigReconciler_ResolveUsers(t *testing.T) {
 					Users: []bootstrapv1.User{
 						{
 							Name: "foo",
-							PasswdFrom: &bootstrapv1.PasswdSource{
+							PasswdFrom: bootstrapv1.PasswdSource{
 								Secret: bootstrapv1.SecretPasswdSource{
 									Name: "source",
 									Key:  "key",
@@ -2473,7 +2473,7 @@ func TestKubeadmConfigReconciler_ResolveUsers(t *testing.T) {
 						},
 						{
 							Name: "bar",
-							PasswdFrom: &bootstrapv1.PasswdSource{
+							PasswdFrom: bootstrapv1.PasswdSource{
 								Secret: bootstrapv1.SecretPasswdSource{
 									Name: "source",
 									Key:  "key",
@@ -2514,7 +2514,7 @@ func TestKubeadmConfigReconciler_ResolveUsers(t *testing.T) {
 			// from secret still are.
 			passwdFrom := map[string]bool{}
 			for _, user := range tc.cfg.Spec.Users {
-				if user.PasswdFrom != nil {
+				if user.PasswdFrom.IsDefined() {
 					passwdFrom[user.Name] = true
 				}
 			}
@@ -2524,7 +2524,7 @@ func TestKubeadmConfigReconciler_ResolveUsers(t *testing.T) {
 			g.Expect(users).To(BeComparableTo(tc.expect))
 			for _, user := range tc.cfg.Spec.Users {
 				if passwdFrom[user.Name] {
-					g.Expect(user.PasswdFrom).NotTo(BeNil())
+					g.Expect(user.PasswdFrom.IsDefined()).To(BeTrue())
 					g.Expect(user.Passwd).To(BeEmpty())
 				}
 			}

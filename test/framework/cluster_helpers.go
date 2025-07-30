@@ -452,7 +452,7 @@ func VerifyClusterAvailable(ctx context.Context, input VerifyClusterAvailableInp
 		g.Expect(input.Getter.Get(ctx, key, cluster)).To(Succeed())
 		for _, condition := range cluster.Status.Conditions {
 			if condition.Type == clusterv1.AvailableCondition {
-				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The Available condition on the Cluster should be set to true")
+				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The Available condition on the Cluster should be set to true; message: %s", condition.Message)
 				g.Expect(condition.Message).To(BeEmpty(), "The Available condition on the Cluster should have an empty message")
 				return
 			}
@@ -484,7 +484,7 @@ func VerifyMachinesReady(ctx context.Context, input VerifyMachinesReadyInput) {
 			for _, condition := range machine.Status.Conditions {
 				if condition.Type == clusterv1.ReadyCondition {
 					readyConditionFound = true
-					g.Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The Ready condition on Machine %q should be set to true", machine.Name)
+					g.Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The Ready condition on Machine %q should be set to true; message: %s", machine.Name, condition.Message)
 					g.Expect(condition.Message).To(BeEmpty(), "The Ready condition on Machine %q should have an empty message", machine.Name)
 					break
 				}

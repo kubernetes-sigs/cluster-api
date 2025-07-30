@@ -722,11 +722,19 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				upgrade.PostUpgrade(managementClusterProxy, workloadCluster.Namespace, workloadCluster.Name)
 			}
 
-			Byf("[%d] Verify v1beta2 Available and Ready conditions (if exist) to be true for Cluster and Machines", i)
-			verifyV1Beta2Conditions(ctx, managementClusterProxy.GetClient(), workloadCluster.Name, workloadCluster.Namespace,
-				map[string]struct{}{
-					clusterv1.AvailableCondition: {}, clusterv1.ReadyCondition: {},
-				})
+			Byf("[%d] Verify Cluster Available condition is true", i)
+			framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
+				Getter:    managementClusterProxy.GetClient(),
+				Name:      workloadCluster.Name,
+				Namespace: workloadCluster.Namespace,
+			})
+
+			Byf("[%d] Verify Machines Ready condition is true", i)
+			framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
+				Lister:    managementClusterProxy.GetClient(),
+				Name:      workloadCluster.Name,
+				Namespace: workloadCluster.Namespace,
+			})
 
 			// Note: It is a known issue on Kubernetes < v1.29 that SSA sometimes fail:
 			// https://github.com/kubernetes/kubernetes/issues/117356

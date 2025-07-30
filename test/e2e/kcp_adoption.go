@@ -247,11 +247,19 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 		}
 		Expect(secrets.Items).To(HaveLen(4 /* pki */ + 1 /* kubeconfig */ + int(*replicas)))
 
-		Byf("Verify v1beta2 Available and Ready conditions (if exist) to be true for Cluster and Machines")
-		verifyV1Beta2Conditions(ctx, input.BootstrapClusterProxy.GetClient(), cluster.Name, cluster.Namespace,
-			map[string]struct{}{
-				clusterv1.AvailableCondition: {}, clusterv1.ReadyCondition: {},
-			})
+		Byf("Verify Cluster Available condition is true")
+		framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
+			Getter:    input.BootstrapClusterProxy.GetClient(),
+			Name:      cluster.Name,
+			Namespace: cluster.Namespace,
+		})
+
+		Byf("Verify Machines Ready condition is true")
+		framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
+			Lister:    input.BootstrapClusterProxy.GetClient(),
+			Name:      cluster.Name,
+			Namespace: cluster.Namespace,
+		})
 
 		By("PASSED!")
 	})

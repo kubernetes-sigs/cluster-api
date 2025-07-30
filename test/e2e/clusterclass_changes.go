@@ -272,11 +272,19 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 			WaitForMachinePools:                           input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		})
 
-		Byf("Verify v1beta2 Available and Ready conditions (if exist) to be true for Cluster and Machines")
-		verifyV1Beta2Conditions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster.Name, clusterResources.Cluster.Namespace,
-			map[string]struct{}{
-				clusterv1.AvailableCondition: {}, clusterv1.ReadyCondition: {},
-			})
+		Byf("Verify Cluster Available condition is true")
+		framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
+			Getter:    input.BootstrapClusterProxy.GetClient(),
+			Name:      clusterResources.Cluster.Name,
+			Namespace: clusterResources.Cluster.Namespace,
+		})
+
+		Byf("Verify Machines Ready condition is true")
+		framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
+			Lister:    input.BootstrapClusterProxy.GetClient(),
+			Name:      clusterResources.Cluster.Name,
+			Namespace: clusterResources.Cluster.Namespace,
+		})
 
 		By("Deleting a MachineDeploymentTopology in the Cluster Topology and wait for associated MachineDeployment to be deleted")
 		deleteMachineDeploymentTopologyAndWait(ctx, deleteMachineDeploymentTopologyAndWaitInput{

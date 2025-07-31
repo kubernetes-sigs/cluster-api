@@ -83,8 +83,14 @@ func (d *Dialer) DialContextWithAddr(ctx context.Context, addr string) (net.Conn
 }
 
 // DialContext creates proxied port-forwarded connections.
-// ctx is currently unused, but fulfils the type signature used by GRPC.
-func (d *Dialer) DialContext(_ context.Context, _ string, addr string) (net.Conn, error) {
+func (d *Dialer) DialContext(ctx context.Context, _ string, addr string) (net.Conn, error) {
+	// Check if context is already cancelled or timed out
+	select {
+	case <-ctx.Done():
+		return nil, errors.Wrap(ctx.Err(), "context cancelled before establishing connection")
+	default:
+	}
+
 	req := d.clientset.CoreV1().RESTClient().
 		Post().
 		Resource(d.proxy.Kind).
@@ -92,7 +98,15 @@ func (d *Dialer) DialContext(_ context.Context, _ string, addr string) (net.Conn
 		Name(addr).
 		SubResource("portforward")
 
-	dialer := spdy.NewDialer(d.upgrader, &http.Client{Transport: d.proxyTransport}, "POST", req.URL())
+	httpClient := &http.Client{
+		Transport: d.proxyTransport,
+	}
+
+	if deadline, ok := ctx.Deadline(); ok {
+		httpClient.Timeout = time.Until(deadline)
+	}
+
+	dialer := spdy.NewDialer(d.upgrader, httpClient, "POST", req.URL())
 
 	// Create a new connection from the dialer.
 	//

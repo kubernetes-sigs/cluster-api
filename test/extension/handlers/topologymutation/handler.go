@@ -114,10 +114,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 			// the patchKubeadmConfigTemplate func shows how to implement patches only for KubeadmConfigTemplates
 			// linked to a specific MachineDeployment class; another option is to check the holderRef value and call
 			// this func or more specialized func conditionally.
-			if err := patchKubeadmConfigTemplate(ctx, obj, variables); err != nil {
-				log.Error(err, "Error patching KubeadmConfigTemplate")
-				return errors.Wrap(err, "error patching KubeadmConfigTemplate")
-			}
+			patchKubeadmConfigTemplate(ctx, obj, variables)
 		case *infrav1beta1.DockerMachineTemplate, *infrav1.DockerMachineTemplate:
 			// NOTE: DockerMachineTemplate could be linked to the ControlPlane or one or more of the existing MachineDeployment class;
 			// the patchDockerMachineTemplate func shows how to implement different patches for DockerMachineTemplate
@@ -170,7 +167,49 @@ func patchDockerClusterTemplate(_ context.Context, obj runtime.Object, templateV
 func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	// 1) Patch RolloutStrategy RollingUpdate MaxSurge with the value from the Cluster Topology variable.
+	// 1) Set extraArgs
+	switch obj := obj.(type) {
+	case *controlplanev1beta1.KubeadmControlPlaneTemplate:
+		if obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
+			obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration = &bootstrapv1beta1.ClusterConfiguration{}
+		}
+
+		if obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs == nil {
+			obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs = map[string]string{}
+		}
+		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs["v"] = "2"
+
+		if obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs == nil {
+			obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs = map[string]string{}
+		}
+		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs["v"] = "2"
+
+		if obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs == nil {
+			obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs = map[string]string{}
+		}
+		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs["v"] = "2"
+
+		if obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs == nil {
+			obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
+		}
+		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
+
+		if obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
+			obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
+		}
+		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
+	case *controlplanev1.KubeadmControlPlaneTemplate:
+		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: "2"})
+
+		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: "2"})
+
+		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: "2"})
+
+		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: "2"})
+		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: "2"})
+	}
+
+	// 2) Patch RolloutStrategy RollingUpdate MaxSurge with the value from the Cluster Topology variable.
 	//    If this is unset continue as this variable is not required.
 	kcpControlPlaneMaxSurge, err := topologymutation.GetStringVariable(templateVariables, "kubeadmControlPlaneMaxSurge")
 	if err != nil {
@@ -206,8 +245,17 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 }
 
 // patchKubeadmConfigTemplate patches the ControlPlaneTemplate.
-func patchKubeadmConfigTemplate(_ context.Context, _ runtime.Object, _ map[string]apiextensionsv1.JSON) error {
-	return nil
+func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, _ map[string]apiextensionsv1.JSON) {
+	// 1) Set extraArgs
+	switch obj := obj.(type) {
+	case *bootstrapv1beta1.KubeadmConfigTemplate:
+		if obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
+			obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
+		}
+		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
+	case *bootstrapv1.KubeadmConfigTemplate:
+		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.InitConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: "2"})
+	}
 }
 
 // patchDockerMachineTemplate patches the DockerMachineTemplate.

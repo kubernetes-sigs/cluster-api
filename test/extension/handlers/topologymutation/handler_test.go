@@ -129,6 +129,29 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 									},
 								},
 							},
+							KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+								ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+									APIServer: bootstrapv1.APIServer{
+										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: "2"}},
+									},
+									ControllerManager: bootstrapv1.ControllerManager{
+										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: "2"}},
+									},
+									Scheduler: bootstrapv1.Scheduler{
+										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: "2"}},
+									},
+								},
+								InitConfiguration: bootstrapv1.InitConfiguration{
+									NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+										KubeletExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: "2"}},
+									},
+								},
+								JoinConfiguration: bootstrapv1.JoinConfiguration{
+									NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+										KubeletExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: "2"}},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -353,9 +376,63 @@ func TestHandler_GeneratePatches(t *testing.T) {
 					Status: runtimehooksv1.ResponseStatusSuccess,
 				},
 				Items: []runtimehooksv1.GeneratePatchesResponseItem{
-					responseItem("1", `[
-{"op":"add","path":"/spec","value":{"template": {"spec":{"rollout": {"strategy": {"type": "RollingUpdate","rollingUpdate":{"maxSurge":3}}}}}}}
-]`),
+					responseItem("1", `
+[ {
+  "op" : "add",
+  "path" : "/spec",
+  "value" : {
+    "template" : {
+      "spec" : {
+        "kubeadmConfigSpec" : {
+          "clusterConfiguration" : {
+            "apiServer" : {
+              "extraArgs" : [ {
+                "name" : "v",
+                "value" : "2"
+              } ]
+            },
+            "controllerManager" : {
+              "extraArgs" : [ {
+                "name" : "v",
+                "value" : "2"
+              } ]
+            },
+            "scheduler" : {
+              "extraArgs" : [ {
+                "name" : "v",
+                "value" : "2"
+              } ]
+            }
+          },
+          "initConfiguration" : {
+            "nodeRegistration" : {
+              "kubeletExtraArgs" : [ {
+                "name" : "v",
+                "value" : "2"
+              } ]
+            }
+          },
+          "joinConfiguration" : {
+            "nodeRegistration" : {
+              "kubeletExtraArgs" : [ {
+                "name" : "v",
+                "value" : "2"
+              } ]
+            }
+          }
+        },
+        "rollout" : {
+          "strategy" : {
+            "rollingUpdate" : {
+              "maxSurge" : 3
+            },
+            "type" : "RollingUpdate"
+          }
+        }
+      }
+    }
+  }
+} ]`),
 					responseItem("2", `[
 {"op":"add","path":"/spec/template/spec/customImage","value":"kindest/node:v1.23.0"}
 ]`),

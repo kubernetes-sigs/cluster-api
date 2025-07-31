@@ -424,7 +424,7 @@ func TestCleanupConfigFields(t *testing.T) {
 		machineConfig := &bootstrapv1.KubeadmConfig{
 			Spec: bootstrapv1.KubeadmConfigSpec{
 				JoinConfiguration: bootstrapv1.JoinConfiguration{
-					CACertPath: "certPath",
+					ControlPlane: &bootstrapv1.JoinControlPlane{},
 				}, // Machine gets a default JoinConfiguration from CABPK
 			},
 		}
@@ -559,56 +559,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: "",
-				},
-			},
-		}
-		match, diff, err := matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(match).To(BeTrue())
-		g.Expect(diff).To(BeEmpty())
-	})
-	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
-		g := NewWithT(t)
-		kcp := &controlplanev1.KubeadmControlPlane{
-			Spec: controlplanev1.KubeadmControlPlaneSpec{
-				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-					ClusterConfiguration: bootstrapv1.ClusterConfiguration{},
-					InitConfiguration:    bootstrapv1.InitConfiguration{},
-					JoinConfiguration:    bootstrapv1.JoinConfiguration{},
-				},
-			},
-		}
-		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
-			Spec: clusterv1.MachineSpec{
-				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: clusterv1.ContractVersionedObjectReference{
-						Kind:     "KubeadmConfig",
-						Name:     "test",
-						APIGroup: bootstrapv1.GroupVersion.Group,
-					},
-				},
-			},
-		}
-		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
-			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-					Name:      "test",
-				},
-				Spec: bootstrapv1.KubeadmConfigSpec{
-					InitConfiguration: bootstrapv1.InitConfiguration{},
 				},
 			},
 		}

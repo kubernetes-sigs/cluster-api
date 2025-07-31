@@ -339,20 +339,19 @@ func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp 
 
 // getAdjustedKcpConfig takes the KubeadmConfigSpec from KCP and applies the transformations required
 // to allow a comparison with the KubeadmConfig referenced from the machine.
-// NOTE: The KCP controller applies a set of transformations when creating a KubeadmConfig referenced from the machine,
-// mostly depending on the fact that the machine was the initial control plane node or a joining control plane node.
-// In this function we don't have such information, so we are making the KubeadmConfigSpec similar to the KubeadmConfig.
+// NOTE: The KCP controller applies a set of transformations when creating a KubeadmConfig referenced from the machine;
+// those transformations are implemented in ControlPlane.InitialControlPlaneConfig() and ControlPlane.JoinControlPlaneConfig().
 func getAdjustedKcpConfig(kcp *controlplanev1.KubeadmControlPlane, machineConfig *bootstrapv1.KubeadmConfig) *bootstrapv1.KubeadmConfigSpec {
 	kcpConfig := kcp.Spec.KubeadmConfigSpec.DeepCopy()
 
-	// Machine's join configuration is nil when it is the first machine in the control plane.
-	if !machineConfig.Spec.JoinConfiguration.IsDefined() {
-		kcpConfig.JoinConfiguration = bootstrapv1.JoinConfiguration{}
-	}
-
-	// Machine's init configuration is nil when the control plane is already initialized.
-	if !machineConfig.Spec.InitConfiguration.IsDefined() {
+	// if Machine's JoinConfiguration is set, this is a joining control plane machine, so empty out the InitConfiguration;
+	// otherwise empty out the JoinConfiguration.
+	// Note: a KubeadmConfig for a joining control plane must have at least joinConfiguration.controlPlane and joinConfiguration.discovery to be set for joining;
+	// if those fields are missing in the KCP config, CABPK sets them.
+	if machineConfig.Spec.JoinConfiguration.IsDefined() {
 		kcpConfig.InitConfiguration = bootstrapv1.InitConfiguration{}
+	} else {
+		kcpConfig.JoinConfiguration = bootstrapv1.JoinConfiguration{}
 	}
 
 	return kcpConfig
@@ -384,14 +383,14 @@ func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig
 	// If KCP JoinConfiguration.ControlPlane is not present, set machine join configuration to nil (nothing can trigger rollout here).
 	// NOTE: this is required because CABPK applies an empty joinConfiguration.ControlPlane in case no one is provided.
 	if kcpConfig.JoinConfiguration.IsDefined() && kcpConfig.JoinConfiguration.ControlPlane == nil &&
-		machineConfig.Spec.JoinConfiguration.IsDefined() {
+		machineConfig.Spec.JoinConfiguration.ControlPlane != nil {
 		machineConfig.Spec.JoinConfiguration.ControlPlane = nil
 	}
 
 	// If KCP's join NodeRegistration is empty, set machine's node registration to empty as no changes should trigger rollout.
 	emptyNodeRegistration := bootstrapv1.NodeRegistrationOptions{}
 	if kcpConfig.JoinConfiguration.IsDefined() && reflect.DeepEqual(kcpConfig.JoinConfiguration.NodeRegistration, emptyNodeRegistration) &&
-		machineConfig.Spec.JoinConfiguration.IsDefined() {
+		!reflect.DeepEqual(machineConfig.Spec.JoinConfiguration.NodeRegistration, emptyNodeRegistration) {
 		machineConfig.Spec.JoinConfiguration.NodeRegistration = emptyNodeRegistration
 	}
 

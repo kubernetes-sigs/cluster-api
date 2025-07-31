@@ -54,13 +54,17 @@ spec:
         bindPort: 6443
       nodeRegistration:
         kubeletExtraArgs:
-          eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
-          node-ip: "::"
+          - name: "eviction-hard"
+            value: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
+          - name: "node-ip"
+            value: "::"
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
-          node-ip: "::"
+          - name: "eviction-hard"
+            value: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
+          - name: "node-ip"
+            value: "::"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate
@@ -116,9 +120,12 @@ spec:
       initConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            node-ip: "::"
+            - name: "node-ip"
+              value: "::"
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
-            node-ip: "::"
+            - name: "eviction-hard"
+              value: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
+            - name: "node-ip"
+              value: "::"

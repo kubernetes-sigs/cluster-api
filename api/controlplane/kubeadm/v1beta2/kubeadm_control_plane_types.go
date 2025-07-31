@@ -569,7 +569,7 @@ type KubeadmControlPlaneRolloutStrategy struct {
 	// "RollingUpdate".
 	// Default is RollingUpdate.
 	// +required
-	Type KubeadmControlPlaneRolloutStrategyType `json:"type"`
+	Type KubeadmControlPlaneRolloutStrategyType `json:"type,omitempty"`
 
 	// rollingUpdate is the rolling update config params. Present only if
 	// type = RollingUpdate.
@@ -809,7 +809,7 @@ type LastRemediationStatus struct {
 
 	// time is when last remediation happened. It is represented in RFC3339 form and is in UTC.
 	// +required
-	Time metav1.Time `json:"time"`
+	Time metav1.Time `json:"time,omitempty,omitzero"`
 
 	// retryCount used to keep track of remediation retry for the last remediated machine.
 	// A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.

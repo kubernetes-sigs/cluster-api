@@ -560,7 +560,7 @@ type ExternalEtcd struct {
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512
-	Endpoints []string `json:"endpoints"`
+	Endpoints []string `json:"endpoints,omitempty"`
 
 	// caFile is an SSL Certificate Authority file used to secure etcd communication.
 	// Required if using a TLS connection.

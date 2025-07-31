@@ -95,6 +95,10 @@ linters:
       text: "field Conditions type Conditions must have a maximum items, add kubebuilder:validation:MaxItems marker"
       linters:
         - kubeapilinter
+    - path: "api/core/v1beta2/condition_types.go"
+      text: "requiredfields: field (Type|Status|LastTransitionTime) should have the omitempty tag"
+      linters:
+        - kubeapilinter
 
     ## Excludes for current clusterctl v1alpha3 and Runtime Hooks v1alpha1 apiVersions (can be fixed once we bump their apiVersion).
     # Note: The types in api/runtime/hooks/v1alpha1 are not CRDs, so e.g. SSA markers don't make sense there.

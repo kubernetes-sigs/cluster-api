@@ -1081,7 +1081,7 @@ type MachineDeploymentTopologyRolloutStrategy struct {
 	// type of rollout. Allowed values are RollingUpdate and OnDelete.
 	// Default is RollingUpdate.
 	// +required
-	Type MachineDeploymentRolloutStrategyType `json:"type"`
+	Type MachineDeploymentRolloutStrategyType `json:"type,omitempty"`
 
 	// rollingUpdate is the rolling update config params. Present only if
 	// type = RollingUpdate.
@@ -1225,7 +1225,7 @@ type ClusterVariable struct {
 	// i.e. it is not possible to have no type field.
 	// Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111
 	// +required
-	Value apiextensionsv1.JSON `json:"value"`
+	Value apiextensionsv1.JSON `json:"value,omitempty,omitzero"`
 }
 
 // ControlPlaneVariables can be used to provide variables for the ControlPlane.
@@ -1299,7 +1299,7 @@ type NetworkRanges struct {
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=43
-	CIDRBlocks []string `json:"cidrBlocks"`
+	CIDRBlocks []string `json:"cidrBlocks,omitempty"`
 }
 
 func (n NetworkRanges) String() string {

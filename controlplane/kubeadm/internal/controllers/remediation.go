@@ -668,7 +668,7 @@ type RemediationData struct {
 	Machine string `json:"machine"`
 
 	// timestamp is when last remediation happened. It is represented in RFC3339 form and is in UTC.
-	Timestamp metav1.Time `json:"timestamp"`
+	Timestamp metav1.Time `json:"timestamp,omitempty,omitzero"`
 
 	// retryCount used to keep track of remediation retry for the last remediated machine.
 	// A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.

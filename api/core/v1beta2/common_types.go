@@ -292,7 +292,7 @@ const (
 type MachineAddress struct {
 	// type is the machine address type, one of Hostname, ExternalIP, InternalIP, ExternalDNS or InternalDNS.
 	// +required
-	Type MachineAddressType `json:"type"`
+	Type MachineAddressType `json:"type,omitempty"`
 
 	// address is the machine address.
 	// +required

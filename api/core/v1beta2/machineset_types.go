@@ -68,7 +68,7 @@ type MachineSetSpec struct {
 	// It must match the machine template's labels.
 	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
 	// +required
-	Selector metav1.LabelSelector `json:"selector"`
+	Selector metav1.LabelSelector `json:"selector,omitempty,omitzero"`
 
 	// template is the object that describes the machine that will be created if
 	// insufficient replicas are detected.

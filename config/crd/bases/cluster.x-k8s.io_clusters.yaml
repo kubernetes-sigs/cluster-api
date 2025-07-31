@@ -3133,6 +3133,7 @@ spec:
                                 the values are hashed together.
                               maxLength: 63
                               minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                               type: string
                             readinessGates:
                               description: |-
@@ -3399,6 +3400,7 @@ spec:
                                 the values are hashed together.
                               maxLength: 63
                               minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                               type: string
                             replicas:
                               description: |-

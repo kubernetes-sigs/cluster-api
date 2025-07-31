@@ -73,7 +73,7 @@ func newCluster(clusterName string, dockerCluster *infrav1.DockerCluster) *clust
 		},
 	}
 	if dockerCluster != nil {
-		cluster.Spec.InfrastructureRef = &clusterv1.ContractVersionedObjectReference{
+		cluster.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 			APIGroup: infrav1.GroupVersion.Group,
 			Kind:     "DockerCluster",
 			Name:     dockerCluster.Name,

@@ -381,7 +381,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	machineSet := s.machineSet
 	// Make sure to reconcile the external infrastructure reference.
 	var err error
-	s.infrastructureObjectNotFound, err = r.reconcileExternalTemplateReference(ctx, cluster, machineSet, s.owningMachineDeployment, &machineSet.Spec.Template.Spec.InfrastructureRef)
+	s.infrastructureObjectNotFound, err = r.reconcileExternalTemplateReference(ctx, cluster, machineSet, s.owningMachineDeployment, machineSet.Spec.Template.Spec.InfrastructureRef)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -392,7 +392,7 @@ func (r *Reconciler) reconcileBootstrapConfig(ctx context.Context, s *scope) (ct
 	cluster := s.cluster
 	machineSet := s.machineSet
 	// Make sure to reconcile the external bootstrap reference, if any.
-	if s.machineSet.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+	if s.machineSet.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 		var err error
 		s.bootstrapObjectNotFound, err = r.reconcileExternalTemplateReference(ctx, cluster, machineSet, s.owningMachineDeployment, machineSet.Spec.Template.Spec.Bootstrap.ConfigRef)
 		if err != nil {
@@ -564,7 +564,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 		}
 		machines[i] = updatedMachine
 
-		infraMachine, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, &updatedMachine.Spec.InfrastructureRef, updatedMachine.Namespace)
+		infraMachine, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, updatedMachine.Spec.InfrastructureRef, updatedMachine.Namespace)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get InfrastructureMachine %s %s",
 				updatedMachine.Spec.InfrastructureRef.Kind, klog.KRef(updatedMachine.Namespace, updatedMachine.Spec.InfrastructureRef.Name))
@@ -585,7 +585,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 			return ctrl.Result{}, errors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
 		}
 
-		if updatedMachine.Spec.Bootstrap.ConfigRef != nil {
+		if updatedMachine.Spec.Bootstrap.ConfigRef.IsDefined() {
 			bootstrapConfig, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, updatedMachine.Spec.Bootstrap.ConfigRef, updatedMachine.Namespace)
 			if err != nil {
 				return ctrl.Result{}, errors.Wrapf(err, "failed to get BootstrapConfig %s %s",
@@ -716,12 +716,12 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 			}
 			// Clone and set the infrastructure and bootstrap references.
 			var (
-				infraRef, bootstrapRef        *clusterv1.ContractVersionedObjectReference
+				infraRef, bootstrapRef        clusterv1.ContractVersionedObjectReference
 				infraMachine, bootstrapConfig *unstructured.Unstructured
 			)
 
 			// Create the BootstrapConfig if necessary.
-			if ms.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+			if ms.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 				apiVersion, err := contract.GetAPIVersion(ctx, r.Client, ms.Spec.Template.Spec.Bootstrap.ConfigRef.GroupKind())
 				if err == nil {
 					bootstrapConfig, bootstrapRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
@@ -782,7 +782,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 			}
 			if err != nil {
 				var deleteErr error
-				if bootstrapRef != nil {
+				if bootstrapRef.IsDefined() {
 					// Cleanup the bootstrap resource if we can't create the InfraMachine; or we might risk to leak it.
 					if err := r.Client.Delete(ctx, bootstrapConfig); err != nil && !apierrors.IsNotFound(err) {
 						deleteErr = errors.Wrapf(err, "failed to cleanup %s %s after %s creation failed", bootstrapRef.Kind, klog.KRef(ms.Namespace, bootstrapRef.Name), ms.Spec.Template.Spec.InfrastructureRef.Kind)
@@ -794,7 +794,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 					klog.KRef(ms.Namespace, ms.Spec.Template.Spec.InfrastructureRef.Name)), deleteErr})
 			}
 			log = log.WithValues(infraRef.Kind, klog.KRef(ms.Namespace, infraRef.Name))
-			machine.Spec.InfrastructureRef = *infraRef
+			machine.Spec.InfrastructureRef = infraRef
 
 			// Create the Machine.
 			if err := ssa.Patch(ctx, r.Client, machineSetManagerName, machine); err != nil {
@@ -808,7 +808,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 				if err := r.Client.Delete(ctx, infraMachine); !apierrors.IsNotFound(err) {
 					log.Error(err, "Failed to cleanup infrastructure machine object after Machine creation error", infraRef.Kind, klog.KRef(ms.Namespace, infraRef.Name))
 				}
-				if bootstrapRef != nil {
+				if bootstrapRef.IsDefined() {
 					if err := r.Client.Delete(ctx, bootstrapConfig); !apierrors.IsNotFound(err) {
 						log.Error(err, "Failed to cleanup bootstrap configuration object after Machine creation error", bootstrapRef.Kind, klog.KRef(ms.Namespace, bootstrapRef.Name))
 					}
@@ -912,7 +912,7 @@ func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, exi
 	// Note: During Machine creation, these refs will be updated with the correct values after the corresponding
 	// objects are created.
 	desiredMachine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{}
-	desiredMachine.Spec.Bootstrap.ConfigRef = nil
+	desiredMachine.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{}
 
 	// If we are updating an existing Machine reuse the name, uid, infrastructureRef and bootstrap.configRef
 	// from the existingMachine.
@@ -1207,7 +1207,7 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 			fullyLabeledReplicasCount++
 		}
 
-		if machine.Status.NodeRef == nil {
+		if !machine.Status.NodeRef.IsDefined() {
 			log.V(4).Info("Waiting for the machine controller to set status.NodeRef on the Machine")
 			continue
 		}
@@ -1553,7 +1553,7 @@ func patchMachineConditions(ctx context.Context, c client.Client, machines []*cl
 	return nil
 }
 
-func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, owner *clusterv1.MachineDeployment, ref *clusterv1.ContractVersionedObjectReference) (objectNotFound bool, err error) {
+func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, owner *clusterv1.MachineDeployment, ref clusterv1.ContractVersionedObjectReference) (objectNotFound bool, err error) {
 	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
 		return false, nil
 	}

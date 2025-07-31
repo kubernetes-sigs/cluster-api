@@ -50,7 +50,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
 					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
 					Build(),
-				Topology: builder.ClusterTopology().
+				Topology: *builder.ClusterTopology().
 					WithClass("cluster-class").
 					Build(),
 			},
@@ -60,7 +60,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			name: "should return true if MachineHealthCheck is defined in ClusterClass, not defined in cluster topology and enable is not set",
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
-					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
+					WithControlPlaneInfrastructureMachineTemplate(builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpinframachinetemplate").Build()).
 					WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
 						Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
 							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
@@ -73,7 +73,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 						},
 					}).
 					Build(),
-				Topology: builder.ClusterTopology().
+				Topology: *builder.ClusterTopology().
 					WithClass("cluster-class").
 					Build(),
 			},
@@ -96,7 +96,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 						},
 					}).
 					Build(),
-				Topology: builder.ClusterTopology().
+				Topology: *builder.ClusterTopology().
 					WithClass("cluster-class").
 					WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 						Enabled: ptr.To(false),
@@ -109,7 +109,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			name: "should return true if MachineHealthCheck is defined in ClusterClass, not defined in cluster topology and enable is true",
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
-					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
+					WithControlPlaneInfrastructureMachineTemplate(builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpinframachinetemplate").Build()).
 					WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
 						Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
 							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
@@ -122,7 +122,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 						},
 					}).
 					Build(),
-				Topology: builder.ClusterTopology().
+				Topology: *builder.ClusterTopology().
 					WithClass("cluster-class").
 					WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 						Enabled: ptr.To(true),
@@ -135,9 +135,9 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			name: "should return true if MachineHealthCheck is defined in cluster topology, not defined in ClusterClass and enable is not set",
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
-					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
+					WithControlPlaneInfrastructureMachineTemplate(builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpinframachinetemplate").Build()).
 					Build(),
-				Topology: builder.ClusterTopology().
+				Topology: *builder.ClusterTopology().
 					WithClass("cluster-class").
 					WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 						Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
@@ -160,7 +160,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
 					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
 					Build(),
-				Topology: builder.ClusterTopology().
+				Topology: *builder.ClusterTopology().
 					WithClass("cluster-class").
 					WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 						Enabled: ptr.To(false),
@@ -182,9 +182,9 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 			name: "should return true if MachineHealthCheck is defined in cluster topology, not defined in ClusterClass and enable is true",
 			blueprint: &ClusterBlueprint{
 				ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "cluster-class").
-					WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
+					WithControlPlaneInfrastructureMachineTemplate(builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpinframachinetemplate").Build()).
 					Build(),
-				Topology: builder.ClusterTopology().
+				Topology: *builder.ClusterTopology().
 					WithClass("cluster-class").
 					WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 						Enabled: ptr.To(true),
@@ -222,7 +222,7 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 		{
 			name: "should return the MachineHealthCheck from cluster topology if defined - should take precedence over MachineHealthCheck in ClusterClass",
 			blueprint: &ClusterBlueprint{
-				Topology: builder.ClusterTopology().
+				Topology: *builder.ClusterTopology().
 					WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 						Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
 							UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
@@ -272,7 +272,7 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 		{
 			name: "should return the MachineHealthCheck from ClusterClass if no MachineHealthCheck is defined in cluster topology",
 			blueprint: &ClusterBlueprint{
-				Topology: builder.ClusterTopology().
+				Topology: *builder.ClusterTopology().
 					WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{}).
 					Build(),
 				ControlPlane: &ControlPlaneBlueprint{

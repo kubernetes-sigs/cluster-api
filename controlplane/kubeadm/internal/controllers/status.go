@@ -627,7 +627,7 @@ func setAvailableCondition(_ context.Context, kcp *controlplanev1.KubeadmControl
 		memberToMachineMap := map[string]*clusterv1.Machine{}
 		provisioningMachines := []*clusterv1.Machine{}
 		for _, machine := range machines {
-			if machine.Status.NodeRef == nil {
+			if !machine.Status.NodeRef.IsDefined() {
 				provisioningMachines = append(provisioningMachines, machine)
 				continue
 			}

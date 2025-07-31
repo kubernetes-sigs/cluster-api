@@ -200,7 +200,7 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 		for _, node := range controlPlaneNodes.Items {
 			isNodeRef := false
 			for _, m := range controlPlane.Machines {
-				if m.Status.NodeRef != nil && m.Status.NodeRef.Name == node.Name {
+				if m.Status.NodeRef.IsDefined() && m.Status.NodeRef.Name == node.Name {
 					isNodeRef = true
 					break
 				}
@@ -333,7 +333,7 @@ func getNodeNamesSortedByLastKnownEtcdHealth(nodes *corev1.NodeList, machines co
 	for _, node := range nodes.Items {
 		var machine *clusterv1.Machine
 		for _, m := range machines {
-			if m.Status.NodeRef != nil && m.Status.NodeRef.Name == node.Name {
+			if m.Status.NodeRef.IsDefined() && m.Status.NodeRef.Name == node.Name {
 				machine = m
 				break
 			}
@@ -392,7 +392,7 @@ func compareMachinesAndMembers(controlPlane *ControlPlane, nodes *corev1.NodeLis
 
 	// Check Machine -> Etcd member.
 	for _, machine := range controlPlane.Machines {
-		if machine.Status.NodeRef == nil {
+		if !machine.Status.NodeRef.IsDefined() {
 			continue
 		}
 		found := false
@@ -439,7 +439,7 @@ func compareMachinesAndMembers(controlPlane *ControlPlane, nodes *corev1.NodeLis
 		found := false
 		hasProvisioningMachine := false
 		for _, machine := range controlPlane.Machines {
-			if machine.Status.NodeRef == nil {
+			if !machine.Status.NodeRef.IsDefined() {
 				hasProvisioningMachine = true
 				continue
 			}
@@ -546,7 +546,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 		// Search for the machine corresponding to the node.
 		var machine *clusterv1.Machine
 		for _, m := range controlPlane.Machines {
-			if m.Status.NodeRef != nil && m.Status.NodeRef.Name == node.Name {
+			if m.Status.NodeRef.IsDefined() && m.Status.NodeRef.Name == node.Name {
 				machine = m
 				break
 			}
@@ -611,7 +611,7 @@ func (w *Workload) UpdateStaticPodConditions(ctx context.Context, controlPlane *
 	// If there are provisioned machines without corresponding nodes, report this as a failing conditions with SeverityError.
 	for i := range controlPlane.Machines {
 		machine := controlPlane.Machines[i]
-		if machine.Status.NodeRef == nil {
+		if !machine.Status.NodeRef.IsDefined() {
 			continue
 		}
 		found := false

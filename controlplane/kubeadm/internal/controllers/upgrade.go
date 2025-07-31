@@ -57,7 +57,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 
 	kubeadmCMMutators := make([]func(*bootstrapv1.ClusterConfiguration), 0)
 
-	if controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
+	if controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.IsDefined() {
 		// Get the imageRepository or the correct value if nothing is set and a migration is necessary.
 		imageRepository := internal.ImageRepositoryFromClusterConfig(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration)
 
@@ -70,7 +70,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 			workloadCluster.UpdateCertificateValidityPeriodDays(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays))
 
 		// Etcd local and external are mutually exclusive and they cannot be switched, once set.
-		if controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {
+		if controlPlane.IsEtcdManaged() {
 			kubeadmCMMutators = append(kubeadmCMMutators,
 				workloadCluster.UpdateEtcdLocalInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local))
 		} else {

@@ -87,35 +87,22 @@ func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue
 	c.FillNoCustom(in)
 
 	// enforce ControlPlaneComponentHealthCheckSeconds to be equal on init and join configuration
-	var initControlPlaneComponentHealthCheckSeconds *int32
-	if in.InitConfiguration != nil && in.InitConfiguration.Timeouts != nil {
-		initControlPlaneComponentHealthCheckSeconds = in.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
-	}
-	if (in.JoinConfiguration != nil && in.JoinConfiguration.Timeouts != nil) || initControlPlaneComponentHealthCheckSeconds != nil {
-		if in.JoinConfiguration == nil {
-			in.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
-		if in.JoinConfiguration.Timeouts == nil {
-			in.JoinConfiguration.Timeouts = &bootstrapv1.Timeouts{}
-		}
+	initControlPlaneComponentHealthCheckSeconds := in.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
+	if in.JoinConfiguration.IsDefined() || initControlPlaneComponentHealthCheckSeconds != nil {
 		in.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
 	}
 
-	if in.ClusterConfiguration != nil {
-		if in.ClusterConfiguration.APIServer.ExtraEnvs != nil && *in.ClusterConfiguration.APIServer.ExtraEnvs == nil {
-			in.ClusterConfiguration.APIServer.ExtraEnvs = nil
-		}
-		if in.ClusterConfiguration.ControllerManager.ExtraEnvs != nil && *in.ClusterConfiguration.ControllerManager.ExtraEnvs == nil {
-			in.ClusterConfiguration.ControllerManager.ExtraEnvs = nil
-		}
-		if in.ClusterConfiguration.Scheduler.ExtraEnvs != nil && *in.ClusterConfiguration.Scheduler.ExtraEnvs == nil {
-			in.ClusterConfiguration.Scheduler.ExtraEnvs = nil
-		}
-		if in.ClusterConfiguration.Etcd.Local != nil {
-			if in.ClusterConfiguration.Etcd.Local.ExtraEnvs != nil && *in.ClusterConfiguration.Etcd.Local.ExtraEnvs == nil {
-				in.ClusterConfiguration.Etcd.Local.ExtraEnvs = nil
-			}
-		}
+	if in.ClusterConfiguration.APIServer.ExtraEnvs != nil && *in.ClusterConfiguration.APIServer.ExtraEnvs == nil {
+		in.ClusterConfiguration.APIServer.ExtraEnvs = nil
+	}
+	if in.ClusterConfiguration.ControllerManager.ExtraEnvs != nil && *in.ClusterConfiguration.ControllerManager.ExtraEnvs == nil {
+		in.ClusterConfiguration.ControllerManager.ExtraEnvs = nil
+	}
+	if in.ClusterConfiguration.Scheduler.ExtraEnvs != nil && *in.ClusterConfiguration.Scheduler.ExtraEnvs == nil {
+		in.ClusterConfiguration.Scheduler.ExtraEnvs = nil
+	}
+	if in.ClusterConfiguration.Etcd.Local.ExtraEnvs != nil && *in.ClusterConfiguration.Etcd.Local.ExtraEnvs == nil {
+		in.ClusterConfiguration.Etcd.Local.ExtraEnvs = nil
 	}
 }
 
@@ -217,6 +204,13 @@ func spokeKubeadmClusterConfiguration(obj *bootstrapv1alpha3.ClusterConfiguratio
 	obj.Networking.DNSDomain = ""
 	obj.KubernetesVersion = ""
 	obj.ClusterName = ""
+
+	if obj.Etcd.Local != nil && reflect.DeepEqual(obj.Etcd.Local, &bootstrapv1alpha3.LocalEtcd{}) {
+		obj.Etcd.Local = nil
+	}
+	if obj.Etcd.External != nil && reflect.DeepEqual(obj.Etcd.External, &bootstrapv1alpha3.ExternalEtcd{}) {
+		obj.Etcd.External = nil
+	}
 }
 
 func spokeKubeadmConfigSpec(in *bootstrapv1alpha3.KubeadmConfigSpec, c randfill.Continue) {
@@ -226,6 +220,19 @@ func spokeKubeadmConfigSpec(in *bootstrapv1alpha3.KubeadmConfigSpec, c randfill.
 	in.UseExperimentalRetryJoin = false
 
 	dropEmptyStringsKubeadmConfigSpec(in)
+
+	if in.DiskSetup != nil && reflect.DeepEqual(in.DiskSetup, &bootstrapv1alpha3.DiskSetup{}) {
+		in.DiskSetup = nil
+	}
+	if in.NTP != nil && reflect.DeepEqual(in.NTP, &bootstrapv1alpha3.NTP{}) {
+		in.NTP = nil
+	}
+	for i, file := range in.Files {
+		if file.ContentFrom != nil && reflect.DeepEqual(file.ContentFrom, &bootstrapv1alpha3.FileSource{}) {
+			file.ContentFrom = nil
+		}
+		in.Files[i] = file
+	}
 }
 
 func spokeAPIServer(in *bootstrapv1alpha3.APIServer, c randfill.Continue) {
@@ -252,6 +259,14 @@ func spokeDiscovery(in *bootstrapv1alpha3.Discovery, c randfill.Continue) {
 
 	if in.Timeout != nil {
 		in.Timeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if in.File != nil {
+		if reflect.DeepEqual(in.File, &bootstrapv1alpha3.FileDiscovery{}) {
+			in.File = nil
+		}
+	}
+	if in.BootstrapToken != nil && reflect.DeepEqual(in.BootstrapToken, &bootstrapv1alpha3.BootstrapTokenDiscovery{}) {
+		in.BootstrapToken = nil
 	}
 }
 

@@ -651,9 +651,11 @@ func TestUpdateExternalEtcdConditions(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							Etcd: bootstrapv1.Etcd{
-								External: &bootstrapv1.ExternalEtcd{},
+								External: bootstrapv1.ExternalEtcd{
+									Endpoints: []string{"1.2.3.4"},
+								},
 							},
 						},
 					},
@@ -1029,9 +1031,11 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							Etcd: bootstrapv1.Etcd{
-								External: &bootstrapv1.ExternalEtcd{},
+								External: bootstrapv1.ExternalEtcd{
+									Endpoints: []string{"1.2.3.4"},
+								},
 							},
 						},
 					},
@@ -1471,7 +1475,7 @@ func fakeMachine(name string, options ...fakeMachineOption) *clusterv1.Machine {
 
 func withNodeRef(ref string) fakeMachineOption {
 	return func(machine *clusterv1.Machine) {
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{
 			Name: ref,
 		}
 	}

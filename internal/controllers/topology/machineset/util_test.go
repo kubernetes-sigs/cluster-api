@@ -44,10 +44,10 @@ func TestCalculateTemplatesInUse(t *testing.T) {
 		g.Expect(actual).To(HaveLen(4))
 
 		g.Expect(actual).To(HaveKey(templateRefID(md.Spec.Template.Spec.Bootstrap.ConfigRef)))
-		g.Expect(actual).To(HaveKey(templateRefID(&md.Spec.Template.Spec.InfrastructureRef)))
+		g.Expect(actual).To(HaveKey(templateRefID(md.Spec.Template.Spec.InfrastructureRef)))
 
 		g.Expect(actual).To(HaveKey(templateRefID(ms.Spec.Template.Spec.Bootstrap.ConfigRef)))
-		g.Expect(actual).To(HaveKey(templateRefID(&ms.Spec.Template.Spec.InfrastructureRef)))
+		g.Expect(actual).To(HaveKey(templateRefID(ms.Spec.Template.Spec.InfrastructureRef)))
 	})
 
 	t.Run("Calculate templates in use with MachineDeployment and MachineSet without BootstrapTemplate", func(t *testing.T) {
@@ -64,9 +64,9 @@ func TestCalculateTemplatesInUse(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(actual).To(HaveLen(2))
 
-		g.Expect(actual).To(HaveKey(templateRefID(&mdWithoutBootstrapTemplate.Spec.Template.Spec.InfrastructureRef)))
+		g.Expect(actual).To(HaveKey(templateRefID(mdWithoutBootstrapTemplate.Spec.Template.Spec.InfrastructureRef)))
 
-		g.Expect(actual).To(HaveKey(templateRefID(&msWithoutBootstrapTemplate.Spec.Template.Spec.InfrastructureRef)))
+		g.Expect(actual).To(HaveKey(templateRefID(msWithoutBootstrapTemplate.Spec.Template.Spec.InfrastructureRef)))
 	})
 
 	t.Run("Calculate templates in use with MachineDeployment and MachineSet ignore templates when resources in deleting", func(t *testing.T) {
@@ -88,9 +88,9 @@ func TestCalculateTemplatesInUse(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(actual).To(BeEmpty())
 
-		g.Expect(actual).ToNot(HaveKey(templateRefID(&mdInDeleting.Spec.Template.Spec.InfrastructureRef)))
+		g.Expect(actual).ToNot(HaveKey(templateRefID(mdInDeleting.Spec.Template.Spec.InfrastructureRef)))
 
-		g.Expect(actual).ToNot(HaveKey(templateRefID(&msInDeleting.Spec.Template.Spec.InfrastructureRef)))
+		g.Expect(actual).ToNot(HaveKey(templateRefID(msInDeleting.Spec.Template.Spec.InfrastructureRef)))
 	})
 
 	t.Run("Calculate templates in use without MachineDeployment and with MachineSet", func(t *testing.T) {
@@ -106,6 +106,6 @@ func TestCalculateTemplatesInUse(t *testing.T) {
 		g.Expect(actual).To(HaveLen(2))
 
 		g.Expect(actual).To(HaveKey(templateRefID(ms.Spec.Template.Spec.Bootstrap.ConfigRef)))
-		g.Expect(actual).To(HaveKey(templateRefID(&ms.Spec.Template.Spec.InfrastructureRef)))
+		g.Expect(actual).To(HaveKey(templateRefID(ms.Spec.Template.Spec.InfrastructureRef)))
 	})
 }

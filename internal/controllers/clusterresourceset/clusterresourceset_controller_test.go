@@ -113,7 +113,7 @@ metadata:
 				Namespace: ns.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
 					Kind:     builder.GenericControlPlaneKind,
 					Name:     "cp1",

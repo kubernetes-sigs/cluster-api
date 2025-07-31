@@ -40,7 +40,9 @@ func TestNewControlPlaneJoinCertsExternal(t *testing.T) {
 
 	config := &bootstrapv1.ClusterConfiguration{
 		Etcd: bootstrapv1.Etcd{
-			External: &bootstrapv1.ExternalEtcd{},
+			External: bootstrapv1.ExternalEtcd{
+				Endpoints: []string{"1.2.3.4"},
+			},
 		},
 	}
 

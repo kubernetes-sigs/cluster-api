@@ -92,7 +92,7 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 	}
 
 	// Additional defaulting if the Cluster uses a managed topology.
-	if cluster.Spec.Topology != nil {
+	if cluster.Spec.Topology.IsDefined() {
 		// Tolerate version strings without a "v" prefix: prepend it if it's not there.
 		if !strings.HasPrefix(cluster.Spec.Topology.Version, "v") {
 			cluster.Spec.Topology.Version = "v" + cluster.Spec.Topology.Version
@@ -102,8 +102,8 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 			allErrs = append(
 				allErrs,
 				field.Required(
-					field.NewPath("spec", "topology", "classRef"),
-					"classRef.name cannot be empty",
+					field.NewPath("spec", "topology", "classRef", "name"),
+					"cannot be empty",
 				),
 			)
 			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, allErrs)
@@ -185,7 +185,7 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 	}
 
 	specPath := field.NewPath("spec")
-	if newCluster.Spec.InfrastructureRef == nil && oldCluster != nil && oldCluster.Spec.InfrastructureRef != nil {
+	if !newCluster.Spec.InfrastructureRef.IsDefined() && oldCluster != nil && oldCluster.Spec.InfrastructureRef.IsDefined() {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
@@ -195,8 +195,8 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 		)
 	}
 
-	if newCluster.Spec.ControlPlaneRef == nil && newCluster.Spec.InfrastructureRef == nil &&
-		newCluster.Spec.Topology == nil {
+	if !newCluster.Spec.ControlPlaneRef.IsDefined() && !newCluster.Spec.InfrastructureRef.IsDefined() &&
+		!newCluster.Spec.Topology.IsDefined() {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
@@ -206,7 +206,7 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 		)
 	}
 
-	if newCluster.Spec.ControlPlaneRef == nil && oldCluster != nil && oldCluster.Spec.ControlPlaneRef != nil {
+	if !newCluster.Spec.ControlPlaneRef.IsDefined() && oldCluster != nil && oldCluster.Spec.ControlPlaneRef.IsDefined() {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
@@ -225,7 +225,7 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 	topologyPath := specPath.Child("topology")
 
 	// Validate the managed topology, if defined.
-	if newCluster.Spec.Topology != nil {
+	if newCluster.Spec.Topology.IsDefined() {
 		topologyWarnings, topologyErrs := webhook.validateTopology(ctx, oldCluster, newCluster, topologyPath)
 		allWarnings = append(allWarnings, topologyWarnings...)
 		allErrs = append(allErrs, topologyErrs...)
@@ -234,7 +234,7 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 	// On update.
 	if oldCluster != nil {
 		// Error if the update moves the cluster from Managed to Unmanaged i.e. the managed topology is removed on update.
-		if oldCluster.Spec.Topology != nil && newCluster.Spec.Topology == nil {
+		if oldCluster.Spec.Topology.IsDefined() && !newCluster.Spec.Topology.IsDefined() {
 			allErrs = append(allErrs, field.Forbidden(
 				topologyPath,
 				"cannot be removed from an existing Cluster",
@@ -345,7 +345,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 		}
 
 		// Topology or Class can not be added on update unless ClusterTopologyUnsafeUpdateClassNameAnnotation is set.
-		if oldCluster.Spec.Topology == nil || oldCluster.GetClassKey().Name == "" {
+		if !oldCluster.Spec.Topology.IsDefined() || oldCluster.GetClassKey().Name == "" {
 			if _, ok := newCluster.Annotations[clusterv1.ClusterTopologyUnsafeUpdateClassNameAnnotation]; ok {
 				return allWarnings, allErrs
 			}
@@ -652,7 +652,7 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 	// Validate ControlPlane MachineHealthCheck if defined.
 	if cluster.Spec.Topology.ControlPlane.HealthCheck.IsDefined() {
 		// Ensure ControlPlane does not define a MachineHealthCheck if the ClusterClass does not define MachineInfrastructure.
-		if clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
+		if !clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
 			allErrs = append(allErrs, field.Forbidden(
 				fldPath,
 				"can be only set if spec.controlPlane.machineInfrastructure is set in ClusterClass",
@@ -969,7 +969,7 @@ func clusterClassIsReconciled(clusterClass *clusterv1.ClusterClass) error {
 	return nil
 }
 
-func validateTopologyMetadata(topology *clusterv1.Topology, fldPath *field.Path) field.ErrorList {
+func validateTopologyMetadata(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, topology.ControlPlane.Metadata.Validate(fldPath.Child("controlPlane", "metadata"))...)
 	for _, md := range topology.Workers.MachineDeployments {
@@ -991,7 +991,7 @@ func validateTopologyMetadata(topology *clusterv1.Topology, fldPath *field.Path)
 func validateAutoscalerAnnotationsForCluster(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if cluster.Spec.Topology == nil {
+	if !cluster.Spec.Topology.IsDefined() {
 		return allErrs
 	}
 

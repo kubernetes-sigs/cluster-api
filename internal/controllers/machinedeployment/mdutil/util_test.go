@@ -195,7 +195,7 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
 					Name:     "bootstrap1",
 					Kind:     "BootstrapConfigTemplate",
 					APIGroup: clusterv1.GroupVersionBootstrap.Group,
@@ -238,7 +238,7 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 	machineTemplateWithDifferentInfraRef.Spec.InfrastructureRef.Name = "infra2"
 
 	machineTemplateWithBootstrapDataSecret := machineTemplate.DeepCopy()
-	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.ConfigRef = nil
+	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{} // Overwriting ConfigRef to empty.
 	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.DataSecretName = ptr.To("data-secret1")
 
 	machineTemplateWithDifferentBootstrapDataSecret := machineTemplateWithBootstrapDataSecret.DeepCopy()

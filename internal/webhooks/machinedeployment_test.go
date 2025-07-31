@@ -92,22 +92,22 @@ func TestMachineDeploymentBootstrapValidation(t *testing.T) {
 	}{
 		{
 			name:      "should return error if configref and data are nil",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: nil},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: nil},
 			expectErr: true,
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("test")},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("test")},
 			expectErr: false,
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("")},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("")},
 			expectErr: false,
 		},
 		{
 			name:      "should not return error if config ref is set",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}, DataSecretName: nil},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{Name: "bootstrap1"}, DataSecretName: nil},
 			expectErr: false,
 		},
 	}
@@ -156,7 +156,9 @@ func TestMachineDeploymentReferenceDefault(t *testing.T) {
 					ClusterName: "test-cluster",
 					Version:     "1.19.10",
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{},
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name: "bootstrap1",
+						},
 					},
 				},
 			},

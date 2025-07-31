@@ -76,7 +76,6 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	cluster.Spec.ControlPlaneEndpoint.Port = 6443
 	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	kcp.UID = types.UID(util.RandomString(10))
-	kcp.Spec.KubeadmConfigSpec.ClusterConfiguration = nil
 	kcp.Spec.Replicas = ptr.To[int32](1)
 	setKCPHealthy(kcp)
 
@@ -209,7 +208,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					ConfigRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: bootstrapv1.GroupVersion.Group,
 						Kind:     "KubeadmConfig",
 						Name:     name,

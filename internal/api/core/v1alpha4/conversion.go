@@ -123,44 +123,40 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values
 	if ok {
 		dst.Spec.AvailabilityGates = restored.Spec.AvailabilityGates
-		if restored.Spec.Topology != nil {
-			if dst.Spec.Topology == nil {
-				dst.Spec.Topology = &clusterv1.Topology{}
-			}
-			dst.Spec.Topology.ClassRef.Namespace = restored.Spec.Topology.ClassRef.Namespace
-			dst.Spec.Topology.Variables = restored.Spec.Topology.Variables
-			dst.Spec.Topology.ControlPlane.Variables = restored.Spec.Topology.ControlPlane.Variables
+		dst.Spec.Topology.ClassRef.Namespace = restored.Spec.Topology.ClassRef.Namespace
+		dst.Spec.Topology.Variables = restored.Spec.Topology.Variables
+		dst.Spec.Topology.ControlPlane.Variables = restored.Spec.Topology.ControlPlane.Variables
 
-			dst.Spec.Topology.ControlPlane.HealthCheck = restored.Spec.Topology.ControlPlane.HealthCheck
+		dst.Spec.Topology.ControlPlane.HealthCheck = restored.Spec.Topology.ControlPlane.HealthCheck
 
-			if restored.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds != nil {
-				dst.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds = restored.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds
-			}
-
-			if restored.Spec.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds != nil {
-				dst.Spec.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds
-			}
-
-			if restored.Spec.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds != nil {
-				dst.Spec.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds
-			}
-			dst.Spec.Topology.ControlPlane.ReadinessGates = restored.Spec.Topology.ControlPlane.ReadinessGates
-
-			for i := range restored.Spec.Topology.Workers.MachineDeployments {
-				dst.Spec.Topology.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Topology.Workers.MachineDeployments[i].FailureDomain
-				dst.Spec.Topology.Workers.MachineDeployments[i].Variables = restored.Spec.Topology.Workers.MachineDeployments[i].Variables
-				dst.Spec.Topology.Workers.MachineDeployments[i].ReadinessGates = restored.Spec.Topology.Workers.MachineDeployments[i].ReadinessGates
-				dst.Spec.Topology.Workers.MachineDeployments[i].Deletion.Order = restored.Spec.Topology.Workers.MachineDeployments[i].Deletion.Order
-				dst.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDrainTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDrainTimeoutSeconds
-				dst.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeVolumeDetachTimeoutSeconds
-				dst.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDeletionTimeoutSeconds
-				dst.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds = restored.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds
-				dst.Spec.Topology.Workers.MachineDeployments[i].Rollout.Strategy = restored.Spec.Topology.Workers.MachineDeployments[i].Rollout.Strategy
-				dst.Spec.Topology.Workers.MachineDeployments[i].HealthCheck = restored.Spec.Topology.Workers.MachineDeployments[i].HealthCheck
-			}
-
-			dst.Spec.Topology.Workers.MachinePools = restored.Spec.Topology.Workers.MachinePools
+		if restored.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds != nil {
+			dst.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds = restored.Spec.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds
 		}
+
+		if restored.Spec.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds != nil {
+			dst.Spec.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds
+		}
+
+		if restored.Spec.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds != nil {
+			dst.Spec.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds
+		}
+		dst.Spec.Topology.ControlPlane.ReadinessGates = restored.Spec.Topology.ControlPlane.ReadinessGates
+
+		for i := range restored.Spec.Topology.Workers.MachineDeployments {
+			dst.Spec.Topology.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Topology.Workers.MachineDeployments[i].FailureDomain
+			dst.Spec.Topology.Workers.MachineDeployments[i].Variables = restored.Spec.Topology.Workers.MachineDeployments[i].Variables
+			dst.Spec.Topology.Workers.MachineDeployments[i].ReadinessGates = restored.Spec.Topology.Workers.MachineDeployments[i].ReadinessGates
+			dst.Spec.Topology.Workers.MachineDeployments[i].Deletion.Order = restored.Spec.Topology.Workers.MachineDeployments[i].Deletion.Order
+			dst.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDrainTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDrainTimeoutSeconds
+			dst.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeVolumeDetachTimeoutSeconds
+			dst.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Topology.Workers.MachineDeployments[i].Deletion.NodeDeletionTimeoutSeconds
+			dst.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds = restored.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds
+			dst.Spec.Topology.Workers.MachineDeployments[i].Rollout.Strategy = restored.Spec.Topology.Workers.MachineDeployments[i].Rollout.Strategy
+			dst.Spec.Topology.Workers.MachineDeployments[i].HealthCheck = restored.Spec.Topology.Workers.MachineDeployments[i].HealthCheck
+		}
+
+		dst.Spec.Topology.Workers.MachinePools = restored.Spec.Topology.Workers.MachinePools
+
 		dst.Status.Conditions = restored.Status.Conditions
 		dst.Status.ControlPlane = restored.Status.ControlPlane
 		dst.Status.Workers = restored.Status.Workers
@@ -176,7 +172,7 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	if src.Spec.InfrastructureRef != nil {
+	if src.Spec.InfrastructureRef.IsDefined() {
 		infraRef, err := convertToObjectReference(src.Spec.InfrastructureRef, src.Namespace)
 		if err != nil {
 			return err
@@ -184,7 +180,7 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.InfrastructureRef = infraRef
 	}
 
-	if src.Spec.ControlPlaneRef != nil {
+	if src.Spec.ControlPlaneRef.IsDefined() {
 		controlPlaneRef, err := convertToObjectReference(src.Spec.ControlPlaneRef, src.Namespace)
 		if err != nil {
 			return err
@@ -749,6 +745,9 @@ func Convert_v1alpha4_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, 
 	if in.LastUpdated != nil && !reflect.DeepEqual(in.LastUpdated, &metav1.Time{}) {
 		out.LastUpdated = *in.LastUpdated
 	}
+	if in.NodeRef != nil && !reflect.DeepEqual(in.NodeRef, &corev1.ObjectReference{}) {
+		out.NodeRef.Name = in.NodeRef.Name
+	}
 	return nil
 }
 
@@ -763,6 +762,11 @@ func Convert_v1alpha4_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *Control
 	}
 
 	convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ClusterClassTemplateReference(&in.LocalObjectTemplate, &out.TemplateRef, s)
+	if in.MachineInfrastructure != nil {
+		if err := Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(in.MachineInfrastructure, &out.MachineInfrastructure, s); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -830,7 +834,11 @@ func Convert_v1alpha4_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, out *c
 			return err
 		}
 	}
-
+	if in.Topology != nil {
+		if err := Convert_v1alpha4_Topology_To_v1beta2_Topology(in.Topology, &out.Topology, s); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -841,6 +849,12 @@ func Convert_v1beta2_ClusterSpec_To_v1alpha4_ClusterSpec(in *clusterv1.ClusterSp
 	if !reflect.DeepEqual(in.ClusterNetwork, clusterv1.ClusterNetwork{}) {
 		out.ClusterNetwork = &ClusterNetwork{}
 		if err := Convert_v1beta2_ClusterNetwork_To_v1alpha4_ClusterNetwork(&in.ClusterNetwork, out.ClusterNetwork, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.Topology, clusterv1.Topology{}) {
+		out.Topology = &Topology{}
+		if err := Convert_v1beta2_Topology_To_v1alpha4_Topology(&in.Topology, out.Topology, s); err != nil {
 			return err
 		}
 	}
@@ -967,6 +981,12 @@ func Convert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *cluster
 	}
 
 	Convert_v1beta2_ClusterClassTemplateReference_To_v1alpha4_LocalObjectTemplate(&in.TemplateRef, &out.LocalObjectTemplate, s)
+	if in.MachineInfrastructure.TemplateRef.IsDefined() {
+		out.MachineInfrastructure = &LocalObjectTemplate{}
+		if err := Convert_v1beta2_ControlPlaneClassMachineInfrastructureTemplate_To_v1alpha4_LocalObjectTemplate(&in.MachineInfrastructure, out.MachineInfrastructure, s); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -996,6 +1016,13 @@ func Convert_v1beta2_MachineStatus_To_v1alpha4_MachineStatus(in *clusterv1.Machi
 	}
 	if !reflect.DeepEqual(in.LastUpdated, metav1.Time{}) {
 		out.LastUpdated = ptr.To(in.LastUpdated)
+	}
+	if in.NodeRef.IsDefined() {
+		out.NodeRef = &corev1.ObjectReference{
+			Name:       in.NodeRef.Name,
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Node",
+		}
 	}
 	return nil
 }
@@ -1070,8 +1097,7 @@ func Convert_v1alpha4_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(i
 	out.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MaxUnhealthy
 	out.Remediation.TriggerIf.UnhealthyInRange = ptr.Deref(in.UnhealthyRange, "")
 	if in.RemediationTemplate != nil {
-		out.Remediation.TemplateRef = &clusterv1.MachineHealthCheckRemediationTemplateReference{}
-		if err := clusterv1beta1.Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.RemediationTemplate, out.Remediation.TemplateRef, s); err != nil {
+		if err := clusterv1beta1.Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.RemediationTemplate, &out.Remediation.TemplateRef, s); err != nil {
 			return err
 		}
 	}
@@ -1096,9 +1122,9 @@ func Convert_v1beta2_MachineHealthCheckSpec_To_v1alpha4_MachineHealthCheckSpec(i
 	if in.Remediation.TriggerIf.UnhealthyInRange != "" {
 		out.UnhealthyRange = ptr.To(in.Remediation.TriggerIf.UnhealthyInRange)
 	}
-	if in.Remediation.TemplateRef != nil {
+	if in.Remediation.TemplateRef.IsDefined() {
 		out.RemediationTemplate = &corev1.ObjectReference{}
-		if err := clusterv1beta1.Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(in.Remediation.TemplateRef, out.RemediationTemplate, s); err != nil {
+		if err := clusterv1beta1.Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(&in.Remediation.TemplateRef, out.RemediationTemplate, s); err != nil {
 			return err
 		}
 	}
@@ -1282,12 +1308,37 @@ func Convert_v1beta2_MachineDeploymentRolloutStrategyRollingUpdate_To_v1alpha4_M
 	return nil
 }
 
+func Convert_v1alpha4_Bootstrap_To_v1beta2_Bootstrap(in *Bootstrap, out *clusterv1.Bootstrap, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha4_Bootstrap_To_v1beta2_Bootstrap(in, out, s); err != nil {
+		return err
+	}
+	if in.ConfigRef != nil {
+		if err := clusterv1beta1.Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(in.ConfigRef, &out.ConfigRef, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_Bootstrap_To_v1alpha4_Bootstrap(in *clusterv1.Bootstrap, out *Bootstrap, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_Bootstrap_To_v1alpha4_Bootstrap(in, out, s); err != nil {
+		return err
+	}
+	if in.ConfigRef.IsDefined() {
+		out.ConfigRef = &corev1.ObjectReference{}
+		if err := clusterv1beta1.Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(&in.ConfigRef, out.ConfigRef, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func convertMachineSpecToContractVersionedObjectReference(src *MachineSpec, dst *clusterv1.MachineSpec) error {
 	infraRef, err := convertToContractVersionedObjectReference(&src.InfrastructureRef)
 	if err != nil {
 		return err
 	}
-	dst.InfrastructureRef = *infraRef
+	dst.InfrastructureRef = infraRef
 
 	if src.Bootstrap.ConfigRef != nil {
 		bootstrapRef, err := convertToContractVersionedObjectReference(src.Bootstrap.ConfigRef)
@@ -1301,13 +1352,13 @@ func convertMachineSpecToContractVersionedObjectReference(src *MachineSpec, dst 
 }
 
 func convertMachineSpecToObjectReference(src *clusterv1.MachineSpec, dst *MachineSpec, namespace string) error {
-	infraRef, err := convertToObjectReference(&src.InfrastructureRef, namespace)
+	infraRef, err := convertToObjectReference(src.InfrastructureRef, namespace)
 	if err != nil {
 		return err
 	}
 	dst.InfrastructureRef = *infraRef
 
-	if src.Bootstrap.ConfigRef != nil {
+	if src.Bootstrap.ConfigRef.IsDefined() {
 		bootstrapRef, err := convertToObjectReference(src.Bootstrap.ConfigRef, namespace)
 		if err != nil {
 			return err
@@ -1318,23 +1369,23 @@ func convertMachineSpecToObjectReference(src *clusterv1.MachineSpec, dst *Machin
 	return nil
 }
 
-func convertToContractVersionedObjectReference(ref *corev1.ObjectReference) (*clusterv1.ContractVersionedObjectReference, error) {
+func convertToContractVersionedObjectReference(ref *corev1.ObjectReference) (clusterv1.ContractVersionedObjectReference, error) {
 	var apiGroup string
 	if ref.APIVersion != "" {
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert object: failed to parse apiVersion: %v", err)
+			return clusterv1.ContractVersionedObjectReference{}, fmt.Errorf("failed to convert object: failed to parse apiVersion: %v", err)
 		}
 		apiGroup = gv.Group
 	}
-	return &clusterv1.ContractVersionedObjectReference{
+	return clusterv1.ContractVersionedObjectReference{
 		APIGroup: apiGroup,
 		Kind:     ref.Kind,
 		Name:     ref.Name,
 	}, nil
 }
 
-func convertToObjectReference(ref *clusterv1.ContractVersionedObjectReference, namespace string) (*corev1.ObjectReference, error) {
+func convertToObjectReference(ref clusterv1.ContractVersionedObjectReference, namespace string) (*corev1.ObjectReference, error) {
 	apiVersion, err := apiVersionGetter(schema.GroupKind{
 		Group: ref.APIGroup,
 		Kind:  ref.Kind,

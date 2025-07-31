@@ -491,7 +491,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 					Namespace: "test-ns",
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{},
+					Topology: clusterv1.Topology{},
 				},
 			},
 			hookResponse:       nonBlockingResponse,
@@ -508,7 +508,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 					Namespace: "test-ns",
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{},
+					Topology: clusterv1.Topology{},
 				},
 			},
 			hookResponse:       blockingResponse,
@@ -525,7 +525,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 					Namespace: "test-ns",
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{},
+					Topology: clusterv1.Topology{},
 				},
 			},
 			hookResponse:       failureResponse,
@@ -546,7 +546,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{},
+					Topology: clusterv1.Topology{},
 				},
 			},
 			// Using a blocking response here should not matter as the hook should never be called.
@@ -1047,17 +1047,17 @@ func assertControlPlaneReconcile(cluster *clusterv1.Cluster) error {
 		return err
 	}
 	// Check for the ControlPlaneInfrastructure if it's referenced in the clusterClass.
-	if clusterClass.Spec.ControlPlane.MachineInfrastructure != nil {
+	if clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
 		cpInfra, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(cp)
 		if err != nil {
 			return err
 		}
-		if err := referenceExistsWithCorrectKindAndAPIGroup(cpInfra,
+		if err := referenceExistsWithCorrectKindAndAPIGroup(*cpInfra,
 			builder.TestInfrastructureMachineTemplateKind,
 			builder.InfrastructureGroupVersion.Group); err != nil {
 			return err
 		}
-		if _, err := getAndAssertLabelsAndAnnotations(cpInfra, cluster.Name, cluster.Namespace); err != nil {
+		if _, err := getAndAssertLabelsAndAnnotations(*cpInfra, cluster.Name, cluster.Namespace); err != nil {
 			return err
 		}
 	}
@@ -1123,14 +1123,14 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 			}
 
 			// Check if the InfrastructureReference exists.
-			if err := referenceExistsWithCorrectKindAndAPIGroup(&md.Spec.Template.Spec.InfrastructureRef,
+			if err := referenceExistsWithCorrectKindAndAPIGroup(md.Spec.Template.Spec.InfrastructureRef,
 				builder.TestInfrastructureMachineTemplateKind,
 				builder.InfrastructureGroupVersion.Group); err != nil {
 				return err
 			}
 
 			// Check if the InfrastructureReference has the expected labels and annotations.
-			if _, err := getAndAssertLabelsAndAnnotations(&md.Spec.Template.Spec.InfrastructureRef, cluster.Name, md.Namespace); err != nil {
+			if _, err := getAndAssertLabelsAndAnnotations(md.Spec.Template.Spec.InfrastructureRef, cluster.Name, md.Namespace); err != nil {
 				return err
 			}
 
@@ -1209,14 +1209,14 @@ func assertMachinePoolsReconcile(cluster *clusterv1.Cluster) error {
 			}
 
 			// Check if the InfrastructureReference exists.
-			if err := referenceExistsWithCorrectKindAndAPIGroup(&mp.Spec.Template.Spec.InfrastructureRef,
+			if err := referenceExistsWithCorrectKindAndAPIGroup(mp.Spec.Template.Spec.InfrastructureRef,
 				builder.TestInfrastructureMachinePoolKind,
 				builder.InfrastructureGroupVersion.Group); err != nil {
 				return err
 			}
 
 			// Check if the InfrastructureReference has the expected labels and annotations.
-			if _, err := getAndAssertLabelsAndAnnotations(&mp.Spec.Template.Spec.InfrastructureRef, cluster.Name, mp.Namespace); err != nil {
+			if _, err := getAndAssertLabelsAndAnnotations(mp.Spec.Template.Spec.InfrastructureRef, cluster.Name, mp.Namespace); err != nil {
 				return err
 			}
 
@@ -1241,7 +1241,7 @@ func assertMachinePoolsReconcile(cluster *clusterv1.Cluster) error {
 // 2) The correct ClusterNameLabel.
 // 3) The annotation stating where the template was cloned from.
 // The function returns the unstructured object and a bool indicating if it passed all tests.
-func getAndAssertLabelsAndAnnotations(templateRef *clusterv1.ContractVersionedObjectReference, clusterName, namespace string) (*unstructured.Unstructured, error) {
+func getAndAssertLabelsAndAnnotations(templateRef clusterv1.ContractVersionedObjectReference, clusterName, namespace string) (*unstructured.Unstructured, error) {
 	got, err := external.GetObjectFromContractVersionedRef(ctx, env.Client, templateRef, namespace)
 	if err != nil {
 		return nil, err
@@ -1297,8 +1297,8 @@ func assertTemplateClonedFromNameAnnotation(got client.Object) error {
 }
 
 // referenceExistsWithCorrectKindAndAPIGroup asserts that the passed ContractVersionedObjectReference is not nil and that it has the correct kind and apiGroup.
-func referenceExistsWithCorrectKindAndAPIGroup(reference *clusterv1.ContractVersionedObjectReference, kind string, apiGroup string) error {
-	if reference == nil {
+func referenceExistsWithCorrectKindAndAPIGroup(reference clusterv1.ContractVersionedObjectReference, kind string, apiGroup string) error {
+	if !reference.IsDefined() {
 		return fmt.Errorf("object reference passed was nil")
 	}
 	if reference.Kind != kind {

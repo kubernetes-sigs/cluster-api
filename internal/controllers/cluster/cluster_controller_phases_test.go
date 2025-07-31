@@ -55,7 +55,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 				Host: "1.2.3.4",
 				Port: 8443,
 			},
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:     "GenericInfrastructureMachine",
 				Name:     "test",
@@ -71,7 +71,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:     "GenericInfrastructureMachine",
 				Name:     "test",
@@ -301,7 +301,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 				Host: "1.2.3.4",
 				Port: 8443,
 			},
-			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionControlPlane.Group,
 				Kind:     "GenericControlPlane",
 				Name:     "test",
@@ -317,7 +317,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionControlPlane.Group,
 				Kind:     "GenericControlPlane",
 				Name:     "test",
@@ -675,7 +675,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 				Host: "1.2.3.4",
 				Port: 8443,
 			},
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:     "GenericInfrastructureCluster",
 				Name:     "test",

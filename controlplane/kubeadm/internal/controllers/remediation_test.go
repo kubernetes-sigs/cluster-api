@@ -300,7 +300,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			},
 			Cluster: &clusterv1.Cluster{
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.20.1",
 					},
 				},
@@ -2065,7 +2065,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 func nodes(machines collections.Machines) []string {
 	nodes := make([]string, 0, machines.Len())
 	for _, m := range machines {
-		if m.Status.NodeRef != nil {
+		if m.Status.NodeRef.IsDefined() {
 			nodes = append(nodes, m.Status.NodeRef.Name)
 		}
 	}
@@ -2138,7 +2138,7 @@ func withUnhealthyAPIServerPod() machineOption {
 
 func withNodeRef(ref string) machineOption {
 	return func(machine *clusterv1.Machine) {
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{
 			Name: ref,
 		}
 	}
@@ -2146,7 +2146,7 @@ func withNodeRef(ref string) machineOption {
 
 func withoutNodeRef() machineOption {
 	return func(machine *clusterv1.Machine) {
-		machine.Status.NodeRef = nil
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{}
 	}
 }
 

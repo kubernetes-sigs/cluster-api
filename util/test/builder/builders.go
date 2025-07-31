@@ -100,9 +100,11 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 			Annotations: c.annotations,
 		},
 		Spec: clusterv1.ClusterSpec{
-			Topology:       c.topology,
 			ClusterNetwork: c.network,
 		},
+	}
+	if c.topology != nil {
+		obj.Spec.Topology = *c.topology
 	}
 	if c.infrastructureCluster != nil {
 		obj.Spec.InfrastructureRef = objToRef(c.infrastructureCluster)
@@ -523,7 +525,7 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 		obj.Spec.ControlPlane.Deletion.NodeDeletionTimeoutSeconds = c.controlPlaneNodeDeletionTimeout
 	}
 	if c.controlPlaneInfrastructureMachineTemplate != nil {
-		obj.Spec.ControlPlane.MachineInfrastructure = &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+		obj.Spec.ControlPlane.MachineInfrastructure = clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
 			TemplateRef: objToClusterClassTemplateRef(c.controlPlaneInfrastructureMachineTemplate),
 		}
 	}
@@ -1439,7 +1441,7 @@ func (c *ControlPlaneBuilder) WithInfrastructureMachineTemplate(t *unstructured.
 			panic(err)
 		}
 	} else {
-		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(c.obj, objToRef(t))
+		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(c.obj, ptr.To(objToRef(t)))
 		if err != nil {
 			panic(err)
 		}
@@ -1524,7 +1526,7 @@ func (c *TestControlPlaneBuilder) WithInfrastructureMachineTemplate(t *unstructu
 			panic(err)
 		}
 	} else {
-		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(c.obj, objToRef(t))
+		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(c.obj, ptr.To(objToRef(t)))
 		if err != nil {
 			panic(err)
 		}
@@ -1729,7 +1731,7 @@ func (m *MachinePoolBuilder) Build() *clusterv1.MachinePool {
 		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrap)
 	}
 	if m.infrastructure != nil {
-		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(m.infrastructure)
+		obj.Spec.Template.Spec.InfrastructureRef = objToRef(m.infrastructure)
 	}
 	if m.status != nil {
 		obj.Status = *m.status
@@ -1853,7 +1855,7 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrapTemplate)
 	}
 	if m.infrastructureTemplate != nil {
-		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(m.infrastructureTemplate)
+		obj.Spec.Template.Spec.InfrastructureRef = objToRef(m.infrastructureTemplate)
 	}
 	if m.selector != nil {
 		obj.Spec.Selector = *m.selector
@@ -1956,7 +1958,7 @@ func (m *MachineSetBuilder) Build() *clusterv1.MachineSet {
 		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrapTemplate)
 	}
 	if m.infrastructureTemplate != nil {
-		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(m.infrastructureTemplate)
+		obj.Spec.Template.Spec.InfrastructureRef = objToRef(m.infrastructureTemplate)
 	}
 	return obj
 }
@@ -2031,7 +2033,7 @@ func (m *MachineBuilder) Build() *clusterv1.Machine {
 		machine.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrap)
 	}
 	if m.infraMachine != nil {
-		machine.Spec.InfrastructureRef = *objToRef(m.bootstrap)
+		machine.Spec.InfrastructureRef = objToRef(m.bootstrap)
 	}
 	if m.clusterName != "" {
 		if len(m.labels) == 0 {
@@ -2054,9 +2056,9 @@ func objToClusterClassTemplateRef(obj *unstructured.Unstructured) clusterv1.Clus
 // objToRef returns a reference to the given object.
 // Note: This function only operates on Unstructured instead of client.Object
 // because it is only safe to assume for Unstructured that the GVK is set.
-func objToRef(obj *unstructured.Unstructured) *clusterv1.ContractVersionedObjectReference {
+func objToRef(obj *unstructured.Unstructured) clusterv1.ContractVersionedObjectReference {
 	gvk := obj.GetObjectKind().GroupVersionKind()
-	return &clusterv1.ContractVersionedObjectReference{
+	return clusterv1.ContractVersionedObjectReference{
 		APIGroup: gvk.Group,
 		Kind:     gvk.Kind,
 		Name:     obj.GetName(),

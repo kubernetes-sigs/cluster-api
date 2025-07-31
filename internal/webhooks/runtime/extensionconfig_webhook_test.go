@@ -117,7 +117,7 @@ func TestExtensionConfigDefault(t *testing.T) {
 		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				Service: &runtimev1.ServiceReference{
+				Service: runtimev1.ServiceReference{
 					Name:      "name",
 					Namespace: "namespace",
 				},
@@ -151,7 +151,7 @@ func TestExtensionConfigValidate(t *testing.T) {
 		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				Service: &runtimev1.ServiceReference{
+				Service: runtimev1.ServiceReference{
 					Path:      "/path/to/handler",
 					Port:      ptr.To[int32](1),
 					Name:      "foo",

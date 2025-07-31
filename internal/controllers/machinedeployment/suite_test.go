@@ -175,7 +175,7 @@ func fakeMachineNodeRef(m *clusterv1.Machine, pid string, g *WithT) {
 		return env.Get(ctx, key, &clusterv1.Machine{})
 	}).Should(Succeed())
 
-	if m.Status.NodeRef != nil {
+	if m.Status.NodeRef.IsDefined() {
 		return
 	}
 
@@ -211,7 +211,7 @@ func fakeMachineNodeRef(m *clusterv1.Machine, pid string, g *WithT) {
 	g.Expect(env.Patch(ctx, m, patchMachine)).To(Succeed())
 
 	patchMachine = client.MergeFrom(m.DeepCopy())
-	m.Status.NodeRef = &clusterv1.MachineNodeReference{
+	m.Status.NodeRef = clusterv1.MachineNodeReference{
 		Name: node.Name,
 	}
 	g.Expect(env.Status().Patch(ctx, m, patchMachine)).To(Succeed())

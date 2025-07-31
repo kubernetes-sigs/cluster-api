@@ -72,7 +72,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 }
 
 func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, bootstrapConfig *unstructured.Unstructured, bootstrapConfigIsNotFound bool) {
-	if machine.Spec.Bootstrap.ConfigRef == nil {
+	if !machine.Spec.Bootstrap.ConfigRef.IsDefined() {
 		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineBootstrapConfigReadyCondition,
 			Status: metav1.ConditionTrue,
@@ -370,7 +370,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 	// NOTE: in case an accidental deletion happens before volume detach is completed, the Node
 	// will be considered unreachable Machine deletion will complete.
 	if !machine.DeletionTimestamp.IsZero() {
-		if machine.Status.NodeRef != nil {
+		if machine.Status.NodeRef.IsDefined() {
 			setNodeConditions(machine, metav1.ConditionFalse,
 				clusterv1.MachineNodeDeletedReason,
 				fmt.Sprintf("Node %s has been deleted", machine.Status.NodeRef.Name))
@@ -384,7 +384,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 	}
 
 	// Report an issue if node missing after being initialized.
-	if machine.Status.NodeRef != nil {
+	if machine.Status.NodeRef.IsDefined() {
 		// Setting MachineNodeHealthyCondition to False to give it more relevance in the Ready condition summary.
 		// Setting MachineNodeReadyCondition to False to keep it consistent with MachineNodeHealthyCondition.
 		setNodeConditions(machine, metav1.ConditionFalse,
@@ -814,7 +814,7 @@ func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {
 	}
 
 	// Set the phase to "running" if there is a NodeRef field and infrastructure is ready.
-	if m.Status.NodeRef != nil && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false) {
+	if m.Status.NodeRef.IsDefined() && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false) {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseRunning)
 	}
 

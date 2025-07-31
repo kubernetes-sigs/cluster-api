@@ -101,7 +101,7 @@ func setPhase(_ context.Context, cluster *clusterv1.Cluster) bool {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhasePending)
 	}
 
-	if cluster.Spec.InfrastructureRef != nil || cluster.Spec.ControlPlaneRef != nil {
+	if cluster.Spec.InfrastructureRef.IsDefined() || cluster.Spec.ControlPlaneRef.IsDefined() {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioning)
 	}
 
@@ -127,7 +127,7 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 	// Note: The cluster API contract does not require that a control plane object has a notion of replicas;
 	// if the control plane object does have a notion of replicas, or expected replicas fields are not provided,
 	// corresponding replicas will be left empty.
-	if cluster.Spec.ControlPlaneRef != nil || cluster.Spec.Topology != nil {
+	if cluster.Spec.ControlPlaneRef.IsDefined() || cluster.Spec.Topology.IsDefined() {
 		if controlPlane == nil || controlPlaneIsNotFound {
 			cluster.Status.ControlPlane.Replicas = nil
 			cluster.Status.ControlPlane.ReadyReplicas = nil
@@ -333,7 +333,7 @@ func setRemoteConnectionProbeCondition(_ context.Context, cluster *clusterv1.Clu
 
 func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Cluster, infraCluster *unstructured.Unstructured, infraClusterIsNotFound bool) {
 	// infrastructure is not yet set and the cluster is using ClusterClass.
-	if cluster.Spec.InfrastructureRef == nil && cluster.Spec.Topology != nil {
+	if !cluster.Spec.InfrastructureRef.IsDefined() && cluster.Spec.Topology.IsDefined() {
 		message := ""
 		if cluster.DeletionTimestamp.IsZero() {
 			message = "Waiting for cluster topology to be reconciled" //nolint:goconst // Not making this a constant for now
@@ -434,7 +434,7 @@ func setInfrastructureReadyCondition(_ context.Context, cluster *clusterv1.Clust
 
 func setControlPlaneAvailableCondition(_ context.Context, cluster *clusterv1.Cluster, controlPlane *unstructured.Unstructured, controlPlaneIsNotFound bool) {
 	// control plane is not yet set and the cluster is using ClusterClass.
-	if cluster.Spec.ControlPlaneRef == nil && cluster.Spec.Topology != nil {
+	if !cluster.Spec.ControlPlaneRef.IsDefined() && cluster.Spec.Topology.IsDefined() {
 		message := ""
 		if cluster.DeletionTimestamp.IsZero() {
 			message = "Waiting for cluster topology to be reconciled"
@@ -542,7 +542,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 	}
 
 	// control plane is not yet set and the cluster is using ClusterClass.
-	if cluster.Spec.ControlPlaneRef == nil && cluster.Spec.Topology != nil {
+	if !cluster.Spec.ControlPlaneRef.IsDefined() && cluster.Spec.Topology.IsDefined() {
 		message := ""
 		if cluster.DeletionTimestamp.IsZero() {
 			message = "Waiting for cluster topology to be reconciled"
@@ -557,7 +557,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 	}
 
 	// If this cluster is using a control plane object, get control plane initialized from this object.
-	if cluster.Spec.ControlPlaneRef != nil {
+	if cluster.Spec.ControlPlaneRef.IsDefined() {
 		if controlPlane == nil {
 			if !controlPlaneIsNotFound {
 				conditions.Set(cluster, metav1.Condition{
@@ -877,7 +877,7 @@ func setRollingOutCondition(ctx context.Context, cluster *clusterv1.Cluster, con
 	log := ctrl.LoggerFrom(ctx)
 
 	// If there was some unexpected errors in getting control plane or listing descendants (this should never happen), surface it.
-	if (cluster.Spec.ControlPlaneRef != nil && controlPlane == nil && !controlPlaneIsNotFound) || !getDescendantsSucceeded {
+	if (cluster.Spec.ControlPlaneRef.IsDefined() && controlPlane == nil && !controlPlaneIsNotFound) || !getDescendantsSucceeded {
 		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRollingOutCondition,
 			Status:  metav1.ConditionUnknown,
@@ -948,7 +948,7 @@ func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, cont
 	log := ctrl.LoggerFrom(ctx)
 
 	// If there was some unexpected errors in getting control plane or listing descendants (this should never happen), surface it.
-	if (cluster.Spec.ControlPlaneRef != nil && controlPlane == nil && !controlPlaneIsNotFound) || !getDescendantsSucceeded {
+	if (cluster.Spec.ControlPlaneRef.IsDefined() && controlPlane == nil && !controlPlaneIsNotFound) || !getDescendantsSucceeded {
 		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterScalingUpCondition,
 			Status:  metav1.ConditionUnknown,
@@ -1025,7 +1025,7 @@ func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, co
 	log := ctrl.LoggerFrom(ctx)
 
 	// If there was some unexpected errors in getting control plane or listing descendants (this should never happen), surface it.
-	if (cluster.Spec.ControlPlaneRef != nil && controlPlane == nil && !controlPlaneIsNotFound) || !getDescendantsSucceeded {
+	if (cluster.Spec.ControlPlaneRef.IsDefined() && controlPlane == nil && !controlPlaneIsNotFound) || !getDescendantsSucceeded {
 		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterScalingDownCondition,
 			Status:  metav1.ConditionUnknown,
@@ -1186,7 +1186,7 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clus
 			},
 		},
 	}
-	if cluster.Spec.Topology == nil {
+	if !cluster.Spec.Topology.IsDefined() {
 		summaryOpts = append(summaryOpts, conditions.IgnoreTypesIfMissing{clusterv1.ClusterTopologyReconciledCondition})
 	}
 

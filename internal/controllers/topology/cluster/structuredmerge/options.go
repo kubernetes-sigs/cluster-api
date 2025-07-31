@@ -89,8 +89,9 @@ func newHelperOptions(target client.Object, opts ...HelperOption) *HelperOptions
 	switch target.(type) {
 	case *clusterv1.Cluster:
 		helperOptions.AllowedPaths = allowedPathsCluster
-		// NOTE: DropEmptyStructAndNil is not required for the cluster, because even if it is converted to unstructured using the DefaultUnstructuredConverter,
-		// and it does not handle omitzero (yet), none of the allowedPaths is using omitzero.
+		helperOptions.DropEmptyStructAndNil = true
+		// NOTE: DropEmptyStructAndNil is required for Cluster, because it is converted to unstructured using the DefaultUnstructuredConverter,
+		// and it does not handle omitzero (yet).
 	case *unstructured.Unstructured:
 		// NOTE: DropEmptyStructAndNil is not required for unstructured objects, because DefaultUnstructuredConverter is not called.
 	default:

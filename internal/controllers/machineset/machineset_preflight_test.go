@@ -177,7 +177,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					},
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
-						Topology: &clusterv1.Topology{
+						Topology: clusterv1.Topology{
 							Version: "v1.27.2",
 						},
 					},
@@ -211,7 +211,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								Version:   "v1.26.2",
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{Kind: "KubeadmConfigTemplate"}},
+								Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{Kind: "KubeadmConfigTemplate"}},
 							},
 						},
 					},
@@ -410,7 +410,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								Version: "v1.25.5",
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{
+								Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
 									APIGroup: bootstrapv1.GroupVersion.Group,
 									Kind:     "KubeadmConfigTemplate",
 								}},
@@ -471,7 +471,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								Version: "v1.25.0",
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{
+								Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
 									APIGroup: bootstrapv1.GroupVersion.Group,
 									Kind:     "KubeadmConfigTemplate",
 								}},
@@ -501,7 +501,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								Version: "v1.26.2",
-								Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{
+								Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
 									APIGroup: bootstrapv1.GroupVersion.Group,
 									Kind:     "KubeadmConfigTemplate",
 								}},
@@ -519,7 +519,11 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						Topology:        &clusterv1.Topology{},
+						Topology: clusterv1.Topology{
+							ClassRef: clusterv1.ClusterClassRef{
+								Name: "class",
+							},
+						},
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
@@ -579,7 +583,11 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						Topology:        &clusterv1.Topology{},
+						Topology: clusterv1.Topology{
+							ClassRef: clusterv1.ClusterClassRef{
+								Name: "class",
+							},
+						},
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
@@ -609,7 +617,11 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						Topology:        &clusterv1.Topology{},
+						Topology: clusterv1.Topology{
+							ClassRef: clusterv1.ClusterClassRef{
+								Name: "class",
+							},
+						},
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
@@ -678,7 +690,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
 						Version: "v1.26.0",
-						Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: bootstrapv1.GroupVersion.Group,
 							Kind:     "KubeadmConfigTemplate",
 						}},

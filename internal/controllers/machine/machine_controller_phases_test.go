@@ -54,7 +54,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: clusterv1.GroupVersionBootstrap.Group,
 					Kind:     "GenericBootstrapConfig",
 					Name:     "bootstrap-config1",
@@ -255,7 +255,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: clusterv1.GroupVersionBootstrap.Group,
 							Kind:     "GenericBootstrapConfig",
 							Name:     "bootstrap-config1",
@@ -302,7 +302,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: clusterv1.GroupVersionBootstrap.Group,
 							Kind:     "GenericBootstrapConfig",
 							Name:     "bootstrap-config1",
@@ -1097,7 +1097,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: clusterv1.GroupVersionBootstrap.Group,
 							Kind:     "GenericBootstrapConfig",
 							Name:     "bootstrap-config-without-expiry",
@@ -1122,7 +1122,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: clusterv1.GroupVersionBootstrap.Group,
 							Kind:     "GenericBootstrapConfig",
 							Name:     "bootstrap-config-with-expiry",
@@ -1150,7 +1150,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: clusterv1.GroupVersionBootstrap.Group,
 							Kind:     "GenericBootstrapConfig",
 							Name:     "bootstrap-config-without-expiry",
@@ -1178,7 +1178,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: clusterv1.GroupVersionBootstrap.Group,
 							Kind:     "GenericBootstrapConfig",
 							Name:     "bootstrap-config-with-expiry",
@@ -1203,7 +1203,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: clusterv1.GroupVersionBootstrap.Group,
 							Kind:     "GenericBootstrapConfig",
 							Name:     "bootstrap-config-without-expiry",

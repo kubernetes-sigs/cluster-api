@@ -82,7 +82,7 @@ func clusterClassNamesFromTemplate(template Template) ([]types.NamespacedName, e
 			if err := scheme.Scheme.Convert(&obj, cluster, nil); err != nil {
 				return nil, errors.Wrap(err, "failed to convert object to Cluster")
 			}
-			if cluster.Spec.Topology == nil {
+			if !cluster.Spec.Topology.IsDefined() {
 				continue
 			}
 			classes = append(classes, cluster.GetClassKey())

@@ -58,7 +58,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 	}
 
 	// If the cluster does not have a control plane reference then there is nothing to do. Return early.
-	if cluster.Spec.ControlPlaneRef == nil {
+	if !cluster.Spec.ControlPlaneRef.IsDefined() {
 		return nil, nil
 	}
 
@@ -150,7 +150,7 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 	cpKlogRef := klog.KRef(controlPlane.GetNamespace(), controlPlane.GetName())
 
 	if feature.Gates.Enabled(feature.ClusterTopology) {
-		if cluster.Spec.Topology != nil && cluster.Spec.Topology.Version != controlPlaneVersion {
+		if cluster.Spec.Topology.IsDefined() && cluster.Spec.Topology.Version != controlPlaneVersion {
 			return ptr.To(fmt.Sprintf("%s %s has a pending version upgrade to %s (%q preflight check failed)", controlPlane.GetKind(), cpKlogRef, cluster.Spec.Topology.Version, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
 		}
 	}
@@ -194,7 +194,7 @@ func (r *Reconciler) kubernetesVersionPreflightCheck(cpSemver, msSemver semver.V
 
 func (r *Reconciler) kubeadmVersionPreflightCheck(cpSemver, msSemver semver.Version, ms *clusterv1.MachineSet) preflightCheckErrorMessage {
 	// If the bootstrap.configRef is nil return early.
-	if ms.Spec.Template.Spec.Bootstrap.ConfigRef == nil {
+	if !ms.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 		return nil
 	}
 
@@ -213,7 +213,7 @@ func (r *Reconciler) kubeadmVersionPreflightCheck(cpSemver, msSemver semver.Vers
 }
 
 func (r *Reconciler) controlPlaneVersionPreflightCheck(cluster *clusterv1.Cluster, cpVersion, msVersion string) preflightCheckErrorMessage {
-	if feature.Gates.Enabled(feature.ClusterTopology) && cluster.Spec.Topology != nil {
+	if feature.Gates.Enabled(feature.ClusterTopology) && cluster.Spec.Topology.IsDefined() {
 		if cpVersion != msVersion {
 			return ptr.To(fmt.Sprintf("MachineSet version (%s) is not yet the same as the ControlPlane version (%s), waiting for version to be propagated to the MachineSet (%q preflight check failed)", msVersion, cpVersion, clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew))
 		}

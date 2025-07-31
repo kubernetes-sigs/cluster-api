@@ -957,7 +957,7 @@ func modifyMachineDeployments(baseClusterTemplateYAML []byte, count int64) []byt
 	Expect(scheme.Convert(&objs[0], cluster, nil)).Should(Succeed())
 
 	// Verify the Cluster Topology.
-	Expect(cluster.Spec.Topology).NotTo(BeNil(), "Should be a ClusterClass based Cluster")
+	Expect(cluster.Spec.Topology.IsDefined()).To(BeTrue(), "Should be a ClusterClass based Cluster")
 	Expect(cluster.Spec.Topology.Workers.MachineDeployments).To(HaveLen(1), "ClusterTopology should have exactly one MachineDeployment")
 
 	baseMD := cluster.Spec.Topology.Workers.MachineDeployments[0]

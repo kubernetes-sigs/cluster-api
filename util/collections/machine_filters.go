@@ -306,6 +306,6 @@ func HasNode() Func {
 		if machine == nil {
 			return false
 		}
-		return machine.Status.NodeRef != nil
+		return machine.Status.NodeRef.IsDefined()
 	}
 }

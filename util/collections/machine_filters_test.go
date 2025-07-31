@@ -428,7 +428,7 @@ func TestHasNode(t *testing.T) {
 	t.Run("machine with node returns true", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
-			Status: clusterv1.MachineStatus{NodeRef: &clusterv1.MachineNodeReference{Name: "foo"}},
+			Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "foo"}},
 		}
 		g.Expect(collections.HasNode()(machine)).To(BeTrue())
 	})
@@ -449,7 +449,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 	t.Run("machine with all healthy controlPlane component conditions returns false when the Etcd is not managed", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{}
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{
 			Name: "node1",
 		}
 		machine.Status.Conditions = []metav1.Condition{
@@ -463,7 +463,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 	t.Run("machine with unhealthy 'APIServerPodHealthy' condition returns true when the Etcd is not managed", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{}
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{
 			Name: "node1",
 		}
 		machine.Status.Conditions = []metav1.Condition{
@@ -477,7 +477,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 	t.Run("machine with unhealthy etcd component conditions returns false when Etcd is not managed", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{}
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{
 			Name: "node1",
 		}
 		machine.Status.Conditions = []metav1.Condition{
@@ -493,7 +493,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 	t.Run("machine with unhealthy etcd conditions returns true when Etcd is managed", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{}
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{
 			Name: "node1",
 		}
 		machine.Status.Conditions = []metav1.Condition{
@@ -509,7 +509,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 	t.Run("machine with all healthy controlPlane and the Etcd component conditions returns false when Etcd is managed", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{}
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{
 			Name: "node1",
 		}
 		machine.Status.Conditions = []metav1.Condition{

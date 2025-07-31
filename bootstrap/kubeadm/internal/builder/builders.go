@@ -90,13 +90,13 @@ func (k *KubeadmConfigBuilder) Build() *bootstrapv1.KubeadmConfig {
 		},
 	}
 	if k.initConfig != nil {
-		config.Spec.InitConfiguration = k.initConfig
+		config.Spec.InitConfiguration = *k.initConfig
 	}
 	if k.joinConfig != nil {
-		config.Spec.JoinConfiguration = k.joinConfig
+		config.Spec.JoinConfiguration = *k.joinConfig
 	}
 	if k.clusterConfig != nil {
-		config.Spec.ClusterConfiguration = k.clusterConfig
+		config.Spec.ClusterConfiguration = *k.clusterConfig
 	}
 	return config
 }

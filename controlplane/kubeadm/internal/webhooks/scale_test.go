@@ -76,7 +76,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 				},
 			},
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-				InitConfiguration: &bootstrapv1.InitConfiguration{
+				InitConfiguration: bootstrapv1.InitConfiguration{
 					LocalAPIEndpoint: bootstrapv1.APIEndpoint{
 						AdvertiseAddress: "127.0.0.1",
 						BindPort:         int32(443),
@@ -85,15 +85,13 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 						Name: "kcp-managed-etcd",
 					},
 				},
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					DNS: bootstrapv1.DNS{
-						ImageMeta: bootstrapv1.ImageMeta{
-							ImageRepository: "registry.k8s.io/coredns",
-							ImageTag:        "1.6.5",
-						},
+						ImageRepository: "registry.k8s.io/coredns",
+						ImageTag:        "1.6.5",
 					},
 				},
-				JoinConfiguration: &bootstrapv1.JoinConfiguration{
+				JoinConfiguration: bootstrapv1.JoinConfiguration{
 					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 						Name: "kcp-managed-etcd",
 					},
@@ -117,7 +115,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 						},
 					},
 				},
-				NTP: &bootstrapv1.NTP{
+				NTP: bootstrapv1.NTP{
 					Servers: []string{"test-server-1", "test-server-2"},
 					Enabled: ptr.To(true),
 				},
@@ -128,7 +126,9 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 
 	kcpExternalEtcd := kcpManagedEtcd.DeepCopy()
 	kcpExternalEtcd.Name = "kcp-external-etcd"
-	kcpExternalEtcd.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External = &bootstrapv1.ExternalEtcd{}
+	kcpExternalEtcd.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External = bootstrapv1.ExternalEtcd{
+		Endpoints: []string{"1.2.3.4"},
+	}
 
 	tests := []struct {
 		name              string

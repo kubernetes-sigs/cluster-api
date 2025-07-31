@@ -540,7 +540,7 @@ func TestPreflightChecks(t *testing.T) {
 			name: "control plane with a pending upgrade should requeue",
 			cluster: &clusterv1.Cluster{
 				Spec: clusterv1.ClusterSpec{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.33.0",
 					},
 				},
@@ -586,7 +586,7 @@ func TestPreflightChecks(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				{
 					Status: clusterv1.MachineStatus{
-						NodeRef: nil,
+						// NodeRef is not set
 						// Note: with v1beta1 no conditions are applied to machine when NodeRef is not set, this will change with v1beta2.
 					},
 				},
@@ -605,7 +605,7 @@ func TestPreflightChecks(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				{
 					Status: clusterv1.MachineStatus{
-						NodeRef: &clusterv1.MachineNodeReference{
+						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-1",
 						},
 						Conditions: []metav1.Condition{
@@ -632,7 +632,7 @@ func TestPreflightChecks(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				{
 					Status: clusterv1.MachineStatus{
-						NodeRef: &clusterv1.MachineNodeReference{
+						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-1",
 						},
 						Conditions: []metav1.Condition{
@@ -666,7 +666,7 @@ func TestPreflightChecks(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				{
 					Status: clusterv1.MachineStatus{
-						NodeRef: &clusterv1.MachineNodeReference{
+						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-1",
 						},
 						Conditions: []metav1.Condition{

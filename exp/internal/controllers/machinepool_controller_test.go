@@ -781,7 +781,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 						Name:     "delete-infra",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: builder.BootstrapGroupVersion.Group,
 							Kind:     builder.TestBootstrapConfigKind,
 							Name:     "delete-bootstrap",
@@ -978,7 +978,7 @@ func TestMachinePoolConditions(t *testing.T) {
 						Name:     "infra1",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: builder.BootstrapGroupVersion.Group,
 							Kind:     builder.TestBootstrapConfigKind,
 							Name:     "bootstrap1",

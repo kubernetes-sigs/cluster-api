@@ -1591,7 +1591,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		infraRemediationTmpl.SetNamespace(cluster.Namespace)
 		g.Expect(env.Create(ctx, infraRemediationTmpl)).To(Succeed())
 
-		remediationTemplate := &clusterv1.MachineHealthCheckRemediationTemplateReference{
+		remediationTemplate := clusterv1.MachineHealthCheckRemediationTemplateReference{
 			APIVersion: builder.RemediationGroupVersion.String(),
 			Kind:       "GenericExternalRemediationTemplate",
 			Name:       infraRemediationTmpl.GetName(),
@@ -1749,7 +1749,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		infraRemediationTmpl.SetNamespace(cluster.Namespace)
 		g.Expect(env.Create(ctx, infraRemediationTmpl)).To(Succeed())
 
-		remediationTemplate := &clusterv1.MachineHealthCheckRemediationTemplateReference{
+		remediationTemplate := clusterv1.MachineHealthCheckRemediationTemplateReference{
 			APIVersion: builder.RemediationGroupVersion.String(),
 			Kind:       "GenericExternalRemediationTemplate",
 			Name:       infraRemediationTmpl.GetName(),
@@ -2453,7 +2453,7 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 			Namespace:    namespaceName,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
 				Kind:     builder.GenericControlPlaneKind,
 				Name:     "cp1",
@@ -2683,7 +2683,7 @@ func createMachinesWithNodes(
 
 			nodes = append(nodes, node)
 
-			machine.Status.NodeRef = &clusterv1.MachineNodeReference{
+			machine.Status.NodeRef = clusterv1.MachineNodeReference{
 				Name: node.Name,
 			}
 		}

@@ -68,23 +68,13 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 
 func RestoreKubeadmConfigSpec(restored *bootstrapv1.KubeadmConfigSpec, dst *bootstrapv1.KubeadmConfigSpec) {
 	// Restore fields added in v1beta2
-	if restored.InitConfiguration != nil && restored.InitConfiguration.Timeouts != nil {
-		if dst.InitConfiguration == nil {
-			dst.InitConfiguration = &bootstrapv1.InitConfiguration{}
-		}
+	if restored.InitConfiguration.IsDefined() && !reflect.DeepEqual(restored.InitConfiguration.Timeouts, bootstrapv1.Timeouts{}) {
 		dst.InitConfiguration.Timeouts = restored.InitConfiguration.Timeouts
 	}
-	if restored.JoinConfiguration != nil && restored.JoinConfiguration.Timeouts != nil {
-		if dst.JoinConfiguration == nil {
-			dst.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
+	if restored.JoinConfiguration.IsDefined() && !reflect.DeepEqual(restored.JoinConfiguration.Timeouts, bootstrapv1.Timeouts{}) {
 		dst.JoinConfiguration.Timeouts = restored.JoinConfiguration.Timeouts
 	}
-	if restored.ClusterConfiguration != nil &&
-		(restored.ClusterConfiguration.CertificateValidityPeriodDays != 0 || restored.ClusterConfiguration.CACertificateValidityPeriodDays != 0) {
-		if dst.ClusterConfiguration == nil {
-			dst.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
-		}
+	if restored.ClusterConfiguration.CertificateValidityPeriodDays != 0 || restored.ClusterConfiguration.CACertificateValidityPeriodDays != 0 {
 		if restored.ClusterConfiguration.CertificateValidityPeriodDays != 0 {
 			dst.ClusterConfiguration.CertificateValidityPeriodDays = restored.ClusterConfiguration.CertificateValidityPeriodDays
 		}
@@ -95,109 +85,90 @@ func RestoreKubeadmConfigSpec(restored *bootstrapv1.KubeadmConfigSpec, dst *boot
 }
 
 func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1.KubeadmConfigSpec, hasRestored bool, restored *bootstrapv1.KubeadmConfigSpec) error {
-	if dst.JoinConfiguration != nil {
-		if dst.JoinConfiguration.Discovery.BootstrapToken != nil {
-			var restoredUnsafeSkipCAVerification *bool
-			if restored.JoinConfiguration != nil && restored.JoinConfiguration.Discovery.BootstrapToken != nil {
-				restoredUnsafeSkipCAVerification = restored.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification
-			}
-			clusterv1.Convert_bool_To_Pointer_bool(src.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification, hasRestored, restoredUnsafeSkipCAVerification, &dst.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification)
-		}
+	if dst.JoinConfiguration.Discovery.BootstrapToken.IsDefined() {
+		restoredUnsafeSkipCAVerification := restored.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification
+		clusterv1.Convert_bool_To_Pointer_bool(src.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification, hasRestored, restoredUnsafeSkipCAVerification, &dst.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification)
+	}
 
-		if dst.JoinConfiguration.Discovery.File != nil && dst.JoinConfiguration.Discovery.File.KubeConfig != nil {
-			if dst.JoinConfiguration.Discovery.File.KubeConfig.Cluster != nil {
-				var restoredInsecureSkipTLSVerify *bool
-				if restored.JoinConfiguration != nil && restored.JoinConfiguration.Discovery.File != nil && restored.JoinConfiguration.Discovery.File.KubeConfig != nil && restored.JoinConfiguration.Discovery.File.KubeConfig.Cluster != nil {
-					restoredInsecureSkipTLSVerify = restored.JoinConfiguration.Discovery.File.KubeConfig.Cluster.InsecureSkipTLSVerify
-				}
-				clusterv1.Convert_bool_To_Pointer_bool(src.JoinConfiguration.Discovery.File.KubeConfig.Cluster.InsecureSkipTLSVerify, hasRestored, restoredInsecureSkipTLSVerify, &dst.JoinConfiguration.Discovery.File.KubeConfig.Cluster.InsecureSkipTLSVerify)
-			}
-			if dst.JoinConfiguration.Discovery.File.KubeConfig.User.Exec != nil {
-				var restoredExecProvideClusterInfo *bool
-				if restored.JoinConfiguration != nil && restored.JoinConfiguration.Discovery.File != nil && restored.JoinConfiguration.Discovery.File.KubeConfig != nil && restored.JoinConfiguration.Discovery.File.KubeConfig.User.Exec != nil {
-					restoredExecProvideClusterInfo = restored.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.ProvideClusterInfo
-				}
-				clusterv1.Convert_bool_To_Pointer_bool(src.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.ProvideClusterInfo, hasRestored, restoredExecProvideClusterInfo, &dst.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.ProvideClusterInfo)
-			}
+	if dst.JoinConfiguration.Discovery.File.IsDefined() && dst.JoinConfiguration.Discovery.File.KubeConfig.IsDefined() {
+		if dst.JoinConfiguration.Discovery.File.KubeConfig.Cluster.IsDefined() {
+			restoredInsecureSkipTLSVerify := restored.JoinConfiguration.Discovery.File.KubeConfig.Cluster.InsecureSkipTLSVerify
+			clusterv1.Convert_bool_To_Pointer_bool(src.JoinConfiguration.Discovery.File.KubeConfig.Cluster.InsecureSkipTLSVerify, hasRestored, restoredInsecureSkipTLSVerify, &dst.JoinConfiguration.Discovery.File.KubeConfig.Cluster.InsecureSkipTLSVerify)
+		}
+		if dst.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.IsDefined() {
+			restoredExecProvideClusterInfo := restored.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.ProvideClusterInfo
+			clusterv1.Convert_bool_To_Pointer_bool(src.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.ProvideClusterInfo, hasRestored, restoredExecProvideClusterInfo, &dst.JoinConfiguration.Discovery.File.KubeConfig.User.Exec.ProvideClusterInfo)
 		}
 	}
 
-	if dst.ClusterConfiguration != nil {
-		for i, volume := range dst.ClusterConfiguration.APIServer.ExtraVolumes {
-			var srcVolume *HostPathMount
-			if src.ClusterConfiguration != nil {
-				for _, v := range src.ClusterConfiguration.APIServer.ExtraVolumes {
-					if v.HostPath == volume.HostPath {
-						srcVolume = &v
-						break
-					}
+	for i, volume := range dst.ClusterConfiguration.APIServer.ExtraVolumes {
+		var srcVolume *HostPathMount
+		if src.ClusterConfiguration != nil {
+			for _, v := range src.ClusterConfiguration.APIServer.ExtraVolumes {
+				if v.HostPath == volume.HostPath {
+					srcVolume = &v
+					break
 				}
 			}
-			if srcVolume == nil {
-				return fmt.Errorf("apiServer extraVolume with hostPath %q not found in source data", volume.HostPath)
-			}
-			var restoredVolumeReadOnly *bool
-			if restored.ClusterConfiguration != nil {
-				for _, v := range restored.ClusterConfiguration.APIServer.ExtraVolumes {
-					if v.HostPath == volume.HostPath {
-						restoredVolumeReadOnly = v.ReadOnly
-						break
-					}
-				}
-			}
-			clusterv1.Convert_bool_To_Pointer_bool(srcVolume.ReadOnly, hasRestored, restoredVolumeReadOnly, &volume.ReadOnly)
-			dst.ClusterConfiguration.APIServer.ExtraVolumes[i] = volume
 		}
-		for i, volume := range dst.ClusterConfiguration.ControllerManager.ExtraVolumes {
-			var srcVolume *HostPathMount
-			if src.ClusterConfiguration != nil {
-				for _, v := range src.ClusterConfiguration.ControllerManager.ExtraVolumes {
-					if v.HostPath == volume.HostPath {
-						srcVolume = &v
-						break
-					}
-				}
-			}
-			if srcVolume == nil {
-				return fmt.Errorf("controllerManager extraVolume with hostPath %q not found in source data", volume.HostPath)
-			}
-			var restoredVolumeReadOnly *bool
-			if restored.ClusterConfiguration != nil {
-				for _, v := range restored.ClusterConfiguration.ControllerManager.ExtraVolumes {
-					if v.HostPath == volume.HostPath {
-						restoredVolumeReadOnly = v.ReadOnly
-						break
-					}
-				}
-			}
-			clusterv1.Convert_bool_To_Pointer_bool(srcVolume.ReadOnly, hasRestored, restoredVolumeReadOnly, &volume.ReadOnly)
-			dst.ClusterConfiguration.ControllerManager.ExtraVolumes[i] = volume
+		if srcVolume == nil {
+			return fmt.Errorf("apiServer extraVolume with hostPath %q not found in source data", volume.HostPath)
 		}
-		for i, volume := range dst.ClusterConfiguration.Scheduler.ExtraVolumes {
-			var srcVolume *HostPathMount
-			if src.ClusterConfiguration != nil {
-				for _, v := range src.ClusterConfiguration.Scheduler.ExtraVolumes {
-					if v.HostPath == volume.HostPath {
-						srcVolume = &v
-						break
-					}
-				}
+		var restoredVolumeReadOnly *bool
+		for _, v := range restored.ClusterConfiguration.APIServer.ExtraVolumes {
+			if v.HostPath == volume.HostPath {
+				restoredVolumeReadOnly = v.ReadOnly
+				break
 			}
-			if srcVolume == nil {
-				return fmt.Errorf("scheduler extraVolume with hostPath %q not found in source data", volume.HostPath)
-			}
-			var restoredVolumeReadOnly *bool
-			if restored.ClusterConfiguration != nil {
-				for _, v := range restored.ClusterConfiguration.Scheduler.ExtraVolumes {
-					if v.HostPath == volume.HostPath {
-						restoredVolumeReadOnly = v.ReadOnly
-						break
-					}
-				}
-			}
-			clusterv1.Convert_bool_To_Pointer_bool(srcVolume.ReadOnly, hasRestored, restoredVolumeReadOnly, &volume.ReadOnly)
-			dst.ClusterConfiguration.Scheduler.ExtraVolumes[i] = volume
 		}
+		clusterv1.Convert_bool_To_Pointer_bool(srcVolume.ReadOnly, hasRestored, restoredVolumeReadOnly, &volume.ReadOnly)
+		dst.ClusterConfiguration.APIServer.ExtraVolumes[i] = volume
+	}
+	for i, volume := range dst.ClusterConfiguration.ControllerManager.ExtraVolumes {
+		var srcVolume *HostPathMount
+		if src.ClusterConfiguration != nil {
+			for _, v := range src.ClusterConfiguration.ControllerManager.ExtraVolumes {
+				if v.HostPath == volume.HostPath {
+					srcVolume = &v
+					break
+				}
+			}
+		}
+		if srcVolume == nil {
+			return fmt.Errorf("controllerManager extraVolume with hostPath %q not found in source data", volume.HostPath)
+		}
+		var restoredVolumeReadOnly *bool
+		for _, v := range restored.ClusterConfiguration.ControllerManager.ExtraVolumes {
+			if v.HostPath == volume.HostPath {
+				restoredVolumeReadOnly = v.ReadOnly
+				break
+			}
+		}
+		clusterv1.Convert_bool_To_Pointer_bool(srcVolume.ReadOnly, hasRestored, restoredVolumeReadOnly, &volume.ReadOnly)
+		dst.ClusterConfiguration.ControllerManager.ExtraVolumes[i] = volume
+	}
+	for i, volume := range dst.ClusterConfiguration.Scheduler.ExtraVolumes {
+		var srcVolume *HostPathMount
+		if src.ClusterConfiguration != nil {
+			for _, v := range src.ClusterConfiguration.Scheduler.ExtraVolumes {
+				if v.HostPath == volume.HostPath {
+					srcVolume = &v
+					break
+				}
+			}
+		}
+		if srcVolume == nil {
+			return fmt.Errorf("scheduler extraVolume with hostPath %q not found in source data", volume.HostPath)
+		}
+		var restoredVolumeReadOnly *bool
+		for _, v := range restored.ClusterConfiguration.Scheduler.ExtraVolumes {
+			if v.HostPath == volume.HostPath {
+				restoredVolumeReadOnly = v.ReadOnly
+				break
+			}
+		}
+		clusterv1.Convert_bool_To_Pointer_bool(srcVolume.ReadOnly, hasRestored, restoredVolumeReadOnly, &volume.ReadOnly)
+		dst.ClusterConfiguration.Scheduler.ExtraVolumes[i] = volume
 	}
 
 	for i, file := range dst.Files {
@@ -222,11 +193,8 @@ func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1
 		dst.Files[i] = file
 	}
 
-	if dst.Ignition != nil && dst.Ignition.ContainerLinuxConfig != nil {
-		var restoredIgnitionStrict *bool
-		if restored.Ignition != nil && restored.Ignition.ContainerLinuxConfig != nil {
-			restoredIgnitionStrict = restored.Ignition.ContainerLinuxConfig.Strict
-		}
+	if dst.Ignition.IsDefined() && dst.Ignition.ContainerLinuxConfig.IsDefined() {
+		restoredIgnitionStrict := restored.Ignition.ContainerLinuxConfig.Strict
 		clusterv1.Convert_bool_To_Pointer_bool(src.Ignition.ContainerLinuxConfig.Strict, hasRestored, restoredIgnitionStrict, &dst.Ignition.ContainerLinuxConfig.Strict)
 	}
 	return nil
@@ -236,30 +204,14 @@ func (src *KubeadmConfigSpec) ConvertTo(dst *bootstrapv1.KubeadmConfigSpec) {
 	// Override with timeouts values already existing in v1beta1.
 	var initControlPlaneComponentHealthCheckSeconds *int32
 	if src.ClusterConfiguration != nil && src.ClusterConfiguration.APIServer.TimeoutForControlPlane != nil {
-		if dst.InitConfiguration == nil {
-			dst.InitConfiguration = &bootstrapv1.InitConfiguration{}
-		}
-		if dst.InitConfiguration.Timeouts == nil {
-			dst.InitConfiguration.Timeouts = &bootstrapv1.Timeouts{}
-		}
 		dst.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = clusterv1.ConvertToSeconds(src.ClusterConfiguration.APIServer.TimeoutForControlPlane)
 		initControlPlaneComponentHealthCheckSeconds = dst.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds
 	}
 	if (src.JoinConfiguration != nil && src.JoinConfiguration.Discovery.Timeout != nil) || initControlPlaneComponentHealthCheckSeconds != nil {
-		if dst.JoinConfiguration == nil {
-			dst.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
-		if dst.JoinConfiguration.Timeouts == nil {
-			dst.JoinConfiguration.Timeouts = &bootstrapv1.Timeouts{}
-		}
 		dst.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = initControlPlaneComponentHealthCheckSeconds
 		if src.JoinConfiguration != nil && src.JoinConfiguration.Discovery.Timeout != nil {
 			dst.JoinConfiguration.Timeouts.TLSBootstrapSeconds = clusterv1.ConvertToSeconds(src.JoinConfiguration.Discovery.Timeout)
 		}
-	}
-
-	if reflect.DeepEqual(dst.ClusterConfiguration, &bootstrapv1.ClusterConfiguration{}) {
-		dst.ClusterConfiguration = nil
 	}
 }
 
@@ -281,7 +233,7 @@ func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 
 func (dst *KubeadmConfigSpec) ConvertFrom(src *bootstrapv1.KubeadmConfigSpec) {
 	// Convert timeouts moved from one struct to another.
-	if src.InitConfiguration != nil && src.InitConfiguration.Timeouts != nil && src.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
+	if src.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
 		if dst.ClusterConfiguration == nil {
 			dst.ClusterConfiguration = &ClusterConfiguration{}
 		}
@@ -290,7 +242,7 @@ func (dst *KubeadmConfigSpec) ConvertFrom(src *bootstrapv1.KubeadmConfigSpec) {
 	if reflect.DeepEqual(dst.InitConfiguration, &InitConfiguration{}) {
 		dst.InitConfiguration = nil
 	}
-	if src.JoinConfiguration != nil && src.JoinConfiguration.Timeouts != nil && src.JoinConfiguration.Timeouts.TLSBootstrapSeconds != nil {
+	if src.JoinConfiguration.Timeouts.TLSBootstrapSeconds != nil {
 		if dst.JoinConfiguration == nil {
 			dst.JoinConfiguration = &JoinConfiguration{}
 		}
@@ -345,12 +297,30 @@ func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1beta2_InitConfiguration_To_v1beta1_InitConfiguration(in *bootstrapv1.InitConfiguration, out *InitConfiguration, s apimachineryconversion.Scope) error {
 	// Timeouts requires conversion at an upper level
-	return autoConvert_v1beta2_InitConfiguration_To_v1beta1_InitConfiguration(in, out, s)
+	if err := autoConvert_v1beta2_InitConfiguration_To_v1beta1_InitConfiguration(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.Patches, bootstrapv1.Patches{}) {
+		out.Patches = &Patches{}
+		if err := Convert_v1beta2_Patches_To_v1beta1_Patches(&in.Patches, out.Patches, s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func Convert_v1beta2_JoinConfiguration_To_v1beta1_JoinConfiguration(in *bootstrapv1.JoinConfiguration, out *JoinConfiguration, s apimachineryconversion.Scope) error {
 	// Timeouts requires conversion at an upper level
-	return autoConvert_v1beta2_JoinConfiguration_To_v1beta1_JoinConfiguration(in, out, s)
+	if err := autoConvert_v1beta2_JoinConfiguration_To_v1beta1_JoinConfiguration(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.Patches, bootstrapv1.Patches{}) {
+		out.Patches = &Patches{}
+		if err := Convert_v1beta2_Patches_To_v1beta1_Patches(&in.Patches, out.Patches, s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func Convert_v1beta2_KubeadmConfigStatus_To_v1beta1_KubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, out *KubeadmConfigStatus, s apimachineryconversion.Scope) error {
@@ -441,6 +411,8 @@ func Convert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(in *bootstrapv1.LocalEtcd, o
 	} else {
 		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
 	}
+	out.ImageRepository = in.ImageRepository
+	out.ImageTag = in.ImageTag
 	return autoConvert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(in, out, s)
 }
 
@@ -516,12 +488,20 @@ func convert_v1beta1_ExtraVolumes_To_v1beta2_ExtraVolumes(in *[]HostPathMount, o
 
 func Convert_v1beta1_Discovery_To_v1beta2_Discovery(in *Discovery, out *bootstrapv1.Discovery, s apimachineryconversion.Scope) error {
 	// Timeout has been removed in v1beta2
-	return autoConvert_v1beta1_Discovery_To_v1beta2_Discovery(in, out, s)
-}
-
-func Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *KubeadmConfigSpec, out *bootstrapv1.KubeadmConfigSpec, s apimachineryconversion.Scope) error {
-	// NOTE: v1beta2 KubeadmConfigSpec does not have UseExperimentalRetryJoin anymore, so it's fine to just lose this field.
-	return autoConvert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in, out, s)
+	if err := autoConvert_v1beta1_Discovery_To_v1beta2_Discovery(in, out, s); err != nil {
+		return err
+	}
+	if in.BootstrapToken != nil {
+		if err := Convert_v1beta1_BootstrapTokenDiscovery_To_v1beta2_BootstrapTokenDiscovery(in.BootstrapToken, &out.BootstrapToken, s); err != nil {
+			return err
+		}
+	}
+	if in.File != nil {
+		if err := Convert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery(in.File, &out.File, s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func Convert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
@@ -535,6 +515,8 @@ func Convert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstra
 	} else {
 		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
 	}
+	out.ImageRepository = in.ImageRepository
+	out.ImageTag = in.ImageTag
 	return autoConvert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
 }
 
@@ -591,11 +573,268 @@ func Convert_v1beta1_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToken
 }
 
 func Convert_v1beta1_InitConfiguration_To_v1beta2_InitConfiguration(in *InitConfiguration, out *bootstrapv1.InitConfiguration, s apimachineryconversion.Scope) error {
-	return autoConvert_v1beta1_InitConfiguration_To_v1beta2_InitConfiguration(in, out, s)
+	if err := autoConvert_v1beta1_InitConfiguration_To_v1beta2_InitConfiguration(in, out, s); err != nil {
+		return err
+	}
+	if in.Patches != nil {
+		if err := Convert_v1beta1_Patches_To_v1beta2_Patches(in.Patches, &out.Patches, s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func Convert_v1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(in *JoinConfiguration, out *bootstrapv1.JoinConfiguration, s apimachineryconversion.Scope) error {
-	return autoConvert_v1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(in, out, s)
+	if err := autoConvert_v1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(in, out, s); err != nil {
+		return err
+	}
+	if in.Patches != nil {
+		if err := Convert_v1beta1_Patches_To_v1beta2_Patches(in.Patches, &out.Patches, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta1_DNS_To_v1beta2_DNS(in *DNS, out *bootstrapv1.DNS, _ apimachineryconversion.Scope) error {
+	out.ImageRepository = in.ImageRepository
+	out.ImageTag = in.ImageTag
+	return nil
+}
+
+func Convert_v1beta2_DNS_To_v1beta1_DNS(in *bootstrapv1.DNS, out *DNS, _ apimachineryconversion.Scope) error {
+	out.ImageRepository = in.ImageRepository
+	out.ImageTag = in.ImageTag
+	return nil
+}
+
+func Convert_v1beta1_Etcd_To_v1beta2_Etcd(in *Etcd, out *bootstrapv1.Etcd, s apimachineryconversion.Scope) error {
+	if in.Local != nil {
+		if err := Convert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in.Local, &out.Local, s); err != nil {
+			return err
+		}
+	}
+	if in.External != nil {
+		if err := Convert_v1beta1_ExternalEtcd_To_v1beta2_ExternalEtcd(in.External, &out.External, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_Etcd_To_v1beta1_Etcd(in *bootstrapv1.Etcd, out *Etcd, s apimachineryconversion.Scope) error {
+	if in.Local.IsDefined() {
+		out.Local = &LocalEtcd{}
+		if err := Convert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(&in.Local, out.Local, s); err != nil {
+			return err
+		}
+	}
+	if in.External.IsDefined() {
+		out.External = &ExternalEtcd{}
+		if err := Convert_v1beta2_ExternalEtcd_To_v1beta1_ExternalEtcd(&in.External, out.External, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_Discovery_To_v1beta1_Discovery(in *bootstrapv1.Discovery, out *Discovery, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_Discovery_To_v1beta1_Discovery(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.BootstrapToken, bootstrapv1.BootstrapTokenDiscovery{}) {
+		out.BootstrapToken = &BootstrapTokenDiscovery{}
+		if err := Convert_v1beta2_BootstrapTokenDiscovery_To_v1beta1_BootstrapTokenDiscovery(&in.BootstrapToken, out.BootstrapToken, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.File, bootstrapv1.FileDiscovery{}) {
+		out.File = &FileDiscovery{}
+		if err := Convert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery(&in.File, out.File, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery(in *FileDiscovery, out *bootstrapv1.FileDiscovery, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery(in, out, s); err != nil {
+		return err
+	}
+	if in.KubeConfig != nil {
+		if err := Convert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig(in.KubeConfig, &out.KubeConfig, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig(in *FileDiscoveryKubeConfig, out *bootstrapv1.FileDiscoveryKubeConfig, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig(in, out, s); err != nil {
+		return err
+	}
+	if in.Cluster != nil {
+		if err := Convert_v1beta1_KubeConfigCluster_To_v1beta2_KubeConfigCluster(in.Cluster, &out.Cluster, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta1_KubeConfigUser_To_v1beta2_KubeConfigUser(in *KubeConfigUser, out *bootstrapv1.KubeConfigUser, s apimachineryconversion.Scope) error {
+	if in.AuthProvider != nil {
+		if err := Convert_v1beta1_KubeConfigAuthProvider_To_v1beta2_KubeConfigAuthProvider(in.AuthProvider, &out.AuthProvider, s); err != nil {
+			return err
+		}
+	}
+	if in.Exec != nil {
+		if err := Convert_v1beta1_KubeConfigAuthExec_To_v1beta2_KubeConfigAuthExec(in.Exec, &out.Exec, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery(in *bootstrapv1.FileDiscovery, out *FileDiscovery, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.KubeConfig, bootstrapv1.FileDiscoveryKubeConfig{}) {
+		out.KubeConfig = &FileDiscoveryKubeConfig{}
+		if err := Convert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeConfig(&in.KubeConfig, out.KubeConfig, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeConfig(in *bootstrapv1.FileDiscoveryKubeConfig, out *FileDiscoveryKubeConfig, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeConfig(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.Cluster, bootstrapv1.KubeConfigCluster{}) {
+		out.Cluster = &KubeConfigCluster{}
+		if err := Convert_v1beta2_KubeConfigCluster_To_v1beta1_KubeConfigCluster(&in.Cluster, out.Cluster, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_KubeConfigUser_To_v1beta1_KubeConfigUser(in *bootstrapv1.KubeConfigUser, out *KubeConfigUser, s apimachineryconversion.Scope) error {
+	if !reflect.DeepEqual(in.AuthProvider, bootstrapv1.KubeConfigAuthProvider{}) {
+		out.AuthProvider = &KubeConfigAuthProvider{}
+		if err := Convert_v1beta2_KubeConfigAuthProvider_To_v1beta1_KubeConfigAuthProvider(&in.AuthProvider, out.AuthProvider, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.Exec, bootstrapv1.KubeConfigAuthExec{}) {
+		out.Exec = &KubeConfigAuthExec{}
+		if err := Convert_v1beta2_KubeConfigAuthExec_To_v1beta1_KubeConfigAuthExec(&in.Exec, out.Exec, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *KubeadmConfigSpec, out *bootstrapv1.KubeadmConfigSpec, s apimachineryconversion.Scope) error {
+	// NOTE: v1beta2 KubeadmConfigSpec does not have UseExperimentalRetryJoin anymore, so it's fine to just lose this field.
+	if err := autoConvert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in, out, s); err != nil {
+		return err
+	}
+	if in.ClusterConfiguration != nil {
+		if err := Convert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in.ClusterConfiguration, &out.ClusterConfiguration, s); err != nil {
+			return err
+		}
+	}
+	if in.InitConfiguration != nil {
+		if err := Convert_v1beta1_InitConfiguration_To_v1beta2_InitConfiguration(in.InitConfiguration, &out.InitConfiguration, s); err != nil {
+			return err
+		}
+	}
+	if in.JoinConfiguration != nil {
+		if err := Convert_v1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(in.JoinConfiguration, &out.JoinConfiguration, s); err != nil {
+			return err
+		}
+	}
+	if in.DiskSetup != nil {
+		if err := Convert_v1beta1_DiskSetup_To_v1beta2_DiskSetup(in.DiskSetup, &out.DiskSetup, s); err != nil {
+			return err
+		}
+	}
+	if in.NTP != nil {
+		if err := Convert_v1beta1_NTP_To_v1beta2_NTP(in.NTP, &out.NTP, s); err != nil {
+			return err
+		}
+	}
+	if in.Ignition != nil {
+		if err := Convert_v1beta1_IgnitionSpec_To_v1beta2_IgnitionSpec(in.Ignition, &out.Ignition, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *KubeadmConfigSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.ClusterConfiguration, bootstrapv1.ClusterConfiguration{}) {
+		out.ClusterConfiguration = &ClusterConfiguration{}
+		if err := Convert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(&in.ClusterConfiguration, out.ClusterConfiguration, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.InitConfiguration, bootstrapv1.InitConfiguration{}) {
+		out.InitConfiguration = &InitConfiguration{}
+		if err := Convert_v1beta2_InitConfiguration_To_v1beta1_InitConfiguration(&in.InitConfiguration, out.InitConfiguration, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.JoinConfiguration, bootstrapv1.JoinConfiguration{}) {
+		out.JoinConfiguration = &JoinConfiguration{}
+		if err := Convert_v1beta2_JoinConfiguration_To_v1beta1_JoinConfiguration(&in.JoinConfiguration, out.JoinConfiguration, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.DiskSetup, bootstrapv1.DiskSetup{}) {
+		out.DiskSetup = &DiskSetup{}
+		if err := Convert_v1beta2_DiskSetup_To_v1beta1_DiskSetup(&in.DiskSetup, out.DiskSetup, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.NTP, bootstrapv1.NTP{}) {
+		out.NTP = &NTP{}
+		if err := Convert_v1beta2_NTP_To_v1beta1_NTP(&in.NTP, out.NTP, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.Ignition, bootstrapv1.IgnitionSpec{}) {
+		out.Ignition = &IgnitionSpec{}
+		if err := Convert_v1beta2_IgnitionSpec_To_v1beta1_IgnitionSpec(&in.Ignition, out.Ignition, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta1_IgnitionSpec_To_v1beta2_IgnitionSpec(in *IgnitionSpec, out *bootstrapv1.IgnitionSpec, s apimachineryconversion.Scope) error {
+	if in.ContainerLinuxConfig != nil {
+		if err := Convert_v1beta1_ContainerLinuxConfig_To_v1beta2_ContainerLinuxConfig(in.ContainerLinuxConfig, &out.ContainerLinuxConfig, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_IgnitionSpec_To_v1beta1_IgnitionSpec(in *bootstrapv1.IgnitionSpec, out *IgnitionSpec, s apimachineryconversion.Scope) error {
+	if !reflect.DeepEqual(in.ContainerLinuxConfig, bootstrapv1.ContainerLinuxConfig{}) {
+		out.ContainerLinuxConfig = &ContainerLinuxConfig{}
+		if err := Convert_v1beta2_ContainerLinuxConfig_To_v1beta1_ContainerLinuxConfig(&in.ContainerLinuxConfig, out.ContainerLinuxConfig, s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)
@@ -618,6 +857,31 @@ func Convert_v1beta1_Condition_To_v1_Condition(in *clusterv1beta1.Condition, out
 
 func Convert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in *bootstrapv1.ClusterConfiguration, out *ClusterConfiguration, s apimachineryconversion.Scope) error {
 	return autoConvert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in, out, s)
+}
+
+func Convert_v1beta1_File_To_v1beta2_File(in *File, out *bootstrapv1.File, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_File_To_v1beta2_File(in, out, s); err != nil {
+		return err
+	}
+	if in.ContentFrom != nil {
+		if err := Convert_v1beta1_FileSource_To_v1beta2_FileSource(in.ContentFrom, &out.ContentFrom, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_File_To_v1beta1_File(in *bootstrapv1.File, out *File, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_File_To_v1beta1_File(in, out, s); err != nil {
+		return err
+	}
+	if in.ContentFrom.IsDefined() {
+		out.ContentFrom = &FileSource{}
+		if err := Convert_v1beta2_FileSource_To_v1beta1_FileSource(&in.ContentFrom, out.ContentFrom, s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func dropEmptyStringsKubeadmConfigSpec(dst *KubeadmConfigSpec) {

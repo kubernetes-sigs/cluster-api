@@ -170,7 +170,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 	s := &scope{
 		cluster: cluster,
 	}
-	if cluster.Spec.Topology != nil {
+	if cluster.Spec.Topology.IsDefined() {
 		s.clusterClass = &clusterv1.ClusterClass{}
 		if err := r.Client.Get(ctx, cluster.GetClassKey(), s.clusterClass); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get ClusterClass %s", cluster.GetClassKey())
@@ -217,8 +217,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 	}
 
 	// Handle normal reconciliation loop.
-	if cluster.Spec.Topology != nil {
-		if cluster.Spec.ControlPlaneRef == nil || cluster.Spec.InfrastructureRef == nil {
+	if cluster.Spec.Topology.IsDefined() {
+		if !cluster.Spec.ControlPlaneRef.IsDefined() || !cluster.Spec.InfrastructureRef.IsDefined() {
 			// TODO: add a condition to surface this scenario
 			log.Info("Waiting for the topology to be generated")
 			return ctrl.Result{}, nil
@@ -342,7 +342,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 	// If the RuntimeSDK and ClusterTopology flags are enabled, for clusters with managed topologies
 	// only proceed with delete if the cluster is marked as `ok-to-delete`
 	if feature.Gates.Enabled(feature.RuntimeSDK) && feature.Gates.Enabled(feature.ClusterTopology) {
-		if cluster.Spec.Topology != nil && !hooks.IsOkToDelete(cluster) {
+		if cluster.Spec.Topology.IsDefined() && !hooks.IsOkToDelete(cluster) {
 			s.deletingReason = clusterv1.ClusterDeletingWaitingForBeforeDeleteHookReason
 			s.deletingMessage = "Waiting for BeforeClusterDelete hook"
 			return ctrl.Result{}, nil
@@ -412,7 +412,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
-	if cluster.Spec.ControlPlaneRef != nil {
+	if cluster.Spec.ControlPlaneRef.IsDefined() {
 		if s.controlPlane == nil {
 			if !s.controlPlaneIsNotFound {
 				// In case there was a generic error (different than isNotFound) in reading the InfraCluster, do not continue with deletion.
@@ -452,7 +452,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 		}
 	}
 
-	if cluster.Spec.InfrastructureRef != nil {
+	if cluster.Spec.InfrastructureRef.IsDefined() {
 		if s.infraCluster == nil {
 			if !s.infraClusterIsNotFound {
 				// In case there was a generic error (different than isNotFound) in reading the InfraCluster, do not continue with deletion.
@@ -519,7 +519,7 @@ func (c *clusterDescendants) objectsPendingDeleteCount(cluster *clusterv1.Cluste
 		len(c.machineSets.Items) +
 		len(c.workerMachines)
 
-	if cluster.Spec.ControlPlaneRef == nil {
+	if !cluster.Spec.ControlPlaneRef.IsDefined() {
 		n += len(c.controlPlaneMachines)
 	}
 
@@ -530,7 +530,7 @@ func (c *clusterDescendants) objectsPendingDeleteCount(cluster *clusterv1.Cluste
 // Note: infrastructure cluster, control plane object and its controlled machines are not included.
 func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluster) []string {
 	descendants := make([]string, 0)
-	if cluster.Spec.ControlPlaneRef == nil {
+	if !cluster.Spec.ControlPlaneRef.IsDefined() {
 		controlPlaneMachineNames := make([]string, len(c.controlPlaneMachines))
 		for i, controlPlaneMachine := range c.controlPlaneMachines.UnsortedList() {
 			controlPlaneMachineNames[i] = controlPlaneMachine.Name
@@ -667,7 +667,7 @@ func (c *clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) 
 	// limitation is about the deletion workflow, which is governed by this function.
 	// More specifically, when deleting a Cluster with stand-alone control plane machines, stand-alone control plane machines
 	// will be decommissioned in parallel with other machines, no matter of them being added as last in this list.
-	if cluster.Spec.ControlPlaneRef == nil {
+	if !cluster.Spec.ControlPlaneRef.IsDefined() {
 		lists = append(lists, toObjectList(c.controlPlaneMachines))
 	}
 
@@ -686,7 +686,7 @@ func (r *Reconciler) reconcileV1Beta1ControlPlaneInitialized(ctx context.Context
 
 	// Skip checking if the control plane is initialized when using a Control Plane Provider (this is reconciled in
 	// reconcileControlPlane instead).
-	if cluster.Spec.ControlPlaneRef != nil {
+	if cluster.Spec.ControlPlaneRef.IsDefined() {
 		log.V(4).Info("Skipping reconcileV1Beta1ControlPlaneInitialized because cluster has a controlPlaneRef")
 		return ctrl.Result{}, nil
 	}
@@ -705,7 +705,7 @@ func (r *Reconciler) reconcileV1Beta1ControlPlaneInitialized(ctx context.Context
 	}
 
 	for _, m := range machines {
-		if util.IsControlPlaneMachine(m) && m.Status.NodeRef != nil {
+		if util.IsControlPlaneMachine(m) && m.Status.NodeRef.IsDefined() {
 			v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition)
 			return ctrl.Result{}, nil
 		}
@@ -726,7 +726,7 @@ func (r *Reconciler) controlPlaneMachineToCluster(ctx context.Context, o client.
 	if !util.IsControlPlaneMachine(m) {
 		return nil
 	}
-	if m.Status.NodeRef == nil {
+	if !m.Status.NodeRef.IsDefined() {
 		return nil
 	}
 

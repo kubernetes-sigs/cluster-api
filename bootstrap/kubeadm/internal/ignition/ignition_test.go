@@ -87,7 +87,7 @@ func Test_NewNode(t *testing.T) {
 		input := &ignition.NodeInput{
 			NodeInput: &cloudinit.NodeInput{},
 			Ignition: &bootstrapv1.IgnitionSpec{
-				ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{
+				ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
 					AdditionalConfig: fmt.Sprintf(`storage:
   files:
   - path: /etc/foo
@@ -119,7 +119,7 @@ func Test_NewNode(t *testing.T) {
 		input := &ignition.NodeInput{
 			NodeInput: &cloudinit.NodeInput{},
 			Ignition: &bootstrapv1.IgnitionSpec{
-				ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{
+				ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
 					AdditionalConfig: fmt.Sprintf(`storage:
   files:
   - path: /etc/foo
@@ -203,7 +203,7 @@ func Test_NewJoinControlPlane(t *testing.T) {
 		input := &ignition.ControlPlaneJoinInput{
 			ControlPlaneJoinInput: &cloudinit.ControlPlaneJoinInput{},
 			Ignition: &bootstrapv1.IgnitionSpec{
-				ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{
+				ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
 					AdditionalConfig: fmt.Sprintf(`storage:
   files:
   - path: /etc/foo
@@ -235,7 +235,7 @@ func Test_NewJoinControlPlane(t *testing.T) {
 		input := &ignition.ControlPlaneJoinInput{
 			ControlPlaneJoinInput: &cloudinit.ControlPlaneJoinInput{},
 			Ignition: &bootstrapv1.IgnitionSpec{
-				ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{
+				ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
 					AdditionalConfig: fmt.Sprintf(`storage:
   files:
   - path: /etc/foo
@@ -320,7 +320,7 @@ func Test_NewInitControlPlane(t *testing.T) {
 		input := &ignition.ControlPlaneInput{
 			ControlPlaneInput: &cloudinit.ControlPlaneInput{},
 			Ignition: &bootstrapv1.IgnitionSpec{
-				ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{
+				ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
 					AdditionalConfig: fmt.Sprintf(`storage:
   files:
   - path: /etc/foo
@@ -352,7 +352,7 @@ func Test_NewInitControlPlane(t *testing.T) {
 		input := &ignition.ControlPlaneInput{
 			ControlPlaneInput: &cloudinit.ControlPlaneInput{},
 			Ignition: &bootstrapv1.IgnitionSpec{
-				ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{
+				ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
 					AdditionalConfig: fmt.Sprintf(`storage:
   files:
   - path: /etc/foo

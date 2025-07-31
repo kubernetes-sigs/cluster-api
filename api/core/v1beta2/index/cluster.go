@@ -53,7 +53,7 @@ func ClusterByClusterClassRef(o client.Object) []string {
 	if !ok {
 		panic(fmt.Sprintf("Expected Cluster but got a %T", o))
 	}
-	if cluster.Spec.Topology != nil {
+	if cluster.Spec.Topology.IsDefined() {
 		key := cluster.GetClassKey()
 		return []string{fmt.Sprintf(clusterClassRefFmt, key.Namespace, key.Name)}
 	}

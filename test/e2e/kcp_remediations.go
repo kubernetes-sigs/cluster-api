@@ -161,7 +161,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 			},
 		}
 		Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(firstMachine), firstMachine)).To(Succeed(), "Failed to get machine %d", firstMachineName)
-		Expect(firstMachine.Status.NodeRef).To(BeNil())
+		Expect(firstMachine.Status.NodeRef.IsDefined()).To(BeFalse())
 		log.Logf("Machine %s is up but still bootstrapping", firstMachineName)
 
 		// Intentionally trigger remediation on the first CP, and validate the first machine is deleted and a replacement should come up.
@@ -193,7 +193,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 			},
 		}
 		Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(firstMachineReplacement), firstMachineReplacement)).To(Succeed(), "Failed to get machine %d", firstMachineReplacementName)
-		Expect(firstMachineReplacement.Status.NodeRef).To(BeNil())
+		Expect(firstMachineReplacement.Status.NodeRef.IsDefined()).To(BeFalse())
 		log.Logf("Machine %s is up but still bootstrapping", firstMachineReplacementName)
 
 		// The firstMachine replacement is up, meaning that the test validated that remediation of the first CP machine works (note: first CP is a special case because the cluster is not initialized yet).
@@ -214,7 +214,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 			if err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(firstMachineReplacement), firstMachineReplacement); err != nil {
 				return false
 			}
-			return firstMachineReplacement.Status.NodeRef != nil
+			return firstMachineReplacement.Status.NodeRef.IsDefined()
 		}, input.E2EConfig.GetIntervals(specName, "wait-machine-provisioned")...).Should(BeTrue(), "Machine %s failed to be provisioned", firstMachineReplacementName)
 
 		By("FIRST CONTROL PLANE MACHINE UP AND RUNNING!")
@@ -241,7 +241,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 			},
 		}
 		Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(secondMachine), secondMachine)).To(Succeed(), "Failed to get machine %d", secondMachineName)
-		Expect(secondMachine.Status.NodeRef).To(BeNil())
+		Expect(secondMachine.Status.NodeRef.IsDefined()).To(BeFalse())
 		log.Logf("Machine %s is up but still bootstrapping", secondMachineName)
 
 		// Intentionally trigger remediation on the second CP and validate that also this one is deleted and a replacement should come up.
@@ -274,7 +274,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 			},
 		}
 		Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(secondMachineReplacement), secondMachineReplacement)).To(Succeed(), "Failed to get machine %d", secondMachineReplacementName)
-		Expect(secondMachineReplacement.Status.NodeRef).To(BeNil())
+		Expect(secondMachineReplacement.Status.NodeRef.IsDefined()).To(BeFalse())
 		log.Logf("Machine %s is up but still bootstrapping", secondMachineReplacementName)
 
 		// The secondMachine replacement is up, meaning that the test validated that remediation of the second CP machine works (note: this test remediation after the cluster is initialized, but not yet fully provisioned).
@@ -295,7 +295,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 			if err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(secondMachineReplacement), secondMachineReplacement); err != nil {
 				return false
 			}
-			return secondMachineReplacement.Status.NodeRef != nil
+			return secondMachineReplacement.Status.NodeRef.IsDefined()
 		}, input.E2EConfig.GetIntervals(specName, "wait-machine-provisioned")...).Should(BeTrue(), "Machine %s failed to be provisioned", secondMachineReplacementName)
 
 		By("SECOND CONTROL PLANE MACHINE UP AND RUNNING!")
@@ -322,7 +322,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 			},
 		}
 		Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(thirdMachine), thirdMachine)).To(Succeed(), "Failed to get machine %d", thirdMachineName)
-		Expect(thirdMachine.Status.NodeRef).To(BeNil())
+		Expect(thirdMachine.Status.NodeRef.IsDefined()).To(BeFalse())
 		log.Logf("Machine %s is up but still bootstrapping", thirdMachineName)
 
 		Byf("Unblock bootstrap for Machine %s and wait for it to be provisioned", thirdMachineName)
@@ -337,7 +337,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 			if err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(thirdMachine), thirdMachine); err != nil {
 				return false
 			}
-			return thirdMachine.Status.NodeRef != nil
+			return thirdMachine.Status.NodeRef.IsDefined()
 		}, input.E2EConfig.GetIntervals(specName, "wait-machine-provisioned")...).Should(BeTrue(), "Machine %s failed to be provisioned", thirdMachineName)
 
 		// All three CP machines are up.
@@ -387,7 +387,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 			},
 		}
 		Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(thirdMachineReplacement), thirdMachineReplacement)).To(Succeed(), "Failed to get machine %d", thirdMachineReplacementName)
-		Expect(thirdMachineReplacement.Status.NodeRef).To(BeNil())
+		Expect(thirdMachineReplacement.Status.NodeRef.IsDefined()).To(BeFalse())
 		log.Logf("Machine %s is up but still bootstrapping", thirdMachineReplacementName)
 
 		// The thirdMachine replacement is up, meaning that the test validated that remediation of the third CP machine works (note: this test remediation after the cluster is fully provisioned).
@@ -406,7 +406,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 			if err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(thirdMachineReplacement), thirdMachineReplacement); err != nil {
 				return false
 			}
-			return thirdMachineReplacement.Status.NodeRef != nil
+			return thirdMachineReplacement.Status.NodeRef.IsDefined()
 		}, input.E2EConfig.GetIntervals(specName, "wait-machine-provisioned")...).Should(BeTrue(), "Machine %s failed to be provisioned", thirdMachineReplacementName)
 
 		// All three CP machines are up again.

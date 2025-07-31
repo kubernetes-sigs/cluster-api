@@ -475,19 +475,19 @@ type ClusterSpec struct {
 	// controlPlaneRef is an optional reference to a provider-specific resource that holds
 	// the details for provisioning the Control Plane for a Cluster.
 	// +optional
-	ControlPlaneRef *ContractVersionedObjectReference `json:"controlPlaneRef,omitempty"`
+	ControlPlaneRef ContractVersionedObjectReference `json:"controlPlaneRef,omitempty,omitzero"`
 
 	// infrastructureRef is a reference to a provider-specific resource that holds the details
 	// for provisioning infrastructure for a cluster in said provider.
 	// +optional
-	InfrastructureRef *ContractVersionedObjectReference `json:"infrastructureRef,omitempty"`
+	InfrastructureRef ContractVersionedObjectReference `json:"infrastructureRef,omitempty,omitzero"`
 
 	// topology encapsulates the topology for the cluster.
 	// NOTE: It is required to enable the ClusterTopology
 	// feature gate flag to activate managed topologies support;
 	// this feature is highly experimental, and parts of it might still be not implemented.
 	// +optional
-	Topology *Topology `json:"topology,omitempty"`
+	Topology Topology `json:"topology,omitempty,omitzero"`
 
 	// availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.
 	//
@@ -566,6 +566,11 @@ type Topology struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=1000
 	Variables []ClusterVariable `json:"variables,omitempty"`
+}
+
+// IsDefined returns true if the Topology is defined.
+func (r *Topology) IsDefined() bool {
+	return !reflect.DeepEqual(r, &Topology{})
 }
 
 // ClusterClassRef is the ref to the ClusterClass that should be used for the topology.
@@ -737,7 +742,7 @@ type ControlPlaneTopologyHealthCheckRemediation struct {
 	// creates a new object from the template referenced and hands off remediation of the machine to
 	// a controller that lives outside of Cluster API.
 	// +optional
-	TemplateRef *MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty"`
+	TemplateRef MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty,omitzero"`
 }
 
 // ControlPlaneTopologyHealthCheckRemediationTriggerIf configures if remediations are triggered.
@@ -1004,7 +1009,7 @@ type MachineDeploymentTopologyHealthCheckRemediation struct {
 	// creates a new object from the template referenced and hands off remediation of the machine to
 	// a controller that lives outside of Cluster API.
 	// +optional
-	TemplateRef *MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty"`
+	TemplateRef MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty,omitzero"`
 }
 
 // MachineDeploymentTopologyHealthCheckRemediationTriggerIf configures if remediations are triggered.
@@ -1288,6 +1293,7 @@ type NetworkRanges struct {
 	// cidrBlocks is a list of CIDR blocks.
 	// +required
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=43
@@ -1547,7 +1553,7 @@ type Cluster struct {
 
 // GetClassKey returns the namespaced name for the class associated with this object.
 func (c *Cluster) GetClassKey() types.NamespacedName {
-	if c.Spec.Topology == nil {
+	if !c.Spec.Topology.IsDefined() {
 		return types.NamespacedName{}
 	}
 

@@ -495,8 +495,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine.Namespace, configName)
-	controlPlaneInitConfig.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-	controlPlaneInitConfig.Spec.JoinConfiguration.Discovery.BootstrapToken = &bootstrapv1.BootstrapTokenDiscovery{
+	controlPlaneInitConfig.Spec.JoinConfiguration.Discovery.BootstrapToken = bootstrapv1.BootstrapTokenDiscovery{
 		CACertHashes: []string{"...."},
 	}
 
@@ -1209,14 +1208,14 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	patchHelper, err = patch.NewHelper(workerMachine, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	workerMachine.Status.NodeRef = &clusterv1.MachineNodeReference{
+	workerMachine.Status.NodeRef = clusterv1.MachineNodeReference{
 		Name: "worker-node",
 	}
 	g.Expect(patchHelper.Patch(ctx, workerMachine)).To(Succeed())
 
 	patchHelper, err = patch.NewHelper(controlPlaneJoinMachine, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
-	controlPlaneJoinMachine.Status.NodeRef = &clusterv1.MachineNodeReference{
+	controlPlaneJoinMachine.Status.NodeRef = clusterv1.MachineNodeReference{
 		Name: "control-plane-node",
 	}
 	g.Expect(patchHelper.Patch(ctx, controlPlaneJoinMachine)).To(Succeed())
@@ -1595,7 +1594,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testing.T) {
 	caHash := []string{"...."}
 	bootstrapToken := bootstrapv1.Discovery{
-		BootstrapToken: &bootstrapv1.BootstrapTokenDiscovery{
+		BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
 			CACertHashes: caHash,
 		},
 	}
@@ -1618,14 +1617,13 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapToken,
 					},
 				},
 			},
 			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
-				g.Expect(d.BootstrapToken).NotTo(BeNil())
 				g.Expect(d.BootstrapToken.Token).NotTo(Equal(""))
 				g.Expect(d.BootstrapToken.APIServerEndpoint).To(Equal("example.com:6443"))
 				g.Expect(d.BootstrapToken.UnsafeSkipCAVerification).To(BeNil())
@@ -1637,16 +1635,18 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
-							File: &bootstrapv1.FileDiscovery{},
+							File: bootstrapv1.FileDiscovery{
+								KubeConfigPath: "/tmp/kubeconfig",
+							},
 						},
 					},
 				},
 			},
 			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
-				g.Expect(d.BootstrapToken).To(BeNil())
+				g.Expect(d.BootstrapToken.IsDefined()).To(BeFalse())
 				return nil
 			},
 		},
@@ -1655,13 +1655,13 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
-							File: &bootstrapv1.FileDiscovery{
+							File: bootstrapv1.FileDiscovery{
 								KubeConfigPath: "/bootstrap-kubeconfig.yaml",
-								KubeConfig: &bootstrapv1.FileDiscoveryKubeConfig{
+								KubeConfig: bootstrapv1.FileDiscoveryKubeConfig{
 									User: bootstrapv1.KubeConfigUser{
-										Exec: &bootstrapv1.KubeConfigAuthExec{
+										Exec: bootstrapv1.KubeConfigAuthExec{
 											Command: "/bootstrap",
 										},
 									},
@@ -1673,9 +1673,8 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			},
 			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
-				g.Expect(d.BootstrapToken).To(BeNil())
+				g.Expect(d.BootstrapToken.IsDefined()).To(BeFalse())
 				g.Expect(d.File.KubeConfig.User.Exec.Command).To(Equal("/bootstrap"))
-				g.Expect(d.File.KubeConfig.Cluster).ToNot(BeNil())
 				g.Expect(d.File.KubeConfig.Cluster.Server).To(Equal("https://example.com:6443"))
 				g.Expect(d.File.KubeConfig.Cluster.CertificateAuthorityData).To(BeEquivalentTo("ca-data"))
 				return nil
@@ -1686,9 +1685,9 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
-							BootstrapToken: &bootstrapv1.BootstrapTokenDiscovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
 								CACertHashes:      caHash,
 								APIServerEndpoint: "bar.com:6443",
 							},
@@ -1707,9 +1706,9 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
-							BootstrapToken: &bootstrapv1.BootstrapTokenDiscovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
 								CACertHashes: caHash,
 								Token:        "abcdef.0123456789abcdef",
 							},
@@ -1728,9 +1727,9 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
-							BootstrapToken: &bootstrapv1.BootstrapTokenDiscovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
 								CACertHashes: caHash,
 							},
 						},
@@ -1792,9 +1791,9 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t 
 			cluster: &clusterv1.Cluster{}, // cluster without endpoints
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
-							BootstrapToken: &bootstrapv1.BootstrapTokenDiscovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
 								CACertHashes: []string{"item"},
 							},
 						},
@@ -1852,7 +1851,7 @@ func TestKubeadmConfigReconciler_computeClusterConfigurationAndAdditionalData(t 
 				},
 			},
 			initConfiguration: &bootstrapv1.InitConfiguration{
-				Timeouts: &bootstrapv1.Timeouts{
+				Timeouts: bootstrapv1.Timeouts{
 					ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10),
 				},
 			},
@@ -1912,17 +1911,17 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 
 	testcases := []struct {
 		name               string
-		discovery          *bootstrapv1.BootstrapTokenDiscovery
+		discovery          bootstrapv1.BootstrapTokenDiscovery
 		skipCAVerification *bool
 	}{
 		{
 			name:               "Do not skip CA verification by default",
-			discovery:          &bootstrapv1.BootstrapTokenDiscovery{},
+			discovery:          bootstrapv1.BootstrapTokenDiscovery{},
 			skipCAVerification: nil,
 		},
 		{
 			name: "Skip CA verification if requested by the user",
-			discovery: &bootstrapv1.BootstrapTokenDiscovery{
+			discovery: bootstrapv1.BootstrapTokenDiscovery{
 				UnsafeSkipCAVerification: ptr.To(true),
 			},
 			skipCAVerification: ptr.To(true),
@@ -1931,7 +1930,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 			// skipCAVerification should be true since no Cert Hashes are provided, but reconcile will *always* get or create certs.
 			// TODO: Certificate get/create behavior needs to be mocked to enable this test.
 			name: "cannot test for defaulting behavior through the reconcile function",
-			discovery: &bootstrapv1.BootstrapTokenDiscovery{
+			discovery: bootstrapv1.BootstrapTokenDiscovery{
 				CACertHashes: []string{""},
 			},
 			skipCAVerification: nil,
@@ -1950,7 +1949,6 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 			}
 
 			wc := newWorkerJoinKubeadmConfig(metav1.NamespaceDefault, "worker-join-cfg")
-			wc.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 			wc.Spec.JoinConfiguration.Discovery.BootstrapToken = tc.discovery
 			key := client.ObjectKey{Namespace: wc.Namespace, Name: wc.Name}
 			err := myclient.Create(ctx, wc)
@@ -2123,8 +2121,6 @@ func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine.Namespace, "control-plane-init-cfg")
 	addKubeadmConfigToMachine(controlPlaneInitConfig, controlPlaneInitMachine)
-	// set InitConfiguration as nil, we will check this to determine if the kubeadm config has been patched
-	controlPlaneInitConfig.Spec.InitConfiguration = nil
 
 	objects := []client.Object{
 		cluster,
@@ -2161,7 +2157,7 @@ func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) 
 	cfg, err := getKubeadmConfig(myclient, "control-plane-init-cfg", metav1.NamespaceDefault)
 	g.Expect(err).ToNot(HaveOccurred())
 	// check if the kubeadm config has been patched
-	g.Expect(cfg.Spec.InitConfiguration).ToNot(BeNil())
+	g.Expect(conditions.Has(cfg, bootstrapv1.KubeadmConfigCertificatesAvailableCondition)).To(BeTrue())
 	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
 }
 
@@ -2207,7 +2203,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Files: []bootstrapv1.File{
 						{
-							ContentFrom: &bootstrapv1.FileSource{
+							ContentFrom: bootstrapv1.FileSource{
 								Secret: bootstrapv1.SecretFileSource{
 									Name: "source",
 									Key:  "key",
@@ -2241,7 +2237,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 							Permissions: "0600",
 						},
 						{
-							ContentFrom: &bootstrapv1.FileSource{
+							ContentFrom: bootstrapv1.FileSource{
 								Secret: bootstrapv1.SecretFileSource{
 									Name: "source",
 									Key:  "key",
@@ -2289,7 +2285,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 			// from secrets still are.
 			contentFrom := map[string]bool{}
 			for _, file := range tc.cfg.Spec.Files {
-				if file.ContentFrom != nil {
+				if file.ContentFrom.IsDefined() {
 					contentFrom[file.Path] = true
 				}
 			}
@@ -2299,7 +2295,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 			g.Expect(files).To(BeComparableTo(tc.expect))
 			for _, file := range tc.cfg.Spec.Files {
 				if contentFrom[file.Path] {
-					g.Expect(file.ContentFrom).NotTo(BeNil())
+					g.Expect(file.ContentFrom.IsDefined()).To(BeTrue())
 					g.Expect(file.Content).To(Equal(""))
 				}
 			}
@@ -2316,13 +2312,13 @@ func TestKubeadmConfigReconciler_ResolveDiscoveryFileKubeConfig(t *testing.T) {
 		"should generate the bootstrap kubeconfig correctly": {
 			cfg: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
-							File: &bootstrapv1.FileDiscovery{
+							File: bootstrapv1.FileDiscovery{
 								KubeConfigPath: "/bootstrap-kubeconfig.yaml",
-								KubeConfig: &bootstrapv1.FileDiscoveryKubeConfig{
+								KubeConfig: bootstrapv1.FileDiscoveryKubeConfig{
 									User: bootstrapv1.KubeConfigUser{
-										Exec: &bootstrapv1.KubeConfigAuthExec{
+										Exec: bootstrapv1.KubeConfigAuthExec{
 											Command: "/usr/bin/bootstrap",
 											Env: []bootstrapv1.KubeConfigAuthExecEnv{
 												{Name: "ENV_TEST", Value: "value"},
@@ -2404,7 +2400,7 @@ users:
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(file).To(BeEquivalentTo(tc.expect))
+			g.Expect(file).To(BeComparableTo(tc.expect))
 		})
 	}
 }
@@ -2614,10 +2610,6 @@ func addKubeadmConfigToMachine(config *bootstrapv1.KubeadmConfig, machine *clust
 		},
 	}
 
-	if machine.Spec.Bootstrap.ConfigRef == nil {
-		machine.Spec.Bootstrap.ConfigRef = &clusterv1.ContractVersionedObjectReference{}
-	}
-
 	machine.Spec.Bootstrap.ConfigRef.Name = config.Name
 }
 
@@ -2641,10 +2633,7 @@ func createSecrets(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1
 	t.Helper()
 
 	out := []client.Object{}
-	if config.Spec.ClusterConfiguration == nil {
-		config.Spec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
-	}
-	certificates := secret.NewCertificatesForInitialControlPlane(config.Spec.ClusterConfiguration)
+	certificates := secret.NewCertificatesForInitialControlPlane(&config.Spec.ClusterConfiguration)
 	if err := certificates.Generate(); err != nil {
 		t.Fatal(err)
 	}

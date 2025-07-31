@@ -128,7 +128,7 @@ type MachineHealthCheckRemediation struct {
 	// creates a new object from the template referenced and hands off remediation of the machine to
 	// a controller that lives outside of Cluster API.
 	// +optional
-	TemplateRef *MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty"`
+	TemplateRef MachineHealthCheckRemediationTemplateReference `json:"templateRef,omitempty,omitzero"`
 }
 
 // MachineHealthCheckRemediationTriggerIf configures if remediations are triggered.
@@ -181,6 +181,14 @@ type MachineHealthCheckRemediationTemplateReference struct {
 	// +kubebuilder:validation:MaxLength=317
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$`
 	APIVersion string `json:"apiVersion,omitempty"`
+}
+
+// IsDefined returns true if the MachineHealthCheckRemediationTemplateReference is set.
+func (r *MachineHealthCheckRemediationTemplateReference) IsDefined() bool {
+	if r == nil {
+		return false
+	}
+	return r.Kind != "" || r.Name != "" || r.APIVersion != ""
 }
 
 // ToObjectReference returns an object reference for the MachineHealthCheckRemediationTemplateReference in a given namespace.

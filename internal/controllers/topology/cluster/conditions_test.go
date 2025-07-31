@@ -191,7 +191,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},
@@ -224,7 +224,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},
@@ -258,7 +258,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},
@@ -305,7 +305,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},
@@ -356,7 +356,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},
@@ -404,7 +404,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},
@@ -456,7 +456,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},
@@ -488,7 +488,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},
@@ -519,7 +519,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},
@@ -601,7 +601,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},
@@ -681,7 +681,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},
@@ -741,7 +741,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},
@@ -809,7 +809,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
-					Topology: &clusterv1.Topology{
+					Topology: clusterv1.Topology{
 						Version: "v1.22.0",
 					},
 				},

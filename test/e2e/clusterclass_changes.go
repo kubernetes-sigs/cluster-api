@@ -542,7 +542,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 
 				// Get the corresponding InfrastructureMachineTemplate.
 				infrastructureMachineTemplateRef := md.Spec.Template.Spec.InfrastructureRef
-				infrastructureMachineTemplate, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, &infrastructureMachineTemplateRef, md.Namespace)
+				infrastructureMachineTemplate, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, infrastructureMachineTemplateRef, md.Namespace)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				// Verify that ModifyInfrastructureMachineTemplateFields have been set.
@@ -660,7 +660,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 
 				// Get the corresponding InfrastructureMachinePoolTemplate.
 				infrastructureMachinePoolRef := mp.Spec.Template.Spec.InfrastructureRef
-				infrastructureMachinePool, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, &infrastructureMachinePoolRef, mp.Namespace)
+				infrastructureMachinePool, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, infrastructureMachinePoolRef, mp.Namespace)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				// Verify that ModifyInfrastructureMachinePoolTemplateFields have been set.

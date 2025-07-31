@@ -108,7 +108,7 @@ func NewCertificatesForInitialControlPlane(config *bootstrapv1.ClusterConfigurat
 	}
 
 	// TODO make sure all the fields are actually defined and return an error if not
-	if config != nil && config.Etcd.External != nil {
+	if config != nil && config.Etcd.External.IsDefined() {
 		etcdCert = &Certificate{
 			Purpose:  EtcdCA,
 			CertFile: config.Etcd.External.CAFile,
@@ -158,7 +158,7 @@ func NewControlPlaneJoinCerts(config *bootstrapv1.ClusterConfiguration) Certific
 	}
 
 	// TODO make sure all the fields are actually defined and return an error if not
-	if config != nil && config.Etcd.External != nil {
+	if config != nil && config.Etcd.External.IsDefined() {
 		etcdCert = &Certificate{
 			Purpose:  EtcdCA,
 			CertFile: config.Etcd.External.CAFile,

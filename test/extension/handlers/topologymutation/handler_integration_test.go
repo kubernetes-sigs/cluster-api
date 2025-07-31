@@ -158,7 +158,7 @@ func getCluster() *clusterv1.Cluster {
 					CIDRBlocks: []string{"192.168.0.0/16"},
 				},
 			},
-			Topology: &clusterv1.Topology{
+			Topology: clusterv1.Topology{
 				Version: "v1.29.0",
 				// NOTE: Class name must match the ClusterClass name.
 				ClassRef: clusterv1.ClusterClassRef{

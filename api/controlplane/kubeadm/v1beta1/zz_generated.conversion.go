@@ -370,15 +370,7 @@ func autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1beta2_KubeadmControlPlan
 	} else {
 		out.Conditions = nil
 	}
-	if in.LastRemediation != nil {
-		in, out := &in.LastRemediation, &out.LastRemediation
-		*out = new(v1beta2.LastRemediationStatus)
-		if err := Convert_v1beta1_LastRemediationStatus_To_v1beta2_LastRemediationStatus(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.LastRemediation = nil
-	}
+	// WARNING: in.LastRemediation requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1.LastRemediationStatus vs sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2.LastRemediationStatus)
 	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -409,15 +401,7 @@ func autoConvert_v1beta2_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPlan
 		return err
 	}
 	out.ObservedGeneration = in.ObservedGeneration
-	if in.LastRemediation != nil {
-		in, out := &in.LastRemediation, &out.LastRemediation
-		*out = new(LastRemediationStatus)
-		if err := Convert_v1beta2_LastRemediationStatus_To_v1beta1_LastRemediationStatus(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.LastRemediation = nil
-	}
+	// WARNING: in.LastRemediation requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2.LastRemediationStatus vs *sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1.LastRemediationStatus)
 	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
 }

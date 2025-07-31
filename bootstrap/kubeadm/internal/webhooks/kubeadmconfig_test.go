@@ -61,7 +61,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Files: []bootstrapv1.File{
 						{
-							ContentFrom: &bootstrapv1.FileSource{
+							ContentFrom: bootstrapv1.FileSource{
 								Secret: bootstrapv1.SecretFileSource{
 									Name: "foo",
 									Key:  "bar",
@@ -81,8 +81,12 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Files: []bootstrapv1.File{
 						{
-							ContentFrom: &bootstrapv1.FileSource{},
-							Content:     "foo",
+							ContentFrom: bootstrapv1.FileSource{
+								Secret: bootstrapv1.SecretFileSource{
+									Name: "secret",
+								},
+							},
+							Content: "foo",
 						},
 					},
 				},
@@ -98,7 +102,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Files: []bootstrapv1.File{
 						{
-							ContentFrom: &bootstrapv1.FileSource{
+							ContentFrom: bootstrapv1.FileSource{
 								Secret: bootstrapv1.SecretFileSource{
 									Key: "bar",
 								},
@@ -119,7 +123,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Files: []bootstrapv1.File{
 						{
-							ContentFrom: &bootstrapv1.FileSource{
+							ContentFrom: bootstrapv1.FileSource{
 								Secret: bootstrapv1.SecretFileSource{
 									Name: "foo",
 								},
@@ -252,7 +256,11 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					Ignition: &bootstrapv1.IgnitionSpec{},
+					Ignition: bootstrapv1.IgnitionSpec{
+						ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
+							AdditionalConfig: "config",
+						},
+					},
 				},
 			},
 			expectErr: true,
@@ -296,7 +304,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
-					DiskSetup: &bootstrapv1.DiskSetup{
+					DiskSetup: bootstrapv1.DiskSetup{
 						Partitions: []bootstrapv1.Partition{
 							{
 								TableType: "MS-DOS",
@@ -327,8 +335,10 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
-					Ignition: &bootstrapv1.IgnitionSpec{
-						ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{},
+					Ignition: bootstrapv1.IgnitionSpec{
+						ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
+							AdditionalConfig: "config",
+						},
 					},
 				},
 			},
@@ -343,7 +353,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
-					DiskSetup: &bootstrapv1.DiskSetup{
+					DiskSetup: bootstrapv1.DiskSetup{
 						Filesystems: []bootstrapv1.Filesystem{
 							{
 								ReplaceFS: "ntfs",
@@ -363,7 +373,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
-					DiskSetup: &bootstrapv1.DiskSetup{
+					DiskSetup: bootstrapv1.DiskSetup{
 						Filesystems: []bootstrapv1.Filesystem{
 							{
 								Partition: "1",
@@ -443,8 +453,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					InitConfiguration: &bootstrapv1.InitConfiguration{
-						Timeouts: &bootstrapv1.Timeouts{
+					InitConfiguration: bootstrapv1.InitConfiguration{
+						Timeouts: bootstrapv1.Timeouts{
 							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10),
 						},
 					},
@@ -459,13 +469,13 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					InitConfiguration: &bootstrapv1.InitConfiguration{
-						Timeouts: &bootstrapv1.Timeouts{
+					InitConfiguration: bootstrapv1.InitConfiguration{
+						Timeouts: bootstrapv1.Timeouts{
 							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10),
 						},
 					},
-					JoinConfiguration: &bootstrapv1.JoinConfiguration{
-						Timeouts: &bootstrapv1.Timeouts{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						Timeouts: bootstrapv1.Timeouts{
 							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10),
 						},
 					},

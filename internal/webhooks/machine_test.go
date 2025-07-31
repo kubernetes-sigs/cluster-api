@@ -35,8 +35,10 @@ func TestMachineDefault(t *testing.T) {
 			Namespace: "foobar",
 		},
 		Spec: clusterv1.MachineSpec{
-			Bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
-			Version:   "1.17.5",
+			Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
+				Name: "bootstrap1",
+			}},
+			Version: "1.17.5",
 		},
 	}
 
@@ -58,22 +60,22 @@ func TestMachineBootstrapValidation(t *testing.T) {
 	}{
 		{
 			name:      "should return error if configref and data are nil",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: nil},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: nil},
 			expectErr: true,
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("test")},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("test")},
 			expectErr: false,
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("")},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("")},
 			expectErr: false,
 		},
 		{
 			name:      "should not return error if config ref is set",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}, DataSecretName: nil},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{Name: "bootstrap1"}, DataSecretName: nil},
 			expectErr: false,
 		},
 	}
@@ -133,13 +135,17 @@ func TestMachineClusterNameImmutable(t *testing.T) {
 			newMachine := &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
 					ClusterName: tt.newClusterName,
-					Bootstrap:   clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
+					Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
+						Name: "bootstrap1",
+					}},
 				},
 			}
 			oldMachine := &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
 					ClusterName: tt.oldClusterName,
-					Bootstrap:   clusterv1.Bootstrap{ConfigRef: &clusterv1.ContractVersionedObjectReference{}},
+					Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
+						Name: "bootstrap1",
+					}},
 				},
 			}
 
@@ -196,7 +202,7 @@ func TestMachineVersionValidation(t *testing.T) {
 			m := &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
 					Version:   tt.version,
-					Bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("test")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("test")},
 				},
 			}
 			webhook := &Machine{}

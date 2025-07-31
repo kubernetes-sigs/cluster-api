@@ -391,7 +391,7 @@ func forceClusterClassReconcile(ctx context.Context, cli client.Client, clusterK
 	cluster := &clusterv1.Cluster{}
 	Expect(cli.Get(ctx, clusterKey, cluster)).To(Succeed())
 
-	if cluster.Spec.Topology != nil {
+	if cluster.Spec.Topology.IsDefined() {
 		class := &clusterv1.ClusterClass{}
 		Expect(cli.Get(ctx, cluster.GetClassKey(), class)).To(Succeed())
 		annotationPatch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))

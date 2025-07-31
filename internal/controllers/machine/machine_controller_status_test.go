@@ -46,7 +46,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: clusterv1.GroupVersionBootstrap.Group,
 					Kind:     "GenericBootstrapConfig",
 					Name:     "bootstrap-config1",
@@ -66,7 +66,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			name: "boostrap data secret provided by user/operator",
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Spec.Bootstrap.ConfigRef = nil
+				m.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{} // Overwriting ConfigRef to empty.
 				m.Spec.Bootstrap.DataSecretName = ptr.To("foo")
 				return m
 			}(),
@@ -809,7 +809,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
 				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
-				m.Status.NodeRef = &clusterv1.MachineNodeReference{
+				m.Status.NodeRef = clusterv1.MachineNodeReference{
 					Name: "test-node-1",
 				}
 				return m
@@ -861,7 +861,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			cluster: defaultCluster,
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Status.NodeRef = &clusterv1.MachineNodeReference{
+				m.Status.NodeRef = clusterv1.MachineNodeReference{
 					Name: "test-node-1",
 				}
 				return m
@@ -1983,7 +1983,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
 				Kind:     builder.GenericControlPlaneKind,
 				Name:     "cp1",
@@ -2002,7 +2002,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: defaultCluster.Name,
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: clusterv1.GroupVersionBootstrap.Group,
 					Kind:     "GenericBootstrapConfig",
 					Name:     "bootstrap-config1",
@@ -2244,7 +2244,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{Name: node.Name}
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: node.Name}
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
@@ -2333,7 +2333,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{Name: node.Name}
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: node.Name}
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
@@ -2411,7 +2411,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{Name: node.Name}
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: node.Name}
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
@@ -2569,7 +2569,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{Name: node.Name}
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: node.Name}
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		modifiedMachine = machine.DeepCopy()

@@ -556,7 +556,7 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 
 func urlForExtension(config runtimev1.ClientConfig, gvh runtimecatalog.GroupVersionHook, name string) (*url.URL, error) {
 	var u *url.URL
-	if config.Service != nil {
+	if config.Service.IsDefined() {
 		// The Extension's ClientConfig points ot a service. Construct the URL to the service.
 		svc := config.Service
 		host := svc.Name + "." + svc.Namespace + ".svc"

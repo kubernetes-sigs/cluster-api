@@ -223,14 +223,16 @@ func getGetFailureDomainIDs(failureDomains []clusterv1.FailureDomain) []string {
 // InitialControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for an initializing control plane.
 func (c *ControlPlane) InitialControlPlaneConfig() *bootstrapv1.KubeadmConfigSpec {
 	bootstrapSpec := c.KCP.Spec.KubeadmConfigSpec.DeepCopy()
-	bootstrapSpec.JoinConfiguration = nil
+	// Note: When building a KubeadmConfig for the first CP machine empty out the unnecessary JoinConfiguration.
+	bootstrapSpec.JoinConfiguration = bootstrapv1.JoinConfiguration{}
 	return bootstrapSpec
 }
 
 // JoinControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for joining control planes.
 func (c *ControlPlane) JoinControlPlaneConfig() *bootstrapv1.KubeadmConfigSpec {
 	bootstrapSpec := c.KCP.Spec.KubeadmConfigSpec.DeepCopy()
-	bootstrapSpec.InitConfiguration = nil
+	// Note: When building a KubeadmConfig for a joining CP machine empty out the unnecessary InitConfiguration.
+	bootstrapSpec.InitConfiguration = bootstrapv1.InitConfiguration{}
 	// NOTE: For the joining we are preserving the ClusterConfiguration in order to determine if the
 	// cluster is using an external etcd in the kubeadm bootstrap provider (even if this is not required by kubeadm Join).
 	// TODO: Determine if this copy of cluster configuration can be used for rollouts (thus allowing to remove the annotation at machine level)
@@ -275,7 +277,7 @@ func (c *ControlPlane) UpToDateMachines() collections.Machines {
 func getInfraResources(ctx context.Context, cl client.Client, machines collections.Machines) (map[string]*unstructured.Unstructured, error) {
 	result := map[string]*unstructured.Unstructured{}
 	for _, m := range machines {
-		infraObj, err := external.GetObjectFromContractVersionedRef(ctx, cl, &m.Spec.InfrastructureRef, m.Namespace)
+		infraObj, err := external.GetObjectFromContractVersionedRef(ctx, cl, m.Spec.InfrastructureRef, m.Namespace)
 		if err != nil {
 			if apierrors.IsNotFound(errors.Cause(err)) {
 				continue
@@ -292,7 +294,7 @@ func getKubeadmConfigs(ctx context.Context, cl client.Client, machines collectio
 	result := map[string]*bootstrapv1.KubeadmConfig{}
 	for _, m := range machines {
 		bootstrapRef := m.Spec.Bootstrap.ConfigRef
-		if bootstrapRef == nil {
+		if !bootstrapRef.IsDefined() {
 			continue
 		}
 		machineConfig := &bootstrapv1.KubeadmConfig{}
@@ -309,7 +311,7 @@ func getKubeadmConfigs(ctx context.Context, cl client.Client, machines collectio
 
 // IsEtcdManaged returns true if the control plane relies on a managed etcd.
 func (c *ControlPlane) IsEtcdManaged() bool {
-	return c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External == nil
+	return !c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External.IsDefined()
 }
 
 // UnhealthyMachinesWithUnhealthyControlPlaneComponents returns all unhealthy control plane machines that
@@ -431,7 +433,7 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 	for _, m := range c.Machines {
 		notes := []string{}
 
-		if m.Status.NodeRef == nil {
+		if !m.Status.NodeRef.IsDefined() {
 			notes = append(notes, "status.nodeRef not set")
 		}
 

@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta2
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -72,7 +74,7 @@ type ClientConfig struct {
 	// If the Extension server is running within a cluster, then you should use `service`.
 	//
 	// +optional
-	Service *ServiceReference `json:"service,omitempty"`
+	Service ServiceReference `json:"service,omitempty,omitzero"`
 
 	// caBundle is a PEM encoded CA bundle which will be used to validate the Extension server's server certificate.
 	// +optional
@@ -107,6 +109,11 @@ type ServiceReference struct {
 	// Port should be a valid port number (1-65535, inclusive).
 	// +optional
 	Port *int32 `json:"port,omitempty"`
+}
+
+// IsDefined returns true if the ServiceReference is set.
+func (r *ServiceReference) IsDefined() bool {
+	return !reflect.DeepEqual(r, &ServiceReference{})
 }
 
 // ExtensionConfigStatus defines the observed state of ExtensionConfig.

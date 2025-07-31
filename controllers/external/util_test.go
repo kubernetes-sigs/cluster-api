@@ -90,14 +90,14 @@ func TestGetResourceNotFound(t *testing.T) {
 func TestGetObjectFromContractVersionedRef(t *testing.T) {
 	testCases := []struct {
 		name                string
-		ref                 *clusterv1.ContractVersionedObjectReference
+		ref                 clusterv1.ContractVersionedObjectReference
 		objs                []client.Object
 		expectError         bool
 		expectNotFoundError bool
 	}{
 		{
 			name: "object found",
-			ref: &clusterv1.ContractVersionedObjectReference{
+			ref: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.BootstrapGroupVersion.Group,
 				Kind:     builder.TestBootstrapConfigKind,
 				Name:     "bootstrap-config",
@@ -111,7 +111,7 @@ func TestGetObjectFromContractVersionedRef(t *testing.T) {
 		},
 		{
 			name: "object not found, because CRD is missing",
-			ref: &clusterv1.ContractVersionedObjectReference{
+			ref: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.BootstrapGroupVersion.Group,
 				Kind:     builder.TestBootstrapConfigKind,
 				Name:     "bootstrap-config",
@@ -125,7 +125,7 @@ func TestGetObjectFromContractVersionedRef(t *testing.T) {
 		},
 		{
 			name: "object not found, because object is missing",
-			ref: &clusterv1.ContractVersionedObjectReference{
+			ref: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.BootstrapGroupVersion.Group,
 				Kind:     builder.TestBootstrapConfigKind,
 				Name:     "bootstrap-config",
@@ -261,7 +261,6 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 		},
 	})
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(ref).NotTo(BeNil())
 	g.Expect(ref.Kind).To(Equal(expectedKind))
 	g.Expect(ref.APIGroup).To(Equal(expectedAPIGroup))
 	g.Expect(ref.Name).To(HavePrefix(templateRef.Name))
@@ -344,7 +343,6 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 		ClusterName: testClusterName,
 	})
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(ref).NotTo(BeNil())
 	g.Expect(ref.Kind).To(Equal(expectedKind))
 	g.Expect(ref.APIGroup).To(Equal(expectedAPIGroup))
 	g.Expect(ref.Name).To(Equal("object-name"))
@@ -414,7 +412,6 @@ func TestCloneTemplateMissingSpec(t *testing.T) {
 		},
 	})
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(ref).NotTo(BeNil())
 	g.Expect(ref.Kind).To(Equal(expectedKind))
 	g.Expect(ref.APIGroup).To(Equal(expectedAPIGroup))
 	g.Expect(ref.Name).To(HavePrefix(templateRef.Name))

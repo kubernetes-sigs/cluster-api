@@ -87,10 +87,12 @@ func Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfiguratio
 	return nil
 }
 
-func Convert_upstreamv1beta4_DNS_To_v1beta2_DNS(in *DNS, out *bootstrapv1.DNS, s apimachineryconversion.Scope) error {
+func Convert_upstreamv1beta4_DNS_To_v1beta2_DNS(in *DNS, out *bootstrapv1.DNS, _ apimachineryconversion.Scope) error {
 	// Following fields do not exist in CABPK v1beta1 version:
 	// - Disabled (Not supported yet)
-	return autoConvert_upstreamv1beta4_DNS_To_v1beta2_DNS(in, out, s)
+	out.ImageRepository = in.ImageRepository
+	out.ImageTag = in.ImageTag
+	return nil
 }
 
 func Convert_upstreamv1beta4_InitConfiguration_To_v1beta2_InitConfiguration(in *InitConfiguration, out *bootstrapv1.InitConfiguration, s apimachineryconversion.Scope) error {
@@ -98,13 +100,39 @@ func Convert_upstreamv1beta4_InitConfiguration_To_v1beta2_InitConfiguration(in *
 	// - DryRun (Does not make sense for CAPBK)
 	// - CertificateKey (CABPK does not use automatic copy certs)
 	// - Timeouts (Not supported yet)
-	return autoConvert_upstreamv1beta4_InitConfiguration_To_v1beta2_InitConfiguration(in, out, s)
+	if err := autoConvert_upstreamv1beta4_InitConfiguration_To_v1beta2_InitConfiguration(in, out, s); err != nil {
+		return err
+	}
+	if in.Timeouts != nil {
+		if err := Convert_upstreamv1beta4_Timeouts_To_v1beta2_Timeouts(in.Timeouts, &out.Timeouts, s); err != nil {
+			return err
+		}
+	}
+	if in.Patches != nil {
+		if err := Convert_upstreamv1beta4_Patches_To_v1beta2_Patches(in.Patches, &out.Patches, s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func Convert_upstreamv1beta4_JoinConfiguration_To_v1beta2_JoinConfiguration(in *JoinConfiguration, out *bootstrapv1.JoinConfiguration, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in CABPK v1beta1 version:
 	// - DryRun (Does not make sense for CAPBK)
-	return autoConvert_upstreamv1beta4_JoinConfiguration_To_v1beta2_JoinConfiguration(in, out, s)
+	if err := autoConvert_upstreamv1beta4_JoinConfiguration_To_v1beta2_JoinConfiguration(in, out, s); err != nil {
+		return err
+	}
+	if in.Timeouts != nil {
+		if err := Convert_upstreamv1beta4_Timeouts_To_v1beta2_Timeouts(in.Timeouts, &out.Timeouts, s); err != nil {
+			return err
+		}
+	}
+	if in.Patches != nil {
+		if err := Convert_upstreamv1beta4_Patches_To_v1beta2_Patches(in.Patches, &out.Patches, s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func Convert_upstreamv1beta4_JoinControlPlane_To_v1beta2_JoinControlPlane(in *JoinControlPlane, out *bootstrapv1.JoinControlPlane, s apimachineryconversion.Scope) error {
@@ -186,6 +214,8 @@ func Convert_upstreamv1beta4_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *
 	} else {
 		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
 	}
+	out.ImageRepository = in.ImageRepository
+	out.ImageTag = in.ImageTag
 	return autoConvert_upstreamv1beta4_LocalEtcd_To_v1beta2_LocalEtcd(in, out, s)
 }
 
@@ -203,7 +233,76 @@ func convert_upstreamv1beta4_ExtraVolumes_To_v1beta2_ExtraVolumes(in *[]HostPath
 	return nil
 }
 
+func Convert_upstreamv1beta4_Etcd_To_v1beta2_Etcd(in *Etcd, out *bootstrapv1.Etcd, s apimachineryconversion.Scope) error {
+	if in.Local != nil {
+		if err := Convert_upstreamv1beta4_LocalEtcd_To_v1beta2_LocalEtcd(in.Local, &out.Local, s); err != nil {
+			return err
+		}
+	}
+	if in.External != nil {
+		if err := Convert_upstreamv1beta4_ExternalEtcd_To_v1beta2_ExternalEtcd(in.External, &out.External, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_upstreamv1beta4_Discovery_To_v1beta2_Discovery(in *Discovery, out *bootstrapv1.Discovery, s apimachineryconversion.Scope) error {
+	if err := autoConvert_upstreamv1beta4_Discovery_To_v1beta2_Discovery(in, out, s); err != nil {
+		return err
+	}
+	if in.BootstrapToken != nil {
+		if err := Convert_upstreamv1beta4_BootstrapTokenDiscovery_To_v1beta2_BootstrapTokenDiscovery(in.BootstrapToken, &out.BootstrapToken, s); err != nil {
+			return err
+		}
+	}
+	if in.File != nil {
+		if err := Convert_upstreamv1beta4_FileDiscovery_To_v1beta2_FileDiscovery(in.File, &out.File, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Custom conversion from the hub version, CABPK v1beta1, to this API, kubeadm v1beta4.
+
+func Convert_v1beta2_InitConfiguration_To_upstreamv1beta4_InitConfiguration(in *bootstrapv1.InitConfiguration, out *InitConfiguration, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_InitConfiguration_To_upstreamv1beta4_InitConfiguration(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.Timeouts, bootstrapv1.Timeouts{}) {
+		out.Timeouts = &Timeouts{}
+		if err := Convert_v1beta2_Timeouts_To_upstreamv1beta4_Timeouts(&in.Timeouts, out.Timeouts, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.Patches, bootstrapv1.Patches{}) {
+		out.Patches = &Patches{}
+		if err := Convert_v1beta2_Patches_To_upstreamv1beta4_Patches(&in.Patches, out.Patches, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration(in *bootstrapv1.JoinConfiguration, out *JoinConfiguration, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.Timeouts, bootstrapv1.Timeouts{}) {
+		out.Timeouts = &Timeouts{}
+		if err := Convert_v1beta2_Timeouts_To_upstreamv1beta4_Timeouts(&in.Timeouts, out.Timeouts, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.Patches, bootstrapv1.Patches{}) {
+		out.Patches = &Patches{}
+		if err := Convert_v1beta2_Patches_To_upstreamv1beta4_Patches(&in.Patches, out.Patches, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func Convert_v1beta2_APIServer_To_upstreamv1beta4_APIServer(in *bootstrapv1.APIServer, out *APIServer, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in kubeadm v1beta4 version:
@@ -248,6 +347,8 @@ func Convert_v1beta2_LocalEtcd_To_upstreamv1beta4_LocalEtcd(in *bootstrapv1.Loca
 	} else {
 		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
 	}
+	out.ImageRepository = in.ImageRepository
+	out.ImageTag = in.ImageTag
 	return autoConvert_v1beta2_LocalEtcd_To_upstreamv1beta4_LocalEtcd(in, out, s)
 }
 
@@ -268,7 +369,22 @@ func convert_v1beta2_ExtraVolumes_To_upstreamv1beta4_ExtraVolumes(in *[]bootstra
 func Convert_v1beta2_Discovery_To_upstreamv1beta4_Discovery(in *bootstrapv1.Discovery, out *Discovery, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in kubeadm v1beta4 version:
 	// - Timeout (this field has been migrated to JoinConfiguration.Timeouts.TLSBootstrap, the conversion is handled in Convert_v1beta2_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration)
-	return autoConvert_v1beta2_Discovery_To_upstreamv1beta4_Discovery(in, out, s)
+	if err := autoConvert_v1beta2_Discovery_To_upstreamv1beta4_Discovery(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.BootstrapToken, bootstrapv1.BootstrapTokenDiscovery{}) {
+		out.BootstrapToken = &BootstrapTokenDiscovery{}
+		if err := Convert_v1beta2_BootstrapTokenDiscovery_To_upstreamv1beta4_BootstrapTokenDiscovery(&in.BootstrapToken, out.BootstrapToken, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.File, bootstrapv1.FileDiscovery{}) {
+		out.File = &FileDiscovery{}
+		if err := Convert_v1beta2_FileDiscovery_To_upstreamv1beta4_FileDiscovery(&in.File, out.File, s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func Convert_v1beta2_FileDiscovery_To_upstreamv1beta4_FileDiscovery(in *bootstrapv1.FileDiscovery, out *FileDiscovery, s apimachineryconversion.Scope) error {
@@ -306,6 +422,28 @@ func Convert_v1beta2_BootstrapToken_To_upstreamv1beta4_BootstrapToken(in *bootst
 	out.TTL = clusterv1.ConvertFromSeconds(in.TTLSeconds)
 	if !reflect.DeepEqual(in.Expires, metav1.Time{}) {
 		out.Expires = ptr.To(in.Expires)
+	}
+	return nil
+}
+
+func Convert_v1beta2_DNS_To_upstreamv1beta4_DNS(in *bootstrapv1.DNS, out *DNS, _ apimachineryconversion.Scope) error {
+	out.ImageRepository = in.ImageRepository
+	out.ImageTag = in.ImageTag
+	return nil
+}
+
+func Convert_v1beta2_Etcd_To_upstreamv1beta4_Etcd(in *bootstrapv1.Etcd, out *Etcd, s apimachineryconversion.Scope) error {
+	if in.Local.IsDefined() {
+		out.Local = &LocalEtcd{}
+		if err := Convert_v1beta2_LocalEtcd_To_upstreamv1beta4_LocalEtcd(&in.Local, out.Local, s); err != nil {
+			return err
+		}
+	}
+	if in.External.IsDefined() {
+		out.External = &ExternalEtcd{}
+		if err := Convert_v1beta2_ExternalEtcd_To_upstreamv1beta4_ExternalEtcd(&in.External, out.External, s); err != nil {
+			return err
+		}
 	}
 	return nil
 }

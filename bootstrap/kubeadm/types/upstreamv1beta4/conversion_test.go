@@ -111,6 +111,13 @@ func spokeClusterConfigurationFuzzer(obj *ClusterConfiguration, c randfill.Conti
 	obj.Networking.DNSDomain = ""
 	obj.KubernetesVersion = ""
 	obj.ClusterName = ""
+
+	if obj.Etcd.Local != nil && reflect.DeepEqual(obj.Etcd.Local, &LocalEtcd{}) {
+		obj.Etcd.Local = nil
+	}
+	if obj.Etcd.External != nil && reflect.DeepEqual(obj.Etcd.External, &ExternalEtcd{}) {
+		obj.Etcd.External = nil
+	}
 }
 
 func spokeDNSFuzzer(obj *DNS, c randfill.Continue) {
@@ -125,12 +132,24 @@ func spokeInitConfigurationFuzzer(obj *InitConfiguration, c randfill.Continue) {
 	obj.DryRun = false
 	obj.CertificateKey = ""
 	obj.Timeouts = nil
+
+	if obj.Patches != nil && reflect.DeepEqual(obj.Patches, &Patches{}) {
+		obj.Patches = nil
+	}
 }
 
 func spokeJoinConfigurationFuzzer(obj *JoinConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	obj.DryRun = false
+
+	if obj.Patches != nil && reflect.DeepEqual(obj.Patches, &Patches{}) {
+		obj.Patches = nil
+	}
+
+	if obj.Discovery.File != nil && reflect.DeepEqual(obj.Discovery.File, &FileDiscovery{}) {
+		obj.Discovery.File = nil
+	}
 
 	// If timeouts have been set, unset unsupported timeouts (only TLSBootstrap is supported - corresponds to JoinConfiguration.Discovery.Timeout in cabpk v1beta1 API
 	if obj.Timeouts == nil {
@@ -200,10 +219,8 @@ func hubClusterConfigurationFuzzer(in *bootstrapv1.ClusterConfiguration, c randf
 		if in.Scheduler.ExtraEnvs != nil && *in.Scheduler.ExtraEnvs == nil {
 			in.Scheduler.ExtraEnvs = nil
 		}
-		if in.Etcd.Local != nil {
-			if in.Etcd.Local.ExtraEnvs != nil && *in.Etcd.Local.ExtraEnvs == nil {
-				in.Etcd.Local.ExtraEnvs = nil
-			}
+		if in.Etcd.Local.ExtraEnvs != nil && *in.Etcd.Local.ExtraEnvs == nil {
+			in.Etcd.Local.ExtraEnvs = nil
 		}
 	}
 }
@@ -211,9 +228,7 @@ func hubClusterConfigurationFuzzer(in *bootstrapv1.ClusterConfiguration, c randf
 func hubJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
-	if obj.Discovery.File != nil {
-		obj.Discovery.File.KubeConfig = nil
-	}
+	obj.Discovery.File.KubeConfig = bootstrapv1.FileDiscoveryKubeConfig{}
 }
 
 func hubHostPathMountFuzzer(obj *bootstrapv1.HostPathMount, c randfill.Continue) {

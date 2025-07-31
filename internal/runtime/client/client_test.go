@@ -259,7 +259,7 @@ func TestURLForExtension(t *testing.T) {
 			name: "ClientConfig using service should have correct URL values",
 			args: args{
 				config: runtimev1.ClientConfig{
-					Service: &runtimev1.ServiceReference{
+					Service: runtimev1.ServiceReference{
 						Namespace: "test1",
 						Name:      "extension-service",
 						Port:      ptr.To[int32](8443),
@@ -279,7 +279,7 @@ func TestURLForExtension(t *testing.T) {
 			name: "ClientConfig using service and CAbundle should have correct URL values",
 			args: args{
 				config: runtimev1.ClientConfig{
-					Service: &runtimev1.ServiceReference{
+					Service: runtimev1.ServiceReference{
 						Namespace: "test1",
 						Name:      "extension-service",
 						Port:      ptr.To[int32](8443),

@@ -383,7 +383,7 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 					Name:       controlPlaneTemplate.Name,
 					APIVersion: testt1v1beta1.GroupVersion.String(),
 				},
-				MachineInfrastructure: &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+				MachineInfrastructure: clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
 					TemplateRef: clusterv1.ClusterClassTemplateReference{
 						Kind:       "TestResourceTemplate",
 						Name:       infrastructureMachineTemplate1.Name,
@@ -576,7 +576,7 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 					Name:       controlPlaneTemplate.Name,
 					APIVersion: testt2v1beta2.GroupVersion.String(),
 				},
-				MachineInfrastructure: &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+				MachineInfrastructure: clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
 					TemplateRef: clusterv1.ClusterClassTemplateReference{
 						Kind:       "TestResourceTemplate",
 						Name:       infrastructureMachineTemplate1.Name,
@@ -647,7 +647,7 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 		Name:     actualCluster.GetName(),
 	}] = actualCluster.GetGeneration()
 
-	if actualCluster.Spec.InfrastructureRef == nil {
+	if !actualCluster.Spec.InfrastructureRef.IsDefined() {
 		return nil, errors.New("cluster actualCluster.spec.infrastructureRef is not yet set")
 	}
 	refObj, err := getReferencedObject(ctx, env.GetClient(), actualCluster.Spec.InfrastructureRef, version, actualCluster.Namespace)
@@ -666,7 +666,7 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 		}
 	}
 
-	if actualCluster.Spec.ControlPlaneRef == nil {
+	if !actualCluster.Spec.ControlPlaneRef.IsDefined() {
 		return nil, errors.New("cluster actualCluster.spec.controlPlaneRef is not yet set")
 	}
 	refObj, err = getReferencedObject(ctx, env.GetClient(), actualCluster.Spec.ControlPlaneRef, version, actualCluster.Namespace)
@@ -689,7 +689,7 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 	if err != nil {
 		return nil, errors.Wrap(err, "cluster controlPlane.spec.machineTemplate.spec.infrastructureRef is not yet set")
 	}
-	refObj, err = getReferencedObject(ctx, env.GetClient(), cpInfraRef, version, actualCluster.Namespace)
+	refObj, err = getReferencedObject(ctx, env.GetClient(), *cpInfraRef, version, actualCluster.Namespace)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get referenced controlPlane.spec.machineTemplate.spec.infrastructureRef")
 	}
@@ -724,7 +724,7 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 		}] = md.GetGeneration()
 		addToAllObj(cluster.Name, "machineDeployment "+md.Name, &md)
 
-		refObj, err = getReferencedObject(ctx, env.GetClient(), &md.Spec.Template.Spec.InfrastructureRef, version, actualCluster.Namespace)
+		refObj, err = getReferencedObject(ctx, env.GetClient(), md.Spec.Template.Spec.InfrastructureRef, version, actualCluster.Namespace)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get referenced machineDeployment.spec.template.spec.infrastructureRef")
 		}
@@ -740,7 +740,7 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 			}
 		}
 
-		if md.Spec.Template.Spec.Bootstrap.ConfigRef == nil {
+		if !md.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 			return nil, errors.New("cluster machineDeployment.spec.template.spec.bootstrap.configRef is not yet set")
 		}
 		refObj, err = getReferencedObject(ctx, env.GetClient(), md.Spec.Template.Spec.Bootstrap.ConfigRef, version, actualCluster.Namespace)
@@ -762,7 +762,7 @@ func getClusterTopologyReferences(cluster *clusterv1.Cluster, version string, ad
 	return refs, nil
 }
 
-func getReferencedObject(ctx context.Context, c client.Client, ref *clusterv1.ContractVersionedObjectReference, version, namespace string) (*unstructured.Unstructured, error) {
+func getReferencedObject(ctx context.Context, c client.Client, ref clusterv1.ContractVersionedObjectReference, version, namespace string) (*unstructured.Unstructured, error) {
 	refObj := &unstructured.Unstructured{}
 	refObj.SetGroupVersionKind(ref.GroupKind().WithVersion(version))
 	if err := c.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: namespace}, refObj); err != nil {
@@ -956,7 +956,7 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 
 	cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(refObj)
 	g.Expect(err).To(Succeed())
-	refObj, err = getReferencedObject(ctx, env.GetClient(), cpInfraRef, "v1beta2", cluster.Namespace)
+	refObj, err = getReferencedObject(ctx, env.GetClient(), *cpInfraRef, "v1beta2", cluster.Namespace)
 	g.Expect(err).To(Succeed())
 	controlPlaneInfraRef := clusterv1.ContractVersionedObjectReference{
 		APIGroup: refObj.GroupVersionKind().Group,
@@ -982,7 +982,7 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 		}
 		g.Expect(refsAfter[mdRef]).To(Equal(refsBefore[mdRef]+1), "machineDeployment "+md.Name+" unexpected change") // MachineDeployment is expected to have an additional generation due to rollout
 
-		refObj, err = getReferencedObject(ctx, env.GetClient(), &md.Spec.Template.Spec.InfrastructureRef, "v1beta2", cluster.Namespace)
+		refObj, err = getReferencedObject(ctx, env.GetClient(), md.Spec.Template.Spec.InfrastructureRef, "v1beta2", cluster.Namespace)
 		g.Expect(err).To(Succeed())
 		mdInfraRef := clusterv1.ContractVersionedObjectReference{
 			APIGroup: refObj.GroupVersionKind().Group,
@@ -1039,7 +1039,7 @@ func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter
 
 	cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(refObj)
 	g.Expect(err).To(Succeed())
-	refObj, err = getReferencedObject(ctx, env.GetClient(), cpInfraRef, "v1beta2", cluster.Namespace)
+	refObj, err = getReferencedObject(ctx, env.GetClient(), *cpInfraRef, "v1beta2", cluster.Namespace)
 	g.Expect(err).To(Succeed())
 	controlPlaneInfraRef := clusterv1.ContractVersionedObjectReference{
 		APIGroup: refObj.GroupVersionKind().Group,
@@ -1064,7 +1064,7 @@ func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter
 		}
 		g.Expect(refsAfter[mdRef]).To(Equal(refsBefore[mdRef]), "machineDeployment "+md.Name+" unexpected change")
 
-		refObj, err = getReferencedObject(ctx, env.GetClient(), &md.Spec.Template.Spec.InfrastructureRef, "v1beta2", cluster.Namespace)
+		refObj, err = getReferencedObject(ctx, env.GetClient(), md.Spec.Template.Spec.InfrastructureRef, "v1beta2", cluster.Namespace)
 		g.Expect(err).To(Succeed())
 		mdInfraRef := clusterv1.ContractVersionedObjectReference{
 			APIGroup: refObj.GroupVersionKind().Group,

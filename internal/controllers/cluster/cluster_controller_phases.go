@@ -49,7 +49,7 @@ import (
 var externalReadyWait = 30 * time.Second
 
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
-func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *clusterv1.ContractVersionedObjectReference) (*unstructured.Unstructured, error) {
+func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref clusterv1.ContractVersionedObjectReference) (*unstructured.Unstructured, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	obj, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, ref, cluster.Namespace)
@@ -136,7 +136,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	cluster := s.cluster
 
 	// If the infrastructure ref is not set, no-op.
-	if s.cluster.Spec.InfrastructureRef == nil {
+	if !s.cluster.Spec.InfrastructureRef.IsDefined() {
 		// if the cluster is not deleted, and the cluster is not using a ClusterClass, mark the infrastructure as ready to unblock other provisioning workflows.
 		if s.cluster.DeletionTimestamp.IsZero() {
 			cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
@@ -245,7 +245,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	log := ctrl.LoggerFrom(ctx)
 	cluster := s.cluster
 
-	if cluster.Spec.ControlPlaneRef == nil {
+	if !cluster.Spec.ControlPlaneRef.IsDefined() {
 		return ctrl.Result{}, nil
 	}
 
@@ -353,7 +353,7 @@ func (r *Reconciler) reconcileKubeconfig(ctx context.Context, s *scope) (ctrl.Re
 	// Do not generate the Kubeconfig if there is a ControlPlaneRef, since the Control Plane provider is
 	// responsible for the management of the Kubeconfig. We continue to manage it here only for backward
 	// compatibility when a Control Plane provider is not in use.
-	if cluster.Spec.ControlPlaneRef != nil {
+	if cluster.Spec.ControlPlaneRef.IsDefined() {
 		return ctrl.Result{}, nil
 	}
 

@@ -107,8 +107,8 @@ func NewInitControlPlane(input *ControlPlaneInput) ([]byte, string, error) {
 
 func render(input *cloudinit.BaseUserData, ignitionConfig *bootstrapv1.IgnitionSpec, kubeadmConfig string) ([]byte, string, error) {
 	clcConfig := &bootstrapv1.ContainerLinuxConfig{}
-	if ignitionConfig != nil && ignitionConfig.ContainerLinuxConfig != nil {
-		clcConfig = ignitionConfig.ContainerLinuxConfig
+	if ignitionConfig != nil && ignitionConfig.ContainerLinuxConfig.IsDefined() {
+		clcConfig = &ignitionConfig.ContainerLinuxConfig
 	}
 
 	return clc.Render(input, clcConfig, kubeadmConfig)

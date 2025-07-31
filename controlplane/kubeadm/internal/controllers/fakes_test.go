@@ -101,7 +101,7 @@ func (f *fakeWorkloadCluster) AllowClusterAdminPermissions(_ context.Context, _ 
 	return nil
 }
 
-func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(*bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration) {
+func (f *fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration) {
 	return nil
 }
 

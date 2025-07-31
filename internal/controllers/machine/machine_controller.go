@@ -443,7 +443,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		switch err {
 		case errNoControlPlaneNodes, errLastControlPlaneNode, errNilNodeRef, errClusterIsBeingDeleted, errControlPlaneIsBeingDeleted:
 			nodeName := ""
-			if m.Status.NodeRef != nil {
+			if m.Status.NodeRef.IsDefined() {
 				nodeName = m.Status.NodeRef.Name
 			}
 			log.Info("Skipping deletion of Kubernetes Node associated with Machine as it is not allowed", "Node", klog.KRef("", nodeName), "cause", err.Error())
@@ -583,7 +583,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		return ctrl.Result{}, nil
 	}
 
-	if m.Spec.Bootstrap.ConfigRef != nil {
+	if m.Spec.Bootstrap.ConfigRef.IsDefined() {
 		bootstrapDeleted, err := r.reconcileDeleteBootstrap(ctx, s)
 		if err != nil {
 			s.deletingReason = clusterv1.MachineDeletingInternalErrorReason
@@ -729,7 +729,7 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 		}
 	}
 
-	if machine.Status.NodeRef == nil && providerID != "" {
+	if !machine.Status.NodeRef.IsDefined() && providerID != "" {
 		// If we don't have a node reference, but a provider id has been set,
 		// try to retrieve the node one more time.
 		//
@@ -744,21 +744,21 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 			if err != nil && err != ErrNodeNotFound {
 				log.Error(err, "Failed to get node while deleting Machine")
 			} else if err == nil {
-				machine.Status.NodeRef = &clusterv1.MachineNodeReference{
+				machine.Status.NodeRef = clusterv1.MachineNodeReference{
 					Name: node.Name,
 				}
 			}
 		}
 	}
 
-	if machine.Status.NodeRef == nil {
+	if !machine.Status.NodeRef.IsDefined() {
 		// Cannot delete something that doesn't exist.
 		return errNilNodeRef
 	}
 
 	// controlPlaneRef is an optional field in the Cluster so skip the external
 	// managed control plane check if it is nil
-	if cluster.Spec.ControlPlaneRef != nil {
+	if cluster.Spec.ControlPlaneRef.IsDefined() {
 		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 		if apierrors.IsNotFound(err) {
 			// If control plane object in the reference does not exist, log and skip check for

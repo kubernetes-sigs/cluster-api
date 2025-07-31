@@ -80,21 +80,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*DNS)(nil), (*v1beta2.DNS)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DNS_To_v1beta2_DNS(a.(*DNS), b.(*v1beta2.DNS), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.DNS)(nil), (*DNS)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_DNS_To_v1beta1_DNS(a.(*v1beta2.DNS), b.(*DNS), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.Discovery)(nil), (*Discovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Discovery_To_v1beta1_Discovery(a.(*v1beta2.Discovery), b.(*Discovery), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*DiskSetup)(nil), (*v1beta2.DiskSetup)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_DiskSetup_To_v1beta2_DiskSetup(a.(*DiskSetup), b.(*v1beta2.DiskSetup), scope)
 	}); err != nil {
@@ -115,16 +100,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*Etcd)(nil), (*v1beta2.Etcd)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Etcd_To_v1beta2_Etcd(a.(*Etcd), b.(*v1beta2.Etcd), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.Etcd)(nil), (*Etcd)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Etcd_To_v1beta1_Etcd(a.(*v1beta2.Etcd), b.(*Etcd), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*ExternalEtcd)(nil), (*v1beta2.ExternalEtcd)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ExternalEtcd_To_v1beta2_ExternalEtcd(a.(*ExternalEtcd), b.(*v1beta2.ExternalEtcd), scope)
 	}); err != nil {
@@ -132,36 +107,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.ExternalEtcd)(nil), (*ExternalEtcd)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_ExternalEtcd_To_v1beta1_ExternalEtcd(a.(*v1beta2.ExternalEtcd), b.(*ExternalEtcd), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*File)(nil), (*v1beta2.File)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_File_To_v1beta2_File(a.(*File), b.(*v1beta2.File), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.File)(nil), (*File)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_File_To_v1beta1_File(a.(*v1beta2.File), b.(*File), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*FileDiscovery)(nil), (*v1beta2.FileDiscovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery(a.(*FileDiscovery), b.(*v1beta2.FileDiscovery), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.FileDiscovery)(nil), (*FileDiscovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery(a.(*v1beta2.FileDiscovery), b.(*FileDiscovery), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*FileDiscoveryKubeConfig)(nil), (*v1beta2.FileDiscoveryKubeConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig(a.(*FileDiscoveryKubeConfig), b.(*v1beta2.FileDiscoveryKubeConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.FileDiscoveryKubeConfig)(nil), (*FileDiscoveryKubeConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeConfig(a.(*v1beta2.FileDiscoveryKubeConfig), b.(*FileDiscoveryKubeConfig), scope)
 	}); err != nil {
 		return err
 	}
@@ -192,26 +137,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.HostPathMount)(nil), (*HostPathMount)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_HostPathMount_To_v1beta1_HostPathMount(a.(*v1beta2.HostPathMount), b.(*HostPathMount), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*IgnitionSpec)(nil), (*v1beta2.IgnitionSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_IgnitionSpec_To_v1beta2_IgnitionSpec(a.(*IgnitionSpec), b.(*v1beta2.IgnitionSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.IgnitionSpec)(nil), (*IgnitionSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_IgnitionSpec_To_v1beta1_IgnitionSpec(a.(*v1beta2.IgnitionSpec), b.(*IgnitionSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ImageMeta)(nil), (*v1beta2.ImageMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ImageMeta_To_v1beta2_ImageMeta(a.(*ImageMeta), b.(*v1beta2.ImageMeta), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.ImageMeta)(nil), (*ImageMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_ImageMeta_To_v1beta1_ImageMeta(a.(*v1beta2.ImageMeta), b.(*ImageMeta), scope)
 	}); err != nil {
 		return err
 	}
@@ -265,16 +190,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*KubeConfigUser)(nil), (*v1beta2.KubeConfigUser)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_KubeConfigUser_To_v1beta2_KubeConfigUser(a.(*KubeConfigUser), b.(*v1beta2.KubeConfigUser), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.KubeConfigUser)(nil), (*KubeConfigUser)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_KubeConfigUser_To_v1beta1_KubeConfigUser(a.(*v1beta2.KubeConfigUser), b.(*KubeConfigUser), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*KubeadmConfig)(nil), (*v1beta2.KubeadmConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_KubeadmConfig_To_v1beta2_KubeadmConfig(a.(*KubeadmConfig), b.(*v1beta2.KubeadmConfig), scope)
 	}); err != nil {
@@ -292,11 +207,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.KubeadmConfigList)(nil), (*KubeadmConfigList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_KubeadmConfigList_To_v1beta1_KubeadmConfigList(a.(*v1beta2.KubeadmConfigList), b.(*KubeadmConfigList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.KubeadmConfigSpec)(nil), (*KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(a.(*v1beta2.KubeadmConfigSpec), b.(*KubeadmConfigSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -445,8 +355,38 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*DNS)(nil), (*v1beta2.DNS)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DNS_To_v1beta2_DNS(a.(*DNS), b.(*v1beta2.DNS), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*Discovery)(nil), (*v1beta2.Discovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Discovery_To_v1beta2_Discovery(a.(*Discovery), b.(*v1beta2.Discovery), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*Etcd)(nil), (*v1beta2.Etcd)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Etcd_To_v1beta2_Etcd(a.(*Etcd), b.(*v1beta2.Etcd), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*FileDiscoveryKubeConfig)(nil), (*v1beta2.FileDiscoveryKubeConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig(a.(*FileDiscoveryKubeConfig), b.(*v1beta2.FileDiscoveryKubeConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*FileDiscovery)(nil), (*v1beta2.FileDiscovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery(a.(*FileDiscovery), b.(*v1beta2.FileDiscovery), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*File)(nil), (*v1beta2.File)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_File_To_v1beta2_File(a.(*File), b.(*v1beta2.File), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*IgnitionSpec)(nil), (*v1beta2.IgnitionSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_IgnitionSpec_To_v1beta2_IgnitionSpec(a.(*IgnitionSpec), b.(*v1beta2.IgnitionSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -457,6 +397,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*JoinConfiguration)(nil), (*v1beta2.JoinConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(a.(*JoinConfiguration), b.(*v1beta2.JoinConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*KubeConfigUser)(nil), (*v1beta2.KubeConfigUser)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_KubeConfigUser_To_v1beta2_KubeConfigUser(a.(*KubeConfigUser), b.(*v1beta2.KubeConfigUser), scope)
 	}); err != nil {
 		return err
 	}
@@ -505,6 +450,41 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.DNS)(nil), (*DNS)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DNS_To_v1beta1_DNS(a.(*v1beta2.DNS), b.(*DNS), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.Discovery)(nil), (*Discovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_Discovery_To_v1beta1_Discovery(a.(*v1beta2.Discovery), b.(*Discovery), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.Etcd)(nil), (*Etcd)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_Etcd_To_v1beta1_Etcd(a.(*v1beta2.Etcd), b.(*Etcd), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.FileDiscoveryKubeConfig)(nil), (*FileDiscoveryKubeConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeConfig(a.(*v1beta2.FileDiscoveryKubeConfig), b.(*FileDiscoveryKubeConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.FileDiscovery)(nil), (*FileDiscovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery(a.(*v1beta2.FileDiscovery), b.(*FileDiscovery), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.File)(nil), (*File)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_File_To_v1beta1_File(a.(*v1beta2.File), b.(*File), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.IgnitionSpec)(nil), (*IgnitionSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IgnitionSpec_To_v1beta1_IgnitionSpec(a.(*v1beta2.IgnitionSpec), b.(*IgnitionSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.InitConfiguration)(nil), (*InitConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_InitConfiguration_To_v1beta1_InitConfiguration(a.(*v1beta2.InitConfiguration), b.(*InitConfiguration), scope)
 	}); err != nil {
@@ -512,6 +492,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.JoinConfiguration)(nil), (*JoinConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_JoinConfiguration_To_v1beta1_JoinConfiguration(a.(*v1beta2.JoinConfiguration), b.(*JoinConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.KubeConfigUser)(nil), (*KubeConfigUser)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_KubeConfigUser_To_v1beta1_KubeConfigUser(a.(*v1beta2.KubeConfigUser), b.(*KubeConfigUser), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.KubeadmConfigSpec)(nil), (*KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(a.(*v1beta2.KubeadmConfigSpec), b.(*KubeadmConfigSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -731,79 +721,29 @@ func Convert_v1beta2_ContainerLinuxConfig_To_v1beta1_ContainerLinuxConfig(in *v1
 }
 
 func autoConvert_v1beta1_DNS_To_v1beta2_DNS(in *DNS, out *v1beta2.DNS, s conversion.Scope) error {
-	if err := Convert_v1beta1_ImageMeta_To_v1beta2_ImageMeta(&in.ImageMeta, &out.ImageMeta, s); err != nil {
-		return err
-	}
+	// WARNING: in.ImageMeta requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_DNS_To_v1beta2_DNS is an autogenerated conversion function.
-func Convert_v1beta1_DNS_To_v1beta2_DNS(in *DNS, out *v1beta2.DNS, s conversion.Scope) error {
-	return autoConvert_v1beta1_DNS_To_v1beta2_DNS(in, out, s)
 }
 
 func autoConvert_v1beta2_DNS_To_v1beta1_DNS(in *v1beta2.DNS, out *DNS, s conversion.Scope) error {
-	if err := Convert_v1beta2_ImageMeta_To_v1beta1_ImageMeta(&in.ImageMeta, &out.ImageMeta, s); err != nil {
-		return err
-	}
+	// WARNING: in.ImageRepository requires manual conversion: does not exist in peer-type
+	// WARNING: in.ImageTag requires manual conversion: does not exist in peer-type
 	return nil
 }
 
-// Convert_v1beta2_DNS_To_v1beta1_DNS is an autogenerated conversion function.
-func Convert_v1beta2_DNS_To_v1beta1_DNS(in *v1beta2.DNS, out *DNS, s conversion.Scope) error {
-	return autoConvert_v1beta2_DNS_To_v1beta1_DNS(in, out, s)
-}
-
 func autoConvert_v1beta1_Discovery_To_v1beta2_Discovery(in *Discovery, out *v1beta2.Discovery, s conversion.Scope) error {
-	if in.BootstrapToken != nil {
-		in, out := &in.BootstrapToken, &out.BootstrapToken
-		*out = new(v1beta2.BootstrapTokenDiscovery)
-		if err := Convert_v1beta1_BootstrapTokenDiscovery_To_v1beta2_BootstrapTokenDiscovery(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.BootstrapToken = nil
-	}
-	if in.File != nil {
-		in, out := &in.File, &out.File
-		*out = new(v1beta2.FileDiscovery)
-		if err := Convert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.File = nil
-	}
+	// WARNING: in.BootstrapToken requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.BootstrapTokenDiscovery vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.BootstrapTokenDiscovery)
+	// WARNING: in.File requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.FileDiscovery vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.FileDiscovery)
 	out.TLSBootstrapToken = in.TLSBootstrapToken
 	// WARNING: in.Timeout requires manual conversion: does not exist in peer-type
 	return nil
 }
 
 func autoConvert_v1beta2_Discovery_To_v1beta1_Discovery(in *v1beta2.Discovery, out *Discovery, s conversion.Scope) error {
-	if in.BootstrapToken != nil {
-		in, out := &in.BootstrapToken, &out.BootstrapToken
-		*out = new(BootstrapTokenDiscovery)
-		if err := Convert_v1beta2_BootstrapTokenDiscovery_To_v1beta1_BootstrapTokenDiscovery(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.BootstrapToken = nil
-	}
-	if in.File != nil {
-		in, out := &in.File, &out.File
-		*out = new(FileDiscovery)
-		if err := Convert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.File = nil
-	}
+	// WARNING: in.BootstrapToken requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.BootstrapTokenDiscovery vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.BootstrapTokenDiscovery)
+	// WARNING: in.File requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.FileDiscovery vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.FileDiscovery)
 	out.TLSBootstrapToken = in.TLSBootstrapToken
 	return nil
-}
-
-// Convert_v1beta2_Discovery_To_v1beta1_Discovery is an autogenerated conversion function.
-func Convert_v1beta2_Discovery_To_v1beta1_Discovery(in *v1beta2.Discovery, out *Discovery, s conversion.Scope) error {
-	return autoConvert_v1beta2_Discovery_To_v1beta1_Discovery(in, out, s)
 }
 
 func autoConvert_v1beta1_DiskSetup_To_v1beta2_DiskSetup(in *DiskSetup, out *v1beta2.DiskSetup, s conversion.Scope) error {
@@ -889,41 +829,15 @@ func Convert_v1beta2_EnvVar_To_v1beta1_EnvVar(in *v1beta2.EnvVar, out *EnvVar, s
 }
 
 func autoConvert_v1beta1_Etcd_To_v1beta2_Etcd(in *Etcd, out *v1beta2.Etcd, s conversion.Scope) error {
-	if in.Local != nil {
-		in, out := &in.Local, &out.Local
-		*out = new(v1beta2.LocalEtcd)
-		if err := Convert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Local = nil
-	}
-	out.External = (*v1beta2.ExternalEtcd)(unsafe.Pointer(in.External))
+	// WARNING: in.Local requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.LocalEtcd vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.LocalEtcd)
+	// WARNING: in.External requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.ExternalEtcd vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.ExternalEtcd)
 	return nil
-}
-
-// Convert_v1beta1_Etcd_To_v1beta2_Etcd is an autogenerated conversion function.
-func Convert_v1beta1_Etcd_To_v1beta2_Etcd(in *Etcd, out *v1beta2.Etcd, s conversion.Scope) error {
-	return autoConvert_v1beta1_Etcd_To_v1beta2_Etcd(in, out, s)
 }
 
 func autoConvert_v1beta2_Etcd_To_v1beta1_Etcd(in *v1beta2.Etcd, out *Etcd, s conversion.Scope) error {
-	if in.Local != nil {
-		in, out := &in.Local, &out.Local
-		*out = new(LocalEtcd)
-		if err := Convert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Local = nil
-	}
-	out.External = (*ExternalEtcd)(unsafe.Pointer(in.External))
+	// WARNING: in.Local requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.LocalEtcd vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.LocalEtcd)
+	// WARNING: in.External requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.ExternalEtcd vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.ExternalEtcd)
 	return nil
-}
-
-// Convert_v1beta2_Etcd_To_v1beta1_Etcd is an autogenerated conversion function.
-func Convert_v1beta2_Etcd_To_v1beta1_Etcd(in *v1beta2.Etcd, out *Etcd, s conversion.Scope) error {
-	return autoConvert_v1beta2_Etcd_To_v1beta1_Etcd(in, out, s)
 }
 
 func autoConvert_v1beta1_ExternalEtcd_To_v1beta2_ExternalEtcd(in *ExternalEtcd, out *v1beta2.ExternalEtcd, s conversion.Scope) error {
@@ -961,13 +875,8 @@ func autoConvert_v1beta1_File_To_v1beta2_File(in *File, out *v1beta2.File, s con
 		return err
 	}
 	out.Content = in.Content
-	out.ContentFrom = (*v1beta2.FileSource)(unsafe.Pointer(in.ContentFrom))
+	// WARNING: in.ContentFrom requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.FileSource vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.FileSource)
 	return nil
-}
-
-// Convert_v1beta1_File_To_v1beta2_File is an autogenerated conversion function.
-func Convert_v1beta1_File_To_v1beta2_File(in *File, out *v1beta2.File, s conversion.Scope) error {
-	return autoConvert_v1beta1_File_To_v1beta2_File(in, out, s)
 }
 
 func autoConvert_v1beta2_File_To_v1beta1_File(in *v1beta2.File, out *File, s conversion.Scope) error {
@@ -979,93 +888,36 @@ func autoConvert_v1beta2_File_To_v1beta1_File(in *v1beta2.File, out *File, s con
 		return err
 	}
 	out.Content = in.Content
-	out.ContentFrom = (*FileSource)(unsafe.Pointer(in.ContentFrom))
+	// WARNING: in.ContentFrom requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.FileSource vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.FileSource)
 	return nil
-}
-
-// Convert_v1beta2_File_To_v1beta1_File is an autogenerated conversion function.
-func Convert_v1beta2_File_To_v1beta1_File(in *v1beta2.File, out *File, s conversion.Scope) error {
-	return autoConvert_v1beta2_File_To_v1beta1_File(in, out, s)
 }
 
 func autoConvert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery(in *FileDiscovery, out *v1beta2.FileDiscovery, s conversion.Scope) error {
 	out.KubeConfigPath = in.KubeConfigPath
-	if in.KubeConfig != nil {
-		in, out := &in.KubeConfig, &out.KubeConfig
-		*out = new(v1beta2.FileDiscoveryKubeConfig)
-		if err := Convert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.KubeConfig = nil
-	}
+	// WARNING: in.KubeConfig requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.FileDiscoveryKubeConfig vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.FileDiscoveryKubeConfig)
 	return nil
-}
-
-// Convert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery is an autogenerated conversion function.
-func Convert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery(in *FileDiscovery, out *v1beta2.FileDiscovery, s conversion.Scope) error {
-	return autoConvert_v1beta1_FileDiscovery_To_v1beta2_FileDiscovery(in, out, s)
 }
 
 func autoConvert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery(in *v1beta2.FileDiscovery, out *FileDiscovery, s conversion.Scope) error {
 	out.KubeConfigPath = in.KubeConfigPath
-	if in.KubeConfig != nil {
-		in, out := &in.KubeConfig, &out.KubeConfig
-		*out = new(FileDiscoveryKubeConfig)
-		if err := Convert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeConfig(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.KubeConfig = nil
-	}
+	// WARNING: in.KubeConfig requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.FileDiscoveryKubeConfig vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.FileDiscoveryKubeConfig)
 	return nil
 }
 
-// Convert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery is an autogenerated conversion function.
-func Convert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery(in *v1beta2.FileDiscovery, out *FileDiscovery, s conversion.Scope) error {
-	return autoConvert_v1beta2_FileDiscovery_To_v1beta1_FileDiscovery(in, out, s)
-}
-
 func autoConvert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig(in *FileDiscoveryKubeConfig, out *v1beta2.FileDiscoveryKubeConfig, s conversion.Scope) error {
-	if in.Cluster != nil {
-		in, out := &in.Cluster, &out.Cluster
-		*out = new(v1beta2.KubeConfigCluster)
-		if err := Convert_v1beta1_KubeConfigCluster_To_v1beta2_KubeConfigCluster(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Cluster = nil
-	}
+	// WARNING: in.Cluster requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.KubeConfigCluster vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.KubeConfigCluster)
 	if err := Convert_v1beta1_KubeConfigUser_To_v1beta2_KubeConfigUser(&in.User, &out.User, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig is an autogenerated conversion function.
-func Convert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig(in *FileDiscoveryKubeConfig, out *v1beta2.FileDiscoveryKubeConfig, s conversion.Scope) error {
-	return autoConvert_v1beta1_FileDiscoveryKubeConfig_To_v1beta2_FileDiscoveryKubeConfig(in, out, s)
-}
-
 func autoConvert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeConfig(in *v1beta2.FileDiscoveryKubeConfig, out *FileDiscoveryKubeConfig, s conversion.Scope) error {
-	if in.Cluster != nil {
-		in, out := &in.Cluster, &out.Cluster
-		*out = new(KubeConfigCluster)
-		if err := Convert_v1beta2_KubeConfigCluster_To_v1beta1_KubeConfigCluster(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Cluster = nil
-	}
+	// WARNING: in.Cluster requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.KubeConfigCluster vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.KubeConfigCluster)
 	if err := Convert_v1beta2_KubeConfigUser_To_v1beta1_KubeConfigUser(&in.User, &out.User, s); err != nil {
 		return err
 	}
 	return nil
-}
-
-// Convert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeConfig is an autogenerated conversion function.
-func Convert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeConfig(in *v1beta2.FileDiscoveryKubeConfig, out *FileDiscoveryKubeConfig, s conversion.Scope) error {
-	return autoConvert_v1beta2_FileDiscoveryKubeConfig_To_v1beta1_FileDiscoveryKubeConfig(in, out, s)
 }
 
 func autoConvert_v1beta1_FileSource_To_v1beta2_FileSource(in *FileSource, out *v1beta2.FileSource, s conversion.Scope) error {
@@ -1165,61 +1017,13 @@ func Convert_v1beta2_HostPathMount_To_v1beta1_HostPathMount(in *v1beta2.HostPath
 }
 
 func autoConvert_v1beta1_IgnitionSpec_To_v1beta2_IgnitionSpec(in *IgnitionSpec, out *v1beta2.IgnitionSpec, s conversion.Scope) error {
-	if in.ContainerLinuxConfig != nil {
-		in, out := &in.ContainerLinuxConfig, &out.ContainerLinuxConfig
-		*out = new(v1beta2.ContainerLinuxConfig)
-		if err := Convert_v1beta1_ContainerLinuxConfig_To_v1beta2_ContainerLinuxConfig(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.ContainerLinuxConfig = nil
-	}
+	// WARNING: in.ContainerLinuxConfig requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.ContainerLinuxConfig vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.ContainerLinuxConfig)
 	return nil
-}
-
-// Convert_v1beta1_IgnitionSpec_To_v1beta2_IgnitionSpec is an autogenerated conversion function.
-func Convert_v1beta1_IgnitionSpec_To_v1beta2_IgnitionSpec(in *IgnitionSpec, out *v1beta2.IgnitionSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_IgnitionSpec_To_v1beta2_IgnitionSpec(in, out, s)
 }
 
 func autoConvert_v1beta2_IgnitionSpec_To_v1beta1_IgnitionSpec(in *v1beta2.IgnitionSpec, out *IgnitionSpec, s conversion.Scope) error {
-	if in.ContainerLinuxConfig != nil {
-		in, out := &in.ContainerLinuxConfig, &out.ContainerLinuxConfig
-		*out = new(ContainerLinuxConfig)
-		if err := Convert_v1beta2_ContainerLinuxConfig_To_v1beta1_ContainerLinuxConfig(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.ContainerLinuxConfig = nil
-	}
+	// WARNING: in.ContainerLinuxConfig requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.ContainerLinuxConfig vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.ContainerLinuxConfig)
 	return nil
-}
-
-// Convert_v1beta2_IgnitionSpec_To_v1beta1_IgnitionSpec is an autogenerated conversion function.
-func Convert_v1beta2_IgnitionSpec_To_v1beta1_IgnitionSpec(in *v1beta2.IgnitionSpec, out *IgnitionSpec, s conversion.Scope) error {
-	return autoConvert_v1beta2_IgnitionSpec_To_v1beta1_IgnitionSpec(in, out, s)
-}
-
-func autoConvert_v1beta1_ImageMeta_To_v1beta2_ImageMeta(in *ImageMeta, out *v1beta2.ImageMeta, s conversion.Scope) error {
-	out.ImageRepository = in.ImageRepository
-	out.ImageTag = in.ImageTag
-	return nil
-}
-
-// Convert_v1beta1_ImageMeta_To_v1beta2_ImageMeta is an autogenerated conversion function.
-func Convert_v1beta1_ImageMeta_To_v1beta2_ImageMeta(in *ImageMeta, out *v1beta2.ImageMeta, s conversion.Scope) error {
-	return autoConvert_v1beta1_ImageMeta_To_v1beta2_ImageMeta(in, out, s)
-}
-
-func autoConvert_v1beta2_ImageMeta_To_v1beta1_ImageMeta(in *v1beta2.ImageMeta, out *ImageMeta, s conversion.Scope) error {
-	out.ImageRepository = in.ImageRepository
-	out.ImageTag = in.ImageTag
-	return nil
-}
-
-// Convert_v1beta2_ImageMeta_To_v1beta1_ImageMeta is an autogenerated conversion function.
-func Convert_v1beta2_ImageMeta_To_v1beta1_ImageMeta(in *v1beta2.ImageMeta, out *ImageMeta, s conversion.Scope) error {
-	return autoConvert_v1beta2_ImageMeta_To_v1beta1_ImageMeta(in, out, s)
 }
 
 func autoConvert_v1beta1_InitConfiguration_To_v1beta2_InitConfiguration(in *InitConfiguration, out *v1beta2.InitConfiguration, s conversion.Scope) error {
@@ -1242,7 +1046,7 @@ func autoConvert_v1beta1_InitConfiguration_To_v1beta2_InitConfiguration(in *Init
 		return err
 	}
 	out.SkipPhases = *(*[]string)(unsafe.Pointer(&in.SkipPhases))
-	out.Patches = (*v1beta2.Patches)(unsafe.Pointer(in.Patches))
+	// WARNING: in.Patches requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.Patches vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Patches)
 	return nil
 }
 
@@ -1265,7 +1069,7 @@ func autoConvert_v1beta2_InitConfiguration_To_v1beta1_InitConfiguration(in *v1be
 		return err
 	}
 	out.SkipPhases = *(*[]string)(unsafe.Pointer(&in.SkipPhases))
-	out.Patches = (*Patches)(unsafe.Pointer(in.Patches))
+	// WARNING: in.Patches requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Patches vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.Patches)
 	// WARNING: in.Timeouts requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -1281,7 +1085,7 @@ func autoConvert_v1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(in *Join
 	}
 	out.ControlPlane = (*v1beta2.JoinControlPlane)(unsafe.Pointer(in.ControlPlane))
 	out.SkipPhases = *(*[]string)(unsafe.Pointer(&in.SkipPhases))
-	out.Patches = (*v1beta2.Patches)(unsafe.Pointer(in.Patches))
+	// WARNING: in.Patches requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.Patches vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Patches)
 	return nil
 }
 
@@ -1295,7 +1099,7 @@ func autoConvert_v1beta2_JoinConfiguration_To_v1beta1_JoinConfiguration(in *v1be
 	}
 	out.ControlPlane = (*JoinControlPlane)(unsafe.Pointer(in.ControlPlane))
 	out.SkipPhases = *(*[]string)(unsafe.Pointer(&in.SkipPhases))
-	out.Patches = (*Patches)(unsafe.Pointer(in.Patches))
+	// WARNING: in.Patches requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Patches vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.Patches)
 	// WARNING: in.Timeouts requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -1433,41 +1237,15 @@ func Convert_v1beta2_KubeConfigCluster_To_v1beta1_KubeConfigCluster(in *v1beta2.
 }
 
 func autoConvert_v1beta1_KubeConfigUser_To_v1beta2_KubeConfigUser(in *KubeConfigUser, out *v1beta2.KubeConfigUser, s conversion.Scope) error {
-	out.AuthProvider = (*v1beta2.KubeConfigAuthProvider)(unsafe.Pointer(in.AuthProvider))
-	if in.Exec != nil {
-		in, out := &in.Exec, &out.Exec
-		*out = new(v1beta2.KubeConfigAuthExec)
-		if err := Convert_v1beta1_KubeConfigAuthExec_To_v1beta2_KubeConfigAuthExec(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Exec = nil
-	}
+	// WARNING: in.AuthProvider requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.KubeConfigAuthProvider vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.KubeConfigAuthProvider)
+	// WARNING: in.Exec requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.KubeConfigAuthExec vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.KubeConfigAuthExec)
 	return nil
-}
-
-// Convert_v1beta1_KubeConfigUser_To_v1beta2_KubeConfigUser is an autogenerated conversion function.
-func Convert_v1beta1_KubeConfigUser_To_v1beta2_KubeConfigUser(in *KubeConfigUser, out *v1beta2.KubeConfigUser, s conversion.Scope) error {
-	return autoConvert_v1beta1_KubeConfigUser_To_v1beta2_KubeConfigUser(in, out, s)
 }
 
 func autoConvert_v1beta2_KubeConfigUser_To_v1beta1_KubeConfigUser(in *v1beta2.KubeConfigUser, out *KubeConfigUser, s conversion.Scope) error {
-	out.AuthProvider = (*KubeConfigAuthProvider)(unsafe.Pointer(in.AuthProvider))
-	if in.Exec != nil {
-		in, out := &in.Exec, &out.Exec
-		*out = new(KubeConfigAuthExec)
-		if err := Convert_v1beta2_KubeConfigAuthExec_To_v1beta1_KubeConfigAuthExec(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Exec = nil
-	}
+	// WARNING: in.AuthProvider requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.KubeConfigAuthProvider vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.KubeConfigAuthProvider)
+	// WARNING: in.Exec requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.KubeConfigAuthExec vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.KubeConfigAuthExec)
 	return nil
-}
-
-// Convert_v1beta2_KubeConfigUser_To_v1beta1_KubeConfigUser is an autogenerated conversion function.
-func Convert_v1beta2_KubeConfigUser_To_v1beta1_KubeConfigUser(in *v1beta2.KubeConfigUser, out *KubeConfigUser, s conversion.Scope) error {
-	return autoConvert_v1beta2_KubeConfigUser_To_v1beta1_KubeConfigUser(in, out, s)
 }
 
 func autoConvert_v1beta1_KubeadmConfig_To_v1beta2_KubeadmConfig(in *KubeadmConfig, out *v1beta2.KubeadmConfig, s conversion.Scope) error {
@@ -1545,33 +1323,9 @@ func Convert_v1beta2_KubeadmConfigList_To_v1beta1_KubeadmConfigList(in *v1beta2.
 }
 
 func autoConvert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *KubeadmConfigSpec, out *v1beta2.KubeadmConfigSpec, s conversion.Scope) error {
-	if in.ClusterConfiguration != nil {
-		in, out := &in.ClusterConfiguration, &out.ClusterConfiguration
-		*out = new(v1beta2.ClusterConfiguration)
-		if err := Convert_v1beta1_ClusterConfiguration_To_v1beta2_ClusterConfiguration(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.ClusterConfiguration = nil
-	}
-	if in.InitConfiguration != nil {
-		in, out := &in.InitConfiguration, &out.InitConfiguration
-		*out = new(v1beta2.InitConfiguration)
-		if err := Convert_v1beta1_InitConfiguration_To_v1beta2_InitConfiguration(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.InitConfiguration = nil
-	}
-	if in.JoinConfiguration != nil {
-		in, out := &in.JoinConfiguration, &out.JoinConfiguration
-		*out = new(v1beta2.JoinConfiguration)
-		if err := Convert_v1beta1_JoinConfiguration_To_v1beta2_JoinConfiguration(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.JoinConfiguration = nil
-	}
+	// WARNING: in.ClusterConfiguration requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.ClusterConfiguration vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.ClusterConfiguration)
+	// WARNING: in.InitConfiguration requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.InitConfiguration vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.InitConfiguration)
+	// WARNING: in.JoinConfiguration requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.JoinConfiguration vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.JoinConfiguration)
 	if in.Files != nil {
 		in, out := &in.Files, &out.Files
 		*out = make([]v1beta2.File, len(*in))
@@ -1583,15 +1337,7 @@ func autoConvert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *Kube
 	} else {
 		out.Files = nil
 	}
-	if in.DiskSetup != nil {
-		in, out := &in.DiskSetup, &out.DiskSetup
-		*out = new(v1beta2.DiskSetup)
-		if err := Convert_v1beta1_DiskSetup_To_v1beta2_DiskSetup(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.DiskSetup = nil
-	}
+	// WARNING: in.DiskSetup requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.DiskSetup vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.DiskSetup)
 	out.Mounts = *(*[]v1beta2.MountPoints)(unsafe.Pointer(&in.Mounts))
 	out.BootCommands = *(*[]string)(unsafe.Pointer(&in.BootCommands))
 	out.PreKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PreKubeadmCommands))
@@ -1607,50 +1353,18 @@ func autoConvert_v1beta1_KubeadmConfigSpec_To_v1beta2_KubeadmConfigSpec(in *Kube
 	} else {
 		out.Users = nil
 	}
-	out.NTP = (*v1beta2.NTP)(unsafe.Pointer(in.NTP))
+	// WARNING: in.NTP requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.NTP vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.NTP)
 	out.Format = v1beta2.Format(in.Format)
 	out.Verbosity = (*int32)(unsafe.Pointer(in.Verbosity))
 	// WARNING: in.UseExperimentalRetryJoin requires manual conversion: does not exist in peer-type
-	if in.Ignition != nil {
-		in, out := &in.Ignition, &out.Ignition
-		*out = new(v1beta2.IgnitionSpec)
-		if err := Convert_v1beta1_IgnitionSpec_To_v1beta2_IgnitionSpec(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Ignition = nil
-	}
+	// WARNING: in.Ignition requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.IgnitionSpec vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.IgnitionSpec)
 	return nil
 }
 
 func autoConvert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in *v1beta2.KubeadmConfigSpec, out *KubeadmConfigSpec, s conversion.Scope) error {
-	if in.ClusterConfiguration != nil {
-		in, out := &in.ClusterConfiguration, &out.ClusterConfiguration
-		*out = new(ClusterConfiguration)
-		if err := Convert_v1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.ClusterConfiguration = nil
-	}
-	if in.InitConfiguration != nil {
-		in, out := &in.InitConfiguration, &out.InitConfiguration
-		*out = new(InitConfiguration)
-		if err := Convert_v1beta2_InitConfiguration_To_v1beta1_InitConfiguration(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.InitConfiguration = nil
-	}
-	if in.JoinConfiguration != nil {
-		in, out := &in.JoinConfiguration, &out.JoinConfiguration
-		*out = new(JoinConfiguration)
-		if err := Convert_v1beta2_JoinConfiguration_To_v1beta1_JoinConfiguration(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.JoinConfiguration = nil
-	}
+	// WARNING: in.ClusterConfiguration requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.ClusterConfiguration vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.ClusterConfiguration)
+	// WARNING: in.InitConfiguration requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.InitConfiguration vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.InitConfiguration)
+	// WARNING: in.JoinConfiguration requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.JoinConfiguration vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.JoinConfiguration)
 	if in.Files != nil {
 		in, out := &in.Files, &out.Files
 		*out = make([]File, len(*in))
@@ -1662,15 +1376,7 @@ func autoConvert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in *v1be
 	} else {
 		out.Files = nil
 	}
-	if in.DiskSetup != nil {
-		in, out := &in.DiskSetup, &out.DiskSetup
-		*out = new(DiskSetup)
-		if err := Convert_v1beta2_DiskSetup_To_v1beta1_DiskSetup(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.DiskSetup = nil
-	}
+	// WARNING: in.DiskSetup requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.DiskSetup vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.DiskSetup)
 	out.Mounts = *(*[]MountPoints)(unsafe.Pointer(&in.Mounts))
 	out.BootCommands = *(*[]string)(unsafe.Pointer(&in.BootCommands))
 	out.PreKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PreKubeadmCommands))
@@ -1686,24 +1392,11 @@ func autoConvert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in *v1be
 	} else {
 		out.Users = nil
 	}
-	out.NTP = (*NTP)(unsafe.Pointer(in.NTP))
+	// WARNING: in.NTP requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.NTP vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.NTP)
 	out.Format = Format(in.Format)
 	out.Verbosity = (*int32)(unsafe.Pointer(in.Verbosity))
-	if in.Ignition != nil {
-		in, out := &in.Ignition, &out.Ignition
-		*out = new(IgnitionSpec)
-		if err := Convert_v1beta2_IgnitionSpec_To_v1beta1_IgnitionSpec(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Ignition = nil
-	}
+	// WARNING: in.Ignition requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.IgnitionSpec vs *sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.IgnitionSpec)
 	return nil
-}
-
-// Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec is an autogenerated conversion function.
-func Convert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in *v1beta2.KubeadmConfigSpec, out *KubeadmConfigSpec, s conversion.Scope) error {
-	return autoConvert_v1beta2_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in, out, s)
 }
 
 func autoConvert_v1beta1_KubeadmConfigStatus_To_v1beta2_KubeadmConfigStatus(in *KubeadmConfigStatus, out *v1beta2.KubeadmConfigStatus, s conversion.Scope) error {
@@ -1873,9 +1566,7 @@ func Convert_v1beta2_KubeadmConfigTemplateSpec_To_v1beta1_KubeadmConfigTemplateS
 }
 
 func autoConvert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *v1beta2.LocalEtcd, s conversion.Scope) error {
-	if err := Convert_v1beta1_ImageMeta_To_v1beta2_ImageMeta(&in.ImageMeta, &out.ImageMeta, s); err != nil {
-		return err
-	}
+	// WARNING: in.ImageMeta requires manual conversion: does not exist in peer-type
 	out.DataDir = in.DataDir
 	// WARNING: in.ExtraArgs requires manual conversion: inconvertible types (map[string]string vs []sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg)
 	// WARNING: in.ExtraEnvs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.EnvVar vs *[]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.EnvVar)
@@ -1885,9 +1576,8 @@ func autoConvert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *v1be
 }
 
 func autoConvert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(in *v1beta2.LocalEtcd, out *LocalEtcd, s conversion.Scope) error {
-	if err := Convert_v1beta2_ImageMeta_To_v1beta1_ImageMeta(&in.ImageMeta, &out.ImageMeta, s); err != nil {
-		return err
-	}
+	// WARNING: in.ImageRepository requires manual conversion: does not exist in peer-type
+	// WARNING: in.ImageTag requires manual conversion: does not exist in peer-type
 	out.DataDir = in.DataDir
 	// WARNING: in.ExtraArgs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.Arg vs map[string]string)
 	// WARNING: in.ExtraEnvs requires manual conversion: inconvertible types (*[]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.EnvVar vs []sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1.EnvVar)

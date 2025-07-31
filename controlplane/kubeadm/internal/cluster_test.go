@@ -120,7 +120,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 			Namespace: ns.Name,
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.InfrastructureGroupVersion.Group,
 				Kind:     builder.GenericInfrastructureClusterKind,
 				Name:     "infracluster1",

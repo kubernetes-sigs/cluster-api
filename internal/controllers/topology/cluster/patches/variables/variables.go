@@ -36,7 +36,7 @@ import (
 
 // Global returns variables that apply to all the templates, including user provided variables
 // and builtin variables for the Cluster object.
-func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
+func Global(clusterTopology clusterv1.Topology, cluster *clusterv1.Cluster, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
 	variables := []runtimehooksv1.Variable{}
 
 	// Add user defined variables from Cluster.spec.topology.variables.

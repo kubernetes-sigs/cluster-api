@@ -180,7 +180,7 @@ func ClusterClassesAreCompatible(current, desired *clusterv1.ClusterClass) field
 	// Validate control plane changes desired a compatible way.
 	allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.TemplateRef, desired.Spec.ControlPlane.TemplateRef,
 		field.NewPath("spec", "controlPlane"))...)
-	if desired.Spec.ControlPlane.MachineInfrastructure != nil && current.Spec.ControlPlane.MachineInfrastructure != nil {
+	if desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() && current.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
 		allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.MachineInfrastructure.TemplateRef, desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
 			field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
 	}
@@ -404,7 +404,7 @@ func ClusterClassTemplatesAreValid(clusterClass *clusterv1.ClusterClass) field.E
 
 	allErrs = append(allErrs, ClusterClassTemplateIsValid(clusterClass.Spec.Infrastructure.TemplateRef, field.NewPath("spec", "infrastructure"))...)
 	allErrs = append(allErrs, ClusterClassTemplateIsValid(clusterClass.Spec.ControlPlane.TemplateRef, field.NewPath("spec", "controlPlane"))...)
-	if clusterClass.Spec.ControlPlane.MachineInfrastructure != nil {
+	if clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
 		allErrs = append(allErrs, ClusterClassTemplateIsValid(clusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef, field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
 	}
 

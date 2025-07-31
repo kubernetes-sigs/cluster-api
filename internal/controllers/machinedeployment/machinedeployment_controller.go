@@ -299,7 +299,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		}
 	}
 
-	templateExists := s.infrastructureTemplateExists && (md.Spec.Template.Spec.Bootstrap.ConfigRef == nil || s.bootstrapTemplateExists)
+	templateExists := s.infrastructureTemplateExists && (!md.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() || s.bootstrapTemplateExists)
 
 	if ptr.Deref(md.Spec.Paused, false) {
 		return r.sync(ctx, md, s.machineSets, templateExists)
@@ -480,7 +480,7 @@ func (r *Reconciler) getTemplatesAndSetOwner(ctx context.Context, s *scope) erro
 	cluster := s.cluster
 
 	// Make sure to reconcile the external infrastructure reference.
-	if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, &md.Spec.Template.Spec.InfrastructureRef); err != nil {
+	if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, md.Spec.Template.Spec.InfrastructureRef); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
@@ -489,7 +489,7 @@ func (r *Reconciler) getTemplatesAndSetOwner(ctx context.Context, s *scope) erro
 		s.infrastructureTemplateExists = true
 	}
 	// Make sure to reconcile the external bootstrap reference, if any.
-	if md.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+	if md.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 		if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, md.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
 			if !apierrors.IsNotFound(err) {
 				return err
@@ -502,7 +502,7 @@ func (r *Reconciler) getTemplatesAndSetOwner(ctx context.Context, s *scope) erro
 	return nil
 }
 
-func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *clusterv1.ContractVersionedObjectReference) error {
+func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref clusterv1.ContractVersionedObjectReference) error {
 	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
 		return nil
 	}

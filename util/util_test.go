@@ -130,7 +130,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 					Name:      "test-1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "foo.cluster.x-k8s.io",
 						Kind:     "TestCluster",
 						Name:     "infra-1",
@@ -167,7 +167,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 					Name:      "test-1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "bar.cluster.x-k8s.io",
 						Kind:     "TestCluster",
 						Name:     "bar-1",
@@ -189,7 +189,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 					Name:      "test-1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "foo.cluster.x-k8s.io",
 						Kind:     "TestCluster",
 						Name:     "infra-1",

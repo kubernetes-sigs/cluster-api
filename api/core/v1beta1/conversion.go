@@ -93,7 +93,7 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	if src.Spec.InfrastructureRef != nil {
+	if src.Spec.InfrastructureRef.IsDefined() {
 		infraRef, err := convertToObjectReference(src.Spec.InfrastructureRef, src.Namespace)
 		if err != nil {
 			return err
@@ -101,7 +101,7 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.InfrastructureRef = infraRef
 	}
 
-	if src.Spec.ControlPlaneRef != nil {
+	if src.Spec.ControlPlaneRef.IsDefined() {
 		controlPlaneRef, err := convertToObjectReference(src.Spec.ControlPlaneRef, src.Namespace)
 		if err != nil {
 			return err
@@ -688,8 +688,7 @@ func Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *ControlP
 		out.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MachineHealthCheck.MaxUnhealthy
 		out.HealthCheck.Remediation.TriggerIf.UnhealthyInRange = ptr.Deref(in.MachineHealthCheck.UnhealthyRange, "")
 		if in.MachineHealthCheck.RemediationTemplate != nil {
-			out.HealthCheck.Remediation.TemplateRef = &clusterv1.MachineHealthCheckRemediationTemplateReference{}
-			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, out.HealthCheck.Remediation.TemplateRef, s); err != nil {
+			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, &out.HealthCheck.Remediation.TemplateRef, s); err != nil {
 				return err
 			}
 		}
@@ -697,6 +696,11 @@ func Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *ControlP
 	if in.NamingStrategy != nil {
 		out.Naming = clusterv1.ControlPlaneClassNamingSpec{
 			Template: ptr.Deref(in.NamingStrategy.Template, ""),
+		}
+	}
+	if in.MachineInfrastructure != nil {
+		if err := Convert_v1beta1_LocalObjectTemplate_To_v1beta2_ControlPlaneClassMachineInfrastructureTemplate(in.MachineInfrastructure, &out.MachineInfrastructure, s); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -725,9 +729,9 @@ func Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *clusterv
 		if in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange != "" {
 			out.MachineHealthCheck.UnhealthyRange = ptr.To(in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange)
 		}
-		if in.HealthCheck.Remediation.TemplateRef != nil {
+		if in.HealthCheck.Remediation.TemplateRef.IsDefined() {
 			out.MachineHealthCheck.RemediationTemplate = &corev1.ObjectReference{}
-			if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(in.HealthCheck.Remediation.TemplateRef, out.MachineHealthCheck.RemediationTemplate, s); err != nil {
+			if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(&in.HealthCheck.Remediation.TemplateRef, out.MachineHealthCheck.RemediationTemplate, s); err != nil {
 				return err
 			}
 		}
@@ -735,6 +739,12 @@ func Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *clusterv
 	if in.Naming.Template != "" {
 		out.NamingStrategy = &ControlPlaneClassNamingStrategy{
 			Template: ptr.To(in.Naming.Template),
+		}
+	}
+	if in.MachineInfrastructure.TemplateRef.IsDefined() {
+		out.MachineInfrastructure = &LocalObjectTemplate{}
+		if err := Convert_v1beta2_ControlPlaneClassMachineInfrastructureTemplate_To_v1beta1_LocalObjectTemplate(&in.MachineInfrastructure, out.MachineInfrastructure, s); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -766,8 +776,7 @@ func Convert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in *Co
 		out.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MachineHealthCheck.MaxUnhealthy
 		out.HealthCheck.Remediation.TriggerIf.UnhealthyInRange = ptr.Deref(in.MachineHealthCheck.UnhealthyRange, "")
 		if in.MachineHealthCheck.RemediationTemplate != nil {
-			out.HealthCheck.Remediation.TemplateRef = &clusterv1.MachineHealthCheckRemediationTemplateReference{}
-			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, out.HealthCheck.Remediation.TemplateRef, s); err != nil {
+			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, &out.HealthCheck.Remediation.TemplateRef, s); err != nil {
 				return err
 			}
 		}
@@ -804,9 +813,9 @@ func Convert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in *cl
 		if in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange != "" {
 			out.MachineHealthCheck.UnhealthyRange = ptr.To(in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange)
 		}
-		if in.HealthCheck.Remediation.TemplateRef != nil {
+		if in.HealthCheck.Remediation.TemplateRef.IsDefined() {
 			out.MachineHealthCheck.RemediationTemplate = &corev1.ObjectReference{}
-			if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(in.HealthCheck.Remediation.TemplateRef, out.MachineHealthCheck.RemediationTemplate, s); err != nil {
+			if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(&in.HealthCheck.Remediation.TemplateRef, out.MachineHealthCheck.RemediationTemplate, s); err != nil {
 				return err
 			}
 		}
@@ -856,8 +865,7 @@ func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in
 		out.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MachineHealthCheck.MaxUnhealthy
 		out.HealthCheck.Remediation.TriggerIf.UnhealthyInRange = ptr.Deref(in.MachineHealthCheck.UnhealthyRange, "")
 		if in.MachineHealthCheck.RemediationTemplate != nil {
-			out.HealthCheck.Remediation.TemplateRef = &clusterv1.MachineHealthCheckRemediationTemplateReference{}
-			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, out.HealthCheck.Remediation.TemplateRef, s); err != nil {
+			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, &out.HealthCheck.Remediation.TemplateRef, s); err != nil {
 				return err
 			}
 		}
@@ -931,9 +939,9 @@ func Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in
 		if in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange != "" {
 			out.MachineHealthCheck.UnhealthyRange = ptr.To(in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange)
 		}
-		if in.HealthCheck.Remediation.TemplateRef != nil {
+		if in.HealthCheck.Remediation.TemplateRef.IsDefined() {
 			out.MachineHealthCheck.RemediationTemplate = &corev1.ObjectReference{}
-			if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(in.HealthCheck.Remediation.TemplateRef, out.MachineHealthCheck.RemediationTemplate, s); err != nil {
+			if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(&in.HealthCheck.Remediation.TemplateRef, out.MachineHealthCheck.RemediationTemplate, s); err != nil {
 				return err
 			}
 		}
@@ -985,8 +993,7 @@ func Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopol
 		out.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MachineHealthCheck.MaxUnhealthy
 		out.HealthCheck.Remediation.TriggerIf.UnhealthyInRange = ptr.Deref(in.MachineHealthCheck.UnhealthyRange, "")
 		if in.MachineHealthCheck.RemediationTemplate != nil {
-			out.HealthCheck.Remediation.TemplateRef = &clusterv1.MachineHealthCheckRemediationTemplateReference{}
-			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, out.HealthCheck.Remediation.TemplateRef, s); err != nil {
+			if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.MachineHealthCheck.RemediationTemplate, &out.HealthCheck.Remediation.TemplateRef, s); err != nil {
 				return err
 			}
 		}
@@ -1053,9 +1060,9 @@ func Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopol
 		if in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange != "" {
 			out.MachineHealthCheck.UnhealthyRange = ptr.To(in.HealthCheck.Remediation.TriggerIf.UnhealthyInRange)
 		}
-		if in.HealthCheck.Remediation.TemplateRef != nil {
+		if in.HealthCheck.Remediation.TemplateRef.IsDefined() {
 			out.MachineHealthCheck.RemediationTemplate = &corev1.ObjectReference{}
-			if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(in.HealthCheck.Remediation.TemplateRef, out.MachineHealthCheck.RemediationTemplate, s); err != nil {
+			if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(&in.HealthCheck.Remediation.TemplateRef, out.MachineHealthCheck.RemediationTemplate, s); err != nil {
 				return err
 			}
 		}
@@ -1457,8 +1464,7 @@ func Convert_v1beta1_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(in
 	out.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo = in.MaxUnhealthy
 	out.Remediation.TriggerIf.UnhealthyInRange = ptr.Deref(in.UnhealthyRange, "")
 	if in.RemediationTemplate != nil {
-		out.Remediation.TemplateRef = &clusterv1.MachineHealthCheckRemediationTemplateReference{}
-		if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.RemediationTemplate, out.Remediation.TemplateRef, s); err != nil {
+		if err := Convert_v1_ObjectReference_To_v1beta2_MachineHealthCheckRemediationTemplateReference(in.RemediationTemplate, &out.Remediation.TemplateRef, s); err != nil {
 			return err
 		}
 	}
@@ -1483,9 +1489,9 @@ func Convert_v1beta2_MachineHealthCheckSpec_To_v1beta1_MachineHealthCheckSpec(in
 	if in.Remediation.TriggerIf.UnhealthyInRange != "" {
 		out.UnhealthyRange = ptr.To(in.Remediation.TriggerIf.UnhealthyInRange)
 	}
-	if in.Remediation.TemplateRef != nil {
+	if in.Remediation.TemplateRef.IsDefined() {
 		out.RemediationTemplate = &corev1.ObjectReference{}
-		if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(in.Remediation.TemplateRef, out.RemediationTemplate, s); err != nil {
+		if err := Convert_v1beta2_MachineHealthCheckRemediationTemplateReference_To_v1_ObjectReference(&in.Remediation.TemplateRef, out.RemediationTemplate, s); err != nil {
 			return err
 		}
 	}
@@ -1637,6 +1643,13 @@ func Convert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(in *clusterv1.Machin
 	if !reflect.DeepEqual(in.CertificatesExpiryDate, metav1.Time{}) {
 		out.CertificatesExpiryDate = ptr.To(in.CertificatesExpiryDate)
 	}
+	if in.NodeRef.IsDefined() {
+		out.NodeRef = &corev1.ObjectReference{
+			Name:       in.NodeRef.Name,
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Node",
+		}
+	}
 
 	// Reset conditions from autogenerated conversions
 	// NOTE: v1beta2 conditions should not be automatically be converted into legacy conditions (v1beta1).
@@ -1674,6 +1687,9 @@ func Convert_v1beta1_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, o
 	}
 	if in.CertificatesExpiryDate != nil && !reflect.DeepEqual(in.CertificatesExpiryDate, &metav1.Time{}) {
 		out.CertificatesExpiryDate = *in.CertificatesExpiryDate
+	}
+	if in.NodeRef != nil && !reflect.DeepEqual(in.NodeRef, &corev1.ObjectReference{}) {
+		out.NodeRef.Name = in.NodeRef.Name
 	}
 
 	// Reset conditions from autogenerated conversions
@@ -2033,6 +2049,11 @@ func Convert_v1beta1_ClusterSpec_To_v1beta2_ClusterSpec(in *ClusterSpec, out *cl
 			return err
 		}
 	}
+	if in.Topology != nil {
+		if err := Convert_v1beta1_Topology_To_v1beta2_Topology(in.Topology, &out.Topology, s); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -2044,6 +2065,12 @@ func Convert_v1beta2_ClusterSpec_To_v1beta1_ClusterSpec(in *clusterv1.ClusterSpe
 	if !reflect.DeepEqual(in.ClusterNetwork, clusterv1.ClusterNetwork{}) {
 		out.ClusterNetwork = &ClusterNetwork{}
 		if err := Convert_v1beta2_ClusterNetwork_To_v1beta1_ClusterNetwork(&in.ClusterNetwork, out.ClusterNetwork, s); err != nil {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(in.Topology, clusterv1.Topology{}) {
+		out.Topology = &Topology{}
+		if err := Convert_v1beta2_Topology_To_v1beta1_Topology(&in.Topology, out.Topology, s); err != nil {
 			return err
 		}
 	}
@@ -2162,12 +2189,37 @@ func Convert_v1beta2_MachineDeploymentSpec_To_v1beta1_MachineDeploymentSpec(in *
 	return nil
 }
 
+func Convert_v1beta1_Bootstrap_To_v1beta2_Bootstrap(in *Bootstrap, out *clusterv1.Bootstrap, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_Bootstrap_To_v1beta2_Bootstrap(in, out, s); err != nil {
+		return err
+	}
+	if in.ConfigRef != nil {
+		if err := Convert_v1_ObjectReference_To_v1beta2_ContractVersionedObjectReference(in.ConfigRef, &out.ConfigRef, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_Bootstrap_To_v1beta1_Bootstrap(in *clusterv1.Bootstrap, out *Bootstrap, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_Bootstrap_To_v1beta1_Bootstrap(in, out, s); err != nil {
+		return err
+	}
+	if in.ConfigRef.IsDefined() {
+		out.ConfigRef = &corev1.ObjectReference{}
+		if err := Convert_v1beta2_ContractVersionedObjectReference_To_v1_ObjectReference(&in.ConfigRef, out.ConfigRef, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func convertMachineSpecToContractVersionedObjectReference(src *MachineSpec, dst *clusterv1.MachineSpec) error {
 	infraRef, err := convertToContractVersionedObjectReference(&src.InfrastructureRef)
 	if err != nil {
 		return err
 	}
-	dst.InfrastructureRef = *infraRef
+	dst.InfrastructureRef = infraRef
 
 	if src.Bootstrap.ConfigRef != nil {
 		bootstrapRef, err := convertToContractVersionedObjectReference(src.Bootstrap.ConfigRef)
@@ -2181,13 +2233,13 @@ func convertMachineSpecToContractVersionedObjectReference(src *MachineSpec, dst 
 }
 
 func convertMachineSpecToObjectReference(src *clusterv1.MachineSpec, dst *MachineSpec, namespace string) error {
-	infraRef, err := convertToObjectReference(&src.InfrastructureRef, namespace)
+	infraRef, err := convertToObjectReference(src.InfrastructureRef, namespace)
 	if err != nil {
 		return err
 	}
 	dst.InfrastructureRef = *infraRef
 
-	if src.Bootstrap.ConfigRef != nil {
+	if src.Bootstrap.ConfigRef.IsDefined() {
 		bootstrapRef, err := convertToObjectReference(src.Bootstrap.ConfigRef, namespace)
 		if err != nil {
 			return err
@@ -2198,23 +2250,23 @@ func convertMachineSpecToObjectReference(src *clusterv1.MachineSpec, dst *Machin
 	return nil
 }
 
-func convertToContractVersionedObjectReference(ref *corev1.ObjectReference) (*clusterv1.ContractVersionedObjectReference, error) {
+func convertToContractVersionedObjectReference(ref *corev1.ObjectReference) (clusterv1.ContractVersionedObjectReference, error) {
 	var apiGroup string
 	if ref.APIVersion != "" {
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert object: failed to parse apiVersion: %v", err)
+			return clusterv1.ContractVersionedObjectReference{}, fmt.Errorf("failed to convert object: failed to parse apiVersion: %v", err)
 		}
 		apiGroup = gv.Group
 	}
-	return &clusterv1.ContractVersionedObjectReference{
+	return clusterv1.ContractVersionedObjectReference{
 		APIGroup: apiGroup,
 		Kind:     ref.Kind,
 		Name:     ref.Name,
 	}, nil
 }
 
-func convertToObjectReference(ref *clusterv1.ContractVersionedObjectReference, namespace string) (*corev1.ObjectReference, error) {
+func convertToObjectReference(ref clusterv1.ContractVersionedObjectReference, namespace string) (*corev1.ObjectReference, error) {
 	apiVersion, err := apiVersionGetter(schema.GroupKind{
 		Group: ref.APIGroup,
 		Kind:  ref.Kind,
@@ -2231,9 +2283,30 @@ func convertToObjectReference(ref *clusterv1.ContractVersionedObjectReference, n
 }
 
 func Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(in *JSONSchemaProps, out *clusterv1.JSONSchemaProps, s apimachineryconversion.Scope) error {
-	// This conversion func is required due to a bug in conversion gen that does not recognize the changes for converting bool to *bool.
+	// This conversion func is also required due to a bug in conversion gen that does not recognize the changes for converting bool to *bool.
 	// By implementing this func, autoConvert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps is generated properly.
-	return autoConvert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(in, out, s)
+	if err := autoConvert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(in, out, s); err != nil {
+		return err
+	}
+	if in.XMetadata != nil {
+		if err := Convert_v1beta1_VariableSchemaMetadata_To_v1beta2_VariableSchemaMetadata(in.XMetadata, &out.XMetadata, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta2_JSONSchemaProps_To_v1beta1_JSONSchemaProps(in *clusterv1.JSONSchemaProps, out *JSONSchemaProps, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_JSONSchemaProps_To_v1beta1_JSONSchemaProps(in, out, s); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(in.XMetadata, clusterv1.VariableSchemaMetadata{}) {
+		out.XMetadata = &VariableSchemaMetadata{}
+		if err := Convert_v1beta2_VariableSchemaMetadata_To_v1beta1_VariableSchemaMetadata(&in.XMetadata, out.XMetadata, s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func dropEmptyStringsCluster(dst *Cluster) {

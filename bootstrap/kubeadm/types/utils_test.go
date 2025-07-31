@@ -245,7 +245,7 @@ func TestMarshalInitConfigurationForVersion(t *testing.T) {
 					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 						IgnorePreflightErrors: []string{"some-preflight-check"},
 					},
-					Timeouts: &bootstrapv1.Timeouts{
+					Timeouts: bootstrapv1.Timeouts{
 						ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](50),
 					},
 				},
@@ -315,7 +315,7 @@ func TestMarshalJoinConfigurationForVersion(t *testing.T) {
 					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 						IgnorePreflightErrors: []string{"some-preflight-check"},
 					},
-					Timeouts: &bootstrapv1.Timeouts{
+					Timeouts: bootstrapv1.Timeouts{
 						ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](50),
 					},
 				},
@@ -503,7 +503,7 @@ func TestUnmarshalInitConfiguration(t *testing.T) {
 					"}\n",
 			},
 			want: &bootstrapv1.InitConfiguration{
-				Timeouts: &bootstrapv1.Timeouts{
+				Timeouts: bootstrapv1.Timeouts{
 					ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](50),
 				},
 			},
@@ -558,7 +558,7 @@ func TestUnmarshalJoinConfiguration(t *testing.T) {
 					"}\n",
 			},
 			want: &bootstrapv1.JoinConfiguration{
-				Timeouts: &bootstrapv1.Timeouts{
+				Timeouts: bootstrapv1.Timeouts{
 					ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](50),
 				},
 			},

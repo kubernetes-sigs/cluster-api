@@ -136,7 +136,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.3",
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							ImageRepository: "foo.bar.example/baz/qux",
 						},
 					},
@@ -151,7 +151,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.3",
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							ImageRepository: "",
 						},
 					},
@@ -165,7 +165,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.3",
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
-						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 							ImageRepository: "%%%",
 						},
 					},
@@ -886,8 +886,8 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 		name                     string
 		clusterConfigurationData string
 		kubernetesVersion        semver.Version
-		newClusterConfiguration  *bootstrapv1.ClusterConfiguration
-		wantClusterConfiguration *bootstrapv1.ClusterConfiguration
+		newClusterConfiguration  bootstrapv1.ClusterConfiguration
+		wantClusterConfiguration bootstrapv1.ClusterConfiguration
 	}{
 		{
 			name: "it updates feature gates",
@@ -895,12 +895,12 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				apiVersion: kubeadm.k8s.io/v1beta3
 				kind: ClusterConfiguration`),
 			kubernetesVersion: semver.MustParse("1.23.1"),
-			newClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			newClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: map[string]bool{
 					"EtcdLearnerMode": true,
 				},
 			},
-			wantClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			wantClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: map[string]bool{
 					"EtcdLearnerMode": true,
 				},
@@ -915,10 +915,10 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				  EtcdLearnerMode: true
 				`),
 			kubernetesVersion: semver.MustParse("1.23.1"),
-			newClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			newClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: nil,
 			},
-			wantClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			wantClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: nil,
 			},
 		},
@@ -928,10 +928,10 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				apiVersion: kubeadm.k8s.io/v1beta3
 				kind: ClusterConfiguration`),
 			kubernetesVersion: semver.MustParse("1.30.0"),
-			newClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			newClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: nil,
 			},
-			wantClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			wantClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: nil,
 			},
 		},
@@ -941,10 +941,10 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				apiVersion: kubeadm.k8s.io/v1beta4
 				kind: ClusterConfiguration`),
 			kubernetesVersion: semver.MustParse("1.31.0"),
-			newClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			newClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: nil,
 			},
-			wantClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			wantClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: map[string]bool{
 					ControlPlaneKubeletLocalMode: true,
 				},
@@ -956,12 +956,12 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				apiVersion: kubeadm.k8s.io/v1beta4
 				kind: ClusterConfiguration`),
 			kubernetesVersion: semver.MustParse("1.31.0"),
-			newClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			newClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: map[string]bool{
 					"EtcdLearnerMode": true,
 				},
 			},
-			wantClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			wantClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: map[string]bool{
 					ControlPlaneKubeletLocalMode: true,
 					"EtcdLearnerMode":            true,
@@ -974,13 +974,13 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				apiVersion: kubeadm.k8s.io/v1beta4
 				kind: ClusterConfiguration`),
 			kubernetesVersion: semver.MustParse("1.31.0"),
-			newClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			newClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: map[string]bool{
 					"EtcdLearnerMode":            true,
 					ControlPlaneKubeletLocalMode: false,
 				},
 			},
-			wantClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			wantClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: map[string]bool{
 					ControlPlaneKubeletLocalMode: false,
 					"EtcdLearnerMode":            true,
@@ -1020,7 +1020,7 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 			if err != nil {
 				return
 			}
-			g.Expect(actualConfiguration).Should(BeComparableTo(tt.wantClusterConfiguration))
+			g.Expect(*actualConfiguration).Should(BeComparableTo(tt.wantClusterConfiguration))
 		})
 	}
 }
@@ -1095,14 +1095,14 @@ func TestDefaultFeatureGates(t *testing.T) {
 			name:              "don't default ControlPlaneKubeletLocalMode for 1.30",
 			kubernetesVersion: semver.MustParse("1.30.99"),
 			kubeadmConfigSpec: &bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					FeatureGates: map[string]bool{
 						"EtcdLearnerMode": true,
 					},
 				},
 			},
 			wantKubeadmConfigSpec: &bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					FeatureGates: map[string]bool{
 						"EtcdLearnerMode": true,
 					},
@@ -1113,10 +1113,10 @@ func TestDefaultFeatureGates(t *testing.T) {
 			name:              "default ControlPlaneKubeletLocalMode for 1.31",
 			kubernetesVersion: semver.MustParse("1.31.0"),
 			kubeadmConfigSpec: &bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: nil,
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{},
 			},
 			wantKubeadmConfigSpec: &bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					FeatureGates: map[string]bool{
 						ControlPlaneKubeletLocalMode: true,
 					},
@@ -1127,12 +1127,12 @@ func TestDefaultFeatureGates(t *testing.T) {
 			name:              "default ControlPlaneKubeletLocalMode for 1.31",
 			kubernetesVersion: semver.MustParse("1.31.0"),
 			kubeadmConfigSpec: &bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					FeatureGates: nil,
 				},
 			},
 			wantKubeadmConfigSpec: &bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					FeatureGates: map[string]bool{
 						ControlPlaneKubeletLocalMode: true,
 					},
@@ -1143,12 +1143,12 @@ func TestDefaultFeatureGates(t *testing.T) {
 			name:              "default ControlPlaneKubeletLocalMode for 1.31",
 			kubernetesVersion: semver.MustParse("1.31.0"),
 			kubeadmConfigSpec: &bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					FeatureGates: map[string]bool{},
 				},
 			},
 			wantKubeadmConfigSpec: &bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					FeatureGates: map[string]bool{
 						ControlPlaneKubeletLocalMode: true,
 					},
@@ -1159,14 +1159,14 @@ func TestDefaultFeatureGates(t *testing.T) {
 			name:              "default ControlPlaneKubeletLocalMode for 1.31",
 			kubernetesVersion: semver.MustParse("1.31.0"),
 			kubeadmConfigSpec: &bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					FeatureGates: map[string]bool{
 						"EtcdLearnerMode": true,
 					},
 				},
 			},
 			wantKubeadmConfigSpec: &bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					FeatureGates: map[string]bool{
 						ControlPlaneKubeletLocalMode: true,
 						"EtcdLearnerMode":            true,
@@ -1178,14 +1178,14 @@ func TestDefaultFeatureGates(t *testing.T) {
 			name:              "don't default ControlPlaneKubeletLocalMode for 1.31 if already set to false",
 			kubernetesVersion: semver.MustParse("1.31.0"),
 			kubeadmConfigSpec: &bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					FeatureGates: map[string]bool{
 						ControlPlaneKubeletLocalMode: false,
 					},
 				},
 			},
 			wantKubeadmConfigSpec: &bootstrapv1.KubeadmConfigSpec{
-				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					FeatureGates: map[string]bool{
 						ControlPlaneKubeletLocalMode: false,
 					},

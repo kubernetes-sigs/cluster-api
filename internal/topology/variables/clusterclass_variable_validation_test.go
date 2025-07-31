@@ -510,7 +510,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:      "string",
 						MinLength: ptr.To[int64](1),
-						XMetadata: &clusterv1.VariableSchemaMetadata{
+						XMetadata: clusterv1.VariableSchemaMetadata{
 							Labels: map[string]string{
 								"label-key": "label-value",
 							},
@@ -530,7 +530,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:      "string",
 						MinLength: ptr.To[int64](1),
-						XMetadata: &clusterv1.VariableSchemaMetadata{
+						XMetadata: clusterv1.VariableSchemaMetadata{
 							Labels: map[string]string{
 								".label-key": "label-value",
 							},
@@ -551,7 +551,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:      "string",
 						MinLength: ptr.To[int64](1),
-						XMetadata: &clusterv1.VariableSchemaMetadata{
+						XMetadata: clusterv1.VariableSchemaMetadata{
 							Annotations: map[string]string{
 								".annotation-key": "annotation-value",
 							},
@@ -573,7 +573,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 						Type: "object",
 						AdditionalProperties: &clusterv1.JSONSchemaProps{
 							Type: "string",
-							XMetadata: &clusterv1.VariableSchemaMetadata{
+							XMetadata: clusterv1.VariableSchemaMetadata{
 								Labels: map[string]string{
 									"label-key": "label-value",
 								},
@@ -595,7 +595,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 						Type: "object",
 						AdditionalProperties: &clusterv1.JSONSchemaProps{
 							Type: "string",
-							XMetadata: &clusterv1.VariableSchemaMetadata{
+							XMetadata: clusterv1.VariableSchemaMetadata{
 								Labels: map[string]string{
 									".label-key": "label-value",
 								},
@@ -618,7 +618,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 						Type: "object",
 						AdditionalProperties: &clusterv1.JSONSchemaProps{
 							Type: "string",
-							XMetadata: &clusterv1.VariableSchemaMetadata{
+							XMetadata: clusterv1.VariableSchemaMetadata{
 								Annotations: map[string]string{
 									".annotation-key": "annotation-value",
 								},
@@ -642,7 +642,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 						Properties: map[string]clusterv1.JSONSchemaProps{
 							"enabled": {
 								Type: "string",
-								XMetadata: &clusterv1.VariableSchemaMetadata{
+								XMetadata: clusterv1.VariableSchemaMetadata{
 									Labels: map[string]string{
 										"label-key": "label-value",
 									},
@@ -666,7 +666,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 						Properties: map[string]clusterv1.JSONSchemaProps{
 							"enabled": {
 								Type: "string",
-								XMetadata: &clusterv1.VariableSchemaMetadata{
+								XMetadata: clusterv1.VariableSchemaMetadata{
 									Labels: map[string]string{
 										".label-key": "label-value",
 									},
@@ -691,7 +691,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 						Properties: map[string]clusterv1.JSONSchemaProps{
 							"enabled": {
 								Type: "string",
-								XMetadata: &clusterv1.VariableSchemaMetadata{
+								XMetadata: clusterv1.VariableSchemaMetadata{
 									Annotations: map[string]string{
 										".annotation-key": "annotation-value",
 									},
@@ -715,7 +715,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 						Type: "array",
 						Items: &clusterv1.JSONSchemaProps{
 							Type: "string",
-							XMetadata: &clusterv1.VariableSchemaMetadata{
+							XMetadata: clusterv1.VariableSchemaMetadata{
 								Labels: map[string]string{
 									"label-key": "label-value",
 								},
@@ -737,7 +737,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 						Type: "array",
 						Items: &clusterv1.JSONSchemaProps{
 							Type: "string",
-							XMetadata: &clusterv1.VariableSchemaMetadata{
+							XMetadata: clusterv1.VariableSchemaMetadata{
 								Labels: map[string]string{
 									".label-key": "label-value",
 								},
@@ -760,7 +760,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 						Type: "array",
 						Items: &clusterv1.JSONSchemaProps{
 							Type: "string",
-							XMetadata: &clusterv1.VariableSchemaMetadata{
+							XMetadata: clusterv1.VariableSchemaMetadata{
 								Annotations: map[string]string{
 									".annotation-key": "annotation-value",
 								},

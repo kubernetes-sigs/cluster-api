@@ -155,16 +155,14 @@ func validateClusterClassVariableMetadata(metadata clusterv1.ClusterClassVariabl
 // Note: This cannot be done within validateSchema because XMetadata does not exist in apiextensions.JSONSchemaProps.
 func validateClusterClassXVariableMetadata(schema *clusterv1.JSONSchemaProps, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
-	if schema.XMetadata != nil {
-		allErrs = metav1validation.ValidateLabels(
-			schema.XMetadata.Labels,
-			fldPath.Child("x-metadata", "labels"),
-		)
-		allErrs = append(allErrs, apivalidation.ValidateAnnotations(
-			schema.XMetadata.Annotations,
-			fldPath.Child("x-metadata", "annotations"),
-		)...)
-	}
+	allErrs = metav1validation.ValidateLabels(
+		schema.XMetadata.Labels,
+		fldPath.Child("x-metadata", "labels"),
+	)
+	allErrs = append(allErrs, apivalidation.ValidateAnnotations(
+		schema.XMetadata.Annotations,
+		fldPath.Child("x-metadata", "annotations"),
+	)...)
 
 	if schema.AdditionalProperties != nil {
 		allErrs = append(allErrs, validateClusterClassXVariableMetadata(schema.AdditionalProperties, fldPath.Child("additionalProperties"))...)

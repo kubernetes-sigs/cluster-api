@@ -85,6 +85,7 @@ type KubeadmControlPlaneTemplateResource struct {
 // omits Replicas and Version fields. These fields do not make sense on the KubeadmControlPlaneTemplate,
 // because they are calculated by the Cluster topology reconciler during reconciliation and thus cannot
 // be configured on the KubeadmControlPlaneTemplate.
+// +kubebuilder:validation:MinProperties=1
 type KubeadmControlPlaneTemplateResourceSpec struct {
 	// machineTemplate contains information about how machines
 	// should be shaped when creating or updating a control plane.

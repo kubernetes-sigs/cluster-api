@@ -115,6 +115,13 @@ func spokeClusterConfigurationFuzzer(in *ClusterConfiguration, c randfill.Contin
 	in.Networking.DNSDomain = ""
 	in.KubernetesVersion = ""
 	in.ClusterName = ""
+
+	if in.Etcd.Local != nil && reflect.DeepEqual(in.Etcd.Local, &LocalEtcd{}) {
+		in.Etcd.Local = nil
+	}
+	if in.Etcd.External != nil && reflect.DeepEqual(in.Etcd.External, &ExternalEtcd{}) {
+		in.Etcd.External = nil
+	}
 }
 
 func spokeInitConfigurationFuzzer(obj *InitConfiguration, c randfill.Continue) {
@@ -122,6 +129,10 @@ func spokeInitConfigurationFuzzer(obj *InitConfiguration, c randfill.Continue) {
 
 	obj.CertificateKey = ""
 	obj.SkipPhases = nil
+
+	if obj.Patches != nil && reflect.DeepEqual(obj.Patches, &Patches{}) {
+		obj.Patches = nil
+	}
 }
 
 func spokeJoinConfigurationFuzzer(obj *JoinConfiguration, c randfill.Continue) {
@@ -130,6 +141,12 @@ func spokeJoinConfigurationFuzzer(obj *JoinConfiguration, c randfill.Continue) {
 	obj.SkipPhases = nil
 	if obj.Discovery.Timeout != nil {
 		obj.Discovery.Timeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	if obj.Discovery.File != nil && reflect.DeepEqual(obj.Discovery.File, &FileDiscovery{}) {
+		obj.Discovery.File = nil
+	}
+	if obj.Patches != nil && reflect.DeepEqual(obj.Patches, &Patches{}) {
+		obj.Patches = nil
 	}
 }
 
@@ -142,15 +159,11 @@ func spokeAPIServerFuzzer(obj *APIServer, c randfill.Continue) {
 func hubJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
-	if obj.Discovery.File != nil {
-		obj.Discovery.File.KubeConfig = nil
-	}
-	if obj.Timeouts != nil {
-		if obj.Timeouts.TLSBootstrapSeconds != nil {
-			obj.Timeouts = &bootstrapv1.Timeouts{TLSBootstrapSeconds: obj.Timeouts.TLSBootstrapSeconds}
-		} else {
-			obj.Timeouts = nil
-		}
+	obj.Discovery.File.KubeConfig = bootstrapv1.FileDiscoveryKubeConfig{}
+	if obj.Timeouts.TLSBootstrapSeconds != nil {
+		obj.Timeouts = bootstrapv1.Timeouts{TLSBootstrapSeconds: obj.Timeouts.TLSBootstrapSeconds}
+	} else {
+		obj.Timeouts = bootstrapv1.Timeouts{}
 	}
 }
 
@@ -214,7 +227,7 @@ func hubNodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, 
 func hubInitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
-	obj.Timeouts = nil
+	obj.Timeouts = bootstrapv1.Timeouts{}
 }
 
 func hubHostPathMountFuzzer(obj *bootstrapv1.HostPathMount, c randfill.Continue) {

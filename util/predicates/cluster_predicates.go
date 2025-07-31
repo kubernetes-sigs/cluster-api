@@ -333,7 +333,7 @@ func processIfTopologyManaged(scheme *runtime.Scheme, logger logr.Logger, object
 		return false
 	}
 
-	if cluster.Spec.Topology != nil {
+	if cluster.Spec.Topology.IsDefined() {
 		logger.V(6).Info("Cluster has topology, allowing further processing")
 		return true
 	}
@@ -360,7 +360,7 @@ func ClusterTopologyVersionChanged(scheme *runtime.Scheme, logger logr.Logger) p
 
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
 
-			if oldCluster.Spec.Topology == nil || newCluster.Spec.Topology == nil {
+			if !oldCluster.Spec.Topology.IsDefined() || !newCluster.Spec.Topology.IsDefined() {
 				logger.V(6).Info("Cluster does not have topology, blocking further processing")
 				return false
 			}

@@ -169,7 +169,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							Kind: "KubeadmBootstrapTemplate",
 							Name: "some-name",
 						},

@@ -528,7 +528,7 @@ func extensionConfig(name, extensionServiceNamespace, extensionServiceName strin
 		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				Service: &runtimev1.ServiceReference{
+				Service: runtimev1.ServiceReference{
 					Name: extensionServiceName,
 					// Note: this assumes the test extension get deployed in the default namespace defined in its own runtime-extensions-components.yaml
 					Namespace: extensionServiceNamespace,

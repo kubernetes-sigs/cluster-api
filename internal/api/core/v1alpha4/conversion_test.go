@@ -110,7 +110,7 @@ func hubMachineSpec(in *clusterv1.MachineSpec, c randfill.Continue) {
 	in.InfrastructureRef.APIGroup = gvk.Group
 	in.InfrastructureRef.Kind = gvk.Kind
 
-	if in.Bootstrap.ConfigRef != nil {
+	if in.Bootstrap.ConfigRef.IsDefined() {
 		gvk := testGVKs[c.Int31n(4)]
 		in.Bootstrap.ConfigRef.APIGroup = gvk.Group
 		in.Bootstrap.ConfigRef.Kind = gvk.Kind
@@ -173,7 +173,7 @@ func spokeMachineStatus(in *MachineStatus, c randfill.Continue) {
 	if in.NodeRef != nil {
 		// Drop everything except name
 		in.NodeRef = &corev1.ObjectReference{
-			Name:       in.NodeRef.Name,
+			Name:       "node-" + in.NodeRef.Name, // NodeRef's with empty Name's don't survive the round trip.
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Node",
 		}
@@ -197,12 +197,12 @@ func hubClusterSpec(in *clusterv1.ClusterSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	// Ensure ref fields are always set to realistic values.
-	if in.InfrastructureRef != nil {
+	if in.InfrastructureRef.IsDefined() {
 		gvk := testGVKs[c.Int31n(4)]
 		in.InfrastructureRef.APIGroup = gvk.Group
 		in.InfrastructureRef.Kind = gvk.Kind
 	}
-	if in.ControlPlaneRef != nil {
+	if in.ControlPlaneRef.IsDefined() {
 		gvk := testGVKs[c.Int31n(4)]
 		in.ControlPlaneRef.APIGroup = gvk.Group
 		in.ControlPlaneRef.Kind = gvk.Kind
@@ -278,6 +278,9 @@ func spokeCluster(in *Cluster, c randfill.Continue) {
 		if reflect.DeepEqual(in.Spec.ClusterNetwork, &ClusterNetwork{}) {
 			in.Spec.ClusterNetwork = nil
 		}
+	}
+	if in.Spec.Topology != nil && reflect.DeepEqual(in.Spec.Topology, &Topology{}) {
+		in.Spec.Topology = nil
 	}
 }
 
@@ -369,7 +372,8 @@ func fillHubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c randfill.Continue) 
 func spokeLocalObjectTemplate(in *LocalObjectTemplate, c randfill.Continue) {
 	c.FillNoCustom(in)
 
-	if in.Ref == nil {
+	if in.Ref == nil ||
+		(in.Ref.APIVersion == "" && in.Ref.Kind == "" && in.Ref.Name == "") { // Namespace-only Refs don't survive the round trip
 		in.Ref = &corev1.ObjectReference{
 			APIVersion: "fooAPIVersion",
 			Kind:       "fooKind",
@@ -515,6 +519,7 @@ func spokeObjectReference(in *corev1.ObjectReference, c randfill.Continue) {
 	}
 
 	in.Namespace = "foo"
+	in.Name = "bar" // Also set Name, Namespace alone won't survive the round trip
 	in.UID = types.UID("")
 	in.ResourceVersion = ""
 	in.FieldPath = ""

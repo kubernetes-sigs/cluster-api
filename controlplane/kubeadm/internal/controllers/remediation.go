@@ -175,7 +175,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		// Skip remediation when we expect an upgrade to be propagated from the cluster topology.
-		if controlPlane.Cluster.Spec.Topology != nil && controlPlane.Cluster.Spec.Topology.Version != controlPlane.KCP.Spec.Version {
+		if controlPlane.Cluster.Spec.Topology.IsDefined() && controlPlane.Cluster.Spec.Topology.Version != controlPlane.KCP.Spec.Version {
 			message := fmt.Sprintf("KubeadmControlPlane can't remediate while waiting for a version upgrade to %s to be propagated from Cluster.spec.topology", controlPlane.Cluster.Spec.Topology.Version)
 			log.Info(fmt.Sprintf("A control plane machine needs remediation, but %s. Skipping remediation", message))
 			v1beta1conditions.MarkFalse(machineToBeRemediated,
@@ -411,10 +411,10 @@ func pickMachineToBeRemediated(i, j *clusterv1.Machine, isEtcdManaged bool) bool
 
 	// if one machine does not have a node ref, we assume that provisioning failed and there is no CP components at all,
 	// so remediate first; also without a node, it is not possible to get further info about status.
-	if i.Status.NodeRef == nil && j.Status.NodeRef != nil {
+	if !i.Status.NodeRef.IsDefined() && j.Status.NodeRef.IsDefined() {
 		return true
 	}
-	if i.Status.NodeRef != nil && j.Status.NodeRef == nil {
+	if i.Status.NodeRef.IsDefined() && !j.Status.NodeRef.IsDefined() {
 		return false
 	}
 
@@ -609,7 +609,7 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 	unhealthyMembers := []string{}
 	for _, etcdMember := range etcdMembers {
 		// Skip the machine to be deleted because it won't be part of the target etcd cluster.
-		if machineToBeRemediated.Status.NodeRef != nil && machineToBeRemediated.Status.NodeRef.Name == etcdMember {
+		if machineToBeRemediated.Status.NodeRef.IsDefined() && machineToBeRemediated.Status.NodeRef.Name == etcdMember {
 			continue
 		}
 
@@ -619,7 +619,7 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		// Search for the machine corresponding to the etcd member.
 		var machine *clusterv1.Machine
 		for _, m := range controlPlane.Machines {
-			if m.Status.NodeRef != nil && m.Status.NodeRef.Name == etcdMember {
+			if m.Status.NodeRef.IsDefined() && m.Status.NodeRef.Name == etcdMember {
 				machine = m
 				break
 			}
@@ -694,8 +694,8 @@ func (r *RemediationData) Marshal() (string, error) {
 }
 
 // ToStatus converts a RemediationData into a LastRemediationStatus struct.
-func (r *RemediationData) ToStatus() *controlplanev1.LastRemediationStatus {
-	return &controlplanev1.LastRemediationStatus{
+func (r *RemediationData) ToStatus() controlplanev1.LastRemediationStatus {
+	return controlplanev1.LastRemediationStatus{
 		Machine:    r.Machine,
 		Time:       r.Timestamp,
 		RetryCount: int32(r.RetryCount),

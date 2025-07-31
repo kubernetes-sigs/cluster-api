@@ -3400,6 +3400,7 @@ spec:
                     type: object
                   spec:
                     description: spec is the desired state of KubeadmControlPlaneTemplateResource.
+                    minProperties: 1
                     properties:
                       kubeadmConfigSpec:
                         description: |-

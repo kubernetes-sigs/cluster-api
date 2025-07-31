@@ -179,7 +179,7 @@ func TestPatchHelper(t *testing.T) {
 					Namespace:    ns.Name,
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: builder.ControlPlaneGroupVersion.Group,
 						Kind:     builder.GenericControlPlaneKind,
 						Name:     "cp1",
@@ -529,7 +529,7 @@ func TestPatchHelper(t *testing.T) {
 				Namespace:    ns.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
 					Kind:     builder.GenericControlPlaneKind,
 					Name:     "cp1",
@@ -640,7 +640,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Updating the object spec")
 			obj.Spec.Paused = ptr.To(true)
-			obj.Spec.InfrastructureRef = &clusterv1.ContractVersionedObjectReference{
+			obj.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:     "test-kind",
 				Name:     "test-ref",
@@ -723,7 +723,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Updating the object spec")
 			obj.Spec.Paused = ptr.To(true)
-			obj.Spec.InfrastructureRef = &clusterv1.ContractVersionedObjectReference{
+			obj.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:     "test-kind",
 				Name:     "test-ref",
@@ -965,7 +965,7 @@ func TestPatchHelper(t *testing.T) {
 				Namespace:    ns.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
 					Kind:     builder.GenericControlPlaneKind,
 					Name:     "cp1",
@@ -1020,7 +1020,7 @@ func TestPatchHelper(t *testing.T) {
 				Finalizers: []string{"block-deletion"},
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: &clusterv1.ContractVersionedObjectReference{
+				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
 					Kind:     builder.GenericControlPlaneKind,
 					Name:     "cp1",

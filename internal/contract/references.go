@@ -106,9 +106,9 @@ func ObjToRef(obj *unstructured.Unstructured) *corev1.ObjectReference {
 // ObjToContractVersionedObjectReference returns a reference to the given object.
 // Note: This function only operates on Unstructured instead of client.Object
 // because it is only safe to assume for Unstructured that the GVK is set.
-func ObjToContractVersionedObjectReference(obj *unstructured.Unstructured) *clusterv1.ContractVersionedObjectReference {
+func ObjToContractVersionedObjectReference(obj *unstructured.Unstructured) clusterv1.ContractVersionedObjectReference {
 	gvk := obj.GetObjectKind().GroupVersionKind()
-	return &clusterv1.ContractVersionedObjectReference{
+	return clusterv1.ContractVersionedObjectReference{
 		APIGroup: gvk.Group,
 		Kind:     gvk.Kind,
 		Name:     obj.GetName(),

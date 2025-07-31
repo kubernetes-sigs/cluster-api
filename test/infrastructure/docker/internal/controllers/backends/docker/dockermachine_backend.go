@@ -339,7 +339,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// NOTE: If the Cluster doesn't use a control plane, the ControlPlaneInitialized condition is only
 	// set to true after a control plane machine has a node ref. If we would requeue here in this case, the
 	// Machine will never get a node ref as ProviderID is required to set the node ref, so we would get a deadlock.
-	if cluster.Spec.ControlPlaneRef != nil &&
+	if cluster.Spec.ControlPlaneRef.IsDefined() &&
 		!conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}

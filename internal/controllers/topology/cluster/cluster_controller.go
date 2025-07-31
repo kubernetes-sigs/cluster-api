@@ -270,7 +270,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// NOTE: We're already filtering events, but this is a safeguard for cases like e.g. when
 	// there are MachineDeployments which have the topology owned label, but the corresponding
 	// cluster is not topology owned.
-	if cluster.Spec.Topology == nil {
+	if !cluster.Spec.Topology.IsDefined() {
 		return ctrl.Result{}, nil
 	}
 
@@ -430,7 +430,7 @@ func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.S
 	// Call the BeforeClusterCreate hook before proceeding.
 	log := ctrl.LoggerFrom(ctx)
 
-	if s.Current.Cluster.Spec.InfrastructureRef == nil && s.Current.Cluster.Spec.ControlPlaneRef == nil {
+	if !s.Current.Cluster.Spec.InfrastructureRef.IsDefined() && !s.Current.Cluster.Spec.ControlPlaneRef.IsDefined() {
 		v1beta1Cluster := &clusterv1beta1.Cluster{}
 		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")

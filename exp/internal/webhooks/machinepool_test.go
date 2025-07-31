@@ -233,12 +233,12 @@ func TestMachinePoolBootstrapValidation(t *testing.T) {
 	}{
 		{
 			name:      "should return error if configref and data are nil",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{}, DataSecretName: nil},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: nil},
 			expectErr: true,
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{}, DataSecretName: ptr.To("test")},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("test")},
 			expectErr: false,
 		},
 		{

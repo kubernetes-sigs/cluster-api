@@ -259,7 +259,7 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 		},
 	}
 
-	clusterCerts := secret.NewCertificatesForInitialControlPlane(bootstrapv1.ClusterConfiguration{})
+	clusterCerts := secret.NewCertificatesForInitialControlPlane(&bootstrapv1.ClusterConfiguration{})
 	g.Expect(clusterCerts.Generate()).To(Succeed())
 	caCert := clusterCerts.GetByPurpose(secret.ClusterCA)
 	existingCACertSecret := caCert.AsSecret(

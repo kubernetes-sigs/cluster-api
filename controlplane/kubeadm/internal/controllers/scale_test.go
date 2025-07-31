@@ -586,7 +586,7 @@ func TestPreflightChecks(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				{
 					Status: clusterv1.MachineStatus{
-						NodeRef: clusterv1.MachineNodeReference{},
+						// NodeRef is not set
 						// Note: with v1beta1 no conditions are applied to machine when NodeRef is not set, this will change with v1beta2.
 					},
 				},

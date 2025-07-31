@@ -68,13 +68,17 @@ loopmembers:
 // UpdateEtcdLocalInKubeadmConfigMap sets etcd local configuration in the kubeadm config map.
 func (w *Workload) UpdateEtcdLocalInKubeadmConfigMap(etcdLocal bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration) {
 	return func(c *bootstrapv1.ClusterConfiguration) {
+		// Note: Etcd local and external are mutually exclusive and they cannot be switched, once set.
 		c.Etcd.Local = etcdLocal
+		c.Etcd.External = bootstrapv1.ExternalEtcd{}
 	}
 }
 
 // UpdateEtcdExternalInKubeadmConfigMap sets etcd external configuration in the kubeadm config map.
 func (w *Workload) UpdateEtcdExternalInKubeadmConfigMap(etcdExternal bootstrapv1.ExternalEtcd) func(*bootstrapv1.ClusterConfiguration) {
 	return func(c *bootstrapv1.ClusterConfiguration) {
+		// Note: Etcd local and external are mutually exclusive and they cannot be switched, once set.
+		c.Etcd.Local = bootstrapv1.LocalEtcd{}
 		c.Etcd.External = etcdExternal
 	}
 }

@@ -1095,8 +1095,8 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 				},
 				ServiceDomain: "lark",
 			},
-			ControlPlaneRef:   clusterv1.ContractVersionedObjectReference{},
-			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+			// ControlPlaneRef is not defined
+			// InfrastructureRef is not defined
 			Topology: clusterv1.Topology{
 				Version: "v1.21.2",
 				ClassRef: clusterv1.ClusterClassRef{

@@ -309,7 +309,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 	machineWithoutNode := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Name: "without-node"},
 		Status: clusterv1.MachineStatus{
-			NodeRef: clusterv1.MachineNodeReference{},
+			// NodeRef is not set
 			Conditions: []metav1.Condition{
 				{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionUnknown},
 				{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionUnknown},

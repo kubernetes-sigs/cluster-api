@@ -1448,7 +1448,7 @@ func Test_setAvailableCondition(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "m4"},
 						Spec:       clusterv1.MachineSpec{ProviderID: "m4"},
 						Status: clusterv1.MachineStatus{
-							NodeRef: clusterv1.MachineNodeReference{},
+							// NodeRef is not set
 							// Note this is not a real use case, but it helps to validate that machine m4 is bound to an etcd member and counted as healthy.
 							// If instead we use unknown or false conditions, it would not be possible to understand if the best effort binding happened or the etcd member was considered unhealthy because without a machine match.
 							Conditions: []metav1.Condition{apiServerPodHealthy, controllerManagerPodHealthy, schedulerPodHealthy, etcdPodHealthy, etcdMemberHealthy},

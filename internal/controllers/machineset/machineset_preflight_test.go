@@ -519,7 +519,11 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						Topology:        clusterv1.Topology{},
+						Topology: clusterv1.Topology{
+							ClassRef: clusterv1.ClusterClassRef{
+								Name: "class",
+							},
+						},
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
@@ -613,7 +617,11 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 						Namespace: ns,
 					},
 					Spec: clusterv1.ClusterSpec{
-						Topology:        clusterv1.Topology{},
+						Topology: clusterv1.Topology{
+							ClassRef: clusterv1.ClusterClassRef{
+								Name: "class",
+							},
+						},
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},

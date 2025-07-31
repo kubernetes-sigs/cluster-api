@@ -1426,9 +1426,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Annotations: map[string]string{clusterv1.ExcludeNodeDrainingAnnotation: "existed!!"},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -1451,9 +1451,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -1475,9 +1475,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -1492,9 +1492,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					Deletion: clusterv1.MachineDeletionSpec{
 						NodeDrainTimeoutSeconds: ptr.To(int32(60)),
 					},
@@ -1517,9 +1517,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					Deletion: clusterv1.MachineDeletionSpec{
 						NodeDrainTimeoutSeconds: ptr.To(int32(60)),
 					},
@@ -1541,9 +1541,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
@@ -1991,9 +1991,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Annotations: map[string]string{clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation: "existed!!"},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -2016,9 +2016,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -2040,9 +2040,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -2057,9 +2057,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					Deletion: clusterv1.MachineDeletionSpec{
 						NodeVolumeDetachTimeoutSeconds: ptr.To(int32(30)),
 					},
@@ -2082,9 +2082,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					Deletion: clusterv1.MachineDeletionSpec{
 						NodeVolumeDetachTimeoutSeconds: ptr.To(int32(60)),
 					},
@@ -2106,9 +2106,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
@@ -2640,9 +2640,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -2667,9 +2667,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2700,9 +2700,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{Time: time.Now().UTC()},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2731,9 +2731,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2783,9 +2783,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2821,9 +2821,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2859,9 +2859,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2890,9 +2890,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -2965,9 +2965,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2985,9 +2985,9 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       "test-cluster",
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					ClusterName: "test-cluster",
+					// InfrastructureRef is not defined
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -3372,9 +3372,9 @@ func TestNodeDeletion(t *testing.T) {
 			Finalizers: []string{clusterv1.MachineFinalizer},
 		},
 		Spec: clusterv1.MachineSpec{
-			ClusterName:       "test-cluster",
-			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+			ClusterName: "test-cluster",
+			// InfrastructureRef is not defined
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{
@@ -3564,9 +3564,9 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 			Finalizers: []string{clusterv1.MachineFinalizer},
 		},
 		Spec: clusterv1.MachineSpec{
-			ClusterName:       "test-cluster",
-			InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+			ClusterName: "test-cluster",
+			// InfrastructureRef is not defined
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{

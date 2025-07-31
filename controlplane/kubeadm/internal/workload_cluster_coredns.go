@@ -81,6 +81,11 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 		return nil
 	}
 
+	// Return early if the configuration is nil.
+	if !kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.IsDefined() {
+		return nil
+	}
+
 	clusterConfig := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
 
 	// Get the CoreDNS info needed for the upgrade.

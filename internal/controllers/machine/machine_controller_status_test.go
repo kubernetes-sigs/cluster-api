@@ -66,7 +66,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			name: "boostrap data secret provided by user/operator",
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{}
+				m.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{} // Overwriting ConfigRef to empty.
 				m.Spec.Bootstrap.DataSecretName = ptr.To("foo")
 				return m
 			}(),

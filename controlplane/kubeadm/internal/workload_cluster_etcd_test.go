@@ -265,7 +265,7 @@ func TestRemoveEtcdMemberForMachine(t *testing.T) {
 			name: "does nothing if the machine has no node",
 			machine: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
-					NodeRef: clusterv1.MachineNodeReference{},
+					// NodeRef is not set
 				},
 			},
 			expectErr: false,

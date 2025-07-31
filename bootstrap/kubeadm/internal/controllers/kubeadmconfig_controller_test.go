@@ -2633,7 +2633,7 @@ func createSecrets(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1
 	t.Helper()
 
 	out := []client.Object{}
-	certificates := secret.NewCertificatesForInitialControlPlane(config.Spec.ClusterConfiguration)
+	certificates := secret.NewCertificatesForInitialControlPlane(&config.Spec.ClusterConfiguration)
 	if err := certificates.Generate(); err != nil {
 		t.Fatal(err)
 	}

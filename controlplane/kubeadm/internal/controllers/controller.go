@@ -536,7 +536,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context.Context, controlPlane *internal.ControlPlane) error {
 	// Generate Cluster Certificates if needed
 	clusterConfiguration := controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.DeepCopy()
-	certificates := secret.NewCertificatesForInitialControlPlane(*clusterConfiguration)
+	certificates := secret.NewCertificatesForInitialControlPlane(clusterConfiguration)
 	controllerRef := metav1.NewControllerRef(controlPlane.KCP, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	if err := certificates.LookupOrGenerateCached(ctx, r.SecretCachingClient, r.Client, util.ObjectKey(controlPlane.Cluster), *controllerRef); err != nil {
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.CertificatesAvailableV1Beta1Condition, controlplanev1.CertificatesGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
@@ -746,9 +746,8 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(_ context.C
 		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
 	}
 
-	controlPlaneRef := c.Spec.ControlPlaneRef
-	if controlPlaneRef.IsDefined() && controlPlaneRef.Kind == kubeadmControlPlaneKind {
-		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: c.Namespace, Name: controlPlaneRef.Name}}}
+	if c.Spec.ControlPlaneRef.Kind == kubeadmControlPlaneKind {
+		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: c.Namespace, Name: c.Spec.ControlPlaneRef.Name}}}
 	}
 
 	return nil

@@ -238,7 +238,7 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 	machineTemplateWithDifferentInfraRef.Spec.InfrastructureRef.Name = "infra2"
 
 	machineTemplateWithBootstrapDataSecret := machineTemplate.DeepCopy()
-	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{}
+	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{} // Overwriting ConfigRef to empty.
 	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.DataSecretName = ptr.To("data-secret1")
 
 	machineTemplateWithDifferentBootstrapDataSecret := machineTemplateWithBootstrapDataSecret.DeepCopy()

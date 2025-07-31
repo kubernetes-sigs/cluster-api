@@ -70,12 +70,12 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 			workloadCluster.UpdateCertificateValidityPeriodDays(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays))
 
 		// Etcd local and external are mutually exclusive and they cannot be switched, once set.
-		if controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External.IsDefined() {
-			kubeadmCMMutators = append(kubeadmCMMutators,
-				workloadCluster.UpdateEtcdExternalInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External))
-		} else {
+		if controlPlane.IsEtcdManaged() {
 			kubeadmCMMutators = append(kubeadmCMMutators,
 				workloadCluster.UpdateEtcdLocalInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local))
+		} else {
+			kubeadmCMMutators = append(kubeadmCMMutators,
+				workloadCluster.UpdateEtcdExternalInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External))
 		}
 	}
 

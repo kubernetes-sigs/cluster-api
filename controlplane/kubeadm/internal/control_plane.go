@@ -223,6 +223,7 @@ func getGetFailureDomainIDs(failureDomains []clusterv1.FailureDomain) []string {
 // InitialControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for an initializing control plane.
 func (c *ControlPlane) InitialControlPlaneConfig() *bootstrapv1.KubeadmConfigSpec {
 	bootstrapSpec := c.KCP.Spec.KubeadmConfigSpec.DeepCopy()
+	// Note: When building a KubeadmConfig for the first CP machine empty out the unnecessary JoinConfiguration.
 	bootstrapSpec.JoinConfiguration = bootstrapv1.JoinConfiguration{}
 	return bootstrapSpec
 }
@@ -230,6 +231,7 @@ func (c *ControlPlane) InitialControlPlaneConfig() *bootstrapv1.KubeadmConfigSpe
 // JoinControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for joining control planes.
 func (c *ControlPlane) JoinControlPlaneConfig() *bootstrapv1.KubeadmConfigSpec {
 	bootstrapSpec := c.KCP.Spec.KubeadmConfigSpec.DeepCopy()
+	// Note: When building a KubeadmConfig for a joining CP machine empty out the unnecessary InitConfiguration.
 	bootstrapSpec.InitConfiguration = bootstrapv1.InitConfiguration{}
 	// NOTE: For the joining we are preserving the ClusterConfiguration in order to determine if the
 	// cluster is using an external etcd in the kubeadm bootstrap provider (even if this is not required by kubeadm Join).

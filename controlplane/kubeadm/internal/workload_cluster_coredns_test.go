@@ -39,6 +39,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+					CertificatesDir: "/tmp/certs", // Have to set a non-zero value otherwise UpdateCoreDNS returns early.
 					DNS: bootstrapv1.DNS{
 						ImageRepository: "",
 						ImageTag:        "",

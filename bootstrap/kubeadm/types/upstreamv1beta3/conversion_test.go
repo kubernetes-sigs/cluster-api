@@ -171,6 +171,13 @@ func hubJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.C
 	} else {
 		obj.Timeouts = bootstrapv1.Timeouts{}
 	}
+
+	for i, arg := range obj.NodeRegistration.KubeletExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		obj.NodeRegistration.KubeletExtraArgs[i] = arg
+	}
 }
 
 func spokeNodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c randfill.Continue) {
@@ -239,6 +246,13 @@ func hubInitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c randfill.C
 	c.FillNoCustom(obj)
 
 	obj.Timeouts = bootstrapv1.Timeouts{}
+
+	for i, arg := range obj.NodeRegistration.KubeletExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		obj.NodeRegistration.KubeletExtraArgs[i] = arg
+	}
 }
 
 func hubHostPathMountFuzzer(obj *bootstrapv1.HostPathMount, c randfill.Continue) {
@@ -262,4 +276,29 @@ func hubClusterConfigurationFuzzer(obj *bootstrapv1.ClusterConfiguration, c rand
 
 	obj.CertificateValidityPeriodDays = 0
 	obj.CACertificateValidityPeriodDays = 0
+
+	for i, arg := range obj.APIServer.ExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		obj.APIServer.ExtraArgs[i] = arg
+	}
+	for i, arg := range obj.ControllerManager.ExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		obj.ControllerManager.ExtraArgs[i] = arg
+	}
+	for i, arg := range obj.Scheduler.ExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		obj.Scheduler.ExtraArgs[i] = arg
+	}
+	for i, arg := range obj.Etcd.Local.ExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		obj.Etcd.Local.ExtraArgs[i] = arg
+	}
 }

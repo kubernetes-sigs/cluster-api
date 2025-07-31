@@ -18,6 +18,8 @@ package v1beta2
 
 import (
 	"sort"
+
+	"k8s.io/utils/ptr"
 )
 
 func (*KubeadmConfig) Hub()         {}
@@ -36,11 +38,11 @@ func ConvertToArgs(in map[string]string) []Arg {
 	}
 	args := make([]Arg, 0, len(in))
 	for k, v := range in {
-		args = append(args, Arg{Name: k, Value: v})
+		args = append(args, Arg{Name: k, Value: ptr.To(v)})
 	}
 	sort.Slice(args, func(i, j int) bool {
 		if args[i].Name == args[j].Name {
-			return args[i].Value < args[j].Value
+			return ptr.Deref(args[i].Value, "") < ptr.Deref(args[j].Value, "")
 		}
 		return args[i].Name < args[j].Name
 	})
@@ -56,7 +58,7 @@ func ConvertFromArgs(in []Arg) map[string]string {
 	}
 	args := make(map[string]string, len(in))
 	for _, arg := range in {
-		args[arg.Name] = arg.Value
+		args[arg.Name] = ptr.Deref(arg.Value, "")
 	}
 	return args
 }

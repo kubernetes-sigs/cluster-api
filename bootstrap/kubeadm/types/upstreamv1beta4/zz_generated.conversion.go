@@ -309,7 +309,9 @@ func autoConvert_v1beta2_APIServer_To_upstreamv1beta4_APIServer(in *v1beta2.APIS
 
 func autoConvert_upstreamv1beta4_Arg_To_v1beta2_Arg(in *Arg, out *v1beta2.Arg, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Value = in.Value
+	if err := v1.Convert_string_To_Pointer_string(&in.Value, &out.Value, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -320,7 +322,9 @@ func Convert_upstreamv1beta4_Arg_To_v1beta2_Arg(in *Arg, out *v1beta2.Arg, s con
 
 func autoConvert_v1beta2_Arg_To_upstreamv1beta4_Arg(in *v1beta2.Arg, out *Arg, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Value = in.Value
+	if err := v1.Convert_Pointer_string_To_string(&in.Value, &out.Value, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -711,7 +715,17 @@ func Convert_v1beta2_JoinControlPlane_To_upstreamv1beta4_JoinControlPlane(in *v1
 func autoConvert_upstreamv1beta4_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *v1beta2.LocalEtcd, s conversion.Scope) error {
 	// WARNING: in.ImageMeta requires manual conversion: does not exist in peer-type
 	out.DataDir = in.DataDir
-	out.ExtraArgs = *(*[]v1beta2.Arg)(unsafe.Pointer(&in.ExtraArgs))
+	if in.ExtraArgs != nil {
+		in, out := &in.ExtraArgs, &out.ExtraArgs
+		*out = make([]v1beta2.Arg, len(*in))
+		for i := range *in {
+			if err := Convert_upstreamv1beta4_Arg_To_v1beta2_Arg(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ExtraArgs = nil
+	}
 	// WARNING: in.ExtraEnvs requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta4.EnvVar vs *[]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.EnvVar)
 	out.ServerCertSANs = *(*[]string)(unsafe.Pointer(&in.ServerCertSANs))
 	out.PeerCertSANs = *(*[]string)(unsafe.Pointer(&in.PeerCertSANs))
@@ -722,7 +736,17 @@ func autoConvert_v1beta2_LocalEtcd_To_upstreamv1beta4_LocalEtcd(in *v1beta2.Loca
 	// WARNING: in.ImageRepository requires manual conversion: does not exist in peer-type
 	// WARNING: in.ImageTag requires manual conversion: does not exist in peer-type
 	out.DataDir = in.DataDir
-	out.ExtraArgs = *(*[]Arg)(unsafe.Pointer(&in.ExtraArgs))
+	if in.ExtraArgs != nil {
+		in, out := &in.ExtraArgs, &out.ExtraArgs
+		*out = make([]Arg, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_Arg_To_upstreamv1beta4_Arg(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ExtraArgs = nil
+	}
 	// WARNING: in.ExtraEnvs requires manual conversion: inconvertible types (*[]sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.EnvVar vs []sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta4.EnvVar)
 	out.ServerCertSANs = *(*[]string)(unsafe.Pointer(&in.ServerCertSANs))
 	out.PeerCertSANs = *(*[]string)(unsafe.Pointer(&in.PeerCertSANs))
@@ -733,7 +757,17 @@ func autoConvert_upstreamv1beta4_NodeRegistrationOptions_To_v1beta2_NodeRegistra
 	out.Name = in.Name
 	out.CRISocket = in.CRISocket
 	// WARNING: in.Taints requires manual conversion: inconvertible types ([]k8s.io/api/core/v1.Taint vs *[]k8s.io/api/core/v1.Taint)
-	out.KubeletExtraArgs = *(*[]v1beta2.Arg)(unsafe.Pointer(&in.KubeletExtraArgs))
+	if in.KubeletExtraArgs != nil {
+		in, out := &in.KubeletExtraArgs, &out.KubeletExtraArgs
+		*out = make([]v1beta2.Arg, len(*in))
+		for i := range *in {
+			if err := Convert_upstreamv1beta4_Arg_To_v1beta2_Arg(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.KubeletExtraArgs = nil
+	}
 	out.IgnorePreflightErrors = *(*[]string)(unsafe.Pointer(&in.IgnorePreflightErrors))
 	out.ImagePullPolicy = corev1.PullPolicy(in.ImagePullPolicy)
 	out.ImagePullSerial = (*bool)(unsafe.Pointer(in.ImagePullSerial))
@@ -744,7 +778,17 @@ func autoConvert_v1beta2_NodeRegistrationOptions_To_upstreamv1beta4_NodeRegistra
 	out.Name = in.Name
 	out.CRISocket = in.CRISocket
 	// WARNING: in.Taints requires manual conversion: inconvertible types (*[]k8s.io/api/core/v1.Taint vs []k8s.io/api/core/v1.Taint)
-	out.KubeletExtraArgs = *(*[]Arg)(unsafe.Pointer(&in.KubeletExtraArgs))
+	if in.KubeletExtraArgs != nil {
+		in, out := &in.KubeletExtraArgs, &out.KubeletExtraArgs
+		*out = make([]Arg, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_Arg_To_upstreamv1beta4_Arg(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.KubeletExtraArgs = nil
+	}
 	out.IgnorePreflightErrors = *(*[]string)(unsafe.Pointer(&in.IgnorePreflightErrors))
 	out.ImagePullPolicy = corev1.PullPolicy(in.ImagePullPolicy)
 	out.ImagePullSerial = (*bool)(unsafe.Pointer(in.ImagePullSerial))

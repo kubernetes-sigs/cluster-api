@@ -84,11 +84,11 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeJoinControlPlaneFuzzer,
 		spokeTimeoutsFuzzer,
 		hubClusterConfigurationFuzzer,
+		hubInitConfigurationFuzzer,
 		hubJoinConfigurationFuzzer,
 		hubHostPathMountFuzzer,
 		hubBootstrapTokenDiscoveryFuzzer,
 		hubNodeRegistrationOptionsFuzzer,
-		hubClusterConfigurationFuzzer,
 	}
 }
 
@@ -233,6 +233,42 @@ func hubClusterConfigurationFuzzer(in *bootstrapv1.ClusterConfiguration, c randf
 		if in.Etcd.Local.ExtraEnvs != nil && *in.Etcd.Local.ExtraEnvs == nil {
 			in.Etcd.Local.ExtraEnvs = nil
 		}
+
+		for i, arg := range in.APIServer.ExtraArgs {
+			if arg.Value == nil {
+				arg.Value = ptr.To("")
+			}
+			in.APIServer.ExtraArgs[i] = arg
+		}
+		for i, arg := range in.ControllerManager.ExtraArgs {
+			if arg.Value == nil {
+				arg.Value = ptr.To("")
+			}
+			in.ControllerManager.ExtraArgs[i] = arg
+		}
+		for i, arg := range in.Scheduler.ExtraArgs {
+			if arg.Value == nil {
+				arg.Value = ptr.To("")
+			}
+			in.Scheduler.ExtraArgs[i] = arg
+		}
+		for i, arg := range in.Etcd.Local.ExtraArgs {
+			if arg.Value == nil {
+				arg.Value = ptr.To("")
+			}
+			in.Etcd.Local.ExtraArgs[i] = arg
+		}
+	}
+}
+
+func hubInitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	for i, arg := range obj.NodeRegistration.KubeletExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		obj.NodeRegistration.KubeletExtraArgs[i] = arg
 	}
 }
 
@@ -240,6 +276,13 @@ func hubJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.C
 	c.FillNoCustom(obj)
 
 	obj.Discovery.File.KubeConfig = bootstrapv1.FileDiscoveryKubeConfig{}
+
+	for i, arg := range obj.NodeRegistration.KubeletExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		obj.NodeRegistration.KubeletExtraArgs[i] = arg
+	}
 }
 
 func hubHostPathMountFuzzer(obj *bootstrapv1.HostPathMount, c randfill.Continue) {

@@ -568,7 +568,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 							KubeletExtraArgs: []bootstrapv1.Arg{
 								{
 									Name:  "eviction-hard",
-									Value: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%",
+									Value: ptr.To("nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"),
 								},
 							},
 						},

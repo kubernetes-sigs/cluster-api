@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/ptr"
 )
 
 func TestConvertArgs(t *testing.T) {
@@ -28,15 +29,15 @@ func TestConvertArgs(t *testing.T) {
 	argList := []Arg{
 		{
 			Name:  "foo",
-			Value: "1",
+			Value: ptr.To("1"),
 		},
 		{
 			Name:  "bar",
-			Value: "1",
+			Value: ptr.To("1"),
 		},
 		{
 			Name:  "foo",
-			Value: "2",
+			Value: ptr.To("2"),
 		},
 	}
 	argMap := ConvertFromArgs(argList)
@@ -46,10 +47,11 @@ func TestConvertArgs(t *testing.T) {
 	g.Expect(argList).To(ConsistOf(
 		Arg{
 			Name:  "bar",
-			Value: "1"},
+			Value: ptr.To("1"),
+		},
 		Arg{
 			Name:  "foo",
-			Value: "2",
+			Value: ptr.To("2"),
 		},
 	))
 }

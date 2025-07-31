@@ -1036,7 +1036,7 @@ type Arg struct {
 	// +required
 	// +kubebuilder:validation:MinLength=0
 	// +kubebuilder:validation:MaxLength=1024
-	Value string `json:"value"`
+	Value *string `json:"value,omitempty"`
 }
 
 // EnvVar represents an environment variable present in a Container.

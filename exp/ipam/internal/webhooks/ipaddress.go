@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -105,7 +106,7 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 			))
 	}
 
-	if ip.Spec.Prefix < 0 {
+	if ptr.Deref(ip.Spec.Prefix, 0) < 0 {
 		allErrs = append(allErrs,
 			field.Invalid(
 				specPath.Child("prefix"),
@@ -113,19 +114,19 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 				"prefix cannot be negative",
 			))
 	}
-	if addr.Is4() && ip.Spec.Prefix > 32 {
+	if addr.Is4() && ptr.Deref(ip.Spec.Prefix, 0) > 32 {
 		allErrs = append(allErrs,
 			field.Invalid(
 				specPath.Child("prefix"),
-				ip.Spec.Prefix,
+				ptr.Deref(ip.Spec.Prefix, 0),
 				"prefix is too large for an IPv4 address",
 			))
 	}
-	if addr.Is6() && ip.Spec.Prefix > 128 {
+	if addr.Is6() && ptr.Deref(ip.Spec.Prefix, 0) > 128 {
 		allErrs = append(allErrs,
 			field.Invalid(
 				specPath.Child("prefix"),
-				ip.Spec.Prefix,
+				ptr.Deref(ip.Spec.Prefix, 0),
 				"prefix is too large for an IPv6 address",
 			))
 	}

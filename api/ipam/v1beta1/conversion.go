@@ -142,6 +142,22 @@ func Convert_v1beta2_IPAddressClaimReference_To_v1_LocalObjectReference(in *ipam
 	return nil
 }
 
+func Convert_v1beta1_IPAddressSpec_To_v1beta2_IPAddressSpec(in *IPAddressSpec, out *ipamv1.IPAddressSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_IPAddressSpec_To_v1beta2_IPAddressSpec(in, out, s); err != nil {
+		return err
+	}
+	out.Prefix = ptr.To(int32(in.Prefix))
+	return nil
+}
+
+func Convert_v1beta2_IPAddressSpec_To_v1beta1_IPAddressSpec(in *ipamv1.IPAddressSpec, out *IPAddressSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_IPAddressSpec_To_v1beta1_IPAddressSpec(in, out, s); err != nil {
+		return err
+	}
+	out.Prefix = int(ptr.Deref(in.Prefix, 0))
+	return nil
+}
+
 // Implement local conversion func because conversion-gen is not aware of conversion func in other packages (see https://github.com/kubernetes/code-generator/issues/94)
 
 func Convert_v1_Condition_To_v1beta1_Condition(in *metav1.Condition, out *clusterv1beta1.Condition, s apimachineryconversion.Scope) error {

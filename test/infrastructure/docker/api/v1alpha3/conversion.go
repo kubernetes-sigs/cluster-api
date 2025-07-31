@@ -350,3 +350,7 @@ func Convert_v1alpha3_DockerClusterSpec_To_v1beta2_DockerClusterSpec(in *DockerC
 
 	return nil
 }
+
+func Convert_v1beta2_DockerMachineTemplate_To_v1alpha3_DockerMachineTemplate(in *infrav1.DockerMachineTemplate, out *DockerMachineTemplate, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachineTemplate_To_v1alpha3_DockerMachineTemplate(in, out, s)
+}

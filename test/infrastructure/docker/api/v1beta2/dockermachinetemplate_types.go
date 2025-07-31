@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -27,7 +28,13 @@ type DockerMachineTemplateSpec struct {
 	Template DockerMachineTemplateResource `json:"template"`
 }
 
+// DockerMachineTemplateStatus defines the observed state of a DockerMachineTemplate.
+type DockerMachineTemplateStatus struct {
+	Capacity corev1.ResourceList `json:"capacity,omitempty"`
+}
+
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // +kubebuilder:resource:path=dockermachinetemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerMachineTemplate"
@@ -37,7 +44,8 @@ type DockerMachineTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec DockerMachineTemplateSpec `json:"spec,omitempty"`
+	Spec   DockerMachineTemplateSpec   `json:"spec,omitempty"`
+	Status DockerMachineTemplateStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

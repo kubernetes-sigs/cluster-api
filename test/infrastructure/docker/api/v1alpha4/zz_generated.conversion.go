@@ -679,6 +679,7 @@ func autoConvert_v1beta2_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate
 	if err := Convert_v1beta2_DockerMachineTemplateSpec_To_v1alpha4_DockerMachineTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
+	// WARNING: in.Status requires manual conversion: does not exist in peer-type
 	return nil
 }
 

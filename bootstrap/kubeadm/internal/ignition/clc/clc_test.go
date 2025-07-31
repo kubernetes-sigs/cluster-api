@@ -102,7 +102,7 @@ func TestRender(t *testing.T) {
 					Partitions: []bootstrapv1.Partition{
 						{
 							Device:    "/dev/disk/azure/scsi1/lun0",
-							Layout:    true,
+							Layout:    ptr.To(true),
 							Overwrite: ptr.To(true),
 							TableType: "gpt",
 						},

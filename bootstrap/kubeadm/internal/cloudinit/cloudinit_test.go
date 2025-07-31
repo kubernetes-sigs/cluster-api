@@ -148,7 +148,7 @@ func TestNewInitControlPlaneDiskMounts(t *testing.T) {
 				Partitions: []bootstrapv1.Partition{
 					{
 						Device:    "test-device",
-						Layout:    true,
+						Layout:    ptr.To(true),
 						Overwrite: ptr.To(false),
 						TableType: "gpt",
 					},

@@ -141,6 +141,12 @@ func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue
 		}
 		in.JoinConfiguration.NodeRegistration.KubeletExtraArgs[i] = arg
 	}
+	for i, p := range in.DiskSetup.Partitions {
+		if p.Layout == nil {
+			p.Layout = ptr.To(false) // Layout is a required field and nil does not round trip
+		}
+		in.DiskSetup.Partitions[i] = p
+	}
 }
 
 func hubNodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {

@@ -886,10 +886,6 @@ func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, exi
 	}
 
 	desiredMachine := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      generatedMachineName,
 			Namespace: machineSet.Namespace,

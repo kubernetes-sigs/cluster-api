@@ -541,7 +541,6 @@ func testControlPlaneMachine(name string) *clusterv1.Machine {
 
 func testMachine(name string) *clusterv1.Machine {
 	return &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: "my-namespace",

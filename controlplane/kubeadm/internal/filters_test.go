@@ -503,10 +503,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -523,10 +519,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -553,10 +545,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -573,10 +561,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -603,10 +587,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -623,10 +603,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -657,10 +633,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -677,10 +649,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -725,10 +693,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -745,10 +709,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -779,10 +739,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -799,10 +755,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -848,10 +800,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -868,10 +816,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -899,10 +843,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -919,10 +859,6 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -1022,10 +958,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -1042,10 +974,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -1076,10 +1004,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -1096,10 +1020,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -1144,10 +1064,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -1164,10 +1080,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -1198,10 +1110,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -1218,10 +1126,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -1267,10 +1171,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -1287,10 +1187,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -1318,10 +1214,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -1338,10 +1230,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -1386,10 +1274,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "test",
@@ -1406,10 +1290,6 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		}
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "KubeadmConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",

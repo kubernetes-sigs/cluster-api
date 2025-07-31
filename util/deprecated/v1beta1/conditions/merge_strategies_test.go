@@ -71,9 +71,6 @@ func TestGetFirstReasonAndMessage(t *testing.T) {
 	bar := FalseCondition("bar", "falseBar", clusterv1.ConditionSeverityInfo, "message falseBar")
 
 	getter := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Cluster",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-cluster",
 		},

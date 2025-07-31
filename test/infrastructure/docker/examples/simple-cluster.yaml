@@ -35,10 +35,11 @@ spec:
   replicas: 1
   version: v1.34.0-beta.0
   machineTemplate:
-    infrastructureRef:
-      apiGroup: infrastructure.cluster.x-k8s.io
-      kind: DockerMachineTemplate
-      name: controlplane
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: DockerMachineTemplate
+        name: controlplane
   kubeadmConfigSpec:
     clusterConfiguration:
       apiServer:

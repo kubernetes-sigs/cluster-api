@@ -318,6 +318,10 @@ func (w *Workload) ClusterStatus(ctx context.Context) (ClusterStatus, error) {
 
 // GetAPIServerCertificateExpiry returns the certificate expiry of the apiserver on the given node.
 func (w *Workload) GetAPIServerCertificateExpiry(ctx context.Context, kubeadmConfig *bootstrapv1.KubeadmConfig, nodeName string) (*time.Time, error) {
+	// Create a context with 15 second timeout
+	ctx, cancel := context.WithTimeoutCause(ctx, 15*time.Second, errors.New("timeout getting API server certificate expiry"))
+	defer cancel()
+
 	// Create a proxy.
 	p := proxy.Proxy{
 		Kind:       "pods",

@@ -23,6 +23,7 @@ import (
 	"net"
 
 	dockercontainer "github.com/docker/docker/api/types/container"
+	dockersystem "github.com/docker/docker/api/types/system"
 	"github.com/pkg/errors"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -46,6 +47,7 @@ type Runtime interface {
 	ContainerDebugInfo(ctx context.Context, containerName string, w io.Writer) error
 	DeleteContainer(ctx context.Context, containerName string) error
 	KillContainer(ctx context.Context, containerName, signal string) error
+	GetSystemInfo(ctx context.Context) (dockersystem.Info, error)
 }
 
 // Mount contains mount details.

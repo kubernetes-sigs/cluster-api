@@ -450,6 +450,15 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	if err := (&controllers.DockerMachineTemplateReconciler{
+		Client:           mgr.GetClient(),
+		ContainerRuntime: runtimeClient,
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
+		setupLog.Error(err, "Unable to create controller", "controller", "DockerMachineTemplate")
+		os.Exit(1)
+	}
+
 	if feature.Gates.Enabled(feature.MachinePool) {
 		if err := (&expcontrollers.DockerMachinePoolReconciler{
 			Client:           mgr.GetClient(),

@@ -620,3 +620,7 @@ func Convert_v1beta1_DockerClusterBackendSpec_To_v1beta2_DockerClusterBackendSpe
 
 	return nil
 }
+
+func Convert_v1beta2_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(in *infrav1.DockerMachineTemplate, out *DockerMachineTemplate, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(in, out, s)
+}

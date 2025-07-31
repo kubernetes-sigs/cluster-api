@@ -112,3 +112,11 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - dockermachinetemplates/status
+  verbs:
+  - get
+  - patch
+  - update

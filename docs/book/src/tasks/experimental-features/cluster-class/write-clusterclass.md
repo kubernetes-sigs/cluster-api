@@ -53,17 +53,16 @@ spec:
   workers:
     machineDeployments:
     - class: default-worker
-      template:
-        bootstrap:
-          templateRef:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-            kind: KubeadmConfigTemplate
-            name: docker-clusterclass-v0.1.0-default-worker
-        infrastructure:
-          templateRef:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-            kind: DockerMachineTemplate
-            name: docker-clusterclass-v0.1.0-default-worker
+      bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: docker-clusterclass-v0.1.0-default-worker
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: DockerMachineTemplate
+          name: docker-clusterclass-v0.1.0-default-worker
 ```
 
 The following example shows a Cluster using this ClusterClass. In this case a `KubeadmControlPlane` 
@@ -137,17 +136,16 @@ spec:
   workers:
     machinePools:
     - class: default-worker
-      template:
-        bootstrap:
-          templateRef:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-            kind: KubeadmConfigTemplate
-            name: quick-start-default-worker-bootstraptemplate
-        infrastructure:
-          templateRef:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-            kind: DockerMachinePoolTemplate
-            name: quick-start-default-worker-machinepooltemplate
+      bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: quick-start-default-worker-bootstraptemplate
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: DockerMachinePoolTemplate
+          name: quick-start-default-worker-machinepooltemplate
 ```
 
 They can then be similarly defined as workers in the cluster template like so:
@@ -186,30 +184,32 @@ metadata:
 spec:
   controlPlane:
     ...
-    machineHealthCheck:
-      maxUnhealthy: 33%
-      nodeStartupTimeout: 15m
-      unhealthyNodeConditions:
-      - type: Ready
-        status: Unknown
-        timeout: 300s
-      - type: Ready
-        status: "False"
-        timeout: 300s
+    healthCheck:
+      checks:
+        maxUnhealthy: 33%
+        nodeStartupTimeoutSeconds: 900
+        unhealthyNodeConditions:
+        - type: Ready
+          status: Unknown
+          timeoutSeconds: 300
+        - type: Ready
+          status: "False"
+          timeoutSeconds: 300
   workers:
     machineDeployments:
     - class: default-worker
       ...
-      machineHealthCheck:
-        unhealthyRange: "[0-2]"
-        nodeStartupTimeout: 10m
-        unhealthyNodeConditions:
-        - type: Ready
-          status: Unknown
-          timeout: 300s
-        - type: Ready
-          status: "False"
-          timeout: 300s
+      healthCheck:
+        checks:
+          unhealthyRange: "[0-2]"
+          nodeStartupTimeoutSeconds: 600
+          unhealthyNodeConditions:
+          - type: Ready
+            status: Unknown
+            timeoutSeconds: 300
+          - type: Ready
+            status: "False"
+            timeoutSeconds: 300
 ```
 
 ## ClusterClass with patches
@@ -228,7 +228,7 @@ in `KubeadmControlPlane`. Use cases like this can be implemented with ClusterCla
 The following example shows how variables can be defined in the ClusterClass.
 A variable definition specifies the name and the schema of a variable and if it is 
 required. The schema defines how a variable is defaulted and validated. It supports 
-a subset of the schema of CRDs. For more information please see the [godoc](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta1#spec-variables-schema-openAPIV3Schema).
+a subset of the schema of CRDs. For more information please see the [godoc](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta2#spec-variables-schema-openAPIV3Schema).
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta2
@@ -263,7 +263,7 @@ The variable can then be used in a patch to set a field on a template referenced
 The `selector` specifies on which template the patch should be applied. `jsonPatches` specifies which JSON 
 patches should be applied to that template. In this case we set the `imageRepository` field of the 
 `KubeadmControlPlaneTemplate` to the value of the variable `imageRepository`. For more information 
-please see the [godoc](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta1#spec-patches-definitions).
+please see the [godoc](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta2#spec-patches-definitions).
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta2
@@ -474,7 +474,7 @@ spec:
   matchConstraints:
     resourceRules:
     - apiGroups:   ["cluster.x-k8s.io"]
-      apiVersions: ["v1beta1"]
+      apiVersions: ["v1beta2"]
       operations:  ["CREATE", "UPDATE"]
       resources:   ["clusters"]
   validations:
@@ -532,7 +532,7 @@ spec:
   - name: workerMachineType
     definitions:
     - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: AWSMachineTemplate
         matchResources:
           machineDeploymentClass:
@@ -544,7 +544,7 @@ spec:
         valueFrom:
           variable: workerMachineType
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
   name: aws-clusterclass-v0.1.0-default-worker
@@ -657,7 +657,7 @@ spec:
     description: "Sets the container image that is used for running dockerMachines."
     definitions:
     - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DockerMachineTemplate
         matchResources:
           machineDeploymentClass:

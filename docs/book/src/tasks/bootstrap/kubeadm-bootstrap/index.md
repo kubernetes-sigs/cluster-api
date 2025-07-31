@@ -17,7 +17,7 @@ infrastructure object.
 
 ```yaml
 kind: DockerCluster
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 metadata:
   name: my-cluster-docker
 ---

@@ -203,7 +203,8 @@ spec:
   ...
   topology:
     ...
-    class: my-secure-cluster-class
+    classRef:
+      name: my-secure-cluster-class
     variables:
     - name: podSecurityStandard
       value: 

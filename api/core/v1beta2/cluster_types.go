@@ -831,6 +831,7 @@ type MachineDeploymentTopology struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name,omitempty"`
 
 	// failureDomain is the failure domain the machines will be created in.
@@ -1141,6 +1142,7 @@ type MachinePoolTopology struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name,omitempty"`
 
 	// failureDomains is the list of failure domains the machine pool will be created in.

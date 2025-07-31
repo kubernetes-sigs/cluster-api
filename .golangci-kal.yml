@@ -212,6 +212,10 @@ linters:
       text: "requiredfields: field .* is marked as required, but has the omitempty tag"
       linters:
         - kubeapilinter
+    - path: "api/.*"
+      text: "requiredfields: field (Applied|Value|Layout|RetryCount|Required|Prefix|TimeoutSeconds) is marked as required, should not be a pointer"
+      linters:
+        - kubeapilinter
 
     # TODO: Excludes that should be removed once https://github.com/kubernetes-sigs/kube-api-linter/issues/132 will be fixed
     - path: "api/.*"
@@ -222,6 +226,7 @@ linters:
       text: "optionalfields: field (.*) is optional and has a valid zero value \\({}\\), but the validation is not complete \\(e.g. min properties/adding required fields\\). The field should be a pointer to allow the zero value to be set. If the zero value is not a valid use case, complete the validation and remove the pointer."
       linters:
         - kubeapilinter
+
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0

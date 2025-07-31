@@ -203,7 +203,7 @@ func assertStatusVariables(actualClusterClass *clusterv1.ClusterClass) error {
 				return errors.Errorf("ClusterClass spec or status variable %s is nil, expected both to be set", specVar.Name)
 			}
 			if *specVar.Required != *statusVarDefinition.Required {
-				return errors.Errorf("ClusterClass status variable %s required field does not match. Expected %v. Got %v", specVar.Name, statusVarDefinition.Required, statusVarDefinition.Required)
+				return errors.Errorf("ClusterClass status variable %s required field does not match. Expected %v. Got %v", specVar.Name, *statusVarDefinition.Required, *statusVarDefinition.Required)
 			}
 			if !cmp.Equal(specVar.Schema, statusVarDefinition.Schema) {
 				return errors.Errorf("ClusterClass status variable %s schema does not match. Expected %v. Got %v", specVar.Name, specVar.Schema, statusVarDefinition.Schema)

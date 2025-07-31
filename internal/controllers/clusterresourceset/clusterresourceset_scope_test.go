@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -60,7 +61,7 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 									Name: "cp",
 									Kind: "ConfigMap",
 								},
-								Applied: false,
+								Applied: ptr.To(false),
 							},
 						},
 					},
@@ -83,7 +84,7 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 									Name: "cp",
 									Kind: "ConfigMap",
 								},
-								Applied: true,
+								Applied: ptr.To(true),
 								Hash:    "111",
 							},
 						},
@@ -108,7 +109,7 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 									Name: "cp",
 									Kind: "ConfigMap",
 								},
-								Applied: true,
+								Applied: ptr.To(true),
 								Hash:    "111",
 							},
 						},
@@ -148,7 +149,7 @@ func TestReconcileApplyOnceScopeNeedsApply(t *testing.T) {
 									Name: "cp",
 									Kind: "ConfigMap",
 								},
-								Applied: false,
+								Applied: ptr.To(false),
 							},
 						},
 					},
@@ -171,7 +172,7 @@ func TestReconcileApplyOnceScopeNeedsApply(t *testing.T) {
 									Name: "cp",
 									Kind: "ConfigMap",
 								},
-								Applied: true,
+								Applied: ptr.To(true),
 							},
 						},
 					},

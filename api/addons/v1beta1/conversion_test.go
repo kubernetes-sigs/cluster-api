@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
@@ -75,8 +76,17 @@ func spokeClusterResourceSetStatus(in *ClusterResourceSetStatus, c randfill.Cont
 
 func ClusterResourceSetBindingFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubResourceBinding,
 		hubClusterResourceSetStatus,
 		spokeClusterResourceSetBindingSpec,
+	}
+}
+
+func hubResourceBinding(in *addonsv1.ResourceBinding, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Applied == nil {
+		in.Applied = ptr.To(false) // Applied is a required field and nil does not round trip
 	}
 }
 

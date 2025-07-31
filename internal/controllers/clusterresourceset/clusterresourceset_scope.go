@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
@@ -111,7 +112,7 @@ type reconcileStrategyScope struct {
 func (r *reconcileStrategyScope) needsApply() bool {
 	resourceBinding := r.resourceSetBinding.GetResource(r.resourceRef)
 
-	return resourceBinding == nil || !resourceBinding.Applied || resourceBinding.Hash != r.computedHash
+	return resourceBinding == nil || !ptr.Deref(resourceBinding.Applied, false) || resourceBinding.Hash != r.computedHash
 }
 
 func (r *reconcileStrategyScope) apply(ctx context.Context, c client.Client) error {

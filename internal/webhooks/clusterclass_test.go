@@ -696,7 +696,7 @@ func TestClusterClassValidation(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
-								TimeoutSeconds: 5 * 60,
+								TimeoutSeconds: ptr.To(int32(5 * 60)),
 							},
 						},
 						NodeStartupTimeoutSeconds: ptr.To(int32(60)),
@@ -760,7 +760,7 @@ func TestClusterClassValidation(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: 5 * 60,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
 								NodeStartupTimeoutSeconds: ptr.To(int32(60)),
@@ -789,7 +789,7 @@ func TestClusterClassValidation(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: 5 * 60,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
 								// nodeStartupTimeout is too short here.
@@ -2102,7 +2102,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
-								TimeoutSeconds: 5 * 60,
+								TimeoutSeconds: ptr.To(int32(5 * 60)),
 							},
 						},
 					},
@@ -2138,7 +2138,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
-								TimeoutSeconds: 5 * 60,
+								TimeoutSeconds: ptr.To(int32(5 * 60)),
 							},
 						},
 					},
@@ -2166,7 +2166,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: 5 * 60,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
 							},
@@ -2186,7 +2186,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
-								TimeoutSeconds: 5 * 60,
+								TimeoutSeconds: ptr.To(int32(5 * 60)),
 							},
 						},
 					},
@@ -2234,7 +2234,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: 5 * 60,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
 							},
@@ -2289,7 +2289,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: 5 * 60,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
 							},
@@ -2329,7 +2329,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 										{
 											Type:           corev1.NodeReady,
 											Status:         corev1.ConditionUnknown,
-											TimeoutSeconds: 5 * 60,
+											TimeoutSeconds: ptr.To(int32(5 * 60)),
 										},
 									},
 								},
@@ -2356,7 +2356,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: 5 * 60,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
 							},

@@ -231,7 +231,7 @@ type UnhealthyNodeCondition struct {
 	// for at least 1 hour before being considered unhealthy.
 	// +required
 	// +kubebuilder:validation:Minimum=0
-	TimeoutSeconds int32 `json:"timeoutSeconds"`
+	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
 }
 
 // MachineHealthCheckStatus defines the observed state of MachineHealthCheck.

@@ -6542,7 +6542,6 @@ func schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref common.Refer
 					"timeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
 							Description: "timeoutSeconds is the duration that a node must be in a given status for, after which the node is considered unhealthy. For example, with a value of \"1h\", the node must match the status for at least 1 hour before being considered unhealthy.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

@@ -67,7 +67,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 								{
 									Type:           corev1.NodeReady,
 									Status:         corev1.ConditionUnknown,
-									TimeoutSeconds: 5 * 60,
+									TimeoutSeconds: ptr.To(int32(5 * 60)),
 								},
 							},
 						},
@@ -90,7 +90,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 								{
 									Type:           corev1.NodeReady,
 									Status:         corev1.ConditionUnknown,
-									TimeoutSeconds: 5 * 60,
+									TimeoutSeconds: ptr.To(int32(5 * 60)),
 								},
 							},
 						},
@@ -116,7 +116,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 								{
 									Type:           corev1.NodeReady,
 									Status:         corev1.ConditionUnknown,
-									TimeoutSeconds: 5 * 60,
+									TimeoutSeconds: ptr.To(int32(5 * 60)),
 								},
 							},
 						},
@@ -145,7 +145,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 								{
 									Type:           corev1.NodeReady,
 									Status:         corev1.ConditionUnknown,
-									TimeoutSeconds: 5 * 60,
+									TimeoutSeconds: ptr.To(int32(5 * 60)),
 								},
 							},
 						},
@@ -169,7 +169,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 								{
 									Type:           corev1.NodeReady,
 									Status:         corev1.ConditionUnknown,
-									TimeoutSeconds: 5 * 60,
+									TimeoutSeconds: ptr.To(int32(5 * 60)),
 								},
 							},
 						},
@@ -193,7 +193,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 								{
 									Type:           corev1.NodeReady,
 									Status:         corev1.ConditionUnknown,
-									TimeoutSeconds: 5 * 60,
+									TimeoutSeconds: ptr.To(int32(5 * 60)),
 								},
 							},
 						},
@@ -229,7 +229,7 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 								{
 									Type:           corev1.NodeReady,
 									Status:         corev1.ConditionFalse,
-									TimeoutSeconds: 20 * 60,
+									TimeoutSeconds: ptr.To(int32(20 * 60)),
 								},
 							},
 						},
@@ -247,7 +247,7 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 								{
 									Type:           corev1.NodeReady,
 									Status:         corev1.ConditionFalse,
-									TimeoutSeconds: 10 * 60,
+									TimeoutSeconds: ptr.To(int32(10 * 60)),
 								},
 							},
 						},
@@ -259,7 +259,7 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionFalse,
-						TimeoutSeconds: 20 * 60,
+						TimeoutSeconds: ptr.To(int32(20 * 60)),
 					},
 				},
 			},
@@ -282,7 +282,7 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 								{
 									Type:           corev1.NodeReady,
 									Status:         corev1.ConditionFalse,
-									TimeoutSeconds: 10 * 60,
+									TimeoutSeconds: ptr.To(int32(10 * 60)),
 								},
 							},
 						},
@@ -294,7 +294,7 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionFalse,
-						TimeoutSeconds: 10 * 60,
+						TimeoutSeconds: ptr.To(int32(10 * 60)),
 					},
 				},
 			},
@@ -342,7 +342,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: 5 * 60,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
 							},
@@ -366,7 +366,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: 5 * 60,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
 							},
@@ -393,7 +393,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: 5 * 60,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
 							},
@@ -424,7 +424,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
-								TimeoutSeconds: 5 * 60,
+								TimeoutSeconds: ptr.To(int32(5 * 60)),
 							},
 						},
 					},
@@ -448,7 +448,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
-								TimeoutSeconds: 5 * 60,
+								TimeoutSeconds: ptr.To(int32(5 * 60)),
 							},
 						},
 					},
@@ -472,7 +472,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
-								TimeoutSeconds: 5 * 60,
+								TimeoutSeconds: ptr.To(int32(5 * 60)),
 							},
 						},
 					},
@@ -509,7 +509,7 @@ func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionFalse,
-										TimeoutSeconds: 10 * 60,
+										TimeoutSeconds: ptr.To(int32(10 * 60)),
 									},
 								},
 							},
@@ -525,7 +525,7 @@ func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionFalse,
-								TimeoutSeconds: 20 * 60,
+								TimeoutSeconds: ptr.To(int32(20 * 60)),
 							},
 						},
 					},
@@ -541,7 +541,7 @@ func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionFalse,
-						TimeoutSeconds: 20 * 60,
+						TimeoutSeconds: ptr.To(int32(20 * 60)),
 					},
 				},
 			},
@@ -562,7 +562,7 @@ func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionFalse,
-										TimeoutSeconds: 10 * 60,
+										TimeoutSeconds: ptr.To(int32(10 * 60)),
 									},
 								},
 							},
@@ -579,7 +579,7 @@ func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionFalse,
-						TimeoutSeconds: 10 * 60,
+						TimeoutSeconds: ptr.To(int32(10 * 60)),
 					},
 				},
 			},

@@ -98,6 +98,7 @@ func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubClusterStatus,
 		hubClusterVariable,
 		hubFailureDomain,
+		hubUnhealthyNodeCondition,
 		spokeCluster,
 		spokeClusterTopology,
 		spokeObjectReference,
@@ -166,6 +167,14 @@ func hubFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	in.ControlPlane = ptr.To(c.Bool())
+}
+
+func hubUnhealthyNodeCondition(in *clusterv1.UnhealthyNodeCondition, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TimeoutSeconds == nil {
+		in.TimeoutSeconds = ptr.To(int32(0)) // TimeoutSeconds is a required field and nil does not round trip
+	}
 }
 
 func spokeCluster(in *Cluster, c randfill.Continue) {
@@ -259,6 +268,7 @@ func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubClusterClassStatus,
 		hubJSONPatch,
 		hubJSONSchemaProps,
+		hubUnhealthyNodeCondition,
 		spokeClusterClass,
 		spokeObjectReference,
 		spokeClusterClassStatus,
@@ -713,6 +723,7 @@ func spokeMachineDeploymentStatus(in *MachineDeploymentStatus, c randfill.Contin
 
 func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubUnhealthyNodeCondition,
 		hubMachineHealthCheckStatus,
 		spokeMachineHealthCheck,
 		spokeMachineHealthCheckSpec,

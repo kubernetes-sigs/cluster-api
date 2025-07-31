@@ -247,7 +247,7 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 	}
 
 	if in.LastRemediation.RetryCount == nil {
-		in.LastRemediation.RetryCount = ptr.To(int32(0))  // RetryCount is a required field and nil does not round trip
+		in.LastRemediation.RetryCount = ptr.To(int32(0)) // RetryCount is a required field and nil does not round trip
 	}
 }
 

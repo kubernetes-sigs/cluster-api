@@ -2764,7 +2764,7 @@ func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHeal
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionUnknown,
-						TimeoutSeconds: 5 * 60,
+						TimeoutSeconds: ptr.To(int32(5 * 60)),
 					},
 				},
 			},

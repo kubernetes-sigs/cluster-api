@@ -814,7 +814,8 @@ type LastRemediationStatus struct {
 	// retryCount used to keep track of remediation retry for the last remediated machine.
 	// A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.
 	// +required
-	RetryCount int32 `json:"retryCount"`
+	// +kubebuilder:validation:Minimum=0
+	RetryCount *int32 `json:"retryCount,omitempty"`
 }
 
 // +kubebuilder:object:root=true

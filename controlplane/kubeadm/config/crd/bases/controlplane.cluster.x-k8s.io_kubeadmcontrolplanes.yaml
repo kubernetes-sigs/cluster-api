@@ -7734,6 +7734,7 @@ spec:
                       retryCount used to keep track of remediation retry for the last remediated machine.
                       A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.
                     format: int32
+                    minimum: 0
                     type: integer
                   time:
                     description: time is when last remediation happened. It is represented

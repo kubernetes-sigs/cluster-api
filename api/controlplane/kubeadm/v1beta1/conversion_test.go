@@ -245,6 +245,10 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 	if in.Replicas == nil {
 		in.Replicas = ptr.To(int32(0))
 	}
+
+	if in.LastRemediation.RetryCount == nil {
+		in.LastRemediation.RetryCount = ptr.To(int32(0))  // RetryCount is a required field and nil does not round trip
+	}
 }
 
 func spokeKubeadmControlPlaneStatus(in *KubeadmControlPlaneStatus, c randfill.Continue) {

@@ -573,13 +573,17 @@ func Convert_v1beta2_KubeadmControlPlaneTemplateSpec_To_v1beta1_KubeadmControlPl
 func autoConvert_v1beta1_LastRemediationStatus_To_v1beta2_LastRemediationStatus(in *LastRemediationStatus, out *v1beta2.LastRemediationStatus, s conversion.Scope) error {
 	out.Machine = in.Machine
 	// WARNING: in.Timestamp requires manual conversion: does not exist in peer-type
-	out.RetryCount = in.RetryCount
+	if err := v1.Convert_int32_To_Pointer_int32(&in.RetryCount, &out.RetryCount, s); err != nil {
+		return err
+	}
 	return nil
 }
 
 func autoConvert_v1beta2_LastRemediationStatus_To_v1beta1_LastRemediationStatus(in *v1beta2.LastRemediationStatus, out *LastRemediationStatus, s conversion.Scope) error {
 	out.Machine = in.Machine
 	// WARNING: in.Time requires manual conversion: does not exist in peer-type
-	out.RetryCount = in.RetryCount
+	if err := v1.Convert_Pointer_int32_To_int32(&in.RetryCount, &out.RetryCount, s); err != nil {
+		return err
+	}
 	return nil
 }

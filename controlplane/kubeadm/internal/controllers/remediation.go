@@ -668,7 +668,7 @@ type RemediationData struct {
 	Machine string `json:"machine"`
 
 	// timestamp is when last remediation happened. It is represented in RFC3339 form and is in UTC.
-	Timestamp metav1.Time `json:"timestamp,omitempty,omitzero"`
+	Timestamp metav1.Time `json:"timestamp"`
 
 	// retryCount used to keep track of remediation retry for the last remediated machine.
 	// A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.
@@ -698,6 +698,6 @@ func (r *RemediationData) ToStatus() controlplanev1.LastRemediationStatus {
 	return controlplanev1.LastRemediationStatus{
 		Machine:    r.Machine,
 		Time:       r.Timestamp,
-		RetryCount: int32(r.RetryCount),
+		RetryCount: ptr.To(int32(r.RetryCount)),
 	}
 }

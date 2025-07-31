@@ -1343,7 +1343,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 					Name: "location",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1375,7 +1375,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 					Name: "location",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1411,7 +1411,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						Name: "location",
 						Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 							{
-								Required: true,
+								Required: ptr.To(true),
 								From:     clusterv1.VariableDefinitionFromInline,
 								Schema: clusterv1.VariableSchema{
 									OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1426,7 +1426,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						Name: "httpProxy",
 						Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 							{
-								Required: true,
+								Required: ptr.To(true),
 								From:     clusterv1.VariableDefinitionFromInline,
 								Schema: clusterv1.VariableSchema{
 									OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1552,7 +1552,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 					Name: "httpProxy",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: false, // variable is not required.
+							Required: ptr.To(false), // variable is not required.
 							From:     clusterv1.VariableDefinitionFromInline,
 						},
 					},
@@ -1574,7 +1574,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 					Name: "httpProxy",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 						},
 					},
@@ -1596,7 +1596,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 					Name: "httpProxy",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 						},
 					},
@@ -1619,7 +1619,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 					Name: "httpProxy",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 						},
 					},

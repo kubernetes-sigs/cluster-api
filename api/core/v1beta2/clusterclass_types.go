@@ -807,7 +807,7 @@ type ClusterClassVariable struct {
 	// top-level object defined in the schema. If nested fields are
 	// required, this will be specified inside the schema.
 	// +required
-	Required bool `json:"required"`
+	Required *bool `json:"required,omitempty"`
 
 	// deprecatedV1Beta1Metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to
@@ -1584,7 +1584,7 @@ type ClusterClassStatusVariableDefinition struct {
 	// top-level object defined in the schema. If nested fields are
 	// required, this will be specified inside the schema.
 	// +required
-	Required bool `json:"required"`
+	Required *bool `json:"required,omitempty"`
 
 	// deprecatedV1Beta1Metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to

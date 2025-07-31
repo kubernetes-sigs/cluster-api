@@ -45,7 +45,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -60,7 +60,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Name: "zone",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -75,7 +75,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Name: "location",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -123,7 +123,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -138,7 +138,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Name: "zone",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -168,7 +168,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -183,7 +183,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Name: "zone",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -241,7 +241,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 								},
 							},
 							From:     clusterv1.VariableDefinitionFromInline,
-							Required: true,
+							Required: ptr.To(true),
 						},
 						{
 							Schema: clusterv1.VariableSchema{
@@ -250,7 +250,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 								},
 							},
 							From:     "somepatch",
-							Required: true,
+							Required: ptr.To(true),
 						},
 					},
 				},
@@ -407,7 +407,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid integer",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "integer",
@@ -430,7 +430,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "integer",
@@ -453,7 +453,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "integer",
@@ -476,7 +476,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "integer",
@@ -495,7 +495,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid string",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:      "string",
@@ -518,7 +518,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "string",
@@ -541,7 +541,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:   "string",
@@ -560,7 +560,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid enum string",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "string",
@@ -586,7 +586,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "string",
@@ -608,7 +608,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid enum integer",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
@@ -636,7 +636,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "string",
@@ -659,7 +659,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid object",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -686,7 +686,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -713,7 +713,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -742,7 +742,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -775,7 +775,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:          "object",
@@ -815,7 +815,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid object",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -853,7 +853,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid enum object",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "enumObject",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -887,7 +887,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "enumObject",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -918,7 +918,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid map",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -948,7 +948,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -982,7 +982,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:          "object",
@@ -1011,7 +1011,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid array",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testArray",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -1040,7 +1040,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testArray",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -1069,7 +1069,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testArray",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -1095,7 +1095,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testArray",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -1121,7 +1121,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testArray",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -1143,7 +1143,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid array object",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "enumArray",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -1172,7 +1172,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "enumArray",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -1198,7 +1198,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid object with x-kubernetes-preserve-unknown-fields",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1227,7 +1227,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1255,7 +1255,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1279,7 +1279,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid nested object with x-kubernetes-preserve-unknown-fields",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1300,7 +1300,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid object with nested fields and x-kubernetes-preserve-unknown-fields",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1334,7 +1334,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1367,7 +1367,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1397,7 +1397,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid object with mid-level unknown fields",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1428,7 +1428,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid CEL expression: scalar: using self",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
@@ -1449,7 +1449,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid CEL expression: special characters",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1485,7 +1485,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid CEL expression: objects: using self.field, has(self.field)",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1518,7 +1518,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid CEL expression: maps: using self[mapKey], mapKey in self, self.all, equality",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1550,7 +1550,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid CEL expression: arrays: using self[i], self.all, equality",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -1598,7 +1598,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
@@ -1623,7 +1623,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
@@ -1648,7 +1648,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
@@ -1674,7 +1674,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
@@ -1701,7 +1701,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
@@ -1728,7 +1728,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:                   "object",
@@ -1761,7 +1761,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid CEL expression: objects: defined field can be accessed",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:                   "object",
@@ -1792,7 +1792,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:                   "object",
@@ -1821,7 +1821,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid object with oneOf schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "test",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1858,7 +1858,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "test",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1889,7 +1889,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid object with allOf schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "test",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1930,7 +1930,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "test",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1961,7 +1961,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid object with anyOf schema and multiple specified properties",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "test",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -2003,7 +2003,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "test",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -2034,7 +2034,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid object with anyOf and not schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "test",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -2079,7 +2079,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "test",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -2112,7 +2112,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			name: "Valid object for int-or-string (resource.Quantity)",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "quantityArray",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -2158,7 +2158,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 			name: "Valid transition if old value is not set",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
@@ -2179,7 +2179,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 			name: "Valid transition if old value is less than new value via CEL expression",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
@@ -2210,7 +2210,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
@@ -2241,7 +2241,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
@@ -2269,7 +2269,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 			name: "Pass immutability check if value did not change",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -2306,7 +2306,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -2362,7 +2362,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -2377,7 +2377,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 					Name: "zone",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -2463,7 +2463,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -2497,7 +2497,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -2531,7 +2531,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -2561,7 +2561,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -2591,7 +2591,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -2633,7 +2633,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{

@@ -761,7 +761,6 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassStatusVariableDefinition(re
 					"required": {
 						SchemaProps: spec.SchemaProps{
 							Description: "required specifies if the variable is required. Note: this applies to the variable as a whole and thus the top-level object defined in the schema. If nested fields are required, this will be specified inside the schema.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -870,7 +869,6 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassVariable(ref common.Referen
 					"required": {
 						SchemaProps: spec.SchemaProps{
 							Description: "required specifies if the variable is required. Note: this applies to the variable as a whole and thus the top-level object defined in the schema. If nested fields are required, this will be specified inside the schema.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},

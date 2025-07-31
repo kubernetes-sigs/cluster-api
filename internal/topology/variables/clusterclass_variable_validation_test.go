@@ -778,7 +778,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "Valid default value regular string",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "string",
@@ -793,7 +793,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "fail on default value with invalid JSON",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -812,7 +812,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "fail on default value with invalid JSON (nested)",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -835,7 +835,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "Valid example value regular string",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "string",
@@ -850,7 +850,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "fail on example value with invalid JSON",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -869,7 +869,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "fail on example value with invalid JSON (nested)",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -892,7 +892,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "Valid enum values",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "string",
@@ -908,7 +908,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "fail on enum value with invalid JSON",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -927,7 +927,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "fail on enum value with invalid JSON (nested)",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -1053,7 +1053,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "Valid object schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1077,7 +1077,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "fail on invalid object schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1106,7 +1106,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "Valid map schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1133,7 +1133,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "fail on invalid map schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1164,7 +1164,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "fail on object (properties) and map (additionalProperties) both set",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -1196,7 +1196,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "Valid array schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "arrayVariable",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -1232,7 +1232,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			name: "pass on variable with required set true with a default defined",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "string",

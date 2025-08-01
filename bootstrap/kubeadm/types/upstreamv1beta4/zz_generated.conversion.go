@@ -330,7 +330,7 @@ func Convert_v1beta2_Arg_To_upstreamv1beta4_Arg(in *v1beta2.Arg, out *Arg, s con
 }
 
 func autoConvert_upstreamv1beta4_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToken, out *v1beta2.BootstrapToken, s conversion.Scope) error {
-	out.Token = (*v1beta2.BootstrapTokenString)(unsafe.Pointer(in.Token))
+	// WARNING: in.Token requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta4.BootstrapTokenString vs sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.BootstrapTokenString)
 	out.Description = in.Description
 	// WARNING: in.TTL requires manual conversion: does not exist in peer-type
 	// WARNING: in.Expires requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
@@ -340,7 +340,7 @@ func autoConvert_upstreamv1beta4_BootstrapToken_To_v1beta2_BootstrapToken(in *Bo
 }
 
 func autoConvert_v1beta2_BootstrapToken_To_upstreamv1beta4_BootstrapToken(in *v1beta2.BootstrapToken, out *BootstrapToken, s conversion.Scope) error {
-	out.Token = (*BootstrapTokenString)(unsafe.Pointer(in.Token))
+	// WARNING: in.Token requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2.BootstrapTokenString vs *sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta4.BootstrapTokenString)
 	out.Description = in.Description
 	// WARNING: in.TTLSeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.Expires requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)

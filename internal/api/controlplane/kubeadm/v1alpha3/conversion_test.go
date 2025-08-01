@@ -80,6 +80,7 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 		hubKubeadmConfigSpec,
 		hubNodeRegistrationOptions,
 		spokeBootstrapToken,
+		spokeBootstrapTokenString,
 	}
 }
 
@@ -252,6 +253,11 @@ func spokeBootstrapToken(in *bootstrapv1alpha3.BootstrapToken, c randfill.Contin
 	if reflect.DeepEqual(in.Expires, &metav1.Time{}) {
 		in.Expires = nil
 	}
+}
+
+func spokeBootstrapTokenString(in *bootstrapv1alpha3.BootstrapTokenString, _ randfill.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }
 
 func spokeDiscovery(in *bootstrapv1alpha3.Discovery, c randfill.Continue) {

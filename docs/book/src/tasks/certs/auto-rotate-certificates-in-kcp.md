@@ -10,7 +10,7 @@ To configure a rollout on the KCP machines you need to set `.rolloutBefore.certi
 
 Example: 
 ```yaml
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlane
 metadata:
   name: example-control-plane
@@ -25,8 +25,9 @@ spec:
     joinConfiguration:
       ...
   machineTemplate:
-    infrastructureRef:
-      ...
+    spec:
+      infrastructureRef:
+        ...
   replicas: 1
   version: v1.23.3
 ``` 

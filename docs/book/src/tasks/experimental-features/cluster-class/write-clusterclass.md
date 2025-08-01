@@ -228,7 +228,7 @@ in `KubeadmControlPlane`. Use cases like this can be implemented with ClusterCla
 The following example shows how variables can be defined in the ClusterClass.
 A variable definition specifies the name and the schema of a variable and if it is 
 required. The schema defines how a variable is defaulted and validated. It supports 
-a subset of the schema of CRDs. For more information please see the [godoc](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta2#spec-variables-schema-openAPIV3Schema).
+a subset of the schema of CRDs. For more information please see the [godoc](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta1#spec-variables-schema-openAPIV3Schema).
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta2
@@ -263,7 +263,7 @@ The variable can then be used in a patch to set a field on a template referenced
 The `selector` specifies on which template the patch should be applied. `jsonPatches` specifies which JSON 
 patches should be applied to that template. In this case we set the `imageRepository` field of the 
 `KubeadmControlPlaneTemplate` to the value of the variable `imageRepository`. For more information 
-please see the [godoc](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta2#spec-patches-definitions).
+please see the [godoc](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta1#spec-patches-definitions).
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta2

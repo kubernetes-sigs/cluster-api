@@ -24,6 +24,7 @@ linters:
               - "nobools" # Bools do not evolve over time, should use enums instead.
               - "nofloats" # Ensure floats are not used.
               - "nomaps" # Ensure maps are not used.
+              - "notimestamp" # Prevents usage of 'Timestamp' fields
               - "optionalfields" # Ensure that all fields marked as optional adhere to being pointers and
                                  # having the `omitempty` value in their `json` tag where appropriate.
               - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
@@ -31,7 +32,6 @@ linters:
               - "ssatags" # Ensure array fields have the appropriate listType markers
               - "statusoptional" # Ensure all first children within status should be optional.
               - "statussubresource" # All root objects that have a `status` field should have a status subresource.
-              - "notimestamp" # Prevents usage of 'Timestamp' fields
               - "uniquemarkers" # Ensure that types and fields do not contain more than a single definition of a marker that should only be present once.
 
             # Per discussion in July 2024, we are keeping phase fields for now.
@@ -60,15 +60,6 @@ linters:
                 policy: SuggestFix # SuggestFix | Warn # The policy for pointers in optional fields. Defaults to `SuggestFix`.
               omitempty:
                 policy: SuggestFix # SuggestFix | Warn | Ignore # The policy for omitempty in optional fields. Defaults to `SuggestFix`.
-          # jsontags:
-          #   jsonTagRegex: "^[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)*$" # The default regex is appropriate for our use case.
-          # optionalorrequired:
-          #   preferredOptionalMarker: optional | kubebuilder:validation:Optional # The preferred optional marker to use, fixes will suggest to use this marker. Defaults to `optional`.
-          #   preferredRequiredMarker: required | kubebuilder:validation:Required # The preferred required marker to use, fixes will suggest to use this marker. Defaults to `required`.
-          # requiredfields:
-          #   pointerPolicy: Warn | SuggestFix # Defaults to `SuggestFix`. We want our required fields to not be pointers.
-#          ssatags:
-#            listTypeSetUsage: Warn | Ignore # The policy for listType=set usage on object arrays. Defaults to `Warn`.
 
   exclusions:
     generated: strict
@@ -111,7 +102,7 @@ linters:
     ## Excludes for current clusterctl v1alpha3 and Runtime Hooks v1alpha1 apiVersions (can be fixed once we bump their apiVersion).
     # Note: The types in api/runtime/hooks/v1alpha1 are not CRDs, so e.g. SSA markers don't make sense there.
     - path: "cmd/clusterctl/api/v1alpha3|api/runtime/hooks/v1alpha1"
-      text: "optionalfields|maxlength|ssatags"
+      text: "optionalfields|requiredfields|maxlength|ssatags"
       linters:
         - kubeapilinter
 
@@ -138,7 +129,7 @@ linters:
         - kubeapilinter
     # It's simpler to check these fields against nil vs. using reflect.DeepEqual everywhere.
     - path: "api/core/v1beta2/clusterclass_types.go"
-      text: "optionalfields: field (AdditionalProperties|Items|Not) (is optional and does not allow the zero value. It must have the omitzero tag|is optional and does not have a valid zero value. The field does not need to be a pointer)"
+      text: "optionalfields: field (AdditionalProperties|Items|Not) does not allow the zero value. (The field does not need to be a pointer|It must have the omitzero tag)"
       linters:
         - kubeapilinter
 
@@ -155,10 +146,18 @@ linters:
       linters:
         - kubeapilinter
 
-    ## Excludes for optionalfields
+    ## Excludes for requiredfields
     # Empty Bootstrap object is blocked via validating webhooks. This cannot be detected by KAL (same if we move the validation to CEL).
     - path: "api/core/v1beta2/machine_types.go"
-      text: "optionalfields: field (Bootstrap) is optional and (should be a pointer|should have the omitempty tag|has a valid zero value)"
+      text: "requiredfields: field Bootstrap has a valid zero value \\({}\\), but the validation is not complete \\(e.g. min properties/adding required fields\\). The field should be a pointer to allow the zero value to be set. If the zero value is not a valid use case, complete the validation and remove the pointer."
+      linters:
+        - kubeapilinter
+
+    ## Excludes for optionalfields
+    ## The ExtraEnvs field intentionally has type *[]EnvVar.
+    ## Today we have MinItems=1, but we might have to support MinItems=0 in the future if kubeadm starts supporting it.
+    - path: "api/bootstrap/kubeadm/v1beta2/kubeadm_types.go"
+      text: "optionalfields: field ExtraEnvs does not allow the zero value. The field does not need to be a pointer."
       linters:
         - kubeapilinter
 
@@ -166,72 +165,13 @@ linters:
     # KAL incorrectly reports that the Taints field doesn't have to be a pointer (it has to be to preserve []).
     # See: https://github.com/kubernetes-sigs/kube-api-linter/issues/116
     - path: "api/bootstrap/kubeadm/v1beta2/kubeadm_types.go"
-      text: "optionalfields: field Taints is optional but the underlying type does not need to be a pointer. The pointer should be removed."
+      text: "optionalfields: field Taints underlying type does not need to be a pointer. The pointer should be removed."
       linters:
         - kubeapilinter
+     # KAL incorrectly reports that the zero value is valid
+     # See: https://github.com/kubernetes-sigs/kube-api-linter/issues/138
     - path: "api/bootstrap/kubeadm/v1beta2/kubeadm_types.go"
-      text: "optionalfields: field ExtraEnvs is optional and does not allow the zero value. The field does not need to be a pointer."
-      linters:
-        - kubeapilinter
-    # KAL does not handle omitzero correctly yet: https://github.com/kubernetes-sigs/kube-api-linter/pull/115
-    - path: "api/.*"
-      text: "optionalfields: field (Status|Initialization) is optional and should (be a pointer|have the omitempty tag)"
-      linters:
-        - kubeapilinter
-    - path: "api/.*"
-      text: "optionalfields: field (LastAppliedTime|Expires|After|LastUpdated|CertificatesExpiryDate|NodeDrainStartTime|WaitForNodeVolumeDetachStartTime) is optional and should (be a pointer|have the omitempty tag)"
-      linters:
-        - kubeapilinter
-    - path: "api/bootstrap/kubeadm/v1beta2"
-      text: "optionalfields: field (Spec|NodeRegistration|LocalAPIEndpoint|Etcd|APIServer|ControllerManager|Scheduler|DNS|Discovery|ObjectMeta) is optional and should (be a pointer|have the omitempty tag)"
-      linters:
-        - kubeapilinter
-    - path: "api/controlplane/kubeadm/v1beta2"
-      text: "optionalfields: field (Spec|ObjectMeta|KubeadmConfigSpec|Remediation|Rollout|Before|Strategy|RollingUpdate|MachineTemplate) is optional and should (be a pointer|have the omitempty tag)"
-      linters:
-        - kubeapilinter
-    - path: "api/core/v1beta2/cluster_types.go"
-      text: "optionalfields: field (ClusterNetwork|Services|Pods|ControlPlaneEndpoint|ControlPlane|Workers|Metadata|Variables|Strategy|Rollout|RollingUpdate) is optional and should (be a pointer|have the omitempty tag)"
-      linters:
-        - kubeapilinter
-    - path: "api/core/v1beta2/clusterclass_types.go"
-      text: "optionalfields: field (Workers|Metadata|ControlPlane|Strategy|Infrastructure|DeprecatedV1Beta1Metadata|Rollout|RollingUpdate) is optional and should (be a pointer|have the omitempty tag)"
-      linters:
-        - kubeapilinter
-    - path: "api/core/v1beta2/(cluster_types.go|clusterclass_types.go|machinehealthcheck_types.go)"
-      text: "optionalfields: field (Checks|Remediation|TriggerIf) is optional and should (be a pointer|have the omitempty tag)"
-      linters:
-        - kubeapilinter
-    - path: "api/core/v1beta2/machinedeployment_types.go"
-      text: "optionalfields: field (Strategy|Rollout|RollingUpdate|Remediation) is optional and should (be a pointer|have the omitempty tag)"
-      linters:
-        - kubeapilinter
-    - path: "api/ipam/v1beta2/ipaddressclaim_types.go"
-      text: "optionalfields: field AddressRef is optional and should (be a pointer|have the omitempty tag)"
-      linters:
-        - kubeapilinter
-    - path: "api/core/v1beta2/*|api/controlplane/kubeadm/v1beta2/*"
-      text: "optionalfields: field (Naming|HealthCheck|MachineNaming|Deletion) is optional and should (be a pointer|have the omitempty tag)"
-      linters:
-        - kubeapilinter
-
-    # TODO: Excludes that should be removed once we will get the new version of the requiredfields linter
-    - path: "api/.*"
-      text: "requiredfields: field .* is marked as required, but has the omitempty tag"
-      linters:
-        - kubeapilinter
-    - path: "api/.*"
-      text: "requiredfields: field (Applied|Value|Layout|RetryCount|Required|Prefix|TimeoutSeconds) is marked as required, should not be a pointer"
-      linters:
-        - kubeapilinter
-
-    # TODO: Excludes that should be removed once https://github.com/kubernetes-sigs/kube-api-linter/issues/132 will be fixed
-    - path: "api/.*"
-      text: "optionalfields: field (.*) is optional and (should have the omitempty tag|should be a pointer)"
-      linters:
-        - kubeapilinter
-    - path: "api/.*"
-      text: "optionalfields: field (.*) is optional and has a valid zero value \\({}\\), but the validation is not complete \\(e.g. min properties/adding required fields\\). The field should be a pointer to allow the zero value to be set. If the zero value is not a valid use case, complete the validation and remove the pointer."
+      text: "requiredfields: field Token has a valid zero value \\({\"\": \"\", \"\": \"\"}\\) and should be a pointer."
       linters:
         - kubeapilinter
 

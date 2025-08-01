@@ -954,6 +954,8 @@ type HostPathMount struct {
 // "kubeadm join". This token is and should be short-lived.
 //
 // +kubebuilder:validation:Type=string
+// +kubebuilder:validation:MinLength=1
+// +kubebuilder:validation:MaxLength=23
 type BootstrapTokenString struct {
 	ID     string `json:"-"`
 	Secret string `json:"-"`

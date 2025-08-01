@@ -168,6 +168,7 @@ labels:
     cluster.x-k8s.io/v1alpha2: v1alpha1
     cluster.x-k8s.io/v1alpha3: v1alpha2
     cluster.x-k8s.io/v1beta1: v1beta1
+    cluster.x-k8s.io/v1beta2: v1beta2
 ```
 
 An example of this is in the [Kubeadm Bootstrap provider](https://github.com/kubernetes-sigs/cluster-api/blob/release-1.1/controlplane/kubeadm/config/crd/kustomization.yaml).

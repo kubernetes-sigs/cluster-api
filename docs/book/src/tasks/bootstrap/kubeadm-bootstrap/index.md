@@ -17,7 +17,7 @@ infrastructure object.
 
 ```yaml
 kind: DockerCluster
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-cluster-docker
 ---
@@ -37,20 +37,19 @@ the `KubeadmConfig` bootstrap object.
 
 ```yaml
 kind: KubeadmConfig
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-control-plane1-config
 spec:
   initConfiguration:
-    nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ---
 kind: DockerMachine
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-control-plane1-docker
 ---
 kind: Machine
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 metadata:
   name: my-control-plane1
   labels:
@@ -60,12 +59,12 @@ metadata:
 spec:
   bootstrap:
     configRef:
+      apiGroup: bootstrap.cluster.x-k8s.io
       kind: KubeadmConfig
-      apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
       name: my-control-plane1-config
   infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: DockerMachine
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     name: my-control-plane1-docker
   version: "v1.19.1"
 ```
@@ -107,38 +106,32 @@ Valid combinations of configuration objects are:
 Bootstrap control plane node:
 ```yaml
 kind: KubeadmConfig
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-control-plane1-config
 spec:
   initConfiguration:
-    nodeRegistration:
-      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ```
 
 Additional control plane nodes:
 ```yaml
 kind: KubeadmConfig
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-control-plane2-config
 spec:
   joinConfiguration:
-    nodeRegistration:
-      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
     controlPlane: {}
 ```
 
 worker nodes:
 ```yaml
 kind: KubeadmConfig
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-worker1-config
 spec:
   joinConfiguration:
-    nodeRegistration:
-      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ```
 
 ### Bootstrap Orchestration

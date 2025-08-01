@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -132,23 +133,23 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 							KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 								ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 									APIServer: bootstrapv1.APIServer{
-										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: "2"}},
+										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: ptr.To("2")}},
 									},
 									ControllerManager: bootstrapv1.ControllerManager{
-										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: "2"}},
+										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: ptr.To("2")}},
 									},
 									Scheduler: bootstrapv1.Scheduler{
-										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: "2"}},
+										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: ptr.To("2")}},
 									},
 								},
 								InitConfiguration: bootstrapv1.InitConfiguration{
 									NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-										KubeletExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: "2"}},
+										KubeletExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: ptr.To("2")}},
 									},
 								},
 								JoinConfiguration: bootstrapv1.JoinConfiguration{
 									NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-										KubeletExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: "2"}},
+										KubeletExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: ptr.To("2")}},
 									},
 								},
 							},

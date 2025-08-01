@@ -142,12 +142,6 @@ linters:
       text: "nomaps: FeatureGates should not use a map type, use a list type with a unique name/identifier instead"
       linters:
         - kubeapilinter
-    # Note: Maybe this has to stay a pointer for marshalling reasons.
-    # TODO: we should eventually remove the pointer: https://github.com/kubernetes-sigs/cluster-api/issues/10852
-    - path: "api/bootstrap/kubeadm/v1beta2/kubeadm_types.go"
-      text: "field Token is marked as required, should not be a pointer"
-      linters:
-        - kubeapilinter
 
     ## Excludes for optionalfields
     # Empty Bootstrap object is blocked via validating webhooks. This cannot be detected by KAL (same if we move the validation to CEL).

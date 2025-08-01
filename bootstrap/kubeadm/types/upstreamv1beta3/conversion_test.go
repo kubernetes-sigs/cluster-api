@@ -36,6 +36,11 @@ import (
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
+const (
+	fakeID     = "abcdef"
+	fakeSecret = "abcdef0123456789"
+)
+
 // Test is disabled when the race detector is enabled (via "//go:build !race" above) because otherwise the fuzz tests would just time out.
 
 func TestFuzzyConversion(t *testing.T) {
@@ -99,6 +104,7 @@ func clusterConfigurationFuzzFuncs(_ runtimeserializer.CodecFactory) []interface
 func initConfigurationFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeBootstrapToken,
+		spokeBootstrapTokenString,
 	}
 }
 
@@ -188,6 +194,11 @@ func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
 	if reflect.DeepEqual(in.Expires, &metav1.Time{}) {
 		in.Expires = nil
 	}
+}
+
+func spokeBootstrapTokenString(in *BootstrapTokenString, _ randfill.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }
 
 func hubAPIServerFuzzer(obj *bootstrapv1.APIServer, c randfill.Continue) {

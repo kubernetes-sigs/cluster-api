@@ -424,7 +424,7 @@ type BootstrapToken struct {
 	// token is used for establishing bidirectional trust between nodes and control-planes.
 	// Used for joining nodes in the cluster.
 	// +required
-	Token *BootstrapTokenString `json:"token"`
+	Token BootstrapTokenString `json:"token,omitempty,omitzero"`
 
 	// description sets a human-friendly message why this token exists and what it's used
 	// for, so other administrators can know its purpose.

@@ -489,6 +489,12 @@ func Convert_v1beta2_BootstrapToken_To_v1alpha4_BootstrapToken(in *bootstrapv1.B
 	if !reflect.DeepEqual(in.Expires, metav1.Time{}) {
 		out.Expires = ptr.To(in.Expires)
 	}
+	if !reflect.DeepEqual(in.Token, bootstrapv1.BootstrapTokenString{}) {
+		out.Token = &BootstrapTokenString{}
+		if err := autoConvert_v1beta2_BootstrapTokenString_To_v1alpha4_BootstrapTokenString(&in.Token, out.Token, s); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -571,6 +577,11 @@ func Convert_v1alpha4_BootstrapToken_To_v1beta2_BootstrapToken(in *BootstrapToke
 	out.TTLSeconds = clusterv1.ConvertToSeconds(in.TTL)
 	if in.Expires != nil && !reflect.DeepEqual(in.Expires, &metav1.Time{}) {
 		out.Expires = *in.Expires
+	}
+	if in.Token != nil {
+		if err := autoConvert_v1alpha4_BootstrapTokenString_To_v1beta2_BootstrapTokenString(in.Token, &out.Token, s); err != nil {
+			return err
+		}
 	}
 	return nil
 }

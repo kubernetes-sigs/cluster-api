@@ -325,6 +325,8 @@ spec:
               prefix:
                 description: prefix is the prefix of the address.
                 format: int32
+                maximum: 128
+                minimum: 0
                 type: integer
             required:
             - address

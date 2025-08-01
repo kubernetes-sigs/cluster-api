@@ -20,6 +20,7 @@ import (
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 // ResourceBinding shows the status of a resource that belongs to a ClusterResourceSet matched by the owner cluster of the ClusterResourceSetBinding object.
@@ -40,7 +41,7 @@ type ResourceBinding struct {
 
 	// applied is to track if a resource is applied to the cluster or not.
 	// +required
-	Applied bool `json:"applied"`
+	Applied *bool `json:"applied,omitempty"`
 }
 
 // ResourceSetBinding keeps info on all of the resources in a ClusterResourceSet.
@@ -61,7 +62,7 @@ type ResourceSetBinding struct {
 // IsApplied returns true if the resource is applied to the cluster by checking the cluster's binding.
 func (r *ResourceSetBinding) IsApplied(resourceRef ResourceRef) bool {
 	resourceBinding := r.GetResource(resourceRef)
-	return resourceBinding != nil && resourceBinding.Applied
+	return resourceBinding != nil && ptr.Deref(resourceBinding.Applied, false)
 }
 
 // GetResource returns a ResourceBinding for a resource ref if present.

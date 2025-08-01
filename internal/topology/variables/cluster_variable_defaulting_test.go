@@ -83,7 +83,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -99,7 +99,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -116,7 +116,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -132,7 +132,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -181,7 +181,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -205,7 +205,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -221,7 +221,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -266,7 +266,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -281,7 +281,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Name: "correct",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -312,7 +312,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					DefinitionsConflict: ptr.To(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -322,7 +322,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 							},
 						},
 						{
-							Required: true,
+							Required: ptr.To(true),
 							From:     "somepatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -362,7 +362,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -373,7 +373,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 						},
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     "somepatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -384,7 +384,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 						},
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     "otherpatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -421,7 +421,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -432,7 +432,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 						},
 						{
 							// Variable isn't required, but should still be defaulted according to its schema.
-							Required: false,
+							Required: ptr.To(false),
 							From:     "somepatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -460,7 +460,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
-							Required: true,
+							Required: ptr.To(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -471,7 +471,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 						},
 						{
 							// Variable isn't required, but should still be defaulted according to its schema.
-							Required: false,
+							Required: ptr.To(false),
 							From:     "somepatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -566,7 +566,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "cpu",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "integer",
@@ -590,7 +590,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "cpu",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "integer",
@@ -609,7 +609,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "cpu",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "integer",
@@ -639,7 +639,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "location",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "string",
@@ -663,7 +663,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "location",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "string",
@@ -693,7 +693,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "cpu",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "number",
@@ -717,7 +717,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "cpu",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "number",
@@ -747,7 +747,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "correct",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "boolean",
@@ -771,7 +771,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "correct",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "boolean",
@@ -801,7 +801,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "httpProxy",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "object",
@@ -836,7 +836,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "httpProxy",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "object",
@@ -866,7 +866,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "httpProxy",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "object",
@@ -903,7 +903,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "httpProxy",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "object",
@@ -940,7 +940,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "httpProxy",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "object",
@@ -982,7 +982,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
 
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "object",
@@ -1025,7 +1025,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "httpProxy",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type:    "object",
@@ -1064,7 +1064,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "httpProxy",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "object",
@@ -1109,7 +1109,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Name: "testVariable",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "array",
@@ -1145,7 +1145,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
 
-						Required: true,
+						Required: ptr.To(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "array",
@@ -1236,7 +1236,7 @@ func Test_getAllVariables(t *testing.T) {
 				Name: "var1",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: false,
+						Required: ptr.To(false),
 						From:     clusterv1.VariableDefinitionFromInline,
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1250,7 +1250,7 @@ func Test_getAllVariables(t *testing.T) {
 				Name: "var2",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						From:     clusterv1.VariableDefinitionFromInline,
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1259,7 +1259,7 @@ func Test_getAllVariables(t *testing.T) {
 						},
 					},
 					{
-						Required: true,
+						Required: ptr.To(true),
 						From:     "somepatch",
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1273,7 +1273,7 @@ func Test_getAllVariables(t *testing.T) {
 				Name: "var3",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: false,
+						Required: ptr.To(false),
 						From:     clusterv1.VariableDefinitionFromInline,
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1287,7 +1287,7 @@ func Test_getAllVariables(t *testing.T) {
 				Name: "var4",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
-						Required: true,
+						Required: ptr.To(true),
 						From:     clusterv1.VariableDefinitionFromInline,
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1296,7 +1296,7 @@ func Test_getAllVariables(t *testing.T) {
 						},
 					},
 					{
-						Required: true,
+						Required: ptr.To(true),
 						From:     "somepatch",
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{

@@ -515,7 +515,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		ExtraArgs: []bootstrapv1.Arg{
 			{
 				Name:  "foo",
-				Value: "bar",
+				Value: ptr.To("bar"),
 			},
 		},
 		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount1"}},
@@ -527,7 +527,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		ExtraArgs: []bootstrapv1.Arg{
 			{
 				Name:  "controller manager field",
-				Value: "controller manager value",
+				Value: ptr.To("controller manager value"),
 			},
 		},
 		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
@@ -538,7 +538,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		ExtraArgs: []bootstrapv1.Arg{
 			{
 				Name:  "scheduler field",
-				Value: "scheduler value",
+				Value: ptr.To("scheduler value"),
 			},
 		},
 		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
@@ -632,7 +632,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		ExtraArgs: []bootstrapv1.Arg{
 			{
 				Name:  "an arg",
-				Value: "a value",
+				Value: ptr.To("a value"),
 			},
 		},
 	}

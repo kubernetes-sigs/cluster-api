@@ -621,7 +621,9 @@ func (in *MachineHealthCheckBuilder) DeepCopyInto(out *MachineHealthCheckBuilder
 	if in.unhealthyNodeConditions != nil {
 		in, out := &in.unhealthyNodeConditions, &out.unhealthyNodeConditions
 		*out = make([]v1beta2.UnhealthyNodeCondition, len(*in))
-		copy(*out, *in)
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	if in.maxUnhealthy != nil {
 		in, out := &in.maxUnhealthy, &out.maxUnhealthy

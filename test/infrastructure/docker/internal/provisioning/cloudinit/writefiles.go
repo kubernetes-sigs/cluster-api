@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -146,12 +147,12 @@ func defaultExtraArg(nodeRegistration *bootstrapv1.NodeRegistrationOptions, arg,
 	found := false
 	for i := range nodeRegistration.KubeletExtraArgs {
 		if nodeRegistration.KubeletExtraArgs[i].Name == arg {
-			nodeRegistration.KubeletExtraArgs[i].Value = value
+			nodeRegistration.KubeletExtraArgs[i].Value = ptr.To(value)
 			found = true
 		}
 	}
 	if !found {
-		nodeRegistration.KubeletExtraArgs = append(nodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: arg, Value: value})
+		nodeRegistration.KubeletExtraArgs = append(nodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: arg, Value: ptr.To(value)})
 	}
 }
 

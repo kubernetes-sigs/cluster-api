@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
@@ -523,11 +524,11 @@ func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "bar",
-						Value: "baz",
+						Value: ptr.To("baz"),
 					},
 					{
 						Name:  "someKey",
-						Value: "someVal",
+						Value: ptr.To("someVal"),
 					},
 				},
 				ExtraVolumes: []bootstrapv1.HostPathMount{
@@ -568,11 +569,11 @@ func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "bar",
-						Value: "baz",
+						Value: ptr.To("baz"),
 					},
 					{
 						Name:  "someKey",
-						Value: "someVal",
+						Value: ptr.To("someVal"),
 					},
 				},
 				ExtraVolumes: []bootstrapv1.HostPathMount{
@@ -654,11 +655,11 @@ func TestUpdateControllerManagerInKubeadmConfigMap(t *testing.T) {
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "bar",
-						Value: "baz",
+						Value: ptr.To("baz"),
 					},
 					{
 						Name:  "someKey",
-						Value: "someVal",
+						Value: ptr.To("someVal"),
 					},
 				},
 				ExtraVolumes: []bootstrapv1.HostPathMount{
@@ -737,11 +738,11 @@ func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "bar",
-						Value: "baz",
+						Value: ptr.To("baz"),
 					},
 					{
 						Name:  "someKey",
-						Value: "someVal",
+						Value: ptr.To("someVal"),
 					},
 				},
 				ExtraVolumes: []bootstrapv1.HostPathMount{

@@ -100,7 +100,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName1",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -109,7 +109,7 @@ func TestValidatePatches(t *testing.T) {
 						},
 						{
 							Name:     "variableName2",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -162,7 +162,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -236,7 +236,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName1",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -245,7 +245,7 @@ func TestValidatePatches(t *testing.T) {
 						},
 						{
 							Name:     "variableName2",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -418,7 +418,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -468,7 +468,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -519,7 +519,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -570,7 +570,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -621,7 +621,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -712,7 +712,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -961,7 +961,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -1013,7 +1013,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -1064,7 +1064,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -1116,7 +1116,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -1166,7 +1166,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -1216,7 +1216,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: true,
+							Required: ptr.To(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "object",

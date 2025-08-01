@@ -1632,7 +1632,9 @@ func autoConvert_v1beta2_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOpti
 
 func autoConvert_v1beta1_Partition_To_v1beta2_Partition(in *Partition, out *v1beta2.Partition, s conversion.Scope) error {
 	out.Device = in.Device
-	out.Layout = in.Layout
+	if err := v1.Convert_bool_To_Pointer_bool(&in.Layout, &out.Layout, s); err != nil {
+		return err
+	}
 	out.Overwrite = (*bool)(unsafe.Pointer(in.Overwrite))
 	if err := v1.Convert_Pointer_string_To_string(&in.TableType, &out.TableType, s); err != nil {
 		return err
@@ -1647,7 +1649,9 @@ func Convert_v1beta1_Partition_To_v1beta2_Partition(in *Partition, out *v1beta2.
 
 func autoConvert_v1beta2_Partition_To_v1beta1_Partition(in *v1beta2.Partition, out *Partition, s conversion.Scope) error {
 	out.Device = in.Device
-	out.Layout = in.Layout
+	if err := v1.Convert_Pointer_bool_To_bool(&in.Layout, &out.Layout, s); err != nil {
+		return err
+	}
 	out.Overwrite = (*bool)(unsafe.Pointer(in.Overwrite))
 	if err := v1.Convert_string_To_Pointer_string(&in.TableType, &out.TableType, s); err != nil {
 		return err

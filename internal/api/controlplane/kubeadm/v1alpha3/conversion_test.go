@@ -105,6 +105,49 @@ func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue
 	if in.ClusterConfiguration.Etcd.Local.ExtraEnvs != nil && *in.ClusterConfiguration.Etcd.Local.ExtraEnvs == nil {
 		in.ClusterConfiguration.Etcd.Local.ExtraEnvs = nil
 	}
+
+	for i, arg := range in.ClusterConfiguration.APIServer.ExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		in.ClusterConfiguration.APIServer.ExtraArgs[i] = arg
+	}
+	for i, arg := range in.ClusterConfiguration.ControllerManager.ExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		in.ClusterConfiguration.ControllerManager.ExtraArgs[i] = arg
+	}
+	for i, arg := range in.ClusterConfiguration.Scheduler.ExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		in.ClusterConfiguration.Scheduler.ExtraArgs[i] = arg
+	}
+	for i, arg := range in.ClusterConfiguration.Etcd.Local.ExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		in.ClusterConfiguration.Etcd.Local.ExtraArgs[i] = arg
+	}
+	for i, arg := range in.InitConfiguration.NodeRegistration.KubeletExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		in.InitConfiguration.NodeRegistration.KubeletExtraArgs[i] = arg
+	}
+	for i, arg := range in.JoinConfiguration.NodeRegistration.KubeletExtraArgs {
+		if arg.Value == nil {
+			arg.Value = ptr.To("")
+		}
+		in.JoinConfiguration.NodeRegistration.KubeletExtraArgs[i] = arg
+	}
+	for i, p := range in.DiskSetup.Partitions {
+		if p.Layout == nil {
+			p.Layout = ptr.To(false) // Layout is a required field and nil does not round trip
+		}
+		in.DiskSetup.Partitions[i] = p
+	}
 }
 
 func hubNodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, c randfill.Continue) {

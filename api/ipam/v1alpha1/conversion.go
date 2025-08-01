@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -115,6 +116,22 @@ func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
+	return nil
+}
+
+func Convert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec(in *IPAddressSpec, out *ipamv1.IPAddressSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha1_IPAddressSpec_To_v1beta2_IPAddressSpec(in, out, s); err != nil {
+		return err
+	}
+	out.Prefix = ptr.To(int32(in.Prefix))
+	return nil
+}
+
+func Convert_v1beta2_IPAddressSpec_To_v1alpha1_IPAddressSpec(in *ipamv1.IPAddressSpec, out *IPAddressSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_IPAddressSpec_To_v1alpha1_IPAddressSpec(in, out, s); err != nil {
+		return err
+	}
+	out.Prefix = int(ptr.Deref(in.Prefix, 0))
 	return nil
 }
 

@@ -407,7 +407,9 @@ func autoConvert_v1alpha4_ResourceBinding_To_v1beta2_ResourceBinding(in *Resourc
 	}
 	out.Hash = in.Hash
 	// WARNING: in.LastAppliedTime requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
-	out.Applied = in.Applied
+	if err := v1.Convert_bool_To_Pointer_bool(&in.Applied, &out.Applied, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -417,7 +419,9 @@ func autoConvert_v1beta2_ResourceBinding_To_v1alpha4_ResourceBinding(in *v1beta2
 	}
 	out.Hash = in.Hash
 	// WARNING: in.LastAppliedTime requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
-	out.Applied = in.Applied
+	if err := v1.Convert_Pointer_bool_To_bool(&in.Applied, &out.Applied, s); err != nil {
+		return err
+	}
 	return nil
 }
 

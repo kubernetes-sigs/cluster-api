@@ -1897,7 +1897,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 				{
 					Type:           corev1.NodeReady,
 					Status:         corev1.ConditionUnknown,
-					TimeoutSeconds: 5 * 60,
+					TimeoutSeconds: ptr.To(int32(5 * 60)),
 				},
 			},
 		},
@@ -3412,7 +3412,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionUnknown,
-				TimeoutSeconds: 5 * 60,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
 			},
 		}).
 		WithClusterName("cluster1")
@@ -3853,7 +3853,7 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionUnknown,
-				TimeoutSeconds: 5 * 60,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
 			},
 		}).
 		WithClusterName("cluster1")
@@ -3878,14 +3878,14 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 				{
 					Type:           corev1.NodeReady,
 					Status:         corev1.ConditionUnknown,
-					TimeoutSeconds: 1000 * 60,
+					TimeoutSeconds: ptr.To(int32(1000 * 60)),
 				},
 			}).Build(),
 			want: mhcBuilder.DeepCopy().WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 				{
 					Type:           corev1.NodeReady,
 					Status:         corev1.ConditionUnknown,
-					TimeoutSeconds: 1000 * 60,
+					TimeoutSeconds: ptr.To(int32(1000 * 60)),
 				},
 			}).Build(),
 		},

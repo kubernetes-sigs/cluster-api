@@ -320,6 +320,9 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 			v1beta2Variables := make([]clusterv1.ClusterClassVariable, 0, len(resp.Variables))
 			for _, variable := range resp.Variables {
 				v := clusterv1.ClusterClassVariable{}
+				// Note: This conversion func converts Required == false to &false.
+				// This is intended as the Required field is required (so nil would not be valid)
+				// Accordingly we don't have to drop Required == &false in dropFalsePtrBool() below.
 				if err := clusterv1beta1.Convert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(&variable, &v, nil); err != nil {
 					errs = append(errs, errors.Errorf("failed to convert variable %s to v1beta2", variable.Name))
 					continue
@@ -411,7 +414,7 @@ func addDefinitionToExistingStatusVariable(variable clusterv1.ClusterClassVariab
 	// If definitions already conflict, no need to check.
 	if !ptr.Deref(combinedVariable.DefinitionsConflict, false) {
 		currentDefinition := combinedVariable.Definitions[0]
-		if currentDefinition.Required != newVariableDefinition.Required ||
+		if ptr.Deref(currentDefinition.Required, false) != ptr.Deref(newVariableDefinition.Required, false) ||
 			!reflect.DeepEqual(dropFalsePtrBool(&currentDefinition.Schema.OpenAPIV3Schema), dropFalsePtrBool(&newVariableDefinition.Schema.OpenAPIV3Schema)) ||
 			!reflect.DeepEqual(currentDefinition.DeprecatedV1Beta1Metadata, newVariableDefinition.DeprecatedV1Beta1Metadata) {
 			combinedVariable.DefinitionsConflict = ptr.To(true)

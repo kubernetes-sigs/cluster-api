@@ -560,7 +560,7 @@ type ExternalEtcd struct {
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512
-	Endpoints []string `json:"endpoints"`
+	Endpoints []string `json:"endpoints,omitempty"`
 
 	// caFile is an SSL Certificate Authority file used to secure etcd communication.
 	// Required if using a TLS connection.
@@ -1036,7 +1036,7 @@ type Arg struct {
 	// +required
 	// +kubebuilder:validation:MinLength=0
 	// +kubebuilder:validation:MaxLength=1024
-	Value string `json:"value"`
+	Value *string `json:"value,omitempty"`
 }
 
 // EnvVar represents an environment variable present in a Container.

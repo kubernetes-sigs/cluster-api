@@ -652,7 +652,7 @@ type MachineDeploymentClassRolloutStrategy struct {
 	// type of rollout. Allowed values are RollingUpdate and OnDelete.
 	// Default is RollingUpdate.
 	// +required
-	Type MachineDeploymentRolloutStrategyType `json:"type"`
+	Type MachineDeploymentRolloutStrategyType `json:"type,omitempty"`
 
 	// rollingUpdate is the rolling update config params. Present only if
 	// type = RollingUpdate.
@@ -807,7 +807,7 @@ type ClusterClassVariable struct {
 	// top-level object defined in the schema. If nested fields are
 	// required, this will be specified inside the schema.
 	// +required
-	Required bool `json:"required"`
+	Required *bool `json:"required,omitempty"`
 
 	// deprecatedV1Beta1Metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to
@@ -1280,12 +1280,13 @@ type PatchSelector struct {
 
 	// matchResources selects templates based on where they are referenced.
 	// +required
-	MatchResources PatchSelectorMatch `json:"matchResources"`
+	MatchResources PatchSelectorMatch `json:"matchResources,omitempty,omitzero"`
 }
 
 // PatchSelectorMatch selects templates based on where they are referenced.
 // Note: The selector must match at least one template.
 // Note: The results of selection based on the individual fields are ORed.
+// +kubebuilder:validation:MinProperties=1
 type PatchSelectorMatch struct {
 	// controlPlane selects templates referenced in .spec.ControlPlane.
 	// Note: this will match the controlPlane and also the controlPlane
@@ -1563,8 +1564,9 @@ type ClusterClassStatusVariable struct {
 	// definitions is a list of definitions for a variable.
 	// +required
 	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
-	Definitions []ClusterClassStatusVariableDefinition `json:"definitions"`
+	Definitions []ClusterClassStatusVariableDefinition `json:"definitions,omitempty"`
 }
 
 // ClusterClassStatusVariableDefinition defines a variable which appears in the status of a ClusterClass.
@@ -1582,7 +1584,7 @@ type ClusterClassStatusVariableDefinition struct {
 	// top-level object defined in the schema. If nested fields are
 	// required, this will be specified inside the schema.
 	// +required
-	Required bool `json:"required"`
+	Required *bool `json:"required,omitempty"`
 
 	// deprecatedV1Beta1Metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to

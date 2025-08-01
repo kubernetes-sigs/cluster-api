@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
@@ -48,7 +49,16 @@ func TestFuzzyConversion(t *testing.T) {
 
 func IPAddressFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubIPAddressSpec,
 		spokeTypedLocalObjectReference,
+	}
+}
+
+func hubIPAddressSpec(in *ipamv1.IPAddressSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Prefix == nil {
+		in.Prefix = ptr.To(int32(0)) // Prefix is a required field and nil does not round trip
 	}
 }
 

@@ -698,6 +698,6 @@ func (r *RemediationData) ToStatus() controlplanev1.LastRemediationStatus {
 	return controlplanev1.LastRemediationStatus{
 		Machine:    r.Machine,
 		Time:       r.Timestamp,
-		RetryCount: int32(r.RetryCount),
+		RetryCount: ptr.To(int32(r.RetryCount)),
 	}
 }

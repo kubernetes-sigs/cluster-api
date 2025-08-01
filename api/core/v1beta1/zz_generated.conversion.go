@@ -1316,7 +1316,9 @@ func Convert_v1beta2_ClusterClassStatusVariable_To_v1beta1_ClusterClassStatusVar
 
 func autoConvert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_ClusterClassStatusVariableDefinition(in *ClusterClassStatusVariableDefinition, out *v1beta2.ClusterClassStatusVariableDefinition, s conversion.Scope) error {
 	out.From = in.From
-	out.Required = in.Required
+	if err := v1.Convert_bool_To_Pointer_bool(&in.Required, &out.Required, s); err != nil {
+		return err
+	}
 	// WARNING: in.Metadata requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta1_VariableSchema_To_v1beta2_VariableSchema(&in.Schema, &out.Schema, s); err != nil {
 		return err
@@ -1326,7 +1328,9 @@ func autoConvert_v1beta1_ClusterClassStatusVariableDefinition_To_v1beta2_Cluster
 
 func autoConvert_v1beta2_ClusterClassStatusVariableDefinition_To_v1beta1_ClusterClassStatusVariableDefinition(in *v1beta2.ClusterClassStatusVariableDefinition, out *ClusterClassStatusVariableDefinition, s conversion.Scope) error {
 	out.From = in.From
-	out.Required = in.Required
+	if err := v1.Convert_Pointer_bool_To_bool(&in.Required, &out.Required, s); err != nil {
+		return err
+	}
 	// WARNING: in.DeprecatedV1Beta1Metadata requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta2_VariableSchema_To_v1beta1_VariableSchema(&in.Schema, &out.Schema, s); err != nil {
 		return err
@@ -1336,7 +1340,9 @@ func autoConvert_v1beta2_ClusterClassStatusVariableDefinition_To_v1beta1_Cluster
 
 func autoConvert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(in *ClusterClassVariable, out *v1beta2.ClusterClassVariable, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Required = in.Required
+	if err := v1.Convert_bool_To_Pointer_bool(&in.Required, &out.Required, s); err != nil {
+		return err
+	}
 	// WARNING: in.Metadata requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta1_VariableSchema_To_v1beta2_VariableSchema(&in.Schema, &out.Schema, s); err != nil {
 		return err
@@ -1346,7 +1352,9 @@ func autoConvert_v1beta1_ClusterClassVariable_To_v1beta2_ClusterClassVariable(in
 
 func autoConvert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(in *v1beta2.ClusterClassVariable, out *ClusterClassVariable, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Required = in.Required
+	if err := v1.Convert_Pointer_bool_To_bool(&in.Required, &out.Required, s); err != nil {
+		return err
+	}
 	// WARNING: in.DeprecatedV1Beta1Metadata requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta2_VariableSchema_To_v1beta1_VariableSchema(&in.Schema, &out.Schema, s); err != nil {
 		return err

@@ -47,7 +47,7 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 							ExtraArgs: []bootstrapv1.Arg{
 								{
 									Name:  "foo",
-									Value: "bar",
+									Value: ptr.To("bar"),
 								},
 							},
 						},
@@ -98,7 +98,7 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 				ExtraArgs: []bootstrapv1.Arg{ // Extra args converted from old format to new format.
 					{
 						Name:  "foo",
-						Value: "bar",
+						Value: ptr.To("bar"),
 					},
 				},
 			},
@@ -114,7 +114,7 @@ func TestClusterConfigurationAnnotation(t *testing.T) {
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "foo",
-						Value: "bar",
+						Value: ptr.To("bar"),
 					},
 				},
 			},
@@ -281,7 +281,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 							ExtraArgs: []bootstrapv1.Arg{
 								{
 									Name:  "foo",
-									Value: "bar",
+									Value: ptr.To("bar"),
 								},
 							},
 						},
@@ -289,7 +289,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 							ExtraArgs: []bootstrapv1.Arg{
 								{
 									Name:  "foo",
-									Value: "bar",
+									Value: ptr.To("bar"),
 								},
 							},
 						},
@@ -297,7 +297,7 @@ func TestMatchClusterConfiguration(t *testing.T) {
 							ExtraArgs: []bootstrapv1.Arg{
 								{
 									Name:  "foo",
-									Value: "bar",
+									Value: ptr.To("bar"),
 								},
 							},
 						},

@@ -38,7 +38,9 @@ type IPAddressSpec struct {
 
 	// prefix is the prefix of the address.
 	// +required
-	Prefix int32 `json:"prefix"`
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=128
+	Prefix *int32 `json:"prefix,omitempty"`
 
 	// gateway is the network gateway of the network the address is from.
 	// +optional

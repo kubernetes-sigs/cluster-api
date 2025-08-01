@@ -896,9 +896,9 @@ metadata:
 			for _, r := range binding.Spec.Bindings[0].Resources {
 				switch r.ResourceRef.Name {
 				case testConfigmap.Name:
-					g.Expect(r.Applied).To(BeFalse(), "test-configmap should be not applied bc of missing namespace")
+					g.Expect(ptr.Deref(r.Applied, false)).To(BeFalse(), "test-configmap should be not applied bc of missing namespace")
 				case secretName:
-					g.Expect(r.Applied).To(BeTrue(), "test-secret should be applied")
+					g.Expect(ptr.Deref(r.Applied, false)).To(BeTrue(), "test-secret should be applied")
 				}
 			}
 		}, timeout).Should(Succeed())
@@ -1084,7 +1084,7 @@ metadata:
 			for _, b := range binding.Spec.Bindings {
 				g.Expect(b.Resources).To(HaveLen(2))
 				for _, r := range b.Resources {
-					g.Expect(r.Applied).To(BeTrue())
+					g.Expect(ptr.Deref(r.Applied, false)).To(BeTrue())
 				}
 			}
 			g.Expect(binding.OwnerReferences).To(HaveLen(10))
@@ -1114,7 +1114,7 @@ func clusterResourceSetBindingReady(env *envtest.Environment, cluster *clusterv1
 			return false
 		}
 
-		if !binding.Spec.Bindings[0].Resources[0].Applied || !binding.Spec.Bindings[0].Resources[1].Applied {
+		if !ptr.Deref(binding.Spec.Bindings[0].Resources[0].Applied, false) || !ptr.Deref(binding.Spec.Bindings[0].Resources[1].Applied, false) {
 			return false
 		}
 

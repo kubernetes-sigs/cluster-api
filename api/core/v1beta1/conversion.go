@@ -681,7 +681,7 @@ func Convert_v1beta1_ControlPlaneClass_To_v1beta2_ControlPlaneClass(in *ControlP
 			out.HealthCheck.Checks.UnhealthyNodeConditions = append(out.HealthCheck.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
 				Type:           c.Type,
 				Status:         c.Status,
-				TimeoutSeconds: ptr.Deref(clusterv1.ConvertToSeconds(&c.Timeout), 0),
+				TimeoutSeconds: clusterv1.ConvertToSeconds(&c.Timeout),
 			})
 		}
 		out.HealthCheck.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.MachineHealthCheck.NodeStartupTimeout)
@@ -721,7 +721,7 @@ func Convert_v1beta2_ControlPlaneClass_To_v1beta1_ControlPlaneClass(in *clusterv
 			out.MachineHealthCheck.UnhealthyConditions = append(out.MachineHealthCheck.UnhealthyConditions, UnhealthyCondition{
 				Type:    c.Type,
 				Status:  c.Status,
-				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(&c.TimeoutSeconds), metav1.Duration{}),
+				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 			})
 		}
 		out.MachineHealthCheck.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.HealthCheck.Checks.NodeStartupTimeoutSeconds)
@@ -769,7 +769,7 @@ func Convert_v1beta1_ControlPlaneTopology_To_v1beta2_ControlPlaneTopology(in *Co
 			out.HealthCheck.Checks.UnhealthyNodeConditions = append(out.HealthCheck.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
 				Type:           c.Type,
 				Status:         c.Status,
-				TimeoutSeconds: ptr.Deref(clusterv1.ConvertToSeconds(&c.Timeout), 0),
+				TimeoutSeconds: clusterv1.ConvertToSeconds(&c.Timeout),
 			})
 		}
 		out.HealthCheck.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.MachineHealthCheck.NodeStartupTimeout)
@@ -805,7 +805,7 @@ func Convert_v1beta2_ControlPlaneTopology_To_v1beta1_ControlPlaneTopology(in *cl
 			out.MachineHealthCheck.UnhealthyConditions = append(out.MachineHealthCheck.UnhealthyConditions, UnhealthyCondition{
 				Type:    c.Type,
 				Status:  c.Status,
-				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(&c.TimeoutSeconds), metav1.Duration{}),
+				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 			})
 		}
 		out.MachineHealthCheck.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.HealthCheck.Checks.NodeStartupTimeoutSeconds)
@@ -858,7 +858,7 @@ func Convert_v1beta1_MachineDeploymentClass_To_v1beta2_MachineDeploymentClass(in
 			out.HealthCheck.Checks.UnhealthyNodeConditions = append(out.HealthCheck.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
 				Type:           c.Type,
 				Status:         c.Status,
-				TimeoutSeconds: ptr.Deref(clusterv1.ConvertToSeconds(&c.Timeout), 0),
+				TimeoutSeconds: clusterv1.ConvertToSeconds(&c.Timeout),
 			})
 		}
 		out.HealthCheck.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.MachineHealthCheck.NodeStartupTimeout)
@@ -931,7 +931,7 @@ func Convert_v1beta2_MachineDeploymentClass_To_v1beta1_MachineDeploymentClass(in
 			out.MachineHealthCheck.UnhealthyConditions = append(out.MachineHealthCheck.UnhealthyConditions, UnhealthyCondition{
 				Type:    c.Type,
 				Status:  c.Status,
-				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(&c.TimeoutSeconds), metav1.Duration{}),
+				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 			})
 		}
 		out.MachineHealthCheck.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.HealthCheck.Checks.NodeStartupTimeoutSeconds)
@@ -986,7 +986,7 @@ func Convert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentTopol
 			out.HealthCheck.Checks.UnhealthyNodeConditions = append(out.HealthCheck.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
 				Type:           c.Type,
 				Status:         c.Status,
-				TimeoutSeconds: ptr.Deref(clusterv1.ConvertToSeconds(&c.Timeout), 0),
+				TimeoutSeconds: clusterv1.ConvertToSeconds(&c.Timeout),
 			})
 		}
 		out.HealthCheck.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.MachineHealthCheck.NodeStartupTimeout)
@@ -1052,7 +1052,7 @@ func Convert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentTopol
 			out.MachineHealthCheck.UnhealthyConditions = append(out.MachineHealthCheck.UnhealthyConditions, UnhealthyCondition{
 				Type:    c.Type,
 				Status:  c.Status,
-				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(&c.TimeoutSeconds), metav1.Duration{}),
+				Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 			})
 		}
 		out.MachineHealthCheck.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.HealthCheck.Checks.NodeStartupTimeoutSeconds)
@@ -1457,7 +1457,7 @@ func Convert_v1beta1_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpec(in
 		out.Checks.UnhealthyNodeConditions = append(out.Checks.UnhealthyNodeConditions, clusterv1.UnhealthyNodeCondition{
 			Type:           c.Type,
 			Status:         c.Status,
-			TimeoutSeconds: ptr.Deref(clusterv1.ConvertToSeconds(&c.Timeout), 0),
+			TimeoutSeconds: clusterv1.ConvertToSeconds(&c.Timeout),
 		})
 	}
 	out.Checks.NodeStartupTimeoutSeconds = clusterv1.ConvertToSeconds(in.NodeStartupTimeout)
@@ -1481,7 +1481,7 @@ func Convert_v1beta2_MachineHealthCheckSpec_To_v1beta1_MachineHealthCheckSpec(in
 		out.UnhealthyConditions = append(out.UnhealthyConditions, UnhealthyCondition{
 			Type:    c.Type,
 			Status:  c.Status,
-			Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(&c.TimeoutSeconds), metav1.Duration{}),
+			Timeout: ptr.Deref(clusterv1.ConvertFromSeconds(c.TimeoutSeconds), metav1.Duration{}),
 		})
 	}
 	out.NodeStartupTimeout = clusterv1.ConvertFromSeconds(in.Checks.NodeStartupTimeoutSeconds)

@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
@@ -199,14 +200,14 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 		}
 		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
 	case *controlplanev1.KubeadmControlPlaneTemplate:
-		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: "2"})
+		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
 
-		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: "2"})
+		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
 
-		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: "2"})
+		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
 
-		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: "2"})
-		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: "2"})
+		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
+		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
 	}
 
 	// 2) Patch RolloutStrategy RollingUpdate MaxSurge with the value from the Cluster Topology variable.
@@ -254,7 +255,7 @@ func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, _ map[str
 		}
 		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
 	case *bootstrapv1.KubeadmConfigTemplate:
-		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.InitConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: "2"})
+		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.InitConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
 	}
 }
 

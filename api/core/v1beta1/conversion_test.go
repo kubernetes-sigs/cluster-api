@@ -98,6 +98,7 @@ func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubClusterStatus,
 		hubClusterVariable,
 		hubFailureDomain,
+		hubUnhealthyNodeCondition,
 		spokeCluster,
 		spokeClusterTopology,
 		spokeObjectReference,
@@ -166,6 +167,14 @@ func hubFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	in.ControlPlane = ptr.To(c.Bool())
+}
+
+func hubUnhealthyNodeCondition(in *clusterv1.UnhealthyNodeCondition, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TimeoutSeconds == nil {
+		in.TimeoutSeconds = ptr.To(int32(0)) // TimeoutSeconds is a required field and nil does not round trip
+	}
 }
 
 func spokeCluster(in *Cluster, c randfill.Continue) {
@@ -254,9 +263,12 @@ func spokeClusterVariable(in *ClusterVariable, c randfill.Continue) {
 
 func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubClusterClassVariable,
+		hubClusterClassStatusVariableDefinition,
 		hubClusterClassStatus,
 		hubJSONPatch,
 		hubJSONSchemaProps,
+		hubUnhealthyNodeCondition,
 		spokeClusterClass,
 		spokeObjectReference,
 		spokeClusterClassStatus,
@@ -268,6 +280,22 @@ func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeMachineHealthCheckClass,
 		spokeUnhealthyCondition,
 		spokeLocalObjectTemplate,
+	}
+}
+
+func hubClusterClassVariable(in *clusterv1.ClusterClassVariable, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Required == nil {
+		in.Required = ptr.To(false) // Required is a required field and nil does not round trip
+	}
+}
+
+func hubClusterClassStatusVariableDefinition(in *clusterv1.ClusterClassStatusVariableDefinition, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Required == nil {
+		in.Required = ptr.To(false) // Required is a required field and nil does not round trip
 	}
 }
 
@@ -695,6 +723,7 @@ func spokeMachineDeploymentStatus(in *MachineDeploymentStatus, c randfill.Contin
 
 func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubUnhealthyNodeCondition,
 		hubMachineHealthCheckStatus,
 		spokeMachineHealthCheck,
 		spokeMachineHealthCheckSpec,

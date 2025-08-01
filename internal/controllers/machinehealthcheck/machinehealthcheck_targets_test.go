@@ -68,7 +68,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionUnknown,
-						TimeoutSeconds: 5 * 60,
+						TimeoutSeconds: ptr.To(int32(5 * 60)),
 					},
 				},
 			},
@@ -232,12 +232,12 @@ func TestHealthCheckTargets(t *testing.T) {
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionUnknown,
-						TimeoutSeconds: timeoutForUnhealthyNodeConditions,
+						TimeoutSeconds: ptr.To(timeoutForUnhealthyNodeConditions),
 					},
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionFalse,
-						TimeoutSeconds: timeoutForUnhealthyNodeConditions,
+						TimeoutSeconds: ptr.To(timeoutForUnhealthyNodeConditions),
 					},
 				},
 			},

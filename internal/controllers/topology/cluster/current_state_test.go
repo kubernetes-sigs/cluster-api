@@ -161,12 +161,12 @@ func testGetCurrentState(t *testing.T, controlPlaneContractVersion string) {
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionUnknown,
-				TimeoutSeconds: 5 * 60,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
 			},
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionFalse,
-				TimeoutSeconds: 5 * 60,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
 			},
 		}).
 		WithClusterName("cluster1").
@@ -178,12 +178,12 @@ func testGetCurrentState(t *testing.T, controlPlaneContractVersion string) {
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionUnknown,
-				TimeoutSeconds: 5 * 60,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
 			},
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionFalse,
-				TimeoutSeconds: 5 * 60,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
 			},
 		}).
 		WithClusterName("cluster1").

@@ -129,7 +129,7 @@ type MachineDrainRuleDrainConfig struct {
 	// "WaitCompleted" means that the pods to which this MachineDrainRule applies will never be evicted
 	// and we wait for them to be completed, it is enforced that pods marked with this behavior always have Order=0.
 	// +required
-	Behavior MachineDrainRuleDrainBehavior `json:"behavior"`
+	Behavior MachineDrainRuleDrainBehavior `json:"behavior,omitempty"`
 
 	// order defines the order in which Pods are drained.
 	// Pods with higher order are drained after Pods with lower order.

@@ -486,6 +486,7 @@ func spokeMachineDeploymentSpec(in *MachineDeploymentSpec, c randfill.Continue) 
 func MachineHealthCheckFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachineHealthCheckStatus,
+		hubUnhealthyNodeCondition,
 		spokeMachineHealthCheck,
 		spokeMachineHealthCheckSpec,
 		spokeObjectReference,
@@ -500,6 +501,14 @@ func hubMachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, c randf
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{}) {
 			in.Deprecated = nil
 		}
+	}
+}
+
+func hubUnhealthyNodeCondition(in *clusterv1.UnhealthyNodeCondition, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TimeoutSeconds == nil {
+		in.TimeoutSeconds = ptr.To(int32(0)) // TimeoutSeconds is a required field and nil does not round trip
 	}
 }
 

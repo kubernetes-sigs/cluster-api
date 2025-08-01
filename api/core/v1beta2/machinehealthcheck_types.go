@@ -56,7 +56,7 @@ type MachineHealthCheckSpec struct {
 
 	// selector is a label selector to match machines whose health will be exercised
 	// +required
-	Selector metav1.LabelSelector `json:"selector"`
+	Selector metav1.LabelSelector `json:"selector,omitempty,omitzero"`
 
 	// checks are the checks that are used to evaluate if a Machine is healthy.
 	//
@@ -217,13 +217,13 @@ type UnhealthyNodeCondition struct {
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:MinLength=1
 	// +required
-	Type corev1.NodeConditionType `json:"type"`
+	Type corev1.NodeConditionType `json:"type,omitempty"`
 
 	// status of the condition, one of True, False, Unknown.
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:MinLength=1
 	// +required
-	Status corev1.ConditionStatus `json:"status"`
+	Status corev1.ConditionStatus `json:"status,omitempty"`
 
 	// timeoutSeconds is the duration that a node must be in a given status for,
 	// after which the node is considered unhealthy.
@@ -231,7 +231,7 @@ type UnhealthyNodeCondition struct {
 	// for at least 1 hour before being considered unhealthy.
 	// +required
 	// +kubebuilder:validation:Minimum=0
-	TimeoutSeconds int32 `json:"timeoutSeconds"`
+	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
 }
 
 // MachineHealthCheckStatus defines the observed state of MachineHealthCheck.

@@ -270,7 +270,7 @@ type MachineDeploymentSpec struct {
 	// selected by this will be the ones affected by this deployment.
 	// It must match the machine template's labels.
 	// +required
-	Selector metav1.LabelSelector `json:"selector"`
+	Selector metav1.LabelSelector `json:"selector,omitempty,omitzero"`
 
 	// template describes the machines that will be created.
 	// +required
@@ -318,7 +318,7 @@ type MachineDeploymentRolloutStrategy struct {
 	// type of rollout. Allowed values are RollingUpdate and OnDelete.
 	// Default is RollingUpdate.
 	// +required
-	Type MachineDeploymentRolloutStrategyType `json:"type"`
+	Type MachineDeploymentRolloutStrategyType `json:"type,omitempty"`
 
 	// rollingUpdate is the rolling update config params. Present only if
 	// type = RollingUpdate.

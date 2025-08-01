@@ -181,7 +181,15 @@ func Convert_upstreamv1beta4_BootstrapToken_To_v1beta2_BootstrapToken(in *Bootst
 }
 
 func Convert_upstreamv1beta4_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstrapv1.APIServer, s apimachineryconversion.Scope) error {
-	out.ExtraArgs = *(*[]bootstrapv1.Arg)(unsafe.Pointer(&in.ExtraArgs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraArgs != nil {
+		out.ExtraArgs = make([]bootstrapv1.Arg, len(in.ExtraArgs))
+		for i := range in.ExtraArgs {
+			if err := Convert_upstreamv1beta4_Arg_To_v1beta2_Arg(&(in.ExtraArgs)[i], &(out.ExtraArgs)[i], s); err != nil {
+				return err
+			}
+		}
+	}
+
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
@@ -194,7 +202,14 @@ func Convert_upstreamv1beta4_APIServer_To_v1beta2_APIServer(in *APIServer, out *
 }
 
 func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_ControllerManager(in *ControlPlaneComponent, out *bootstrapv1.ControllerManager, s apimachineryconversion.Scope) error {
-	out.ExtraArgs = *(*[]bootstrapv1.Arg)(unsafe.Pointer(&in.ExtraArgs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraArgs != nil {
+		out.ExtraArgs = make([]bootstrapv1.Arg, len(in.ExtraArgs))
+		for i := range in.ExtraArgs {
+			if err := Convert_upstreamv1beta4_Arg_To_v1beta2_Arg(&(in.ExtraArgs)[i], &(out.ExtraArgs)[i], s); err != nil {
+				return err
+			}
+		}
+	}
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
@@ -204,7 +219,14 @@ func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_ControllerManager(
 }
 
 func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_Scheduler(in *ControlPlaneComponent, out *bootstrapv1.Scheduler, s apimachineryconversion.Scope) error {
-	out.ExtraArgs = *(*[]bootstrapv1.Arg)(unsafe.Pointer(&in.ExtraArgs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraArgs != nil {
+		out.ExtraArgs = make([]bootstrapv1.Arg, len(in.ExtraArgs))
+		for i := range in.ExtraArgs {
+			if err := Convert_upstreamv1beta4_Arg_To_v1beta2_Arg(&(in.ExtraArgs)[i], &(out.ExtraArgs)[i], s); err != nil {
+				return err
+			}
+		}
+	}
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
@@ -312,7 +334,14 @@ func Convert_v1beta2_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration(in *
 func Convert_v1beta2_APIServer_To_upstreamv1beta4_APIServer(in *bootstrapv1.APIServer, out *APIServer, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in kubeadm v1beta4 version:
 	// - TimeoutForControlPlane (this field has been migrated to Init/JoinConfiguration; migration is handled by ConvertFromClusterConfiguration custom converters.
-	out.ExtraArgs = *(*[]Arg)(unsafe.Pointer(&in.ExtraArgs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraArgs != nil {
+		out.ExtraArgs = make([]Arg, len(in.ExtraArgs))
+		for i := range in.ExtraArgs {
+			if err := Convert_v1beta2_Arg_To_upstreamv1beta4_Arg(&(in.ExtraArgs)[i], &(out.ExtraArgs)[i], s); err != nil {
+				return err
+			}
+		}
+	}
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
@@ -326,7 +355,14 @@ func Convert_v1beta2_APIServer_To_upstreamv1beta4_APIServer(in *bootstrapv1.APIS
 
 func Convert_v1beta2_ControllerManager_To_upstreamv1beta4_ControlPlaneComponent(in *bootstrapv1.ControllerManager, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	// Following fields require a custom conversions.
-	out.ExtraArgs = *(*[]Arg)(unsafe.Pointer(&in.ExtraArgs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraArgs != nil {
+		out.ExtraArgs = make([]Arg, len(in.ExtraArgs))
+		for i := range in.ExtraArgs {
+			if err := Convert_v1beta2_Arg_To_upstreamv1beta4_Arg(&(in.ExtraArgs)[i], &(out.ExtraArgs)[i], s); err != nil {
+				return err
+			}
+		}
+	}
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
@@ -337,7 +373,14 @@ func Convert_v1beta2_ControllerManager_To_upstreamv1beta4_ControlPlaneComponent(
 
 func Convert_v1beta2_Scheduler_To_upstreamv1beta4_ControlPlaneComponent(in *bootstrapv1.Scheduler, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
 	// Following fields require a custom conversions.
-	out.ExtraArgs = *(*[]Arg)(unsafe.Pointer(&in.ExtraArgs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+	if in.ExtraArgs != nil {
+		out.ExtraArgs = make([]Arg, len(in.ExtraArgs))
+		for i := range in.ExtraArgs {
+			if err := Convert_v1beta2_Arg_To_upstreamv1beta4_Arg(&(in.ExtraArgs)[i], &(out.ExtraArgs)[i], s); err != nil {
+				return err
+			}
+		}
+	}
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {

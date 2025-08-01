@@ -3428,6 +3428,7 @@ spec:
                               matchResources:
                                 description: matchResources selects templates based
                                   on where they are referenced.
+                                minProperties: 1
                                 properties:
                                   controlPlane:
                                     description: |-
@@ -5254,6 +5255,7 @@ spec:
                         - schema
                         type: object
                       maxItems: 100
+                      minItems: 1
                       type: array
                       x-kubernetes-list-type: atomic
                     definitionsConflict:

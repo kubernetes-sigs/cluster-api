@@ -761,7 +761,6 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassStatusVariableDefinition(re
 					"required": {
 						SchemaProps: spec.SchemaProps{
 							Description: "required specifies if the variable is required. Note: this applies to the variable as a whole and thus the top-level object defined in the schema. If nested fields are required, this will be specified inside the schema.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -870,7 +869,6 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassVariable(ref common.Referen
 					"required": {
 						SchemaProps: spec.SchemaProps{
 							Description: "required specifies if the variable is required. Note: this applies to the variable as a whole and thus the top-level object defined in the schema. If nested fields are required, this will be specified inside the schema.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -2599,7 +2597,6 @@ func schema_cluster_api_api_core_v1beta2_MachineAddress(ref common.ReferenceCall
 					"type": {
 						SchemaProps: spec.SchemaProps{
 							Description: "type is the machine address type, one of Hostname, ExternalIP, InternalIP, ExternalDNS or InternalDNS.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3110,7 +3107,6 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassRolloutStrategy(r
 					"type": {
 						SchemaProps: spec.SchemaProps{
 							Description: "type of rollout. Allowed values are RollingUpdate and OnDelete. Default is RollingUpdate.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3309,7 +3305,6 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentRolloutStrategy(ref co
 					"type": {
 						SchemaProps: spec.SchemaProps{
 							Description: "type of rollout. Allowed values are RollingUpdate and OnDelete. Default is RollingUpdate.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3849,7 +3844,6 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyRolloutStrateg
 					"type": {
 						SchemaProps: spec.SchemaProps{
 							Description: "type of rollout. Allowed values are RollingUpdate and OnDelete. Default is RollingUpdate.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -4070,7 +4064,6 @@ func schema_cluster_api_api_core_v1beta2_MachineDrainRuleDrainConfig(ref common.
 					"behavior": {
 						SchemaProps: spec.SchemaProps{
 							Description: "behavior defines the drain behavior. Can be either \"Drain\", \"Skip\", or \"WaitCompleted\". \"Drain\" means that the Pods to which this MachineDrainRule applies will be drained. If behavior is set to \"Drain\" the order in which Pods are drained can be configured with the order field. When draining Pods of a Node the Pods will be grouped by order and one group after another will be drained (by increasing order). Cluster API will wait until all Pods of a group are terminated / removed from the Node before starting with the next group. \"Skip\" means that the Pods to which this MachineDrainRule applies will be skipped during drain. \"WaitCompleted\" means that the pods to which this MachineDrainRule applies will never be evicted and we wait for them to be completed, it is enforced that pods marked with this behavior always have Order=0.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -6535,7 +6528,6 @@ func schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref common.Refer
 					"type": {
 						SchemaProps: spec.SchemaProps{
 							Description: "type of Node condition",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -6543,7 +6535,6 @@ func schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref common.Refer
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "status of the condition, one of True, False, Unknown.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -6551,7 +6542,6 @@ func schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref common.Refer
 					"timeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
 							Description: "timeoutSeconds is the duration that a node must be in a given status for, after which the node is considered unhealthy. For example, with a value of \"1h\", the node must match the status for at least 1 hour before being considered unhealthy.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

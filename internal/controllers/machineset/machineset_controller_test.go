@@ -19,7 +19,7 @@ package machineset
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -3140,8 +3140,11 @@ func TestSortMachinesToRemediate(t *testing.T) {
 		machines := make([]*clusterv1.Machine, len(unhealthyMachines))
 		copy(machines, unhealthyMachines)
 		sortMachinesToRemediate(machines)
-		sort.SliceStable(unhealthyMachines, func(i, j int) bool {
-			return unhealthyMachines[i].CreationTimestamp.After(unhealthyMachines[j].CreationTimestamp.Time)
+		slices.SortStableFunc(unhealthyMachines, func(i, j *clusterv1.Machine) int {
+			if i.CreationTimestamp.After(j.CreationTimestamp.Time) {
+				return -1
+			}
+			return 1
 		})
 		g.Expect(unhealthyMachines).To(Equal(machines))
 	})
@@ -3154,11 +3157,17 @@ func TestSortMachinesToRemediate(t *testing.T) {
 		machines = append(machines, unhealthyMachinesWithAnnotations...)
 		sortMachinesToRemediate(machines)
 
-		sort.SliceStable(unhealthyMachines, func(i, j int) bool {
-			return unhealthyMachines[i].CreationTimestamp.After(unhealthyMachines[j].CreationTimestamp.Time)
+		slices.SortStableFunc(unhealthyMachines, func(i, j *clusterv1.Machine) int {
+			if i.CreationTimestamp.After(j.CreationTimestamp.Time) {
+				return -1
+			}
+			return 1
 		})
-		sort.SliceStable(unhealthyMachinesWithAnnotations, func(i, j int) bool {
-			return unhealthyMachinesWithAnnotations[i].CreationTimestamp.After(unhealthyMachinesWithAnnotations[j].CreationTimestamp.Time)
+		slices.SortStableFunc(unhealthyMachinesWithAnnotations, func(i, j *clusterv1.Machine) int {
+			if i.CreationTimestamp.After(j.CreationTimestamp.Time) {
+				return -1
+			}
+			return 1
 		})
 		g.Expect(machines).To(Equal(append(unhealthyMachinesWithAnnotations, unhealthyMachines...)))
 	})

@@ -19,7 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -124,14 +124,19 @@ func (u *providerUpgrader) getUpgradeInfo(ctx context.Context, provider clusterc
 
 func newUpgradeInfo(metadata *clusterctlv1.Metadata, currentVersion *version.Version, nextVersions []version.Version) *upgradeInfo {
 	// Sorts release series; this ensures also an implicit ordering of contract versions.
-	sort.Slice(metadata.ReleaseSeries, func(i, j int) bool {
-		return metadata.ReleaseSeries[i].Major < metadata.ReleaseSeries[j].Major ||
-			(metadata.ReleaseSeries[i].Major == metadata.ReleaseSeries[j].Major && metadata.ReleaseSeries[i].Minor < metadata.ReleaseSeries[j].Minor)
+	slices.SortFunc(metadata.ReleaseSeries, func(i, j clusterctlv1.ReleaseSeries) int {
+		if i.Major < j.Major || (i.Major == j.Major && i.Minor < j.Minor) {
+			return -1
+		}
+		return 1
 	})
 
 	// Sorts nextVersions.
-	sort.Slice(nextVersions, func(i, j int) bool {
-		return nextVersions[i].LessThan(&nextVersions[j])
+	slices.SortFunc(nextVersions, func(i, j version.Version) int {
+		if i.LessThan(&j) {
+			return -1
+		}
+		return 1
 	})
 
 	// Gets the current contract for the provider

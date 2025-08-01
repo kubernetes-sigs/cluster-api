@@ -18,7 +18,7 @@ package repository
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -262,17 +262,20 @@ func NewComponents(input ComponentsInput) (Components, error) {
 	// Deploying cert-manager objects and especially Certificates before Mutating-
 	// ValidatingWebhookConfigurations and CRDs ensures cert-manager's ca-injector
 	// receives the event for the objects at the right time to inject the new CA.
-	sort.SliceStable(objs, func(i, j int) bool {
+	slices.SortStableFunc(objs, func(i, j unstructured.Unstructured) int {
 		// First prioritize Namespaces over everything.
-		if objs[i].GetKind() == "Namespace" {
-			return true
+		if i.GetKind() == "Namespace" {
+			return -1
 		}
-		if objs[j].GetKind() == "Namespace" {
-			return false
+		if j.GetKind() == "Namespace" {
+			return 1
 		}
 
 		// Second prioritize cert-manager objects.
-		return objs[i].GroupVersionKind().Group == "cert-manager.io"
+		if i.GroupVersionKind().Group == "cert-manager.io" {
+			return -1
+		}
+		return 1
 	})
 
 	return &components{

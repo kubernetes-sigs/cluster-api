@@ -18,7 +18,7 @@ package machinedeployment
 
 import (
 	"context"
-	"sort"
+	"slices"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
@@ -192,7 +192,9 @@ func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clus
 func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment, maxCleanupCount int32) ([]*clusterv1.MachineSet, int32, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	sort.Sort(mdutil.MachineSetsByCreationTimestamp(oldMSs))
+	slices.SortFunc(oldMSs, func(a, b *clusterv1.MachineSet) int {
+		return mdutil.SortByCreationTimestamp(a, b, mdutil.ASCENDING)
+	})
 
 	// Scale down all old MachineSets with any unhealthy replicas. MachineSet will honour spec.deletion.order
 	// for deleting Machines. Machines with a deletion timestamp, with a failure message or without a nodeRef
@@ -266,7 +268,9 @@ func (r *Reconciler) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context
 
 	log.V(4).Info("Found available machines in deployment, scaling down old MSes", "count", availableMachineCount)
 
-	sort.Sort(mdutil.MachineSetsByCreationTimestamp(oldMSs))
+	slices.SortFunc(oldMSs, func(a, b *clusterv1.MachineSet) int {
+		return mdutil.SortByCreationTimestamp(a, b, mdutil.ASCENDING)
+	})
 
 	totalScaledDown := int32(0)
 	totalScaleDownCount := availableMachineCount - minAvailable

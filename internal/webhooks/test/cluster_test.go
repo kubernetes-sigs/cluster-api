@@ -57,8 +57,8 @@ func Test_ValidateCluster(t *testing.T) {
 			mdTopologyName: "machine-deployment-topology-name-that-has-longerthan63characterlooooooooooooooooooooooongname",
 			mpTopologyName: "machine-pool-topology-name-that-has-longerthan63characterlooooooooooooooooooooooongname",
 			wantErrs: []string{
-				"spec.topology.workers.machineDeployments[0].name: Too long: may not be more than 63 bytes",
-				"spec.topology.workers.machinePools[0].name: Too long: may not be more than 63 bytes",
+				"spec.topology.workers.machineDeployments[0].name: Too long",
+				"spec.topology.workers.machinePools[0].name: Too long",
 			},
 		},
 		{

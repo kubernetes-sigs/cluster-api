@@ -1295,11 +1295,7 @@ func (in *User) DeepCopyInto(out *User) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.PasswdFrom != nil {
-		in, out := &in.PasswdFrom, &out.PasswdFrom
-		*out = new(PasswdSource)
-		**out = **in
-	}
+	out.PasswdFrom = in.PasswdFrom
 	if in.LockPassword != nil {
 		in, out := &in.LockPassword, &out.LockPassword
 		*out = new(bool)

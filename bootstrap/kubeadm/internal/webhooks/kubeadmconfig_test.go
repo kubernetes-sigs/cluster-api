@@ -178,7 +178,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Users: []bootstrapv1.User{
 						{
-							PasswdFrom: &bootstrapv1.PasswdSource{
+							PasswdFrom: bootstrapv1.PasswdSource{
 								Secret: bootstrapv1.SecretPasswdSource{
 									Name: "foo",
 									Key:  "bar",
@@ -198,8 +198,12 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Users: []bootstrapv1.User{
 						{
-							PasswdFrom: &bootstrapv1.PasswdSource{},
-							Passwd:     "foo",
+							PasswdFrom: bootstrapv1.PasswdSource{
+								Secret: bootstrapv1.SecretPasswdSource{
+									Name: "secret",
+								},
+							},
+							Passwd: "foo",
 						},
 					},
 				},
@@ -215,7 +219,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Users: []bootstrapv1.User{
 						{
-							PasswdFrom: &bootstrapv1.PasswdSource{
+							PasswdFrom: bootstrapv1.PasswdSource{
 								Secret: bootstrapv1.SecretPasswdSource{
 									Key: "bar",
 								},
@@ -236,7 +240,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Users: []bootstrapv1.User{
 						{
-							PasswdFrom: &bootstrapv1.PasswdSource{
+							PasswdFrom: bootstrapv1.PasswdSource{
 								Secret: bootstrapv1.SecretPasswdSource{
 									Name: "foo",
 								},

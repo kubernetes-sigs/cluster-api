@@ -256,7 +256,7 @@ func (c *KubeadmConfigSpec) validateUsers(pathPrefix *field.Path) field.ErrorLis
 
 	for i := range c.Users {
 		user := c.Users[i]
-		if user.Passwd != "" && user.PasswdFrom != nil {
+		if user.Passwd != "" && user.PasswdFrom.IsDefined() {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
@@ -269,7 +269,7 @@ func (c *KubeadmConfigSpec) validateUsers(pathPrefix *field.Path) field.ErrorLis
 		// n.b.: if we ever add types besides Secret as a PasswdFrom
 		// Source, we must add webhook validation here for one of the
 		// sources being non-nil.
-		if user.PasswdFrom != nil {
+		if user.PasswdFrom.IsDefined() {
 			if user.PasswdFrom.Secret.Name == "" {
 				allErrs = append(
 					allErrs,
@@ -681,6 +681,11 @@ type PasswdSource struct {
 	Secret SecretPasswdSource `json:"secret,omitempty,omitzero"`
 }
 
+// IsDefined returns true if the PasswdSource is defined.
+func (r *PasswdSource) IsDefined() bool {
+	return !reflect.DeepEqual(r, &PasswdSource{})
+}
+
 // SecretPasswdSource adapts a Secret into a PasswdSource.
 //
 // The contents of the target Secret's Data field will be presented
@@ -743,7 +748,7 @@ type User struct {
 
 	// passwdFrom is a referenced source of passwd to populate the passwd.
 	// +optional
-	PasswdFrom *PasswdSource `json:"passwdFrom,omitempty"`
+	PasswdFrom PasswdSource `json:"passwdFrom,omitempty,omitzero"`
 
 	// primaryGroup specifies the primary group for the user
 	// +optional

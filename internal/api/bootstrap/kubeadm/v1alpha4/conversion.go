@@ -86,7 +86,7 @@ func RestoreKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored *boot
 	dst.Users = restored.Users
 	if restored.Users != nil {
 		for i := range restored.Users {
-			if restored.Users[i].PasswdFrom != nil {
+			if restored.Users[i].PasswdFrom.IsDefined() {
 				dst.Users[i].PasswdFrom = restored.Users[i].PasswdFrom
 			}
 		}

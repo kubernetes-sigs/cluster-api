@@ -91,11 +91,11 @@ func Init(ctx context.Context, input InitInput) {
 }
 
 // InitWithBinary uses clusterctl binary to run init with the list of providers defined in the local repository.
-func InitWithBinary(_ context.Context, binary string, input InitInput) {
+func InitWithBinary(ctx context.Context, binary string, input InitInput) {
 	args := calculateClusterCtlInitArgs(input, binary)
 	log.Logf("clusterctl %s", strings.Join(args, " "))
 
-	cmd := exec.Command(binary, args...) //nolint:gosec // We don't care about command injection here.
+	cmd := exec.CommandContext(ctx, binary, args...) //nolint:gosec // We don't care about command injection here.
 
 	out, err := cmd.CombinedOutput()
 	_ = os.WriteFile(filepath.Join(input.LogFolder, "clusterctl-init.log"), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
@@ -217,7 +217,7 @@ func UpgradeWithBinary(ctx context.Context, binary string, input UpgradeInput) e
 	args := calculateClusterCtlUpgradeArgs(input)
 	log.Logf("clusterctl %s", strings.Join(args, " "))
 
-	cmd := exec.Command(binary, args...) //nolint:gosec // We don't care about command injection here.
+	cmd := exec.CommandContext(ctx, binary, args...) //nolint:gosec // We don't care about command injection here.
 
 	out, err := cmd.CombinedOutput()
 	_ = os.WriteFile(filepath.Join(input.LogFolder, "clusterctl-upgrade.log"), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
@@ -374,7 +374,7 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 // ConfigClusterWithBinary uses clusterctl binary to run config cluster or generate cluster.
 // NOTE: This func detects the clusterctl version and uses config cluster or generate cluster
 // accordingly. We can drop the detection when we don't have to support clusterctl v0.3.x anymore.
-func ConfigClusterWithBinary(_ context.Context, clusterctlBinaryPath string, input ConfigClusterInput) []byte {
+func ConfigClusterWithBinary(ctx context.Context, clusterctlBinaryPath string, input ConfigClusterInput) []byte {
 	version, err := getClusterCtlVersion(clusterctlBinaryPath)
 	Expect(err).ToNot(HaveOccurred())
 	clusterctlSupportsGenerateCluster := version.GTE(semver.MustParse("1.0.0"))
@@ -401,7 +401,7 @@ func ConfigClusterWithBinary(_ context.Context, clusterctlBinaryPath string, inp
 	}
 	log.Logf("clusterctl %s", strings.Join(args, " "))
 
-	cmd := exec.Command(clusterctlBinaryPath, args...) //nolint:gosec // We don't care about command injection here.
+	cmd := exec.CommandContext(ctx, clusterctlBinaryPath, args...) //nolint:gosec // We don't care about command injection here.
 	out, err := cmd.Output()
 	_ = os.WriteFile(filepath.Join(input.LogFolder, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName)), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
 	var stdErr string

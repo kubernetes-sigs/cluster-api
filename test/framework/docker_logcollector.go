@@ -154,7 +154,7 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 				return err
 			}
 
-			return osExec.Command("tar", "--extract", "--file", tempfileName, "--directory", outputDir).Run() //nolint:gosec // We don't care about command injection here.
+			return osExec.CommandContext(ctx, "tar", "--extract", "--file", tempfileName, "--directory", outputDir).Run() //nolint:gosec // We don't care about command injection here.
 		}
 	}
 

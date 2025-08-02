@@ -125,7 +125,7 @@ func GenerateCIArtifactsInjectedTemplateForDebian(input GenerateCIArtifactsInjec
 	if err := os.WriteFile(path.Join(overlayDir, "platform-kustomization.yaml"), input.PlatformKustomization, 0o600); err != nil {
 		return "", err
 	}
-	cmd := exec.Command("kustomize", "build", overlayDir) //nolint:gosec // We don't care about command injection here.
+	cmd := exec.Command("kustomize", "build", overlayDir) //nolint:gosec,noctx // We don't care about command injection here.
 	data, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", err

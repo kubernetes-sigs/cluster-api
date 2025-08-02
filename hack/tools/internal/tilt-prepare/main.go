@@ -145,7 +145,7 @@ type tiltProviderConfig struct {
 }
 
 func init() {
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel") //nolint:noctx
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

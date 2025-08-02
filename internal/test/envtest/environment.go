@@ -417,7 +417,7 @@ func (e *Environment) start(ctx context.Context) {
 		}
 	}()
 	<-e.Elected()
-	e.waitForWebhooks()
+	e.waitForWebhooks(ctx)
 }
 
 // stop stops the test environment.
@@ -428,14 +428,17 @@ func (e *Environment) stop() error {
 }
 
 // waitForWebhooks waits for the webhook server to be available.
-func (e *Environment) waitForWebhooks() {
+func (e *Environment) waitForWebhooks(ctx context.Context) {
 	port := e.env.WebhookInstallOptions.LocalServingPort
 
 	klog.V(2).Infof("Waiting for webhook port %d to be open prior to running tests", port)
 	timeout := 1 * time.Second
 	for {
 		time.Sleep(1 * time.Second)
-		conn, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)), timeout)
+		dialer := &net.Dialer{
+			Timeout: timeout,
+		}
+		conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
 		if err != nil {
 			klog.V(2).Infof("Webhook port is not ready, will retry in %v: %s", timeout, err)
 			continue

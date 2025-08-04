@@ -108,6 +108,7 @@ key value pairs (in order of importance):
   the action log and the corresponding error log; While logging before the action, log verbs should use the -ing form.
 - Ideally log messages should surface a different level of detail according to the target log level (see [log levels](#log-levels)
   for more details).
+- If Kubernetes resource name is used in log messages, it should be used as is, For example `Reconciling DockerMachineTemplate`
 
 ## Log Levels
 

@@ -122,6 +122,31 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 	})
 })
 
+var _ = Describe("When following the Cluster API quick-start with v1beta1 ClusterClass [ClusterClass]", Label("ClusterClass"), func() {
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			Flavor:                ptr.To("topology-runtimesdk-v1beta1"),
+			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
+			// by the test-extension-webhook-service.
+			// The below values are used when creating the cluster-wide ExtensionConfig to refer
+			// the actual service.
+			ExtensionServiceNamespace: "test-extension-system",
+			ExtensionServiceName:      "test-extension-webhook-service",
+			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
+				// continuous reconciles when everything should be stable.
+				By("Checking that resourceVersions are stable")
+				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+			},
+		}
+	})
+})
+
 // NOTE: This test requires an IPv6 management cluster (can be configured via IP_FAMILY=IPv6).
 var _ = Describe("When following the Cluster API quick-start with IPv6 [IPv6]", Label("IPv6"), func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {

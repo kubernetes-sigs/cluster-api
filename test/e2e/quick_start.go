@@ -22,6 +22,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -70,6 +71,19 @@ type QuickStartSpecInput struct {
 	// which unblocks CNI installation, and for the control plane machines to be ready (after CNI installation).
 	ControlPlaneWaiters clusterctl.ControlPlaneWaiters
 
+	// ExtensionConfigName is the name of the ExtensionConfig. Defaults to "quick-start".
+	// This value is provided to clusterctl as "EXTENSION_CONFIG_NAME" variable and can be used to template the
+	// name of the ExtensionConfig into the ClusterClass.
+	ExtensionConfigName string
+
+	// ExtensionServiceNamespace is the namespace where the service for the Runtime Extension is located.
+	// Note: This should only be set if a Runtime Extension is used.
+	ExtensionServiceNamespace string
+
+	// ExtensionServiceNamespace is the name where the service for the Runtime Extension is located.
+	// Note: This should only be set if a Runtime Extension is used.
+	ExtensionServiceName string
+
 	// Allows to inject a function to be run after test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
@@ -106,6 +120,12 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
+
+		if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+			if input.ExtensionConfigName == "" {
+				input.ExtensionConfigName = specName
+			}
+		}
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
@@ -146,7 +166,36 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 			clusterName = *input.ClusterName
 		}
 
-		variables := map[string]string{}
+		if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+			// NOTE: test extension is already deployed in the management cluster. If for any reason in future we want
+			// to make this test more self-contained this test should be modified in order to create an additional
+			// management cluster; also the E2E test configuration should be modified introducing something like
+			// optional:true allowing to define which providers should not be installed by default in
+			// a management cluster.
+			By("Deploy Test Extension ExtensionConfig")
+
+			// In this test we are defaulting all handlers to non-blocking because we don't expect the handlers to block the
+			// cluster lifecycle by default. Setting defaultAllHandlersToBlocking to false enforces that the test-extension
+			// automatically creates the ConfigMap with non-blocking preloaded responses.
+			defaultAllHandlersToBlocking := false
+			// select on the current namespace
+			// This is necessary so in CI this test doesn't influence other tests by enabling lifecycle hooks
+			// in other test namespaces.
+			namespaces := []string{namespace.Name}
+			if input.DeployClusterClassInSeparateNamespace {
+				// Add the ClusterClass namespace, if the ClusterClass is deployed in a separate namespace.
+				namespaces = append(namespaces, clusterClassNamespace.Name)
+			}
+			extensionConfig := extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, defaultAllHandlersToBlocking, namespaces...)
+			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
+				extensionConfig)).
+				To(Succeed(), "Failed to create the ExtensionConfig")
+		}
+
+		variables := map[string]string{
+			// This is used to template the name of the ExtensionConfig into the ClusterClass.
+			"EXTENSION_CONFIG_NAME": input.ExtensionConfigName,
+		}
 		maps.Copy(variables, input.ClusterctlVariables)
 
 		if input.DeployClusterClassInSeparateNamespace {
@@ -200,11 +249,18 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
-		if input.DeployClusterClassInSeparateNamespace && !input.SkipCleanup {
-			framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
-				Deleter: input.BootstrapClusterProxy.GetClient(),
-				Name:    clusterClassNamespace.Name,
-			})
+		if !input.SkipCleanup {
+			if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
+				Eventually(func() error {
+					return input.BootstrapClusterProxy.GetClient().Delete(ctx, extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true))
+				}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
+			}
+			if input.DeployClusterClassInSeparateNamespace {
+				framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
+					Deleter: input.BootstrapClusterProxy.GetClient(),
+					Name:    clusterClassNamespace.Name,
+				})
+			}
 		}
 	})
 }

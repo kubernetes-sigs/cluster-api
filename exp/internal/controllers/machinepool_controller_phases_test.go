@@ -145,7 +145,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -188,7 +188,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -228,7 +228,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -284,7 +284,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -356,7 +356,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -406,7 +406,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -459,7 +459,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -529,7 +529,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -605,7 +605,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -679,7 +679,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			machinePool: machinePool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -699,7 +699,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Name = newBootstrapConfig.GetName()
 
 		// Reconcile again. The new bootstrap config should be used.
-		res, err = r.reconcile(ctx, scope)
+		res, err = doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -775,7 +775,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 			machinePool: machinePool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -797,7 +797,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Name = newBootstrapConfig.GetName()
 
 		// Reconcile again. The new bootstrap config should be used
-		res, err = r.reconcile(ctx, scope)
+		res, err = doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Controller should wait until bootstrap provider reports ready bootstrap config
@@ -1856,7 +1856,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -1924,7 +1924,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -1932,9 +1932,9 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePoolPhaseRunning))
 
 		delNode := &corev1.Node{}
-		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(node), delNode)
-		g.Expect(err).To(HaveOccurred())
-		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		err2 := env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(node), delNode)
+		g.Expect(err2).To(HaveOccurred())
+		g.Expect(apierrors.IsNotFound(err2)).To(BeTrue())
 	})
 
 	t.Run("Should set `Running` when scaled to zero", func(t *testing.T) {
@@ -1975,7 +1975,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -2022,7 +2022,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -2091,7 +2091,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			machinePool: machinepool,
 		}
 
-		res, err := r.reconcile(ctx, scope)
+		res, err := doReconcile(ctx, scope, reconcileNormalFuncsForTest(r))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
 
@@ -2323,5 +2323,16 @@ func TestMachinePoolReconciler_getNodeRefMap(t *testing.T) {
 				g.Expect(node.GetObjectMeta().GetName()).Should(Equal(tt.expected[providerID].GetObjectMeta().GetName()))
 			}
 		})
+	}
+}
+
+func reconcileNormalFuncsForTest(mpr *MachinePoolReconciler) []machinePoolReconcileFunc {
+	return []machinePoolReconcileFunc{
+		mpr.reconcileSetOwnerAndLabels,
+		mpr.reconcileBootstrap,
+		mpr.reconcileInfrastructure,
+		mpr.getMachinesForMachinePool,
+		mpr.reconcileNodeRefs,
+		mpr.setMachinesUptoDate,
 	}
 }

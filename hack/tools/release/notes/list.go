@@ -30,7 +30,7 @@ import (
 
 // githubFromToPRLister lists PRs from GitHub contained between two refs.
 type githubFromToPRLister struct {
-	client         *githubClient
+	client         githubClientInterface
 	fromRef, toRef ref
 	// branch is optional. It helps optimize the PR query by restricting
 	// the results to PRs merged in the selected branch and in main
@@ -40,6 +40,16 @@ type githubFromToPRLister struct {
 func newGithubFromToPRLister(repo string, fromRef, toRef ref, branch string) *githubFromToPRLister {
 	return &githubFromToPRLister{
 		client:  &githubClient{repo: repo},
+		fromRef: fromRef,
+		toRef:   toRef,
+		branch:  branch,
+	}
+}
+
+// for testing purposes.
+func newGithubFromToPRListerWithClient(client githubClientInterface, fromRef, toRef ref, branch string) *githubFromToPRLister {
+	return &githubFromToPRLister{
+		client:  client,
 		fromRef: fromRef,
 		toRef:   toRef,
 		branch:  branch,

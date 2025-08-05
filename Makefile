@@ -950,7 +950,10 @@ test-cover: ## Run unit and integration tests and generate a coverage report
 	go tool cover -html=out/coverage.out -o out/coverage.html
 
 .PHONY: test-docker-infrastructure
-test-docker-infrastructure: $(SETUP_ENVTEST) ## Run unit and integration tests for docker infrastructure provider
+test-docker-infrastructure: $(SETUP_ENVTEST) ## Run unit and integration tests with race detector for docker infrastructure provider
+	# Note: Fuzz tests are not executed with race detector because they would just time out.
+	# To achieve that, all files with fuzz tests have the "!race" build tag, to still run fuzz tests
+	# we have an additional `go test` run that focuses on "TestFuzzyConversion".
 	cd $(CAPD_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
 	$(MAKE) test-docker-infrastructure-conversions TEST_ARGS="$(TEST_ARGS)"
 
@@ -959,15 +962,17 @@ test-docker-infrastructure-conversions: $(SETUP_ENVTEST) ## Run conversions test
 	cd $(CAPD_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -run "^TestFuzzyConversion$$" ./... $(TEST_ARGS)
 
 .PHONY: test-docker-infrastructure-verbose
-test-docker-infrastructure-verbose: ## Run unit and integration tests for docker infrastructure provider with verbose flag
+test-docker-infrastructure-verbose: ## Run unit and integration tests with race detector and with verbose flag for docker infrastructure provider
 	$(MAKE) test-docker-infrastructure TEST_ARGS="$(TEST_ARGS) -v"
 
 .PHONY: test-docker-infrastructure-junit
-test-docker-infrastructure-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report for docker infrastructure provider
+test-docker-infrastructure-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests with race detector and generate a junit report for docker infrastructure provider
 	cd $(CAPD_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.infra_docker.exitcode) | tee $(ARTIFACTS)/junit.infra_docker.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.infra_docker.xml --raw-command cat $(ARTIFACTS)/junit.infra_docker.stdout
 	exit $$(cat $(ARTIFACTS)/junit.infra_docker.exitcode)
-
+	cd $(CAPD_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -run "^TestFuzzyConversion$$" -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit-fuzz.infra_docker.exitcode) | tee $(ARTIFACTS)/junit-fuzz.infra_docker.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit-fuzz.infra_docker.xml --raw-command cat $(ARTIFACTS)/junit-fuzz.infra_docker.stdout
+	exit $$(cat $(ARTIFACTS)/junit-fuzz.infra_docker.exitcode)
 .PHONY: test-test-extension
 test-test-extension: $(SETUP_ENVTEST) ## Run unit and integration tests for the test extension
 	cd $(TEST_EXTENSION_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)

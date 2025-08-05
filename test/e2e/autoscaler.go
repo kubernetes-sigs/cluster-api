@@ -260,9 +260,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 			By("Scaling the MachineDeployment scale up deployment to zero")
 			framework.ScaleScaleUpDeploymentAndWait(ctx, framework.ScaleScaleUpDeploymentAndWaitInput{
 				ClusterProxy: workloadClusterProxy,
-				// We need to sum up the expected number of MachineDeployment replicas and the current
-				// number of MachinePool replicas because otherwise the pods get scheduled on the MachinePool nodes.
-				Replicas: mpOriginalReplicas + 0,
+				Replicas:     0,
 			}, input.E2EConfig.GetIntervals(specName, "wait-autoscaler")...)
 
 			By("Checking the MachineDeployment finished scaling down to zero")

@@ -30,6 +30,10 @@ type DockerMachineTemplateSpec struct {
 
 // DockerMachineTemplateStatus defines the observed state of a DockerMachineTemplate.
 type DockerMachineTemplateStatus struct {
+	// capacity defines the resource capacity for this DockerMachineTemplate.
+	// This value is used for autoscaling from zero operations as defined in:
+	// https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
+	// +optional
 	Capacity corev1.ResourceList `json:"capacity,omitempty"`
 }
 

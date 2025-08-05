@@ -36,39 +36,33 @@ metadata:
   name: docker-clusterclass-v0.1.0
 spec:
   controlPlane:
-    ref:
+    templateRef:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: docker-clusterclass-v0.1.0
-      namespace: default
     machineInfrastructure:
-      ref:
+      templateRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DockerMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         name: docker-clusterclass-v0.1.0
-        namespace: default
   infrastructure:
-    ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: DockerClusterTemplate
       name: docker-clusterclass-v0.1.0-control-plane
-      namespace: default
   workers:
     machineDeployments:
     - class: default-worker
-      template:
-        bootstrap:
-          ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-            kind: KubeadmConfigTemplate
-            name: docker-clusterclass-v0.1.0-default-worker
-            namespace: default
-        infrastructure:
-          ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: DockerMachineTemplate
-            name: docker-clusterclass-v0.1.0-default-worker
-            namespace: default
+      bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: docker-clusterclass-v0.1.0-default-worker
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: DockerMachineTemplate
+          name: docker-clusterclass-v0.1.0-default-worker
 ```
 
 The following example shows a Cluster using this ClusterClass. In this case a `KubeadmControlPlane` 
@@ -142,17 +136,16 @@ spec:
   workers:
     machinePools:
     - class: default-worker
-      template:
-        bootstrap:
-          ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-            kind: KubeadmConfigTemplate
-            name: quick-start-default-worker-bootstraptemplate
-        infrastructure:
-          ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: DockerMachinePoolTemplate
-            name: quick-start-default-worker-machinepooltemplate
+      bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: quick-start-default-worker-bootstraptemplate
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: DockerMachinePoolTemplate
+          name: quick-start-default-worker-machinepooltemplate
 ```
 
 They can then be similarly defined as workers in the cluster template like so:
@@ -191,30 +184,36 @@ metadata:
 spec:
   controlPlane:
     ...
-    machineHealthCheck:
-      maxUnhealthy: 33%
-      nodeStartupTimeout: 15m
-      unhealthyNodeConditions:
-      - type: Ready
-        status: Unknown
-        timeout: 300s
-      - type: Ready
-        status: "False"
-        timeout: 300s
+    healthCheck:
+      checks:
+        nodeStartupTimeoutSeconds: 900
+        unhealthyNodeConditions:
+        - type: Ready
+          status: Unknown
+          timeoutSeconds: 300
+        - type: Ready
+          status: "False"
+          timeoutSeconds: 300
+      remediation:
+        triggerIf:
+          unhealthyLessThanOrEqualTo: 33%
   workers:
     machineDeployments:
     - class: default-worker
       ...
-      machineHealthCheck:
-        unhealthyRange: "[0-2]"
-        nodeStartupTimeout: 10m
-        unhealthyNodeConditions:
-        - type: Ready
-          status: Unknown
-          timeout: 300s
-        - type: Ready
-          status: "False"
-          timeout: 300s
+      healthCheck:
+        checks:
+          nodeStartupTimeoutSeconds: 600
+          unhealthyNodeConditions:
+          - type: Ready
+            status: Unknown
+            timeoutSeconds: 300
+          - type: Ready
+            status: "False"
+            timeoutSeconds: 300
+        remediation:
+          triggerIf:
+            unhealthyInRange: "[0-2]"
 ```
 
 ## ClusterClass with patches
@@ -479,7 +478,7 @@ spec:
   matchConstraints:
     resourceRules:
     - apiGroups:   ["cluster.x-k8s.io"]
-      apiVersions: ["v1beta1"]
+      apiVersions: ["v1beta2"]
       operations:  ["CREATE", "UPDATE"]
       resources:   ["clusters"]
   validations:
@@ -537,7 +536,7 @@ spec:
   - name: workerMachineType
     definitions:
     - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: AWSMachineTemplate
         matchResources:
           machineDeploymentClass:
@@ -549,7 +548,7 @@ spec:
         valueFrom:
           variable: workerMachineType
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
   name: aws-clusterclass-v0.1.0-default-worker
@@ -662,7 +661,7 @@ spec:
     description: "Sets the container image that is used for running dockerMachines."
     definitions:
     - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: DockerMachineTemplate
         matchResources:
           machineDeploymentClass:

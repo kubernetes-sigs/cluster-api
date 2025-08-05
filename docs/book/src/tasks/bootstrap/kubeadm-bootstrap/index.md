@@ -40,7 +40,6 @@ kind: KubeadmConfig
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-control-plane1-config
-spec:
 ---
 kind: DockerMachine
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2

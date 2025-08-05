@@ -24,9 +24,6 @@
 - [Breaking Changes](#breaking-changes)
 - [Dependency Licence Management](#dependency-licence-management)
 - [API conventions](#api-conventions)
-  - [Optional vs. Required](#optional-vs-required)
-    - [Example](#example)
-    - [Exceptions](#exceptions)
   - [CRD additionalPrinterColumns](#crd-additionalprintercolumns)
 - [Google Doc Viewing Permissions](#google-doc-viewing-permissions)
 - [Issue and Pull Request Management](#issue-and-pull-request-management)
@@ -380,63 +377,25 @@ licenses dependencies and other artifacts use. For go dependencies only dependen
 
 ## API conventions
 
-This project follows the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md). Minor modifications or additions to the conventions are listed below.
+This project follows the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
+We enforce the API conventions via [kube-api-linter](https://github.com/kubernetes-sigs/kube-api-linter).
+The corresponding configuration field can be found [here](https://github.com/kubernetes-sigs/cluster-api/blob/main/.golangci-kal.yml). 
 
-### Optional vs. Required
-
-* Status fields MUST be optional. Our controllers are patching selected fields instead of updating the entire status in every reconciliation.
-
-* If a field is required (for our controllers to work) and has a default value specified via OpenAPI schema, but we don't want to force users to set the field, we have to mark the field as optional. Otherwise, the client-side kubectl OpenAPI schema validation will force the user to set it even though it would be defaulted on the server-side.
-
-Optional fields have the following properties:
-* An optional field MUST be marked with `+optional` and include an `omitempty` JSON tag.
-* Fields SHOULD be pointers if there is a good reason for it, for example:
-  * the nil and the zero values (by Go standards) have semantic differences.
-    * Note: This doesn't apply to map or slice types as they are assignable to `nil`.
-  * the field is of a struct type, contains only fields with `omitempty` and you want
-    to prevent that it shows up as an empty object after marshalling (e.g. `kubectl get`)
-
-#### Example
-
-When using ClusterClass, the semantic difference is important when you have a field in a template which will
-have instance-specific different values in derived objects. Because in this case it's possible to set the field to `nil`
-in the template and then the value can be set in derived objects without being overwritten by the cluster topology controller.
-
-#### Exceptions
-
-* Fields in root objects should be kept as scaffolded by kubebuilder, e.g.:
-  ```golang
-  type Machine struct {
-    metav1.TypeMeta   `json:",inline"`
-    metav1.ObjectMeta `json:"metadata,omitempty"`
-
-    Spec   MachineSpec   `json:"spec,omitempty"`
-    Status MachineStatus `json:"status,omitempty"`
-  }
-  type MachineList struct {
-    metav1.TypeMeta `json:",inline"`
-    metav1.ListMeta `json:"metadata,omitempty"`
-    Items           []Machine `json:"items"`
-  }
-  ```
-
-* Top-level fields in `status` must always have the `+optional` annotation. If we want the field to be always visible even if it
-  has the zero value, it must **not** have the `omitempty` JSON tag, e.g.:
-  * Replica counters like `availableReplicas` in the `MachineDeployment`
-  * Flags expressing progress in the object lifecycle like `infrastructureReady` in `Machine`
+Minor additions to the conventions are listed below.
 
 ### CRD additionalPrinterColumns
 
 All our CRD objects should have the following `additionalPrinterColumns` order (if the respective field exists in the CRD):
 * Namespace (added automatically)
 * Name (added automatically)
-* Cluster
-* Other fields
+* ClusterClass and/or Cluster owning this resource
+* Available or Ready condition
 * Replica-related fields
+* Other fields for -o wide (fields with priority `1` are only shown with `-o wide` and not per default)
+* Paused (only shows with -o wide)
 * Phase
 * Age (mandatory field for all CRDs)
 * Version
-* Other fields for -o wide (fields with priority `1` are only shown with `-o wide` and not per default)
 
 ***NOTE***: The columns can be configured via the `kubebuilder:printcolumn` annotation on root objects. For examples, please see the `./api` package.
 

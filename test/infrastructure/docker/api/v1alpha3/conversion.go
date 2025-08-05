@@ -165,6 +165,7 @@ func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	if ok {
 		RestoreDockerMachineTemplateSpec(&restored.Spec, &dst.Spec)
+		dst.Status = restored.Status
 	}
 
 	return nil

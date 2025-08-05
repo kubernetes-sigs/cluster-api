@@ -494,6 +494,15 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		setupLog.Error(err, "Unable to create controller", "controller", "DevCluster")
 		os.Exit(1)
 	}
+
+	if err := (&controllers.DevMachineTemplateReconciler{
+		Client:           mgr.GetClient(),
+		ContainerRuntime: runtimeClient,
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
+		setupLog.Error(err, "Unable to create controller", "controller", "DevMachineTemplate")
+		os.Exit(1)
+	}
 }
 
 func setupWebhooks(mgr ctrl.Manager) {

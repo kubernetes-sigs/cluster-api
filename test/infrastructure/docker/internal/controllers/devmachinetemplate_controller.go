@@ -18,8 +18,11 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -30,8 +33,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-// DockerMachineTemplateReconciler reconciles a DockerMachineTemplate object.
-type DockerMachineTemplateReconciler struct {
+// DevMachineTemplateReconciler reconciles a DevMachineTemplate object.
+type DevMachineTemplateReconciler struct {
 	client.Client
 	ContainerRuntime container.Runtime
 
@@ -39,15 +42,15 @@ type DockerMachineTemplateReconciler struct {
 	WatchFilterValue string
 }
 
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinetemplates,verbs=get;list;watch
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinetemplates/status,verbs=get;watch;list;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates/status,verbs=get;watch;list;update;patch
 
-// Reconcile reconciles the DockerMachineTemplate to set the capcity information.
-func (r *DockerMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+// Reconcile reconciles the DevMachineTemplate to set the capcity information.
+func (r *DevMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// Fetch the DockerMachineTemplate instance
-	machineTemplate := &infrav1.DockerMachineTemplate{}
+	// Fetch the DevMachineTemplate instance
+	machineTemplate := &infrav1.DevMachineTemplate{}
 	if err := r.Get(ctx, req.NamespacedName, machineTemplate); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -63,7 +66,7 @@ func (r *DockerMachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, err
 	}
 
-	log.V(3).Info("Calculated capacity for DockerMachineTemplate", "capacity", capacity)
+	log.V(3).Info("Calculated capacity for DevMachineTemplate", "capacity", capacity)
 	machineTemplate.Status.Capacity = capacity
 	if err := patchHelper.Patch(ctx, machineTemplate); err != nil {
 		return ctrl.Result{}, err
@@ -71,14 +74,26 @@ func (r *DockerMachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 	return ctrl.Result{}, nil
 }
 
+func fetchSystemResourceCapacity(ctx context.Context, containerRuntime container.Runtime) (corev1.ResourceList, error) {
+	systemInfo, err := containerRuntime.GetSystemInfo(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get system info using container runtime client: %w", err)
+	}
+
+	return map[corev1.ResourceName]resource.Quantity{
+		corev1.ResourceMemory: *resource.NewQuantity(systemInfo.MemTotal, resource.BinarySI),
+		corev1.ResourceCPU:    *resource.NewQuantity(int64(systemInfo.NCPU), resource.DecimalSI),
+	}, nil
+}
+
 // SetupWithManager will add watches for this controller.
-func (r *DockerMachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *DevMachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.ContainerRuntime == nil {
 		return errors.New("Client and ContainerRuntime must not be nil")
 	}
-	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "dockermachinetemplate")
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "devmachinetemplate")
 	err := ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1.DockerMachineTemplate{}).
+		For(&infrav1.DevMachineTemplate{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Complete(r)

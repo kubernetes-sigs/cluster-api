@@ -97,6 +97,7 @@ rules:
   - devmachines/finalizers
   - devmachines/status
   - devmachinetemplates
+  - devmachinetemplates/status
   - dockerclusters/finalizers
   - dockerclusters/status
   - dockerclustertemplates
@@ -106,17 +107,10 @@ rules:
   - dockermachines/finalizers
   - dockermachines/status
   - dockermachinetemplates
+  - dockermachinetemplates/status
   verbs:
   - get
   - list
   - patch
   - update
   - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - dockermachinetemplates/status
-  verbs:
-  - get
-  - patch
-  - update

@@ -399,7 +399,7 @@ variables:
   CAPI_INSECURE_DIAGNOSTICS: "true"
 
 intervals:
-  default/wait-controllers: ["3m", "10s"]
+  default/wait-controllers: ["4m", "10s"]
   default/wait-cluster: ["5m", "10s"]
   default/wait-control-plane: ["10m", "10s"]
   default/wait-worker-nodes: ["5m", "10s"]

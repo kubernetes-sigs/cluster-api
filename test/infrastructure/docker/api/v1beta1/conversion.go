@@ -120,7 +120,22 @@ func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerMachineTemplate)
 
-	return Convert_v1beta1_DockerMachineTemplate_To_v1beta2_DockerMachineTemplate(src, dst, nil)
+	if err := Convert_v1beta1_DockerMachineTemplate_To_v1beta2_DockerMachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &infrav1.DockerMachineTemplate{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		dst.Status = restored.Status
+	}
+
+	return nil
 }
 
 func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
@@ -134,7 +149,7 @@ func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.ProviderID = nil
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *DevCluster) ConvertTo(dstRaw conversion.Hub) error {
@@ -226,7 +241,22 @@ func (dst *DevMachine) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DevMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DevMachineTemplate)
 
-	return Convert_v1beta1_DevMachineTemplate_To_v1beta2_DevMachineTemplate(src, dst, nil)
+	if err := Convert_v1beta1_DevMachineTemplate_To_v1beta2_DevMachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &infrav1.DevMachineTemplate{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		dst.Status = restored.Status
+	}
+
+	return nil
 }
 
 func (dst *DevMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
@@ -240,7 +270,7 @@ func (dst *DevMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.ProviderID = nil
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(in *clusterv1beta1.ObjectMeta, out *clusterv1.ObjectMeta, s apiconversion.Scope) error {
@@ -623,4 +653,8 @@ func Convert_v1beta1_DockerClusterBackendSpec_To_v1beta2_DockerClusterBackendSpe
 
 func Convert_v1beta2_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(in *infrav1.DockerMachineTemplate, out *DockerMachineTemplate, s apiconversion.Scope) error {
 	return autoConvert_v1beta2_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(in, out, s)
+}
+
+func Convert_v1beta2_DevMachineTemplate_To_v1beta1_DevMachineTemplate(in *infrav1.DevMachineTemplate, out *DevMachineTemplate, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_DevMachineTemplate_To_v1beta1_DevMachineTemplate(in, out, s)
 }

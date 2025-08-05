@@ -48,7 +48,7 @@ apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: BeforeClusterCreateRequest
 settings: <Runtime Extension settings>
 cluster:
-  apiVersion: cluster.x-k8s.io/v1beta2
+  apiVersion: cluster.x-k8s.io/v1beta1
   kind: Cluster
   metadata:
    name: test-cluster

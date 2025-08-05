@@ -41,7 +41,6 @@ apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-control-plane1-config
 spec:
-  initConfiguration:
 ---
 kind: DockerMachine
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -110,7 +109,6 @@ apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-control-plane1-config
 spec:
-  initConfiguration:
 ```
 
 Additional control plane nodes:
@@ -131,7 +129,6 @@ apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-worker1-config
 spec:
-  joinConfiguration:
 ```
 
 ### Bootstrap Orchestration

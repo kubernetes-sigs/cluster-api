@@ -269,6 +269,19 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: .*(res|result|i|j)\.Requeue is deprecated: Use `RequeueAfter` instead'
+      # TODO: var-naming: avoid meaningless package names by revive  
+      #   * test/infrastructure/docker/internal/docker/types/
+      #   * bootstrap/kubeadm/types/
+      #   * internal/webhooks/util/
+      #   * util/
+      #   * exp/util/
+      #   * controlplane/kubeadm/internal/etcd/util/
+      #   * cmd/clusterctl/internal/util/
+      #   * bootstrap/util/
+      - linters:
+          - revive
+        text: 'var-naming: avoid meaningless package names'
+        path: test/infrastructure/docker/internal/docker/types/.*\.go$|bootstrap/kubeadm/types/.*\.go$|internal/webhooks/util/.*\.go$|util/.*\.go$|exp/util/.*\.go$|controlplane/kubeadm/internal/etcd/util/.*\.go$|cmd/clusterctl/internal/util/.*\.go$|bootstrap/util/.*\.go$
       - linters:
           - revive
         text: 'exported: exported method .*\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported'

@@ -641,7 +641,7 @@ func (h *apiServerHandler) apiV1PortForward(req *restful.Request, resp *restful.
 // In the case of the in.memory backend, the target endpoint is always on the same server (the controller pod).
 func (h *apiServerHandler) doPortForward(ctx context.Context, address string, stream io.ReadWriteCloser) error {
 	// Get a connection to the target of the port forward operation.
-	dial, err := net.Dial("tcp", address)
+	dial, err := net.Dial("tcp", address) //nolint:noctx
 	if err != nil {
 		return fmt.Errorf("failed to dial %q: %w", address, err)
 	}

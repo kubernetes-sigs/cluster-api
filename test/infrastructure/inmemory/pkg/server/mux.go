@@ -152,7 +152,7 @@ func NewWorkloadClustersMux(manager inmemoryruntime.Manager, host string, opts .
 	m.debugServer = http.Server{
 		Handler: inmemoryapi.NewDebugHandler(manager, m.log, m),
 	}
-	l, err := net.Listen("tcp", net.JoinHostPort(host, fmt.Sprintf("%d", options.DebugPort)))
+	l, err := net.Listen("tcp", net.JoinHostPort(host, fmt.Sprintf("%d", options.DebugPort))) //nolint:noctx
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create listener for workload cluster mux")
 	}
@@ -447,7 +447,7 @@ func (m *WorkloadClustersMux) AddAPIServer(wclName, podName string, caCert *x509
 			return nil
 		}
 
-		l, err := net.Listen("tcp", fmt.Sprintf(":%d", wcl.Port()))
+		l, err := net.Listen("tcp", fmt.Sprintf(":%d", wcl.Port())) //nolint:noctx
 		if err != nil {
 			return errors.Wrapf(err, "failed to start WorkloadClusterListener %s, %s", wclName, fmt.Sprintf(":%d", wcl.Port()))
 		}
@@ -468,6 +468,7 @@ func (m *WorkloadClustersMux) AddAPIServer(wclName, podName string, caCert *x509
 	var pollErr error
 	err = wait.PollUntilContextTimeout(context.TODO(), 250*time.Millisecond, 5*time.Second, true, func(context.Context) (done bool, err error) {
 		d := &net.Dialer{Timeout: 50 * time.Millisecond}
+		//nolint:noctx
 		conn, err := tls.DialWithDialer(d, "tcp", wcl.HostPort(), &tls.Config{
 			InsecureSkipVerify: true, //nolint:gosec // config is used to connect to our own port.
 		})

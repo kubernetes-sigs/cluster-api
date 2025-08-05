@@ -53,7 +53,7 @@ and instructions for signing it [can be found here](https://git.k8s.io/community
 If you're new to the project and want to help, but don't know where to start, we have a semi-curated list of issues that
 should not need deep knowledge of the system. [Have a look and see if anything sounds
 interesting](https://github.com/kubernetes-sigs/cluster-api/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22).
-Before starting to work on the issue, make sure that it doesn't have a `lifecycle/active` label. If the issue has been assigned, reach out to the assignee.
+Before starting to work on the issue, check if the issue has been assigned, if yes, reach out to the assignee.
 Alternatively, read some docs on other controllers and try to write your own, file and fix any/all issues that
 come up, including gaps in documentation!
 
@@ -123,7 +123,7 @@ this should generally not be the case.
 ## Contributing a Patch
 
 1. If you haven't already done so, sign a Contributor License Agreement (see details above).
-1. If working on an issue, signal other contributors that you are actively working on it using `/lifecycle active`.
+1. If working on an issue, signal other contributors that you are actively working on it by assigning it to yourself.
 1. Fork the desired repo, develop and test your code changes.
 1. Submit a pull request.
     1. All code PR must be labeled with one of

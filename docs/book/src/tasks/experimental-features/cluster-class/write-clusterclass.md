@@ -186,7 +186,6 @@ spec:
     ...
     healthCheck:
       checks:
-        maxUnhealthy: 33%
         nodeStartupTimeoutSeconds: 900
         unhealthyNodeConditions:
         - type: Ready
@@ -195,13 +194,15 @@ spec:
         - type: Ready
           status: "False"
           timeoutSeconds: 300
+      remediation:
+        triggerIf:
+          unhealthyLessThanOrEqualTo: 33%
   workers:
     machineDeployments:
     - class: default-worker
       ...
       healthCheck:
         checks:
-          unhealthyRange: "[0-2]"
           nodeStartupTimeoutSeconds: 600
           unhealthyNodeConditions:
           - type: Ready
@@ -210,6 +211,9 @@ spec:
           - type: Ready
             status: "False"
             timeoutSeconds: 300
+        remediation:
+          triggerIf:
+            unhealthyInRange: "[0-2]"
 ```
 
 ## ClusterClass with patches

@@ -89,7 +89,7 @@ apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: AfterControlPlaneInitializedRequest
 settings: <Runtime Extension settings>
 cluster:
-  apiVersion: cluster.x-k8s.io/v1beta2
+  apiVersion: cluster.x-k8s.io/v1beta1
   kind: Cluster
   metadata:
    name: test-cluster
@@ -130,7 +130,7 @@ apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: BeforeClusterUpgradeRequest
 settings: <Runtime Extension settings>
 cluster:
-  apiVersion: cluster.x-k8s.io/v1beta2
+  apiVersion: cluster.x-k8s.io/v1beta1
   kind: Cluster
   metadata:
    name: test-cluster
@@ -179,7 +179,7 @@ apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: AfterControlPlaneUpgradeRequest
 settings: <Runtime Extension settings>
 cluster:
-  apiVersion: cluster.x-k8s.io/v1beta2
+  apiVersion: cluster.x-k8s.io/v1beta1
   kind: Cluster
   metadata:
    name: test-cluster
@@ -216,7 +216,7 @@ apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: AfterClusterUpgradeRequest
 settings: <Runtime Extension settings>
 cluster:
-  apiVersion: cluster.x-k8s.io/v1beta2
+  apiVersion: cluster.x-k8s.io/v1beta1
   kind: Cluster
   metadata:
    name: test-cluster
@@ -252,7 +252,7 @@ apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: BeforeClusterDeleteRequest
 settings: <Runtime Extension settings>
 cluster:
-  apiVersion: cluster.x-k8s.io/v1beta2
+  apiVersion: cluster.x-k8s.io/v1beta1
   kind: Cluster
   metadata:
    name: test-cluster

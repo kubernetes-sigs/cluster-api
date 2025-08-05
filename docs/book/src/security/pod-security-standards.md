@@ -195,7 +195,7 @@ It is also possible to disable this patch or configure different levels for the 
 using variables.
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: "my-cluster"
@@ -203,7 +203,8 @@ spec:
   ...
   topology:
     ...
-    class: my-secure-cluster-class
+    classRef:
+      name: my-secure-cluster-class
     variables:
     - name: podSecurityStandard
       value: 

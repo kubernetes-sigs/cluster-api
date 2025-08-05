@@ -39,7 +39,8 @@ The patch will make the following change to the Cluster yaml:
 ```diff 
    spec:
      topology:
-      class: quick-start
+      classRef:
+        name: quick-start
 +     version: v1.22.0
 -     version: v1.21.2 
 ```

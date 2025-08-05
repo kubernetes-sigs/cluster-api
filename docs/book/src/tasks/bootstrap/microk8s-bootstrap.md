@@ -13,11 +13,11 @@ Cluster API bootstrap provider MicroK8s (CABPM) is a component responsible for g
 MicroK8s defines a `MicroK8sControlPlane` definition as well as the `MachineDeployment` to configure the control plane and worker nodes respectively. The `MicroK8sControlPlane` is linked in the cluster definition as shown in the following example:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 spec:
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    apiGroup: controlplane.cluster.x-k8s.io
     kind: MicroK8sControlPlane
     name: capi-aws-control-plane
 ```

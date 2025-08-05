@@ -15,8 +15,9 @@ kind: KubeadmControlPlane
 metadata:
   name: example-control-plane
 spec:
-  rolloutBefore:
-    certificatesExpiryDays: 21 # trigger a rollout if certificates expire within 21 days
+  rollout:
+    before:
+      certificatesExpiryDays: 21 # trigger a rollout if certificates expire within 21 days
   kubeadmConfigSpec:
     clusterConfiguration:
       ...

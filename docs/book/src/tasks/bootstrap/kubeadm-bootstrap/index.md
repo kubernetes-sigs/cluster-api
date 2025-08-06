@@ -107,7 +107,6 @@ kind: KubeadmConfig
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-control-plane1-config
-spec:
 ```
 
 Additional control plane nodes:
@@ -127,7 +126,6 @@ kind: KubeadmConfig
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 metadata:
   name: my-worker1-config
-spec:
 ```
 
 ### Bootstrap Orchestration

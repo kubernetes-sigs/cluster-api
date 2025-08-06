@@ -14,6 +14,7 @@ hack/tools/bin
 test/e2e/data/infrastructure-docker/**/cluster-template*.yaml
 !test/e2e/data/infrastructure-docker/**/clusterclass-quick-start.yaml
 !test/e2e/data/infrastructure-docker/**/clusterclass-quick-start-runtimesdk.yaml
+!test/e2e/data/infrastructure-docker/**/clusterclass-quick-start-runtimesdk-v1beta1.yaml
 !test/e2e/data/infrastructure-docker/**/cluster-template-in-memory.yaml
 !test/e2e/data/infrastructure-docker/**/clusterclass-in-memory.yaml
 test/e2e/data/infrastructure-docker/**/clusterclass-*.yaml

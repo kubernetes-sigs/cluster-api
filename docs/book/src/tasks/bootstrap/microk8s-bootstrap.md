@@ -41,7 +41,7 @@ spec:
 The worker nodes are configured through the `MachineDeployment` object:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment
 metadata:
   name: capi-aws-md-0
@@ -57,10 +57,9 @@ spec:
       version: v1.23.0     
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiGroup: bootstrap.cluster.x-k8s.io
           kind: MicroK8sConfigTemplate
           name: capi-aws-md-0
-......
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: MicroK8sConfigTemplate
@@ -70,6 +69,7 @@ metadata:
 spec:
   template:
     spec: {}
+......
 ```
 
 In both the `MicroK8sControlPlane` and `MicroK8sConfigTemplate` you can set a `MicroK8sConfig` object. In the `MicroK8sControlPlane` case `MicroK8sConfig` is under `MicroK8sConfig.spec.controlPlaneConfig` whereas in `MicroK8sConfigTemplate` it is under `MicroK8sConfigTemplate.spec.template.spec`.

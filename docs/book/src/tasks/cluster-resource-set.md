@@ -19,7 +19,7 @@ This can be accomplished by labeling the clusters with the specific cloud (e.g. 
 For example, you could have the following for OpenStack:
 
 ```yaml
-apiVersion: addons.cluster.x-k8s.io/v1beta1
+apiVersion: addons.cluster.x-k8s.io/v1beta2
 kind: ClusterResourceSet
 metadata:
   name: cloud-provider-openstack

@@ -174,7 +174,6 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 		if obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
 			obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration = &bootstrapv1beta1.ClusterConfiguration{}
 		}
-
 		if obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs == nil {
 			obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs = map[string]string{}
 		}
@@ -190,11 +189,17 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 		}
 		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs["v"] = "2"
 
+		if obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration == nil {
+			obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1beta1.InitConfiguration{}
+		}
 		if obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs == nil {
 			obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
 		}
 		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
 
+		if obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
+			obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1beta1.JoinConfiguration{}
+		}
 		if obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
 			obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
 		}
@@ -250,12 +255,15 @@ func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, _ map[str
 	// 1) Set extraArgs
 	switch obj := obj.(type) {
 	case *bootstrapv1beta1.KubeadmConfigTemplate:
+		if obj.Spec.Template.Spec.JoinConfiguration == nil {
+			obj.Spec.Template.Spec.JoinConfiguration = &bootstrapv1beta1.JoinConfiguration{}
+		}
 		if obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
 			obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
 		}
 		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
 	case *bootstrapv1.KubeadmConfigTemplate:
-		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.InitConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
+		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
 	}
 }
 

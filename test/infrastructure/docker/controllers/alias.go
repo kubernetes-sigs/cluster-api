@@ -72,6 +72,24 @@ func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}).SetupWithManager(ctx, mgr, options)
 }
 
+// DockerMachineTemplateReconciler reconciles a DockerMachineTemplate object.
+type DockerMachineTemplateReconciler struct {
+	Client           client.Client
+	ContainerRuntime container.Runtime
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
+	WatchFilterValue string
+}
+
+// SetupWithManager sets up the reconciler with the Manager.
+func (r *DockerMachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	return (&dockercontrollers.DockerMachineTemplateReconciler{
+		Client:           r.Client,
+		ContainerRuntime: r.ContainerRuntime,
+		WatchFilterValue: r.WatchFilterValue,
+	}).SetupWithManager(ctx, mgr, options)
+}
+
 // DevMachineReconciler reconciles a DevMachine object.
 type DevMachineReconciler struct {
 	Client           client.Client
@@ -115,5 +133,23 @@ func (r *DevClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		ContainerRuntime: r.ContainerRuntime,
 		InMemoryManager:  r.InMemoryManager,
 		APIServerMux:     r.APIServerMux,
+	}).SetupWithManager(ctx, mgr, options)
+}
+
+// DevMachineTemplateReconciler reconciles a DevMachineTemplate object.
+type DevMachineTemplateReconciler struct {
+	Client           client.Client
+	ContainerRuntime container.Runtime
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
+	WatchFilterValue string
+}
+
+// SetupWithManager sets up the reconciler with the Manager.
+func (r *DevMachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	return (&dockercontrollers.DevMachineTemplateReconciler{
+		Client:           r.Client,
+		ContainerRuntime: r.ContainerRuntime,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

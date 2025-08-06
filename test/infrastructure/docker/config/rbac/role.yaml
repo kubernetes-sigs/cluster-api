@@ -97,6 +97,7 @@ rules:
   - devmachines/finalizers
   - devmachines/status
   - devmachinetemplates
+  - devmachinetemplates/status
   - dockerclusters/finalizers
   - dockerclusters/status
   - dockerclustertemplates
@@ -106,6 +107,7 @@ rules:
   - dockermachines/finalizers
   - dockermachines/status
   - dockermachinetemplates
+  - dockermachinetemplates/status
   verbs:
   - get
   - list

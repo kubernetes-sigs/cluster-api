@@ -1,3 +1,4 @@
+# Note: This file is intentionally using v1beta1 for v1beta1 test coverage.
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: ClusterClass
 metadata:

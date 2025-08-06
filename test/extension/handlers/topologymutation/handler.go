@@ -263,7 +263,7 @@ func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, _ map[str
 		}
 		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
 	case *bootstrapv1.KubeadmConfigTemplate:
-		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.InitConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
+		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
 	}
 }
 

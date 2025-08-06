@@ -64,6 +64,7 @@ func NewDockerClient() (Runtime, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to created docker runtime client")
 	}
+
 	return &dockerRuntime{
 		dockerClient: dockerClient,
 	}, nil
@@ -542,6 +543,11 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 	}
 
 	return nil
+}
+
+// GetSystemInfo will return the docker system info.
+func (d *dockerRuntime) GetSystemInfo(ctx context.Context) (dockersystem.Info, error) {
+	return d.dockerClient.Info(ctx)
 }
 
 // needsDevMapper checks whether we need to mount /dev/mapper.

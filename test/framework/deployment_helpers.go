@@ -328,7 +328,7 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 }
 
 // logMetadata contains metadata about the logs.
-// The format is very similar to the one used by promtail.
+// The format is very similar to the one used by alloy.
 type logMetadata struct {
 	Job       string            `json:"job"`
 	Namespace string            `json:"namespace"`

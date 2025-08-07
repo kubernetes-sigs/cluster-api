@@ -450,13 +450,16 @@ func VerifyClusterAvailable(ctx context.Context, input VerifyClusterAvailableInp
 	// Wait for the cluster Available condition to stabilize.
 	Eventually(func(g Gomega) {
 		g.Expect(input.Getter.Get(ctx, key, cluster)).To(Succeed())
+		availableConditionFound := false
 		for _, condition := range cluster.Status.Conditions {
 			if condition.Type == clusterv1.AvailableCondition {
+				availableConditionFound = true
 				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The Available condition on the Cluster should be set to true; message: %s", condition.Message)
 				g.Expect(condition.Message).To(BeEmpty(), "The Available condition on the Cluster should have an empty message")
-				return
+				break
 			}
 		}
+		g.Expect(availableConditionFound).To(BeTrue(), "Cluster %q should have an Available condition", input.Name)
 	}, 5*time.Minute, 10*time.Second).Should(Succeed(), "Failed to verify Cluster Available condition for %s", klog.KRef(input.Namespace, input.Name))
 }
 

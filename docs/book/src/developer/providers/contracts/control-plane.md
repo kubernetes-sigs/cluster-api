@@ -627,7 +627,7 @@ In case conditions are implemented on a ControlPlane resource, Cluster API will 
 - `reason` (optional, if omitted a default one will be used)
 - `message` (optional, if omitted an empty message will be used)
 - `lastTransitionTime` (optional, if omitted time.Now will be used)
-- `observedGeeneration` (optional, if omitted the generation of the ControlPlane resource will be used)
+- `observedGeneration` (optional, if omitted the generation of the ControlPlane resource will be used)
 
 Other fields will be ignored.
 

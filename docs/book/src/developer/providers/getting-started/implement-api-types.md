@@ -41,6 +41,9 @@ const (
 
 // MailgunClusterSpec defines the desired state of MailgunCluster
 type MailgunClusterSpec struct {
+  // INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+	
 	// Priority is how quickly you need this cluster
 	Priority Priority `json:"priority"`
 	// Request is where you ask extra nicely
@@ -51,12 +54,15 @@ type MailgunClusterSpec struct {
 
 // MailgunClusterStatus defines the observed state of MailgunCluster
 type MailgunClusterStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+
 	// MessageID is set to the message ID from Mailgun when our message has been sent
 	MessageID *string `json:"response"`
 }
 ```
 
-As the deleted comments request, run `make manager manifests` to regenerate some of the generated data files afterwards.
+As the comments request, run `make manager manifests` to regenerate some of the generated data files afterwards.
 
 ```bash
 git add .
@@ -69,13 +75,19 @@ To enable clients to encode and decode your API, your types must be able to be r
 
 [scheme]: https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime#Scheme
 
-By default, Kubebuilder will provide you with a scheme builder like:
+By default, Kubebuilder will provide you with a scheme builder (likely in `api/v1alpha1/groupversion_info.go`) like:
 
 ```go
-import "sigs.k8s.io/controller-runtime/pkg/scheme"
+import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/scheme"
+)
 
 var (
-	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
+	// GroupVersion is group version used to register these objects.
+	GroupVersion = schema.GroupVersion{Group: "infrastructure.cluster.x-k8s.io", Version: "v1alpha1"}
+
+	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
 
 	// AddToScheme adds the types in this group-version to the given scheme.
@@ -83,11 +95,11 @@ var (
 )
 ```
 
-and scheme registration that looks like:
+and scheme registration (likely in `api/v1alpha1/*_types.go`) that looks like:
 
 ```go
 func init() {
-	SchemeBuilder.Register(&Captain{}, &CaptainList{})
+	SchemeBuilder.Register(&MailgunCluster{}, &MailgunClusterList{})
 }
 ```
 
@@ -99,10 +111,17 @@ to be imported cleanly into other projects.
 To mitigate this, use the following schemebuilder pattern:
 
 ```go
-import "k8s.io/apimachinery/pkg/runtime"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+)
 
 var (
-	// schemeBuilder is used to add go types to the GroupVersionKind scheme.
+	// GroupVersion is group version used to register these objects.
+	GroupVersion = schema.GroupVersion{Group: "infrastructure.cluster.x-k8s.io", Version: "v1alpha1"}
+
+	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
 	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 
 	// AddToScheme adds the types in this group-version to the given scheme.
@@ -122,7 +141,7 @@ and register types as below:
 
 ```go
 func init() {
-	objectTypes = append(objectTypes, &Captain{}, &CaptainList{})
+	objectTypes = append(objectTypes, &MailgunCluster{}, &MailgunClusterList{})
 }
 ```
 

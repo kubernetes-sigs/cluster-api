@@ -2277,6 +2277,7 @@ func autoConvert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentT
 		return err
 	}
 	out.Class = in.Class
+	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.Name = in.Name
 	if err := v1.Convert_Pointer_string_To_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
 		return err
@@ -2297,6 +2298,7 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentT
 	if err := Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(&in.Metadata, &out.Metadata, s); err != nil {
 		return err
 	}
+	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.Class = in.Class
 	out.Name = in.Name
 	if err := v1.Convert_string_To_Pointer_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {

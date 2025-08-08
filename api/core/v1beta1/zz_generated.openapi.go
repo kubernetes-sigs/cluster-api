@@ -2560,6 +2560,13 @@ func schema_cluster_api_api_core_v1beta1_MachineDeploymentTopology(ref common.Re
 							Format:      "",
 						},
 					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the Kubernetes version of the worker group, can only be used if auto-upgrade is disabled.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name is the unique identifier for this MachineDeploymentTopology. The value is used with other unique identifiers to create a MachineDeployment's Name (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length, the values are hashed together.",

@@ -72,7 +72,6 @@ import (
 	expapiwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
 	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"
-	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 	"sigs.k8s.io/cluster-api/version"
@@ -390,7 +389,7 @@ func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string
 	if err := (&expapiwebhooks.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for machinepool: %+v", err)
 	}
-	if err := (&runtimewebhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for extensionconfig: %+v", err)
 	}
 	if err := (&expipamwebhooks.IPAddress{}).SetupWebhookWithManager(mgr); err != nil {

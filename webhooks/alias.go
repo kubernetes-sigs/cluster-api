@@ -25,6 +25,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
+	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 )
 
 // Cluster implements a validating and defaulting webhook for Cluster.
@@ -124,4 +125,12 @@ type ClusterResourceSetBinding struct{}
 // SetupWebhookWithManager sets up ClusterResourceSet webhooks.
 func (webhook *ClusterResourceSetBinding) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return (&webhooks.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr)
+}
+
+// ExtensionConfig implements a defaulting and validating webhook for ExtensionConfig.
+type ExtensionConfig struct{}
+
+// SetupWebhookWithManager sets up ClusterResourceSet webhooks.
+func (webhook *ExtensionConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&runtimewebhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr)
 }

@@ -1,8 +1,5 @@
 ginkgo.focus: \[Feature\:IPv6DualStack\]
-# Skipping Test:
-# [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should function for service endpoints using hostNetwork
-# because it is failing in the EKS cluster.
-ginkgo.skip: \[Feature\:SCTPConnectivity\]|\[LinuxOnly\]\s+should\s+function\s+for\s+service\s+endpoints\s+using\s+hostNetwork
+ginkgo.skip: \[Feature\:SCTPConnectivity\]
 disable-log-dump: true
 # ginkgo.progress flag is deprecated but its still used when
 # we run kubetest on K8s versions <= v1.26, we have to keep it

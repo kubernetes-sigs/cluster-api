@@ -114,6 +114,7 @@ enable_providers:
 {{#tab KubeVirt}}
 
 ```yaml
+default_registry: gcr.io/your-project-name-here
 enable_providers:
 - kubevirt
 - kubeadm-bootstrap

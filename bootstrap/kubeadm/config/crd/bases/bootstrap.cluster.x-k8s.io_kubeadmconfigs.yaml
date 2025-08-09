@@ -5368,6 +5368,8 @@ spec:
                           description: |-
                             token is used for establishing bidirectional trust between nodes and control-planes.
                             Used for joining nodes in the cluster.
+                          maxLength: 23
+                          minLength: 1
                           type: string
                         ttlSeconds:
                           description: |-

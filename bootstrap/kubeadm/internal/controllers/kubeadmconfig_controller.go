@@ -152,7 +152,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 }
 
 // Reconcile handles KubeadmConfig events.
-func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Look up the kubeadm config
@@ -272,6 +272,12 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 		if err := patchHelper.Patch(ctx, config, patchOpts...); err != nil {
 			rerr = kerrors.NewAggregate([]error{rerr, err})
+		}
+
+		// Note: controller-runtime logs a warning that non-empty result is ignored
+		// if error is not nil, so setting result here to empty to avoid noisy warnings.
+		if rerr != nil {
+			retRes = ctrl.Result{}
 		}
 	}()
 

@@ -45,7 +45,7 @@ While we add test coverage for the new release branch we will also drop the test
  ```sh
   TEST_INFRA_DIR=../../k8s.io/test-infra make generate-test-infra-prowjobs
   ```
-6. Verify the jobs and dashboards a day later by taking a look at: `https://testgrid.k8s.io/cluster-api-core-1.8`
+6. Verify the jobs and dashboards a day later by taking a look at the relevant release branch: `https://testgrid.k8s.io/cluster-api-core`
 
 Prior art:
 

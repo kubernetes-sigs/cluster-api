@@ -70,7 +70,7 @@ func (webhook *KubeadmConfig) ValidateDelete(_ context.Context, _ runtime.Object
 }
 
 func (webhook *KubeadmConfig) validate(c bootstrapv1.KubeadmConfigSpec, name string) error {
-	allErrs := c.Validate(field.NewPath("spec"))
+	allErrs := c.Validate(false, field.NewPath("spec"))
 
 	if len(allErrs) == 0 {
 		return nil

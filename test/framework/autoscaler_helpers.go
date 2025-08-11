@@ -221,7 +221,7 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 		},
 	}
 
-	By("Create scale up deployment")
+	byf("Create scale up deployment (%d replicas)", replicas)
 	Expect(input.ClusterProxy.GetClient().Create(ctx, scaleUpDeployment)).To(Succeed(), "failed to create the scale up pod")
 
 	By("Wait for the scale up deployment to become ready (this implies machines to be created)")

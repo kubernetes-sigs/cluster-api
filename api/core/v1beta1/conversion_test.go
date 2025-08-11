@@ -229,6 +229,10 @@ func spokeCluster(in *Cluster, c randfill.Continue) {
 			in.Spec.ClusterNetwork = nil
 		}
 	}
+
+	if in.Spec.Topology != nil && reflect.DeepEqual(in.Spec.Topology, &Topology{}) {
+		in.Spec.Topology = nil
+	}
 }
 
 func spokeClusterTopology(in *Topology, c randfill.Continue) {

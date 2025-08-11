@@ -124,16 +124,30 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 	// - Make upgrade decisions on the control plane.
 	// - Making upgrade decisions on machine pools.
 	if len(s.Current.MachinePools) > 0 {
-		client, err := g.ClusterCache.GetClient(ctx, client.ObjectKeyFromObject(s.Current.Cluster))
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to check if any MachinePool is upgrading")
+		machinePoolsHaveMachines := false
+		for _, mp := range s.Current.MachinePools {
+			if len(mp.Object.Status.NodeRefs) > 0 {
+				machinePoolsHaveMachines = true
+				break
+			}
 		}
-		// Mark all the MachinePools that are currently upgrading.
-		mpUpgradingNames, err := s.Current.MachinePools.Upgrading(ctx, client)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to check if any MachinePool is upgrading")
+
+		// MachinePools can only be upgrading if they have Machines.
+		// Skipping over the check if they have no Machines, also to avoid failing
+		// desired state calculation during Cluster creation where there is no
+		// connection to the workload cluster yet.
+		if machinePoolsHaveMachines {
+			client, err := g.ClusterCache.GetClient(ctx, client.ObjectKeyFromObject(s.Current.Cluster))
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to check if any MachinePool is upgrading")
+			}
+			// Mark all the MachinePools that are currently upgrading.
+			mpUpgradingNames, err := s.Current.MachinePools.Upgrading(ctx, client)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to check if any MachinePool is upgrading")
+			}
+			s.UpgradeTracker.MachinePools.MarkUpgrading(mpUpgradingNames...)
 		}
-		s.UpgradeTracker.MachinePools.MarkUpgrading(mpUpgradingNames...)
 	}
 
 	// Compute the desired state of the ControlPlane object, eventually adding a reference to the

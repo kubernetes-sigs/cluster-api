@@ -110,9 +110,21 @@ func TestDefaultHandler(t *testing.T) {
 			wantLogged: true,
 		},
 		{
-			name:       "do not log, if warning matches at least one expression",
+			name:       "do not log, if warning matches at least one expression (domain-qualified finalizer)",
 			code:       299,
 			message:    `metadata.finalizers: "dockermachine.infrastructure.cluster.x-k8s.io": prefer a domain-qualified finalizer name to avoid accidental conflicts with other finalizer writers`,
+			wantLogged: false,
+		},
+		{
+			name:       "do not log, if warning matches at least one expression (domain-qualified finalizer)",
+			code:       299,
+			message:    `metadata.finalizers: "cluster.cluster.x-k8s.io": prefer a domain-qualified finalizer name including a path (/) to avoid accidental conflicts with other finalizer writers`,
+			wantLogged: false,
+		},
+		{
+			name:       "do not log, if warning matches at least one expression (deprecation warning)",
+			code:       299,
+			message:    `controlplane.cluster.x-k8s.io/v1beta1 KubeadmControlPlane is deprecated; use controlplane.cluster.x-k8s.io/v1beta2 KubeadmControlPlane`,
 			wantLogged: false,
 		},
 	}

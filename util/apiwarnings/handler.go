@@ -61,6 +61,7 @@ func DefaultHandler(l logr.Logger) *DiscardMatchingHandler {
 		Logger: l,
 		Expressions: []regexp.Regexp{
 			DomainQualifiedFinalizerWarning(clusterv1.GroupVersion.Group),
+			DeprecationWarning(),
 		},
 	}
 }

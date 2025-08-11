@@ -450,7 +450,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				},
 			},
 		},
-		"invalid ControlPlaneComponentHealthCheckSeconds": {
+		"valid ControlPlaneComponentHealthCheckSeconds (JoinConfiguration not defined)": {
 			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
@@ -464,7 +464,23 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					},
 				},
 			},
-			expectErr: true,
+			expectErr: false,
+		},
+		"valid ControlPlaneComponentHealthCheckSeconds (InitConfiguration not defined)": {
+			in: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						Timeouts: bootstrapv1.Timeouts{
+							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](10),
+						},
+					},
+				},
+			},
+			expectErr: false,
 		},
 		"valid ControlPlaneComponentHealthCheckSeconds": {
 			in: &bootstrapv1.KubeadmConfig{

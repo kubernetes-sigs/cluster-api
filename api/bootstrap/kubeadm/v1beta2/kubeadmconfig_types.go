@@ -143,7 +143,7 @@ type KubeadmConfigSpec struct {
 }
 
 // Validate ensures the KubeadmConfigSpec is valid.
-func (c *KubeadmConfigSpec) Validate(pathPrefix *field.Path) field.ErrorList {
+func (c *KubeadmConfigSpec) Validate(isKCP bool, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, c.validateFiles(pathPrefix)...)
@@ -166,29 +166,34 @@ func (c *KubeadmConfigSpec) Validate(pathPrefix *field.Path) field.ErrorList {
 		}
 	}
 
-	// Validate timeouts
-	// Note: When v1beta1 will be removed, we can drop this limitation.
-	tInit := "unset"
-	if c.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
-		tInit = fmt.Sprintf("%d", *c.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
-	}
-	tJoin := "unset"
-	if c.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
-		tJoin = fmt.Sprintf("%d", *c.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
-	}
-	if tInit != tJoin {
-		allErrs = append(allErrs,
-			field.Invalid(
-				pathPrefix.Child("initConfiguration", "timeouts", "controlPlaneComponentHealthCheckSeconds"),
-				tInit,
-				fmt.Sprintf("controlPlaneComponentHealthCheckSeconds must be set to the same value both in initConfiguration.timeouts (%s) and in joinConfiguration.timeouts (%s)", tInit, tJoin),
-			),
-			field.Invalid(
-				pathPrefix.Child("joinConfiguration", "timeouts", "controlPlaneComponentHealthCheckSeconds"),
-				tJoin,
-				fmt.Sprintf("controlPlaneComponentHealthCheckSeconds must be set to the same value both in initConfiguration.timeouts (%s) and in joinConfiguration.timeouts (%s)", tInit, tJoin),
-			),
-		)
+	// Only ensure ControlPlaneComponentHealthCheckSeconds fields are equal for KubeadmControlPlane and KubeadmControlPlaneTemplate.
+	// In KubeadmConfig objects usually only one of InitConfiguration or JoinConfiguration is defined as a Machine uses
+	// either kubeadm init or kubeadm join, but not both.
+	if isKCP {
+		// Validate timeouts
+		// Note: When v1beta1 will be removed, we can drop this limitation.
+		tInit := "unset"
+		if c.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
+			tInit = fmt.Sprintf("%d", *c.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
+		}
+		tJoin := "unset"
+		if c.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds != nil {
+			tJoin = fmt.Sprintf("%d", *c.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds)
+		}
+		if tInit != tJoin {
+			allErrs = append(allErrs,
+				field.Invalid(
+					pathPrefix.Child("initConfiguration", "timeouts", "controlPlaneComponentHealthCheckSeconds"),
+					tInit,
+					fmt.Sprintf("controlPlaneComponentHealthCheckSeconds must be set to the same value both in initConfiguration.timeouts (%s) and in joinConfiguration.timeouts (%s)", tInit, tJoin),
+				),
+				field.Invalid(
+					pathPrefix.Child("joinConfiguration", "timeouts", "controlPlaneComponentHealthCheckSeconds"),
+					tJoin,
+					fmt.Sprintf("controlPlaneComponentHealthCheckSeconds must be set to the same value both in initConfiguration.timeouts (%s) and in joinConfiguration.timeouts (%s)", tInit, tJoin),
+				),
+			)
+		}
 	}
 
 	return allErrs

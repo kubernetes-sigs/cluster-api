@@ -94,7 +94,7 @@ func (webhook *KubeadmConfigTemplate) ValidateDelete(_ context.Context, _ runtim
 func (webhook *KubeadmConfigTemplate) validate(r *bootstrapv1.KubeadmConfigTemplateSpec, name string) error {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, r.Template.Spec.Validate(field.NewPath("spec", "template", "spec"))...)
+	allErrs = append(allErrs, r.Template.Spec.Validate(false, field.NewPath("spec", "template", "spec"))...)
 	// Validate the metadata of the template.
 	allErrs = append(allErrs, r.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
 

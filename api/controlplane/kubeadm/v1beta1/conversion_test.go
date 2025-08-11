@@ -99,6 +99,7 @@ func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []in
 		spokeDiscovery,
 		hubKubeadmConfigSpec,
 		hubNodeRegistrationOptions,
+		hubKubeadmControlPlaneTemplate,
 		spokeKubeadmControlPlaneTemplate,
 		spokeRemediationStrategy,
 		spokeKubeadmControlPlaneTemplateMachineTemplate,
@@ -364,6 +365,15 @@ func spokeClusterConfiguration(in *bootstrapv1beta1.ClusterConfiguration, c rand
 	}
 }
 
+func hubKubeadmControlPlaneTemplate(in *controlplanev1.KubeadmControlPlaneTemplate, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// In v1beta2 Type is required and RollingUpdateStrategyType is the only valid value.
+	if in.Spec.Template.Spec.Rollout.Strategy.Type == "" {
+		in.Spec.Template.Spec.Rollout.Strategy.Type = controlplanev1.RollingUpdateStrategyType
+	}
+}
+
 func spokeKubeadmControlPlaneTemplate(in *KubeadmControlPlaneTemplate, c randfill.Continue) {
 	c.FillNoCustom(in)
 
@@ -383,6 +393,13 @@ func spokeKubeadmControlPlaneTemplate(in *KubeadmControlPlaneTemplate, c randfil
 	}
 	if reflect.DeepEqual(in.Spec.Template.Spec.MachineNamingStrategy, &MachineNamingStrategy{}) {
 		in.Spec.Template.Spec.MachineNamingStrategy = nil
+	}
+
+	// In v1beta1 Type was always defaulted to RollingUpdateStrategyType.
+	// RollingUpdateStrategyType is also the only valid value.
+	if in.Spec.Template.Spec.RolloutStrategy != nil &&
+		in.Spec.Template.Spec.RolloutStrategy.Type == "" {
+		in.Spec.Template.Spec.RolloutStrategy.Type = RollingUpdateStrategyType
 	}
 }
 

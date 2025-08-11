@@ -287,7 +287,15 @@ func Convert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1beta2_KubeadmC
 		out.Rollout.After = *in.RolloutAfter
 	}
 	if in.RolloutStrategy != nil {
-		out.Rollout.Strategy.Type = controlplanev1.KubeadmControlPlaneRolloutStrategyType(in.RolloutStrategy.Type)
+		// If Type is empty in v1beta1, set it to RollingUpdateStrategyType.
+		// This is the same behavior as in previous versions of Cluster API as Type
+		// was always defaulted to RollingUpdateStrategyType, and also RollingUpdateStrategyType
+		// is the only valid value.
+		if in.RolloutStrategy.Type == "" {
+			out.Rollout.Strategy.Type = controlplanev1.RollingUpdateStrategyType
+		} else {
+			out.Rollout.Strategy.Type = controlplanev1.KubeadmControlPlaneRolloutStrategyType(in.RolloutStrategy.Type)
+		}
 		if in.RolloutStrategy.RollingUpdate != nil && in.RolloutStrategy.RollingUpdate.MaxSurge != nil {
 			out.Rollout.Strategy.RollingUpdate.MaxSurge = in.RolloutStrategy.RollingUpdate.MaxSurge
 		}

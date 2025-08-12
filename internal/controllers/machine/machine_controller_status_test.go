@@ -2166,7 +2166,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
-		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
 		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
@@ -2238,7 +2238,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
-		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
 		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
@@ -2327,7 +2327,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
-		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
 		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
@@ -2405,7 +2405,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
-		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
 		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
@@ -2472,7 +2472,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
-		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
 		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
@@ -2529,7 +2529,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			},
 			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
 		}
-		g.Expect(env.Create(ctx, node)).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, node)).To(Succeed())
 		defer func() {
 			g.Expect(env.Cleanup(ctx, node)).To(Succeed())
 		}()
@@ -2544,7 +2544,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
-		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
 		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 

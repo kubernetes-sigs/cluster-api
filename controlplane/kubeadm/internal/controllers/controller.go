@@ -261,6 +261,12 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 				res = ctrl.Result{RequeueAfter: 20 * time.Second}
 			}
 		}
+
+		// Note: controller-runtime logs a warning that non-empty result is ignored
+		// if error is not nil, so setting result here to empty to avoid noisy warnings.
+		if reterr != nil {
+			res = ctrl.Result{}
+		}
 	}()
 
 	if !kcp.DeletionTimestamp.IsZero() {

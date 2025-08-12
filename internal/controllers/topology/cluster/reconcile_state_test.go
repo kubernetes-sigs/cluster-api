@@ -3662,7 +3662,8 @@ func TestReconcileState(t *testing.T) {
 		g.Expect(got.Spec.InfrastructureRef.IsDefined()).To(BeTrue())
 		g.Expect(got.Spec.ControlPlaneRef.IsDefined()).To(BeFalse())
 
-		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, currentCluster, clusterClass, ict, cpt)).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, currentCluster)).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, clusterClass, ict, cpt)).To(Succeed())
 	})
 	t.Run("Cluster get reconciled with both infrastructure Ref and control plane ref when both reconcileInfrastructureCluster and reconcileControlPlane pass", func(t *testing.T) {
 		g := NewWithT(t)
@@ -3722,7 +3723,8 @@ func TestReconcileState(t *testing.T) {
 		g.Expect(got.Spec.InfrastructureRef.IsDefined()).To(BeTrue())
 		g.Expect(got.Spec.ControlPlaneRef.IsDefined()).To(BeTrue())
 
-		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, controlPlane, currentCluster, clusterClass, ict, cpt)).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, currentCluster)).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, controlPlane, clusterClass, ict, cpt)).To(Succeed())
 	})
 	t.Run("Cluster does not get reconciled when reconcileControlPlane fails and infrastructure Ref is set", func(t *testing.T) {
 		g := NewWithT(t)

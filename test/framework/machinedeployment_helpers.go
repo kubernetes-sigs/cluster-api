@@ -777,7 +777,7 @@ func ScaleAndWaitMachineDeploymentTopologyV1Beta1(ctx context.Context, input Sca
 }
 
 type AssertMachineDeploymentReplicasInput struct {
-	Getter                   Getter
+	GetLister                GetLister
 	MachineDeployment        *clusterv1.MachineDeployment
 	Replicas                 int32
 	WaitForMachineDeployment []interface{}
@@ -785,7 +785,7 @@ type AssertMachineDeploymentReplicasInput struct {
 
 func AssertMachineDeploymentReplicas(ctx context.Context, input AssertMachineDeploymentReplicasInput) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for AssertMachineDeploymentReplicas")
-	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling AssertMachineDeploymentReplicas")
+	Expect(input.GetLister).ToNot(BeNil(), "Invalid argument. input.GetLister can't be nil when calling AssertMachineDeploymentReplicas")
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling AssertMachineDeploymentReplicas")
 
 	Eventually(func(g Gomega) {
@@ -795,9 +795,23 @@ func AssertMachineDeploymentReplicas(ctx context.Context, input AssertMachineDep
 			Namespace: input.MachineDeployment.Namespace,
 			Name:      input.MachineDeployment.Name,
 		}
-		g.Expect(input.Getter.Get(ctx, key, md)).To(Succeed(), fmt.Sprintf("failed to get MachineDeployment %s", klog.KObj(input.MachineDeployment)))
+		g.Expect(input.GetLister.Get(ctx, key, md)).To(Succeed(), fmt.Sprintf("failed to get MachineDeployment %s", klog.KObj(input.MachineDeployment)))
 		g.Expect(md.Spec.Replicas).Should(Not(BeNil()), fmt.Sprintf("MachineDeployment %s replicas should not be nil", klog.KObj(md)))
 		g.Expect(*md.Spec.Replicas).Should(Equal(input.Replicas), fmt.Sprintf("MachineDeployment %s replicas should match expected replicas", klog.KObj(md)))
 		g.Expect(ptr.Deref(md.Status.Replicas, 0)).Should(Equal(input.Replicas), fmt.Sprintf("MachineDeployment %s status.replicas should match expected replicas", klog.KObj(md)))
+
+		// Check all replicas have a NodeRef (i.e. they have a corresponding Node).
+		selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
+		g.Expect(err).ToNot(HaveOccurred())
+		machines := &clusterv1.MachineList{}
+		err = input.GetLister.List(ctx, machines, client.InNamespace(input.MachineDeployment.Namespace), client.MatchingLabels(selectorMap))
+		g.Expect(err).ToNot(HaveOccurred())
+		count := 0
+		for _, machine := range machines.Items {
+			if machine.Status.NodeRef.IsDefined() {
+				count++
+			}
+		}
+		g.Expect(count).To(Equal(int(input.Replicas)))
 	}, input.WaitForMachineDeployment...).Should(Succeed())
 }

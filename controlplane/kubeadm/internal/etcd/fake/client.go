@@ -52,7 +52,7 @@ func (c *FakeEtcdClient) AlarmList(_ context.Context) (*clientv3.AlarmResponse, 
 	return c.AlarmResponse, c.ErrorResponse
 }
 
-func (c *FakeEtcdClient) MemberList(_ context.Context) (*clientv3.MemberListResponse, error) {
+func (c *FakeEtcdClient) MemberList(_ context.Context, _ ...clientv3.OpOption) (*clientv3.MemberListResponse, error) {
 	return c.MemberListResponse, c.ErrorResponse
 }
 func (c *FakeEtcdClient) MemberRemove(_ context.Context, i uint64) (*clientv3.MemberRemoveResponse, error) {

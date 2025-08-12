@@ -19,7 +19,6 @@ package v1beta1
 import (
 	"fmt"
 	"reflect"
-	"unsafe"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
@@ -359,7 +358,12 @@ func Convert_v1beta2_APIServer_To_v1beta1_APIServer(in *bootstrapv1.APIServer, o
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+		out.ExtraEnvs = make([]EnvVar, len(*in.ExtraEnvs))
+		for i := range *in.ExtraEnvs {
+			if err := Convert_v1beta2_EnvVar_To_v1beta1_EnvVar(&(*in.ExtraEnvs)[i], &(out.ExtraEnvs)[i], s); err != nil {
+				return err
+			}
+		}
 	}
 	if err := convert_v1beta2_ExtraVolumes_To_v1beta1_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s); err != nil {
 		return err
@@ -373,7 +377,12 @@ func Convert_v1beta2_ControllerManager_To_v1beta1_ControlPlaneComponent(in *boot
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+		out.ExtraEnvs = make([]EnvVar, len(*in.ExtraEnvs))
+		for i := range *in.ExtraEnvs {
+			if err := Convert_v1beta2_EnvVar_To_v1beta1_EnvVar(&(*in.ExtraEnvs)[i], &(out.ExtraEnvs)[i], s); err != nil {
+				return err
+			}
+		}
 	}
 	return convert_v1beta2_ExtraVolumes_To_v1beta1_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
@@ -384,7 +393,12 @@ func Convert_v1beta2_Scheduler_To_v1beta1_ControlPlaneComponent(in *bootstrapv1.
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+		out.ExtraEnvs = make([]EnvVar, len(*in.ExtraEnvs))
+		for i := range *in.ExtraEnvs {
+			if err := Convert_v1beta2_EnvVar_To_v1beta1_EnvVar(&(*in.ExtraEnvs)[i], &(out.ExtraEnvs)[i], s); err != nil {
+				return err
+			}
+		}
 	}
 	return convert_v1beta2_ExtraVolumes_To_v1beta1_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
@@ -409,7 +423,12 @@ func Convert_v1beta2_LocalEtcd_To_v1beta1_LocalEtcd(in *bootstrapv1.LocalEtcd, o
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = *(*[]EnvVar)(unsafe.Pointer(in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+		out.ExtraEnvs = make([]EnvVar, len(*in.ExtraEnvs))
+		for i := range *in.ExtraEnvs {
+			if err := Convert_v1beta2_EnvVar_To_v1beta1_EnvVar(&(*in.ExtraEnvs)[i], &(out.ExtraEnvs)[i], s); err != nil {
+				return err
+			}
+		}
 	}
 	out.ImageRepository = in.ImageRepository
 	out.ImageTag = in.ImageTag
@@ -450,7 +469,12 @@ func Convert_v1beta1_APIServer_To_v1beta2_APIServer(in *APIServer, out *bootstra
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+		out.ExtraEnvs = ptr.To(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
+		for i := range in.ExtraEnvs {
+			if err := Convert_v1beta1_EnvVar_To_v1beta2_EnvVar(&(in.ExtraEnvs)[i], &(*out.ExtraEnvs)[i], s); err != nil {
+				return err
+			}
+		}
 	}
 	if err := convert_v1beta1_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s); err != nil {
 		return err
@@ -463,7 +487,12 @@ func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_ControllerManager(in *Cont
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+		out.ExtraEnvs = ptr.To(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
+		for i := range in.ExtraEnvs {
+			if err := Convert_v1beta1_EnvVar_To_v1beta2_EnvVar(&(in.ExtraEnvs)[i], &(*out.ExtraEnvs)[i], s); err != nil {
+				return err
+			}
+		}
 	}
 	return convert_v1beta1_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
@@ -473,7 +502,12 @@ func Convert_v1beta1_ControlPlaneComponent_To_v1beta2_Scheduler(in *ControlPlane
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+		out.ExtraEnvs = ptr.To(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
+		for i := range in.ExtraEnvs {
+			if err := Convert_v1beta1_EnvVar_To_v1beta2_EnvVar(&(in.ExtraEnvs)[i], &(*out.ExtraEnvs)[i], s); err != nil {
+				return err
+			}
+		}
 	}
 	return convert_v1beta1_ExtraVolumes_To_v1beta2_ExtraVolumes(&in.ExtraVolumes, &out.ExtraVolumes, s)
 }
@@ -519,7 +553,12 @@ func Convert_v1beta1_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *bootstra
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = (*[]bootstrapv1.EnvVar)(unsafe.Pointer(&in.ExtraEnvs)) //nolint:gosec // copied over from generated code, fuzzer should detect if we run into issues
+		out.ExtraEnvs = ptr.To(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
+		for i := range in.ExtraEnvs {
+			if err := Convert_v1beta1_EnvVar_To_v1beta2_EnvVar(&(in.ExtraEnvs)[i], &(*out.ExtraEnvs)[i], s); err != nil {
+				return err
+			}
+		}
 	}
 	out.ImageRepository = in.ImageRepository
 	out.ImageTag = in.ImageTag

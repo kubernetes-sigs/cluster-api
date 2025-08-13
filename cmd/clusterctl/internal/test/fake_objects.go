@@ -22,13 +22,13 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
@@ -1389,12 +1389,12 @@ func SelectClusterObj(objs []client.Object, namespace, name string) *clusterv1.C
 // setUID assigns a UID to the object, so test objects are uniquely identified.
 // NB. In order to make debugging easier we are using a human readable, deterministic string (instead of a random UID).
 func setUID(obj client.Object) {
-	accessor, err := meta.Accessor(obj)
+	gvk, err := apiutil.GVKForObject(obj, FakeScheme)
 	if err != nil {
-		panic(fmt.Sprintf("failed to get accessor for test object: %v", err))
+		panic(fmt.Sprintf("failed to get GVK for test object: %v", err))
 	}
-	uid := fmt.Sprintf("%s, %s", obj.GetObjectKind().GroupVersionKind().String(), klog.KObj(accessor))
-	accessor.SetUID(types.UID(uid))
+	uid := fmt.Sprintf("%s, %s", gvk.String(), klog.KObj(obj))
+	obj.SetUID(types.UID(uid))
 }
 
 // FakeClusterCustomResourceDefinition returns a fake CRD object for the given group/versions/kind.

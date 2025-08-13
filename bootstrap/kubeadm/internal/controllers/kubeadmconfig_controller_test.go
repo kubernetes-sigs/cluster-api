@@ -2347,7 +2347,6 @@ contexts:
     user: default
   name: default
 current-context: default
-preferences: {}
 users:
 - name: default
   user:

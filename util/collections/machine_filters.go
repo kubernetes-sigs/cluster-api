@@ -23,7 +23,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -101,12 +100,12 @@ func InFailureDomains(failureDomains ...string) Func {
 
 // OwnedMachines returns a filter to find all machines owned by specified owner.
 // Usage: GetFilteredMachinesForCluster(ctx, client, cluster, OwnedMachines(controlPlane)).
-func OwnedMachines(owner client.Object) func(machine *clusterv1.Machine) bool {
+func OwnedMachines(owner *controlplanev1.KubeadmControlPlane) func(machine *clusterv1.Machine) bool {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
 			return false
 		}
-		return util.IsOwnedByObject(machine, owner)
+		return util.IsOwnedByObject(machine, owner, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane").GroupKind())
 	}
 }
 

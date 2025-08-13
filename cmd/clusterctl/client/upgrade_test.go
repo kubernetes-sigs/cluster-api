@@ -365,10 +365,6 @@ func fakeClientForUpgrade() *fakeClient {
 
 func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, targetNamespace string) clusterctlv1.Provider {
 	return clusterctlv1.Provider{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterctlv1.GroupVersion.String(),
-			Kind:       "Provider",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: targetNamespace,
 			Name:      clusterctlv1.ManifestLabel(name, providerType),

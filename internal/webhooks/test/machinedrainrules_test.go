@@ -146,10 +146,10 @@ func Test_validate(t *testing.T) {
 			},
 			wantErr: "admission webhook \"validation.machinedrainrule.cluster.x-k8s.io\" denied the request: " +
 				"MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: [" +
-				"spec.machines[0].selector: Invalid value: v1.LabelSelector{MatchLabels:map[string]string(nil), MatchExpressions:[]v1.LabelSelectorRequirement{v1.LabelSelectorRequirement{Key:\"\", Operator:\"Invalid-Operator\", Values:[]string(nil)}}}: \"Invalid-Operator\" is not a valid label selector operator, " +
-				"spec.machines[0].clusterSelector: Invalid value: v1.LabelSelector{MatchLabels:map[string]string(nil), MatchExpressions:[]v1.LabelSelectorRequirement{v1.LabelSelectorRequirement{Key:\"\", Operator:\"Invalid-Operator\", Values:[]string(nil)}}}: \"Invalid-Operator\" is not a valid label selector operator, " +
-				"spec.pods[0].selector: Invalid value: v1.LabelSelector{MatchLabels:map[string]string(nil), MatchExpressions:[]v1.LabelSelectorRequirement{v1.LabelSelectorRequirement{Key:\"\", Operator:\"Invalid-Operator\", Values:[]string(nil)}}}: \"Invalid-Operator\" is not a valid label selector operator, " +
-				"spec.pods[0].namespaceSelector: Invalid value: v1.LabelSelector{MatchLabels:map[string]string(nil), MatchExpressions:[]v1.LabelSelectorRequirement{v1.LabelSelectorRequirement{Key:\"\", Operator:\"Invalid-Operator\", Values:[]string(nil)}}}: \"Invalid-Operator\" is not a valid label selector operator]",
+				"spec.machines[0].selector: Invalid value: {\"matchExpressions\":[{\"key\":\"\",\"operator\":\"Invalid-Operator\"}]}: \"Invalid-Operator\" is not a valid label selector operator, " +
+				"spec.machines[0].clusterSelector: Invalid value: {\"matchExpressions\":[{\"key\":\"\",\"operator\":\"Invalid-Operator\"}]}: \"Invalid-Operator\" is not a valid label selector operator, " +
+				"spec.pods[0].selector: Invalid value: {\"matchExpressions\":[{\"key\":\"\",\"operator\":\"Invalid-Operator\"}]}: \"Invalid-Operator\" is not a valid label selector operator, " +
+				"spec.pods[0].namespaceSelector: Invalid value: {\"matchExpressions\":[{\"key\":\"\",\"operator\":\"Invalid-Operator\"}]}: \"Invalid-Operator\" is not a valid label selector operator]",
 		},
 		{
 			name: "Return error if machine selectors are not unique",

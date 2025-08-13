@@ -117,7 +117,6 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 func TestGetSecretFromNamespacedName(t *testing.T) {
 	existingSecretName := types.NamespacedName{Name: "my-secret", Namespace: metav1.NamespaceDefault}
 	existingSecret := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      existingSecretName.Name,
 			Namespace: existingSecretName.Namespace,
@@ -173,7 +172,6 @@ func TestGetConfigMapFromNamespacedName(t *testing.T) {
 
 	existingConfigMapName := types.NamespacedName{Name: "my-configmap", Namespace: metav1.NamespaceDefault}
 	existingConfigMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      existingConfigMapName.Name,
 			Namespace: existingConfigMapName.Namespace,

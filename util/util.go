@@ -360,9 +360,9 @@ func indexOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerRefe
 
 // IsOwnedByObject returns true if any of the owner references point to the given target.
 // It matches the object based on the Group, Kind and Name.
-func IsOwnedByObject(obj metav1.Object, target client.Object) bool {
+func IsOwnedByObject(obj metav1.Object, target client.Object, targetGK schema.GroupKind) bool {
 	for _, ref := range obj.GetOwnerReferences() {
-		if refersTo(&ref, target) {
+		if refersTo(&ref, target, targetGK) {
 			return true
 		}
 	}
@@ -370,12 +370,12 @@ func IsOwnedByObject(obj metav1.Object, target client.Object) bool {
 }
 
 // IsControlledBy differs from metav1.IsControlledBy. This function matches on Group, Kind and Name. The metav1.IsControlledBy function matches on UID only.
-func IsControlledBy(obj metav1.Object, owner client.Object) bool {
+func IsControlledBy(obj metav1.Object, owner client.Object, ownerGK schema.GroupKind) bool {
 	controllerRef := metav1.GetControllerOfNoCopy(obj)
 	if controllerRef == nil {
 		return false
 	}
-	return refersTo(controllerRef, owner)
+	return refersTo(controllerRef, owner, ownerGK)
 }
 
 // Returns true if a and b point to the same object based on Group, Kind and Name.
@@ -394,14 +394,13 @@ func referSameObject(a, b metav1.OwnerReference) bool {
 }
 
 // Returns true if ref refers to obj based on Group, Kind and Name.
-func refersTo(ref *metav1.OwnerReference, obj client.Object) bool {
+func refersTo(ref *metav1.OwnerReference, obj client.Object, objGK schema.GroupKind) bool {
 	refGv, err := schema.ParseGroupVersion(ref.APIVersion)
 	if err != nil {
 		return false
 	}
 
-	gvk := obj.GetObjectKind().GroupVersionKind()
-	return refGv.Group == gvk.Group && ref.Kind == gvk.Kind && ref.Name == obj.GetName()
+	return refGv.Group == objGK.Group && ref.Kind == objGK.Kind && ref.Name == obj.GetName()
 }
 
 // UnstructuredUnmarshalField is a wrapper around json and unstructured objects to decode and copy a specific field

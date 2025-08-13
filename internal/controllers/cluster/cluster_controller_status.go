@@ -246,7 +246,7 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 	}
 
 	for _, ms := range machineSets.Items {
-		if !util.IsOwnedByObject(&ms, cluster) {
+		if !util.IsOwnedByObject(&ms, cluster, clusterv1.GroupVersion.WithKind("Cluster").GroupKind()) {
 			continue
 		}
 		if ms.Spec.Replicas != nil {
@@ -267,7 +267,7 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 	}
 
 	for _, m := range workerMachines.UnsortedList() {
-		if !util.IsOwnedByObject(m, cluster) {
+		if !util.IsOwnedByObject(m, cluster, clusterv1.GroupVersion.WithKind("Cluster").GroupKind()) {
 			continue
 		}
 		currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + 1)
@@ -973,7 +973,7 @@ func setScalingUpCondition(ctx context.Context, cluster *clusterv1.Cluster, cont
 		ws = append(ws, aggregationWrapper{md: &md})
 	}
 	for _, ms := range machineSets.Items {
-		if !util.IsOwnedByObject(&ms, cluster) {
+		if !util.IsOwnedByObject(&ms, cluster, clusterv1.GroupVersion.WithKind("Cluster").GroupKind()) {
 			continue
 		}
 		ws = append(ws, aggregationWrapper{ms: &ms})
@@ -1050,7 +1050,7 @@ func setScalingDownCondition(ctx context.Context, cluster *clusterv1.Cluster, co
 		ws = append(ws, aggregationWrapper{md: &md})
 	}
 	for _, ms := range machineSets.Items {
-		if !util.IsOwnedByObject(&ms, cluster) {
+		if !util.IsOwnedByObject(&ms, cluster, clusterv1.GroupVersion.WithKind("Cluster").GroupKind()) {
 			continue
 		}
 		ws = append(ws, aggregationWrapper{ms: &ms})

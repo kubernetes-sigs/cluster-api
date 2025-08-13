@@ -358,11 +358,12 @@ func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []client.Object {
 		},
 		Spec: fakecontrolplane.GenericControlPlaneSpec{
 			MachineTemplate: fakecontrolplane.GenericMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					APIVersion: controlPlaneInfrastructure.APIVersion,
-					Kind:       controlPlaneInfrastructure.Kind,
-					Namespace:  controlPlaneInfrastructure.Namespace,
-					Name:       controlPlaneInfrastructure.Name,
+				Spec: fakecontrolplane.GenericMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: fakeinfrastructure.GroupVersion.Group,
+						Kind:     controlPlaneInfrastructure.Kind,
+						Name:     controlPlaneInfrastructure.Name,
+					},
 				},
 			},
 		},
@@ -1555,6 +1556,7 @@ func (f *FakeClusterClass) Objs() []client.Object {
 	}
 
 	clusterClass := clusterClassBuilder.Build()
+	clusterClass.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("ClusterClass"))
 	objMap[clusterClass] = false
 
 	for o := range objMap {

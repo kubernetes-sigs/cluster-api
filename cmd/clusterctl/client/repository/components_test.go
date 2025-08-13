@@ -241,7 +241,8 @@ func Test_fixTargetNamespace(t *testing.T) {
 							"annotations": map[string]interface{}{
 								"cert-manager.io/inject-ca-from": "bar/capm3-serving-cert",
 							},
-							"name":              "capm3-mutating-webhook-configuration",
+
+							"name": "capm3-mutating-webhook-configuration",
 						},
 						"webhooks": []interface{}{
 							map[string]interface{}{
@@ -328,7 +329,7 @@ func Test_fixTargetNamespace(t *testing.T) {
 							"annotations": map[string]interface{}{
 								"cert-manager.io/inject-ca-from": "bar/capm3-serving-cert",
 							},
-							"name":              "capm3-mutating-webhook-configuration",
+							"name": "capm3-mutating-webhook-configuration",
 						},
 						"webhooks": []interface{}{
 							map[string]interface{}{
@@ -388,7 +389,7 @@ func Test_fixTargetNamespace(t *testing.T) {
 							"annotations": map[string]interface{}{
 								"cert-manager.io/inject-ca-from": "bar/capm3-serving-cert",
 							},
-							"name":              "aCoolName",
+							"name": "aCoolName",
 						},
 						"spec": map[string]interface{}{
 							"group": "",
@@ -488,7 +489,7 @@ func Test_fixTargetNamespace(t *testing.T) {
 							"annotations": map[string]interface{}{
 								"cert-manager.io/inject-ca-from": "bar/capm3-serving-cert",
 							},
-							"name":              "aCoolName",
+							"name": "aCoolName",
 						},
 						"spec": map[string]interface{}{
 							"group":    "",

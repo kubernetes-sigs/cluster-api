@@ -22,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
@@ -286,7 +287,7 @@ func addMachineDeploymentToObjectTree(ctx context.Context, c client.Client, clus
 			tree.Add(templateParent, machineTemplateRefObject, ObjectMetaName("MachineInfrastructureTemplate"))
 		}
 
-		machineSets := selectMachinesSetsControlledBy(machineSetList, md)
+		machineSets := selectMachinesSetsControlledBy(machineSetList, md, clusterv1.GroupVersion.WithKind("MachineDeployment").GroupKind())
 		for i := range machineSets {
 			ms := machineSets[i]
 
@@ -296,7 +297,7 @@ func addMachineDeploymentToObjectTree(ctx context.Context, c client.Client, clus
 				parent = ms
 			}
 
-			machines := selectMachinesControlledBy(machinesList, ms)
+			machines := selectMachinesControlledBy(machinesList, ms, clusterv1.GroupVersion.WithKind("MachineSet").GroupKind())
 			for _, w := range machines {
 				addMachineFunc(parent, w)
 			}
@@ -321,7 +322,7 @@ func addMachinePoolsToObjectTree(ctx context.Context, c client.Client, workers *
 			}
 		}
 
-		machines := selectMachinesControlledBy(machinesList, mp)
+		machines := selectMachinesControlledBy(machinesList, mp, clusterv1.GroupVersion.WithKind("MachinePool").GroupKind())
 		for _, m := range machines {
 			addMachineFunc(mp, m)
 		}
@@ -417,22 +418,22 @@ func selectControlPlaneMachines(machineList *clusterv1.MachineList) []*clusterv1
 	return machines
 }
 
-func selectMachinesSetsControlledBy(machineSetList *clusterv1.MachineSetList, controller client.Object) []*clusterv1.MachineSet {
+func selectMachinesSetsControlledBy(machineSetList *clusterv1.MachineSetList, controller client.Object, controllerGK schema.GroupKind) []*clusterv1.MachineSet {
 	machineSets := []*clusterv1.MachineSet{}
 	for i := range machineSetList.Items {
 		m := &machineSetList.Items[i]
-		if util.IsControlledBy(m, controller) {
+		if util.IsControlledBy(m, controller, controllerGK) {
 			machineSets = append(machineSets, m)
 		}
 	}
 	return machineSets
 }
 
-func selectMachinesControlledBy(machineList *clusterv1.MachineList, controller client.Object) []*clusterv1.Machine {
+func selectMachinesControlledBy(machineList *clusterv1.MachineList, controller client.Object, controllerGK schema.GroupKind) []*clusterv1.Machine {
 	machines := []*clusterv1.Machine{}
 	for i := range machineList.Items {
 		m := &machineList.Items[i]
-		if util.IsControlledBy(m, controller) {
+		if util.IsControlledBy(m, controller, controllerGK) {
 			machines = append(machines, m)
 		}
 	}

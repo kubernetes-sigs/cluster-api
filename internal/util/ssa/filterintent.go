@@ -17,10 +17,6 @@ limitations under the License.
 package ssa
 
 import (
-	"fmt"
-	"reflect"
-	"strings"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -36,43 +32,26 @@ type FilterObjectInput struct {
 	// spec.ControlPlaneEndpoint.
 	// NOTE: ignore paths which point to an array are not supported by the current implementation.
 	IgnorePaths []contract.Path
-
-	// DropEmptyStructAndNil instructs the Helper to drop all fields with values equal to empty struct or nil.
-	// NOTE: This is required when using typed objects, because the DefaultUnstructuredConverter does
-	// not handle omitzero (yet).
-	DropEmptyStructAndNil bool
 }
 
 // FilterObject filter out changes not relevant for the controller.
 func FilterObject(obj *unstructured.Unstructured, input *FilterObjectInput) {
 	// filter out changes not in the allowed paths (fields to not consider, e.g. status);
-	// also drop empty struct if required.
 	if len(input.AllowedPaths) > 0 {
 		FilterIntent(&FilterIntentInput{
-			Path:                  contract.Path{},
-			Value:                 obj.Object,
-			ShouldFilter:          IsPathNotAllowed(input.AllowedPaths),
-			DropEmptyStructAndNil: input.DropEmptyStructAndNil,
+			Path:         contract.Path{},
+			Value:        obj.Object,
+			ShouldFilter: IsPathNotAllowed(input.AllowedPaths),
 		})
 	}
 
 	// filter out changes for ignore paths (well known fields owned by other controllers, e.g.
-	//   spec.controlPlaneEndpoint in the InfrastructureCluster object); also drop empty struct if required.
+	//   spec.controlPlaneEndpoint in the InfrastructureCluster object);
 	if len(input.IgnorePaths) > 0 {
 		FilterIntent(&FilterIntentInput{
-			Path:                  contract.Path{},
-			Value:                 obj.Object,
-			ShouldFilter:          IsPathIgnored(input.IgnorePaths),
-			DropEmptyStructAndNil: input.DropEmptyStructAndNil,
-		})
-	}
-
-	// DropEmptyStructAndNil if not already done above.
-	if input.DropEmptyStructAndNil && len(input.AllowedPaths) == 0 && len(input.IgnorePaths) == 0 {
-		FilterIntent(&FilterIntentInput{
-			Path:                  contract.Path{},
-			Value:                 obj.Object,
-			DropEmptyStructAndNil: input.DropEmptyStructAndNil,
+			Path:         contract.Path{},
+			Value:        obj.Object,
+			ShouldFilter: IsPathIgnored(input.IgnorePaths),
 		})
 	}
 }
@@ -84,71 +63,38 @@ func FilterObject(obj *unstructured.Unstructured, input *FilterObjectInput) {
 // all of them are defined in reconcile_state.go and are targeting well-known fields inside nested maps.
 // Allowed paths / ignore paths which point to an array are not supported by the current implementation.
 func FilterIntent(ctx *FilterIntentInput) bool {
+	value, ok := ctx.Value.(map[string]interface{})
+	if !ok {
+		return false
+	}
+
 	gotDeletions := false
-
-	switch value := ctx.Value.(type) {
-	case map[string]interface{}:
-		for field := range value {
-			fieldCtx := &FilterIntentInput{
-				// Compose the Path for the nested field.
-				Path: ctx.Path.Append(field),
-				// Gets the original and the modified Value for the field.
-				Value: value[field],
-				// Carry over global values from the context.
-				ShouldFilter:          ctx.ShouldFilter,
-				DropEmptyStructAndNil: ctx.DropEmptyStructAndNil,
-			}
-
-			// If the field should be filtered out, delete it from the modified object.
-			if fieldCtx.ShouldFilter != nil && fieldCtx.ShouldFilter(fieldCtx.Path) {
-				delete(value, field)
-				gotDeletions = true
-				continue
-			}
-
-			// TODO: Can be removed once we bumped to k8s.io v0.34 because the DefaultUnstructuredConverter will then handle omitzero
-			if strings.HasPrefix(fieldCtx.Path.String(), "spec") && fieldCtx.DropEmptyStructAndNil {
-				// If empty struct should be dropped and the value is a empty struct, delete it from the modified object.
-				if reflect.DeepEqual(fieldCtx.Value, map[string]interface{}{}) {
-					delete(value, field)
-					gotDeletions = true
-					continue
-				}
-				// If nil should be dropped and the value is nil, delete it from the modified object.
-				if reflect.DeepEqual(fieldCtx.Value, nil) {
-					delete(value, field)
-					gotDeletions = true
-					continue
-				}
-			}
-
-			// Process nested fields and get in return if FilterIntent removed fields.
-			if FilterIntent(fieldCtx) {
-				gotDeletions = true
-				// Ensure we are not leaving empty maps around.
-				if v, ok := fieldCtx.Value.(map[string]interface{}); ok && len(v) == 0 {
-					delete(value, field)
-				}
-			}
+	for field := range value {
+		fieldCtx := &FilterIntentInput{
+			// Compose the Path for the nested field.
+			Path: ctx.Path.Append(field),
+			// Gets the original and the modified Value for the field.
+			Value: value[field],
+			// Carry over global values from the context.
+			ShouldFilter: ctx.ShouldFilter,
 		}
-	case []interface{}:
-		// TODO: Can be removed once we bumped to k8s.io v0.34 because the DefaultUnstructuredConverter will then handle omitzero
-		if strings.HasPrefix(ctx.Path.String(), "spec") && ctx.DropEmptyStructAndNil {
-			for i, v := range value {
-				fieldCtx := &FilterIntentInput{
-					// Compose the Path for the nested field.
-					Path: ctx.Path.Append(fmt.Sprintf("[%d]", i)),
-					// Not supporting ShouldFilter within arrays, so not setting it.
-					Value:                 v,
-					DropEmptyStructAndNil: ctx.DropEmptyStructAndNil,
-				}
-				if FilterIntent(fieldCtx) {
-					gotDeletions = true
-				}
+
+		// If the field should be filtered out, delete it from the modified object.
+		if fieldCtx.ShouldFilter != nil && fieldCtx.ShouldFilter(fieldCtx.Path) {
+			delete(value, field)
+			gotDeletions = true
+			continue
+		}
+
+		// Process nested fields and get in return if FilterIntent removed fields.
+		if FilterIntent(fieldCtx) {
+			gotDeletions = true
+			// Ensure we are not leaving empty maps around.
+			if v, ok := fieldCtx.Value.(map[string]interface{}); ok && len(v) == 0 {
+				delete(value, field)
 			}
 		}
 	}
-
 	return gotDeletions
 }
 
@@ -163,8 +109,6 @@ type FilterIntentInput struct {
 
 	// ShouldFilter handle the func that determine if the current Path should be dropped or not.
 	ShouldFilter func(path contract.Path) bool
-
-	DropEmptyStructAndNil bool
 }
 
 // IsPathAllowed returns true when the Path is one of the AllowedPaths.

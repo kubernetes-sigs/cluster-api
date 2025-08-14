@@ -41,7 +41,7 @@ type etcd interface {
 	AlarmList(ctx context.Context) (*clientv3.AlarmResponse, error)
 	Close() error
 	Endpoints() []string
-	MemberList(ctx context.Context) (*clientv3.MemberListResponse, error)
+	MemberList(ctx context.Context, opts ...clientv3.OpOption) (*clientv3.MemberListResponse, error)
 	MemberRemove(ctx context.Context, id uint64) (*clientv3.MemberRemoveResponse, error)
 	MoveLeader(ctx context.Context, id uint64) (*clientv3.MoveLeaderResponse, error)
 	Status(ctx context.Context, endpoint string) (*clientv3.StatusResponse, error)

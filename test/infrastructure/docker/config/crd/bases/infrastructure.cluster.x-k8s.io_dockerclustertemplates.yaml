@@ -198,9 +198,6 @@ spec:
                               Port is the port on which the API server is serving.
                               Defaults to 6443 if not set.
                             type: integer
-                        required:
-                        - host
-                        - port
                         type: object
                       failureDomains:
                         additionalProperties:

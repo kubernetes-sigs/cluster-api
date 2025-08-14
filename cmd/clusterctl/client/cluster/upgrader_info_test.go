@@ -491,10 +491,6 @@ func toSemanticVersions(versions []string) []version.Version {
 
 func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, targetNamespace string) clusterctlv1.Provider {
 	return clusterctlv1.Provider{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterctlv1.GroupVersion.String(),
-			Kind:       "Provider",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			ResourceVersion: "999",
 			Namespace:       targetNamespace,

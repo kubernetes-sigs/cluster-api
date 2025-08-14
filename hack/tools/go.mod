@@ -26,7 +26,7 @@ require (
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/controller-runtime v0.21.1-0.20250812131711-682465344b9b
+	sigs.k8s.io/controller-runtime v0.21.1-0.20250813191507-c7df6d0236ed
 	sigs.k8s.io/controller-tools v0.18.0
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20211028165026-57688c578b5d
 	sigs.k8s.io/kustomize/api v0.17.3

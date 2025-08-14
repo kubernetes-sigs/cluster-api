@@ -1092,12 +1092,12 @@ func (c *ClusterStatus) GetTypedPhase() ClusterPhase {
 type APIEndpoint struct {
 	// host is the hostname on which the API server is serving.
 	// TODO: Can't set MinLength=1 for now, because this struct is not always used in pointer fields so today we have cases where host is set to an empty string.
-	// +required
+	// +optional
 	// +kubebuilder:validation:MaxLength=512
 	Host string `json:"host"`
 
 	// port is the port on which the API server is serving.
-	// +required
+	// +optional
 	Port int32 `json:"port"`
 }
 

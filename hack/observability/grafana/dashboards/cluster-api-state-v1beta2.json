@@ -1213,9 +1213,9 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum (capi_kubeadmcontrolplane_status_replicas_updated)",
+              "expr": "sum (capi_kubeadmcontrolplane_status_replicas_uptodate)",
               "hide": false,
-              "legendFormat": "status updated replicas",
+              "legendFormat": "status up-to-date replicas",
               "range": true,
               "refId": "E"
             }
@@ -1572,9 +1572,9 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum (capi_machinedeployment_status_replicas_updated)",
+              "expr": "sum (capi_machinedeployment_status_replicas_uptodate)",
               "hide": false,
-              "legendFormat": "status updated replicas",
+              "legendFormat": "status up-to-date replicas",
               "range": true,
               "refId": "E"
             },

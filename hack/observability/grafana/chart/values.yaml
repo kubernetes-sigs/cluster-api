@@ -119,6 +119,16 @@ extraConfigmapMounts:
   mountPath: /var/lib/grafana/dashboards/default/runtime-extensions.json
   subPath: runtime-extensions.json
   optional: false
+- name: grafana-dashboard-cluster-api-performance-v1beta2
+  configMap: grafana-dashboard-cluster-api-performance-v1beta2
+  mountPath: /var/lib/grafana/dashboards/default/cluster-api-performance-v1beta2.json
+  subPath: cluster-api-performance-v1beta2.json
+  optional: false
+- name: grafana-dashboard-cluster-api-state-v1beta2
+  configMap: grafana-dashboard-cluster-api-state-v1beta2
+  mountPath: /var/lib/grafana/dashboards/default/cluster-api-state-v1beta2.json
+  subPath: cluster-api-state-v1beta2.json
+  optional: false
 
 # Disable grafana test framework
 testFramework:

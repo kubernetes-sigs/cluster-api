@@ -660,7 +660,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(capi_cluster_status_condition{status=\"True\"} == 1) by (type)",
+              "expr": "sum(capi_cluster_status_condition_v1beta2{status=\"True\"} == 1) by (type)",
               "hide": false,
               "legendFormat": "{{type}}",
               "range": true,
@@ -672,7 +672,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(capi_cluster_status_condition{status=\"False\"} == 1) by (type)",
+              "expr": "sum(capi_cluster_status_condition_v1beta2{status=\"False\"} == 1) by (type)",
               "hide": false,
               "legendFormat": "{{type}} (False)",
               "range": true,
@@ -971,7 +971,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(capi_kubeadmcontrolplane_status_condition{status=\"True\"} == 1) by (type)",
+              "expr": "sum(capi_kubeadmcontrolplane_status_condition_v1beta2{status=\"True\"} == 1) by (type)",
               "hide": false,
               "legendFormat": "{{type}}",
               "range": true,
@@ -983,7 +983,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(capi_kubeadmcontrolplane_status_condition{status=\"False\"} == 1) by (type)",
+              "expr": "sum(capi_kubeadmcontrolplane_status_condition_v1beta2{status=\"False\"} == 1) by (type)",
               "hide": false,
               "legendFormat": "{{type}} (False)",
               "range": true,
@@ -1330,7 +1330,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(capi_machinedeployment_status_condition{status=\"True\"} == 1) by (type)",
+              "expr": "sum(capi_machinedeployment_status_condition_v1beta2{status=\"True\"} == 1) by (type)",
               "hide": false,
               "legendFormat": "{{type}}",
               "range": true,
@@ -1342,7 +1342,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(capi_machinedeployment_status_condition{status=\"False\"} == 1) by (type)",
+              "expr": "sum(capi_machinedeployment_status_condition_v1beta2{status=\"False\"} == 1) by (type)",
               "hide": false,
               "legendFormat": "{{type}} (False)",
               "range": true,
@@ -1792,7 +1792,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(capi_machineset_status_condition{status=\"True\"} == 1) by (type)",
+              "expr": "sum(capi_machineset_status_condition_v1beta2{status=\"True\"} == 1) by (type)",
               "hide": false,
               "legendFormat": "{{type}}",
               "range": true,
@@ -1804,7 +1804,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(capi_machineset_status_condition{status=\"False\"} == 1) by (type)",
+              "expr": "sum(capi_machineset_status_condition_v1beta2{status=\"False\"} == 1) by (type)",
               "hide": false,
               "legendFormat": "{{type}} (False)",
               "range": true,
@@ -2151,7 +2151,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(capi_machinepool_status_condition{status=\"True\"} == 1) by (type)",
+              "expr": "sum(capi_machinepool_status_condition_v1beta2{status=\"True\"} == 1) by (type)",
               "hide": false,
               "legendFormat": "{{type}}",
               "range": true,
@@ -2163,7 +2163,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(capi_machinepool_status_condition{status=\"False\"} == 1) by (type)",
+              "expr": "sum(capi_machinepool_status_condition_v1beta2{status=\"False\"} == 1) by (type)",
               "hide": false,
               "legendFormat": "{{type}} (False)",
               "range": true,
@@ -2601,7 +2601,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(avg(capi_machine_info{control_plane_name!=\"\"}) by (name) * on(name) group_right () (capi_machine_status_condition{status=\"True\"} == 1)) by (type)",
+              "expr": "sum(avg(capi_machine_info{control_plane_name!=\"\"}) by (name) * on(name) group_right () (capi_machine_status_condition_v1beta2{status=\"True\"} == 1)) by (type)",
               "hide": false,
               "legendFormat": "{{type}}",
               "range": true,
@@ -2613,7 +2613,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(avg(capi_machine_info{control_plane_name!=\"\"}) by (name) * on(name) group_right () (capi_machine_status_condition{status=\"False\"} == 1)) by (type)",
+              "expr": "sum(avg(capi_machine_info{control_plane_name!=\"\"}) by (name) * on(name) group_right () (capi_machine_status_condition_v1beta2{status=\"False\"} == 1)) by (type)",
               "hide": false,
               "legendFormat": "{{type}} (False)",
               "range": true,
@@ -2912,7 +2912,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(avg(capi_machine_info{control_plane_name=\"\"}) by (name) * on(name) group_right () (capi_machine_status_condition{status=\"True\"} == 1)) by (type)",
+              "expr": "sum(avg(capi_machine_info{control_plane_name=\"\"}) by (name) * on(name) group_right () (capi_machine_status_condition_v1beta2{status=\"True\"} == 1)) by (type)",
               "hide": false,
               "legendFormat": "{{type}}",
               "range": true,
@@ -2924,7 +2924,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(avg(capi_machine_info{control_plane_name=\"\"}) by (name) * on(name) group_right () (capi_machine_status_condition{status=\"False\"} == 1)) by (type)",
+              "expr": "sum(avg(capi_machine_info{control_plane_name=\"\"}) by (name) * on(name) group_right () (capi_machine_status_condition_v1beta2{status=\"False\"} == 1)) by (type)",
               "hide": false,
               "legendFormat": "{{type}} (False)",
               "range": true,
@@ -3223,7 +3223,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(capi_machinehealthcheck_status_condition{status=\"True\"} == 1) by (type)",
+              "expr": "sum(capi_machinehealthcheck_status_condition_v1beta2{status=\"True\"} == 1) by (type)",
               "hide": false,
               "legendFormat": "{{type}}",
               "range": true,
@@ -3235,7 +3235,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(capi_machinehealthcheck_status_condition{status=\"False\"} == 1) by (type)",
+              "expr": "sum(capi_machinehealthcheck_status_condition_v1beta2{status=\"False\"} == 1) by (type)",
               "hide": false,
               "legendFormat": "{{type}} (False)",
               "range": true,
@@ -3366,8 +3366,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Cluster API State",
-  "uid": "f782099f-f732-4d48-80ed-5fb7d9148d9f",
+  "title": "Cluster API State v1beta2",
+  "uid": "f782099f-f732-4d48-80ed-5fb7d9148d9g",
   "version": 1,
   "weekStart": ""
 }

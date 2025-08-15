@@ -75,6 +75,7 @@ type MachinePoolSpec struct {
 	// replicas is the number of desired machines. Defaults to 1.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// +optional
+	// +Metrics:gauge:name="spec_replicas",help="The number of desired machines for a machinepool."
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// template describes the machines that will be created.
@@ -109,6 +110,8 @@ type MachinePoolStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
+	// +Metrics:stateset:name="status_condition",help="The condition of a machinepool.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a machinepool.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// initialization provides observations of the MachinePool initialization process.
@@ -124,23 +127,28 @@ type MachinePoolStatus struct {
 
 	// replicas is the most recently observed number of replicas.
 	// +optional
+	// +Metrics:gauge:name="status_replicas",help="The number of replicas per machinepool.",nilIsZero=true
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true.
 	// +optional
+	// +Metrics:gauge:name="status_replicas_ready",help="The number of ready replicas per machinepool.",nilIsZero=true
 	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
 	// availableReplicas is the number of available replicas for this MachinePool. A machine is considered available when Machine's Available condition is true.
 	// +optional
+	// +Metrics:gauge:name="status_replicas_available",help="The number of available replicas per machinepool.",nilIsZero=true
 	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 
 	// upToDateReplicas is the number of up-to-date replicas targeted by this MachinePool. A machine is considered up-to-date when Machine's UpToDate condition is true.
 	// +optional
+	// +Metrics:gauge:name="status_replicas_uptodate",help="The number of up-to-date replicas per machinepool.",nilIsZero=true
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
 	// phase represents the current phase of cluster actuation.
 	// +optional
 	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;ScalingUp;ScalingDown;Scaling;Deleting;Failed;Unknown
+	// +Metrics:stateset:name="status_phase",help="The machinepools current phase.",labelName="phase",list={"ScalingUp","ScalingDown","Running","Failed","Unknown"}
 	Phase string `json:"phase,omitempty"`
 
 	// observedGeneration is the latest generation observed by the controller.
@@ -336,11 +344,20 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 
 // MachinePool is the Schema for the machinepools API.
 // NOTE: This CRD can only be used if the MachinePool feature gate is enabled.
+// +Metrics:gvk:namePrefix="capi_machinepool"
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
+// +Metrics:info:name="info",help="Information about a machinepool.",labelsFromPath={bootstrap_configuration_reference_kind:.spec.template.spec.bootstrap.configRef.kind,bootstrap_configuration_reference_name:.spec.template.spec.bootstrap.configRef.name,failure_domain:.spec.template.spec.failureDomain,infrastructure_reference_kind:.spec.template.spec.infrastructureRef.kind,infrastructure_reference_name:.spec.template.spec.infrastructureRef.name,version:.spec.template.spec.version}
 type MachinePool struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the machinepool is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of MachinePool.

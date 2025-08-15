@@ -510,6 +510,8 @@ type MachineStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
+	// +Metrics:stateset:name="status_condition",help="The condition of a machine.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a machine.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// initialization provides observations of the Machine initialization process.
@@ -519,6 +521,7 @@ type MachineStatus struct {
 
 	// nodeRef will point to the corresponding Node if it exists.
 	// +optional
+	// +Metrics:info:name="status_noderef",help="Information about the node reference of a machine.",labelsFromPath={node_name:".name"}
 	NodeRef MachineNodeReference `json:"nodeRef,omitempty,omitzero"`
 
 	// nodeInfo is a set of ids/uuids to uniquely identify the node.
@@ -533,16 +536,19 @@ type MachineStatus struct {
 	// addresses is a list of addresses assigned to the machine.
 	// This field is copied from the infrastructure provider reference.
 	// +optional
+	// +Metrics:info:name="addresses",help="Address information about a machine.",labelsFromPath={address:".address",type:".type"}
 	Addresses MachineAddresses `json:"addresses,omitempty"`
 
 	// phase represents the current phase of machine actuation.
 	// +optional
 	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;Deleting;Deleted;Failed;Unknown
+	// +Metrics:stateset:name="status_phase",help="The machines current phase.",labelName="phase",list={"Pending","Provisioning","Provisioned","Running","Deleting","Deleted","Failed","Unknown"}
 	Phase string `json:"phase,omitempty"`
 
 	// certificatesExpiryDate is the expiry date of the machine certificates.
 	// This value is only set for control plane machines.
 	// +optional
+	// +Metrics:gauge:name="status_certificatesexpirydate",help="Information about certificate expiration date of a control plane node.",nilIsZero=true
 	CertificatesExpiryDate metav1.Time `json:"certificatesExpiryDate,omitempty,omitzero"`
 
 	// observedGeneration is the latest generation observed by the controller.
@@ -740,11 +746,20 @@ type Bootstrap struct {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.version",description="Kubernetes version associated with this Machine"
 
 // Machine is the Schema for the machines API.
+// +Metrics:gvk:namePrefix="capi_machine"
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
+// +Metrics:info:name="info",help="Information about a machine.",labelsFromPath={bootstrap_reference_kind:.spec.bootstrap.configRef.kind,bootstrap_reference_name:.spec.bootstrap.configRef.name,container_runtime_version:.status.nodeInfo.containerRuntimeVersion,control_plane_name:.metadata.labels.cluster\.x-k8s\.io/control-plane-name,failure_domain:.spec.failureDomain,infrastructure_reference_kind:.spec.infrastructureRef.kind,infrastructure_reference_name:.spec.infrastructureRef.name,kernel_version:.status.nodeInfo.kernelVersion,kube_proxy_version:.status.nodeInfo.kubeProxyVersion,kubelet_version:.status.nodeInfo.kubeletVersion,os_image:.status.nodeInfo.osImage,provider_id:.spec.providerID,version:.spec.version}
 type Machine struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the machine is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of Machine.

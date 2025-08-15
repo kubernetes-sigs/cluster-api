@@ -462,6 +462,7 @@ const (
 type ClusterSpec struct {
 	// paused can be used to prevent controllers from processing the Cluster and all its associated objects.
 	// +optional
+	// +Metrics:gauge:name="spec_paused",help="Whether the cluster is paused and any of its resources will not be processed by the controllers.",nilIsZero=true
 	Paused *bool `json:"paused,omitempty"`
 
 	// clusterNetwork represents the cluster network configuration.
@@ -1320,6 +1321,8 @@ type ClusterStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
+	// +Metrics:stateset:name="status_condition",help="The condition of a cluster.",labelName="status",JSONPath=.status,list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a cluster.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// initialization provides observations of the Cluster initialization process.
@@ -1346,6 +1349,7 @@ type ClusterStatus struct {
 	// phase represents the current phase of cluster actuation.
 	// +optional
 	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Deleting;Failed;Unknown
+	// +Metrics:stateset:name="status_phase",help="The clusters current phase.",labelName="phase",list={"Pending","Provisioning","Provisioned","Deleting","Failed","Unknown"}
 	Phase string `json:"phase,omitempty"`
 
 	// observedGeneration is the latest generation observed by the controller.
@@ -1538,11 +1542,18 @@ func (v APIEndpoint) String() string {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.topology.version",description="Kubernetes version associated with this Cluster"
 
 // Cluster is the Schema for the clusters API.
+// +Metrics:gvk:namePrefix="capi_cluster"
+// +Metrics:labelFromPath:name="name",JSONPath=.metadata.name
+// +Metrics:labelFromPath:name="namespace",JSONPath=.metadata.namespace
+// +Metrics:labelFromPath:name="uid",JSONPath=.metadata.uid
+// +Metrics:info:name="info",help="Information about a cluster.",labelsFromPath={topology_version:".spec.topology.version",topology_classref_name:".spec.topology.classRef.name",topology_classref_namespace:".spec.topology.classRef.namespace",control_plane_endpoint_host:".spec.controlPlaneEndpoint.host",control_plane_endpoint_port:".spec.controlPlaneEndpoint.port",control_plane_reference_kind:".spec.controlPlaneRef.kind",control_plane_reference_name:".spec.controlPlaneRef.name",infrastructure_reference_kind:".spec.infrastructureRef.kind",infrastructure_reference_name:".spec.infrastructureRef.name"}
 type Cluster struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the cluster is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of Cluster.

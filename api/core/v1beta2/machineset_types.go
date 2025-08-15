@@ -61,6 +61,7 @@ type MachineSetSpec struct {
 	// * An existing MachineSet which initially wasn't controlled by the autoscaler
 	//   should be later controlled by the autoscaler
 	// +optional
+	// +Metrics:gauge:name="spec_replicas",help="The number of desired machines for a machineset.",nilIsZero=true
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// selector is a label query over machines that should match the replica count.
@@ -283,6 +284,8 @@ type MachineSetStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
+	// +Metrics:stateset:name="status_condition",help="The condition of a machineset.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a machineset.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// selector is the same as the label selector but in the string format to avoid introspection
@@ -295,18 +298,22 @@ type MachineSetStatus struct {
 
 	// replicas is the most recently observed number of replicas.
 	// +optional
+	// +Metrics:gauge:name="status_replicas",help="The number of replicas per machineset.",nilIsZero=true
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when Machine's Ready condition is true.
 	// +optional
+	// +Metrics:gauge:name="status_replicas_ready",help="The number of ready replicas per machineset.",nilIsZero=true
 	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
 	// availableReplicas is the number of available replicas for this MachineSet. A machine is considered available when Machine's Available condition is true.
 	// +optional
+	// +Metrics:gauge:name="status_replicas_available",help="The number of available replicas per machineset.",nilIsZero=true
 	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 
 	// upToDateReplicas is the number of up-to-date replicas for this MachineSet. A machine is considered up-to-date when Machine's UpToDate condition is true.
 	// +optional
+	// +Metrics:gauge:name="status_replicas_uptodate",help="The number of up-to-date replicas per machineset.",nilIsZero=true
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
 	// observedGeneration reflects the generation of the most recently observed MachineSet.
@@ -437,11 +444,20 @@ func (m *MachineSet) Validate() field.ErrorList {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.template.spec.version",description="Kubernetes version associated with this MachineSet"
 
 // MachineSet is the Schema for the machinesets API.
+// +Metrics:gvk:namePrefix="capi_machineset"
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
+// +Metrics:info:name="info",help="Information about a machineset.",labelsFromPath={bootstrap_reference_kind:.spec.template.spec.bootstrap.configRef.kind,bootstrap_reference_name:.spec.template.spec.bootstrap.configRef.name,infrastructure_reference_kind:.spec.template.spec.infrastructureRef.kind,infrastructure_reference_name:.spec.template.spec.infrastructureRef.name,version:.spec.template.spec.version}
 type MachineSet struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the machineset is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of MachineSet.

@@ -258,6 +258,7 @@ type MachineDeploymentSpec struct {
 	// * An existing MachineDeployment which initially wasn't controlled by the autoscaler
 	//   should be later controlled by the autoscaler
 	// +optional
+	// +Metrics:gauge:name="spec_replicas",help="The number of desired machines for a machinedeployment."
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.
@@ -291,6 +292,7 @@ type MachineDeploymentSpec struct {
 
 	// paused indicates that the deployment is paused.
 	// +optional
+	// +Metrics:gauge:name="spec_paused",help="Whether the machinedeployment is paused and any of its resources will not be processed by the controllers.",nilIsZero=true
 	Paused *bool `json:"paused,omitempty"`
 }
 
@@ -342,6 +344,7 @@ type MachineDeploymentRolloutStrategyRollingUpdate struct {
 	// that the total number of machines available at all times
 	// during the update is at least 70% of desired machines.
 	// +optional
+	// +Metrics:gauge:name="spec_strategy_rollingupdate_max_unavailable",help="Maximum number of unavailable replicas during a rolling update of a machinedeployment."
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
 
 	// maxSurge is the maximum number of machines that can be scheduled above the
@@ -358,6 +361,7 @@ type MachineDeploymentRolloutStrategyRollingUpdate struct {
 	// be scaled up further, ensuring that total number of machines running
 	// at any time during the update is at most 130% of desired machines.
 	// +optional
+	// +Metrics:gauge:name="spec_strategy_rollingupdate_max_surge",help="Maximum number of replicas that can be scheduled above the desired number of replicas during a rolling update of a machinedeployment."
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 }
 
@@ -428,6 +432,8 @@ type MachineDeploymentStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
+	// +Metrics:stateset:name="status_condition",help="The condition of a machinedeployment.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a machinedeployment.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// observedGeneration is the generation observed by the deployment controller.
@@ -446,23 +452,28 @@ type MachineDeploymentStatus struct {
 	// replicas is the total number of non-terminated machines targeted by this deployment
 	// (their labels match the selector).
 	// +optional
+	// +Metrics:gauge:name="status_replicas",help="The number of replicas per machinedeployment.",nilIsZero=true
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// readyReplicas is the number of ready replicas for this MachineDeployment. A machine is considered ready when Machine's Ready condition is true.
 	// +optional
+	// +Metrics:gauge:name="status_replicas_ready",help="The number of ready replicas per machinedeployment.",nilIsZero=true
 	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
 	// availableReplicas is the number of available replicas for this MachineDeployment. A machine is considered available when Machine's Available condition is true.
 	// +optional
+	// +Metrics:gauge:name="status_replicas_available",help="The number of available replicas per machinedeployment.",nilIsZero=true
 	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 
 	// upToDateReplicas is the number of up-to-date replicas targeted by this deployment. A machine is considered up-to-date when Machine's UpToDate condition is true.
 	// +optional
+	// +Metrics:gauge:name="status_replicas_uptodate",help="The number of up-to-date replicas per machinedeployment.",nilIsZero=true
 	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
 	// phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
 	// +optional
 	// +kubebuilder:validation:Enum=ScalingUp;ScalingDown;Running;Failed;Unknown
+	// +Metrics:stateset:name="status_phase",help="The machinedeployments current phase.",labelName="phase",list={"ScalingUp","ScalingDown","Running","Failed","Unknown"}
 	Phase string `json:"phase,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
@@ -586,11 +597,20 @@ func (md *MachineDeploymentStatus) GetTypedPhase() MachineDeploymentPhase {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.template.spec.version",description="Kubernetes version associated with this MachineDeployment"
 
 // MachineDeployment is the Schema for the machinedeployments API.
+// +Metrics:gvk:namePrefix="capi_machinedeployment"
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
+// +Metrics:info:name="info",help="Information about a machinedeployment.",labelsFromPath={bootstrap_reference_kind:.spec.template.spec.bootstrap.configRef.kind,bootstrap_reference_name:.spec.template.spec.bootstrap.configRef.name,infrastructure_reference_kind:.spec.template.spec.infrastructureRef.kind,infrastructure_reference_name:.spec.template.spec.infrastructureRef.name,version:.spec.template.spec.version}
 type MachineDeployment struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the machinedeployment is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of MachineDeployment.

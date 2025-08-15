@@ -75,7 +75,6 @@ type MachinePoolSpec struct {
 	// replicas is the number of desired machines. Defaults to 1.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// +optional
-	// +Metrics:gauge:name="spec_replicas",help="The number of desired machines for a machinepool."
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// template describes the machines that will be created.
@@ -114,17 +113,14 @@ type MachinePoolStatus struct {
 
 	// replicas is the most recently observed number of replicas.
 	// +optional
-	// +Metrics:gauge:name="status_replicas",help="The number of replicas per machinepool.",nilIsZero=true
 	Replicas int32 `json:"replicas"`
 
 	// readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when the node has been created and is "Ready".
 	// +optional
-	// +Metrics:gauge:name="status_replicas_ready",help="The number of ready replicas per machinepool.",nilIsZero=true
 	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
 
 	// availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachinePool.
 	// +optional
-	// +Metrics:gauge:name="status_replicas_available",help="The number of available replicas per machinepool.",nilIsZero=true
 	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
 
 	// unavailableReplicas is the total number of unavailable machine instances targeted by this machine pool.
@@ -136,7 +132,6 @@ type MachinePoolStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
-	// +Metrics:gauge:name="status_replicas_unavailable",help="The number of unavailable replicas per machinepool.",nilIsZero=true
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"`
 
 	// failureReason indicates that there is a problem reconciling the state, and
@@ -160,7 +155,6 @@ type MachinePoolStatus struct {
 	// phase represents the current phase of cluster actuation.
 	// +optional
 	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;ScalingUp;ScalingDown;Scaling;Deleting;Failed;Unknown
-	// +Metrics:stateset:name="status_phase",help="The machinepools current phase.",labelName="phase",list={"ScalingUp","ScalingDown","Running","Failed","Unknown"}
 	Phase string `json:"phase,omitempty"`
 
 	// bootstrapReady is the state of the bootstrap provider.
@@ -194,8 +188,6 @@ type MachinePoolV1Beta2Status struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
-	// +Metrics:stateset:name="status_condition",help="The condition of a machinepool.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
-	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a machinepool.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// readyReplicas is the number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true.
@@ -305,20 +297,11 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 // +k8s:conversion-gen=false
 
 // MachinePool is the Schema for the machinepools API.
-// +Metrics:gvk:namePrefix="capi_machinepool"
-// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
-// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
-// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
-// +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
-// +Metrics:info:name="info",help="Information about a machinepool.",labelsFromPath={bootstrap_configuration_reference_kind:.spec.template.spec.bootstrap.configRef.kind,bootstrap_configuration_reference_name:.spec.template.spec.bootstrap.configRef.name,failure_domain:.spec.template.spec.failureDomain,infrastructure_reference_kind:.spec.template.spec.infrastructureRef.kind,infrastructure_reference_name:.spec.template.spec.infrastructureRef.name,version:.spec.template.spec.version}
 type MachinePool struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
-	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the machinepool is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
-	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of MachinePool.

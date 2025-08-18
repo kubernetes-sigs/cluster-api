@@ -162,6 +162,7 @@ func TestDropManagedFieldsWithFakeClient(t *testing.T) {
 				Operation:  metav1.ManagedFieldsOperationUpdate,
 				FieldsType: "FieldsV1",
 				FieldsV1:   &metav1.FieldsV1{Raw: fieldV1},
+				APIVersion: "v1",
 			}},
 			Labels: map[string]string{
 				"label-1": "value-1",
@@ -186,10 +187,13 @@ func TestDropManagedFieldsWithFakeClient(t *testing.T) {
 					Operation:  metav1.ManagedFieldsOperationUpdate,
 					FieldsType: "FieldsV1",
 					FieldsV1:   &metav1.FieldsV1{Raw: fieldV1},
+					APIVersion: "v1",
 				},
 				{
-					Manager:   ssaManager,
-					Operation: metav1.ManagedFieldsOperationApply,
+					Manager:    ssaManager,
+					Operation:  metav1.ManagedFieldsOperationApply,
+					FieldsType: "FieldsV1",
+					APIVersion: "v1",
 				},
 			},
 			Labels: map[string]string{
@@ -225,7 +229,7 @@ func TestDropManagedFieldsWithFakeClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithObjects(tt.obj).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.obj).WithReturnManagedFields().Build()
 			labelsAndAnnotationsManagedFieldPaths := []contract.Path{
 				{"f:metadata", "f:annotations"},
 				{"f:metadata", "f:labels"},
@@ -414,8 +418,10 @@ func TestCleanUpManagedFieldsForSSAAdoptionWithFakeClient(t *testing.T) {
 			Name:      "cm-1",
 			Namespace: "default",
 			ManagedFields: []metav1.ManagedFieldsEntry{{
-				Manager:   classicManager,
-				Operation: metav1.ManagedFieldsOperationUpdate,
+				Manager:    classicManager,
+				Operation:  metav1.ManagedFieldsOperationUpdate,
+				FieldsType: "FieldsV1",
+				APIVersion: "v1",
 			}},
 		},
 		Data: map[string]string{
@@ -427,8 +433,10 @@ func TestCleanUpManagedFieldsForSSAAdoptionWithFakeClient(t *testing.T) {
 			Name:      "cm-1",
 			Namespace: "default",
 			ManagedFields: []metav1.ManagedFieldsEntry{{
-				Manager:   ssaManager,
-				Operation: metav1.ManagedFieldsOperationApply,
+				Manager:    ssaManager,
+				Operation:  metav1.ManagedFieldsOperationApply,
+				FieldsType: "FieldsV1",
+				APIVersion: "v1",
 			}},
 		},
 		Data: map[string]string{
@@ -441,12 +449,16 @@ func TestCleanUpManagedFieldsForSSAAdoptionWithFakeClient(t *testing.T) {
 			Namespace: "default",
 			ManagedFields: []metav1.ManagedFieldsEntry{
 				{
-					Manager:   classicManager,
-					Operation: metav1.ManagedFieldsOperationUpdate,
+					Manager:    classicManager,
+					Operation:  metav1.ManagedFieldsOperationUpdate,
+					FieldsType: "FieldsV1",
+					APIVersion: "v1",
 				},
 				{
-					Manager:   ssaManager,
-					Operation: metav1.ManagedFieldsOperationApply,
+					Manager:    ssaManager,
+					Operation:  metav1.ManagedFieldsOperationApply,
+					FieldsType: "FieldsV1",
+					APIVersion: "v1",
 				},
 			},
 		},
@@ -485,7 +497,7 @@ func TestCleanUpManagedFieldsForSSAAdoptionWithFakeClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithObjects(tt.obj).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.obj).WithReturnManagedFields().Build()
 			g.Expect(CleanUpManagedFieldsForSSAAdoption(ctx, fakeClient, tt.obj, ssaManager)).Should(Succeed())
 			g.Expect(tt.obj.GetManagedFields()).Should(
 				ContainElement(MatchManagedFieldsEntry(ssaManager, metav1.ManagedFieldsOperationApply)))

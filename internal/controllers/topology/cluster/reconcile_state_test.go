@@ -501,10 +501,9 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 				{
 					APIVersion: builder.InfrastructureGroupVersion.String(),
 					Manager:    "manager",
-					Operation:  "op",
+					Operation:  "Apply",
 					Time:       ptr.To(metav1.Now()),
 					FieldsType: "FieldsV1",
-					FieldsV1:   &metav1.FieldsV1{},
 				},
 			})
 			if tt.cluster.Annotations == nil {
@@ -1145,10 +1144,9 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				{
 					APIVersion: builder.InfrastructureGroupVersion.String(),
 					Manager:    "manager",
-					Operation:  "op",
+					Operation:  "Apply",
 					Time:       ptr.To(metav1.Now()),
 					FieldsType: "FieldsV1",
-					FieldsV1:   &metav1.FieldsV1{},
 				},
 			})
 			if tt.s.Current.Cluster.Annotations == nil {

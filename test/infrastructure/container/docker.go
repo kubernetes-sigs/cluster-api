@@ -363,7 +363,7 @@ func (d *dockerRuntime) ContainerDebugInfo(ctx context.Context, containerName st
 
 // dockerContainerToContainer converts a Docker API container instance to our local
 // generic container type.
-func dockerContainerToContainer(container *types.Container) Container {
+func dockerContainerToContainer(container *dockercontainer.Summary) Container {
 	return Container{
 		Name:   strings.Trim(container.Names[0], "/"),
 		Image:  container.Image,

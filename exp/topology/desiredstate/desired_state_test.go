@@ -1220,10 +1220,9 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 									{
 										APIVersion: builder.InfrastructureGroupVersion.String(),
 										Manager:    "manager",
-										Operation:  "op",
+										Operation:  "Apply",
 										Time:       ptr.To(metav1.Now()),
 										FieldsType: "FieldsV1",
-										FieldsV1:   &metav1.FieldsV1{},
 									},
 								},
 								Annotations: map[string]string{
@@ -1565,10 +1564,9 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					{
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Manager:    "manager",
-						Operation:  "op",
+						Operation:  "Apply",
 						Time:       ptr.To(metav1.Now()),
 						FieldsType: "FieldsV1",
-						FieldsV1:   &metav1.FieldsV1{},
 					},
 				})
 				if tt.s.Current.Cluster.Annotations == nil {

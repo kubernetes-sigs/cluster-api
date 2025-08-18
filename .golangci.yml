@@ -269,6 +269,10 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: .*(res|result|i|j)\.Requeue is deprecated: Use `RequeueAfter` instead'
+      # CR v0.22 deprecated client.Apply, will be fixed via FIXME
+      - linters:
+          - staticcheck
+        text: 'SA1019: client.Apply is deprecated: Use client.Client.Apply'
       # TODO: var-naming: avoid meaningless package names by revive  
       #   * test/infrastructure/docker/internal/docker/types/
       #   * bootstrap/kubeadm/types/

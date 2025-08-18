@@ -568,10 +568,9 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 				{
 					APIVersion: builder.InfrastructureGroupVersion.String(),
 					Manager:    "manager",
-					Operation:  "op",
+					Operation:  "Apply",
 					Time:       ptr.To(metav1.Now()),
 					FieldsType: "FieldsV1",
-					FieldsV1:   &metav1.FieldsV1{},
 				},
 			})
 			if tt.cluster.Annotations == nil {
@@ -739,10 +738,9 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 								{
 									APIVersion: builder.InfrastructureGroupVersion.String(),
 									Manager:    "manager",
-									Operation:  "op",
+									Operation:  "Apply",
 									Time:       ptr.To(metav1.Now()),
 									FieldsType: "FieldsV1",
-									FieldsV1:   &metav1.FieldsV1{},
 								},
 							},
 							Annotations: map[string]string{

@@ -116,10 +116,12 @@ type DockerClusterV1Beta2Status struct {
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
 	// Host is the hostname on which the API server is serving.
+	// +optional
 	Host string `json:"host"`
 
 	// Port is the port on which the API server is serving.
 	// Defaults to 6443 if not set.
+	// +optional
 	Port int `json:"port"`
 }
 

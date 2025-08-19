@@ -83,7 +83,7 @@ linters:
     ## Excludes for current apiVersions that can be removed once v1beta1 is removed.
     # .status.deprecated.v1beta1.conditions fields are using v1beta1.Condition types.
     - path: "api/addons/v1beta2|api/bootstrap/kubeadm/v1beta2|api/controlplane/kubeadm/v1beta2|api/core/v1beta2|api/ipam/v1beta2|api/runtime/v1beta2"
-      text: "Conditions field must be a slice of metav1.Condition"
+      text: "Conditions field in .*V1Beta1DeprecatedStatus must be a slice of metav1.Condition"
       linters:
         - kubeapilinter
     - path: "api/addons/v1beta2|api/bootstrap/kubeadm/v1beta2|api/controlplane/kubeadm/v1beta2|api/core/v1beta2|api/ipam/v1beta2|api/runtime/v1beta2"

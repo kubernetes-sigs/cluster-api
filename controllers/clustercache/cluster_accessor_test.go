@@ -305,6 +305,7 @@ func TestHealthCheck(t *testing.T) {
 				},
 			})
 			accessor.lockedState.connection = &clusterAccessorLockedConnectionState{
+				restConfig: env.Config,
 				restClient: &fake.RESTClient{
 					NegotiatedSerializer: scheme.Codecs,
 					Resp:                 tt.restClientHTTPResponse,

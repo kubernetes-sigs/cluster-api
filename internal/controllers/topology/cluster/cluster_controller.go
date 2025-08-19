@@ -156,7 +156,11 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Scheme:          mgr.GetScheme(),
 		PredicateLogger: &predicateLog,
 	}
-	r.desiredStateGenerator = desiredstate.NewGenerator(r.Client, r.ClusterCache, r.RuntimeClient)
+	r.desiredStateGenerator, err = desiredstate.NewGenerator(r.Client, r.ClusterCache, r.RuntimeClient)
+	if err != nil {
+		return errors.Wrap(err, "failed creating desired state generator")
+	}
+
 	r.recorder = mgr.GetEventRecorderFor("topology/cluster-controller")
 	r.ssaCache = ssa.NewCache("topology/cluster")
 	return nil

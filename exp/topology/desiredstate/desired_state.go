@@ -63,13 +63,21 @@ type Generator interface {
 }
 
 // NewGenerator creates a new generator to generate desired state.
-func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, runtimeClient runtimeclient.Client) Generator {
+func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, runtimeClient runtimeclient.Client) (Generator, error) {
+	if client == nil || clusterCache == nil {
+		return nil, errors.New("Client and ClusterCache must not be nil")
+	}
+
+	if feature.Gates.Enabled(feature.RuntimeSDK) && runtimeClient == nil {
+		return nil, errors.New("RuntimeClient must not be nil")
+	}
+
 	return &generator{
 		Client:        client,
 		ClusterCache:  clusterCache,
 		RuntimeClient: runtimeClient,
 		patchEngine:   patches.NewEngine(runtimeClient),
-	}
+	}, nil
 }
 
 // generator is a generator to generate desired state.

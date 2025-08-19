@@ -289,10 +289,6 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
 		paths=./internal/api/addons/... \
-		paths=./exp/internal/controllers/... \
-		paths=./exp/internal/webhooks/... \
-		paths=./exp/ipam/internal/webhooks/... \
-		paths=./exp/runtime/internal/controllers/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \
@@ -483,7 +479,7 @@ generate-go-conversions-addons-api: $(CONVERSION_GEN) ## Generate conversions go
 		./api/addons/v1beta1
 
 .PHONY: generate-go-conversions-core-ipam
-generate-go-conversions-core-ipam: $(CONVERSION_GEN) ## Generate conversions go code for core exp IPAM
+generate-go-conversions-core-ipam: $(CONVERSION_GEN) ## Generate conversions go code for IPAM
 	$(MAKE) clean-generated-conversions SRC_DIRS="./api/ipam/v1beta1,./api/ipam/v1alpha1"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \

@@ -69,12 +69,8 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
-	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
-	runtimecontrollers "sigs.k8s.io/cluster-api/exp/runtime/controllers"
-	expwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
 	addonsv1alpha3 "sigs.k8s.io/cluster-api/internal/api/addons/v1alpha3"
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/internal/api/addons/v1alpha4"
@@ -622,7 +618,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	}
 
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		if err = (&runtimecontrollers.ExtensionConfigReconciler{
+		if err = (&controllers.ExtensionConfigReconciler{
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
 			RuntimeClient:    runtimeClient,
@@ -721,7 +717,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
-		if err := (&expcontrollers.MachinePoolReconciler{
+		if err := (&controllers.MachinePoolReconciler{
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
 			ClusterCache:     clusterCache,
@@ -807,7 +803,7 @@ func setupWebhooks(ctx context.Context, mgr ctrl.Manager, clusterCacheReader web
 
 	// NOTE: MachinePool is behind MachinePool feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
-	if err := (&expwebhooks.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "MachinePool")
 		os.Exit(1)
 	}
@@ -837,14 +833,14 @@ func setupWebhooks(ctx context.Context, mgr ctrl.Manager, clusterCacheReader web
 		os.Exit(1)
 	}
 
-	if err := (&expipamwebhooks.IPAddress{
+	if err := (&webhooks.IPAddress{
 		// We are using GetAPIReader here to avoid caching all IPAddressClaims
 		Client: mgr.GetAPIReader(),
 	}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "IPAddress")
 		os.Exit(1)
 	}
-	if err := (&expipamwebhooks.IPAddressClaim{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.IPAddressClaim{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "IPAddressClaim")
 		os.Exit(1)
 	}

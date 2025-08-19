@@ -134,3 +134,32 @@ type ExtensionConfig struct{}
 func (webhook *ExtensionConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return (&runtimewebhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr)
 }
+
+// MachinePool implements a validating and defaulting webhook for MachinePool.
+type MachinePool struct{}
+
+// SetupWebhookWithManager sets up MachinePool webhooks.
+func (webhook *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.MachinePool{}).SetupWebhookWithManager(mgr)
+}
+
+// IPAddress implements a validating and defaulting webhook for IPAddress.
+type IPAddress struct {
+	Client client.Reader
+}
+
+// SetupWebhookWithManager sets up IPAddress webhooks.
+func (webhook *IPAddress) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.IPAddress{
+		Client: webhook.Client,
+	}).SetupWebhookWithManager(mgr)
+}
+
+// IPAddressClaim implements a validating and defaulting webhook for IPAddressClaim.
+type IPAddressClaim struct {
+}
+
+// SetupWebhookWithManager sets up IPAddressClaim webhooks.
+func (webhook *IPAddressClaim) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.IPAddressClaim{}).SetupWebhookWithManager(mgr)
+}

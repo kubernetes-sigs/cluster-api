@@ -107,16 +107,6 @@ linters:
         - kubeapilinter
 
     ## Excludes for JSONSchemaProps
-    # controller-gen does not allow to add MaxItems to Schemaless fields: https://github.com/kubernetes-sigs/kube-api-linter/issues/120
-    - path: "api/core/v1beta2/clusterclass_types.go"
-      text: "maxlength: field (AllOf|OneOf|AnyOf) must have a maximum items, add kubebuilder:validation:MaxItems marker"
-      linters:
-        - kubeapilinter
-    # controller-gen does not allow to add listType to Schemaless fields: https://github.com/kubernetes-sigs/kube-api-linter/issues/120
-    - path: "api/core/v1beta2/clusterclass_types.go"
-      text: "ssatags: (AllOf|OneOf|AnyOf) should have a listType marker for proper Server-Side Apply behavior"
-      linters:
-        - kubeapilinter
     # We want to align to the JSON tags of the CustomResourceDefinition fields.
     - path: "api/core/v1beta2/clusterclass_types"
       text: "field (XPreserveUnknownFields|XPreserveUnknownFields|XValidations|XMetadata|XIntOrString) json tag does not match pattern"

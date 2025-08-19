@@ -344,12 +344,20 @@ func (ca *clusterAccessor) HealthCheck(ctx context.Context) (bool, bool) {
 
 	ca.rLock(ctx)
 	restClient := ca.lockedState.connection.restClient
+	restConfig := ca.lockedState.connection.restConfig
 	ca.rUnlock(ctx)
 
 	log.V(6).Info("Run health probe")
 
 	// Executing the health probe is intentionally done without a lock to avoid blocking other reconcilers.
 	_, err := restClient.Get().AbsPath("/").Timeout(ca.config.HealthProbe.Timeout).DoRaw(ctx)
+	if err == nil {
+		// Execute health probe with a new restClient (this verifies that a new connection works).
+		restClient, err = rest.UnversionedRESTClientFor(restConfig)
+		if err == nil {
+			_, err = restClient.Get().AbsPath("/").Timeout(ca.config.HealthProbe.Timeout).DoRaw(ctx)
+		}
+	}
 
 	ca.lock(ctx)
 	defer ca.unlock(ctx)

@@ -27,7 +27,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -353,7 +355,10 @@ func (ca *clusterAccessor) HealthCheck(ctx context.Context) (bool, bool) {
 	_, err := restClient.Get().AbsPath("/").Timeout(ca.config.HealthProbe.Timeout).DoRaw(ctx)
 	if err == nil {
 		// Execute health probe with a new restClient (this verifies that a new connection works).
-		restClient, err = rest.UnversionedRESTClientFor(restConfig)
+		codec := runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()}
+		restClientConfig := rest.CopyConfig(restConfig)
+		restClientConfig.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec})
+		restClient, err = rest.UnversionedRESTClientFor(restClientConfig)
 		if err == nil {
 			_, err = restClient.Get().AbsPath("/").Timeout(ca.config.HealthProbe.Timeout).DoRaw(ctx)
 		}

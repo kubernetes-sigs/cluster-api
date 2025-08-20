@@ -44,3 +44,8 @@ func NewFakeClusterCache(workloadClient client.Client, clusterKey client.ObjectK
 	}
 	return testCacheTracker
 }
+
+// NewFakeEmptyClusterCache creates a new empty ClusterCache that can be used by unit tests.
+func NewFakeEmptyClusterCache() ClusterCache {
+	return &clusterCache{}
+}

@@ -47,6 +47,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
@@ -1167,14 +1168,21 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 
 			fakeClient := fake.NewClientBuilder().WithObjects(tt.s.Current.Cluster).Build()
 
+			desiredStateGenerator, err := desiredstate.NewGenerator(
+				fakeClient,
+				clustercache.NewFakeEmptyClusterCache(),
+				fakeRuntimeClient,
+			)
+			g.Expect(err).ToNot(HaveOccurred())
+
 			r := &Reconciler{
 				Client:                fakeClient,
 				APIReader:             fakeClient,
 				RuntimeClient:         fakeRuntimeClient,
-				desiredStateGenerator: desiredstate.NewGenerator(fakeClient, nil, fakeRuntimeClient),
+				desiredStateGenerator: desiredStateGenerator,
 			}
 
-			err := r.callAfterClusterUpgrade(ctx, tt.s)
+			err = r.callAfterClusterUpgrade(ctx, tt.s)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 			} else {

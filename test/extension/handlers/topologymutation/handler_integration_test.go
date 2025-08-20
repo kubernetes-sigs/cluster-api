@@ -50,6 +50,7 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
@@ -114,7 +115,12 @@ func TestHandler(t *testing.T) {
 	clientWithV1Beta2ContractCRD := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd).Build()
 
 	// Create a desired state generator.
-	desiredStateGenerator := desiredstate.NewGenerator(clientWithV1Beta2ContractCRD, nil, runtimeClient)
+	desiredStateGenerator, err := desiredstate.NewGenerator(
+		clientWithV1Beta2ContractCRD,
+		clustercache.NewFakeEmptyClusterCache(),
+		runtimeClient,
+	)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	// Note: as of today we don't have to set any fields and also don't have to call
 	// SetupWebhookWithManager because DefaultAndValidateVariables doesn't need any of that.

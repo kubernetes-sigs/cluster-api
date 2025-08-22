@@ -290,7 +290,12 @@ def build_docker_image(image, context, binary_name, additional_docker_build_comm
             ref = image,
             context = context + "/.tiltbuild/bin/",
             dockerfile_contents = dockerfile_contents,
-            build_args = {"binary_name": binary_name},
+            build_args = {
+                "binary_name": binary_name,
+                "http_proxy": os.getenv("http_proxy", ""),
+                "https_proxy": os.getenv("https_proxy", ""),
+                "no_proxy": os.getenv("no_proxy", ""),
+            },
             target = "tilt",
             only = binary_name,
             live_update = [

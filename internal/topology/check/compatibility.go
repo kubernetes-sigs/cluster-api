@@ -94,15 +94,15 @@ func ClusterClassTemplateAreCompatible(current, desired clusterv1.ClusterClassTe
 
 	if currentGK.Group != desiredGK.Group {
 		allErrs = append(allErrs, field.Forbidden(
-			pathPrefix.Child("ref", "apiVersion"),
-			fmt.Sprintf("apiVersion.group cannot be changed from %q to %q to prevent incompatible changes in the Clusters",
+			pathPrefix.Child("apiVersion"),
+			fmt.Sprintf("group of apiVersion cannot be changed from %q to %q to prevent incompatible changes in the Clusters",
 				currentGK.Group, desiredGK.Group),
 		))
 	}
 	if currentGK.Kind != desiredGK.Kind {
 		allErrs = append(allErrs, field.Forbidden(
-			pathPrefix.Child("ref", "kind"),
-			fmt.Sprintf("apiVersion.kind cannot be changed from %q to %q to prevent incompatible changes in the Clusters",
+			pathPrefix.Child("kind"),
+			fmt.Sprintf("kind cannot be changed from %q to %q to prevent incompatible changes in the Clusters",
 				currentGK.Kind, desiredGK.Kind),
 		))
 	}
@@ -174,14 +174,14 @@ func ClusterClassesAreCompatible(current, desired *clusterv1.ClusterClass) field
 
 	// Validate InfrastructureClusterTemplate changes desired a compatible way.
 	allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.Infrastructure.TemplateRef, desired.Spec.Infrastructure.TemplateRef,
-		field.NewPath("spec", "infrastructure"))...)
+		field.NewPath("spec", "infrastructure", "templateRef"))...)
 
 	// Validate control plane changes desired a compatible way.
 	allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.TemplateRef, desired.Spec.ControlPlane.TemplateRef,
-		field.NewPath("spec", "controlPlane"))...)
+		field.NewPath("spec", "controlPlane", "templateRef"))...)
 	if desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() && current.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
 		allErrs = append(allErrs, ClusterClassTemplateAreCompatible(current.Spec.ControlPlane.MachineInfrastructure.TemplateRef, desired.Spec.ControlPlane.MachineInfrastructure.TemplateRef,
-			field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
+			field.NewPath("spec", "controlPlane", "machineInfrastructure", "templateRef"))...)
 	}
 
 	// Validate changes to MachineDeployments.
@@ -199,8 +199,8 @@ func MachineDeploymentClassesAreCompatible(current, desired *clusterv1.ClusterCl
 	var allErrs field.ErrorList
 
 	// Ensure previous MachineDeployment class was modified in a compatible way.
-	for _, class := range desired.Spec.Workers.MachineDeployments {
-		for i, oldClass := range current.Spec.Workers.MachineDeployments {
+	for i, class := range desired.Spec.Workers.MachineDeployments {
+		for _, oldClass := range current.Spec.Workers.MachineDeployments {
 			if class.Class == oldClass.Class {
 				// NOTE: class.Template.Metadata and class.Template.Bootstrap are allowed to change;
 
@@ -208,7 +208,7 @@ func MachineDeploymentClassesAreCompatible(current, desired *clusterv1.ClusterCl
 
 				// Validates class.Template.Infrastructure template changes in a compatible way
 				allErrs = append(allErrs, ClusterClassTemplateAreCompatible(oldClass.Infrastructure.TemplateRef, class.Infrastructure.TemplateRef,
-					field.NewPath("spec", "workers", "machineDeployments").Index(i))...)
+					field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("infrastructure", "templateRef"))...)
 			}
 		}
 	}
@@ -240,8 +240,8 @@ func MachinePoolClassesAreCompatible(current, desired *clusterv1.ClusterClass) f
 	var allErrs field.ErrorList
 
 	// Ensure previous MachinePool class was modified in a compatible way.
-	for _, class := range desired.Spec.Workers.MachinePools {
-		for i, oldClass := range current.Spec.Workers.MachinePools {
+	for i, class := range desired.Spec.Workers.MachinePools {
+		for _, oldClass := range current.Spec.Workers.MachinePools {
 			if class.Class == oldClass.Class {
 				// NOTE: class.Template.Metadata and class.Template.Bootstrap are allowed to change;
 
@@ -249,7 +249,7 @@ func MachinePoolClassesAreCompatible(current, desired *clusterv1.ClusterClass) f
 
 				// Validates class.Template.Infrastructure template changes in a compatible way
 				allErrs = append(allErrs, ClusterClassTemplateAreCompatible(oldClass.Infrastructure.TemplateRef, class.Infrastructure.TemplateRef,
-					field.NewPath("spec", "workers", "machinePools").Index(i))...)
+					field.NewPath("spec", "workers", "machinePools").Index(i).Child("infrastructure", "templateRef"))...)
 			}
 		}
 	}

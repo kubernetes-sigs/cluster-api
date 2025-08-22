@@ -1,0 +1,1420 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: machinehealthchecks.cluster.x-k8s.io
+spec:
+  group: cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: MachineHealthCheck
+    listKind: MachineHealthCheckList
+    plural: machinehealthchecks
+    shortNames:
+    - mhc
+    - mhcs
+    singular: machinehealthcheck
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Maximum number of unhealthy machines allowed
+      jsonPath: .spec.maxUnhealthy
+      name: MaxUnhealthy
+      type: string
+    - description: Number of machines currently monitored
+      jsonPath: .status.expectedMachines
+      name: ExpectedMachines
+      type: integer
+    - description: Current observed healthy machines
+      jsonPath: .status.currentHealthy
+      name: CurrentHealthy
+      type: integer
+    deprecated: true
+    name: v1alpha3
+    schema:
+      openAPIV3Schema:
+        description: |-
+          MachineHealthCheck is the Schema for the machinehealthchecks API.
+
+          Deprecated: This type will be removed in one of the next releases.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec is the specification of machine health check policy
+            properties:
+              clusterName:
+                description: clusterName is the name of the Cluster this object belongs
+                  to.
+                minLength: 1
+                type: string
+              maxUnhealthy:
+                anyOf:
+                - type: integer
+                - type: string
+                description: |-
+                  maxUnhealthy specifies the maximum number of unhealthy machines allowed.
+                  Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
+                  "selector" are not healthy.
+                x-kubernetes-int-or-string: true
+              nodeStartupTimeout:
+                description: |-
+                  nodeStartupTimeout is the duration after which machines without a node will be considered to
+                  have failed and will be remediated.
+                type: string
+              remediationTemplate:
+                description: |-
+                  remediationTemplate is a reference to a remediation template
+                  provided by an infrastructure provider.
+
+                  This field is completely optional, when filled, the MachineHealthCheck controller
+                  creates a new object from the template referenced and hands off remediation of the machine to
+                  a controller that lives outside of Cluster API.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: |-
+                      If referring to a piece of an object instead of an entire object, this string
+                      should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within a pod, this would take on a value like:
+                      "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]" (container with
+                      index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                      referencing a part of an object.
+                    type: string
+                  kind:
+                    description: |-
+                      Kind of the referent.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                    type: string
+                  resourceVersion:
+                    description: |-
+                      Specific resourceVersion to which this reference is made, if any.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                    type: string
+                  uid:
+                    description: |-
+                      UID of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              selector:
+                description: selector is the label selector to match machines whose
+                  health will be exercised
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              unhealthyConditions:
+                description: |-
+                  unhealthyConditions contains a list of the conditions that determine
+                  whether a node is considered unhealthy.  The conditions are combined in a
+                  logical OR, i.e. if any of the conditions is met, the node is unhealthy.
+                items:
+                  description: |-
+                    UnhealthyCondition represents a Node condition type and value with a timeout
+                    specified as a duration.  When the named condition has been in the given
+                    status for at least the timeout value, a node is considered unhealthy.
+                  properties:
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      minLength: 1
+                      type: string
+                    timeout:
+                      description: |-
+                        timeout is the duration that a node must be in a given status for,
+                        after which the node is considered unhealthy.
+                        For example, with a value of "1h", the node must match the status
+                        for at least 1 hour before being considered unhealthy.
+                      type: string
+                    type:
+                      description: type of Node condition
+                      minLength: 1
+                      type: string
+                  required:
+                  - status
+                  - timeout
+                  - type
+                  type: object
+                minItems: 1
+                type: array
+            required:
+            - clusterName
+            - selector
+            - unhealthyConditions
+            type: object
+          status:
+            description: status is the most recently observed status of MachineHealthCheck
+              resource
+            properties:
+              conditions:
+                description: conditions defines current service state of the MachineHealthCheck.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This field may be empty.
+                      type: string
+                    reason:
+                      description: |-
+                        reason is the reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may not be empty.
+                      type: string
+                    severity:
+                      description: |-
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              currentHealthy:
+                description: currentHealthy is the total number of healthy machines
+                  counted by this machine health check
+                format: int32
+                minimum: 0
+                type: integer
+              expectedMachines:
+                description: expectedMachines is the total number of machines counted
+                  by this machine health check
+                format: int32
+                minimum: 0
+                type: integer
+              observedGeneration:
+                description: observedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
+              remediationsAllowed:
+                description: |-
+                  remediationsAllowed is the number of further remediations allowed by this machine health check before
+                  maxUnhealthy short circuiting will be applied
+                format: int32
+                minimum: 0
+                type: integer
+              targets:
+                description: targets shows the current list of machines the machine
+                  health check is watching
+                items:
+                  type: string
+                type: array
+            type: object
+        type: object
+    served: false
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
+    - description: Time duration since creation of MachineHealthCheck
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Maximum number of unhealthy machines allowed
+      jsonPath: .spec.maxUnhealthy
+      name: MaxUnhealthy
+      type: string
+    - description: Number of machines currently monitored
+      jsonPath: .status.expectedMachines
+      name: ExpectedMachines
+      type: integer
+    - description: Current observed healthy machines
+      jsonPath: .status.currentHealthy
+      name: CurrentHealthy
+      type: integer
+    deprecated: true
+    name: v1alpha4
+    schema:
+      openAPIV3Schema:
+        description: |-
+          MachineHealthCheck is the Schema for the machinehealthchecks API.
+
+          Deprecated: This type will be removed in one of the next releases.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec is the specification of machine health check policy
+            properties:
+              clusterName:
+                description: clusterName is the name of the Cluster this object belongs
+                  to.
+                minLength: 1
+                type: string
+              maxUnhealthy:
+                anyOf:
+                - type: integer
+                - type: string
+                description: |-
+                  maxUnhealthy specifies the maximum number of unhealthy machines allowed.
+                  Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
+                  "selector" are not healthy.
+                x-kubernetes-int-or-string: true
+              nodeStartupTimeout:
+                description: |-
+                  nodeStartupTimeout is the duration after which machines without a node will be considered to
+                  have failed and will be remediated.
+                  If not set, this value is defaulted to 10 minutes.
+                  If you wish to disable this feature, set the value explicitly to 0.
+                type: string
+              remediationTemplate:
+                description: |-
+                  remediationTemplate is a reference to a remediation template
+                  provided by an infrastructure provider.
+
+                  This field is completely optional, when filled, the MachineHealthCheck controller
+                  creates a new object from the template referenced and hands off remediation of the machine to
+                  a controller that lives outside of Cluster API.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: |-
+                      If referring to a piece of an object instead of an entire object, this string
+                      should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within a pod, this would take on a value like:
+                      "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]" (container with
+                      index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                      referencing a part of an object.
+                    type: string
+                  kind:
+                    description: |-
+                      Kind of the referent.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                    type: string
+                  resourceVersion:
+                    description: |-
+                      Specific resourceVersion to which this reference is made, if any.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                    type: string
+                  uid:
+                    description: |-
+                      UID of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              selector:
+                description: selector is the label selector to match machines whose
+                  health will be exercised
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              unhealthyConditions:
+                description: |-
+                  unhealthyConditions contains a list of the conditions that determine
+                  whether a node is considered unhealthy.  The conditions are combined in a
+                  logical OR, i.e. if any of the conditions is met, the node is unhealthy.
+                items:
+                  description: |-
+                    UnhealthyCondition represents a Node condition type and value with a timeout
+                    specified as a duration.  When the named condition has been in the given
+                    status for at least the timeout value, a node is considered unhealthy.
+                  properties:
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      minLength: 1
+                      type: string
+                    timeout:
+                      description: |-
+                        timeout is the duration that a node must be in a given status for,
+                        after which the node is considered unhealthy.
+                        For example, with a value of "1h", the node must match the status
+                        for at least 1 hour before being considered unhealthy.
+                      type: string
+                    type:
+                      description: type of Node condition
+                      minLength: 1
+                      type: string
+                  required:
+                  - status
+                  - timeout
+                  - type
+                  type: object
+                minItems: 1
+                type: array
+              unhealthyRange:
+                description: |-
+                  unhealthyRange specifies the range of unhealthy machines allowed.
+                  Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
+                  is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
+                  Eg. "[3-5]" - This means that remediation will be allowed only when:
+                  (a) there are at least 3 unhealthy machines (and)
+                  (b) there are at most 5 unhealthy machines
+                pattern: ^\[[0-9]+-[0-9]+\]$
+                type: string
+            required:
+            - clusterName
+            - selector
+            - unhealthyConditions
+            type: object
+          status:
+            description: status is the most recently observed status of MachineHealthCheck
+              resource
+            properties:
+              conditions:
+                description: conditions defines current service state of the MachineHealthCheck.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This field may be empty.
+                      type: string
+                    reason:
+                      description: |-
+                        reason is the reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may not be empty.
+                      type: string
+                    severity:
+                      description: |-
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              currentHealthy:
+                description: currentHealthy is the total number of healthy machines
+                  counted by this machine health check
+                format: int32
+                minimum: 0
+                type: integer
+              expectedMachines:
+                description: expectedMachines is the total number of machines counted
+                  by this machine health check
+                format: int32
+                minimum: 0
+                type: integer
+              observedGeneration:
+                description: observedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
+              remediationsAllowed:
+                description: |-
+                  remediationsAllowed is the number of further remediations allowed by this machine health check before
+                  maxUnhealthy short circuiting will be applied
+                format: int32
+                minimum: 0
+                type: integer
+              targets:
+                description: targets shows the current list of machines the machine
+                  health check is watching
+                items:
+                  type: string
+                type: array
+            type: object
+        type: object
+    served: false
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
+    - description: Number of machines currently monitored
+      jsonPath: .status.expectedMachines
+      name: ExpectedMachines
+      type: integer
+    - description: Maximum number of unhealthy machines allowed
+      jsonPath: .spec.maxUnhealthy
+      name: MaxUnhealthy
+      type: string
+    - description: Current observed healthy machines
+      jsonPath: .status.currentHealthy
+      name: CurrentHealthy
+      type: integer
+    - description: Time duration since creation of MachineHealthCheck
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    deprecated: true
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: MachineHealthCheck is the Schema for the machinehealthchecks
+          API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec is the specification of machine health check policy
+            properties:
+              clusterName:
+                description: clusterName is the name of the Cluster this object belongs
+                  to.
+                maxLength: 63
+                minLength: 1
+                type: string
+              maxUnhealthy:
+                anyOf:
+                - type: integer
+                - type: string
+                description: |-
+                  maxUnhealthy specifies the maximum number of unhealthy machines allowed.
+                  Any further remediation is only allowed if at most "maxUnhealthy" machines selected by
+                  "selector" are not healthy.
+
+                  Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10722 for more details.
+                x-kubernetes-int-or-string: true
+              nodeStartupTimeout:
+                description: |-
+                  nodeStartupTimeout allows to set the maximum time for MachineHealthCheck
+                  to consider a Machine unhealthy if a corresponding Node isn't associated
+                  through a `Spec.ProviderID` field.
+
+                  The duration set in this field is compared to the greatest of:
+                  - Cluster's infrastructure ready condition timestamp (if and when available)
+                  - Control Plane's initialized condition timestamp (if and when available)
+                  - Machine's infrastructure ready condition timestamp (if and when available)
+                  - Machine's metadata creation timestamp
+
+                  Defaults to 10 minutes.
+                  If you wish to disable this feature, set the value explicitly to 0.
+                type: string
+              remediationTemplate:
+                description: |-
+                  remediationTemplate is a reference to a remediation template
+                  provided by an infrastructure provider.
+
+                  This field is completely optional, when filled, the MachineHealthCheck controller
+                  creates a new object from the template referenced and hands off remediation of the machine to
+                  a controller that lives outside of Cluster API.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: |-
+                      If referring to a piece of an object instead of an entire object, this string
+                      should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within a pod, this would take on a value like:
+                      "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]" (container with
+                      index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                      referencing a part of an object.
+                    type: string
+                  kind:
+                    description: |-
+                      Kind of the referent.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                    type: string
+                  resourceVersion:
+                    description: |-
+                      Specific resourceVersion to which this reference is made, if any.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                    type: string
+                  uid:
+                    description: |-
+                      UID of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              selector:
+                description: selector is a label selector to match machines whose
+                  health will be exercised
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              unhealthyConditions:
+                description: |-
+                  unhealthyConditions contains a list of the conditions that determine
+                  whether a node is considered unhealthy.  The conditions are combined in a
+                  logical OR, i.e. if any of the conditions is met, the node is unhealthy.
+                items:
+                  description: |-
+                    UnhealthyCondition represents a Node condition type and value with a timeout
+                    specified as a duration.  When the named condition has been in the given
+                    status for at least the timeout value, a node is considered unhealthy.
+                  properties:
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      minLength: 1
+                      type: string
+                    timeout:
+                      description: |-
+                        timeout is the duration that a node must be in a given status for,
+                        after which the node is considered unhealthy.
+                        For example, with a value of "1h", the node must match the status
+                        for at least 1 hour before being considered unhealthy.
+                      type: string
+                    type:
+                      description: type of Node condition
+                      minLength: 1
+                      type: string
+                  required:
+                  - status
+                  - timeout
+                  - type
+                  type: object
+                maxItems: 100
+                type: array
+              unhealthyRange:
+                description: |-
+                  unhealthyRange specifies the range of unhealthy machines allowed.
+                  Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
+                  is within the range of "unhealthyRange". Takes precedence over maxUnhealthy.
+                  Eg. "[3-5]" - This means that remediation will be allowed only when:
+                  (a) there are at least 3 unhealthy machines (and)
+                  (b) there are at most 5 unhealthy machines
+
+                  Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10722 for more details.
+                maxLength: 32
+                minLength: 1
+                pattern: ^\[[0-9]+-[0-9]+\]$
+                type: string
+            required:
+            - clusterName
+            - selector
+            type: object
+          status:
+            description: status is the most recently observed status of MachineHealthCheck
+              resource
+            properties:
+              conditions:
+                description: conditions defines current service state of the MachineHealthCheck.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
+                      type: string
+                    reason:
+                      description: |-
+                        reason is the reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may be empty.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                    severity:
+                      description: |-
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      maxLength: 32
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              currentHealthy:
+                description: currentHealthy is the total number of healthy machines
+                  counted by this machine health check
+                format: int32
+                minimum: 0
+                type: integer
+              expectedMachines:
+                description: expectedMachines is the total number of machines counted
+                  by this machine health check
+                format: int32
+                minimum: 0
+                type: integer
+              observedGeneration:
+                description: observedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
+              remediationsAllowed:
+                description: |-
+                  remediationsAllowed is the number of further remediations allowed by this machine health check before
+                  maxUnhealthy short circuiting will be applied
+                format: int32
+                minimum: 0
+                type: integer
+              targets:
+                description: targets shows the current list of machines the machine
+                  health check is watching
+                items:
+                  maxLength: 253
+                  minLength: 1
+                  type: string
+                maxItems: 10000
+                type: array
+              v1beta2:
+                description: v1beta2 groups all the fields that will be added or modified
+                  in MachineHealthCheck's status with the V1Beta2 version.
+                properties:
+                  conditions:
+                    description: |-
+                      conditions represents the observations of a MachineHealthCheck's current state.
+                      Known condition types are RemediationAllowed, Paused.
+                    items:
+                      description: Condition contains details for one aspect of the
+                        current state of this API Resource.
+                      properties:
+                        lastTransitionTime:
+                          description: |-
+                            lastTransitionTime is the last time the condition transitioned from one status to another.
+                            This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                          format: date-time
+                          type: string
+                        message:
+                          description: |-
+                            message is a human readable message indicating details about the transition.
+                            This may be an empty string.
+                          maxLength: 32768
+                          type: string
+                        observedGeneration:
+                          description: |-
+                            observedGeneration represents the .metadata.generation that the condition was set based upon.
+                            For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                            with respect to the current state of the instance.
+                          format: int64
+                          minimum: 0
+                          type: integer
+                        reason:
+                          description: |-
+                            reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                            Producers of specific condition types may define expected values and meanings for this field,
+                            and whether the values are considered a guaranteed API.
+                            The value should be a CamelCase string.
+                            This field may not be empty.
+                          maxLength: 1024
+                          minLength: 1
+                          pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                          type: string
+                        status:
+                          description: status of the condition, one of True, False,
+                            Unknown.
+                          enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                          type: string
+                        type:
+                          description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                          maxLength: 316
+                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                      type: object
+                    maxItems: 32
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
+    - description: Number of machines currently monitored
+      jsonPath: .status.expectedMachines
+      name: Replicas
+      type: integer
+    - description: Current observed healthy machines
+      jsonPath: .status.currentHealthy
+      name: Healthy
+      type: integer
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
+      type: string
+    - description: Time duration since creation of MachineHealthCheck
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta2
+    schema:
+      openAPIV3Schema:
+        description: MachineHealthCheck is the Schema for the machinehealthchecks
+          API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec is the specification of machine health check policy
+            properties:
+              checks:
+                description: |-
+                  checks are the checks that are used to evaluate if a Machine is healthy.
+
+                  Independent of this configuration the MachineHealthCheck controller will always
+                  flag Machines with `cluster.x-k8s.io/remediate-machine` annotation and
+                  Machines with deleted Nodes as unhealthy.
+
+                  Furthermore, if checks.nodeStartupTimeoutSeconds is not set it
+                  is defaulted to 10 minutes and evaluated accordingly.
+                minProperties: 1
+                properties:
+                  nodeStartupTimeoutSeconds:
+                    description: |-
+                      nodeStartupTimeoutSeconds allows to set the maximum time for MachineHealthCheck
+                      to consider a Machine unhealthy if a corresponding Node isn't associated
+                      through a `Spec.ProviderID` field.
+
+                      The duration set in this field is compared to the greatest of:
+                      - Cluster's infrastructure ready condition timestamp (if and when available)
+                      - Control Plane's initialized condition timestamp (if and when available)
+                      - Machine's infrastructure ready condition timestamp (if and when available)
+                      - Machine's metadata creation timestamp
+
+                      Defaults to 10 minutes.
+                      If you wish to disable this feature, set the value explicitly to 0.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  unhealthyNodeConditions:
+                    description: |-
+                      unhealthyNodeConditions contains a list of conditions that determine
+                      whether a node is considered unhealthy. The conditions are combined in a
+                      logical OR, i.e. if any of the conditions is met, the node is unhealthy.
+                    items:
+                      description: |-
+                        UnhealthyNodeCondition represents a Node condition type and value with a timeout
+                        specified as a duration.  When the named condition has been in the given
+                        status for at least the timeout value, a node is considered unhealthy.
+                      properties:
+                        status:
+                          description: status of the condition, one of True, False,
+                            Unknown.
+                          minLength: 1
+                          type: string
+                        timeoutSeconds:
+                          description: |-
+                            timeoutSeconds is the duration that a node must be in a given status for,
+                            after which the node is considered unhealthy.
+                            For example, with a value of "1h", the node must match the status
+                            for at least 1 hour before being considered unhealthy.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        type:
+                          description: type of Node condition
+                          minLength: 1
+                          type: string
+                      required:
+                      - status
+                      - timeoutSeconds
+                      - type
+                      type: object
+                    maxItems: 100
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-type: atomic
+                type: object
+              clusterName:
+                description: clusterName is the name of the Cluster this object belongs
+                  to.
+                maxLength: 63
+                minLength: 1
+                type: string
+              remediation:
+                description: |-
+                  remediation configures if and how remediations are triggered if a Machine is unhealthy.
+
+                  If remediation or remediation.triggerIf is not set,
+                  remediation will always be triggered for unhealthy Machines.
+
+                  If remediation or remediation.templateRef is not set,
+                  the OwnerRemediated condition will be set on unhealthy Machines to trigger remediation via
+                  the owner of the Machines, for example a MachineSet or a KubeadmControlPlane.
+                minProperties: 1
+                properties:
+                  templateRef:
+                    description: |-
+                      templateRef is a reference to a remediation template
+                      provided by an infrastructure provider.
+
+                      This field is completely optional, when filled, the MachineHealthCheck controller
+                      creates a new object from the template referenced and hands off remediation of the machine to
+                      a controller that lives outside of Cluster API.
+                    properties:
+                      apiVersion:
+                        description: |-
+                          apiVersion of the remediation template.
+                          apiVersion must be fully qualified domain name followed by / and a version.
+                          NOTE: This field must be kept in sync with the APIVersion of the remediation template.
+                        maxLength: 317
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$
+                        type: string
+                      kind:
+                        description: |-
+                          kind of the remediation template.
+                          kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                        maxLength: 63
+                        minLength: 1
+                        pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                        type: string
+                      name:
+                        description: |-
+                          name of the remediation template.
+                          name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                        maxLength: 253
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                    required:
+                    - apiVersion
+                    - kind
+                    - name
+                    type: object
+                  triggerIf:
+                    description: |-
+                      triggerIf configures if remediations are triggered.
+                      If this field is not set, remediations are always triggered.
+                    minProperties: 1
+                    properties:
+                      unhealthyInRange:
+                        description: |-
+                          unhealthyInRange specifies that remediations are only triggered if the number of
+                          unhealthy Machines is in the configured range.
+                          Takes precedence over unhealthyLessThanOrEqualTo.
+                          Eg. "[3-5]" - This means that remediation will be allowed only when:
+                          (a) there are at least 3 unhealthy Machines (and)
+                          (b) there are at most 5 unhealthy Machines
+                        maxLength: 32
+                        minLength: 1
+                        pattern: ^\[[0-9]+-[0-9]+\]$
+                        type: string
+                      unhealthyLessThanOrEqualTo:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          unhealthyLessThanOrEqualTo specifies that remediations are only triggered if the number of
+                          unhealthy Machines is less than or equal to the configured value.
+                          unhealthyInRange takes precedence if set.
+                        x-kubernetes-int-or-string: true
+                    type: object
+                type: object
+              selector:
+                description: selector is a label selector to match machines whose
+                  health will be exercised
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+            required:
+            - clusterName
+            - selector
+            type: object
+          status:
+            description: status is the most recently observed status of MachineHealthCheck
+              resource
+            minProperties: 1
+            properties:
+              conditions:
+                description: |-
+                  conditions represents the observations of a MachineHealthCheck's current state.
+                  Known condition types are RemediationAllowed, Paused.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                maxItems: 32
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              currentHealthy:
+                description: currentHealthy is the total number of healthy machines
+                  counted by this machine health check
+                format: int32
+                minimum: 0
+                type: integer
+              deprecated:
+                description: deprecated groups all the status fields that are deprecated
+                  and will be removed when all the nested field are removed.
+                properties:
+                  v1beta1:
+                    description: v1beta1 groups all the status fields that are deprecated
+                      and will be removed when support for v1beta1 will be dropped.
+                    properties:
+                      conditions:
+                        description: |-
+                          conditions defines current service state of the MachineHealthCheck.
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        items:
+                          description: Condition defines an observation of a Cluster
+                            API resource operational state.
+                          properties:
+                            lastTransitionTime:
+                              description: |-
+                                lastTransitionTime is the last time the condition transitioned from one status to another.
+                                This should be when the underlying condition changed. If that is not known, then using the time when
+                                the API field changed is acceptable.
+                              format: date-time
+                              type: string
+                            message:
+                              description: |-
+                                message is a human readable message indicating details about the transition.
+                                This field may be empty.
+                              maxLength: 10240
+                              minLength: 1
+                              type: string
+                            reason:
+                              description: |-
+                                reason is the reason for the condition's last transition in CamelCase.
+                                The specific API may choose whether or not this field is considered a guaranteed API.
+                                This field may be empty.
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                            severity:
+                              description: |-
+                                severity provides an explicit classification of Reason code, so the users or machines can immediately
+                                understand the current situation and act accordingly.
+                                The Severity field MUST be set only when Status=False.
+                              maxLength: 32
+                              type: string
+                            status:
+                              description: status of the condition, one of True, False,
+                                Unknown.
+                              type: string
+                            type:
+                              description: |-
+                                type of condition in CamelCase or in foo.example.com/CamelCase.
+                                Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                                can be useful (see .node.status.conditions), the ability to deconflict is important.
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                          required:
+                          - lastTransitionTime
+                          - status
+                          - type
+                          type: object
+                        type: array
+                    type: object
+                type: object
+              expectedMachines:
+                description: expectedMachines is the total number of machines counted
+                  by this machine health check
+                format: int32
+                minimum: 0
+                type: integer
+              observedGeneration:
+                description: observedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                minimum: 1
+                type: integer
+              remediationsAllowed:
+                description: |-
+                  remediationsAllowed is the number of further remediations allowed by this machine health check before
+                  maxUnhealthy short circuiting will be applied
+                format: int32
+                minimum: 0
+                type: integer
+              targets:
+                description: targets shows the current list of machines the machine
+                  health check is watching
+                items:
+                  maxLength: 253
+                  minLength: 1
+                  type: string
+                maxItems: 10000
+                type: array
+                x-kubernetes-list-type: atomic
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

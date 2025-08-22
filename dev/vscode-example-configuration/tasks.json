@@ -1,0 +1,32 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "sigs.k8s.io/cluster-api: Prepare vscode to run envtest-based tests",
+            "detail": "Install envtest and configure the vscode-go test environment.",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "command": [
+                "echo $(make setup-envtest) > ${workspaceFolder}/.vscode/test.env",
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "runOptions": {
+                "runOn": "folderOpen",
+                "instanceLimit": 1,
+            },
+            "promptOnClose": true,
+        }
+    ]
+}

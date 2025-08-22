@@ -1,0 +1,20 @@
+apiVersion: runtime.cluster.x-k8s.io/v1alpha1
+kind: ExtensionConfig
+metadata:
+  annotations:
+    runtime.cluster.x-k8s.io/inject-ca-from-secret: test-extension-system/test-extension-webhook-service-cert
+  name: test-extension
+spec:
+  settings:
+    extensionConfigName: test-extension
+  clientConfig:
+    service:
+      name: test-extension-webhook-service
+      namespace: test-extension-system # Note: this assumes the test extension get deployed in the default namespace defined in its own runtime-extensions-components.yaml
+      port: 443
+  namespaceSelector:
+    matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: In
+        values:
+          - default # Note: this assumes the test extension is used by Cluster in the default namespace only

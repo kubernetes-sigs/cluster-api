@@ -1,0 +1,62 @@
+@startuml
+title Upgrade Provider and change contract version
+actor User
+participant APIServer
+participant "Management Cluster\nController" as Controller
+
+note over APIServer
+Current State:
+A core provider exists with version 
+v0.3.10 abiding by contract v1alpha3
+end note
+====
+User -> APIServer: kubectl apply -f updated-provider.yaml
+
+activate APIServer
+APIServer --> Controller: upgrade core provider to v0.4.0\nwhich abides by contract v1alpha4
+activate Controller
+Controller -> Controller: Reconcile
+
+Controller -> APIServer: Get existing Core provider
+APIServer --> Controller: Response
+
+note over Controller
+- Verify if the Core provider exists
+- Get the Status.Contract of existing provider
+end note
+
+Controller -> APIServer: Get metadata from ConfigMap for v0.4.0
+APIServer --> Controller: Response
+
+note over Controller
+Identify that we are upgrading 
+the contract of the providers.
+end note 
+
+Controller -> APIServer: Get all providers
+APIServer --> Controller: Response
+
+note over Controller
+For each existing provider,
+fetch version that abides by new contract.
+If there is a provider that doesn't have a
+version that abides by new contract,
+then set condition, notify user of error?
+Else continue...
+end note
+
+Controller -> APIServer: Pause all providers\nto avoid reconciliation
+
+Controller -> APIServer: Delete each provider
+Controller -> APIServer: Install new provider
+
+note over Controller
+Confirm all health checks,
+providers are running.
+end note
+
+Controller -> APIServer: Unpause all providers
+
+deactivate APIServer
+deactivate Controller
+@enduml

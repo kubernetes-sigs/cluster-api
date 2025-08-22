@@ -1,0 +1,467 @@
+:root {
+    --content-max-width: 880px;
+}
+
+html {
+    font-family: -apple-system, "Helvetica", "Arial", sans-serif;
+    color: var(--fg);
+    background-color: var(--bg);
+    text-size-adjust: none;
+}
+
+code {
+    font-family: Menlo, monospace !important;
+    font-size: 14px;
+    line-height: 1.8em;
+    -webkit-font-smoothing: auto;
+    white-space: inherit;
+}
+
+
+/* Disable the big arrows left and right */
+.previous {
+    display: none;
+}
+.next {
+    display: none;
+}
+
+/* the target blob */
+.marker::before {
+    content: "on " attr(data-target);
+    padding: 1px 6px;
+    border-radius: 20%;
+    background: var(--quote-bg);
+    margin-left: 0.5em;
+    font-weight: normal;
+    opacity: 0.75;
+    font-size: 0.75em;
+    order: 2; /* hack around the ::before's positioning to get it after the line */
+}
+
+/* deprecated markers */
+.marker.deprecated[data-target] {
+    /* use attribute marker for specificity */
+    order: 4;
+    opacity: 0.65;
+}
+
+.marker.deprecated::before {
+    content: "deprecated (on " attr(data-target) ")";
+    color: red;
+}
+.marker.deprecated:not([data-deprecated=""])::before {
+    content: "use " attr(data-deprecated) " (on " attr(data-target) ")";
+    color: red;
+}
+
+/* the summary arguments (hidden in non-summary view) */
+.marker dd.args {
+    margin-left: 0;
+    font-family: mono;
+    order: 1; /* hack around the ::before's positioning to get it after the line */
+}
+.marker dl.args.summary {
+    display: inline-block;
+    margin-bottom: 0;
+    margin-top: 0;
+}
+/* TODO(directxman12): optional */
+.marker dl.args.summary dt {
+    display: inline-block;
+    font-style: inherit;
+}
+.marker dl.args.summary dt:first-child::before {
+    content: ':';
+}
+.marker dl.args.summary dt::before {
+    content: ',';
+}
+/* hide in non-summary view */
+.marker dd.args {
+    display: none
+}
+
+/* the description */
+.marker dd.description {
+    order: 3; /* hack around the ::before's positioning to get it after the line */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* all arguments */
+.marker dl.args dt.argument::after {
+    content: '=';
+}
+.marker dl.args dd.type {
+    font-style: italic;
+}
+.marker .argument {
+    display: inline-block;
+    margin-left: 0;
+}
+.marker .argument.type {
+    font-size: 0.875em;
+}
+.marker .literal {
+    font-family: Menlo, monospace;
+    font-size: 0.875em; /* please adjust the ace font size accordingly in editor.js */
+}
+.marker .argument.type::before {
+    content: '‹';
+}
+.marker .argument.type::after {
+    content: '›';
+}
+
+/* summary args */
+.marker .args.summary .argument.optional {
+    opacity: 0.75;
+}
+
+/* anonymous marker args */
+.marker.anonymous .description details {
+    order: 1;
+    flex: 1; /* don't cause arg syntax to wrap */
+}
+.marker.anonymous .description .args {
+    order: 0; /* go before the description */
+
+    /* all on a single line */
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-right: 1em;
+}
+.marker.anonymous .description {
+    flex-direction: row;
+}
+.marker .description dl.args:empty {
+    margin-top: 0;
+}
+
+.marker .type .slice::before {
+    content: '[]';
+}
+
+/* description args */
+.marker .description dt.argument.optional::before {
+    content: "opt";
+    padding: 1px 4px;
+    border-radius: 20%;
+    background: var(--quote-bg);
+    opacity: 0.5;
+    margin-left: -3em;
+    float: left;
+}
+
+/* help text */
+.marker summary.no-details {
+    list-style: none;
+}
+.marker summary.no-details::-webkit-details-marker {
+    display: none;
+}
+
+/* summary view */
+.markers-summarize:checked ~ dl > .marker dd.args {
+    display: inline-block
+}
+.markers-summarize:checked ~ dl > .marker dd.description dl.args {
+    display: none
+}
+.markers-summarize:checked ~ dl > .marker dd.description {
+    margin-bottom: 0.25em;
+}
+
+input.markers-summarize {
+    display: none;
+}
+label.markers-summarize::before {
+    margin-right: 0.5em;
+    content: '\25bc';
+    display: inline-block;
+}
+input.markers-summarize:checked ~ label.markers-summarize::before {
+    content: '\25b6';
+}
+
+/* misc */
+/* marker details should be indented to be in line with the summary,
+ * which is indented due to the expando
+ */
+.marker details > p {
+    margin-left: 1em;
+}
+
+/* sort by target */
+.marker[data-target="package"] {
+    order: 2;
+}
+.marker[data-target="type"] {
+    order: 1;
+}
+.marker[data-target="field"] {
+    order: 0;
+}
+.markers {
+    display: flex;
+    flex-direction: column;
+}
+
+/* details elements (not markers) */
+details.collapse-code {
+    margin-top: 0.125em;
+    margin-bottom: 0.125em;
+}
+
+details.collapse-code > summary {
+    width: 100%;
+    cursor: pointer;
+    display: flex;
+    box-sizing: border-box; /* why isn't this the default? :-/ */
+}
+
+details.collapse-code > summary::after {
+    content: "\25c0";
+    float: right;
+    font-size: 0.875em;
+    color: var(--inline-code-color);
+    opacity: 0.8;
+}
+
+details.collapse-code[open] > summary::after {
+    content: "\25bc";
+}
+
+details.collapse-code > summary pre {
+    flex: 1;
+    box-sizing: border-box; /* why isn't this the default? :-/ */
+    margin: inherit;
+    padding: 0.25em 0.5em;
+}
+
+details.collapse-code > summary pre span::after {
+    content: " (hidden)";
+    font-size: 80%;
+}
+
+details.collapse-code[open] > summary pre span::after {
+    content: "";
+}
+
+details.collapse-code > summary pre span::before {
+    content: "// ";
+}
+
+/* make summary into code a bit nicer looking */
+details.collapse-code[open] > summary + pre {
+    margin-top: 0;
+}
+
+/* get rid of the ugly blue box that makes the summary->code look bad */
+details.collapse-code summary:focus {
+    outline: none;
+    font-weight: bold; /* keep something around for tab users */
+}
+
+/* don't show the default expando */
+details.collapse-code > summary {
+    list-style: none;
+}
+details.collapse-code > summary::-webkit-details-marker {
+    display: none;
+}
+
+
+/* diagrams */
+
+.diagrams {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.diagrams > * {
+    margin-left: 1em;
+    margin-right: 1em;
+    font-size: 160%;
+    font-weight: bold;
+}
+
+.diagrams object, .diagrams svg {
+    max-width: 100%;
+    max-height: 10em; /* force svg height to behave */
+}
+
+.diagrams path, .diagrams polyline, .diagrams circle {
+    stroke: var(--fg);
+}
+
+.diagrams path.text {
+    fill: var(--fg);
+    stroke: none;
+}
+
+.diagrams path.text.invert {
+    fill: black;
+    stroke: none;
+}
+
+/* notes */
+aside.note {
+    border: 1px solid var(--searchbar-border-color);
+    border-radius: 3px;
+    margin-top: 1em;
+}
+
+aside.note > * {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+/* note title */
+aside.note > h1 {
+    border-bottom: 1px solid var(--searchbar-border-color);
+    margin: 0;
+    padding: 0.5em 1em;
+    font-size: 100%;
+    font-weight: normal;
+    background: var(--quote-bg);
+}
+
+/* warning notes */
+aside.note.warning > h1 {
+    background: var(--warning-note-background-color, #fcf8f2);
+}
+aside.note.warning > h1::before {
+    /* TODO(directxman12): fill in these colors in theme.
+     * If you're good with colors, feel free to play around with this
+     * in dark mode. */
+    content: "!";
+    color: var(--warning-note-color, #f0ad4e);
+    margin-right: 1em;
+    font-size: 100%;
+    vertical-align: middle;
+    font-weight: bold;
+    padding-left: 0.6em;
+    padding-right: 0.6em;
+    border-radius: 50%;
+    border: 2px solid var(--warning-note-color, #f0ad4e);
+}
+
+/* literate source citations */
+cite.literate-source {
+    font-size: 75%;
+    font-family: "Source Code Pro", Consolas, "Ubuntu Mono", Menlo, "DejaVu Sans Mono", monospace, monospace;
+}
+cite.literate-source::before {
+    content: "$ ";
+    font-weight: bold;
+    font-style: normal;
+}
+
+cite.literate-source > a::before {
+    content: "vim ";
+    font-style: normal;
+    color: var(--fg);
+}
+
+/* hide the annoying "copy to clipboard" buttons */
+.literate pre > .buttons {
+    display: none;
+}
+
+/* add a bit of extra padding for readability */
+.literate pre code {
+    padding-top: 0.75em;
+    padding-bottom: 0.75em;
+}
+
+.tabset > input[type="radio"] {
+  position: absolute;
+  left: -200vw;
+}
+
+.tabset .tab-panel {
+  display: none;
+}
+
+.tabset > input:first-child:checked ~ .tab-panels > .tab-panel:first-child,
+.tabset > input:nth-child(3):checked ~ .tab-panels > .tab-panel:nth-child(2),
+.tabset > input:nth-child(5):checked ~ .tab-panels > .tab-panel:nth-child(3),
+.tabset > input:nth-child(7):checked ~ .tab-panels > .tab-panel:nth-child(4),
+.tabset > input:nth-child(9):checked ~ .tab-panels > .tab-panel:nth-child(5),
+.tabset > input:nth-child(11):checked ~ .tab-panels > .tab-panel:nth-child(6),
+.tabset > input:nth-child(13):checked ~ .tab-panels > .tab-panel:nth-child(7),
+.tabset > input:nth-child(15):checked ~ .tab-panels > .tab-panel:nth-child(8),
+.tabset > input:nth-child(17):checked ~ .tab-panels > .tab-panel:nth-child(9),
+.tabset > input:nth-child(19):checked ~ .tab-panels > .tab-panel:nth-child(10),
+.tabset > input:nth-child(21):checked ~ .tab-panels > .tab-panel:nth-child(11),
+.tabset > input:nth-child(23):checked ~ .tab-panels > .tab-panel:nth-child(12),
+.tabset > input:nth-child(25):checked ~ .tab-panels > .tab-panel:nth-child(13),
+.tabset > input:nth-child(27):checked ~ .tab-panels > .tab-panel:nth-child(14),
+.tabset > input:nth-child(29):checked ~ .tab-panels > .tab-panel:nth-child(15),
+.tabset > input:nth-child(31):checked ~ .tab-panels > .tab-panel:nth-child(16),
+.tabset > input:nth-child(33):checked ~ .tab-panels > .tab-panel:nth-child(17),
+.tabset > input:nth-child(35):checked ~ .tab-panels > .tab-panel:nth-child(18),
+.tabset > input:nth-child(37):checked ~ .tab-panels > .tab-panel:nth-child(19),
+.tabset > input:nth-child(39):checked ~ .tab-panels > .tab-panel:nth-child(20),
+.tabset > input:nth-child(41):checked ~ .tab-panels > .tab-panel:nth-child(21),
+.tabset > input:nth-child(43):checked ~ .tab-panels > .tab-panel:nth-child(22),
+.tabset > input:nth-child(45):checked ~ .tab-panels > .tab-panel:nth-child(23),
+.tabset > input:nth-child(47):checked ~ .tab-panels > .tab-panel:nth-child(24),
+.tabset > input:nth-child(49):checked ~ .tab-panels > .tab-panel:nth-child(25),
+.tabset > input:nth-child(51):checked ~ .tab-panels > .tab-panel:nth-child(26),
+.tabset > input:nth-child(53):checked ~ .tab-panels > .tab-panel:nth-child(27),
+.tabset > input:nth-child(55):checked ~ .tab-panels > .tab-panel:nth-child(28),
+.tabset > input:nth-child(57):checked ~ .tab-panels > .tab-panel:nth-child(29){
+  display: block;
+}
+
+.tabset > label {
+  position: relative;
+  display: inline-block;
+  padding: .6em 1em 1em;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  cursor: pointer;
+  font-size: 16px;
+  border-top-right-radius: 4px;
+  border-top-left-radius: 4px;
+}
+
+.tabset > label::after {
+  content: "";
+  position: absolute;
+  left: 15px;
+  bottom: 10px;
+  width: 20px;
+  height: 4px;
+  background: #8d8d8d;
+}
+
+.tabset > label:hover,
+.tabset > input:focus + label {
+  color: #06c;
+}
+
+.tabset > label:hover::after,
+.tabset > input:focus + label::after,
+.tabset > input:checked + label::after {
+  background: #06c;
+}
+
+.tabset > input:checked + label {
+  border-color: #ccc;
+  border-bottom: 1px solid #fff;
+  margin-bottom: -1px;
+}
+
+.tab-panel {
+  padding: 1em 1.4em;
+  border: 1px solid #ccc;
+  border-bottom-right-radius: 4px;
+  border-bottom-left-radius: 4px;
+  position: relative;
+}

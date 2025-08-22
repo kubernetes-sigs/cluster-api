@@ -1,0 +1,37 @@
+# Placeholder for tempo chart configuration, see https://github.com/grafana/helm-charts/tree/main/charts/tempo
+tempo:
+  searchEnabled: true
+
+config: |
+  multitenancy_enabled: false
+  compactor:
+    compaction:
+      block_retention: 24h
+  distributor:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+  ingester: {}
+  server:
+    http_listen_port: 3100
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+      wal:
+        path: /var/tempo/wal
+  querier: {}
+  query_frontend: {}
+  overrides:
+    per_tenant_override_config: /conf/overrides.yaml
+    metrics_generator_processors:
+    - 'service-graphs'
+    - 'span-metrics'
+  metrics_generator:
+    storage:
+      path: "/tmp/tempo"
+      remote_write:
+      - url: "http://prometheus-server/api/v1/write"

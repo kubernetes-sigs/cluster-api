@@ -1,0 +1,243 @@
+components:
+  schemas:
+    k8s.io.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSON:
+      type: object
+    k8s.io.apimachinery.pkg.runtime.RawExtension:
+      type: object
+    sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.GeneratePatchesRequest:
+      description: GeneratePatchesRequest is the request of the GeneratePatches hook.
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        items:
+          description: Items is the list of templates to generate patches for.
+          items:
+            $ref: '#/components/schemas/sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.GeneratePatchesRequestItem'
+            default: {}
+          type: array
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        variables:
+          description: Variables are global variables for all templates.
+          items:
+            $ref: '#/components/schemas/sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.Variable'
+            default: {}
+          type: array
+      required:
+      - variables
+      - items
+      type: object
+    sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.GeneratePatchesRequestItem:
+      description: GeneratePatchesRequestItem represents a template to generate patches
+        for.
+      properties:
+        holderReference:
+          $ref: '#/components/schemas/sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.HolderReference'
+          default: {}
+          description: HolderReference is a reference to the object where the template
+            is used.
+        object:
+          $ref: '#/components/schemas/k8s.io.apimachinery.pkg.runtime.RawExtension'
+          default: {}
+          description: Object contains the template as a raw object.
+        uid:
+          default: ""
+          description: UID is an identifier for this template. It allows us to correlate
+            the template in the request with the corresponding generates patches in
+            the response.
+          type: string
+        variables:
+          description: Variables are variables specific for the current template.
+            For example some builtin variables like MachineDeployment replicas and
+            version are context-sensitive and thus are only added to templates for
+            MachineDeployments and with values which correspond to the current MachineDeployment.
+          items:
+            $ref: '#/components/schemas/sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.Variable'
+            default: {}
+          type: array
+      required:
+      - uid
+      - holderReference
+      - object
+      - variables
+      type: object
+    sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.GeneratePatchesResponse:
+      description: 'GeneratePatchesResponse is the response of the GeneratePatches
+        hook. NOTE: The patches in GeneratePatchesResponse will be applied in the
+        order in which they are defined to the templates of the request. Thus applying
+        changes consecutively when iterating through internal and external patches.'
+      properties:
+        items:
+          description: Items is the list of generated patches.
+          items:
+            $ref: '#/components/schemas/sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.GeneratePatchesResponseItem'
+            default: {}
+          type: array
+        message:
+          description: A human-readable description of the status of the call.
+          type: string
+        status:
+          default: ""
+          description: |-
+            Status of the call. One of: "Success" or "Failure".
+
+            Possible enum values:
+             - `"Failure"`
+             - `"Success"`
+          enum:
+          - Failure
+          - Success
+          type: string
+      required:
+      - status
+      - items
+      type: object
+    sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.GeneratePatchesResponseItem:
+      description: GeneratePatchesResponseItem is a generated patch.
+      properties:
+        patch:
+          description: Patch contains the patch which should be applied to the template.
+            It must be of the corresponding PatchType.
+          format: byte
+          type: string
+        patchType:
+          default: ""
+          description: |-
+            PatchType defines the type of the patch. One of: "JSONPatch" or "JSONMergePatch".
+
+            Possible enum values:
+             - `"JSONMergePatch"` identifies a https://datatracker.ietf.org/doc/html/rfc7386 JSON merge patch.
+             - `"JSONPatch"` identifies a https://datatracker.ietf.org/doc/html/rfc6902 JSON patch.
+          enum:
+          - JSONMergePatch
+          - JSONPatch
+          type: string
+        uid:
+          default: ""
+          description: UID identifies the corresponding template in the request on
+            which the patch should be applied.
+          type: string
+      required:
+      - uid
+      - patchType
+      - patch
+      type: object
+    sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.HolderReference:
+      description: HolderReference represents a reference to an object which holds
+        a template.
+      properties:
+        apiVersion:
+          default: ""
+          description: API version of the referent.
+          type: string
+        fieldPath:
+          default: ""
+          description: FieldPath is the path to the field of the object which references
+            the template.
+          type: string
+        kind:
+          default: ""
+          description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        name:
+          default: ""
+          description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+          type: string
+        namespace:
+          default: ""
+          description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+          type: string
+      required:
+      - apiVersion
+      - kind
+      - namespace
+      - name
+      - fieldPath
+      type: object
+    sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.Variable:
+      description: Variable represents a variable value.
+      properties:
+        name:
+          default: ""
+          description: Name of the variable.
+          type: string
+        value:
+          $ref: '#/components/schemas/k8s.io.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSON'
+          default: {}
+          description: Value of the variable.
+      required:
+      - name
+      - value
+      type: object
+info:
+  description: Open API specification for Cluster API Runtime SDK
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Cluster API - Runtime SDK
+  version: v1.1.0-beta.2
+openapi: 3.0.0
+paths:
+  /hooks.runtime.cluster.x-k8s.io/v1alpha1/generatepatches/{name}:
+    post:
+      description: A GeneratePatches call generates patches for the entire Cluster
+        topology. Accordingly the request contains all templates, the global variables
+        and the template-specific variables. The response contains generated patches.
+      operationId: hooksRuntimeClusterV1alpha1GeneratePatches
+      parameters:
+      - in: path
+        name: name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.GeneratePatchesRequest'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.GeneratePatchesResponse'
+          description: OK
+      summary: GeneratePatches generates patches during topology reconciliation for
+        the entire Cluster topology.
+      tags:
+      - Topology Mutation Hook
+  /hooks.runtime.cluster.x-k8s.io/v1alpha1/validatetopology/{name}:
+    post:
+      description: A ValidateTopology call validates the Cluster topology after all
+        patches have been applied. The request contains all templates of the Cluster
+        topology, the global variables and the template-specific variables. The response
+        contains the result of the validation.
+      operationId: hooksRuntimeClusterV1alpha1ValidateTopology
+      parameters:
+      - in: path
+        name: name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.GeneratePatchesRequest'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/sigs.k8s.io.cluster-api.exp.runtime.hooks.api.v1alpha1.GeneratePatchesResponse'
+          description: OK
+      summary: ValidateTopology validates the Cluster topology after all patches have
+        been applied.
+      tags:
+      - Topology Mutation Hook

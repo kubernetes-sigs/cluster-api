@@ -1,0 +1,27 @@
+@startuml inframachinepool-scale-down
+repeat :begin reconciling InfraMachinePool;
+  :fetch all InfraMachinePoolMachines;
+  :fetch owner Machine for each InfraMachinePoolMachine;
+backward:wait for owner Machine to be created;
+repeat while (any owner Machine is missing) is (yes)
+-> no;
+while (for each Machine)
+  if (replica backing Machine does not exist?) then (yes)
+    :delete Machine;
+  else (no)
+  endif
+endwhile
+->no;
+while (~# ready replicas > # desired replicas?) is (yes)
+  if (a Machine has clusterv1.DeleteMachineAnnotation) then (yes)
+    :select this Machine for deletion;
+  else (no)
+    :select any Machine using any ordering,
+    i.e. failed first, oldest first;
+  endif
+  :delete selected Machine;
+endwhile
+->no;
+:end reconciling InfraMachinePool;
+stop
+@enduml

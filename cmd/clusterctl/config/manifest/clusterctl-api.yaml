@@ -1,0 +1,75 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: providers.clusterctl.cluster.x-k8s.io
+spec:
+  group: clusterctl.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: Provider
+    listKind: ProviderList
+    plural: providers
+    singular: provider
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Time duration since creation of Provider
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - jsonPath: .type
+      name: Type
+      type: string
+    - jsonPath: .providerName
+      name: Provider
+      type: string
+    - jsonPath: .version
+      name: Version
+      type: string
+    name: v1alpha3
+    schema:
+      openAPIV3Schema:
+        description: Provider defines an entry in the provider inventory.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          providerName:
+            description: providerName indicates the name of the provider.
+            type: string
+          type:
+            description: |-
+              type indicates the type of the provider.
+              See ProviderType for a list of supported values
+            type: string
+          version:
+            description: version indicates the component version.
+            type: string
+          watchedNamespace:
+            description: |-
+              watchedNamespace indicates the namespace where the provider controller is watching.
+              If empty the provider controller is watching for objects in all namespaces.
+
+              Deprecated: providers complying with the Cluster API v1alpha4 contract or above must watch all namespaces; this field will be removed in a future version of this API
+            type: string
+        type: object
+    served: true
+    storage: true
+    subresources: {}

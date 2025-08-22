@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- bases/clusterctl.cluster.x-k8s.io_providers.yaml
+#- bases/clusterctl.cluster.x-k8s.io_metadata.yaml excluding metadata from the CRD manifest generation because metadata will be used as a ComponentConfig file only

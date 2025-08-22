@@ -1,0 +1,26 @@
+@startuml cluster-admission-cluster-controller
+
+start;
+:Cluster controller;
+
+repeat
+  :Cluster controller enqueues a Reconcile call;
+  if (Cluster has ready annotation) then (no)
+    #LightBlue:Get control plane machines for cluster;
+    if (A control plane machine is ready) then (yes)
+      #LightBlue:Set Cluster Ready annotation;
+      #LightBlue:Patch Cluster back to API server;
+    else (no)
+      #Pink:Return RequeueError;
+    endif
+  endif
+repeat while (Reconcile returned RequeueError) is (yes)
+-> no;
+if (Reconcile returned error) then (yes)
+  #Pink:Error reconciling cluster;
+else (no)
+  #LightBlue:Cluster is ready;
+endif
+stop;
+
+@enduml

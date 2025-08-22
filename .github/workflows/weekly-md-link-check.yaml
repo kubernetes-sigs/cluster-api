@@ -1,0 +1,26 @@
+name: Weekly check all Markdown links
+
+on:
+  schedule:
+    # Cron for every Monday at 12:00 UTC.
+    - cron: "0 12 * * 1"
+
+# Remove all permissions from GITHUB_TOKEN except metadata.
+permissions: {}
+
+jobs:
+  markdown-link-check:
+    name: Broken Links
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: [ main, release-1.11, release-1.10, release-1.9 ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # tag=v5.0.0
+        with:
+          ref: ${{ matrix.branch }}
+      - uses: gaurav-nelson/github-action-markdown-link-check@3c3b66f1f7d0900e37b71eca45b63ea9eedfce31 # tag=1.0.17
+        with:
+          use-quiet-mode: 'yes'
+          config-file: .markdownlinkcheck.json

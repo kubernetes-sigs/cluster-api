@@ -1,0 +1,127 @@
+# See the OWNERS docs: https://git.k8s.io/community/contributors/guide/owners.md
+
+aliases:
+  sig-cluster-lifecycle-leads:
+  - fabriziopandini
+  - justinsb
+  - neolit123
+  - vincepri
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for Cluster API
+  # -----------------------------------------------------------
+
+  # active folks who can be contacted to perform admin-related
+  # tasks on the repo, or otherwise approve any PRS.
+  cluster-api-admins:
+  - fabriziopandini
+  - sbueringer
+  - vincepri
+
+  # non-admin folks who have write-access and can approve any PRs in the repo
+  cluster-api-maintainers:
+  - chrischdi
+  - enxebre
+  - fabriziopandini
+  - JoelSpeed
+  - sbueringer
+  - vincepri
+
+  # folks who can review and LGTM any PRs in the repo
+  cluster-api-reviewers:
+  - richardcase
+  - sivchari
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for controllers/topology
+  # -----------------------------------------------------------
+
+  cluster-api-topology-maintainers:
+  cluster-api-topology-reviewers:
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for bootstrap/kubeadm
+  # -----------------------------------------------------------
+
+  cluster-api-bootstrap-provider-kubeadm-maintainers:
+  cluster-api-bootstrap-provider-kubeadm-reviewers:
+  - g-gaston
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for bootstrap/kubeadm/internal/ignition
+  # -----------------------------------------------------------
+
+  cluster-api-bootstrap-provider-kubeadm-ignition-maintainers:
+  cluster-api-bootstrap-provider-kubeadm-ignition-reviewers: []
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for controlplane/kubeadm
+  # -----------------------------------------------------------
+
+  cluster-api-controlplane-provider-kubeadm-maintainers:
+  cluster-api-controlplane-provider-kubeadm-reviewers:
+  - g-gaston
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for cmd/clusterctl
+  # -----------------------------------------------------------
+
+  cluster-api-clusterctl-maintainers:
+  cluster-api-clusterctl-reviewers:
+  - Jont828
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for test
+  # -----------------------------------------------------------
+
+  cluster-api-test-maintainers:
+  cluster-api-test-reviewers:
+  - elmiko
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for test/framework
+  # -----------------------------------------------------------
+
+  cluster-api-test-framework-maintainers:
+  cluster-api-test-framework-reviewers:
+  - elmiko
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for test/infrastructure/docker
+  # -----------------------------------------------------------
+
+  cluster-api-provider-docker-maintainers:
+  cluster-api-provider-docker-reviewers:
+  - elmiko
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for test/infrastructure/inmemory
+  # -----------------------------------------------------------
+
+  cluster-api-provider-inmemory-maintainers:
+  cluster-api-provider-inmemory-reviewers:
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for docs
+  # -----------------------------------------------------------
+
+  cluster-api-docs-maintainers: []
+  cluster-api-docs-reviewers:
+  - elmiko
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for release-team
+  # -----------------------------------------------------------
+
+  cluster-api-release-lead:
+  - cprivitere
+
+  cluster-api-release-team:
+  - adilGhaffarDev
+  - chandankumar4
+  - chiukapoor
+  - cprivitere
+  - hackeramitkumar
+  - mboersma
+  - shecodesmagic
+  - tsuzu

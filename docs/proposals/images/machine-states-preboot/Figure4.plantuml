@@ -1,0 +1,45 @@
+@startuml
+title Figure 4: User creates a machine with kubeadm bootstrapper
+
+' -- GROUPS START ---
+
+box #lightgreen
+participant "API Server"
+end box
+
+box #pink
+participant "Kubeadm Bootstrap Controller"
+end box
+
+' -- GROUPS END ---
+
+note right of "Kubeadm Bootstrap Controller":Watches KubeadmBootstrapConfig\nand Machine events with mapFunc
+
+"API Server"-->>"Kubeadm Bootstrap Controller": Machine Updated
+
+"Kubeadm Bootstrap Controller"-> "Kubeadm Bootstrap Controller":Enqueues KubeadmBootstrapConfig Reconcile
+
+"Kubeadm Bootstrap Controller"-> "Kubeadm Bootstrap Controller":KubeadmBootstrapConfig Controller Reconcile
+activate "Kubeadm Bootstrap Controller"
+
+note over "Kubeadm Bootstrap Controller": - ✅ KubeadmBootstrapConfigStatus.OwnerReferences \ncontains a Machine
+
+"Kubeadm Bootstrap Controller"->"API Server": Get Machine
+"Kubeadm Bootstrap Controller"<<--"API Server": Response
+
+"Kubeadm Bootstrap Controller"->"API Server": Get Cluster
+"Kubeadm Bootstrap Controller"<<--"API Server": Response
+
+note over "Kubeadm Bootstrap Controller": - ✅ Machine.Status.Phase is "Pending" \n- ✅ Machine.Spec.Bootstrap.Data is <nil>\n- ✅ KubeadmBootstrapConfig instance is valid
+
+note over "Kubeadm Bootstrap Controller": Uses Cluster and Machine information\nto generate a cloud-init based script\nto be used by an infrastructure provider\nin a startup/userdata field.
+
+"Kubeadm Bootstrap Controller"-> "Kubeadm Bootstrap Controller":Generate bootstrap data and set\nKubeadmBootstrapConfig.Status.BootstrapData
+
+"Kubeadm Bootstrap Controller"-> "Kubeadm Bootstrap Controller":Set KubeadmBootstrapConfig.Status.Ready = true
+
+"Kubeadm Bootstrap Controller"->"API Server": Update KubeadmBootstrapConfig
+"Kubeadm Bootstrap Controller"<<--"API Server": Response
+
+hide footbox
+@enduml

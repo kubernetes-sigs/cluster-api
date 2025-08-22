@@ -1,0 +1,7 @@
+@startuml
+interface YamlProcessor{
+ {method} ArtifactName(version, flavor string) string
+ {method} GetVariables([]byte) ([]string, error)
+ {method} Process([]byte) ([]byte, error)
+}
+@enduml

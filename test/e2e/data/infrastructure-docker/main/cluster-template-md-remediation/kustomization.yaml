@@ -1,0 +1,8 @@
+resources:
+- ../bases/cluster-with-kcp.yaml
+- ../bases/md.yaml
+- ../bases/crs.yaml
+- mhc.yaml
+
+patches:
+- path: md.yaml

@@ -1,0 +1,34 @@
+@startuml
+interface "clusterctl config cluster foo" as cmd
+
+
+package "clusterctl/client" {
+  [GetClusterTemplate(templateOptions)]
+  note right of [GetClusterTemplate(templateOptions)]
+    templateOptions contains the flag
+    for the specified template processor.
+  end note
+}
+
+
+package "clusterctl/repository/client" {
+  [Templates(TemplatesInput)]
+  note right of [Templates(TemplatesInput)]
+    Creates a new template client.
+  end note
+}
+
+
+package "clusterctl/repository/template_client" {
+  [newTemplateClient(TemplateClientInput)]
+  note right of [newTemplateClient(TemplateClientInput)]
+    Returns a TemplateClient with
+    the appropriate YamlProcessor
+  end note
+}
+
+
+cmd --> [GetClusterTemplate(templateOptions)]
+[GetClusterTemplate(templateOptions)] -->   [Templates(TemplatesInput)]
+[Templates(TemplatesInput)] -->   [newTemplateClient(TemplateClientInput)]
+@enduml

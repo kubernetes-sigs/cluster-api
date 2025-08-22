@@ -1,0 +1,12 @@
+- op: remove
+  path: /spec/patches/14
+- op: remove
+  path: /spec/patches/9
+- op: remove
+  path: /spec/patches/5
+- op: remove
+  path: /spec/patches/4/definitions/0/selector/matchResources/machineDeploymentClass
+- op: remove
+  path: /spec/patches/3/definitions/2
+- op: remove
+  path: /spec/patches/3/definitions/0

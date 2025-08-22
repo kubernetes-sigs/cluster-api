@@ -1,0 +1,335 @@
+Subject: [PATCH] triage-improvements
+---
+Index: docs/config.md
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/docs/config.md b/docs/config.md
+--- a/docs/config.md	(revision 8b4f69ba721123ee3a9289e38ec5ffe084ab66ff)
++++ b/docs/config.md	(date 1713124830293)
+@@ -163,12 +163,16 @@
+ 
+ # Elapsed time since item was created
+ - created: [-+]duration   # example: +30d
+-# Elapsed time since item was updated
++# Elapsed time since item was updated (including events, bots, housekeeping)
+ - updated: [-+]duration
++# Elapsed time since item was commented (excluding events, bots, housekeeping) 
++- commented: [-+]duration
+ # Elapsed time since item was responded to by a project member
+ - responded: [-+]duration
+ # Elapsed time since item was given the current priority
+ - prioritized: [-+]duration
++# Elapsed time since last time triage/approved was removed from the item
++- un-triaged: [-+]duration
+ 
+ # Number of reactions this item has received
+ - reactions: [><=]int  # example: +5
+@@ -207,6 +211,7 @@
+ * `draft`: PR is a draft PR
+ * `similar`: the issue or PR appears to be similar to another
+ * `open-milestone`: the issue or PR appears in an open milestone
++* `untriaged`: triage/accepted label was removed
+ 
+ To determine review state, we support the following tags:
+ 
+Index: pkg/hubbub/match.go
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/pkg/hubbub/match.go b/pkg/hubbub/match.go
+--- a/pkg/hubbub/match.go	(revision 8b4f69ba721123ee3a9289e38ec5ffe084ab66ff)
++++ b/pkg/hubbub/match.go	(date 1712951629900)
+@@ -23,8 +23,9 @@
+ 
+ 	"github.com/google/triage-party/pkg/provider"
+ 
+-	"github.com/google/triage-party/pkg/tag"
+ 	"k8s.io/klog/v2"
++
++	"github.com/google/triage-party/pkg/tag"
+ )
+ 
+ // Check if an item matches the filters, pre-comment fetch
+@@ -57,12 +58,16 @@
+ 			}
+ 		}
+ 
+-		if f.Responded != "" {
+-			if ok := matchDuration(i.GetUpdatedAt(), f.Responded); !ok {
+-				klog.V(2).Infof("#%d update at %s does not meet responded %s", i.GetNumber(), i.GetUpdatedAt(), f.Responded)
+-				return false
+-			}
+-		}
++		// This seems buggy, because it is checking updated (same as above) + there is another check for responded in postFetchMatch which is looking at the corresponding field in the conversation)
++		// Also we want to use responded as latest comment from authors (without housekeeping)
++		/*
++			if f.Responded != "" {
++				if ok := matchDuration(i.GetUpdatedAt(), f.Responded); !ok {
++					klog.V(2).Infof("#%d update at %s does not meet responded %s", i.GetNumber(), i.GetUpdatedAt(), f.Responded)
++					return false
++				}
++			}
++		*/
+ 
+ 		if f.Created != "" {
+ 			if ok := matchDuration(i.GetCreatedAt(), f.Created); !ok {
+@@ -120,6 +125,14 @@
+ 	for _, f := range fs {
+ 		klog.V(2).Infof("post-fetch matching item #%d against filter: %+v", co.ID, f)
+ 
++		// We filter Commented by looking at conversations - without bots and housekeeping -.
++		if f.Commented != "" {
++			if ok := matchDuration(co.Commented, f.Commented); !ok {
++				klog.V(2).Infof("#%d commented at %s does not meet %s", co.ID, co.Commented, f.Commented)
++				return false
++			}
++		}
++
+ 		if f.Responded != "" {
+ 			if ok := matchDuration(co.LatestMemberResponse, f.Responded); !ok {
+ 				klog.V(4).Infof("#%d did not pass matchDuration: %s vs %s", co.ID, co.LatestMemberResponse, f.Responded)
+@@ -193,6 +206,13 @@
+ 				return false
+ 			}
+ 		}
++
++		if f.UnTriaged != "" {
++			if ok := matchDuration(co.Untriaged, f.UnTriaged); !ok {
++				klog.V(4).Infof("#%d did not pass untriaged duration: %s vs %s", co.ID, co.LatestMemberResponse, f.UnTriaged)
++				return false
++			}
++		}
+ 	}
+ 	return true
+ }
+Index: pkg/hubbub/conversation.go
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/pkg/hubbub/conversation.go b/pkg/hubbub/conversation.go
+--- a/pkg/hubbub/conversation.go	(revision 8b4f69ba721123ee3a9289e38ec5ffe084ab66ff)
++++ b/pkg/hubbub/conversation.go	(date 1712950888889)
+@@ -45,6 +45,12 @@
+ 	// Latest comment or event
+ 	Updated time.Time `json:"updated"`
+ 
++	// Latest comment (excluding bots and housekeeping)
++	Commented time.Time `json:"responded"`
++
++	// Latest unlabeled event for triage/accepted label
++	Untriaged time.Time `json:"untriaged"`
++
+ 	// Seen is the age of the data which generated this data
+ 	Seen         time.Time `json:"seen"`
+ 	CommentsSeen int       `json:"comments_seen"`
+Index: pkg/tag/tag.go
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/pkg/tag/tag.go b/pkg/tag/tag.go
+--- a/pkg/tag/tag.go	(revision 8b4f69ba721123ee3a9289e38ec5ffe084ab66ff)
++++ b/pkg/tag/tag.go	(date 1713124794091)
+@@ -44,6 +44,7 @@
+ 	AssigneeUpdated = Tag{ID: "assignee-updated", Desc: "Issue has been updated by its assignee", NeedsComments: true}
+ 
+ 	// Timeline-based tags
++	UnTriaged               = Tag{ID: "untriaged", Desc: "triage/accepted label was removed", NeedsTimeline: true}
+ 	XrefApproved            = Tag{ID: "pr-approved", Desc: "Last review was an approval", NeedsTimeline: true}
+ 	XrefReviewedWithComment = Tag{ID: "pr-reviewed-with-comment", Desc: "Last review was a comment", NeedsTimeline: true}
+ 	XrefChangesRequested    = Tag{ID: "pr-changes-requested", Desc: "Last review was a request for changes", NeedsTimeline: true}
+Index: pkg/provider/filter.go
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/pkg/provider/filter.go b/pkg/provider/filter.go
+--- a/pkg/provider/filter.go	(revision 8b4f69ba721123ee3a9289e38ec5ffe084ab66ff)
++++ b/pkg/provider/filter.go	(date 1712951629935)
+@@ -45,6 +45,8 @@
+ 	Closed             string `yaml:"closed,omitempty"`
+ 	Prioritized        string `yaml:"prioritized,omitempty"`
+ 	Responded          string `yaml:"responded,omitempty"`
++	Commented          string `yaml:"commented,omitempty"`
++	UnTriaged          string `yaml:"un-triaged,omitempty"`
+ 	Reactions          string `yaml:"reactions,omitempty"`
+ 	ReactionsPerMonth  string `yaml:"reactions-per-month,omitempty"`
+ 	Comments           string `yaml:"comments,omitempty"`
+Index: pkg/hubbub/issue.go
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/pkg/hubbub/issue.go b/pkg/hubbub/issue.go
+--- a/pkg/hubbub/issue.go	(revision 8b4f69ba721123ee3a9289e38ec5ffe084ab66ff)
++++ b/pkg/hubbub/issue.go	(date 1713130113327)
+@@ -25,9 +25,10 @@
+ 	"github.com/google/triage-party/pkg/provider"
+ 
+ 	"github.com/google/go-github/v33/github"
+-	"github.com/google/triage-party/pkg/logu"
+ 	"gopkg.in/yaml.v2"
+ 	"k8s.io/klog/v2"
++
++	"github.com/google/triage-party/pkg/logu"
+ )
+ 
+ // cachedIssues returns issues, cached if possible
+@@ -276,3 +277,23 @@
+ 
+ 	return false
+ }
++
++func isHouseKeeping(c *provider.Comment) bool {
++	// skip triage party comments
++	if strings.HasPrefix(strings.TrimSpace(strings.ToLower(c.GetBody())), "triage-party:") {
++		return true
++	}
++
++	// skip comments with only prow commands (housekeeping)
++	for _, l := range strings.Split(c.GetBody(), "\n") {
++		if strings.TrimSpace(l) == "" {
++			continue
++		}
++		// TODO: consider if we want to make this more string (/kind, /remove kind etc.)
++		if strings.HasPrefix(l, "/") {
++			continue
++		}
++		return false
++	}
++	return true
++}
+Index: Dockerfile
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Dockerfile b/Dockerfile
+--- a/Dockerfile	(revision 8b4f69ba721123ee3a9289e38ec5ffe084ab66ff)
++++ b/Dockerfile	(date 1713194203535)
+@@ -34,7 +34,7 @@
+ COPY pkg ${SRC_DIR}/pkg/
+ WORKDIR $SRC_DIR
+ RUN go mod download
+-RUN go build cmd/server/main.go
++RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "${ldflags} -extldflags '-static'" cmd/server/main.go
+ 
+ # Stage 2: Build the configured application container
+ FROM gcr.io/distroless/base:latest AS triage-party
+Index: pkg/hubbub/timeline.go
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/pkg/hubbub/timeline.go b/pkg/hubbub/timeline.go
+--- a/pkg/hubbub/timeline.go	(revision 8b4f69ba721123ee3a9289e38ec5ffe084ab66ff)
++++ b/pkg/hubbub/timeline.go	(date 1713124883324)
+@@ -23,8 +23,9 @@
+ 	"github.com/google/triage-party/pkg/persist"
+ 	"github.com/google/triage-party/pkg/provider"
+ 
+-	"github.com/google/triage-party/pkg/tag"
+ 	"k8s.io/klog/v2"
++
++	"github.com/google/triage-party/pkg/tag"
+ )
+ 
+ func (h *Engine) cachedTimeline(ctx context.Context, sp provider.SearchParams) ([]*provider.Timeline, error) {
+@@ -102,6 +103,16 @@
+ 			co.Prioritized = t.GetCreatedAt()
+ 		}
+ 
++		// We track last time the triage/accepted label was removed
++		if t.GetEvent() == "labeled" && t.GetLabel().GetName() == "triage/accepted" {
++			co.Untriaged = time.Time{}
++			delete(co.Tags, tag.UnTriaged)
++		}
++		if t.GetEvent() == "unlabeled" && t.GetLabel().GetName() == "triage/accepted" {
++			co.Untriaged = t.GetCreatedAt()
++			co.Tags[tag.UnTriaged] = true
++		}
++
+ 		if t.GetEvent() == "cross-referenced" {
+ 			if assignedTo[t.GetActor().GetLogin()] {
+ 				if t.GetCreatedAt().After(co.LatestAssigneeResponse) {
+Index: pkg/hubbub/item.go
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/pkg/hubbub/item.go b/pkg/hubbub/item.go
+--- a/pkg/hubbub/item.go	(revision 8b4f69ba721123ee3a9289e38ec5ffe084ab66ff)
++++ b/pkg/hubbub/item.go	(date 1713127587448)
+@@ -21,10 +21,11 @@
+ 	"strings"
+ 	"time"
+ 
++	"k8s.io/klog/v2"
++
+ 	"github.com/google/triage-party/pkg/constants"
+ 	"github.com/google/triage-party/pkg/provider"
+ 	"github.com/google/triage-party/pkg/tag"
+-	"k8s.io/klog/v2"
+ )
+ 
+ var (
+@@ -102,6 +103,7 @@
+ 		klog.Errorf("debug conversation: %s", formatStruct(co))
+ 	}
+ 
++	var last *provider.Comment
+ 	for _, c := range cs {
+ 		h.parseRefs(c.Body, co, c.Updated)
+ 		if h.debug[co.ID] {
+@@ -113,9 +115,21 @@
+ 			continue
+ 		}
+ 
++		// We drop housekeeping comments (comments with only prow commands)
++		if isHouseKeeping(c) {
++			continue
++		}
++
++		last = c
++
+ 		co.LastCommentBody = c.Body
+ 		co.LastCommentAuthor = c.User
+ 
++		// We consider commented the time of the last meaningful comment
++		if co.Commented.Before(c.Updated) {
++			co.Commented = c.Updated
++		}
++
+ 		r := c.Reactions
+ 		if r.GetTotalCount() > 0 {
+ 			co.ReactionsTotal += r.GetTotalCount()
+@@ -191,15 +205,17 @@
+ 		}
+ 	}
+ 
+-	if len(cs) > 0 {
+-		last := cs[len(cs)-1]
+-		assoc := strings.ToLower(last.AuthorAssoc)
+-		if assoc == "none" {
+-			if last.User.GetLogin() == i.GetUser().GetLogin() {
+-				co.Tags[tag.AuthorLast] = true
+-			}
++	// We consider last the last meaningful comment (ignoring bots, housekeeping)
++	if last != nil {
++		if last.User.GetLogin() == i.GetUser().GetLogin() {
++			co.Tags[tag.AuthorLast] = true
++		}
++
++		// We want member last to be consistent with isMember used above
++		if h.isMember(last.User.GetLogin(), last.AuthorAssoc) && !isBot(last.User) {
++			co.Tags[tag.RoleLast("member")] = true
+ 		} else {
+-			co.Tags[tag.RoleLast(assoc)] = true
++			co.Tags[tag.RoleLast("contributor")] = true
+ 		}
+ 
+ 		if last.Updated.After(co.Updated) {

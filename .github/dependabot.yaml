@@ -1,0 +1,59 @@
+# Please see the documentation for all configuration options:
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+version: 2
+updates:
+# GitHub Actions
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+      interval: "weekly"
+  groups:
+    all-github-actions:
+      patterns: [ "*" ]
+  commit-message:
+      prefix: ":seedling:"
+  labels:
+    - "area/ci"
+    - "ok-to-test"
+
+# Go modules
+- package-ecosystem: "gomod"
+  directories:
+  - "/"
+  - "/test"
+  - "/hack/tools"
+  schedule:
+    interval: "weekly"
+    day: "monday"
+  ## group all dependencies with a k8s.io prefix into a single PR.
+  groups:
+    all-go-mod-patch-and-minor:
+      patterns: [ "*" ]
+      update-types: [ "patch", "minor" ]
+  ignore:
+  # Ignore controller-runtime as its upgraded manually.
+  - dependency-name: "sigs.k8s.io/controller-runtime"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+    # Ignore k8s and its transitives modules as they are upgraded manually together with controller-runtime.
+  - dependency-name: "k8s.io/*"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  - dependency-name: "github.com/prometheus/*"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor"]
+  - dependency-name: "go.etcd.io/*"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  - dependency-name: "google.golang.org/grpc"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  # Note: We have to keep this 100% in sync with k8s.io, so we get exactly the behavior
+  # that the k8s.io CEL code expects.
+  - dependency-name: "github.com/google/cel-go"
+    # Ignore kind as its upgraded manually.
+  - dependency-name: "sigs.k8s.io/kind"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+    # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi as a dependency.
+  - dependency-name: "sigs.k8s.io/kustomize/api"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  commit-message:
+    prefix: ":seedling:"
+  labels:
+    - "area/dependency"
+    - "ok-to-test"

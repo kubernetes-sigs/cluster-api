@@ -1,0 +1,111 @@
+# Creates a cluster with one control-plane node and one worker node
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+    serviceDomain: cluster.local
+  controlPlaneRef:
+    apiGroup: controlplane.cluster.x-k8s.io
+    kind: KubeadmControlPlane
+    name: controlplane
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: DockerCluster
+    name: my-cluster
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: DockerCluster
+metadata:
+  name: my-cluster
+  namespace: default
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: KubeadmControlPlane
+metadata:
+  name: controlplane
+  namespace: default
+spec:
+  replicas: 1
+  version: v1.34.0-rc.2
+  machineTemplate:
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: DockerMachineTemplate
+        name: controlplane
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        certSANs:
+        - localhost
+        - 127.0.0.1
+        - 0.0.0.0
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          - name: "eviction-hard"
+            value: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          - name: "eviction-hard"
+            value: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: DockerMachineTemplate
+metadata:
+  name: controlplane
+  namespace: default
+spec:
+  template:
+    spec:
+      extraMounts:
+      - containerPath: "/var/run/docker.sock"
+        hostPath: "/var/run/docker.sock"
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachinePool
+metadata:
+  name: worker-mp-0
+  namespace: default
+spec:
+  clusterName: my-cluster
+  replicas: 2
+  template:
+    spec:
+      version: v1.34.0-rc.2
+      clusterName: my-cluster
+      bootstrap:
+        configRef:
+          apiGroup: bootstrap.cluster.x-k8s.io
+          kind: KubeadmConfig
+          name: worker-mp-0-config
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: DockerMachinePool
+        name: worker-dmp-0
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: DockerMachinePool
+metadata:
+  name: worker-dmp-0
+  namespace: default
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: KubeadmConfig
+metadata:
+  name: worker-mp-0-config
+  namespace: default
+spec:
+  joinConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        - name: "eviction-hard"
+          value: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"

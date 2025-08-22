@@ -1,0 +1,64 @@
+---
+# DockerCluster object referenced by the Cluster object
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: DockerCluster
+metadata:
+  name: '${CLUSTER_NAME}'
+---
+# Cluster object with
+# - No reference to the KubeadmControlPlane object
+# - the label cni=${CLUSTER_NAME}-crs-0, so the cluster can be selected by the ClusterResourceSet.
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+  labels:
+    cni: "${CLUSTER_NAME}-crs-0"
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ['${DOCKER_SERVICE_CIDRS}']
+    pods:
+      cidrBlocks: ['${DOCKER_POD_CIDRS}']
+    serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: DockerCluster
+    name: '${CLUSTER_NAME}'
+---
+# DockerMachine referenced by the Machine cp0
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: DockerMachine
+metadata:
+  name: "${CLUSTER_NAME}-control-plane-0"
+spec: {}
+---
+# KubeadmConfig referenced by the Machine cp0
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: KubeadmConfig
+metadata:
+  name: "${CLUSTER_NAME}-control-plane-0"
+spec:
+  clusterConfiguration:
+    apiServer:
+      certSANs: [localhost, 127.0.0.1]
+---
+# cp0 Machine
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Machine
+metadata:
+  name: "${CLUSTER_NAME}-control-plane-0"
+  labels:
+    cluster.x-k8s.io/control-plane: ''
+spec:
+  clusterName: "${ CLUSTER_NAME }"
+  version: "${ KUBERNETES_VERSION }"
+  bootstrap:
+    configRef:
+      name: "${ CLUSTER_NAME }-control-plane-0"
+      apiGroup: bootstrap.cluster.x-k8s.io
+      kind: KubeadmConfig
+  infrastructureRef:
+    name: "${ CLUSTER_NAME }-control-plane-0"
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: DockerMachine

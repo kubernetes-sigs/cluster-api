@@ -1,0 +1,18 @@
+resources:
+  - ../namespace.yaml
+
+helmCharts:
+  - name: alloy
+    repo: https://grafana.github.io/helm-charts
+    releaseName: alloy
+    version: 0.12.5
+    valuesFile: values.yaml
+    namespace: observability
+
+
+
+helmGlobals:
+    # Store chart in ".charts" folder instead of "charts".
+    # Otherwise "go mod tidy" picks up dependencies of go files contained in the Helm Chart.
+    # "go mod tidy" ignores folders that begin with ".": https://pkg.go.dev/cmd/go#hdr-Package_lists_and_patterns.
+    chartHome: .charts

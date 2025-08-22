@@ -1,0 +1,51 @@
+@startuml
+title Figure 1: State diagram with a generic provider
+
+(*) --> [  Machine Create  ] "Pending"
+
+note right
+- Bootstrap provider watches Machines in "pending" state,
+  generates //BootstrapConfig.status.dataSecretName// and sets
+  //BootstrapConfig.status.initialization.dataSecretCreated// = true.
+- Machine controller sets //Machine.spec.bootstrap.dataSecretName//
+  from //BootstrapConfig.status.dataSecretName//.
+- Machine controller can now transition to the next state.
+end note
+
+"Pending" --> "Provisioning"
+
+note right
+- Infrastructure provider watches Machines in "provisioning"
+  state and starts creating infrastructure for those Machines.
+- When MachineInfrastructure is provisioned sets
+  //MachineInfrastructure.status.initialization.provisioned// = true.
+- Machine controller sets //Machine.status.addresses//
+  from //MachineInfrastructure.status.addresses// and other fields.
+end note
+
+"Provisioning" --> "Provisioned"
+
+note right
+- Machine controller watches Machines in "provisioning" state and
+  //MachineInfrastructure.status.initialization.provisioned// = true.
+- Machine controller sets //Machine.Status.Phase// = "provisioned".
+end note
+
+"Provisioned" --> "Running"
+
+note right
+- Machine controller transitions to this state when
+  //Machine.ProviderID// is set and a Kubernetes Node with
+  the same //ProviderID// has been found and in Ready state.
+end note
+
+
+"Pending" --> "Deleting"
+"Provisioning" --> "Deleting"
+"Provisioned" --> "Deleting"
+"Running" --> "Deleting"
+
+"Deleting" --> "Deleted"
+
+hide footbox
+@enduml

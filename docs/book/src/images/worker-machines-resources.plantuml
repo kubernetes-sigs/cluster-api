@@ -1,0 +1,63 @@
+@startuml worker-machines-resources
+
+skinparam nodesep 80
+skinparam ranksep 80
+skinparam object {
+    backgroundColor<< infrastructure.cluster.x-k8s.io >> #D9EAD3
+    backgroundColor<< bootstrap.cluster.x-k8s.io/v1alpha3 >> #FEF4F4
+}
+
+' cluster.x-k8s.io/v1alpha3
+object Cluster << cluster.x-k8s.io/v1alpha3 >>
+object MachineHealthCheck << cluster.x-k8s.io/v1alpha3 >> {
+    spec.clusterName
+    spec.selector
+}
+object MachineDeployment << cluster.x-k8s.io/v1alpha3 >> {
+    spec.clusterName
+    <font color="Green">spec.template.spec.infrastructureRef</font>
+    <font color="Red">spec.template.spec.bootstrap.configRef</font>
+}
+object MachineSet << cluster.x-k8s.io/v1alpha3 >> {
+    <font color="Green">spec.template.spec.infrastructureRef</font>
+    <font color="Red">spec.template.spec.bootstrap.configRef</font>
+}
+object Machine << cluster.x-k8s.io/v1alpha3 >> {
+    <font color="Green">spec.infrastructureRef</font>
+    <font color="Red">spec.bootstrap.configRef</font>
+}
+
+' bootstrap.cluster.x-k8s.io/v1alpha3
+object BarBootstrapConfig << bootstrap.cluster.x-k8s.io/v1alpha3 >> 
+object BarBootstrapConfigTemplate << bootstrap.cluster.x-k8s.io/v1alpha3 >>
+
+' Infrastructure provider CRD
+object FooMachineTemplate << infrastructure.cluster.x-k8s.io >>
+object FooMachine << infrastructure.cluster.x-k8s.io >>
+
+' The straight lines (-->) represent "management". For example, "MachineSet
+' manages Machines". The dotted line (..>)represents "reference". For example,
+' "Machine `spec.infrastructureRef` field references FooMachine".
+'
+' The direction of the arrows indicates the direction of "management" or
+' "reference". For example, "the relationship between MachineSet and Machine is
+' management from MachineSet to Machine", so the arrow points from MachineSet
+' to Machine.
+
+MachineDeployment "0..*" .left.> "1" Cluster
+MachineDeployment "1" ..> "1" FooMachineTemplate
+MachineDeployment "0..1" --> "1..*" MachineSet
+MachineDeployment "0..1" ..> "0..1" BarBootstrapConfigTemplate
+MachineHealthCheck "0..*" ..>  "1" Cluster
+MachineHealthCheck "0..*" ..> "0..*" Machine
+MachineSet "1..*" ..> "1" Cluster
+MachineSet "1" ..> "1" FooMachineTemplate
+MachineSet "1" ..> "0..1" BarBootstrapConfigTemplate
+MachineSet "1" --> "1..*" Machine
+MachineSet "1" --> "1..*" FooMachine
+MachineSet "1" --> "0..*" BarBootstrapConfig
+Machine "0..*" ..> "1" Cluster
+Machine "1" ..> "1" FooMachine
+Machine "1" ..> "0..1" BarBootstrapConfig
+
+@endurl

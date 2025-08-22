@@ -1,0 +1,2589 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: machinedeployments.cluster.x-k8s.io
+spec:
+  group: cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: MachineDeployment
+    listKind: MachineDeploymentList
+    plural: machinedeployments
+    shortNames:
+    - md
+    singular: machinedeployment
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: MachineDeployment status such as ScalingUp/ScalingDown/Running/Failed/Unknown
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - description: Total number of non-terminated machines targeted by this MachineDeployment
+      jsonPath: .status.replicas
+      name: Replicas
+      type: integer
+    - description: Total number of ready machines targeted by this MachineDeployment
+      jsonPath: .status.readyReplicas
+      name: Ready
+      type: integer
+    - description: Total number of non-terminated machines targeted by this deployment
+        that have the desired template spec
+      jsonPath: .status.updatedReplicas
+      name: Updated
+      type: integer
+    - description: Total number of unavailable machines targeted by this MachineDeployment
+      jsonPath: .status.unavailableReplicas
+      name: Unavailable
+      type: integer
+    deprecated: true
+    name: v1alpha3
+    schema:
+      openAPIV3Schema:
+        description: |-
+          MachineDeployment is the Schema for the machinedeployments API.
+
+          Deprecated: This type will be removed in one of the next releases.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec is the desired state of MachineDeployment.
+            properties:
+              clusterName:
+                description: clusterName is the name of the Cluster this object belongs
+                  to.
+                minLength: 1
+                type: string
+              minReadySeconds:
+                description: |-
+                  minReadySeconds is the minimum number of seconds for which a newly created machine should
+                  be ready.
+                  Defaults to 0 (machine will be considered available as soon as it
+                  is ready)
+                format: int32
+                type: integer
+              paused:
+                description: paused indicates that the deployment is paused.
+                type: boolean
+              progressDeadlineSeconds:
+                description: |-
+                  progressDeadlineSeconds is the maximum time in seconds for a deployment to make progress before it
+                  is considered to be failed. The deployment controller will continue to
+                  process failed deployments and a condition with a ProgressDeadlineExceeded
+                  reason will be surfaced in the deployment status. Note that progress will
+                  not be estimated during the time a deployment is paused. Defaults to 600s.
+                format: int32
+                type: integer
+              replicas:
+                description: |-
+                  replicas is the number of desired machines. Defaults to 1.
+                  This is a pointer to distinguish between explicit zero and not specified.
+                format: int32
+                type: integer
+              revisionHistoryLimit:
+                description: |-
+                  revisionHistoryLimit is the number of old MachineSets to retain to allow rollback.
+                  This is a pointer to distinguish between explicit zero and not specified.
+                  Defaults to 1.
+                format: int32
+                type: integer
+              selector:
+                description: |-
+                  selector is the label selector for machines. Existing MachineSets whose machines are
+                  selected by this will be the ones affected by this deployment.
+                  It must match the machine template's labels.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              strategy:
+                description: |-
+                  strategy is the deployment strategy to use to replace existing machines with
+                  new ones.
+                properties:
+                  rollingUpdate:
+                    description: |-
+                      rollingUpdate is the rolling update config params. Present only if
+                      MachineDeploymentStrategyType = RollingUpdate.
+                    properties:
+                      maxSurge:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          maxSurge is the maximum number of machines that can be scheduled above the
+                          desired number of machines.
+                          Value can be an absolute number (ex: 5) or a percentage of
+                          desired machines (ex: 10%).
+                          This can not be 0 if MaxUnavailable is 0.
+                          Absolute number is calculated from percentage by rounding up.
+                          Defaults to 1.
+                          Example: when this is set to 30%, the new MachineSet can be scaled
+                          up immediately when the rolling update starts, such that the total
+                          number of old and new machines do not exceed 130% of desired
+                          machines. Once old machines have been killed, new MachineSet can
+                          be scaled up further, ensuring that total number of machines running
+                          at any time during the update is at most 130% of desired machines.
+                        x-kubernetes-int-or-string: true
+                      maxUnavailable:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          maxUnavailable is the maximum number of machines that can be unavailable during the update.
+                          Value can be an absolute number (ex: 5) or a percentage of desired
+                          machines (ex: 10%).
+                          Absolute number is calculated from percentage by rounding down.
+                          This can not be 0 if MaxSurge is 0.
+                          Defaults to 0.
+                          Example: when this is set to 30%, the old MachineSet can be scaled
+                          down to 70% of desired machines immediately when the rolling update
+                          starts. Once new machines are ready, old MachineSet can be scaled
+                          down further, followed by scaling up the new MachineSet, ensuring
+                          that the total number of machines available at all times
+                          during the update is at least 70% of desired machines.
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  type:
+                    description: |-
+                      type of deployment. Currently the only supported strategy is
+                      "RollingUpdate".
+                      Default is RollingUpdate.
+                    type: string
+                type: object
+              template:
+                description: template describes the machines that will be created.
+                properties:
+                  metadata:
+                    description: |-
+                      metadata is the standard object's metadata.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: http://kubernetes.io/docs/user-guide/annotations
+                        type: object
+                      generateName:
+                        description: |-
+                          generateName is an optional prefix, used by the server, to generate a unique
+                          name ONLY IF the Name field has not been provided.
+                          If this field is used, the name returned to the client will be different
+                          than the name passed. This value will also be combined with a unique suffix.
+                          The provided value has the same validation rules as the Name field,
+                          and may be truncated by the length of the suffix required to make the value
+                          unique on the server.
+
+                          If this field is specified and the generated name exists, the server will
+                          NOT return a 409 - instead, it will either return 201 Created or 500 with Reason
+                          ServerTimeout indicating a unique name could not be found in the time allotted, and the client
+                          should retry (optionally after the time indicated in the Retry-After header).
+
+                          Applied only if Name is not specified.
+                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency
+
+                          Deprecated: This field has no function and is going to be removed in a next release.
+                        type: string
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          labels is a map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels
+                        type: object
+                      name:
+                        description: |-
+                          name must be unique within a namespace. Is required when creating resources, although
+                          some resources may allow a client to request the generation of an appropriate name
+                          automatically. Name is primarily intended for creation idempotence and configuration
+                          definition.
+                          Cannot be updated.
+                          More info: http://kubernetes.io/docs/user-guide/identifiers#names
+
+                          Deprecated: This field has no function and is going to be removed in a next release.
+                        type: string
+                      namespace:
+                        description: |-
+                          namespace defines the space within each name must be unique. An empty namespace is
+                          equivalent to the "default" namespace, but "default" is the canonical representation.
+                          Not all objects are required to be scoped to a namespace - the value of this field for
+                          those objects will be empty.
+
+                          Must be a DNS_LABEL.
+                          Cannot be updated.
+                          More info: http://kubernetes.io/docs/user-guide/namespaces
+
+                          Deprecated: This field has no function and is going to be removed in a next release.
+                        type: string
+                      ownerReferences:
+                        description: |-
+                          ownerReferences is the list of objects depended by this object. If ALL objects in the list have
+                          been deleted, this object will be garbage collected. If this object is managed by a controller,
+                          then an entry in this list will point to this controller, with the controller field set to true.
+                          There cannot be more than one managing controller.
+
+                          Deprecated: This field has no function and is going to be removed in a next release.
+                        items:
+                          description: |-
+                            OwnerReference contains enough information to let you identify an owning
+                            object. An owning object must be in the same namespace as the dependent, or
+                            be cluster-scoped, so there is no namespace field.
+                          properties:
+                            apiVersion:
+                              description: API version of the referent.
+                              type: string
+                            blockOwnerDeletion:
+                              description: |-
+                                If true, AND if the owner has the "foregroundDeletion" finalizer, then
+                                the owner cannot be deleted from the key-value store until this
+                                reference is removed.
+                                See https://kubernetes.io/docs/concepts/architecture/garbage-collection/#foreground-deletion
+                                for how the garbage collector interacts with this field and enforces the foreground deletion.
+                                Defaults to false.
+                                To set this field, a user needs "delete" permission of the owner,
+                                otherwise 422 (Unprocessable Entity) will be returned.
+                              type: boolean
+                            controller:
+                              description: If true, this reference points to the managing
+                                controller.
+                              type: boolean
+                            kind:
+                              description: |-
+                                Kind of the referent.
+                                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                              type: string
+                            name:
+                              description: |-
+                                Name of the referent.
+                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names
+                              type: string
+                            uid:
+                              description: |-
+                                UID of the referent.
+                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#uids
+                              type: string
+                          required:
+                          - apiVersion
+                          - kind
+                          - name
+                          - uid
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        type: array
+                    type: object
+                  spec:
+                    description: |-
+                      spec is the specification of the desired behavior of the machine.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+                    properties:
+                      bootstrap:
+                        description: |-
+                          bootstrap is a reference to a local struct which encapsulates
+                          fields to configure the Machine’s bootstrapping mechanism.
+                        properties:
+                          configRef:
+                            description: |-
+                              configRef is a reference to a bootstrap provider-specific resource
+                              that holds configuration details. The reference is optional to
+                              allow users/operators to specify Bootstrap.Data without
+                              the need of a controller.
+                            properties:
+                              apiVersion:
+                                description: API version of the referent.
+                                type: string
+                              fieldPath:
+                                description: |-
+                                  If referring to a piece of an object instead of an entire object, this string
+                                  should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                                  For example, if the object reference is to a container within a pod, this would take on a value like:
+                                  "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                                  the event) or if no container name is specified "spec.containers[2]" (container with
+                                  index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                                  referencing a part of an object.
+                                type: string
+                              kind:
+                                description: |-
+                                  Kind of the referent.
+                                  More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                                type: string
+                              name:
+                                description: |-
+                                  Name of the referent.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                type: string
+                              namespace:
+                                description: |-
+                                  Namespace of the referent.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                                type: string
+                              resourceVersion:
+                                description: |-
+                                  Specific resourceVersion to which this reference is made, if any.
+                                  More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                                type: string
+                              uid:
+                                description: |-
+                                  UID of the referent.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                                type: string
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          data:
+                            description: |-
+                              data contains the bootstrap data, such as cloud-init details scripts.
+                              If nil, the Machine should remain in the Pending state.
+
+                              Deprecated: Switch to DataSecretName.
+                            type: string
+                          dataSecretName:
+                            description: |-
+                              dataSecretName is the name of the secret that stores the bootstrap data script.
+                              If nil, the Machine should remain in the Pending state.
+                            type: string
+                        type: object
+                      clusterName:
+                        description: clusterName is the name of the Cluster this object
+                          belongs to.
+                        minLength: 1
+                        type: string
+                      failureDomain:
+                        description: |-
+                          failureDomain is the failure domain the machine will be created in.
+                          Must match a key in the FailureDomains map stored on the cluster object.
+                        type: string
+                      infrastructureRef:
+                        description: |-
+                          infrastructureRef is a required reference to a custom resource
+                          offered by an infrastructure provider.
+                        properties:
+                          apiVersion:
+                            description: API version of the referent.
+                            type: string
+                          fieldPath:
+                            description: |-
+                              If referring to a piece of an object instead of an entire object, this string
+                              should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                              For example, if the object reference is to a container within a pod, this would take on a value like:
+                              "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                              the event) or if no container name is specified "spec.containers[2]" (container with
+                              index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                              referencing a part of an object.
+                            type: string
+                          kind:
+                            description: |-
+                              Kind of the referent.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                            type: string
+                          name:
+                            description: |-
+                              Name of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          namespace:
+                            description: |-
+                              Namespace of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                            type: string
+                          resourceVersion:
+                            description: |-
+                              Specific resourceVersion to which this reference is made, if any.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                            type: string
+                          uid:
+                            description: |-
+                              UID of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      nodeDrainTimeout:
+                        description: |-
+                          nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                          The default value is 0, meaning that the node can be drained without any time limitations.
+                          NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+                        type: string
+                      providerID:
+                        description: |-
+                          providerID is the identification ID of the machine provided by the provider.
+                          This field must match the provider ID as seen on the node object corresponding to this machine.
+                          This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
+                          with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
+                          machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a
+                          generic out-of-tree provider for autoscaler, this field is required by autoscaler to be
+                          able to have a provider view of the list of machines. Another list of nodes is queried from the k8s apiserver
+                          and then a comparison is done to find out unregistered machines and are marked for delete.
+                          This field will be set by the actuators and consumed by higher level entities like autoscaler that will
+                          be interfacing with cluster-api as generic provider.
+                        type: string
+                      version:
+                        description: |-
+                          version defines the desired Kubernetes version.
+                          This field is meant to be optionally used by bootstrap providers.
+                        type: string
+                    required:
+                    - bootstrap
+                    - clusterName
+                    - infrastructureRef
+                    type: object
+                type: object
+            required:
+            - clusterName
+            - selector
+            - template
+            type: object
+          status:
+            description: status is the observed state of MachineDeployment.
+            properties:
+              availableReplicas:
+                description: |-
+                  availableReplicas is the total number of available machines (ready for at least minReadySeconds)
+                  targeted by this deployment.
+                format: int32
+                type: integer
+              observedGeneration:
+                description: observedGeneration is the generation observed by the
+                  deployment controller.
+                format: int64
+                type: integer
+              phase:
+                description: phase represents the current phase of a MachineDeployment
+                  (ScalingUp, ScalingDown, Running, Failed, or Unknown).
+                type: string
+              readyReplicas:
+                description: readyReplicas is the total number of ready machines targeted
+                  by this deployment.
+                format: int32
+                type: integer
+              replicas:
+                description: |-
+                  replicas is the total number of non-terminated machines targeted by this deployment
+                  (their labels match the selector).
+                format: int32
+                type: integer
+              selector:
+                description: |-
+                  selector is the same as the label selector but in the string format to avoid introspection
+                  by clients. The string will be in the same format as the query-param syntax.
+                  More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
+                type: string
+              unavailableReplicas:
+                description: |-
+                  unavailableReplicas is the total number of unavailable machines targeted by this deployment.
+                  This is the total number of machines that are still required for
+                  the deployment to have 100% available capacity. They may either
+                  be machines that are running but not yet available or machines
+                  that still have not been created.
+                format: int32
+                type: integer
+              updatedReplicas:
+                description: |-
+                  updatedReplicas is the total number of non-terminated machines targeted by this deployment
+                  that have the desired template spec.
+                format: int32
+                type: integer
+            type: object
+        type: object
+    served: false
+    storage: false
+    subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
+      status: {}
+  - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
+    - description: Time duration since creation of MachineDeployment
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: MachineDeployment status such as ScalingUp/ScalingDown/Running/Failed/Unknown
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - description: Total number of non-terminated machines targeted by this MachineDeployment
+      jsonPath: .status.replicas
+      name: Replicas
+      type: integer
+    - description: Total number of ready machines targeted by this MachineDeployment
+      jsonPath: .status.readyReplicas
+      name: Ready
+      type: integer
+    - description: Total number of non-terminated machines targeted by this deployment
+        that have the desired template spec
+      jsonPath: .status.updatedReplicas
+      name: Updated
+      type: integer
+    - description: Total number of unavailable machines targeted by this MachineDeployment
+      jsonPath: .status.unavailableReplicas
+      name: Unavailable
+      type: integer
+    deprecated: true
+    name: v1alpha4
+    schema:
+      openAPIV3Schema:
+        description: |-
+          MachineDeployment is the Schema for the machinedeployments API.
+
+          Deprecated: This type will be removed in one of the next releases.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec is the desired state of MachineDeployment.
+            properties:
+              clusterName:
+                description: clusterName is the name of the Cluster this object belongs
+                  to.
+                minLength: 1
+                type: string
+              minReadySeconds:
+                description: |-
+                  minReadySeconds is the minimum number of seconds for which a newly created machine should
+                  be ready.
+                  Defaults to 0 (machine will be considered available as soon as it
+                  is ready)
+                format: int32
+                type: integer
+              paused:
+                description: paused indicates that the deployment is paused.
+                type: boolean
+              progressDeadlineSeconds:
+                description: |-
+                  progressDeadlineSeconds is the maximum time in seconds for a deployment to make progress before it
+                  is considered to be failed. The deployment controller will continue to
+                  process failed deployments and a condition with a ProgressDeadlineExceeded
+                  reason will be surfaced in the deployment status. Note that progress will
+                  not be estimated during the time a deployment is paused. Defaults to 600s.
+                format: int32
+                type: integer
+              replicas:
+                default: 1
+                description: |-
+                  replicas is the number of desired machines. Defaults to 1.
+                  This is a pointer to distinguish between explicit zero and not specified.
+                format: int32
+                type: integer
+              revisionHistoryLimit:
+                description: |-
+                  revisionHistoryLimit is the number of old MachineSets to retain to allow rollback.
+                  This is a pointer to distinguish between explicit zero and not specified.
+                  Defaults to 1.
+                format: int32
+                type: integer
+              selector:
+                description: |-
+                  selector is the label selector for machines. Existing MachineSets whose machines are
+                  selected by this will be the ones affected by this deployment.
+                  It must match the machine template's labels.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              strategy:
+                description: |-
+                  strategy is the deployment strategy to use to replace existing machines with
+                  new ones.
+                properties:
+                  rollingUpdate:
+                    description: |-
+                      rollingUpdate is the rolling update config params. Present only if
+                      MachineDeploymentStrategyType = RollingUpdate.
+                    properties:
+                      deletePolicy:
+                        description: |-
+                          deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
+                          Valid values are "Random, "Newest", "Oldest"
+                          When no value is supplied, the default DeletePolicy of MachineSet is used
+                        enum:
+                        - Random
+                        - Newest
+                        - Oldest
+                        type: string
+                      maxSurge:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          maxSurge is the maximum number of machines that can be scheduled above the
+                          desired number of machines.
+                          Value can be an absolute number (ex: 5) or a percentage of
+                          desired machines (ex: 10%).
+                          This can not be 0 if MaxUnavailable is 0.
+                          Absolute number is calculated from percentage by rounding up.
+                          Defaults to 1.
+                          Example: when this is set to 30%, the new MachineSet can be scaled
+                          up immediately when the rolling update starts, such that the total
+                          number of old and new machines do not exceed 130% of desired
+                          machines. Once old machines have been killed, new MachineSet can
+                          be scaled up further, ensuring that total number of machines running
+                          at any time during the update is at most 130% of desired machines.
+                        x-kubernetes-int-or-string: true
+                      maxUnavailable:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          maxUnavailable is the maximum number of machines that can be unavailable during the update.
+                          Value can be an absolute number (ex: 5) or a percentage of desired
+                          machines (ex: 10%).
+                          Absolute number is calculated from percentage by rounding down.
+                          This can not be 0 if MaxSurge is 0.
+                          Defaults to 0.
+                          Example: when this is set to 30%, the old MachineSet can be scaled
+                          down to 70% of desired machines immediately when the rolling update
+                          starts. Once new machines are ready, old MachineSet can be scaled
+                          down further, followed by scaling up the new MachineSet, ensuring
+                          that the total number of machines available at all times
+                          during the update is at least 70% of desired machines.
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  type:
+                    description: |-
+                      type of deployment.
+                      Default is RollingUpdate.
+                    enum:
+                    - RollingUpdate
+                    - OnDelete
+                    type: string
+                type: object
+              template:
+                description: template describes the machines that will be created.
+                properties:
+                  metadata:
+                    description: |-
+                      metadata is the standard object's metadata.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: http://kubernetes.io/docs/user-guide/annotations
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          labels is a map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels
+                        type: object
+                    type: object
+                  spec:
+                    description: |-
+                      spec is the specification of the desired behavior of the machine.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+                    properties:
+                      bootstrap:
+                        description: |-
+                          bootstrap is a reference to a local struct which encapsulates
+                          fields to configure the Machine’s bootstrapping mechanism.
+                        properties:
+                          configRef:
+                            description: |-
+                              configRef is a reference to a bootstrap provider-specific resource
+                              that holds configuration details. The reference is optional to
+                              allow users/operators to specify Bootstrap.DataSecretName without
+                              the need of a controller.
+                            properties:
+                              apiVersion:
+                                description: API version of the referent.
+                                type: string
+                              fieldPath:
+                                description: |-
+                                  If referring to a piece of an object instead of an entire object, this string
+                                  should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                                  For example, if the object reference is to a container within a pod, this would take on a value like:
+                                  "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                                  the event) or if no container name is specified "spec.containers[2]" (container with
+                                  index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                                  referencing a part of an object.
+                                type: string
+                              kind:
+                                description: |-
+                                  Kind of the referent.
+                                  More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                                type: string
+                              name:
+                                description: |-
+                                  Name of the referent.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                type: string
+                              namespace:
+                                description: |-
+                                  Namespace of the referent.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                                type: string
+                              resourceVersion:
+                                description: |-
+                                  Specific resourceVersion to which this reference is made, if any.
+                                  More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                                type: string
+                              uid:
+                                description: |-
+                                  UID of the referent.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                                type: string
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          dataSecretName:
+                            description: |-
+                              dataSecretName is the name of the secret that stores the bootstrap data script.
+                              If nil, the Machine should remain in the Pending state.
+                            type: string
+                        type: object
+                      clusterName:
+                        description: clusterName is the name of the Cluster this object
+                          belongs to.
+                        minLength: 1
+                        type: string
+                      failureDomain:
+                        description: |-
+                          failureDomain is the failure domain the machine will be created in.
+                          Must match a key in the FailureDomains map stored on the cluster object.
+                        type: string
+                      infrastructureRef:
+                        description: |-
+                          infrastructureRef is a required reference to a custom resource
+                          offered by an infrastructure provider.
+                        properties:
+                          apiVersion:
+                            description: API version of the referent.
+                            type: string
+                          fieldPath:
+                            description: |-
+                              If referring to a piece of an object instead of an entire object, this string
+                              should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                              For example, if the object reference is to a container within a pod, this would take on a value like:
+                              "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                              the event) or if no container name is specified "spec.containers[2]" (container with
+                              index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                              referencing a part of an object.
+                            type: string
+                          kind:
+                            description: |-
+                              Kind of the referent.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                            type: string
+                          name:
+                            description: |-
+                              Name of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          namespace:
+                            description: |-
+                              Namespace of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                            type: string
+                          resourceVersion:
+                            description: |-
+                              Specific resourceVersion to which this reference is made, if any.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                            type: string
+                          uid:
+                            description: |-
+                              UID of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      nodeDrainTimeout:
+                        description: |-
+                          nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                          The default value is 0, meaning that the node can be drained without any time limitations.
+                          NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+                        type: string
+                      providerID:
+                        description: |-
+                          providerID is the identification ID of the machine provided by the provider.
+                          This field must match the provider ID as seen on the node object corresponding to this machine.
+                          This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
+                          with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
+                          machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a
+                          generic out-of-tree provider for autoscaler, this field is required by autoscaler to be
+                          able to have a provider view of the list of machines. Another list of nodes is queried from the k8s apiserver
+                          and then a comparison is done to find out unregistered machines and are marked for delete.
+                          This field will be set by the actuators and consumed by higher level entities like autoscaler that will
+                          be interfacing with cluster-api as generic provider.
+                        type: string
+                      version:
+                        description: |-
+                          version defines the desired Kubernetes version.
+                          This field is meant to be optionally used by bootstrap providers.
+                        type: string
+                    required:
+                    - bootstrap
+                    - clusterName
+                    - infrastructureRef
+                    type: object
+                type: object
+            required:
+            - clusterName
+            - selector
+            - template
+            type: object
+          status:
+            description: status is the observed state of MachineDeployment.
+            properties:
+              availableReplicas:
+                description: |-
+                  availableReplicas is the total number of available machines (ready for at least minReadySeconds)
+                  targeted by this deployment.
+                format: int32
+                type: integer
+              conditions:
+                description: conditions defines current service state of the MachineDeployment.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This field may be empty.
+                      type: string
+                    reason:
+                      description: |-
+                        reason is the reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may not be empty.
+                      type: string
+                    severity:
+                      description: |-
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                description: observedGeneration is the generation observed by the
+                  deployment controller.
+                format: int64
+                type: integer
+              phase:
+                description: phase represents the current phase of a MachineDeployment
+                  (ScalingUp, ScalingDown, Running, Failed, or Unknown).
+                type: string
+              readyReplicas:
+                description: readyReplicas is the total number of ready machines targeted
+                  by this deployment.
+                format: int32
+                type: integer
+              replicas:
+                description: |-
+                  replicas is the total number of non-terminated machines targeted by this deployment
+                  (their labels match the selector).
+                format: int32
+                type: integer
+              selector:
+                description: |-
+                  selector is the same as the label selector but in the string format to avoid introspection
+                  by clients. The string will be in the same format as the query-param syntax.
+                  More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
+                type: string
+              unavailableReplicas:
+                description: |-
+                  unavailableReplicas is the total number of unavailable machines targeted by this deployment.
+                  This is the total number of machines that are still required for
+                  the deployment to have 100% available capacity. They may either
+                  be machines that are running but not yet available or machines
+                  that still have not been created.
+                format: int32
+                type: integer
+              updatedReplicas:
+                description: |-
+                  updatedReplicas is the total number of non-terminated machines targeted by this deployment
+                  that have the desired template spec.
+                format: int32
+                type: integer
+            type: object
+        type: object
+    served: false
+    storage: false
+    subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
+      status: {}
+  - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
+    - description: Total number of machines desired by this MachineDeployment
+      jsonPath: .spec.replicas
+      name: Desired
+      priority: 10
+      type: integer
+    - description: Total number of non-terminated machines targeted by this MachineDeployment
+      jsonPath: .status.replicas
+      name: Replicas
+      type: integer
+    - description: Total number of ready machines targeted by this MachineDeployment
+      jsonPath: .status.readyReplicas
+      name: Ready
+      type: integer
+    - description: Total number of non-terminated machines targeted by this deployment
+        that have the desired template spec
+      jsonPath: .status.updatedReplicas
+      name: Updated
+      type: integer
+    - description: Total number of unavailable machines targeted by this MachineDeployment
+      jsonPath: .status.unavailableReplicas
+      name: Unavailable
+      type: integer
+    - description: MachineDeployment status such as ScalingUp/ScalingDown/Running/Failed/Unknown
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - description: Time duration since creation of MachineDeployment
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Kubernetes version associated with this MachineDeployment
+      jsonPath: .spec.template.spec.version
+      name: Version
+      type: string
+    deprecated: true
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: MachineDeployment is the Schema for the machinedeployments API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec is the desired state of MachineDeployment.
+            properties:
+              clusterName:
+                description: clusterName is the name of the Cluster this object belongs
+                  to.
+                maxLength: 63
+                minLength: 1
+                type: string
+              machineNamingStrategy:
+                description: |-
+                  machineNamingStrategy allows changing the naming pattern used when creating Machines.
+                  Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
+                properties:
+                  template:
+                    description: |-
+                      template defines the template to use for generating the names of the
+                      Machine objects.
+                      If not defined, it will fallback to `{{ .machineSet.name }}-{{ .random }}`.
+                      If the generated name string exceeds 63 characters, it will be trimmed to
+                      58 characters and will
+                      get concatenated with a random suffix of length 5.
+                      Length of the template string must not exceed 256 characters.
+                      The template allows the following variables `.cluster.name`,
+                      `.machineSet.name` and `.random`.
+                      The variable `.cluster.name` retrieves the name of the cluster object
+                      that owns the Machines being created.
+                      The variable `.machineSet.name` retrieves the name of the MachineSet
+                      object that owns the Machines being created.
+                      The variable `.random` is substituted with random alphanumeric string,
+                      without vowels, of length 5. This variable is required part of the
+                      template. If not provided, validation will fail.
+                    maxLength: 256
+                    minLength: 1
+                    type: string
+                type: object
+              minReadySeconds:
+                description: |-
+                  minReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available.
+                  Defaults to 0 (machine will be considered available as soon as the Node is ready)
+                format: int32
+                type: integer
+              paused:
+                description: paused indicates that the deployment is paused.
+                type: boolean
+              progressDeadlineSeconds:
+                description: |-
+                  progressDeadlineSeconds is the maximum time in seconds for a deployment to make progress before it
+                  is considered to be failed. The deployment controller will continue to
+                  process failed deployments and a condition with a ProgressDeadlineExceeded
+                  reason will be surfaced in the deployment status. Note that progress will
+                  not be estimated during the time a deployment is paused. Defaults to 600s.
+
+                  Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/11470 for more details.
+                format: int32
+                type: integer
+              replicas:
+                description: |-
+                  replicas is the number of desired machines.
+                  This is a pointer to distinguish between explicit zero and not specified.
+
+                  Defaults to:
+                  * if the Kubernetes autoscaler min size and max size annotations are set:
+                    - if it's a new MachineDeployment, use min size
+                    - if the replicas field of the old MachineDeployment is < min size, use min size
+                    - if the replicas field of the old MachineDeployment is > max size, use max size
+                    - if the replicas field of the old MachineDeployment is in the (min size, max size) range, keep the value from the oldMD
+                  * otherwise use 1
+                  Note: Defaulting will be run whenever the replicas field is not set:
+                  * A new MachineDeployment is created with replicas not set.
+                  * On an existing MachineDeployment the replicas field was first set and is now unset.
+                  Those cases are especially relevant for the following Kubernetes autoscaler use cases:
+                  * A new MachineDeployment is created and replicas should be managed by the autoscaler
+                  * An existing MachineDeployment which initially wasn't controlled by the autoscaler
+                    should be later controlled by the autoscaler
+                format: int32
+                type: integer
+              revisionHistoryLimit:
+                description: |-
+                  revisionHistoryLimit is the number of old MachineSets to retain to allow rollback.
+                  This is a pointer to distinguish between explicit zero and not specified.
+                  Defaults to 1.
+
+                  Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10479 for more details.
+                format: int32
+                type: integer
+              rolloutAfter:
+                description: |-
+                  rolloutAfter is a field to indicate a rollout should be performed
+                  after the specified time even if no changes have been made to the
+                  MachineDeployment.
+                  Example: In the YAML the time can be specified in the RFC3339 format.
+                  To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+                  use "2023-03-09T09:00:00Z".
+                format: date-time
+                type: string
+              selector:
+                description: |-
+                  selector is the label selector for machines. Existing MachineSets whose machines are
+                  selected by this will be the ones affected by this deployment.
+                  It must match the machine template's labels.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              strategy:
+                description: |-
+                  strategy is the deployment strategy to use to replace existing machines with
+                  new ones.
+                properties:
+                  remediation:
+                    description: |-
+                      remediation controls the strategy of remediating unhealthy machines
+                      and how remediating operations should occur during the lifecycle of the dependant MachineSets.
+                    properties:
+                      maxInFlight:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          maxInFlight determines how many in flight remediations should happen at the same time.
+
+                          Remediation only happens on the MachineSet with the most current revision, while
+                          older MachineSets (usually present during rollout operations) aren't allowed to remediate.
+
+                          Note: In general (independent of remediations), unhealthy machines are always
+                          prioritized during scale down operations over healthy ones.
+
+                          MaxInFlight can be set to a fixed number or a percentage.
+                          Example: when this is set to 20%, the MachineSet controller deletes at most 20% of
+                          the desired replicas.
+
+                          If not set, remediation is limited to all machines (bounded by replicas)
+                          under the active MachineSet's management.
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  rollingUpdate:
+                    description: |-
+                      rollingUpdate is the rolling update config params. Present only if
+                      MachineDeploymentStrategyType = RollingUpdate.
+                    properties:
+                      deletePolicy:
+                        description: |-
+                          deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
+                          Valid values are "Random, "Newest", "Oldest"
+                          When no value is supplied, the default DeletePolicy of MachineSet is used
+                        enum:
+                        - Random
+                        - Newest
+                        - Oldest
+                        type: string
+                      maxSurge:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          maxSurge is the maximum number of machines that can be scheduled above the
+                          desired number of machines.
+                          Value can be an absolute number (ex: 5) or a percentage of
+                          desired machines (ex: 10%).
+                          This can not be 0 if MaxUnavailable is 0.
+                          Absolute number is calculated from percentage by rounding up.
+                          Defaults to 1.
+                          Example: when this is set to 30%, the new MachineSet can be scaled
+                          up immediately when the rolling update starts, such that the total
+                          number of old and new machines do not exceed 130% of desired
+                          machines. Once old machines have been killed, new MachineSet can
+                          be scaled up further, ensuring that total number of machines running
+                          at any time during the update is at most 130% of desired machines.
+                        x-kubernetes-int-or-string: true
+                      maxUnavailable:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          maxUnavailable is the maximum number of machines that can be unavailable during the update.
+                          Value can be an absolute number (ex: 5) or a percentage of desired
+                          machines (ex: 10%).
+                          Absolute number is calculated from percentage by rounding down.
+                          This can not be 0 if MaxSurge is 0.
+                          Defaults to 0.
+                          Example: when this is set to 30%, the old MachineSet can be scaled
+                          down to 70% of desired machines immediately when the rolling update
+                          starts. Once new machines are ready, old MachineSet can be scaled
+                          down further, followed by scaling up the new MachineSet, ensuring
+                          that the total number of machines available at all times
+                          during the update is at least 70% of desired machines.
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  type:
+                    description: |-
+                      type of deployment. Allowed values are RollingUpdate and OnDelete.
+                      The default is RollingUpdate.
+                    enum:
+                    - RollingUpdate
+                    - OnDelete
+                    type: string
+                type: object
+              template:
+                description: template describes the machines that will be created.
+                properties:
+                  metadata:
+                    description: |-
+                      metadata is the standard object's metadata.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: http://kubernetes.io/docs/user-guide/annotations
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          labels is a map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels
+                        type: object
+                    type: object
+                  spec:
+                    description: |-
+                      spec is the specification of the desired behavior of the machine.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+                    properties:
+                      bootstrap:
+                        description: |-
+                          bootstrap is a reference to a local struct which encapsulates
+                          fields to configure the Machine’s bootstrapping mechanism.
+                        properties:
+                          configRef:
+                            description: |-
+                              configRef is a reference to a bootstrap provider-specific resource
+                              that holds configuration details. The reference is optional to
+                              allow users/operators to specify Bootstrap.DataSecretName without
+                              the need of a controller.
+                            properties:
+                              apiVersion:
+                                description: API version of the referent.
+                                type: string
+                              fieldPath:
+                                description: |-
+                                  If referring to a piece of an object instead of an entire object, this string
+                                  should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                                  For example, if the object reference is to a container within a pod, this would take on a value like:
+                                  "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                                  the event) or if no container name is specified "spec.containers[2]" (container with
+                                  index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                                  referencing a part of an object.
+                                type: string
+                              kind:
+                                description: |-
+                                  Kind of the referent.
+                                  More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                                type: string
+                              name:
+                                description: |-
+                                  Name of the referent.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                type: string
+                              namespace:
+                                description: |-
+                                  Namespace of the referent.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                                type: string
+                              resourceVersion:
+                                description: |-
+                                  Specific resourceVersion to which this reference is made, if any.
+                                  More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                                type: string
+                              uid:
+                                description: |-
+                                  UID of the referent.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                                type: string
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          dataSecretName:
+                            description: |-
+                              dataSecretName is the name of the secret that stores the bootstrap data script.
+                              If nil, the Machine should remain in the Pending state.
+                            maxLength: 253
+                            minLength: 0
+                            type: string
+                        type: object
+                      clusterName:
+                        description: clusterName is the name of the Cluster this object
+                          belongs to.
+                        maxLength: 63
+                        minLength: 1
+                        type: string
+                      failureDomain:
+                        description: |-
+                          failureDomain is the failure domain the machine will be created in.
+                          Must match a key in the FailureDomains map stored on the cluster object.
+                        maxLength: 256
+                        minLength: 1
+                        type: string
+                      infrastructureRef:
+                        description: |-
+                          infrastructureRef is a required reference to a custom resource
+                          offered by an infrastructure provider.
+                        properties:
+                          apiVersion:
+                            description: API version of the referent.
+                            type: string
+                          fieldPath:
+                            description: |-
+                              If referring to a piece of an object instead of an entire object, this string
+                              should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                              For example, if the object reference is to a container within a pod, this would take on a value like:
+                              "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                              the event) or if no container name is specified "spec.containers[2]" (container with
+                              index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                              referencing a part of an object.
+                            type: string
+                          kind:
+                            description: |-
+                              Kind of the referent.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                            type: string
+                          name:
+                            description: |-
+                              Name of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          namespace:
+                            description: |-
+                              Namespace of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                            type: string
+                          resourceVersion:
+                            description: |-
+                              Specific resourceVersion to which this reference is made, if any.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                            type: string
+                          uid:
+                            description: |-
+                              UID of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      nodeDeletionTimeout:
+                        description: |-
+                          nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+                          hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+                          Defaults to 10 seconds.
+                        type: string
+                      nodeDrainTimeout:
+                        description: |-
+                          nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                          The default value is 0, meaning that the node can be drained without any time limitations.
+                          NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+                        type: string
+                      nodeVolumeDetachTimeout:
+                        description: |-
+                          nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+                          to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+                        type: string
+                      providerID:
+                        description: |-
+                          providerID is the identification ID of the machine provided by the provider.
+                          This field must match the provider ID as seen on the node object corresponding to this machine.
+                          This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
+                          with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
+                          machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a
+                          generic out-of-tree provider for autoscaler, this field is required by autoscaler to be
+                          able to have a provider view of the list of machines. Another list of nodes is queried from the k8s apiserver
+                          and then a comparison is done to find out unregistered machines and are marked for delete.
+                          This field will be set by the actuators and consumed by higher level entities like autoscaler that will
+                          be interfacing with cluster-api as generic provider.
+                        maxLength: 512
+                        minLength: 1
+                        type: string
+                      readinessGates:
+                        description: |-
+                          readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+
+                          This field can be used e.g. by Cluster API control plane providers to extend the semantic of the
+                          Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates
+                          for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
+
+                          Another example are external controllers, e.g. responsible to install special software/hardware on the Machines;
+                          they can include the status of those components with a new condition and add this condition to ReadinessGates.
+
+                          NOTE: This field is considered only for computing v1beta2 conditions.
+                          NOTE: In case readinessGates conditions start with the APIServer, ControllerManager, Scheduler prefix, and all those
+                          readiness gates condition are reporting the same message, when computing the Machine's Ready condition those
+                          readinessGates will be replaced by a single entry reporting "Control plane components: " + message.
+                          This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster).
+                        items:
+                          description: MachineReadinessGate contains the type of a
+                            Machine condition to be used as a readiness gate.
+                          properties:
+                            conditionType:
+                              description: |-
+                                conditionType refers to a condition with matching type in the Machine's condition list.
+                                If the conditions doesn't exist, it will be treated as unknown.
+                                Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
+                              maxLength: 316
+                              minLength: 1
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                              type: string
+                            polarity:
+                              description: |-
+                                polarity of the conditionType specified in this readinessGate.
+                                Valid values are Positive, Negative and omitted.
+                                When omitted, the default behaviour will be Positive.
+                                A positive polarity means that the condition should report a true status under normal conditions.
+                                A negative polarity means that the condition should report a false status under normal conditions.
+                              enum:
+                              - Positive
+                              - Negative
+                              type: string
+                          required:
+                          - conditionType
+                          type: object
+                        maxItems: 32
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - conditionType
+                        x-kubernetes-list-type: map
+                      version:
+                        description: |-
+                          version defines the desired Kubernetes version.
+                          This field is meant to be optionally used by bootstrap providers.
+                        maxLength: 256
+                        minLength: 1
+                        type: string
+                    required:
+                    - bootstrap
+                    - clusterName
+                    - infrastructureRef
+                    type: object
+                type: object
+            required:
+            - clusterName
+            - selector
+            - template
+            type: object
+          status:
+            description: status is the observed state of MachineDeployment.
+            properties:
+              availableReplicas:
+                description: |-
+                  availableReplicas is the total number of available machines (ready for at least minReadySeconds)
+                  targeted by this deployment.
+                format: int32
+                type: integer
+              conditions:
+                description: conditions defines current service state of the MachineDeployment.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
+                      type: string
+                    reason:
+                      description: |-
+                        reason is the reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may be empty.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                    severity:
+                      description: |-
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      maxLength: 32
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                description: observedGeneration is the generation observed by the
+                  deployment controller.
+                format: int64
+                type: integer
+              phase:
+                description: phase represents the current phase of a MachineDeployment
+                  (ScalingUp, ScalingDown, Running, Failed, or Unknown).
+                enum:
+                - ScalingUp
+                - ScalingDown
+                - Running
+                - Failed
+                - Unknown
+                type: string
+              readyReplicas:
+                description: readyReplicas is the total number of ready machines targeted
+                  by this deployment.
+                format: int32
+                type: integer
+              replicas:
+                description: |-
+                  replicas is the total number of non-terminated machines targeted by this deployment
+                  (their labels match the selector).
+                format: int32
+                type: integer
+              selector:
+                description: |-
+                  selector is the same as the label selector but in the string format to avoid introspection
+                  by clients. The string will be in the same format as the query-param syntax.
+                  More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
+                maxLength: 4096
+                minLength: 1
+                type: string
+              unavailableReplicas:
+                description: |-
+                  unavailableReplicas is the total number of unavailable machines targeted by this deployment.
+                  This is the total number of machines that are still required for
+                  the deployment to have 100% available capacity. They may either
+                  be machines that are running but not yet available or machines
+                  that still have not been created.
+
+                  Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                format: int32
+                type: integer
+              updatedReplicas:
+                description: |-
+                  updatedReplicas is the total number of non-terminated machines targeted by this deployment
+                  that have the desired template spec.
+                format: int32
+                type: integer
+              v1beta2:
+                description: v1beta2 groups all the fields that will be added or modified
+                  in MachineDeployment's status with the V1Beta2 version.
+                properties:
+                  availableReplicas:
+                    description: availableReplicas is the number of available replicas
+                      for this MachineDeployment. A machine is considered available
+                      when Machine's Available condition is true.
+                    format: int32
+                    type: integer
+                  conditions:
+                    description: |-
+                      conditions represents the observations of a MachineDeployment's current state.
+                      Known condition types are Available, MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+                    items:
+                      description: Condition contains details for one aspect of the
+                        current state of this API Resource.
+                      properties:
+                        lastTransitionTime:
+                          description: |-
+                            lastTransitionTime is the last time the condition transitioned from one status to another.
+                            This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                          format: date-time
+                          type: string
+                        message:
+                          description: |-
+                            message is a human readable message indicating details about the transition.
+                            This may be an empty string.
+                          maxLength: 32768
+                          type: string
+                        observedGeneration:
+                          description: |-
+                            observedGeneration represents the .metadata.generation that the condition was set based upon.
+                            For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                            with respect to the current state of the instance.
+                          format: int64
+                          minimum: 0
+                          type: integer
+                        reason:
+                          description: |-
+                            reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                            Producers of specific condition types may define expected values and meanings for this field,
+                            and whether the values are considered a guaranteed API.
+                            The value should be a CamelCase string.
+                            This field may not be empty.
+                          maxLength: 1024
+                          minLength: 1
+                          pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                          type: string
+                        status:
+                          description: status of the condition, one of True, False,
+                            Unknown.
+                          enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                          type: string
+                        type:
+                          description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                          maxLength: 316
+                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                      type: object
+                    maxItems: 32
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
+                  readyReplicas:
+                    description: readyReplicas is the number of ready replicas for
+                      this MachineDeployment. A machine is considered ready when Machine's
+                      Ready condition is true.
+                    format: int32
+                    type: integer
+                  upToDateReplicas:
+                    description: upToDateReplicas is the number of up-to-date replicas
+                      targeted by this deployment. A machine is considered up-to-date
+                      when Machine's UpToDate condition is true.
+                    format: int32
+                    type: integer
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
+      status: {}
+  - additionalPrinterColumns:
+    - description: Cluster
+      jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
+    - description: Cluster pass all availability checks
+      jsonPath: .status.conditions[?(@.type=="Available")].status
+      name: Available
+      type: string
+    - description: The desired number of machines
+      jsonPath: .spec.replicas
+      name: Desired
+      type: integer
+    - description: The number of machines
+      jsonPath: .status.replicas
+      name: Current
+      type: integer
+    - description: The number of machines with Ready condition true
+      jsonPath: .status.readyReplicas
+      name: Ready
+      type: integer
+    - description: The number of machines with Available condition true
+      jsonPath: .status.availableReplicas
+      name: Available
+      type: integer
+    - description: The number of machines with UpToDate condition true
+      jsonPath: .status.upToDateReplicas
+      name: Up-to-date
+      type: integer
+    - description: Reconciliation paused
+      jsonPath: .status.conditions[?(@.type=="Paused")].status
+      name: Paused
+      priority: 10
+      type: string
+    - description: MachineDeployment status such as ScalingUp/ScalingDown/Running/Failed/Unknown
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - description: Time duration since creation of MachineDeployment
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Kubernetes version associated with this MachineDeployment
+      jsonPath: .spec.template.spec.version
+      name: Version
+      type: string
+    name: v1beta2
+    schema:
+      openAPIV3Schema:
+        description: MachineDeployment is the Schema for the machinedeployments API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec is the desired state of MachineDeployment.
+            properties:
+              clusterName:
+                description: clusterName is the name of the Cluster this object belongs
+                  to.
+                maxLength: 63
+                minLength: 1
+                type: string
+              deletion:
+                description: deletion contains configuration options for MachineDeployment
+                  deletion.
+                minProperties: 1
+                properties:
+                  order:
+                    description: |-
+                      order defines the order in which Machines are deleted when downscaling.
+                      Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+                    enum:
+                    - Random
+                    - Newest
+                    - Oldest
+                    type: string
+                type: object
+              machineNaming:
+                description: |-
+                  machineNaming allows changing the naming pattern used when creating Machines.
+                  Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
+                minProperties: 1
+                properties:
+                  template:
+                    description: |-
+                      template defines the template to use for generating the names of the
+                      Machine objects.
+                      If not defined, it will fallback to `{{ .machineSet.name }}-{{ .random }}`.
+                      If the generated name string exceeds 63 characters, it will be trimmed to
+                      58 characters and will
+                      get concatenated with a random suffix of length 5.
+                      Length of the template string must not exceed 256 characters.
+                      The template allows the following variables `.cluster.name`,
+                      `.machineSet.name` and `.random`.
+                      The variable `.cluster.name` retrieves the name of the cluster object
+                      that owns the Machines being created.
+                      The variable `.machineSet.name` retrieves the name of the MachineSet
+                      object that owns the Machines being created.
+                      The variable `.random` is substituted with random alphanumeric string,
+                      without vowels, of length 5. This variable is required part of the
+                      template. If not provided, validation will fail.
+                    maxLength: 256
+                    minLength: 1
+                    type: string
+                type: object
+              paused:
+                description: paused indicates that the deployment is paused.
+                type: boolean
+              remediation:
+                description: remediation controls how unhealthy Machines are remediated.
+                minProperties: 1
+                properties:
+                  maxInFlight:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: |-
+                      maxInFlight determines how many in flight remediations should happen at the same time.
+
+                      Remediation only happens on the MachineSet with the most current revision, while
+                      older MachineSets (usually present during rollout operations) aren't allowed to remediate.
+
+                      Note: In general (independent of remediations), unhealthy machines are always
+                      prioritized during scale down operations over healthy ones.
+
+                      MaxInFlight can be set to a fixed number or a percentage.
+                      Example: when this is set to 20%, the MachineSet controller deletes at most 20% of
+                      the desired replicas.
+
+                      If not set, remediation is limited to all machines (bounded by replicas)
+                      under the active MachineSet's management.
+                    x-kubernetes-int-or-string: true
+                type: object
+              replicas:
+                description: |-
+                  replicas is the number of desired machines.
+                  This is a pointer to distinguish between explicit zero and not specified.
+
+                  Defaults to:
+                  * if the Kubernetes autoscaler min size and max size annotations are set:
+                    - if it's a new MachineDeployment, use min size
+                    - if the replicas field of the old MachineDeployment is < min size, use min size
+                    - if the replicas field of the old MachineDeployment is > max size, use max size
+                    - if the replicas field of the old MachineDeployment is in the (min size, max size) range, keep the value from the oldMD
+                  * otherwise use 1
+                  Note: Defaulting will be run whenever the replicas field is not set:
+                  * A new MachineDeployment is created with replicas not set.
+                  * On an existing MachineDeployment the replicas field was first set and is now unset.
+                  Those cases are especially relevant for the following Kubernetes autoscaler use cases:
+                  * A new MachineDeployment is created and replicas should be managed by the autoscaler
+                  * An existing MachineDeployment which initially wasn't controlled by the autoscaler
+                    should be later controlled by the autoscaler
+                format: int32
+                type: integer
+              rollout:
+                description: |-
+                  rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.
+                  It allows you to require that all Machines are replaced after a certain time,
+                  and allows you to define the strategy used during rolling replacements.
+                minProperties: 1
+                properties:
+                  after:
+                    description: |-
+                      after is a field to indicate a rollout should be performed
+                      after the specified time even if no changes have been made to the
+                      MachineDeployment.
+                      Example: In the YAML the time can be specified in the RFC3339 format.
+                      To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+                      use "2023-03-09T09:00:00Z".
+                    format: date-time
+                    type: string
+                  strategy:
+                    description: strategy specifies how to roll out control plane
+                      Machines.
+                    minProperties: 1
+                    properties:
+                      rollingUpdate:
+                        description: |-
+                          rollingUpdate is the rolling update config params. Present only if
+                          type = RollingUpdate.
+                        minProperties: 1
+                        properties:
+                          maxSurge:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: |-
+                              maxSurge is the maximum number of machines that can be scheduled above the
+                              desired number of machines.
+                              Value can be an absolute number (ex: 5) or a percentage of
+                              desired machines (ex: 10%).
+                              This can not be 0 if MaxUnavailable is 0.
+                              Absolute number is calculated from percentage by rounding up.
+                              Defaults to 1.
+                              Example: when this is set to 30%, the new MachineSet can be scaled
+                              up immediately when the rolling update starts, such that the total
+                              number of old and new machines do not exceed 130% of desired
+                              machines. Once old machines have been killed, new MachineSet can
+                              be scaled up further, ensuring that total number of machines running
+                              at any time during the update is at most 130% of desired machines.
+                            x-kubernetes-int-or-string: true
+                          maxUnavailable:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: |-
+                              maxUnavailable is the maximum number of machines that can be unavailable during the update.
+                              Value can be an absolute number (ex: 5) or a percentage of desired
+                              machines (ex: 10%).
+                              Absolute number is calculated from percentage by rounding down.
+                              This can not be 0 if MaxSurge is 0.
+                              Defaults to 0.
+                              Example: when this is set to 30%, the old MachineSet can be scaled
+                              down to 70% of desired machines immediately when the rolling update
+                              starts. Once new machines are ready, old MachineSet can be scaled
+                              down further, followed by scaling up the new MachineSet, ensuring
+                              that the total number of machines available at all times
+                              during the update is at least 70% of desired machines.
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      type:
+                        description: |-
+                          type of rollout. Allowed values are RollingUpdate and OnDelete.
+                          Default is RollingUpdate.
+                        enum:
+                        - RollingUpdate
+                        - OnDelete
+                        type: string
+                    required:
+                    - type
+                    type: object
+                type: object
+              selector:
+                description: |-
+                  selector is the label selector for machines. Existing MachineSets whose machines are
+                  selected by this will be the ones affected by this deployment.
+                  It must match the machine template's labels.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              template:
+                description: template describes the machines that will be created.
+                properties:
+                  metadata:
+                    description: |-
+                      metadata is the standard object's metadata.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+                    minProperties: 1
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: http://kubernetes.io/docs/user-guide/annotations
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          labels is a map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels
+                        type: object
+                    type: object
+                  spec:
+                    description: |-
+                      spec is the specification of the desired behavior of the machine.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+                    properties:
+                      bootstrap:
+                        description: |-
+                          bootstrap is a reference to a local struct which encapsulates
+                          fields to configure the Machine’s bootstrapping mechanism.
+                        properties:
+                          configRef:
+                            description: |-
+                              configRef is a reference to a bootstrap provider-specific resource
+                              that holds configuration details. The reference is optional to
+                              allow users/operators to specify Bootstrap.DataSecretName without
+                              the need of a controller.
+                            properties:
+                              apiGroup:
+                                description: |-
+                                  apiGroup is the group of the resource being referenced.
+                                  apiGroup must be fully qualified domain name.
+                                  The corresponding version for this reference will be looked up from the contract
+                                  labels of the corresponding CRD of the resource being referenced.
+                                maxLength: 253
+                                minLength: 1
+                                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                type: string
+                              kind:
+                                description: |-
+                                  kind of the resource being referenced.
+                                  kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                                maxLength: 63
+                                minLength: 1
+                                pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                type: string
+                              name:
+                                description: |-
+                                  name of the resource being referenced.
+                                  name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                maxLength: 253
+                                minLength: 1
+                                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                type: string
+                            required:
+                            - apiGroup
+                            - kind
+                            - name
+                            type: object
+                          dataSecretName:
+                            description: |-
+                              dataSecretName is the name of the secret that stores the bootstrap data script.
+                              If nil, the Machine should remain in the Pending state.
+                            maxLength: 253
+                            minLength: 0
+                            type: string
+                        type: object
+                      clusterName:
+                        description: clusterName is the name of the Cluster this object
+                          belongs to.
+                        maxLength: 63
+                        minLength: 1
+                        type: string
+                      deletion:
+                        description: deletion contains configuration options for Machine
+                          deletion.
+                        minProperties: 1
+                        properties:
+                          nodeDeletionTimeoutSeconds:
+                            description: |-
+                              nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
+                              hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+                              Defaults to 10 seconds.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          nodeDrainTimeoutSeconds:
+                            description: |-
+                              nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.
+                              The default value is 0, meaning that the node can be drained without any time limitations.
+                              NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          nodeVolumeDetachTimeoutSeconds:
+                            description: |-
+                              nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes
+                              to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                        type: object
+                      failureDomain:
+                        description: |-
+                          failureDomain is the failure domain the machine will be created in.
+                          Must match the name of a FailureDomain from the Cluster status.
+                        maxLength: 256
+                        minLength: 1
+                        type: string
+                      infrastructureRef:
+                        description: |-
+                          infrastructureRef is a required reference to a custom resource
+                          offered by an infrastructure provider.
+                        properties:
+                          apiGroup:
+                            description: |-
+                              apiGroup is the group of the resource being referenced.
+                              apiGroup must be fully qualified domain name.
+                              The corresponding version for this reference will be looked up from the contract
+                              labels of the corresponding CRD of the resource being referenced.
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                          kind:
+                            description: |-
+                              kind of the resource being referenced.
+                              kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                            maxLength: 63
+                            minLength: 1
+                            pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                            type: string
+                          name:
+                            description: |-
+                              name of the resource being referenced.
+                              name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        required:
+                        - apiGroup
+                        - kind
+                        - name
+                        type: object
+                      minReadySeconds:
+                        description: |-
+                          minReadySeconds is the minimum number of seconds for which a Machine should be ready before considering it available.
+                          Defaults to 0 (Machine will be considered available as soon as the Machine is ready)
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      providerID:
+                        description: |-
+                          providerID is the identification ID of the machine provided by the provider.
+                          This field must match the provider ID as seen on the node object corresponding to this machine.
+                          This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
+                          with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
+                          machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a
+                          generic out-of-tree provider for autoscaler, this field is required by autoscaler to be
+                          able to have a provider view of the list of machines. Another list of nodes is queried from the k8s apiserver
+                          and then a comparison is done to find out unregistered machines and are marked for delete.
+                          This field will be set by the actuators and consumed by higher level entities like autoscaler that will
+                          be interfacing with cluster-api as generic provider.
+                        maxLength: 512
+                        minLength: 1
+                        type: string
+                      readinessGates:
+                        description: |-
+                          readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+
+                          This field can be used e.g. by Cluster API control plane providers to extend the semantic of the
+                          Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates
+                          for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
+
+                          Another example are external controllers, e.g. responsible to install special software/hardware on the Machines;
+                          they can include the status of those components with a new condition and add this condition to ReadinessGates.
+
+                          NOTE: In case readinessGates conditions start with the APIServer, ControllerManager, Scheduler prefix, and all those
+                          readiness gates condition are reporting the same message, when computing the Machine's Ready condition those
+                          readinessGates will be replaced by a single entry reporting "Control plane components: " + message.
+                          This helps to improve readability of conditions bubbling up to the Machine's owner resource / to the Cluster).
+                        items:
+                          description: MachineReadinessGate contains the type of a
+                            Machine condition to be used as a readiness gate.
+                          properties:
+                            conditionType:
+                              description: |-
+                                conditionType refers to a condition with matching type in the Machine's condition list.
+                                If the conditions doesn't exist, it will be treated as unknown.
+                                Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
+                              maxLength: 316
+                              minLength: 1
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                              type: string
+                            polarity:
+                              description: |-
+                                polarity of the conditionType specified in this readinessGate.
+                                Valid values are Positive, Negative and omitted.
+                                When omitted, the default behaviour will be Positive.
+                                A positive polarity means that the condition should report a true status under normal conditions.
+                                A negative polarity means that the condition should report a false status under normal conditions.
+                              enum:
+                              - Positive
+                              - Negative
+                              type: string
+                          required:
+                          - conditionType
+                          type: object
+                        maxItems: 32
+                        minItems: 1
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - conditionType
+                        x-kubernetes-list-type: map
+                      version:
+                        description: |-
+                          version defines the desired Kubernetes version.
+                          This field is meant to be optionally used by bootstrap providers.
+                        maxLength: 256
+                        minLength: 1
+                        type: string
+                    required:
+                    - bootstrap
+                    - clusterName
+                    - infrastructureRef
+                    type: object
+                required:
+                - spec
+                type: object
+            required:
+            - clusterName
+            - selector
+            - template
+            type: object
+          status:
+            description: status is the observed state of MachineDeployment.
+            minProperties: 1
+            properties:
+              availableReplicas:
+                description: availableReplicas is the number of available replicas
+                  for this MachineDeployment. A machine is considered available when
+                  Machine's Available condition is true.
+                format: int32
+                type: integer
+              conditions:
+                description: |-
+                  conditions represents the observations of a MachineDeployment's current state.
+                  Known condition types are Available, MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                maxItems: 32
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              deprecated:
+                description: deprecated groups all the status fields that are deprecated
+                  and will be removed when all the nested field are removed.
+                properties:
+                  v1beta1:
+                    description: v1beta1 groups all the status fields that are deprecated
+                      and will be removed when support for v1beta1 will be dropped.
+                    properties:
+                      availableReplicas:
+                        description: |-
+                          availableReplicas is the total number of available machines (ready for at least minReadySeconds)
+                          targeted by this deployment.
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        format: int32
+                        type: integer
+                      conditions:
+                        description: |-
+                          conditions defines current service state of the MachineDeployment.
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        items:
+                          description: Condition defines an observation of a Cluster
+                            API resource operational state.
+                          properties:
+                            lastTransitionTime:
+                              description: |-
+                                lastTransitionTime is the last time the condition transitioned from one status to another.
+                                This should be when the underlying condition changed. If that is not known, then using the time when
+                                the API field changed is acceptable.
+                              format: date-time
+                              type: string
+                            message:
+                              description: |-
+                                message is a human readable message indicating details about the transition.
+                                This field may be empty.
+                              maxLength: 10240
+                              minLength: 1
+                              type: string
+                            reason:
+                              description: |-
+                                reason is the reason for the condition's last transition in CamelCase.
+                                The specific API may choose whether or not this field is considered a guaranteed API.
+                                This field may be empty.
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                            severity:
+                              description: |-
+                                severity provides an explicit classification of Reason code, so the users or machines can immediately
+                                understand the current situation and act accordingly.
+                                The Severity field MUST be set only when Status=False.
+                              maxLength: 32
+                              type: string
+                            status:
+                              description: status of the condition, one of True, False,
+                                Unknown.
+                              type: string
+                            type:
+                              description: |-
+                                type of condition in CamelCase or in foo.example.com/CamelCase.
+                                Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                                can be useful (see .node.status.conditions), the ability to deconflict is important.
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                          required:
+                          - lastTransitionTime
+                          - status
+                          - type
+                          type: object
+                        type: array
+                      readyReplicas:
+                        description: |-
+                          readyReplicas is the total number of ready machines targeted by this deployment.
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        format: int32
+                        type: integer
+                      unavailableReplicas:
+                        description: |-
+                          unavailableReplicas is the total number of unavailable machines targeted by this deployment.
+                          This is the total number of machines that are still required for
+                          the deployment to have 100% available capacity. They may either
+                          be machines that are running but not yet available or machines
+                          that still have not been created.
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        format: int32
+                        type: integer
+                      updatedReplicas:
+                        description: |-
+                          updatedReplicas is the total number of non-terminated machines targeted by this deployment
+                          that have the desired template spec.
+
+                          Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
+              observedGeneration:
+                description: observedGeneration is the generation observed by the
+                  deployment controller.
+                format: int64
+                minimum: 1
+                type: integer
+              phase:
+                description: phase represents the current phase of a MachineDeployment
+                  (ScalingUp, ScalingDown, Running, Failed, or Unknown).
+                enum:
+                - ScalingUp
+                - ScalingDown
+                - Running
+                - Failed
+                - Unknown
+                type: string
+              readyReplicas:
+                description: readyReplicas is the number of ready replicas for this
+                  MachineDeployment. A machine is considered ready when Machine's
+                  Ready condition is true.
+                format: int32
+                type: integer
+              replicas:
+                description: |-
+                  replicas is the total number of non-terminated machines targeted by this deployment
+                  (their labels match the selector).
+                format: int32
+                type: integer
+              selector:
+                description: |-
+                  selector is the same as the label selector but in the string format to avoid introspection
+                  by clients. The string will be in the same format as the query-param syntax.
+                  More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
+                maxLength: 4096
+                minLength: 1
+                type: string
+              upToDateReplicas:
+                description: upToDateReplicas is the number of up-to-date replicas
+                  targeted by this deployment. A machine is considered up-to-date
+                  when Machine's UpToDate condition is true.
+                format: int32
+                type: integer
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
+      status: {}

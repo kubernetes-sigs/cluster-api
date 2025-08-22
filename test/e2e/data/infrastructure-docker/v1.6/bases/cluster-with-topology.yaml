@@ -1,0 +1,75 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+  namespace: default
+  labels:
+    cni: "${CLUSTER_NAME}-crs-0"
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ['${DOCKER_SERVICE_CIDRS}']
+    pods:
+      cidrBlocks: ['${DOCKER_POD_CIDRS}']
+    serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
+  topology:
+    class: "quick-start"
+    version: "${KUBERNETES_VERSION}"
+    controlPlane:
+      metadata:
+        labels:
+          Cluster.topology.controlPlane.label: "Cluster.topology.controlPlane.labelValue"
+          # Note: this label is propagated to Nodes.
+          Cluster.topology.controlPlane.label.node.cluster.x-k8s.io: "Cluster.topology.controlPlane.nodeLabelValue"
+        annotations:
+          Cluster.topology.controlPlane.annotation: "Cluster.topology.controlPlane.annotationValue"
+      nodeDeletionTimeout: "30s"
+      nodeVolumeDetachTimeout: "5m"
+      replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+    workers:
+      machineDeployments:
+      - class: "default-worker"
+        name: "md-0"
+        metadata:
+          labels:
+            Cluster.topology.machineDeployment.label: "Cluster.topology.machineDeployment.labelValue"
+            # Note: this label is propagated to Nodes.
+            Cluster.topology.machineDeployment.label.node.cluster.x-k8s.io: "Cluster.topology.machineDeployment.nodeLabelValue"
+          annotations:
+            Cluster.topology.machineDeployment.annotation: "Cluster.topology.machineDeployment.annotationValue"
+        nodeDeletionTimeout: "30s"
+        nodeVolumeDetachTimeout: "5m"
+        minReadySeconds: 5
+        replicas: ${WORKER_MACHINE_COUNT}
+        failureDomain: fd4
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: "20%"
+            maxUnavailable: 0
+      machinePools:
+      - class: "default-worker"
+        name: "mp-0"
+        metadata:
+          labels:
+            Cluster.topology.machinePool.label: "Cluster.topology.machinePool.labelValue"
+            # Note: this label is propagated to Nodes.
+            Cluster.topology.machinePool.label.node.cluster.x-k8s.io: "Cluster.topology.machinePool.nodeLabelValue"
+          annotations:
+            Cluster.topology.machinePool.annotation: "Cluster.topology.machinePool.annotationValue"
+        nodeDeletionTimeout: "30s"
+        nodeVolumeDetachTimeout: "5m"
+        minReadySeconds: 5
+        replicas: ${WORKER_MACHINE_COUNT}
+        failureDomains:
+        - fd4
+    variables:
+      # We set an empty value to use the default tag kubeadm init is using.
+    - name: etcdImageTag
+      value: ""
+      # We set an empty value to use the default tag kubeadm init is using.
+    - name: coreDNSImageTag
+      value: ""
+    - name: preLoadImages
+      # The DOCKER_PRELOAD_IMAGES variable gets set in self-hosted E2E tests to the list of images of the E2E configuration.
+      value: ${DOCKER_PRELOAD_IMAGES:-[]}

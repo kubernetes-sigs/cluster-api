@@ -1,0 +1,56 @@
+.git
+.github
+.vscode
+bin/
+**/*.yaml
+hack/
+docs/
+logos/
+scripts/
+**/*.md
+tilt-settings.json
+tilt-settings.yaml
+tilt.d/
+Tiltfile
+**/.tiltbuild
+**/config/**/*.yaml
+**/config/**/*.yaml-e
+_artifacts
+Makefile
+**/Makefile
+
+# We need the following yaml files while building clusterctl in the container
+!cmd/clusterctl/config/manifest/clusterctl-api.yaml
+!cmd/clusterctl/client/cluster/assets/cert-manager-test-resources.yaml
+
+# ignores changes to test-only code to avoid extra rebuilds
+test/e2e/**
+test/framework/**
+test/infrastructure/docker/e2e/**
+
+.dockerignore
+# We want to ignore any frequently modified files to avoid cache-busting the COPY ./ ./
+# Binaries for programs and plugins
+**/*.exe
+**/*.dll
+**/*.so
+**/*.dylib
+cmd/clusterctl/clusterctl/**
+**/bin/**
+**/out/**
+
+# go.work files
+go.work
+go.work.sum
+
+# Test binary, build with `go test -c`
+**/*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+**/*.out
+
+# Common editor / temporary files
+**/*~
+**/*.tmp
+**/.DS_Store
+**/*.swp

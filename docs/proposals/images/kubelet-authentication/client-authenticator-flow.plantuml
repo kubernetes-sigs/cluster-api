@@ -1,0 +1,23 @@
+@startuml client-authenticator-flow
+
+(*) --> if "client certificate" then
+  -->[file exists] if "certificate expires" then
+   -->[less than 20 percent of time left] "Create CSR on API Server"
+else
+ --> [more than 20 percent of time left] Return kubeconfig
+ --> (*)
+endif
+  else
+  -->[file does not exist and bootstrap token provided] "Create CSR on API Server"
+      --> "Get CSR"
+      --> if "CSR" then
+        --> ["is marked as invalid"] if "check CSR controller version" then
+          --> [controller version supported] "Create CSR on API Server"
+          else
+          --> [controller version not supported] (*)
+          endif
+        else
+        --> ["signed"] "Persist certificate"
+        endif
+      endif
+@enduml

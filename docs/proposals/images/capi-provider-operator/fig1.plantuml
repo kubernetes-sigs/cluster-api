@@ -1,0 +1,46 @@
+@startuml
+title Upgrade Provider without changing contract version
+actor User
+participant APIServer
+participant "Management Cluster\nController" as MgmtClusterController
+
+note over APIServer
+Current State:
+A core provider exists with version 
+v0.3.10 abiding by contract v1alpha3
+end note
+====
+User -> APIServer: kubectl apply -f updated-provider.yaml
+
+activate APIServer
+APIServer --> MgmtClusterController: upgrade core provider to v0.3.11
+activate MgmtClusterController
+MgmtClusterController -> MgmtClusterController: Reconcile
+
+MgmtClusterController -> APIServer: Get existing Core provider
+APIServer --> MgmtClusterController: Response
+
+note over MgmtClusterController
+- Verify if the Core provider exists
+- Get the Status.Contract of existing provider
+end note
+
+MgmtClusterController -> APIServer: Get metadata from ConfigMap for v0.3.11
+APIServer --> MgmtClusterController: Response
+
+note over MgmtClusterController
+- Verify that v0.3.11 abides by existing contract
+end note 
+
+MgmtClusterController -> APIServer: Pause core provider\nto avoid reconciliation
+
+MgmtClusterController -> APIServer: Delete old core provider
+MgmtClusterController -> APIServer: Install new core provider
+
+
+MgmtClusterController -> APIServer: Unpause core provider
+
+
+deactivate APIServer
+deactivate MgmtClusterController
+@enduml

@@ -1,0 +1,39 @@
+# Netlify build instructions
+[build]
+    command = "make -C docs/book build"
+    publish = "docs/book/book"
+
+[build.environment]
+    GO_VERSION = "1.24.6"
+
+# Standard Netlify redirects
+[[redirects]]
+    from = "https://main--kubernetes-sigs-cluster-api.netlify.com/*"
+    to = "https://main.cluster-api.sigs.k8s.io/:splat"
+    status = 301
+    force = true
+
+[[redirects]]
+    from = "https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-resource-set"
+    to = "https://cluster-api.sigs.k8s.io/developer/core/controllers/cluster-resource-set"
+    status = 301
+    force = true
+
+# HTTP-to-HTTPS rules
+[[redirects]]
+    from = "http://main.cluster-api.sigs.k8s.io/*"
+    to = "https://main.cluster-api.sigs.k8s.io/:splat"
+    status = 301
+    force = true
+
+[[redirects]]
+    from = "http://main--kubernetes-sigs-cluster-api.netlify.com/*"
+    to = "http://main.cluster-api.sigs.k8s.io/:splat"
+    status = 301
+    force = true
+
+[[headers]]
+    for = "/tasks/experimental-features/runtime-sdk/runtime-sdk-openapi.yaml"
+    [headers.values]
+        Access-Control-Allow-Origin = "*"
+        Access-Control-Allow-Methods = "*"

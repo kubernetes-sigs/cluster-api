@@ -1,0 +1,28 @@
+@startuml
+!pragma useVerticalIf on
+start
+:ClusterResourceSet Controller;
+repeat
+  :ClusterResourceSet controller enqueues a Reconcile call;
+  :Fetch the ClusterResourceSet instance in namespace;
+  repeat
+    if (Cluster matches ClusterResourceSet's selector) then (yes)
+      if (Get ClusterResourceSetBinding for the cluster) then (exists)
+      else (doesn't exist)
+         :Create ClusterResourceSetBinding object for the cluster;
+      endif
+      if (ResourceSetBinding for a given ClusterResourceSet exists) then (yes)
+      else (no)
+        :Create ResourceSetBinding;
+      endif
+    :Get Resoures in ClusterResourceSet;
+    if (Check applied condition of resource in ResourceSetBinding) then (false)
+     :Apply resource to cluster;
+     :Set applied condition to true in ResourceSetBinding;
+    endif
+    :Mark ResourcesAppliedCondition to true;
+  endif
+  repeat while (More clusters?)
+repeat while (More updates to ClusterResourceSet?)
+stop
+@enduml

@@ -1,0 +1,15 @@
+ginkgo.focus: \[Feature\:IPv6DualStack\]
+ginkgo.skip: \[Feature\:SCTPConnectivity\]
+disable-log-dump: true
+# ginkgo.progress flag is deprecated but its still used when
+# we run kubetest on K8s versions <= v1.26, we have to keep it
+# as long as we support these versions.
+ginkgo.progress: true
+ginkgo.slow-spec-threshold: 120s
+ginkgo.flake-attempts: 3
+ginkgo.trace: true
+ginkgo.v: true
+ginkgo.no-color: true
+# Use 5m instead of the default 10m to fail faster
+# if kube-system Pods are not coming up.
+system-pods-startup-timeout: 5m

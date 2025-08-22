@@ -1,0 +1,342 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: ipaddresses.ipam.cluster.x-k8s.io
+spec:
+  group: ipam.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: IPAddress
+    listKind: IPAddressList
+    plural: ipaddresses
+    singular: ipaddress
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Address
+      jsonPath: .spec.address
+      name: Address
+      type: string
+    - description: Name of the pool the address is from
+      jsonPath: .spec.poolRef.name
+      name: Pool Name
+      type: string
+    - description: Kind of the pool the address is from
+      jsonPath: .spec.poolRef.kind
+      name: Pool Kind
+      type: string
+    - description: Time duration since creation of IPAdress
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: IPAddress is the Schema for the ipaddress API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec is the desired state of IPAddress.
+            properties:
+              address:
+                description: address is the IP address.
+                maxLength: 39
+                minLength: 1
+                type: string
+              claimRef:
+                description: claimRef is a reference to the claim this IPAddress was
+                  created for.
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              gateway:
+                description: gateway is the network gateway of the network the address
+                  is from.
+                maxLength: 39
+                minLength: 1
+                type: string
+              poolRef:
+                description: poolRef is a reference to the pool that this IPAddress
+                  was created from.
+                properties:
+                  apiGroup:
+                    description: |-
+                      APIGroup is the group for the resource being referenced.
+                      If APIGroup is not specified, the specified Kind must be in the core API group.
+                      For any other third-party types, APIGroup is required.
+                    type: string
+                  kind:
+                    description: Kind is the type of resource being referenced
+                    type: string
+                  name:
+                    description: Name is the name of resource being referenced
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+                x-kubernetes-map-type: atomic
+              prefix:
+                description: prefix is the prefix of the address.
+                type: integer
+            required:
+            - address
+            - claimRef
+            - poolRef
+            - prefix
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources: {}
+  - additionalPrinterColumns:
+    - description: Address
+      jsonPath: .spec.address
+      name: Address
+      type: string
+    - description: Name of the pool the address is from
+      jsonPath: .spec.poolRef.name
+      name: Pool Name
+      type: string
+    - description: Kind of the pool the address is from
+      jsonPath: .spec.poolRef.kind
+      name: Pool Kind
+      type: string
+    - description: Time duration since creation of IPAdress
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    deprecated: true
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: IPAddress is the Schema for the ipaddress API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec is the desired state of IPAddress.
+            properties:
+              address:
+                description: address is the IP address.
+                maxLength: 39
+                minLength: 1
+                type: string
+              claimRef:
+                description: claimRef is a reference to the claim this IPAddress was
+                  created for.
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              gateway:
+                description: gateway is the network gateway of the network the address
+                  is from.
+                maxLength: 39
+                minLength: 1
+                type: string
+              poolRef:
+                description: poolRef is a reference to the pool that this IPAddress
+                  was created from.
+                properties:
+                  apiGroup:
+                    description: |-
+                      APIGroup is the group for the resource being referenced.
+                      If APIGroup is not specified, the specified Kind must be in the core API group.
+                      For any other third-party types, APIGroup is required.
+                    type: string
+                  kind:
+                    description: Kind is the type of resource being referenced
+                    type: string
+                  name:
+                    description: Name is the name of resource being referenced
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+                x-kubernetes-map-type: atomic
+              prefix:
+                description: prefix is the prefix of the address.
+                type: integer
+            required:
+            - address
+            - claimRef
+            - poolRef
+            - prefix
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources: {}
+  - additionalPrinterColumns:
+    - description: Address
+      jsonPath: .spec.address
+      name: Address
+      type: string
+    - description: Name of the pool the address is from
+      jsonPath: .spec.poolRef.name
+      name: Pool Name
+      type: string
+    - description: Kind of the pool the address is from
+      jsonPath: .spec.poolRef.kind
+      name: Pool Kind
+      type: string
+    - description: Time duration since creation of IPAdress
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta2
+    schema:
+      openAPIV3Schema:
+        description: IPAddress is the Schema for the ipaddress API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec is the desired state of IPAddress.
+            properties:
+              address:
+                description: address is the IP address.
+                maxLength: 39
+                minLength: 1
+                type: string
+              claimRef:
+                description: claimRef is a reference to the claim this IPAddress was
+                  created for.
+                properties:
+                  name:
+                    description: |-
+                      name of the IPAddressClaim.
+                      name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                required:
+                - name
+                type: object
+              gateway:
+                description: gateway is the network gateway of the network the address
+                  is from.
+                maxLength: 39
+                minLength: 1
+                type: string
+              poolRef:
+                description: poolRef is a reference to the pool that this IPAddress
+                  was created from.
+                properties:
+                  apiGroup:
+                    description: |-
+                      apiGroup of the IPPool.
+                      apiGroup must be fully qualified domain name.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  kind:
+                    description: |-
+                      kind of the IPPool.
+                      kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+                    maxLength: 63
+                    minLength: 1
+                    pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                    type: string
+                  name:
+                    description: |-
+                      name of the IPPool.
+                      name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                required:
+                - apiGroup
+                - kind
+                - name
+                type: object
+              prefix:
+                description: prefix is the prefix of the address.
+                format: int32
+                maximum: 128
+                minimum: 0
+                type: integer
+            required:
+            - address
+            - claimRef
+            - poolRef
+            - prefix
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources: {}

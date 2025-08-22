@@ -1,0 +1,30 @@
+resources:
+  - ../namespace.yaml
+  # Aggregated ClusterRole and ClusterRoleBinding for kube-state-metrics crd resources.
+  - rbac-crd-aggregation.yaml
+  # Adds the configmap which contains the script to build the final crd configuration.
+  - crd-sidecar-cm.yaml
+  # Adds the core CAPI crd metrics configmap and CusterRole.
+  - ../../../config/metrics
+
+namespace: observability
+
+helmCharts:
+  - name: kube-state-metrics
+    repo: https://prometheus-community.github.io/helm-charts
+    namespace: observability
+    releaseName: kube-state-metrics
+    valuesFile: values.yaml
+    version: 5.30.0
+
+helmGlobals:
+    # Store chart in ".charts" folder instead of "charts".
+    # Otherwise "go mod tidy" picks up dependencies of go files contained in the Helm Chart.
+    # "go mod tidy" ignores folders that begin with ".": https://pkg.go.dev/cmd/go#hdr-Package_lists_and_patterns.
+    chartHome: .charts
+
+patches:
+# Adds the sidecar container which assembles the final configuration for kube-state-metrics
+- path: crd-sidecar-patch.yaml
+  target:
+    kind: Deployment

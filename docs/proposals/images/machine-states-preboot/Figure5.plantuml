@@ -1,0 +1,37 @@
+@startuml
+title Figure 5: User creates a machine with kubeadm bootstrapper
+
+' -- GROUPS START ---
+
+box #lightgreen
+participant "API Server"
+end box
+
+box #lightblue
+participant "Cluster API Machine Controller"
+end box
+
+' -- GROUPS END ---
+
+"API Server"-->>"Cluster API Machine Controller": KubeadmBootstrapConfig updated
+
+"Cluster API Machine Controller"-> "Cluster API Machine Controller": Enqueue Reconcile\nfor Machine
+
+
+"Cluster API Machine Controller"-> "Cluster API Machine Controller": Machine Controller Reconcile
+activate "Cluster API Machine Controller"
+
+"Cluster API Machine Controller"->"API Server": Get Machine
+"Cluster API Machine Controller"<<--"API Server": Response
+
+note over "Cluster API Machine Controller": - ✅ Machine.Status.Phase is "Pending" \n- ✅ Machine.Spec.Bootstrap.ConfigRef -> Status.Ready is true\n- ✅ Machine.Bootstrap.ConfigRef -> Status.BootstrapData is populated (not <nil>)
+
+"Cluster API Machine Controller"-> "Cluster API Machine Controller": Copy Machine.Spec.Bootstrap.ConfigRef -> Status.BootstrapData\nto Machine.Spec.Bootstrap.Data
+
+"Cluster API Machine Controller"-> "Cluster API Machine Controller":Set Machine.Status.Phase = "Provisioning"
+
+"Cluster API Machine Controller"->"API Server": Update Machine
+"Cluster API Machine Controller"<<--"API Server": Response
+
+hide footbox
+@enduml

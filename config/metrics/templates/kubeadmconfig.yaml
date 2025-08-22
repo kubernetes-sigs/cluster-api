@@ -1,0 +1,30 @@
+  - groupVersionKind:
+      group: bootstrap.cluster.x-k8s.io
+      kind: KubeadmConfig
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_kubeadmconfig
+    metrics:
+    - name: info
+      help: Information about a kubeadmconfig.
+      each:
+        info:
+          # TODO: added metadata.name even it's already defined above as the metric doesn't work with empty labelsFromPath.
+          labelsFromPath:
+            name:
+            - metadata
+            - name
+        type: Info

@@ -1,0 +1,8 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+approvers:
+  - cluster-api-bootstrap-provider-kubeadm-ignition-maintainers
+
+reviewers:
+  - cluster-api-reviewers
+  - cluster-api-bootstrap-provider-kubeadm-ignition-reviewers

@@ -131,7 +131,9 @@ A provider url should be in the form
 * The components YAML, the metadata YAML and eventually the workload cluster templates are included into the same package version
 
 See the [GitLab docs](https://docs.gitlab.com/ee/user/packages/generic_packages/) for more information
-about how to create a generic package.
+about how to create a generic package. 
+
+If you are hosting a private Gitlab repository, you can use a [personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) or [project access token](https://docs.gitlab.com/user/project/settings/project_access_tokens.html) to access the provider artifacts by adding the `gitlab-access-token` variable to the `clusterctl` configuration in order to authenticate against the GitLab API.
 
 This can be used in conjunction with [GitLabracadabra](https://gitlab.com/gitlabracadabra/gitlabracadabra/)
 to avoid direct internet access from `clusterctl`, and use GitLab as artifacts repository. For example,
@@ -167,6 +169,8 @@ for the core provider:
 
 Limitation: Provider artifacts hosted on GitLab don't support getting all versions.
 As a consequence, you need to set version explicitly for upgrades.
+
+
 
 #### Creating a local provider repository
 

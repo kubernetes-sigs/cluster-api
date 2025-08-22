@@ -42,7 +42,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -81,7 +80,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)
 
 	// Fetch the DockerMachinePool instance.
-	dockerMachinePool := &infraexpv1.DockerMachinePool{}
+	dockerMachinePool := &infrav1.DockerMachinePool{}
 	if err := r.Client.Get(ctx, req.NamespacedName, dockerMachinePool); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -97,9 +96,9 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if machinePool == nil {
 		// Note: If ownerRef was not set, there is nothing to delete. Remove finalizer so deletion can succeed.
 		if !dockerMachinePool.DeletionTimestamp.IsZero() {
-			if controllerutil.ContainsFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer) {
+			if controllerutil.ContainsFinalizer(dockerMachinePool, infrav1.MachinePoolFinalizer) {
 				dockerMachinePoolWithoutFinalizer := dockerMachinePool.DeepCopy()
-				controllerutil.RemoveFinalizer(dockerMachinePoolWithoutFinalizer, infraexpv1.MachinePoolFinalizer)
+				controllerutil.RemoveFinalizer(dockerMachinePoolWithoutFinalizer, infrav1.MachinePoolFinalizer)
 				if err := r.Client.Patch(ctx, dockerMachinePoolWithoutFinalizer, client.MergeFrom(dockerMachinePool)); err != nil {
 					return ctrl.Result{}, errors.Wrapf(err, "failed to patch DockerMachinePool %s", klog.KObj(dockerMachinePool))
 				}
@@ -153,7 +152,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Add finalizer and the InfrastructureMachineKind if they aren't already present, and requeue if either were added.
 	// We want to add the finalizer here to avoid the race condition between init and delete.
 	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	needsPatch := controllerutil.AddFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
+	needsPatch := controllerutil.AddFinalizer(dockerMachinePool, infrav1.MachinePoolFinalizer)
 	needsPatch = setInfrastructureMachineKind(dockerMachinePool) || needsPatch
 	if needsPatch {
 		return ctrl.Result{}, nil
@@ -170,19 +169,19 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "dockermachinepool")
-	clusterToDockerMachinePools, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &infraexpv1.DockerMachinePoolList{}, mgr.GetScheme())
+	clusterToDockerMachinePools, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &infrav1.DockerMachinePoolList{}, mgr.GetScheme())
 	if err != nil {
 		return err
 	}
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&infraexpv1.DockerMachinePool{}).
+		For(&infrav1.DockerMachinePool{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(util.MachinePoolToInfrastructureMapFunc(ctx,
-				infraexpv1.GroupVersion.WithKind("DockerMachinePool"))),
+				infrav1.GroupVersion.WithKind("DockerMachinePool"))),
 			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		).
 		Watches(
@@ -215,7 +214,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 	return nil
 }
 
-func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
+func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, dockerMachinePool *infrav1.DockerMachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
@@ -266,12 +265,12 @@ func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, clust
 	}
 
 	// Once all DockerMachines and Docker containers are deleted, remove the finalizer.
-	controllerutil.RemoveFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
+	controllerutil.RemoveFinalizer(dockerMachinePool, infrav1.MachinePoolFinalizer)
 
 	return nil
 }
 
-func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (ctrl.Result, error) {
+func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, dockerMachinePool *infrav1.DockerMachinePool) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Make sure bootstrap data is available and populated.
@@ -334,7 +333,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	return r.updateStatus(ctx, cluster, machinePool, dockerMachinePool, dockerMachineList.Items)
 }
 
-func getDockerMachines(ctx context.Context, c client.Client, cluster clusterv1.Cluster, machinePool clusterv1.MachinePool, dockerMachinePool infraexpv1.DockerMachinePool) (*infrav1.DockerMachineList, error) {
+func getDockerMachines(ctx context.Context, c client.Client, cluster clusterv1.Cluster, machinePool clusterv1.MachinePool, dockerMachinePool infrav1.DockerMachinePool) (*infrav1.DockerMachineList, error) {
 	dockerMachineList := &infrav1.DockerMachineList{}
 	labels := map[string]string{
 		clusterv1.ClusterNameLabel:     cluster.Name,
@@ -353,7 +352,7 @@ func getDockerMachinePoolProviderID(clusterName, dockerMachinePoolName string) s
 
 // setInfrastructureMachineKind sets the infrastructure machine kind in the status if it is not set already to support
 // MachinePool Machines and returns a boolean indicating if the status was updated.
-func setInfrastructureMachineKind(dockerMachinePool *infraexpv1.DockerMachinePool) bool {
+func setInfrastructureMachineKind(dockerMachinePool *infrav1.DockerMachinePool) bool {
 	if dockerMachinePool != nil && dockerMachinePool.Status.InfrastructureMachineKind != "DockerMachine" {
 		dockerMachinePool.Status.InfrastructureMachineKind = "DockerMachine"
 		return true
@@ -374,7 +373,7 @@ func dockerMachineToDockerMachinePool(_ context.Context, o client.Object) []ctrl
 		if err != nil {
 			return nil
 		}
-		if ownerRef.Kind == "DockerMachinePool" && gv.Group == infraexpv1.GroupVersion.Group {
+		if ownerRef.Kind == "DockerMachinePool" && gv.Group == infrav1.GroupVersion.Group {
 			return []ctrl.Request{
 				{
 					NamespacedName: types.NamespacedName{
@@ -391,7 +390,7 @@ func dockerMachineToDockerMachinePool(_ context.Context, o client.Object) []ctrl
 
 // updateStatus updates the Status field for the MachinePool object.
 // It checks for the current state of the replicas and updates the Status of the MachinePool.
-func (r *DockerMachinePoolReconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool, dockerMachines []infrav1.DockerMachine) (ctrl.Result, error) {
+func (r *DockerMachinePoolReconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, dockerMachinePool *infrav1.DockerMachinePool, dockerMachines []infrav1.DockerMachine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// List the Docker containers. This corresponds to an InfraMachinePool instance for providers.
@@ -447,7 +446,7 @@ func (r *DockerMachinePoolReconciler) updateStatus(ctx context.Context, cluster 
 	return ctrl.Result{}, nil
 }
 
-func patchDockerMachinePool(ctx context.Context, patchHelper *patch.Helper, dockerMachinePool *infraexpv1.DockerMachinePool) error {
+func patchDockerMachinePool(ctx context.Context, patchHelper *patch.Helper, dockerMachinePool *infrav1.DockerMachinePool) error {
 	v1beta1conditions.SetSummary(dockerMachinePool,
 		v1beta1conditions.WithConditions(
 			clusterv1.ReplicasReadyV1Beta1Condition,

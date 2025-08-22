@@ -370,9 +370,6 @@ generate-manifests-docker-infrastructure: $(CONTROLLER_GEN) ## Generate manifest
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
 		paths=./ \
 		paths=./api/... \
-		paths=./exp/api/... \
-		paths=./exp/internal/controllers/... \
-		paths=./exp/internal/webhooks/... \
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
 		crd:crdVersions=v1 \
@@ -430,11 +427,10 @@ generate-go-deepcopy-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate deepco
 
 .PHONY: generate-go-deepcopy-docker-infrastructure
 generate-go-deepcopy-docker-infrastructure: $(CONTROLLER_GEN) generate-go-deepcopy-in-memory-infrastructure ## Generate deepcopy go code for docker infrastructure provider
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="$(CAPD_DIR)/api,$(CAPD_DIR)/exp/api"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="$(CAPD_DIR)/api"
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
 		object:headerFile=../../../hack/boilerplate/boilerplate.generatego.txt \
-		paths=./api/... \
-		paths=./exp/api/...
+		paths=./api/...
 
 .PHONY: generate-go-deepcopy-in-memory-infrastructure
 generate-go-deepcopy-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate deepcopy go code for in-memory cloud resources
@@ -534,10 +530,7 @@ generate-go-conversions-docker-infrastructure: $(CONVERSION_GEN) ## Generate con
 		--go-header-file=../../../hack/boilerplate/boilerplate.generatego.txt \
 		./api/v1alpha3 \
 		./api/v1alpha4 \
-		./api/v1beta1 \
-		./exp/api/v1alpha3 \
-		./exp/api/v1alpha4 \
-		./exp/api/v1beta1
+		./api/v1beta1
 
 .PHONY: generate-go-conversions-test-extension
 generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversions go code for test runtime extension provider
@@ -729,7 +722,6 @@ verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion 
 		./api/... \
 		./internal/api/... \
 		./test/infrastructure/docker/api/... \
-		./test/infrastructure/docker/exp/api/...
 
 .PHONY: verify-doctoc
 verify-doctoc: generate-doctoc

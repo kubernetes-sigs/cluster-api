@@ -95,6 +95,18 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, err
 	}
 	if machinePool == nil {
+		// Note: If ownerRef was not set, there is nothing to delete. Remove finalizer so deletion can succeed.
+		if !dockerMachinePool.DeletionTimestamp.IsZero() {
+			if controllerutil.ContainsFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer) {
+				dockerMachinePoolWithoutFinalizer := dockerMachinePool.DeepCopy()
+				controllerutil.RemoveFinalizer(dockerMachinePoolWithoutFinalizer, infraexpv1.MachinePoolFinalizer)
+				if err := r.Client.Patch(ctx, dockerMachinePoolWithoutFinalizer, client.MergeFrom(dockerMachinePool)); err != nil {
+					return ctrl.Result{}, errors.Wrapf(err, "failed to patch DockerMachinePool %s", klog.KObj(dockerMachinePool))
+				}
+			}
+			return ctrl.Result{}, nil
+		}
+
 		log.Info("Waiting for MachinePool Controller to set OwnerRef on DockerMachinePool")
 		return ctrl.Result{}, nil
 	}

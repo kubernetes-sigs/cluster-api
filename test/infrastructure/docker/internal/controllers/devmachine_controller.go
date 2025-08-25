@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -139,6 +140,17 @@ func (r *DevMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 	if machine == nil {
+		if !devMachine.DeletionTimestamp.IsZero() {
+			if controllerutil.ContainsFinalizer(devMachine, infrav1.MachineFinalizer) {
+				devMachineWithoutFinalizer := devMachine.DeepCopy()
+				controllerutil.RemoveFinalizer(devMachineWithoutFinalizer, infrav1.MachineFinalizer)
+				if err := r.Client.Patch(ctx, devMachineWithoutFinalizer, client.MergeFrom(devMachine)); err != nil {
+					return ctrl.Result{}, errors.Wrapf(err, "failed to patch DevMachine %s", klog.KObj(devMachine))
+				}
+			}
+			return ctrl.Result{}, nil
+		}
+
 		log.Info("Waiting for Machine Controller to set OwnerRef on DevMachine")
 		return ctrl.Result{}, nil
 	}

@@ -277,6 +277,16 @@ func spokeKubeadmConfigSpec(in *bootstrapv1alpha3.KubeadmConfigSpec, c randfill.
 		}
 		in.Files[i] = file
 	}
+
+	if reflect.DeepEqual(in.ClusterConfiguration, &bootstrapv1alpha3.ClusterConfiguration{}) {
+		in.ClusterConfiguration = nil
+	}
+	if reflect.DeepEqual(in.InitConfiguration, &bootstrapv1alpha3.InitConfiguration{}) {
+		in.InitConfiguration = nil
+	}
+	if reflect.DeepEqual(in.JoinConfiguration, &bootstrapv1alpha3.JoinConfiguration{}) {
+		in.JoinConfiguration = nil
+	}
 }
 
 func spokeAPIServer(in *bootstrapv1alpha3.APIServer, c randfill.Continue) {

@@ -218,6 +218,16 @@ func spokeKubeadmConfigSpec(in *KubeadmConfigSpec, c randfill.Continue) {
 		}
 		in.Users[i] = user
 	}
+
+	if reflect.DeepEqual(in.ClusterConfiguration, &ClusterConfiguration{}) {
+		in.ClusterConfiguration = nil
+	}
+	if reflect.DeepEqual(in.InitConfiguration, &InitConfiguration{}) {
+		in.InitConfiguration = nil
+	}
+	if reflect.DeepEqual(in.JoinConfiguration, &JoinConfiguration{}) {
+		in.JoinConfiguration = nil
+	}
 }
 
 func spokeClusterConfiguration(in *ClusterConfiguration, c randfill.Continue) {

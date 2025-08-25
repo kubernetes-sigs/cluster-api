@@ -30,14 +30,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -191,19 +189,13 @@ var _ = SynchronizedAfterSuite(func() {
 	// After all ParallelNodes.
 
 	By("Dumping logs from the bootstrap cluster")
-	dumpBootstrapClusterLogs(bootstrapClusterProxy)
+	dumpKindClusterLogs(ctx, artifactFolder, bootstrapClusterProxy)
 
 	By("Tearing down the management cluster")
 	if !skipCleanup {
 		tearDown(bootstrapClusterProvider, bootstrapClusterProxy)
 	}
 })
-
-func initScheme() *runtime.Scheme {
-	sc := runtime.NewScheme()
-	framework.TryAddDefaultSchemes(sc)
-	return sc
-}
 
 func loadE2EConfig(configPath string) *clusterctl.E2EConfig {
 	config := clusterctl.LoadE2EConfig(ctx, clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
@@ -267,43 +259,6 @@ func initBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *
 		AddonProviders:            config.AddonProviders(),
 		LogFolder:                 filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
 	}, config.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
-}
-
-func dumpBootstrapClusterLogs(bootstrapClusterProxy framework.ClusterProxy) {
-	if bootstrapClusterProxy == nil {
-		return
-	}
-
-	clusterLogCollector := bootstrapClusterProxy.GetLogCollector()
-	if clusterLogCollector == nil {
-		return
-	}
-
-	nodes, err := bootstrapClusterProxy.GetClientSet().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		fmt.Printf("Failed to get nodes for the bootstrap cluster: %v\n", err)
-		return
-	}
-
-	for i := range nodes.Items {
-		nodeName := nodes.Items[i].GetName()
-		err = clusterLogCollector.CollectMachineLog(
-			ctx,
-			bootstrapClusterProxy.GetClient(),
-			// The bootstrap cluster is not expected to be a CAPI cluster, so in order to re-use the logCollector,
-			// we create a fake machine that wraps the node.
-			// NOTE: This assumes a naming convention between machines and nodes, which e.g. applies to the bootstrap clusters generated with kind.
-			//       This might not work if you are using an existing bootstrap cluster provided by other means.
-			&clusterv1.Machine{
-				Spec:       clusterv1.MachineSpec{ClusterName: nodeName},
-				ObjectMeta: metav1.ObjectMeta{Name: nodeName},
-			},
-			filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName(), "machines", nodeName),
-		)
-		if err != nil {
-			fmt.Printf("Failed to get logs for the bootstrap cluster node %s: %v\n", nodeName, err)
-		}
-	}
 }
 
 func tearDown(bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClusterProxy framework.ClusterProxy) {

@@ -304,7 +304,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>cu
 			WorkloadKubernetesVersion:   "v1.33.0",
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
-			UseKindForManagementCluster: true,
+			UseKindForManagementCluster: false, // Using false for one test case to ensure this code path of the test keeps working.
 		}
 	})
 })

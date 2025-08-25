@@ -345,6 +345,16 @@ func spokeKubeadmConfigSpec(in *bootstrapv1beta1.KubeadmConfigSpec, c randfill.C
 		}
 		in.Users[i] = user
 	}
+
+	if reflect.DeepEqual(in.ClusterConfiguration, &bootstrapv1beta1.ClusterConfiguration{}) {
+		in.ClusterConfiguration = nil
+	}
+	if reflect.DeepEqual(in.InitConfiguration, &bootstrapv1beta1.InitConfiguration{}) {
+		in.InitConfiguration = nil
+	}
+	if reflect.DeepEqual(in.JoinConfiguration, &bootstrapv1beta1.JoinConfiguration{}) {
+		in.JoinConfiguration = nil
+	}
 }
 
 func spokeClusterConfiguration(in *bootstrapv1beta1.ClusterConfiguration, c randfill.Continue) {

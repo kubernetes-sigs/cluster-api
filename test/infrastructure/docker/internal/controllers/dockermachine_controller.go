@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -93,6 +94,18 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 	if machine == nil {
+		// Note: If ownerRef was not set, there is nothing to delete. Remove finalizer so deletion can succeed.
+		if !dockerMachine.DeletionTimestamp.IsZero() {
+			if controllerutil.ContainsFinalizer(dockerMachine, infrav1.MachineFinalizer) {
+				dockerMachineWithoutFinalizer := dockerMachine.DeepCopy()
+				controllerutil.RemoveFinalizer(dockerMachineWithoutFinalizer, infrav1.MachineFinalizer)
+				if err := r.Client.Patch(ctx, dockerMachineWithoutFinalizer, client.MergeFrom(dockerMachine)); err != nil {
+					return ctrl.Result{}, errors.Wrapf(err, "failed to patch DockerMachine %s", klog.KObj(dockerMachine))
+				}
+			}
+			return ctrl.Result{}, nil
+		}
+
 		log.Info("Waiting for Machine Controller to set OwnerRef on DockerMachine")
 		return ctrl.Result{}, nil
 	}

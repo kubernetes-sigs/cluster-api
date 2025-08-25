@@ -2,41 +2,20 @@
 
 ## Docker Image Name
 
-The patch in `config/manager/manager_image_patch.yaml` will be applied to the manager pod.
-Right now there is a placeholder `IMAGE_URL`, which you will need to change to your actual image.
-
-### Development Images
-It's likely that you will want one location and tag for release development, and another during development.
-
-The approach most Cluster API projects is using [a `Makefile` that uses `sed` to replace the image URL][sed] on demand during development.
-
-[sed]: https://github.com/kubernetes-sigs/cluster-api/blob/e0fb83a839b2755b14fbefbe6f93db9a58c76952/Makefile#L201-L204
-
-## Deployment
-
-### cert-manager
-
-Cluster API uses [cert-manager] to manage the certificates it needs for its webhooks.
-Before you apply Cluster API's yaml, you should [install `cert-manager`][cm-install]
-
-[cert-manager]: https://github.com/cert-manager/cert-manager
-[cm-install]: https://cert-manager.io/docs/installation/
+The IMG variable is used to build the Docker image and push it to a registry. The default value is `controller:latest`, which is a local image. You can change it to a remote image if you want to push it to a registry.
 
 ```bash
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/<version>/cert-manager.yaml
+make docker-push IMG=ghcr.io/your-org/your-repo:dev
 ```
+
+## Deployment
 
 ### Cluster API
 
 Before you can deploy the infrastructure controller, you'll need to deploy Cluster API itself to the management cluster.
 
-You can use a precompiled manifest from the [release page][releases], run `clusterctl init`, or clone [`cluster-api`][capi] and apply its manifests using `kustomize`:
+Follow the [quick start guide](https://cluster-api.sigs.k8s.io/user/quick-start) up to and including the step of [creating the management cluster](https://cluster-api.sigs.k8s.io/user/quick-start#initialize-the-management-cluster). We will proceed presuming you created a cluster with kind and initalized cluster-api with `clusterctl init`.
 
-```bash
-cd cluster-api
-make envsubst
-kustomize build config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
-```
 
 Check the status of the manager to make sure it's running properly:
 
@@ -45,11 +24,11 @@ kubectl describe -n capi-system pod | grep -A 5 Conditions
 ```
 ```bash
 Conditions:
-  Type              Status
-  Initialized       True
-  Ready             True
-  ContainersReady   True
-  PodScheduled      True
+  Type                        Status
+  PodReadyToStartContainers   True
+  Initialized                 True
+  Ready                       True
+  ContainersReady             True
 ```
 
 [capi]: https://github.com/kubernetes-sigs/cluster-api
@@ -66,24 +45,36 @@ labels:
     cluster.x-k8s.io/provider: infrastructure-mailgun
 ```
 
+If you're using kind for your management cluster, you can use the following command to build and push your image to the kind cluster's local registry. We need to use the IMG variable to override the default `controller:latest` image name with a specific version like `controller:0.1` to avoid having kubernetes try to pull the latest version of `controller` from docker hub.
+
+```bash
+cd cluster-api-provider-mailgun
+
+# Build the Docker image
+make docker-build IMG=controller:dev
+
+# Load the Docker image into the kind cluster
+kind load docker-image controller:dev
+```
+
 Now you can apply your provider as well:
 
 ```bash
 cd cluster-api-provider-mailgun
 
 # Install CRD and controller to current kubectl context
-make install deploy
+make install deploy IMG=controller:dev
 
 kubectl describe -n cluster-api-provider-mailgun-system pod | grep -A 5 Conditions
 ```
 
 ```text
 Conditions:
-  Type              Status
-  Initialized       True
-  Ready             True
-  ContainersReady   True
-  PodScheduled      True
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       True 
+  ContainersReady             True 
 ```
 
 [label_prefix]: https://github.com/kubernetes-sigs/cluster-api/search?q=%22infrastructure-%22
@@ -102,6 +93,7 @@ config:
   image: controller:latest # change to remote image name if desired
   label: CAPM
   live_reload_deps: ["main.go", "go.mod", "go.sum", "api", "controllers", "pkg"]
+  go_main: cmd/main.go # kubebuilder puts main.go under the cmd directory
 ```
 
 - Create file `tilt-settings.yaml` in the cluster-api directory:
@@ -116,15 +108,11 @@ enable_providers:
   - mailgun
 ```
 
-- Create a kind cluster. By default, Tiltfile assumes the kind cluster is named `capi-test`.
+- Bring tilt up by using the `make tilt-up` command in the cluster-api directory. This will ensure tilt is set up correctly to use a local registry for your image. You may need to `make tilt-clean` before this if you've been using tilt with other providers.
 
 ```bash
-kind create cluster --name capi-test
-
-# If you want a more sophisticated setup of kind cluster + image registry, try:
-# ---
-# cd cluster-api
-# hack/kind-install-for-capd.sh
+cd cluster-api
+make tilt-up
 ```
 
 - Run `tilt up` in the cluster-api folder

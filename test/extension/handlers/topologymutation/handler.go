@@ -43,8 +43,6 @@ import (
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
 	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
-	infraexpv1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
@@ -64,8 +62,6 @@ func NewExtensionHandlers() *ExtensionHandlers {
 	scheme := runtime.NewScheme()
 	_ = infrav1beta1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
-	_ = infraexpv1beta1.AddToScheme(scheme)
-	_ = infraexpv1.AddToScheme(scheme)
 	_ = bootstrapv1beta1.AddToScheme(scheme)
 	_ = bootstrapv1.AddToScheme(scheme)
 	_ = controlplanev1beta1.AddToScheme(scheme)
@@ -125,7 +121,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 				log.Error(err, "Error patching DockerMachineTemplate")
 				return errors.Wrap(err, "error patching DockerMachineTemplate")
 			}
-		case *infraexpv1beta1.DockerMachinePoolTemplate, *infraexpv1.DockerMachinePoolTemplate:
+		case *infrav1beta1.DockerMachinePoolTemplate, *infrav1.DockerMachinePoolTemplate:
 			if err := patchDockerMachinePoolTemplate(ctx, obj, variables); err != nil {
 				log.Error(err, "Error patching DockerMachinePoolTemplate")
 				return errors.Wrap(err, "error patching DockerMachinePoolTemplate")
@@ -370,12 +366,12 @@ func patchDockerMachinePoolTemplate(ctx context.Context, obj runtime.Object, tem
 
 	log.Info(fmt.Sprintf("Setting MachinePool customImage to %q", kindMapping.Image))
 
-	dockerMachinePoolTemplateV1Beta1, ok := obj.(*infraexpv1beta1.DockerMachinePoolTemplate)
+	dockerMachinePoolTemplateV1Beta1, ok := obj.(*infrav1beta1.DockerMachinePoolTemplate)
 	if ok {
 		dockerMachinePoolTemplateV1Beta1.Spec.Template.Spec.Template.CustomImage = kindMapping.Image
 	}
 
-	dockerMachinePoolTemplate, ok := obj.(*infraexpv1.DockerMachinePoolTemplate)
+	dockerMachinePoolTemplate, ok := obj.(*infrav1.DockerMachinePoolTemplate)
 	if ok {
 		dockerMachinePoolTemplate.Spec.Template.Spec.Template.CustomImage = kindMapping.Image
 	}

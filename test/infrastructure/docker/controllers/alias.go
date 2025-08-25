@@ -153,3 +153,21 @@ func (r *DevMachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }
+
+// DockerMachinePoolReconciler reconciles a DockerMachinePool object.
+type DockerMachinePoolReconciler struct {
+	Client           client.Client
+	ContainerRuntime container.Runtime
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
+	WatchFilterValue string
+}
+
+// SetupWithManager will add watches for this controller.
+func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	return (&dockercontrollers.DockerMachinePoolReconciler{
+		Client:           r.Client,
+		ContainerRuntime: r.ContainerRuntime,
+		WatchFilterValue: r.WatchFilterValue,
+	}).SetupWithManager(ctx, mgr, options)
+}

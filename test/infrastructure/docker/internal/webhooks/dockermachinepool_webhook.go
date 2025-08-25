@@ -1,5 +1,5 @@
 /*
-Copyright 2025 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta2
+package webhooks
 
-func (*DockerMachinePool) Hub()         {}
-func (*DockerMachinePoolTemplate) Hub() {}
+import (
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
+)
+
+// DockerMachinePool implements a validating and defaulting webhook for DockerMachinePool.
+type DockerMachinePool struct{}
+
+func (c *DockerMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(&infrav1.DockerMachinePool{}).
+		Complete()
+}

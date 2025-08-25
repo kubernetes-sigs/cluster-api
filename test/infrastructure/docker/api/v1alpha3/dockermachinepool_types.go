@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha3"
-	infrav1alpha3 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 )
 
 const (
@@ -43,7 +42,7 @@ type DockerMachinePoolMachineTemplate struct {
 	// ExtraMounts describes additional mount points for the node container
 	// These may be used to bind a hostPath
 	// +optional
-	ExtraMounts []infrav1alpha3.Mount `json:"extraMounts,omitempty"`
+	ExtraMounts []Mount `json:"extraMounts,omitempty"`
 }
 
 // DockerMachinePoolSpec defines the desired state of DockerMachinePool.

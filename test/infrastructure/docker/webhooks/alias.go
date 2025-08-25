@@ -77,3 +77,11 @@ type DevMachineTemplate struct{}
 func (webhook *DevMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return (&webhooks.DevMachineTemplate{}).SetupWebhookWithManager(mgr)
 }
+
+// DockerMachinePool implements a validating and defaulting webhook for DockerMachinePool.
+type DockerMachinePool struct{}
+
+// SetupWebhookWithManager sets up DockerMachinePool webhooks.
+func (webhook *DockerMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.DockerMachinePool{}).SetupWebhookWithManager(mgr)
+}

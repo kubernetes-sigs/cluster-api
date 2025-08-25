@@ -60,12 +60,6 @@ import (
 	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/controllers"
-	infraexpv1alpha3 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha3"
-	infraexpv1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4"
-	infraexpv1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
-	expcontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/controllers"
-	infraexpwebhooks "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/webhooks"
 	infrawebhooks "sigs.k8s.io/cluster-api/test/infrastructure/docker/webhooks"
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/cloud/api/v1alpha1"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
@@ -114,10 +108,6 @@ func init() {
 	_ = infrav1alpha4.AddToScheme(scheme)
 	_ = infrav1beta1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
-	_ = infraexpv1alpha3.AddToScheme(scheme)
-	_ = infraexpv1alpha4.AddToScheme(scheme)
-	_ = infraexpv1beta1.AddToScheme(scheme)
-	_ = infraexpv1.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 
 	// scheme used for operating on the cloud resource.
@@ -395,8 +385,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		&infrav1.DevMachineTemplate{}:    {UseCache: false},
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
-		crdMigratorConfig[&infraexpv1.DockerMachinePool{}] = crdmigrator.ByObjectConfig{UseCache: true}
-		crdMigratorConfig[&infraexpv1.DockerMachinePoolTemplate{}] = crdmigrator.ByObjectConfig{UseCache: false}
+		crdMigratorConfig[&infrav1.DockerMachinePool{}] = crdmigrator.ByObjectConfig{UseCache: true}
+		crdMigratorConfig[&infrav1.DockerMachinePoolTemplate{}] = crdmigrator.ByObjectConfig{UseCache: false}
 	}
 	crdMigratorSkipPhases := []crdmigrator.Phase{}
 	for _, p := range skipCRDMigrationPhases {
@@ -460,7 +450,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
-		if err := (&expcontrollers.DockerMachinePoolReconciler{
+		if err := (&controllers.DockerMachinePoolReconciler{
 			Client:           mgr.GetClient(),
 			ContainerRuntime: runtimeClient,
 			WatchFilterValue: watchFilterValue,
@@ -522,7 +512,7 @@ func setupWebhooks(mgr ctrl.Manager) {
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
-		if err := (&infraexpwebhooks.DockerMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&infrawebhooks.DockerMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create webhook", "webhook", "DockerMachinePool")
 			os.Exit(1)
 		}

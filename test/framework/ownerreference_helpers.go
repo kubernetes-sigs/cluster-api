@@ -39,7 +39,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -301,7 +301,7 @@ var (
 	dockerClusterKind             = "DockerCluster"
 	dockerClusterTemplateKind     = "DockerClusterTemplate"
 
-	dockerMachinePoolController = metav1.OwnerReference{Kind: dockerMachinePoolKind, APIVersion: infraexpv1.GroupVersion.String()}
+	dockerMachinePoolController = metav1.OwnerReference{Kind: dockerMachinePoolKind, APIVersion: infrav1.GroupVersion.String()}
 )
 
 // DockerInfraOwnerReferenceAssertions maps Docker Infrastructure types to functions which return an error if the passed

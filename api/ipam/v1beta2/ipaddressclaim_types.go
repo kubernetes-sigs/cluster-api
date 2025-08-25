@@ -62,6 +62,8 @@ type IPAddressClaimStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
+	// +Metrics:stateset:name="status_condition",help="The condition of a ipaddressclaim.",labelName="status",JSONPath=.status,list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a ipaddressclaim.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// addressRef is a reference to the address that was created for this claim.
@@ -112,6 +114,11 @@ type IPAddressClaimV1Beta1DeprecatedStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of IPAdressClaim"
 
 // IPAddressClaim is the Schema for the ipaddressclaim API.
+// +Metrics:gvk:namePrefix="capi_ipaddressclaim"
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=.metadata.labels.cluster\.x-k8s\.io/cluster-name
 type IPAddressClaim struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.

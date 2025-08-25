@@ -35,6 +35,18 @@ type githubClient struct {
 	repo string
 }
 
+// to allow for mocking in tests.
+type githubClientInterface interface {
+	getDiffAllCommits(base, head string) (*githubDiff, error)
+	getRef(ref string) (githubRef, error)
+	getTag(tagSHA string) (githubTag, error)
+	getCommit(sha string) (githubCommit, error)
+	listMergedPRs(after, before time.Time, baseBranches ...string) ([]githubPR, error)
+}
+
+// Ensure githubClient implements githubClientInterface.
+var _ githubClientInterface = (*githubClient)(nil)
+
 // githubDiff is the API response for the "compare" endpoint.
 type githubDiff struct {
 	// MergeBaseCommit points to most recent common ancestor between two references.

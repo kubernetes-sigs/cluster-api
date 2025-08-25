@@ -134,7 +134,7 @@ to avoid duplication.
 Note: Following change will be applied to the hooks with the ongoing work for [Chained and efficient upgrades](); the 
 documentation in the book will be aligned as soon as the work completes:
 
-#### BeforeClusterCreate (modified)
+#### BeforeClusterUpgrade (modified)
 
 Request message will be extended with the info about the upgrade plane. e.g.
 

@@ -35,6 +35,9 @@ Following recommendations are especially relevant:
 
 ## Definitions
 
+For additional details fo additional details about the OpenAPI spec of the lifecycle hooks, please download the [`runtime-sdk-openapi.yaml`]({{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"runtime-sdk-openapi.yaml" version:"1.11.x"}})
+file and then open it from the [Swagger UI](https://editor.swagger.io/).
+
 ### BeforeClusterCreate
 
 This hook is called after the Cluster object has been created by the user, immediately before all the objects which 

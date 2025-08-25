@@ -115,6 +115,8 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 		}
 	}
 
+	//TODO: remove MD from here if using user-managed
+
 	// Mark all the MachineDeployments that are currently upgrading.
 	// This captured information is used for:
 	// - Building the TopologyReconciled condition.
@@ -991,6 +993,11 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 // the current control plane and the version defined in the topology.
 func (g *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology, currentMDState *scope.MachineDeploymentState) string {
 	desiredVersion := s.Blueprint.Topology.Version
+	if machineDeploymentTopology.Version != nil {
+		// Return early if the auto-upgrade is disabled.
+		return *machineDeploymentTopology.Version
+	}
+
 	// If creating a new machine deployment, mark it as pending if the control plane is not
 	// yet stable. Creating a new MD while the control plane is upgrading can lead to unexpected race conditions.
 	// Example: join could fail if the load balancers are slow in detecting when CP machines are

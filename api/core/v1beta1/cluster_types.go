@@ -680,6 +680,10 @@ type MachineDeploymentTopology struct {
 	// +kubebuilder:validation:MaxLength=256
 	Class string `json:"class"`
 
+	// version is the Kubernetes version of the worker group, can only be used if auto-upgrade is disabled.
+	// +optional
+	Version *string `json:"version,omitempty"`
+
 	// name is the unique identifier for this MachineDeploymentTopology.
 	// The value is used with other unique identifiers to create a MachineDeployment's Name
 	// (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,

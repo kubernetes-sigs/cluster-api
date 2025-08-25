@@ -821,6 +821,12 @@ type MachineDeploymentTopology struct {
 	// +optional
 	Metadata ObjectMeta `json:"metadata,omitempty,omitzero"`
 
+	//TODO: validation with auto-upgrade
+
+	// version is the Kubernetes version of the worker group, can only be used if auto-upgrade is disabled.
+	// +optional
+	Version *string `json:"version,omitempty"`
+
 	// class is the name of the MachineDeploymentClass used to create the set of worker nodes.
 	// This should match one of the deployment classes defined in the ClusterClass object
 	// mentioned in the `Cluster.Spec.Class` field.

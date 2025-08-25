@@ -188,7 +188,7 @@ If instead you are eager to see an example of ClusterClass and how the Cluster o
 
 The ClusterClass CRD allows to define a collection of templates that describe the topology for one or more clusters.
 
-The detailed definition of this type can be found at [ClusterClass CRD reference](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta1);
+The detailed definition of this type can be found at [ClusterClass CRD reference](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta2);
 at high level the new CRD contains:
 
 - The reference to the InfrastructureCluster template (e.g. AWSClusterTemplate) to be used when creating a Cluster using this ClusterClass
@@ -243,7 +243,7 @@ providing generic information about the cluster or the template being patched.
 
 ##### Cluster
 
-The [Cluster CRD](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/Cluster/v1beta1) has been extended 
+The [Cluster CRD](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/Cluster/v1beta2) has been extended 
 with a new field allowing to define and control the cluster topology from a single point.
 
 At high level the cluster topology is defined by:
@@ -600,7 +600,7 @@ type definitions, like +MapType or +MapTypeKey, see [merge strategy](https://kub
 
 Note: in order to allow the topology controller to execute templates rotation only when strictly necessary, it is necessary
 to implement specific handling of dry run operations in the templates webhooks as described in the Cluster API contract, see
-e.g. [InfraMachineTemplate: support for SSA dry runInfraMachineTemplate: support for SSA dry run](https://release-1-8.cluster-api.sigs.k8s.io/developer/providers/contracts/infra-machine#inframachinetemplate-support-for-ssa-dry-run).
+e.g. [InfraMachineTemplate: support for SSA dry runInfraMachineTemplate: support for SSA dry run](https://cluster-api.sigs.k8s.io/developer/providers/contracts/infra-machine#inframachinetemplate-support-for-ssa-dry-run).
 
 ### Risks and Mitigations
 

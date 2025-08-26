@@ -27,10 +27,12 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -915,121 +917,155 @@ func TestApply(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
+		for _, controlPlaneContractVersion := range []string{"v1beta1", "v1beta2"} {
+			t.Run(fmt.Sprintf("%s (contract: %s)", tt.name, controlPlaneContractVersion), func(t *testing.T) {
+				g := NewWithT(t)
 
-			// Set up test objects, which are:
-			// * blueprint:
-			//   * A ClusterClass with its corresponding templates:
-			//     * ControlPlaneTemplate with a corresponding ControlPlane InfrastructureMachineTemplate.
-			//     * MachineDeploymentClass "default-worker" with corresponding BootstrapTemplate and InfrastructureMachineTemplate.
-			//     * MachinePoolClass "default-mp-worker" with corresponding BootstrapTemplate and InfrastructureMachinePoolTemplate.
-			//   * The corresponding Cluster.spec.topology:
-			//     * with 3 ControlPlane replicas
-			//     * with a "default-worker-topo1" MachineDeploymentTopology without replicas (based on "default-worker")
-			//     * with a "default-mp-worker-topo1" MachinePoolTopology without replicas (based on "default-mp-worker")
-			//     * with a "default-worker-topo2" MachineDeploymentTopology with 3 replicas (based on "default-worker")
-			//     * with a "default-mp-worker-topo2" MachinePoolTopology with 3 replicas (based on "default-mp-worker")
-			// * desired: essentially the corresponding desired objects.
-			blueprint, desired := setupTestObjects()
+				// Set up test objects, which are:
+				// * blueprint:
+				//   * A ClusterClass with its corresponding templates:
+				//     * ControlPlaneTemplate with a corresponding ControlPlane InfrastructureMachineTemplate.
+				//     * MachineDeploymentClass "default-worker" with corresponding BootstrapTemplate and InfrastructureMachineTemplate.
+				//     * MachinePoolClass "default-mp-worker" with corresponding BootstrapTemplate and InfrastructureMachinePoolTemplate.
+				//   * The corresponding Cluster.spec.topology:
+				//     * with 3 ControlPlane replicas
+				//     * with a "default-worker-topo1" MachineDeploymentTopology without replicas (based on "default-worker")
+				//     * with a "default-mp-worker-topo1" MachinePoolTopology without replicas (based on "default-mp-worker")
+				//     * with a "default-worker-topo2" MachineDeploymentTopology with 3 replicas (based on "default-worker")
+				//     * with a "default-mp-worker-topo2" MachinePoolTopology with 3 replicas (based on "default-mp-worker")
+				// * desired: essentially the corresponding desired objects.
+				blueprint, desired := setupTestObjects()
 
-			// If there are patches, set up patch generators.
-			cat := runtimecatalog.New()
-			g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
+				scheme := runtime.NewScheme()
+				g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+				crd := builder.GenericControlPlaneCRD.DeepCopy()
+				// Randomly set contract to v1beta1 or v1beta2, both have to work.
+				// Note: We are always using the same ControlPlane object independent of contract as it's easier
+				// and doesn't affect the test coverage.
 
-			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().WithCatalog(cat).Build()
-
-			if tt.externalPatchResponses != nil {
-				// replace the package variable uuidGenerator with one that returns an incremented integer.
-				// each patch will have a new uuid in the order in which they're defined and called.
-				var uuid int32
-				uuidGenerator = func() types.UID {
-					uuid++
-					return types.UID(fmt.Sprintf("%d", uuid))
+				crd.Labels = map[string]string{
+					// Set contract label for v1beta1 or v1beta2.
+					fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, controlPlaneContractVersion): clusterv1.GroupVersionControlPlane.Version,
 				}
-				runtimeClient = fakeruntimeclient.NewRuntimeClientBuilder().
-					WithCallExtensionResponses(tt.externalPatchResponses).
-					WithCatalog(cat).
-					Build()
-			}
-			patchEngine := NewEngine(runtimeClient)
+				client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd).Build()
 
-			if len(tt.patches) > 0 {
-				// Add the patches.
-				blueprint.ClusterClass.Spec.Patches = tt.patches
-			}
-			if len(tt.varDefinitions) > 0 {
-				// If there are variable definitions in the test add them to the ClusterClass.
-				blueprint.ClusterClass.Status.Variables = tt.varDefinitions
-			}
+				// If there are patches, set up patch generators.
+				cat := runtimecatalog.New()
+				g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 
-			// Copy the desired objects before applying patches.
-			expectedCluster := desired.Cluster.DeepCopy()
-			expectedInfrastructureCluster := desired.InfrastructureCluster.DeepCopy()
-			expectedControlPlane := desired.ControlPlane.Object.DeepCopy()
-			expectedControlPlaneInfrastructureMachineTemplate := desired.ControlPlane.InfrastructureMachineTemplate.DeepCopy()
-			expectedBootstrapTemplates := map[string]*unstructured.Unstructured{}
-			expectedInfrastructureMachineTemplate := map[string]*unstructured.Unstructured{}
-			for mdTopology, md := range desired.MachineDeployments {
-				expectedBootstrapTemplates[mdTopology] = md.BootstrapTemplate.DeepCopy()
-				expectedInfrastructureMachineTemplate[mdTopology] = md.InfrastructureMachineTemplate.DeepCopy()
-			}
-			expectedBootstrapConfig := map[string]*unstructured.Unstructured{}
-			expectedInfrastructureMachinePool := map[string]*unstructured.Unstructured{}
-			for mpTopology, mp := range desired.MachinePools {
-				expectedBootstrapConfig[mpTopology] = mp.BootstrapObject.DeepCopy()
-				expectedInfrastructureMachinePool[mpTopology] = mp.InfrastructureMachinePoolObject.DeepCopy()
-			}
+				runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().WithCatalog(cat).Build()
 
-			// Set expected fields on the copy of the objects, so they can be used for comparison with the result of Apply.
-			if tt.expectedFields.infrastructureCluster != nil {
-				setSpecFields(expectedInfrastructureCluster, tt.expectedFields.infrastructureCluster)
-			}
-			if tt.expectedFields.controlPlane != nil {
-				setSpecFields(expectedControlPlane, tt.expectedFields.controlPlane)
-			}
-			if tt.expectedFields.controlPlaneInfrastructureMachineTemplate != nil {
-				setSpecFields(expectedControlPlaneInfrastructureMachineTemplate, tt.expectedFields.controlPlaneInfrastructureMachineTemplate)
-			}
-			for mdTopology, expectedFields := range tt.expectedFields.machineDeploymentBootstrapTemplate {
-				setSpecFields(expectedBootstrapTemplates[mdTopology], expectedFields)
-			}
-			for mdTopology, expectedFields := range tt.expectedFields.machineDeploymentInfrastructureMachineTemplate {
-				setSpecFields(expectedInfrastructureMachineTemplate[mdTopology], expectedFields)
-			}
-			for mpTopology, expectedFields := range tt.expectedFields.machinePoolBootstrapConfig {
-				setSpecFields(expectedBootstrapConfig[mpTopology], expectedFields)
-			}
-			for mpTopology, expectedFields := range tt.expectedFields.machinePoolInfrastructureMachinePool {
-				setSpecFields(expectedInfrastructureMachinePool[mpTopology], expectedFields)
-			}
-
-			// Apply patches.
-			if err := patchEngine.Apply(context.Background(), blueprint, desired); err != nil {
-				if !tt.wantErr {
-					t.Fatal(err)
+				if tt.externalPatchResponses != nil {
+					// replace the package variable uuidGenerator with one that returns an incremented integer.
+					// each patch will have a new uuid in the order in which they're defined and called.
+					var uuid int32
+					uuidGenerator = func() types.UID {
+						uuid++
+						return types.UID(fmt.Sprintf("%d", uuid))
+					}
+					runtimeClient = fakeruntimeclient.NewRuntimeClientBuilder().
+						WithCallExtensionResponses(tt.externalPatchResponses).
+						WithCallExtensionValidations(func(req runtimehooksv1.RequestObject) error {
+							switch req := req.(type) {
+							case *runtimehooksv1.GeneratePatchesRequest:
+								for _, item := range req.Items {
+									if item.HolderReference.Kind != builder.GenericControlPlaneKind {
+										continue
+									}
+									if item.HolderReference.FieldPath != getControlPlaneHolderFieldPath(controlPlaneContractVersion) {
+										return fmt.Errorf("unexpected field path %s, should be %s", item.HolderReference.FieldPath, getControlPlaneHolderFieldPath(controlPlaneContractVersion))
+									}
+									return nil
+								}
+								return fmt.Errorf("could not find request item for ControlPlane InfrastructureMachineTemplate")
+							case *runtimehooksv1.ValidateTopologyRequest:
+								return nil // Nothing to validate.
+							default:
+								return fmt.Errorf("unhandled request type %T", req)
+							}
+						}).
+						WithCatalog(cat).
+						Build()
 				}
-				return
-			}
+				patchEngine := NewEngine(client, runtimeClient)
 
-			// Compare the patched desired objects with the expected desired objects.
-			g.Expect(desired.Cluster).To(EqualObject(expectedCluster))
-			g.Expect(desired.InfrastructureCluster).To(EqualObject(expectedInfrastructureCluster))
-			g.Expect(desired.ControlPlane.Object).To(EqualObject(expectedControlPlane))
-			g.Expect(desired.ControlPlane.InfrastructureMachineTemplate).To(EqualObject(expectedControlPlaneInfrastructureMachineTemplate))
-			for mdTopology, bootstrapTemplate := range expectedBootstrapTemplates {
-				g.Expect(desired.MachineDeployments[mdTopology].BootstrapTemplate).To(EqualObject(bootstrapTemplate))
-			}
-			for mdTopology, infrastructureMachineTemplate := range expectedInfrastructureMachineTemplate {
-				g.Expect(desired.MachineDeployments[mdTopology].InfrastructureMachineTemplate).To(EqualObject(infrastructureMachineTemplate))
-			}
-			for mpTopology, bootstrapConfig := range expectedBootstrapConfig {
-				g.Expect(desired.MachinePools[mpTopology].BootstrapObject).To(EqualObject(bootstrapConfig))
-			}
-			for mpTopology, infrastructureMachinePool := range expectedInfrastructureMachinePool {
-				g.Expect(desired.MachinePools[mpTopology].InfrastructureMachinePoolObject).To(EqualObject(infrastructureMachinePool))
-			}
-		})
+				if len(tt.patches) > 0 {
+					// Add the patches.
+					blueprint.ClusterClass.Spec.Patches = tt.patches
+				}
+				if len(tt.varDefinitions) > 0 {
+					// If there are variable definitions in the test add them to the ClusterClass.
+					blueprint.ClusterClass.Status.Variables = tt.varDefinitions
+				}
+
+				// Copy the desired objects before applying patches.
+				expectedCluster := desired.Cluster.DeepCopy()
+				expectedInfrastructureCluster := desired.InfrastructureCluster.DeepCopy()
+				expectedControlPlane := desired.ControlPlane.Object.DeepCopy()
+				expectedControlPlaneInfrastructureMachineTemplate := desired.ControlPlane.InfrastructureMachineTemplate.DeepCopy()
+				expectedBootstrapTemplates := map[string]*unstructured.Unstructured{}
+				expectedInfrastructureMachineTemplate := map[string]*unstructured.Unstructured{}
+				for mdTopology, md := range desired.MachineDeployments {
+					expectedBootstrapTemplates[mdTopology] = md.BootstrapTemplate.DeepCopy()
+					expectedInfrastructureMachineTemplate[mdTopology] = md.InfrastructureMachineTemplate.DeepCopy()
+				}
+				expectedBootstrapConfig := map[string]*unstructured.Unstructured{}
+				expectedInfrastructureMachinePool := map[string]*unstructured.Unstructured{}
+				for mpTopology, mp := range desired.MachinePools {
+					expectedBootstrapConfig[mpTopology] = mp.BootstrapObject.DeepCopy()
+					expectedInfrastructureMachinePool[mpTopology] = mp.InfrastructureMachinePoolObject.DeepCopy()
+				}
+
+				// Set expected fields on the copy of the objects, so they can be used for comparison with the result of Apply.
+				if tt.expectedFields.infrastructureCluster != nil {
+					setSpecFields(expectedInfrastructureCluster, tt.expectedFields.infrastructureCluster)
+				}
+				if tt.expectedFields.controlPlane != nil {
+					setSpecFields(expectedControlPlane, tt.expectedFields.controlPlane)
+				}
+				if tt.expectedFields.controlPlaneInfrastructureMachineTemplate != nil {
+					setSpecFields(expectedControlPlaneInfrastructureMachineTemplate, tt.expectedFields.controlPlaneInfrastructureMachineTemplate)
+				}
+				for mdTopology, expectedFields := range tt.expectedFields.machineDeploymentBootstrapTemplate {
+					setSpecFields(expectedBootstrapTemplates[mdTopology], expectedFields)
+				}
+				for mdTopology, expectedFields := range tt.expectedFields.machineDeploymentInfrastructureMachineTemplate {
+					setSpecFields(expectedInfrastructureMachineTemplate[mdTopology], expectedFields)
+				}
+				for mpTopology, expectedFields := range tt.expectedFields.machinePoolBootstrapConfig {
+					setSpecFields(expectedBootstrapConfig[mpTopology], expectedFields)
+				}
+				for mpTopology, expectedFields := range tt.expectedFields.machinePoolInfrastructureMachinePool {
+					setSpecFields(expectedInfrastructureMachinePool[mpTopology], expectedFields)
+				}
+
+				// Apply patches.
+				if err := patchEngine.Apply(context.Background(), blueprint, desired); err != nil {
+					if !tt.wantErr {
+						t.Fatal(err)
+					}
+					return
+				}
+
+				// Compare the patched desired objects with the expected desired objects.
+				g.Expect(desired.Cluster).To(EqualObject(expectedCluster))
+				g.Expect(desired.InfrastructureCluster).To(EqualObject(expectedInfrastructureCluster))
+				g.Expect(desired.ControlPlane.Object).To(EqualObject(expectedControlPlane))
+				g.Expect(desired.ControlPlane.InfrastructureMachineTemplate).To(EqualObject(expectedControlPlaneInfrastructureMachineTemplate))
+				for mdTopology, bootstrapTemplate := range expectedBootstrapTemplates {
+					g.Expect(desired.MachineDeployments[mdTopology].BootstrapTemplate).To(EqualObject(bootstrapTemplate))
+				}
+				for mdTopology, infrastructureMachineTemplate := range expectedInfrastructureMachineTemplate {
+					g.Expect(desired.MachineDeployments[mdTopology].InfrastructureMachineTemplate).To(EqualObject(infrastructureMachineTemplate))
+				}
+				for mpTopology, bootstrapConfig := range expectedBootstrapConfig {
+					g.Expect(desired.MachinePools[mpTopology].BootstrapObject).To(EqualObject(bootstrapConfig))
+				}
+				for mpTopology, infrastructureMachinePool := range expectedInfrastructureMachinePool {
+					g.Expect(desired.MachinePools[mpTopology].InfrastructureMachinePoolObject).To(EqualObject(infrastructureMachinePool))
+				}
+			})
+		}
 	}
 }
 

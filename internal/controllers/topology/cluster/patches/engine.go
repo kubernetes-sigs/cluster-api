@@ -29,6 +29,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -48,14 +49,16 @@ type Engine interface {
 }
 
 // NewEngine creates a new patch engine.
-func NewEngine(runtimeClient runtimeclient.Client) Engine {
+func NewEngine(c client.Client, runtimeClient runtimeclient.Client) Engine {
 	return &engine{
+		client:        c,
 		runtimeClient: runtimeClient,
 	}
 }
 
 // engine implements the Engine interface.
 type engine struct {
+	client        client.Client
 	runtimeClient runtimeclient.Client
 }
 
@@ -73,8 +76,14 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 
 	log := ctrl.LoggerFrom(ctx)
 
+	// Determine contract version used by the ControlPlane.
+	controlPlaneContractVersion, err := contract.GetContractVersionForVersion(ctx, e.client, desired.ControlPlane.Object.GroupVersionKind().GroupKind(), desired.ControlPlane.Object.GroupVersionKind().Version)
+	if err != nil {
+		return errors.Wrapf(err, "failed to generate patch request: failed to get contract version for the ControlPlane object")
+	}
+
 	// Create a patch generation request.
-	req, err := createRequest(blueprint, desired)
+	req, err := createRequest(blueprint, desired, controlPlaneContractVersion)
 	if err != nil {
 		return errors.Wrapf(err, "failed to generate patch request")
 	}
@@ -91,7 +100,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 		if clusterClassPatch.External == nil {
 			definitionFrom = clusterv1.VariableDefinitionFromInline
 		}
-		if err := addVariablesForPatch(blueprint, desired, req, definitionFrom); err != nil {
+		if err := addVariablesForPatch(blueprint, desired, req, definitionFrom, controlPlaneContractVersion); err != nil {
 			return errors.Wrapf(err, "failed to calculate variables for patch %q", clusterClassPatch.Name)
 		}
 		log.V(5).Info("Applying patch to templates")
@@ -144,7 +153,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 
 	// Use patched templates to update the desired state objects.
 	log.V(5).Info("Applying patched templates to desired state")
-	if err := updateDesiredState(ctx, req, blueprint, desired); err != nil {
+	if err := updateDesiredState(ctx, req, blueprint, desired, controlPlaneContractVersion); err != nil {
 		return errors.Wrapf(err, "failed to apply patches to desired state")
 	}
 
@@ -152,7 +161,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 }
 
 // addVariablesForPatch adds variables for a given ClusterClassPatch to the items in the PatchRequest.
-func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.ClusterState, req *runtimehooksv1.GeneratePatchesRequest, definitionFrom string) error {
+func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.ClusterState, req *runtimehooksv1.GeneratePatchesRequest, definitionFrom, controlPlaneContractVersion string) error {
 	// If there is no definitionFrom return an error.
 	if definitionFrom == "" {
 		return errors.New("failed to calculate variables: no patch name provided")
@@ -187,7 +196,7 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 		}
 		// If the item holder reference is a Control Plane machine add the Control Plane variables.
 		if blueprint.HasControlPlaneInfrastructureMachine() &&
-			item.HolderReference.FieldPath == strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(), ".") {
+			item.HolderReference.FieldPath == getControlPlaneHolderFieldPath(controlPlaneContractVersion) {
 			item.Variables = controlPlaneVariables
 		}
 		// If the item holder reference is a MachineDeployment calculate the variables for each MachineDeploymentTopology
@@ -261,7 +270,7 @@ func getMPTopologyFromMP(blueprint *scope.ClusterBlueprint, mp *clusterv1.Machin
 // replicas of a MachineDeployment.
 // NOTE: A single GeneratePatchesRequest object is used to carry templates state across subsequent Generate calls.
 // NOTE: This function does not add variables to items for the request, as the variables depend on the specific patch.
-func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterState) (*runtimehooksv1.GeneratePatchesRequest, error) {
+func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterState, controlPlaneContractVersion string) (*runtimehooksv1.GeneratePatchesRequest, error) {
 	req := &runtimehooksv1.GeneratePatchesRequest{}
 
 	// Add the InfrastructureClusterTemplate.
@@ -288,7 +297,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 	// add the InfrastructureMachineTemplate for control plane machines.
 	if blueprint.HasControlPlaneInfrastructureMachine() {
 		t, err := newRequestItemBuilder(blueprint.ControlPlane.InfrastructureMachineTemplate).
-			WithHolder(desired.ControlPlane.Object, desired.ControlPlane.Object.GroupVersionKind(), strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(), ".")).
+			WithHolder(desired.ControlPlane.Object, desired.ControlPlane.Object.GroupVersionKind(), getControlPlaneHolderFieldPath(controlPlaneContractVersion)).
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare ControlPlane's %s %s for patching",
@@ -523,7 +532,7 @@ func convertToValidationRequest(generateRequest *runtimehooksv1.GeneratePatchesR
 
 // updateDesiredState uses the patched templates of a GeneratePatchesRequest to update the desired state.
 // NOTE: This func should be called after all the patches have been applied to the GeneratePatchesRequest.
-func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatchesRequest, blueprint *scope.ClusterBlueprint, desired *scope.ClusterState) error {
+func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatchesRequest, blueprint *scope.ClusterBlueprint, desired *scope.ClusterState, controlPlaneContractVersion string) error {
 	var err error
 
 	// Update the InfrastructureCluster.
@@ -563,7 +572,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 	// If the ClusterClass mandates the ControlPlane has InfrastructureMachines,
 	// update the InfrastructureMachineTemplate for ControlPlane machines.
 	if blueprint.HasControlPlaneInfrastructureMachine() {
-		infrastructureMachineTemplate, err := getTemplateAsUnstructured(req, desired.ControlPlane.Object.GetKind(), strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(), "."), requestTopologyName{})
+		infrastructureMachineTemplate, err := getTemplateAsUnstructured(req, desired.ControlPlane.Object.GetKind(), getControlPlaneHolderFieldPath(controlPlaneContractVersion), requestTopologyName{})
 		if err != nil {
 			return err
 		}
@@ -630,4 +639,11 @@ func definitionsForPatch(blueprint *scope.ClusterBlueprint, definitionFrom strin
 		}
 	}
 	return variableDefinitionsForPatch
+}
+
+func getControlPlaneHolderFieldPath(contractVersion string) string {
+	if contractVersion == "v1beta1" {
+		return strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Path(), ".")
+	}
+	return strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(), ".")
 }

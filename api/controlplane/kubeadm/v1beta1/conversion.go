@@ -95,11 +95,13 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	infraRef, err := convertToObjectReference(&src.Spec.MachineTemplate.Spec.InfrastructureRef, src.Namespace)
-	if err != nil {
-		return err
+	if src.Spec.MachineTemplate.Spec.InfrastructureRef.IsDefined() {
+		infraRef, err := convertToObjectReference(&src.Spec.MachineTemplate.Spec.InfrastructureRef, src.Namespace)
+		if err != nil {
+			return err
+		}
+		dst.Spec.MachineTemplate.InfrastructureRef = *infraRef
 	}
-	dst.Spec.MachineTemplate.InfrastructureRef = *infraRef
 
 	// Convert timeouts moved from one struct to another.
 	dst.Spec.KubeadmConfigSpec.ConvertFrom(&src.Spec.KubeadmConfigSpec)

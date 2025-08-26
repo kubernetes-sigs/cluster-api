@@ -162,7 +162,9 @@ func getConfigOwner(ctx context.Context, c client.Client, obj metav1.Object, get
 		for _, gk := range allowedGKs {
 			if refGVK.Group == gk.Group && refGVK.Kind == gk.Kind {
 				return getFn(ctx, c, &corev1.ObjectReference{
-					APIVersion: ref.APIVersion,
+					// Intentionally always using the latest apiVersion to get Machine or MachinePool,
+					// even if the apiVersion in the ownerRef has not been bumped yet.
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       ref.Kind,
 					Name:       ref.Name,
 					Namespace:  obj.GetNamespace(),

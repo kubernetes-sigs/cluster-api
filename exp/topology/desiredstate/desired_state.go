@@ -68,7 +68,7 @@ func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, 
 		Client:        client,
 		ClusterCache:  clusterCache,
 		RuntimeClient: runtimeClient,
-		patchEngine:   patches.NewEngine(runtimeClient),
+		patchEngine:   patches.NewEngine(client, runtimeClient),
 	}
 }
 

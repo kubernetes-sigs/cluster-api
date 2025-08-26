@@ -37,6 +37,7 @@ type RuntimeClientBuilder struct {
 	callAllResponses   map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject
 	callAllValidations func(object runtimehooksv1.RequestObject) error
 	callResponses      map[string]runtimehooksv1.ResponseObject
+	callValidations    func(object runtimehooksv1.RequestObject) error
 }
 
 // NewRuntimeClientBuilder returns a new builder for the fake runtime client.
@@ -68,6 +69,12 @@ func (f *RuntimeClientBuilder) WithCallExtensionResponses(responses map[string]r
 	return f
 }
 
+// WithCallExtensionValidations can be used to validate the incoming request for CallExtensions.
+func (f *RuntimeClientBuilder) WithCallExtensionValidations(callValidations func(object runtimehooksv1.RequestObject) error) *RuntimeClientBuilder {
+	f.callValidations = callValidations
+	return f
+}
+
 // MarkReady can be used to mark the fake runtime client as either ready or not ready.
 func (f *RuntimeClientBuilder) MarkReady(ready bool) *RuntimeClientBuilder {
 	f.ready = ready
@@ -81,6 +88,7 @@ func (f *RuntimeClientBuilder) Build() *RuntimeClient {
 		callAllResponses:   f.callAllResponses,
 		callAllValidations: f.callAllValidations,
 		callResponses:      f.callResponses,
+		callValidations:    f.callValidations,
 		catalog:            f.catalog,
 		callAllTracker:     map[string]int{},
 	}
@@ -95,6 +103,7 @@ type RuntimeClient struct {
 	callAllResponses   map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject
 	callAllValidations func(object runtimehooksv1.RequestObject) error
 	callResponses      map[string]runtimehooksv1.ResponseObject
+	callValidations    func(object runtimehooksv1.RequestObject) error
 
 	callAllTracker map[string]int
 }
@@ -134,7 +143,13 @@ func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecata
 }
 
 // CallExtension implements Client.
-func (fc *RuntimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hook, _ metav1.Object, name string, _ runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
+func (fc *RuntimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hook, _ metav1.Object, name string, req runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
+	if fc.callValidations != nil {
+		if err := fc.callValidations(req); err != nil {
+			return err
+		}
+	}
+
 	expectedResponse, ok := fc.callResponses[name]
 	if !ok {
 		// This should actually panic because an error here would mean a mistake in the test setup.

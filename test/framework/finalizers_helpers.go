@@ -35,7 +35,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -72,7 +71,7 @@ var ExpFinalizersAssertion = map[string]func(types.NamespacedName) []string{
 var DockerInfraFinalizersAssertion = map[string]func(types.NamespacedName) []string{
 	dockerMachineKind:     func(_ types.NamespacedName) []string { return []string{infrav1.MachineFinalizer} },
 	dockerClusterKind:     func(_ types.NamespacedName) []string { return []string{infrav1.ClusterFinalizer} },
-	dockerMachinePoolKind: func(_ types.NamespacedName) []string { return []string{infraexpv1.MachinePoolFinalizer} },
+	dockerMachinePoolKind: func(_ types.NamespacedName) []string { return []string{infrav1.MachinePoolFinalizer} },
 }
 
 // KubeadmControlPlaneFinalizersAssertion maps Kubeadm resource types to their expected finalizers.

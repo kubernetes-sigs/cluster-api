@@ -335,6 +335,101 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*DockerMachinePool)(nil), (*v1beta2.DockerMachinePool)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerMachinePool_To_v1beta2_DockerMachinePool(a.(*DockerMachinePool), b.(*v1beta2.DockerMachinePool), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachinePool)(nil), (*DockerMachinePool)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachinePool_To_v1beta1_DockerMachinePool(a.(*v1beta2.DockerMachinePool), b.(*DockerMachinePool), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DockerMachinePoolInstanceStatus)(nil), (*v1beta2.DockerMachinePoolInstanceStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerMachinePoolInstanceStatus_To_v1beta2_DockerMachinePoolInstanceStatus(a.(*DockerMachinePoolInstanceStatus), b.(*v1beta2.DockerMachinePoolInstanceStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachinePoolInstanceStatus)(nil), (*DockerMachinePoolInstanceStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachinePoolInstanceStatus_To_v1beta1_DockerMachinePoolInstanceStatus(a.(*v1beta2.DockerMachinePoolInstanceStatus), b.(*DockerMachinePoolInstanceStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DockerMachinePoolList)(nil), (*v1beta2.DockerMachinePoolList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerMachinePoolList_To_v1beta2_DockerMachinePoolList(a.(*DockerMachinePoolList), b.(*v1beta2.DockerMachinePoolList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachinePoolList)(nil), (*DockerMachinePoolList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachinePoolList_To_v1beta1_DockerMachinePoolList(a.(*v1beta2.DockerMachinePoolList), b.(*DockerMachinePoolList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DockerMachinePoolMachineTemplate)(nil), (*v1beta2.DockerMachinePoolMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerMachinePoolMachineTemplate_To_v1beta2_DockerMachinePoolMachineTemplate(a.(*DockerMachinePoolMachineTemplate), b.(*v1beta2.DockerMachinePoolMachineTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachinePoolMachineTemplate)(nil), (*DockerMachinePoolMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachinePoolMachineTemplate_To_v1beta1_DockerMachinePoolMachineTemplate(a.(*v1beta2.DockerMachinePoolMachineTemplate), b.(*DockerMachinePoolMachineTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DockerMachinePoolSpec)(nil), (*v1beta2.DockerMachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerMachinePoolSpec_To_v1beta2_DockerMachinePoolSpec(a.(*DockerMachinePoolSpec), b.(*v1beta2.DockerMachinePoolSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachinePoolSpec)(nil), (*DockerMachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachinePoolSpec_To_v1beta1_DockerMachinePoolSpec(a.(*v1beta2.DockerMachinePoolSpec), b.(*DockerMachinePoolSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DockerMachinePoolStatus)(nil), (*v1beta2.DockerMachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerMachinePoolStatus_To_v1beta2_DockerMachinePoolStatus(a.(*DockerMachinePoolStatus), b.(*v1beta2.DockerMachinePoolStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DockerMachinePoolTemplate)(nil), (*v1beta2.DockerMachinePoolTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerMachinePoolTemplate_To_v1beta2_DockerMachinePoolTemplate(a.(*DockerMachinePoolTemplate), b.(*v1beta2.DockerMachinePoolTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachinePoolTemplate)(nil), (*DockerMachinePoolTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachinePoolTemplate_To_v1beta1_DockerMachinePoolTemplate(a.(*v1beta2.DockerMachinePoolTemplate), b.(*DockerMachinePoolTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DockerMachinePoolTemplateList)(nil), (*v1beta2.DockerMachinePoolTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerMachinePoolTemplateList_To_v1beta2_DockerMachinePoolTemplateList(a.(*DockerMachinePoolTemplateList), b.(*v1beta2.DockerMachinePoolTemplateList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachinePoolTemplateList)(nil), (*DockerMachinePoolTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachinePoolTemplateList_To_v1beta1_DockerMachinePoolTemplateList(a.(*v1beta2.DockerMachinePoolTemplateList), b.(*DockerMachinePoolTemplateList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DockerMachinePoolTemplateResource)(nil), (*v1beta2.DockerMachinePoolTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerMachinePoolTemplateResource_To_v1beta2_DockerMachinePoolTemplateResource(a.(*DockerMachinePoolTemplateResource), b.(*v1beta2.DockerMachinePoolTemplateResource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachinePoolTemplateResource)(nil), (*DockerMachinePoolTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachinePoolTemplateResource_To_v1beta1_DockerMachinePoolTemplateResource(a.(*v1beta2.DockerMachinePoolTemplateResource), b.(*DockerMachinePoolTemplateResource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DockerMachinePoolTemplateSpec)(nil), (*v1beta2.DockerMachinePoolTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerMachinePoolTemplateSpec_To_v1beta2_DockerMachinePoolTemplateSpec(a.(*DockerMachinePoolTemplateSpec), b.(*v1beta2.DockerMachinePoolTemplateSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.DockerMachinePoolTemplateSpec)(nil), (*DockerMachinePoolTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachinePoolTemplateSpec_To_v1beta1_DockerMachinePoolTemplateSpec(a.(*v1beta2.DockerMachinePoolTemplateSpec), b.(*DockerMachinePoolTemplateSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*DockerMachineSpec)(nil), (*v1beta2.DockerMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_DockerMachineSpec_To_v1beta2_DockerMachineSpec(a.(*DockerMachineSpec), b.(*v1beta2.DockerMachineSpec), scope)
 	}); err != nil {
@@ -532,6 +627,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.DockerClusterStatus)(nil), (*DockerClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_DockerClusterStatus_To_v1beta1_DockerClusterStatus(a.(*v1beta2.DockerClusterStatus), b.(*DockerClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.DockerMachinePoolStatus)(nil), (*DockerMachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_DockerMachinePoolStatus_To_v1beta1_DockerMachinePoolStatus(a.(*v1beta2.DockerMachinePoolStatus), b.(*DockerMachinePoolStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -1615,6 +1715,330 @@ func autoConvert_v1beta2_DockerMachineList_To_v1beta1_DockerMachineList(in *v1be
 // Convert_v1beta2_DockerMachineList_To_v1beta1_DockerMachineList is an autogenerated conversion function.
 func Convert_v1beta2_DockerMachineList_To_v1beta1_DockerMachineList(in *v1beta2.DockerMachineList, out *DockerMachineList, s conversion.Scope) error {
 	return autoConvert_v1beta2_DockerMachineList_To_v1beta1_DockerMachineList(in, out, s)
+}
+
+func autoConvert_v1beta1_DockerMachinePool_To_v1beta2_DockerMachinePool(in *DockerMachinePool, out *v1beta2.DockerMachinePool, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1beta1_DockerMachinePoolSpec_To_v1beta2_DockerMachinePoolSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1beta1_DockerMachinePoolStatus_To_v1beta2_DockerMachinePoolStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1beta1_DockerMachinePool_To_v1beta2_DockerMachinePool is an autogenerated conversion function.
+func Convert_v1beta1_DockerMachinePool_To_v1beta2_DockerMachinePool(in *DockerMachinePool, out *v1beta2.DockerMachinePool, s conversion.Scope) error {
+	return autoConvert_v1beta1_DockerMachinePool_To_v1beta2_DockerMachinePool(in, out, s)
+}
+
+func autoConvert_v1beta2_DockerMachinePool_To_v1beta1_DockerMachinePool(in *v1beta2.DockerMachinePool, out *DockerMachinePool, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1beta2_DockerMachinePoolSpec_To_v1beta1_DockerMachinePoolSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1beta2_DockerMachinePoolStatus_To_v1beta1_DockerMachinePoolStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1beta2_DockerMachinePool_To_v1beta1_DockerMachinePool is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachinePool_To_v1beta1_DockerMachinePool(in *v1beta2.DockerMachinePool, out *DockerMachinePool, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachinePool_To_v1beta1_DockerMachinePool(in, out, s)
+}
+
+func autoConvert_v1beta1_DockerMachinePoolInstanceStatus_To_v1beta2_DockerMachinePoolInstanceStatus(in *DockerMachinePoolInstanceStatus, out *v1beta2.DockerMachinePoolInstanceStatus, s conversion.Scope) error {
+	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.InstanceName = in.InstanceName
+	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	out.Version = (*string)(unsafe.Pointer(in.Version))
+	out.Ready = in.Ready
+	out.Bootstrapped = in.Bootstrapped
+	return nil
+}
+
+// Convert_v1beta1_DockerMachinePoolInstanceStatus_To_v1beta2_DockerMachinePoolInstanceStatus is an autogenerated conversion function.
+func Convert_v1beta1_DockerMachinePoolInstanceStatus_To_v1beta2_DockerMachinePoolInstanceStatus(in *DockerMachinePoolInstanceStatus, out *v1beta2.DockerMachinePoolInstanceStatus, s conversion.Scope) error {
+	return autoConvert_v1beta1_DockerMachinePoolInstanceStatus_To_v1beta2_DockerMachinePoolInstanceStatus(in, out, s)
+}
+
+func autoConvert_v1beta2_DockerMachinePoolInstanceStatus_To_v1beta1_DockerMachinePoolInstanceStatus(in *v1beta2.DockerMachinePoolInstanceStatus, out *DockerMachinePoolInstanceStatus, s conversion.Scope) error {
+	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.InstanceName = in.InstanceName
+	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	out.Version = (*string)(unsafe.Pointer(in.Version))
+	out.Ready = in.Ready
+	out.Bootstrapped = in.Bootstrapped
+	return nil
+}
+
+// Convert_v1beta2_DockerMachinePoolInstanceStatus_To_v1beta1_DockerMachinePoolInstanceStatus is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachinePoolInstanceStatus_To_v1beta1_DockerMachinePoolInstanceStatus(in *v1beta2.DockerMachinePoolInstanceStatus, out *DockerMachinePoolInstanceStatus, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachinePoolInstanceStatus_To_v1beta1_DockerMachinePoolInstanceStatus(in, out, s)
+}
+
+func autoConvert_v1beta1_DockerMachinePoolList_To_v1beta2_DockerMachinePoolList(in *DockerMachinePoolList, out *v1beta2.DockerMachinePoolList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.DockerMachinePool, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_DockerMachinePool_To_v1beta2_DockerMachinePool(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+// Convert_v1beta1_DockerMachinePoolList_To_v1beta2_DockerMachinePoolList is an autogenerated conversion function.
+func Convert_v1beta1_DockerMachinePoolList_To_v1beta2_DockerMachinePoolList(in *DockerMachinePoolList, out *v1beta2.DockerMachinePoolList, s conversion.Scope) error {
+	return autoConvert_v1beta1_DockerMachinePoolList_To_v1beta2_DockerMachinePoolList(in, out, s)
+}
+
+func autoConvert_v1beta2_DockerMachinePoolList_To_v1beta1_DockerMachinePoolList(in *v1beta2.DockerMachinePoolList, out *DockerMachinePoolList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]DockerMachinePool, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_DockerMachinePool_To_v1beta1_DockerMachinePool(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+// Convert_v1beta2_DockerMachinePoolList_To_v1beta1_DockerMachinePoolList is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachinePoolList_To_v1beta1_DockerMachinePoolList(in *v1beta2.DockerMachinePoolList, out *DockerMachinePoolList, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachinePoolList_To_v1beta1_DockerMachinePoolList(in, out, s)
+}
+
+func autoConvert_v1beta1_DockerMachinePoolMachineTemplate_To_v1beta2_DockerMachinePoolMachineTemplate(in *DockerMachinePoolMachineTemplate, out *v1beta2.DockerMachinePoolMachineTemplate, s conversion.Scope) error {
+	out.CustomImage = in.CustomImage
+	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
+	out.ExtraMounts = *(*[]v1beta2.Mount)(unsafe.Pointer(&in.ExtraMounts))
+	return nil
+}
+
+// Convert_v1beta1_DockerMachinePoolMachineTemplate_To_v1beta2_DockerMachinePoolMachineTemplate is an autogenerated conversion function.
+func Convert_v1beta1_DockerMachinePoolMachineTemplate_To_v1beta2_DockerMachinePoolMachineTemplate(in *DockerMachinePoolMachineTemplate, out *v1beta2.DockerMachinePoolMachineTemplate, s conversion.Scope) error {
+	return autoConvert_v1beta1_DockerMachinePoolMachineTemplate_To_v1beta2_DockerMachinePoolMachineTemplate(in, out, s)
+}
+
+func autoConvert_v1beta2_DockerMachinePoolMachineTemplate_To_v1beta1_DockerMachinePoolMachineTemplate(in *v1beta2.DockerMachinePoolMachineTemplate, out *DockerMachinePoolMachineTemplate, s conversion.Scope) error {
+	out.CustomImage = in.CustomImage
+	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
+	out.ExtraMounts = *(*[]Mount)(unsafe.Pointer(&in.ExtraMounts))
+	return nil
+}
+
+// Convert_v1beta2_DockerMachinePoolMachineTemplate_To_v1beta1_DockerMachinePoolMachineTemplate is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachinePoolMachineTemplate_To_v1beta1_DockerMachinePoolMachineTemplate(in *v1beta2.DockerMachinePoolMachineTemplate, out *DockerMachinePoolMachineTemplate, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachinePoolMachineTemplate_To_v1beta1_DockerMachinePoolMachineTemplate(in, out, s)
+}
+
+func autoConvert_v1beta1_DockerMachinePoolSpec_To_v1beta2_DockerMachinePoolSpec(in *DockerMachinePoolSpec, out *v1beta2.DockerMachinePoolSpec, s conversion.Scope) error {
+	if err := Convert_v1beta1_DockerMachinePoolMachineTemplate_To_v1beta2_DockerMachinePoolMachineTemplate(&in.Template, &out.Template, s); err != nil {
+		return err
+	}
+	out.ProviderID = in.ProviderID
+	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
+	return nil
+}
+
+// Convert_v1beta1_DockerMachinePoolSpec_To_v1beta2_DockerMachinePoolSpec is an autogenerated conversion function.
+func Convert_v1beta1_DockerMachinePoolSpec_To_v1beta2_DockerMachinePoolSpec(in *DockerMachinePoolSpec, out *v1beta2.DockerMachinePoolSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_DockerMachinePoolSpec_To_v1beta2_DockerMachinePoolSpec(in, out, s)
+}
+
+func autoConvert_v1beta2_DockerMachinePoolSpec_To_v1beta1_DockerMachinePoolSpec(in *v1beta2.DockerMachinePoolSpec, out *DockerMachinePoolSpec, s conversion.Scope) error {
+	if err := Convert_v1beta2_DockerMachinePoolMachineTemplate_To_v1beta1_DockerMachinePoolMachineTemplate(&in.Template, &out.Template, s); err != nil {
+		return err
+	}
+	out.ProviderID = in.ProviderID
+	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
+	return nil
+}
+
+// Convert_v1beta2_DockerMachinePoolSpec_To_v1beta1_DockerMachinePoolSpec is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachinePoolSpec_To_v1beta1_DockerMachinePoolSpec(in *v1beta2.DockerMachinePoolSpec, out *DockerMachinePoolSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachinePoolSpec_To_v1beta1_DockerMachinePoolSpec(in, out, s)
+}
+
+func autoConvert_v1beta1_DockerMachinePoolStatus_To_v1beta2_DockerMachinePoolStatus(in *DockerMachinePoolStatus, out *v1beta2.DockerMachinePoolStatus, s conversion.Scope) error {
+	out.Ready = in.Ready
+	out.Replicas = in.Replicas
+	out.ObservedGeneration = in.ObservedGeneration
+	out.Instances = *(*[]v1beta2.DockerMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	out.InfrastructureMachineKind = in.InfrastructureMachineKind
+	return nil
+}
+
+// Convert_v1beta1_DockerMachinePoolStatus_To_v1beta2_DockerMachinePoolStatus is an autogenerated conversion function.
+func Convert_v1beta1_DockerMachinePoolStatus_To_v1beta2_DockerMachinePoolStatus(in *DockerMachinePoolStatus, out *v1beta2.DockerMachinePoolStatus, s conversion.Scope) error {
+	return autoConvert_v1beta1_DockerMachinePoolStatus_To_v1beta2_DockerMachinePoolStatus(in, out, s)
+}
+
+func autoConvert_v1beta2_DockerMachinePoolStatus_To_v1beta1_DockerMachinePoolStatus(in *v1beta2.DockerMachinePoolStatus, out *DockerMachinePoolStatus, s conversion.Scope) error {
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1beta1.Conditions, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	out.Ready = in.Ready
+	out.Replicas = in.Replicas
+	out.ObservedGeneration = in.ObservedGeneration
+	out.Instances = *(*[]DockerMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
+	out.InfrastructureMachineKind = in.InfrastructureMachineKind
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
+	return nil
+}
+
+func autoConvert_v1beta1_DockerMachinePoolTemplate_To_v1beta2_DockerMachinePoolTemplate(in *DockerMachinePoolTemplate, out *v1beta2.DockerMachinePoolTemplate, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1beta1_DockerMachinePoolTemplateSpec_To_v1beta2_DockerMachinePoolTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1beta1_DockerMachinePoolTemplate_To_v1beta2_DockerMachinePoolTemplate is an autogenerated conversion function.
+func Convert_v1beta1_DockerMachinePoolTemplate_To_v1beta2_DockerMachinePoolTemplate(in *DockerMachinePoolTemplate, out *v1beta2.DockerMachinePoolTemplate, s conversion.Scope) error {
+	return autoConvert_v1beta1_DockerMachinePoolTemplate_To_v1beta2_DockerMachinePoolTemplate(in, out, s)
+}
+
+func autoConvert_v1beta2_DockerMachinePoolTemplate_To_v1beta1_DockerMachinePoolTemplate(in *v1beta2.DockerMachinePoolTemplate, out *DockerMachinePoolTemplate, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1beta2_DockerMachinePoolTemplateSpec_To_v1beta1_DockerMachinePoolTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1beta2_DockerMachinePoolTemplate_To_v1beta1_DockerMachinePoolTemplate is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachinePoolTemplate_To_v1beta1_DockerMachinePoolTemplate(in *v1beta2.DockerMachinePoolTemplate, out *DockerMachinePoolTemplate, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachinePoolTemplate_To_v1beta1_DockerMachinePoolTemplate(in, out, s)
+}
+
+func autoConvert_v1beta1_DockerMachinePoolTemplateList_To_v1beta2_DockerMachinePoolTemplateList(in *DockerMachinePoolTemplateList, out *v1beta2.DockerMachinePoolTemplateList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.DockerMachinePoolTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_DockerMachinePoolTemplate_To_v1beta2_DockerMachinePoolTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+// Convert_v1beta1_DockerMachinePoolTemplateList_To_v1beta2_DockerMachinePoolTemplateList is an autogenerated conversion function.
+func Convert_v1beta1_DockerMachinePoolTemplateList_To_v1beta2_DockerMachinePoolTemplateList(in *DockerMachinePoolTemplateList, out *v1beta2.DockerMachinePoolTemplateList, s conversion.Scope) error {
+	return autoConvert_v1beta1_DockerMachinePoolTemplateList_To_v1beta2_DockerMachinePoolTemplateList(in, out, s)
+}
+
+func autoConvert_v1beta2_DockerMachinePoolTemplateList_To_v1beta1_DockerMachinePoolTemplateList(in *v1beta2.DockerMachinePoolTemplateList, out *DockerMachinePoolTemplateList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]DockerMachinePoolTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_DockerMachinePoolTemplate_To_v1beta1_DockerMachinePoolTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+// Convert_v1beta2_DockerMachinePoolTemplateList_To_v1beta1_DockerMachinePoolTemplateList is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachinePoolTemplateList_To_v1beta1_DockerMachinePoolTemplateList(in *v1beta2.DockerMachinePoolTemplateList, out *DockerMachinePoolTemplateList, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachinePoolTemplateList_To_v1beta1_DockerMachinePoolTemplateList(in, out, s)
+}
+
+func autoConvert_v1beta1_DockerMachinePoolTemplateResource_To_v1beta2_DockerMachinePoolTemplateResource(in *DockerMachinePoolTemplateResource, out *v1beta2.DockerMachinePoolTemplateResource, s conversion.Scope) error {
+	if err := Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1beta1_DockerMachinePoolSpec_To_v1beta2_DockerMachinePoolSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1beta1_DockerMachinePoolTemplateResource_To_v1beta2_DockerMachinePoolTemplateResource is an autogenerated conversion function.
+func Convert_v1beta1_DockerMachinePoolTemplateResource_To_v1beta2_DockerMachinePoolTemplateResource(in *DockerMachinePoolTemplateResource, out *v1beta2.DockerMachinePoolTemplateResource, s conversion.Scope) error {
+	return autoConvert_v1beta1_DockerMachinePoolTemplateResource_To_v1beta2_DockerMachinePoolTemplateResource(in, out, s)
+}
+
+func autoConvert_v1beta2_DockerMachinePoolTemplateResource_To_v1beta1_DockerMachinePoolTemplateResource(in *v1beta2.DockerMachinePoolTemplateResource, out *DockerMachinePoolTemplateResource, s conversion.Scope) error {
+	if err := Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1beta2_DockerMachinePoolSpec_To_v1beta1_DockerMachinePoolSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1beta2_DockerMachinePoolTemplateResource_To_v1beta1_DockerMachinePoolTemplateResource is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachinePoolTemplateResource_To_v1beta1_DockerMachinePoolTemplateResource(in *v1beta2.DockerMachinePoolTemplateResource, out *DockerMachinePoolTemplateResource, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachinePoolTemplateResource_To_v1beta1_DockerMachinePoolTemplateResource(in, out, s)
+}
+
+func autoConvert_v1beta1_DockerMachinePoolTemplateSpec_To_v1beta2_DockerMachinePoolTemplateSpec(in *DockerMachinePoolTemplateSpec, out *v1beta2.DockerMachinePoolTemplateSpec, s conversion.Scope) error {
+	if err := Convert_v1beta1_DockerMachinePoolTemplateResource_To_v1beta2_DockerMachinePoolTemplateResource(&in.Template, &out.Template, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1beta1_DockerMachinePoolTemplateSpec_To_v1beta2_DockerMachinePoolTemplateSpec is an autogenerated conversion function.
+func Convert_v1beta1_DockerMachinePoolTemplateSpec_To_v1beta2_DockerMachinePoolTemplateSpec(in *DockerMachinePoolTemplateSpec, out *v1beta2.DockerMachinePoolTemplateSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_DockerMachinePoolTemplateSpec_To_v1beta2_DockerMachinePoolTemplateSpec(in, out, s)
+}
+
+func autoConvert_v1beta2_DockerMachinePoolTemplateSpec_To_v1beta1_DockerMachinePoolTemplateSpec(in *v1beta2.DockerMachinePoolTemplateSpec, out *DockerMachinePoolTemplateSpec, s conversion.Scope) error {
+	if err := Convert_v1beta2_DockerMachinePoolTemplateResource_To_v1beta1_DockerMachinePoolTemplateResource(&in.Template, &out.Template, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1beta2_DockerMachinePoolTemplateSpec_To_v1beta1_DockerMachinePoolTemplateSpec is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachinePoolTemplateSpec_To_v1beta1_DockerMachinePoolTemplateSpec(in *v1beta2.DockerMachinePoolTemplateSpec, out *DockerMachinePoolTemplateSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_DockerMachinePoolTemplateSpec_To_v1beta1_DockerMachinePoolTemplateSpec(in, out, s)
 }
 
 func autoConvert_v1beta1_DockerMachineSpec_To_v1beta2_DockerMachineSpec(in *DockerMachineSpec, out *v1beta2.DockerMachineSpec, s conversion.Scope) error {

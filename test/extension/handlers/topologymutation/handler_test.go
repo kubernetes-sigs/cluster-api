@@ -35,7 +35,6 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
 )
 
 var (
@@ -44,7 +43,6 @@ var (
 
 func init() {
 	_ = infrav1.AddToScheme(testScheme)
-	_ = infraexpv1.AddToScheme(testScheme)
 	_ = controlplanev1.AddToScheme(testScheme)
 	_ = bootstrapv1.AddToScheme(testScheme)
 }
@@ -250,21 +248,21 @@ func Test_patchDockerMachinePoolTemplate(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		template         *infraexpv1.DockerMachinePoolTemplate
+		template         *infrav1.DockerMachinePoolTemplate
 		variables        map[string]apiextensionsv1.JSON
-		expectedTemplate *infraexpv1.DockerMachinePoolTemplate
+		expectedTemplate *infrav1.DockerMachinePoolTemplate
 		expectedErr      bool
 	}{
 		{
 			name:             "fails if builtin.controlPlane.version nor builtin.machinePool.version is not set",
-			template:         &infraexpv1.DockerMachinePoolTemplate{},
+			template:         &infrav1.DockerMachinePoolTemplate{},
 			variables:        nil,
-			expectedTemplate: &infraexpv1.DockerMachinePoolTemplate{},
+			expectedTemplate: &infrav1.DockerMachinePoolTemplate{},
 			expectedErr:      true,
 		},
 		{
 			name:     "sets customImage for templates linked to ControlPlane",
-			template: &infraexpv1.DockerMachinePoolTemplate{},
+			template: &infrav1.DockerMachinePoolTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
@@ -276,11 +274,11 @@ func Test_patchDockerMachinePoolTemplate(t *testing.T) {
 					},
 				})},
 			},
-			expectedTemplate: &infraexpv1.DockerMachinePoolTemplate{
-				Spec: infraexpv1.DockerMachinePoolTemplateSpec{
-					Template: infraexpv1.DockerMachinePoolTemplateResource{
-						Spec: infraexpv1.DockerMachinePoolSpec{
-							Template: infraexpv1.DockerMachinePoolMachineTemplate{
+			expectedTemplate: &infrav1.DockerMachinePoolTemplate{
+				Spec: infrav1.DockerMachinePoolTemplateSpec{
+					Template: infrav1.DockerMachinePoolTemplateResource{
+						Spec: infrav1.DockerMachinePoolSpec{
+							Template: infrav1.DockerMachinePoolMachineTemplate{
 								CustomImage: "kindest/node:v1.23.0",
 							},
 						},
@@ -346,7 +344,7 @@ func TestHandler_GeneratePatches(t *testing.T) {
 			APIVersion: infrav1.GroupVersion.String(),
 		},
 	}
-	dockerMachinePoolTemplate := infraexpv1.DockerMachinePoolTemplate{
+	dockerMachinePoolTemplate := infrav1.DockerMachinePoolTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DockerMachinePoolTemplate",
 			APIVersion: infrav1.GroupVersion.String(),

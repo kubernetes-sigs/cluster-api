@@ -82,6 +82,17 @@ func TestFuzzyConversion(t *testing.T) {
 		Spoke:       &DevMachineTemplate{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{DevMachineTemplateFuzzFunc},
 	}))
+
+	t.Run("for DockerMachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:         &infrav1.DockerMachinePool{},
+		Spoke:       &DockerMachinePool{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{DockerMachinePoolFuzzFunc},
+	}))
+
+	t.Run("for DockerMachinePoolTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:   &infrav1.DockerMachinePoolTemplate{},
+		Spoke: &DockerMachinePoolTemplate{},
+	}))
 }
 
 func DockerClusterFuzzFunc(_ runtimeserializer.CodecFactory) []any {
@@ -245,5 +256,21 @@ func spokeDevMachineStatus(in *DevMachineStatus, c randfill.Continue) {
 func DevMachineTemplateFuzzFunc(_ runtimeserializer.CodecFactory) []any {
 	return []any{
 		spokeDevMachineSpec,
+	}
+}
+
+func DockerMachinePoolFuzzFunc(_ runtimeserializer.CodecFactory) []any {
+	return []any{
+		hubDockerMachinePoolStatus,
+	}
+}
+
+func hubDockerMachinePoolStatus(in *infrav1.DockerMachinePoolStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Deprecated != nil {
+		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &infrav1.DockerMachinePoolV1Beta1DeprecatedStatus{}) {
+			in.Deprecated = nil
+		}
 	}
 }

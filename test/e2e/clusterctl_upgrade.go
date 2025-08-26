@@ -290,7 +290,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 			managementClusterResources.Cluster = &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: managementClusterName,
+					Namespace: testNamespace.Name,
+					Name:      managementClusterName,
 				},
 			}
 		} else {
@@ -779,13 +780,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 	AfterEach(func() {
 		if testNamespace != nil {
 			// Dump all the logs from the workload cluster before deleting them.
-			framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, testNamespace, &clusterv1.Cluster{
-				// DumpAllResourcesAndLogs only uses Namespace + Name from the Cluster object.
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: testNamespace.Name,
-					Name:      workloadClusterName,
-				},
-			})
+			framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, testNamespace, managementClusterResources.Cluster)
 
 			if !input.SkipCleanup {
 				Byf("Deleting all clusters in namespace %s in management cluster %s", testNamespace.Name, managementClusterName)

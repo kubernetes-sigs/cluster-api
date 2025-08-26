@@ -2233,11 +2233,13 @@ func convertMachineSpecToContractVersionedObjectReference(src *MachineSpec, dst 
 }
 
 func convertMachineSpecToObjectReference(src *clusterv1.MachineSpec, dst *MachineSpec, namespace string) error {
-	infraRef, err := convertToObjectReference(src.InfrastructureRef, namespace)
-	if err != nil {
-		return err
+	if src.InfrastructureRef.IsDefined() {
+		infraRef, err := convertToObjectReference(src.InfrastructureRef, namespace)
+		if err != nil {
+			return err
+		}
+		dst.InfrastructureRef = *infraRef
 	}
-	dst.InfrastructureRef = *infraRef
 
 	if src.Bootstrap.ConfigRef.IsDefined() {
 		bootstrapRef, err := convertToObjectReference(src.Bootstrap.ConfigRef, namespace)

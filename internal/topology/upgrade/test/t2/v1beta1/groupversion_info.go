@@ -33,7 +33,7 @@ var (
 	AddToScheme = schemeBuilder.AddToScheme
 
 	// localSchemeBuilder is used for type conversions.
-	localSchemeBuilder = schemeBuilder
+	localSchemeBuilder = &schemeBuilder
 )
 
 func addKnownTypes(scheme *runtime.Scheme) error {

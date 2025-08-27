@@ -332,8 +332,11 @@ More specifically:
 - A new `BeforeWorkersUpgrade` hook will be added and called before each "upgrade workers" step;
   request and response payload will be similar to corresponding messages for `BeforeControlPlaneUpgrade`
 - A new `AfterWorkersUpgrade` hook will be added and called after each "upgrade workers" step;
-  request and response payload will be similar to corresponding messages for `AfterControlPlaneUpgrade`, but the
-  hook will be considered blocking only for the intermediate steps of the upgrade. 
+  request and response payload will be similar to corresponding messages for `AfterControlPlaneUpgrade`
+  - if the upgrade plan is completed and the entire cluster is at `spec.topology.version`, the hook 
+    will ensure a new upgrade can't start until `AfterWorkersUpgrade` is completed.
+  - if the upgrade plan is not complete and the entire cluster is now at one of the intermediate versions, 
+    the hook will ensure the control can't to move to the next version in the upgrade plan until `AfterWorkersUpgrade` is completed.
 - `AfterClusterUpgrade` will remain as of today, but the system will ensure that a new upgrade
   can't start until `AfterClusterUpgrade` is completed.
 

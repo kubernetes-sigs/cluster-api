@@ -155,15 +155,13 @@ cluster:
    ...
 fromKubernetesVersion: "v1.30.0"
 toKubernetesVersion: "v1.33.0"
-upgradePlan:
-  controlPlane:
-  - v1.30.0
-  - v1.31.0
-  - v1.32.3
-  - v1.33.0
-  workers:
-  - v1.32.3
-  - v1.33.0
+controlPlaneUpgrades:
+  - version: v1.31.0
+  - version: v1.32.3
+  - version: v1.33.0
+workersUpgrades:
+  - version: v1.32.3
+  - version: v1.33.0
 ```
 
 ####  BeforeControlPlaneUpgrade (new hook)
@@ -194,15 +192,13 @@ cluster:
    ...
 fromKubernetesVersion: "v1.30.0"
 toKubernetesVersion: "v1.33.0"
-upgradePlan:
-  controlPlane:
-  - v1.30.0
-  - v1.31.0
-  - v1.32.3
-  - v1.33.0
-  workers:
-  - v1.32.3
-  - v1.33.0
+controlPlaneUpgrades:
+  - version: v1.31.0
+  - version: v1.32.3
+  - version: v1.33.0
+workersUpgrades:
+  - version: v1.32.3
+  - version: v1.33.0
 ```
 
 Note: The upgrade plan in the request contains only missing steps to reach the target version.
@@ -250,14 +246,13 @@ cluster:
   status:
    ...
 kubernetesVersion: "v1.30.0"
-upgradePlan:
-  controlPlane:
-    - v1.31.0
-    - v1.32.3
-    - v1.33.0
-  workers:
-    - v1.32.3
-    - v1.33.0
+controlPlaneUpgrades:
+  - version: v1.31.0
+  - version: v1.32.3
+  - version: v1.33.0
+workersUpgrades:
+  - version: v1.32.3
+  - version: v1.33.0
 ```
 
 Note: The upgrade plan in the request contains only missing steps to reach the target version, if any.
@@ -299,15 +294,13 @@ cluster:
    ...
 fromKubernetesVersion: "v1.30.0"
 toKubernetesVersion: "v1.33.0"
-upgradePlan:
-  controlPlane:
-  - v1.30.0
-  - v1.31.0
-  - v1.32.3
-  - v1.33.0
-  workers:
-  - v1.32.3
-  - v1.33.0
+controlPlaneUpgrades:
+  - version: v1.31.0
+  - version: v1.32.3
+  - version: v1.33.0
+workersUpgrades:
+  - version: v1.32.3
+  - version: v1.33.0
 ```
 
 Note: The upgrade plan in the request contains only missing steps to reach the target version.
@@ -326,11 +319,10 @@ retryAfterSeconds: 10
 
 This hook is called after all the workers have been upgraded to the version specified in `spec.topology.version`
 or to an intermediate version in the upgrade plan, and:
-- if the upgrade plan is completed and the entire cluster is at `spec.topology.version`, immediately before calling the AfterClusterUpgrade hook
-- if the upgrade plan is not complete and the entire cluster is now at one of the intermediate versions, immediately before calling BeforeControlPlaneUpgrade hook for the next intermediate step
-
-Runtime Extension implementers can use this hook to execute post-upgrade add-on tasks; if the upgrade plan is not completed,
-this hook allows to block upgrades to the next version of the control plane until everything is ready.
+- if the upgrade plan is completed and the entire cluster is at `spec.topology.version`, immediately before calling the AfterClusterUpgrade hook;
+  in this case, the hook will ensure a new upgrade can't start until `AfterWorkersUpgrade` is completed.
+- if the upgrade plan is not complete and the entire cluster is now at one of the intermediate versions, immediately before calling BeforeControlPlaneUpgrade hook for the next intermediate step;
+  in this case, the hook will ensure the control can't to move to the next version in the upgrade plan until `AfterWorkersUpgrade` is completed.
 
 ##### Example Request:
 
@@ -349,14 +341,13 @@ cluster:
   status:
    ...
 kubernetesVersion: "v1.30.0"
-upgradePlan:
-  controlPlane:
-    - v1.31.0
-    - v1.32.3
-    - v1.33.0
-  workers:
-    - v1.32.3
-    - v1.33.0
+controlPlaneUpgrades:
+  - version: v1.31.0
+  - version: v1.32.3
+  - version: v1.33.0
+workersUpgrades:
+  - version: v1.32.3
+  - version: v1.33.0
 ```
 
 Note: The upgrade plan in the request contains only missing steps to reach the target version, if any.
@@ -370,8 +361,6 @@ status: Success # or Failure
 message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
-
-Note: retryAfterSeconds is ignored when workers version is equal to `spec.topology.version`.
 
 ###  Runtime Extensions developer guide
 

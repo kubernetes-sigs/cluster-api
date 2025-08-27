@@ -1002,7 +1002,10 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 	request := reconcile.Request{
 		NamespacedName: key,
 	}
-	fakeClient := fake.NewClientBuilder().WithObjects(cluster, ms, builder.GenericInfrastructureMachineTemplateCRD.DeepCopy()).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
+	scheme := runtime.NewScheme()
+	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cluster, ms, builder.GenericInfrastructureMachineTemplateCRD.DeepCopy()).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 
 	msr := &Reconciler{
 		Client:   fakeClient,

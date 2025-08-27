@@ -164,6 +164,9 @@ workersUpgrades:
   - version: v1.33.0
 ```
 
+Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contains the intermediate steps to reach the target version,
+which is also included in the list.
+
 ####  BeforeControlPlaneUpgrade (new hook)
 
 This hook is called before a new version is propagated to the control plane object. Runtime Extension implementers
@@ -201,7 +204,8 @@ workersUpgrades:
   - version: v1.33.0
 ```
 
-Note: The upgrade plan in the request contains only missing steps to reach the target version.
+Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contains the intermediate steps to reach the target version,
+which is also included in the list.
 
 ##### Example Response:
 
@@ -255,7 +259,8 @@ workersUpgrades:
   - version: v1.33.0
 ```
 
-Note: The upgrade plan in the request contains only missing steps to reach the target version, if any.
+Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contains the intermediate steps to reach the target version,
+which is also included in the list.
 
 ##### Example Response:
 
@@ -303,7 +308,8 @@ workersUpgrades:
   - version: v1.33.0
 ```
 
-Note: The upgrade plan in the request contains only missing steps to reach the target version.
+Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contains the intermediate steps to reach the target version,
+which is also included in the list.
 
 ##### Example Response:
 
@@ -350,7 +356,8 @@ workersUpgrades:
   - version: v1.33.0
 ```
 
-Note: The upgrade plan in the request contains only missing steps to reach the target version, if any.
+Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contains the intermediate steps to reach the target version,
+which is also included in the list.
 
 ##### Example Response:
 

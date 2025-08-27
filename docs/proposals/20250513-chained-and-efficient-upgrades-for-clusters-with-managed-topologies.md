@@ -247,8 +247,11 @@ consistent with `controlPlaneUpgrades` and also compliant with the [Kubernetes v
   - version: v1.31.0
   - version: v1.32.3
   ```
-  
-Please note:
+
+Note: in this case the system will take into consideration the provided `workersUpgrades`, and validated it is
+consistent with `controlPlaneUpgrades` and also compliant with the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/).
+
+Plase also consider that:
 - In case both the list of Kubernetes versions and the runtime extension definition will be left empty in a cluster class, 
   Cluster API will behave as of today: only upgrades to the next minor are allowed for the corresponding clusters.
 - If the list of Kubernetes versions is defined in a ClusterClass, the system is going to use this info also in 

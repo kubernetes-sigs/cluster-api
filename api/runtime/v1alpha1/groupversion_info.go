@@ -36,7 +36,7 @@ var (
 	AddToScheme = schemeBuilder.AddToScheme
 
 	// localSchemeBuilder is used for type conversions.
-	localSchemeBuilder = schemeBuilder
+	localSchemeBuilder = &schemeBuilder
 
 	objectTypes = []runtime.Object{}
 )

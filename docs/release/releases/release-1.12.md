@@ -12,7 +12,7 @@ The following table shows the preliminary dates for the `v1.12` release cycle.
 | *v1.10.x & v1.11.x released*                         | Release Lead | Tuesday 2nd September 2025  | week 2   |
 | *v1.10.x & v1.11.x released*                         | Release Lead | Tuesday 7th October 2025    | week 7   |
 | *v1.10.x & v1.11.x released*                         | Release Lead | Tuesday 4th November 2025   | week 11  |
-| v1.11.0-beta.0 released                              | Release Lead | Tuesday 4th November 2025   | week 11  |
+| v1.12.0-beta.0 released                              | Release Lead | Tuesday 4th November 2025   | week 11  |
 | Communicate beta to providers                        | Comms Lead   | Tuesday 4th November 2025   | week 11  |
 | Communicate upcoming code freeze to the community    | Comms Lead   | Tuesday 4th November 2025   | week 11  |
 | KubeCon idle week                                    | ---          | ---                         | week 12  |

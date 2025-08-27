@@ -51,7 +51,7 @@ see-also:
   -> v1.34.0 (target version)
 
 - **Upgrade plan**: the sequence of intermediate versions ... target version that a Cluster must upgrade to when
-  performing a chained upgrade;
+  performing a chained upgrade.
 
 - **Efficient upgrade**: a chained upgrade where worker nodes skip some of the intermediate versions,
   when allowed by the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/) when the chained upgrade is also an efficient upgrade,
@@ -81,7 +81,7 @@ by more than one minor Kubernetes version by performing chained and efficient up
 When using clusters with managed topologies:
 - Allow Cluster API users to perform chained upgrades.
 - Automatically perform chained upgrades in an efficient way by skipping workers upgrades whenever possible.
-- Allow Cluster API users to influence the upgrade plan e.g. availability of machines images for the intermediate versions.
+- Allow Cluster API users to influence the upgrade plan e.g. based on availability of machines images for the intermediate versions.
 
 ### Future Work
 
@@ -96,15 +96,15 @@ When using clusters with managed topologies:
 ### User Stories
 
 - As a user, I want to upgrade my Cluster using a managed topology by more than one minor version by simply changing
-  the value in `cluster.spec.topology.version`.
+  the value in `Cluster.spec.topology.version`.
 
-- As a user, I want that Cluster API automatically minimize the number of worker's machines rollouts 
+- As a user, I want that Cluster API automatically minimizes the number of worker machine rollouts 
   when upgrading a Cluster using managed topology by more than one minor.
 
 - As a cluster class author, I want to be able to specify the Kubernetes versions that the system might use as
-  intermediate or target versions for a chained upgrades for a Cluster using a specific cluster class.
+  intermediate or target versions for a chained upgrade for a Cluster using a specific cluster class.
 
-- As a developer building on top of Cluster API, I want that lifecycle hooks allow orchestration of external process, 
+- As a developer building on top of Cluster API, I want that lifecycle hooks allow orchestration of external processes, 
   like e.g. addon management, during different steps of a chained upgrade.
 
 ### Implementation Details/Notes/Constraints
@@ -113,7 +113,7 @@ This proposal is composed of three sets of changes:
 
 - Improvements required to determine the upgrade plan for a chained upgrade.
 - Improvements required to perform chained and efficient upgrades.
-- Improvements to upgrade related Lifecycle hooks.
+- Improvements to upgrade-related Lifecycle hooks.
 
 #### Upgrade plan
 
@@ -124,7 +124,7 @@ The ClusterClass CR will be extended to make it possible to define the list of K
 used for chained upgrades of the corresponding clusters.
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: quick-start-runtimesdk
@@ -144,17 +144,17 @@ between vA and vB.
 In the example above, the upgrade plan from v1.28.0 - current version - to v1.31.2 - target version -, will be: 
 v1.29.0 -> v1.30.1 -> v1.31.2
 
-Note: by convention, the current version is omitted from the upgrade plan, the target version is included.
+Note: By convention, the current version is omitted from the upgrade plan, the target version is included.
 
 Note: Cluster API cannot determine the list of available Kubernetes versions automatically, because the versions that can be used 
-in a Cluster API management cluster depend on external factors, e.g., by the availability of machine images for a Kubernetes version.
+in a Cluster API management cluster depend on external factors, e.g., on the availability of machine images for a Kubernetes version.
 
-As an alternative to explicitly setting the list of versions in a ClusterClasses, it will all also be possible to define 
+As an alternative to explicitly setting the list of versions in ClusterClasses, it will all also be possible to define 
 a runtime extension to be called when computing an upgrade plan; this extension could be used to return a
 dynamically computed list of Kubernetes versions that can be used.
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: quick-start-runtimesdk
@@ -345,17 +345,17 @@ This proposal does not add additional security concern to Cluster API.
 
 - Upgrading a Cluster by multiple Kubernetes minor versions in a short timeframe might increase risks to face issues during the upgrade.
 
-This proposal aims to help users those risks by automating the chained upgrade workflow so users can catch up with 
+This proposal aims to help users to manage these risks by automating the chained upgrade workflow so users can catch up with 
 Kubernetes versions easily, quickly, and with an upgrade plan validated by the system.
 
 Also, worth to notice that each machine rollout in Cluster API ultimately is an operation that is exercising 
-the same machinery that will be used during upgrades. 
+the same machinery that will be used during upgrades.
 
 That means that by doing any rollout, e.g. due to an automatic machine remediation, you get a proxy signal about the
 fact that the system can successfully perform an upgrade, or you get the chance to detect and fix issues in the system
 before a full upgrade is performed.
 
-Conversely, risk increase for users not performing any form of rollouts for long periods.
+Conversely, risk increases for users not performing any form of rollouts for long periods.
 
 - Upgrading a Cluster by multiple Kubernetes minor versions might compromise workloads.
 
@@ -372,7 +372,7 @@ was considered.
 
 However, the option was discarded because it seems more consistent having the list of 
 Kubernetes version to be used for upgrade plans in ClusterClasses, alongside all the other info defining 
-how a managed topology should behave.  
+how a managed topology should behave.
 
 ## Upgrade Strategy
 
@@ -393,12 +393,12 @@ required to get full coverage of the possible chained upgrade sequences.
 While implementing all those new tests is not impossible, it is considered not practical because the resulting E2E
 job would take a long time while current E2E jobs allow a fast iterative development process.
 
-Accordingly, int the first iteration only one chained upgrade test scenario going from N-3 to N+1 will be validated, 
+Accordingly, in the first iteration only one chained upgrade test scenario going from N-3 to N+1 will be validated, 
 but this is considered enough to ensure that:
 - The mechanics for chained upgrade works
 - [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/) is respected, and workers upgrade are performed only when necessary
 - Lifecycle hooks are called
-- Resulting K8s cluster pass the conformance test
+- Resulting K8s cluster passes the conformance test
 
 This new test will run periodically, and also be available to be run on demand on PRs.
 

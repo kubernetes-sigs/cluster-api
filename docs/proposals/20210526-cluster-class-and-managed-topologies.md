@@ -600,7 +600,7 @@ type definitions, like +MapType or +MapTypeKey, see [merge strategy](https://kub
 
 Note: in order to allow the topology controller to execute templates rotation only when strictly necessary, it is necessary
 to implement specific handling of dry run operations in the templates webhooks as described in the Cluster API contract, see
-e.g. [InfraMachineTemplate: support for SSA dry runInfraMachineTemplate: support for SSA dry run](https://cluster-api.sigs.k8s.io/developer/providers/contracts/infra-machine#inframachinetemplate-support-for-ssa-dry-run).
+e.g. [InfraMachineTemplate: support for SSA dry run](https://cluster-api.sigs.k8s.io/developer/providers/contracts/infra-machine#inframachinetemplate-support-for-ssa-dry-run).
 
 ### Risks and Mitigations
 

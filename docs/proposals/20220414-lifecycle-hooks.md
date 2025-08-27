@@ -131,7 +131,7 @@ Below is a description for the Runtime Hooks introduced by this proposal.
 The remainder of this section has been moved to the Cluster API [book](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-lifecycle-hooks.md#definitions)
 to avoid duplication.
 
-Note: Following change will be applied to the hooks with the ongoing work for [Chained and efficient upgrades](); the 
+Note: Following change will be applied to the hooks with the ongoing work for [Chained and efficient upgrades](./20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md); the
 documentation in the book will be aligned as soon as the work completes:
 
 #### BeforeClusterUpgrade (modified)
@@ -217,8 +217,6 @@ message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
 
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
 ####  AfterControlPlaneUpgrade (modified)
 
 This hook is called after the control plane has been upgraded to the version specified in `spec.topology.version`
@@ -274,15 +272,13 @@ message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
 
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
 ####  BeforeWorkersUpgrade (new hook)
 
 This hook is called before a new version is propagated to workers. Runtime Extension implementers
 can use this hook to execute pre-upgrade add-on tasks and block upgrades of Workers.
 
 Note:
-- This hook will be called only if workers upgrade must be performed for an intermediate version of of a chained upgrade
+- This hook will be called only if workers upgrade must be performed for an intermediate version of a chained upgrade
   or when upgrading to the target `spec.topology.version`.
 
 ##### Example Request:
@@ -320,20 +316,18 @@ Note: The upgrade plan in the request contains only missing steps to reach the t
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
-kind: BeforeControlPlaneUpgradeResponse
+kind: BeforeWorkersUpgradeResponse
 status: Success # or Failure
 message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
-
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
 
 ####  AfterWorkersUpgrade (new hook)
 
 This hook is called after all the workers have been upgraded to the version specified in `spec.topology.version`
 or to an intermediate version in the upgrade plan, and:
 - if the upgrade plan is completed and the entire cluster is at `spec.topology.version`, immediately before calling the AfterClusterUpgrade hook
-- if the upgrade plan is not complete and the entrire cluster is now at one of the intermediate versions, immediately before calling BeforeControlPlaneUpgrade hook for the next intermediate step
+- if the upgrade plan is not complete and the entire cluster is now at one of the intermediate versions, immediately before calling BeforeControlPlaneUpgrade hook for the next intermediate step
 
 Runtime Extension implementers can use this hook to execute post-upgrade add-on tasks; if the upgrade plan is not completed,
 this hook allows to block upgrades to the next version of the control plane until everything is ready.
@@ -342,7 +336,7 @@ this hook allows to block upgrades to the next version of the control plane unti
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
-kind: AfterWorkersRequest
+kind: AfterWorkersUpgradeRequest
 settings: <Runtime Extension settings>
 cluster:
   apiVersion: cluster.x-k8s.io/v1beta1
@@ -371,7 +365,7 @@ Note: The upgrade plan in the request contains only missing steps to reach the t
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
-kind: AfterControlPlaneUpgradeResponse
+kind: AfterWorkersUpgradeResponse
 status: Success # or Failure
 message: "error message if status == Failure"
 retryAfterSeconds: 10

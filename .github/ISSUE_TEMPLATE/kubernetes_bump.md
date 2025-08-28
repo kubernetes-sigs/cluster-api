@@ -25,6 +25,8 @@ changes should be cherry-picked to all release series that will support the new 
 * [ ] Modify CAPD to use the new Kubernetes release after it is GA:
   * Bump the Kubernetes version in `test/*` except for `test/infrastructure/kind/*`.
   * Prior art: https://github.com/kubernetes-sigs/cluster-api/pull/11030
+* [ ] Start testing with next Kubernetes release on main by bumping `KUBERNETES_VERSION_LATEST_CI` in `docker.yaml`
+  * Prior art: https://github.com/kubernetes-sigs/cluster-api/pull/12709
 * [ ] Ensure the jobs are adjusted to provide test coverage according to our [support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions):
 
   * At the `.versions`  section in the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/):

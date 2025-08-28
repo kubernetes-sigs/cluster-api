@@ -371,7 +371,7 @@ variables:
   # This avoids building node images in the default case which improves the test duration significantly.
   KUBERNETES_VERSION_MANAGEMENT: "v1.34.0"
   KUBERNETES_VERSION: "v1.34.0"
-  KUBERNETES_VERSION_UPGRADE_FROM: "v1.33.1"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.33.4"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.34.0"
   KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.34"
   ETCD_VERSION_UPGRADE_TO: "3.6.4-0"

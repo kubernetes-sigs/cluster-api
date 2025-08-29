@@ -58,6 +58,7 @@ var (
 		"tinkerbell/cluster-api-provider-tinkerbell",
 		"kubernetes-sigs/cluster-api-provider-vsphere",
 		"metal3-io/cluster-api-provider-metal3",
+		"rancher/cluster-api-provider-rke2",
 	}
 )
 

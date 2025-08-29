@@ -188,7 +188,7 @@ If instead you are eager to see an example of ClusterClass and how the Cluster o
 
 The ClusterClass CRD allows to define a collection of templates that describe the topology for one or more clusters.
 
-The detailed definition of this type can be found at [ClusterClass CRD reference](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta1);
+The detailed definition of this type can be found at [ClusterClass CRD reference](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/ClusterClass/v1beta2);
 at high level the new CRD contains:
 
 - The reference to the InfrastructureCluster template (e.g. AWSClusterTemplate) to be used when creating a Cluster using this ClusterClass
@@ -209,6 +209,8 @@ at high level the new CRD contains:
 - A list of patches, allowing to change above templates for each specific Cluster.
 - A list of variable definitions, defining a set of additional values the users can provide on each specific cluster;
   those values can be used in patches. 
+- A list of Kubernetes versions to be used when performing chained upgrades for clusters using this Cluster class, see
+  [proposal: Chained and efficient upgrades for Clusters with managed topologies](20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md).
 
 The following paragraph provides some additional context on some of the above values; more info can
 be found in [writing a ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/write-clusterclass.html).
@@ -241,7 +243,7 @@ providing generic information about the cluster or the template being patched.
 
 ##### Cluster
 
-The [Cluster CRD](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/Cluster/v1beta1) has been extended 
+The [Cluster CRD](https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api/cluster.x-k8s.io/Cluster/v1beta2) has been extended 
 with a new field allowing to define and control the cluster topology from a single point.
 
 At high level the cluster topology is defined by:
@@ -378,7 +380,17 @@ as well as in
           apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
           kind: VSphereClusterTemplate
           name: vsphere-prod-cluster-template
-   ```
+      kubernetesVersions:
+      - v1.28.0
+      - v1.29.0
+      - v1.30.0
+      - v1.30.1
+      - v1.31.2
+      - ...
+      ```
+
+      see [proposal: Chained and efficient upgrades for Clusters with managed topologies](20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md) for more options
+      for configuring Kubernetes version upgrade of clusters using managed topologies.
 
 2. User creates a cluster using the class name and defining the topology.
    ```yaml
@@ -433,6 +445,9 @@ This section talks about updating a Cluster which was created using a `ClusterCl
 
 ![Update cluster with ClusterClass](./images/cluster-class/update.png)
 
+see [proposal: Chained and efficient upgrades for Clusters with managed topologies](20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md) 
+for more considerations about Kubernetes version upgrade of clusters using managed topologies. 
+
 #### Behavior with patches
 
 This section highlights how the basic behavior discussed above changes when patches are used. This is an important use case because without 
@@ -485,6 +500,9 @@ like e.g. a different HTTP proxy configuration, a different image to be used for
            valueFrom:
              variable: machineType
    ```
+   
+See [proposal: topology mutation hook](20220330-topology-mutation-hook.md) for a powerful alternative to
+inline patches.
 
 ##### Create a new Cluster with patches
 
@@ -581,7 +599,8 @@ In this cases for ServerSideApply to work properly it is required to ensure the 
 type definitions, like +MapType or +MapTypeKey, see [merge strategy](https://kubernetes.io/docs/reference/using-api/server-side-apply/#merge-strategy) for more details.
 
 Note: in order to allow the topology controller to execute templates rotation only when strictly necessary, it is necessary
-to implement specific handling of dry run operations in the templates webhooks as described in [Required Changes on providers from 1.1 to 1.2](https://release-1-8.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.1-to-v1.2#required-api-changes-for-providers).
+to implement specific handling of dry run operations in the templates webhooks as described in the Cluster API contract, see
+e.g. [InfraMachineTemplate: support for SSA dry run](https://cluster-api.sigs.k8s.io/developer/providers/contracts/infra-machine#inframachinetemplate-support-for-ssa-dry-run).
 
 ### Risks and Mitigations
 
@@ -613,6 +632,7 @@ The initial plan is to rollout Cluster Class and support for managed topologies 
 - 10/04/2021: Added support for patches and variables
 - 01/10/2022: Added support for MachineHealthChecks
 - 12/20/2022: Cleaned up outdated implementation details by linking the book's pages instead. This will make it easier to keep the proposal up to date.
+- 05/13/2025: Added support for Upgrade Plans; see [proposal: Chained and efficient upgrades for Clusters with managed topologies](20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md)
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY

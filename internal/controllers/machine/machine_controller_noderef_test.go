@@ -1400,7 +1400,7 @@ func Test_shouldNodeHaveOutdatedTaint(t *testing.T) {
 	testMachineDeploymentNew.Annotations = map[string]string{clusterv1.RevisionAnnotation: "2"}
 
 	testMachineSet := builder.MachineSet(namespaceName, "my-ms").
-		WithOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(testMachineDeployment, testMachineDeployment.GroupVersionKind())}).
+		WithOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(testMachineDeployment, clusterv1.GroupVersion.WithKind("MachineDeployment"))}).
 		Build()
 	testMachineSet.Annotations = map[string]string{clusterv1.RevisionAnnotation: "1"}
 
@@ -1408,7 +1408,7 @@ func Test_shouldNodeHaveOutdatedTaint(t *testing.T) {
 		clusterv1.MachineDeploymentNameLabel: "my-md",
 	}
 	testMachine := builder.Machine(namespaceName, "my-machine").WithLabels(labels).Build()
-	testMachine.SetOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(testMachineSet, testMachineSet.GroupVersionKind())})
+	testMachine.SetOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(testMachineSet, clusterv1.GroupVersion.WithKind("MachineSet"))})
 
 	tests := []struct {
 		name         string

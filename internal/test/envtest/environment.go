@@ -611,6 +611,14 @@ func verifyPanicMetrics() error {
 				}
 			}
 		}
+
+		if metricFamily.GetName() == "controller_runtime_conversion_webhook_panics_total" {
+			for _, webhookPanicMetric := range metricFamily.Metric {
+				if webhookPanicMetric.Counter != nil && webhookPanicMetric.Counter.Value != nil && *webhookPanicMetric.Counter.Value > 0 {
+					errs = append(errs, fmt.Errorf("%.0f panics occurred in conversion webhooks (check logs for more details)", *webhookPanicMetric.Counter.Value))
+				}
+			}
+		}
 	}
 
 	if len(errs) > 0 {

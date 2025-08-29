@@ -154,7 +154,6 @@ func schema_cluster_api_api_core_v1beta1_APIEndpoint(ref common.ReferenceCallbac
 						},
 					},
 				},
-				Required: []string{"host", "port"},
 			},
 		},
 	}

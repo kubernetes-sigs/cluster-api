@@ -97,6 +97,10 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 	addOpts := &addObjectOptions{}
 	addOpts.ApplyOptions(opts)
 
+	if addOpts.GroupVersionKind != nil {
+		obj.GetObjectKind().SetGroupVersionKind(*addOpts.GroupVersionKind)
+	}
+
 	// Get a small set of conditions that will be used to determine e.g. when grouping or when an object is just an echo of
 	// its parent.
 	var objReadyV1Beta1, parentReadyV1Beta1 *clusterv1.Condition

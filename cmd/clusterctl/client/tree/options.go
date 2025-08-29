@@ -16,16 +16,22 @@ limitations under the License.
 
 package tree
 
+import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/utils/ptr"
+)
+
 // AddObjectOption define an option for the ObjectTree Add operation.
 type AddObjectOption interface {
 	ApplyToAdd(*addObjectOptions)
 }
 
 type addObjectOptions struct {
-	MetaName       string
-	GroupingObject bool
-	NoEcho         bool
-	ZOrder         int
+	GroupVersionKind *schema.GroupVersionKind
+	MetaName         string
+	GroupingObject   bool
+	NoEcho           bool
+	ZOrder           int
 }
 
 func (o *addObjectOptions) ApplyOptions(opts []AddObjectOption) *addObjectOptions {
@@ -33,6 +39,16 @@ func (o *addObjectOptions) ApplyOptions(opts []AddObjectOption) *addObjectOption
 		opt.ApplyToAdd(o)
 	}
 	return o
+}
+
+// GroupVersionKind is the gvk to set on the passed in obj.
+// This option has to be used if obj is a typed object and
+// it cannot be guaranteed that gvk is set.
+type GroupVersionKind schema.GroupVersionKind
+
+// ApplyToAdd applies the given options.
+func (n GroupVersionKind) ApplyToAdd(options *addObjectOptions) {
+	options.GroupVersionKind = ptr.To(schema.GroupVersionKind(n))
 }
 
 // The ObjectMetaName option defines the meta name that should be used for the object in the presentation layer,

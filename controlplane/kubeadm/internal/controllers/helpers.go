@@ -94,7 +94,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 	}
 
 	// only do rotation on owned secrets
-	if !util.IsControlledBy(configSecret, controlPlane.KCP) {
+	if !util.IsControlledBy(configSecret, controlPlane.KCP, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane").GroupKind()) {
 		return ctrl.Result{}, nil
 	}
 

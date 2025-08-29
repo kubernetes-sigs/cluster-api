@@ -189,6 +189,20 @@ func Test_validateMetadata(t *testing.T) {
 			errMessage:    "invalid provider metadata: unexpected kind \"WrongKind\" for provider infra-test (expected \"Metadata\")",
 		},
 		{
+			name: "empty kind passes validation",
+			metadata: &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					{Major: 1, Minor: 0, Contract: "v1beta1"},
+				},
+			},
+			providerLabel: "infra-test",
+			wantErr:       false,
+		},
+		{
 			name: "empty releaseSeries",
 			metadata: &clusterctlv1.Metadata{
 				TypeMeta: metav1.TypeMeta{

@@ -440,7 +440,7 @@ func (p *providersClient) defaults() []Provider {
 		// Add-on providers
 		&provider{
 			name:         FleetAddonProviderName,
-			url:          "https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/releases/latest/addon-components.yaml",
+			url:          "https://github.com/rancher/cluster-api-addon-provider-fleet/releases/latest/addon-components.yaml",
 			providerType: clusterctlv1.AddonProviderType,
 		},
 		&provider{

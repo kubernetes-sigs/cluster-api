@@ -80,7 +80,7 @@ source of inspiration and ideas for others.
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-ipam-provider-nutanix)
 
 ## Addon
-- [Fleet](https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/)
+- [Fleet](https://github.com/rancher/cluster-api-addon-provider-fleet/)
 - [Helm](https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/)
 - [Cdk8s](https://github.com/eitco/cluster-api-addon-provider-cdk8s/)
 

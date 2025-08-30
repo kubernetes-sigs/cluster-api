@@ -310,5 +310,5 @@ func handleGithubErr(err error, message string, args ...interface{}) error {
 	if _, ok := err.(*github.RateLimitError); ok {
 		return errRateLimit
 	}
-	return fmt.Errorf("%s: %w", fmt.Sprintf(message, args...), err)
+	return errors.Wrapf(err, message, args...)
 }

@@ -113,7 +113,9 @@ func validateMetadata(metadata *clusterctlv1.Metadata, providerLabel string) err
 			metadata.APIVersion, providerLabel, clusterctlv1.GroupVersion.String())
 	}
 
-	if metadata.Kind != "Metadata" {
+	// v1.11 started enforcing the Metadata Kind, but several providers did not actually have the field serialized.
+	// Ratchet validation so that an empty Kind is accepted.
+	if metadata.Kind != "Metadata" && metadata.Kind != "" {
 		return errors.Errorf("invalid provider metadata: unexpected kind %q for provider %s (expected \"Metadata\")",
 			metadata.Kind, providerLabel)
 	}

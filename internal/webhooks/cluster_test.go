@@ -1675,12 +1675,13 @@ func TestClusterTopologyValidation(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	tests := []struct {
-		name              string
-		in                *clusterv1.Cluster
-		old               *clusterv1.Cluster
-		additionalObjects []client.Object
-		expectErr         bool
-		expectWarning     bool
+		name                 string
+		in                   *clusterv1.Cluster
+		old                  *clusterv1.Cluster
+		additionalObjects    []client.Object
+		clusterClassVersions []string
+		expectErr            bool
+		expectWarning        bool
 	}{
 		{
 			name:      "should return error when topology does not have class",
@@ -1779,6 +1780,31 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 		},
 		{
+			name:      "should pass when changing build tag - not sortable",
+			expectErr: false,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.2.3+ANCBG0").
+					Build()).
+				Build(),
+			in: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.2.3+ANCBG1").
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				// Note: CRD is needed to look up the apiVersion from contract labels.
+				builder.GenericControlPlaneCRD,
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3+ANCBG0").
+					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3+ANCBG0"}).
+					Build(),
+			},
+		},
+		{
 			name:      "should return error when upgrading +2 minor version",
 			expectErr: true,
 			old: builder.Cluster("fooboo", "cluster1").
@@ -1793,6 +1819,84 @@ func TestClusterTopologyValidation(t *testing.T) {
 					WithVersion("v1.4.0").
 					Build()).
 				Build(),
+		},
+		{
+			name:      "fails when kubernetes version are defined in CC and version does not match (on create)",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.3.2").
+					Build()).
+				Build(),
+			clusterClassVersions: []string{"v1.2.3", "v1.3.1", "v1.4.0"},
+		},
+		{
+			name:      "fails when kubernetes version are defined in CC and version does not match",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.2.3").
+					Build()).
+				Build(),
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.3.2").
+					Build()).
+				Build(),
+			clusterClassVersions: []string{"v1.2.3", "v1.3.1", "v1.4.0"},
+		},
+		{
+			name: "should allow upgrading >1 minor version when kubernetes version are defined in CC",
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.2.3").
+					Build()).
+				Build(),
+			in: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.4.0").
+					Build()).
+				Build(),
+			clusterClassVersions: []string{"v1.2.3", "v1.3.1", "v1.4.0"},
+			additionalObjects: []client.Object{
+				// Note: CRD is needed to look up the apiVersion from contract labels.
+				builder.GenericControlPlaneCRD,
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3").
+					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3"}).
+					Build(),
+			},
+		},
+		{
+			name: "should allow upgrading >1 minor version when kubernetes version are defined in CC - with build tags",
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.2.3+ANCBG0").
+					Build()).
+				Build(),
+			in: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.4.0+BXCBG0").
+					Build()).
+				Build(),
+			clusterClassVersions: []string{"v1.2.3+ANCBG0", "v1.3.1+QPAVG0", "v1.4.0+BXCBG0"},
+			additionalObjects: []client.Object{
+				// Note: CRD is needed to look up the apiVersion from contract labels.
+				builder.GenericControlPlaneCRD,
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3+ANCBG0").
+					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3+ANCBG0"}).
+					Build(),
+			},
 		},
 		{
 			name:      "should return error when duplicated MachineDeployments names exists in a Topology",
@@ -2137,6 +2241,10 @@ func TestClusterTopologyValidation(t *testing.T) {
 					*builder.MachinePoolClass("aa").Build(),
 				).
 				Build()
+
+			if tt.clusterClassVersions != nil {
+				class.Spec.KubernetesVersions = tt.clusterClassVersions
+			}
 
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
 			conditions.Set(class, metav1.Condition{

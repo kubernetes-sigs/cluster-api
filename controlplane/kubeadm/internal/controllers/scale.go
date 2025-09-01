@@ -185,7 +185,16 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		// Block when we expect an upgrade to be propagated for topology clusters.
-		if controlPlane.Cluster.Spec.Topology.IsDefined() && controlPlane.Cluster.Spec.Topology.Version != controlPlane.KCP.Spec.Version {
+		// NOTE: in case the cluster is performing an upgrade, allow creation of machines for the intermediate step.
+		isUpgradeForVersion := false
+		if versions, ok := controlPlane.Cluster.GetAnnotations()[clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation]; ok {
+			v := strings.Split(versions, ",")
+			if len(v) > 0 {
+				isUpgradeForVersion = strings.TrimSpace(v[0]) == controlPlane.KCP.Spec.Version
+			}
+		}
+
+		if controlPlane.Cluster.Spec.Topology.IsDefined() && controlPlane.Cluster.Spec.Topology.Version != controlPlane.KCP.Spec.Version && !isUpgradeForVersion {
 			logger.Info(fmt.Sprintf("Waiting for a version upgrade to %s to be propagated from Cluster.spec.topology", controlPlane.Cluster.Spec.Topology.Version))
 			controlPlane.PreflightCheckResults.TopologyVersionMismatch = true
 			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil

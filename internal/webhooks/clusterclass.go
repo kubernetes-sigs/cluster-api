@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,6 +41,7 @@ import (
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	clog "sigs.k8s.io/cluster-api/util/log"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -173,6 +175,9 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 		allErrs = append(allErrs,
 			validateAutoscalerAnnotationsForClusterClass(clusters, newClusterClass)...)
 	}
+
+	// Ensure all kubernetes versions are valid.
+	allErrs = append(allErrs, validateKubernetesVersions(newClusterClass.Spec.KubernetesVersions)...)
 
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), newClusterClass.Name, allErrs)
@@ -498,6 +503,42 @@ func validateAutoscalerAnnotationsForClusterClass(clusters []clusterv1.Cluster, 
 	var allErrs field.ErrorList
 	for _, c := range clusters {
 		allErrs = append(allErrs, validateAutoscalerAnnotationsForCluster(&c, newClusterClass)...)
+	}
+	return allErrs
+}
+
+// validateKubernetesVersions iterates over a list of versions and check they are valid.
+func validateKubernetesVersions(versions []string) field.ErrorList {
+	var allErrs field.ErrorList
+	var currentVersion *semver.Version
+	for i, v := range versions {
+		semV, err := semver.ParseTolerant(v)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(
+				field.NewPath("spec", "kubernetesVersion").Index(i),
+				v,
+				"version must be a valid semantic version",
+			))
+		}
+		if currentVersion != nil {
+			// Note: we tolerate having one version followed by another with the same major.minor.patch but different build tags (version.Compare==2)
+			if version.Compare(semV, *currentVersion, version.WithBuildTags()) <= 0 {
+				allErrs = append(allErrs, field.Invalid(
+					field.NewPath("spec", "kubernetesVersion").Index(i),
+					v,
+					fmt.Sprintf("version must be greater than v%s", currentVersion.String()),
+				))
+			}
+
+			if currentVersion.Minor != semV.Minor && currentVersion.Minor+1 != semV.Minor {
+				allErrs = append(allErrs, field.Invalid(
+					field.NewPath("spec", "kubernetesVersion").Index(i),
+					v,
+					fmt.Sprintf("invalid control plane upgrade plan, item %d; expecting a version with minor %d or %d, found version %s", i, currentVersion.Minor, currentVersion.Minor+1, semV),
+				))
+			}
+		}
+		currentVersion = &semV
 	}
 	return allErrs
 }

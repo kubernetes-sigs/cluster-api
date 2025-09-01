@@ -359,6 +359,7 @@ type ClusterClassBuilder struct {
 	statusVariables                           []clusterv1.ClusterClassStatusVariable
 	patches                                   []clusterv1.ClusterClassPatch
 	conditions                                []metav1.Condition
+	versions                                  []string
 }
 
 // ClusterClass returns a ClusterClassBuilder with the given name and namespace.
@@ -480,6 +481,12 @@ func (c *ClusterClassBuilder) WithWorkerMachinePoolClasses(mpcs ...clusterv1.Mac
 	return c
 }
 
+// WithVersions sets versions in the ClusterClass.
+func (c *ClusterClassBuilder) WithVersions(versions ...string) *ClusterClassBuilder {
+	c.versions = versions
+	return c
+}
+
 // Build takes the objects and variables in the ClusterClass builder and uses them to create a ClusterClass object.
 func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 	obj := &clusterv1.ClusterClass{
@@ -534,6 +541,7 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 
 	obj.Spec.Workers.MachineDeployments = c.machineDeploymentClasses
 	obj.Spec.Workers.MachinePools = c.machinePoolClasses
+	obj.Spec.KubernetesVersions = c.versions
 	return obj
 }
 
@@ -1424,6 +1432,18 @@ func ControlPlane(namespace, name string) *ControlPlaneBuilder {
 	}
 }
 
+// WithLabels adds the passed labels to the ControlPlaneBuilder.
+func (c *ControlPlaneBuilder) WithLabels(labels map[string]string) *ControlPlaneBuilder {
+	c.obj.SetLabels(labels)
+	return c
+}
+
+// WithAnnotations adds the passed annotations to the ControlPlaneBuilder.
+func (c *ControlPlaneBuilder) WithAnnotations(annotations map[string]string) *ControlPlaneBuilder {
+	c.obj.SetAnnotations(annotations)
+	return c
+}
+
 // WithInfrastructureMachineTemplate adds the given unstructured object to the ControlPlaneBuilder as its InfrastructureMachineTemplate.
 func (c *ControlPlaneBuilder) WithInfrastructureMachineTemplate(t *unstructured.Unstructured, contractVersion string) *ControlPlaneBuilder {
 	if contractVersion == "v1beta1" {
@@ -1543,18 +1563,6 @@ func (c *TestControlPlaneBuilder) WithVersion(version string) *TestControlPlaneB
 	if err := unstructured.SetNestedField(c.obj.Object, version, "spec", "version"); err != nil {
 		panic(err)
 	}
-	return c
-}
-
-// WithLabels adds the passed labels to the ControlPlaneBuilder.
-func (c *ControlPlaneBuilder) WithLabels(labels map[string]string) *ControlPlaneBuilder {
-	c.obj.SetLabels(labels)
-	return c
-}
-
-// WithAnnotations adds the passed annotations to the ControlPlaneBuilder.
-func (c *ControlPlaneBuilder) WithAnnotations(annotations map[string]string) *ControlPlaneBuilder {
-	c.obj.SetAnnotations(annotations)
 	return c
 }
 

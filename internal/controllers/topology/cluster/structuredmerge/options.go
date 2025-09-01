@@ -52,6 +52,7 @@ var (
 		{"kind"},
 		{"metadata", "name"},
 		{"metadata", "namespace"},
+		{"metadata", "annotations", "topology.cluster.x-k8s.io/upgrade-step"},
 		// uid is optional for a server side apply intent but sets the expectation of an object getting created or a specific one updated.
 		{"metadata", "uid"},
 		// the topology controller controls/has an opinion for the labels ClusterNameLabel

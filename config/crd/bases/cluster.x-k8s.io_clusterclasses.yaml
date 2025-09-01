@@ -3320,6 +3320,20 @@ spec:
                 required:
                 - templateRef
                 type: object
+              kubernetesVersions:
+                description: |-
+                  kubernetesVersions is the list of Kubernetes versions that can be
+                  used for clusters using this ClusterClass.
+                  The list of version must be ordered from the older to the newer version, and there should be
+                  at least one version for every minor in between the first and the last version.
+                items:
+                  maxLength: 256
+                  minLength: 1
+                  type: string
+                maxItems: 100
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: atomic
               patches:
                 description: |-
                   patches defines the patches which are applied to customize

@@ -34,17 +34,18 @@ import (
 
 // Test suite constants for e2e config variables.
 const (
-	KubernetesVersionManagement     = "KUBERNETES_VERSION_MANAGEMENT"
-	KubernetesVersion               = "KUBERNETES_VERSION"
-	CNIPath                         = "CNI"
-	CNIResources                    = "CNI_RESOURCES"
-	KubernetesVersionUpgradeFrom    = "KUBERNETES_VERSION_UPGRADE_FROM"
-	KubernetesVersionUpgradeTo      = "KUBERNETES_VERSION_UPGRADE_TO"
-	CPMachineTemplateUpgradeTo      = "CONTROL_PLANE_MACHINE_TEMPLATE_UPGRADE_TO"
-	WorkersMachineTemplateUpgradeTo = "WORKERS_MACHINE_TEMPLATE_UPGRADE_TO"
-	EtcdVersionUpgradeTo            = "ETCD_VERSION_UPGRADE_TO"
-	CoreDNSVersionUpgradeTo         = "COREDNS_VERSION_UPGRADE_TO"
-	IPFamily                        = "IP_FAMILY"
+	KubernetesVersionManagement         = "KUBERNETES_VERSION_MANAGEMENT"
+	KubernetesVersion                   = "KUBERNETES_VERSION"
+	CNIPath                             = "CNI"
+	CNIResources                        = "CNI_RESOURCES"
+	KubernetesVersionChainedUpgradeFrom = "KUBERNETES_VERSION_CHAINED_UPGRADE_FROM"
+	KubernetesVersionUpgradeFrom        = "KUBERNETES_VERSION_UPGRADE_FROM"
+	KubernetesVersionUpgradeTo          = "KUBERNETES_VERSION_UPGRADE_TO"
+	CPMachineTemplateUpgradeTo          = "CONTROL_PLANE_MACHINE_TEMPLATE_UPGRADE_TO"
+	WorkersMachineTemplateUpgradeTo     = "WORKERS_MACHINE_TEMPLATE_UPGRADE_TO"
+	EtcdVersionUpgradeTo                = "ETCD_VERSION_UPGRADE_TO"
+	CoreDNSVersionUpgradeTo             = "COREDNS_VERSION_UPGRADE_TO"
+	IPFamily                            = "IP_FAMILY"
 )
 
 var stableReleaseMarkerPrefix = "go://sigs.k8s.io/cluster-api@v%s"

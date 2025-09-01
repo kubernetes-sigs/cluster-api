@@ -436,7 +436,8 @@ func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.S
 
 	if !s.Current.Cluster.Spec.InfrastructureRef.IsDefined() && !s.Current.Cluster.Spec.ControlPlaneRef.IsDefined() {
 		v1beta1Cluster := &clusterv1beta1.Cluster{}
-		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster); err != nil {
+		// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
+		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 		}
 
@@ -529,7 +530,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
 		if !hooks.IsOkToDelete(cluster) {
 			v1beta1Cluster := &clusterv1beta1.Cluster{}
-			if err := v1beta1Cluster.ConvertFrom(cluster); err != nil {
+			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
+			if err := v1beta1Cluster.ConvertFrom(cluster.DeepCopy()); err != nil {
 				return ctrl.Result{}, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 			}
 

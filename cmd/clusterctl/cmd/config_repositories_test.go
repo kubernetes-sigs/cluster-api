@@ -158,7 +158,7 @@ nutanix                 IPAMProvider               https://github.com/nutanix-cl
 nutanix                 RuntimeExtensionProvider   https://github.com/nutanix-cloud-native/cluster-api-runtime-extensions-nutanix/releases/latest/   runtime-extensions-components.yaml
 eitco-cdk8s             AddonProvider              https://github.com/eitco/cluster-api-addon-provider-cdk8s/releases/latest/                        addon-components.yaml
 helm                    AddonProvider              https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/               addon-components.yaml
-rancher-fleet           AddonProvider              https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/releases/latest/              addon-components.yaml
+rancher-fleet           AddonProvider              https://github.com/rancher/cluster-api-addon-provider-fleet/releases/latest/                      addon-components.yaml
 `
 
 var expectedOutputYaml = `- File: core_components.yaml
@@ -400,5 +400,5 @@ var expectedOutputYaml = `- File: core_components.yaml
 - File: addon-components.yaml
   Name: rancher-fleet
   ProviderType: AddonProvider
-  URL: https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/releases/latest/
+  URL: https://github.com/rancher/cluster-api-addon-provider-fleet/releases/latest/
 `

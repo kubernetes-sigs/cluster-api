@@ -197,7 +197,8 @@ func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *sc
 	if hooks.IsPending(runtimehooksv1.AfterControlPlaneInitialized, s.Current.Cluster) {
 		if isControlPlaneInitialized(s.Current.Cluster) {
 			v1beta1Cluster := &clusterv1beta1.Cluster{}
-			if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster); err != nil {
+			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
+			if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
 				return errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 			}
 
@@ -250,7 +251,8 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 			!s.UpgradeTracker.MachinePools.IsAnyPendingUpgrade() && // No MachinePools are pending an upgrade
 			!s.UpgradeTracker.MachinePools.DeferredUpgrade() { // No MachinePools have deferred an upgrade
 			v1beta1Cluster := &clusterv1beta1.Cluster{}
-			if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster); err != nil {
+			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
+			if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
 				return errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 			}
 

@@ -115,7 +115,8 @@ func marshalForVersion(obj conversion.Hub, version semver.Version, kubeadmObjVer
 	}
 
 	targetKubeadmObj = targetKubeadmObj.DeepCopyObject().(conversion.Convertible)
-	if err := targetKubeadmObj.ConvertFrom(obj); err != nil {
+	// DeepCopy obj because ConvertFrom might have side effects.
+	if err := targetKubeadmObj.ConvertFrom(obj.DeepCopyObject().(conversion.Hub)); err != nil {
 		return "", errors.Wrapf(err, "failed to convert to KubeadmAPI type for version %s", kubeadmAPIGroupVersion)
 	}
 

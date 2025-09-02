@@ -32,6 +32,7 @@ After CAPI v1.12.0, the .1 release will follow up to add support for Kubernetes 
 
 | **Role**                                  | **Lead** (**GitHub / Slack ID**)                                                      | **Team member(s) (GitHub / Slack ID)** |
 |-------------------------------------------|-------------------------------------------------------------------------------------------|----------------------------------------|
-| Release Lead                              | TBD | TBD |
-| Communications/Docs/Release Notes Manager | TBD | TBD |
-| CI Signal/Bug Triage/Automation Manager   | TBD | TBD |
+| Release Lead                              | Pratik Mahalle ([@pratik-mahalle](https://github.com/pratik-mahalle) / `@pratik-mahalle`) | |
+| Communications/Docs/Release Notes Manager | Chandan Kumar ([@chandankumar4](https://github.com/chandankumar4) / `@Chandan Kumar`) | Anshuman ([@anshuman-agarwala](https://github.com/anshuman-agarwala) / `@anshuman-agarwala`) <br> Peppi-Lotta ([@Peppi-Lotta](https://github.com/Peppi-Lotta) / `@Peppi-Lotta`) <br> |
+| CI Signal/Bug Triage/Automation Manager   | Arshadd Banoo ([@arshadd-b](https://github.com/arshadd-b) / `@arshadda`) | Aman Shrivastava ([@aman4433](https://github.com/aman4433) / `@AmanShrivastava`) <br> Angelos Kolaitis ([@neoaggelos](https://github.com/neoaggelos) / `@AngelosKolaitis`) <br> Avaneesh ([@avaneesh634](https://github.com/avaneesh634) / `@Avaneesh`) <br> Serhii Ivanov ([@s3rj1k](https://github.com/s3rj1k) / `@s3rj1k`) <br> Sujay ([@SD-13](https://github.com/SD-13) / `@Sujay`) <br> Pawel Bek ([@blind3dd](https://github.com/blind3dd) / `@usualsuspectx`) <br> Wendy Ha ([@wendy-ha18](https://github.com/wendy-ha18) / `@Wendy Ha`) <br> |
+| Emeritus Advisor                          |  Matt Boersma ([@mboersma](https://github.com/mboersma) / `@mboersma`) | |

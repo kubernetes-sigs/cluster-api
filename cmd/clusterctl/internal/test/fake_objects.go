@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -1562,6 +1563,9 @@ func (f *FakeClusterClass) Objs() []client.Object {
 	for o := range objMap {
 		setUID(o)
 	}
+	// GVK should be only set for setUID to avoid the wrong assumption that GVK is set on a
+	// ClusterClass in other parts of the code.
+	clusterClass.SetGroupVersionKind(schema.GroupVersionKind{})
 
 	for o, setOwnerReference := range objMap {
 		if setOwnerReference {

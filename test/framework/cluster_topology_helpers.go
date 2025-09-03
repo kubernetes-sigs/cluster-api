@@ -59,22 +59,23 @@ func GetClusterClassByName(ctx context.Context, input GetClusterClassByNameInput
 
 // UpgradeClusterTopologyAndWaitForUpgradeInput is the input type for UpgradeClusterTopologyAndWaitForUpgrade.
 type UpgradeClusterTopologyAndWaitForUpgradeInput struct {
-	ClusterProxy                       ClusterProxy
-	Cluster                            *clusterv1.Cluster
-	ControlPlane                       *controlplanev1.KubeadmControlPlane
-	EtcdImageTag                       string
-	DNSImageTag                        string
-	MachineDeployments                 []*clusterv1.MachineDeployment
-	MachinePools                       []*clusterv1.MachinePool
-	KubernetesUpgradeVersion           string
-	WaitForMachinesToBeUpgraded        []interface{}
-	WaitForMachinePoolToBeUpgraded     []interface{}
-	WaitForKubeProxyUpgrade            []interface{}
-	WaitForDNSUpgrade                  []interface{}
-	WaitForEtcdUpgrade                 []interface{}
-	PreWaitForControlPlaneToBeUpgraded func()
-	PreWaitForWorkersToBeUpgraded      func()
-	SkipKubeProxyCheck                 bool
+	ClusterProxy                         ClusterProxy
+	Cluster                              *clusterv1.Cluster
+	ControlPlane                         *controlplanev1.KubeadmControlPlane
+	EtcdImageTag                         string
+	DNSImageTag                          string
+	MachineDeployments                   []*clusterv1.MachineDeployment
+	MachinePools                         []*clusterv1.MachinePool
+	KubernetesUpgradeVersion             string
+	WaitForControlPlaneToBeUpgraded      []interface{}
+	WaitForMachineDeploymentToBeUpgraded []interface{}
+	WaitForMachinePoolToBeUpgraded       []interface{}
+	WaitForKubeProxyUpgrade              []interface{}
+	WaitForDNSUpgrade                    []interface{}
+	WaitForEtcdUpgrade                   []interface{}
+	PreWaitForControlPlaneToBeUpgraded   func()
+	PreWaitForWorkersToBeUpgraded        func()
+	SkipKubeProxyCheck                   bool
 }
 
 // UpgradeClusterTopologyAndWaitForUpgrade upgrades a Cluster topology and waits for it to be upgraded.
@@ -88,7 +89,7 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 
 	mgmtClient := input.ClusterProxy.GetClient()
 
-	log.Logf("Patching the new Kubernetes version to Cluster topology")
+	log.Logf("Patching the new Kubernetes version %s to Cluster topology", input.KubernetesUpgradeVersion)
 	patchHelper, err := patch.NewHelper(input.Cluster, mgmtClient)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -121,7 +122,7 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 		Cluster:                  input.Cluster,
 		MachineCount:             int(*input.ControlPlane.Spec.Replicas),
 		KubernetesUpgradeVersion: input.KubernetesUpgradeVersion,
-	}, input.WaitForMachinesToBeUpgraded...)
+	}, input.WaitForControlPlaneToBeUpgraded...)
 
 	workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name)
 	workloadClient := workloadCluster.GetClient()
@@ -173,7 +174,7 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 				MachineCount:             int(*deployment.Spec.Replicas),
 				KubernetesUpgradeVersion: input.KubernetesUpgradeVersion,
 				MachineDeployment:        *deployment,
-			}, input.WaitForMachinesToBeUpgraded...)
+			}, input.WaitForMachineDeploymentToBeUpgraded...)
 		}
 	}
 

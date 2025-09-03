@@ -24,7 +24,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -32,9 +34,39 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
+
+// GetControlPlaneByClusterInput is the input for GetControlPlaneByCluster.
+type GetControlPlaneByClusterInput struct {
+	Reader  client.Reader
+	Cluster *clusterv1.Cluster
+}
+
+// GetControlPlaneByCluster returns the ControlPlane object for a cluster.
+// Important! this method relies on labels that are created by the CAPI controllers during the first reconciliation, so
+// it is necessary to ensure this is already happened before calling it.
+func GetControlPlaneByCluster(ctx context.Context, input GetControlPlaneByClusterInput) *unstructured.Unstructured {
+	if !input.Cluster.Spec.ControlPlaneRef.IsDefined() {
+		return nil
+	}
+	apiVersion, err := contract.GetAPIVersion(ctx, input.Reader, input.Cluster.Spec.ControlPlaneRef.GroupKind())
+	Expect(err).NotTo(HaveOccurred())
+
+	gv, err := schema.ParseGroupVersion(apiVersion)
+	Expect(err).NotTo(HaveOccurred())
+
+	controlPlane := &unstructured.Unstructured{}
+	controlPlane.SetGroupVersionKind(input.Cluster.Spec.ControlPlaneRef.GroupKind().WithVersion(gv.Version))
+	err = input.Reader.Get(ctx, client.ObjectKey{
+		Namespace: input.Cluster.Namespace,
+		Name:      input.Cluster.Spec.ControlPlaneRef.Name,
+	}, controlPlane)
+	Expect(err).ToNot(HaveOccurred())
+	return controlPlane
+}
 
 // CreateKubeadmControlPlaneInput is the input for CreateKubeadmControlPlane.
 type CreateKubeadmControlPlaneInput struct {

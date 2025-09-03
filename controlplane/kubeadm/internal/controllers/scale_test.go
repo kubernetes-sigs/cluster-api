@@ -563,6 +563,37 @@ func TestPreflightChecks(t *testing.T) {
 			},
 		},
 		{
+			name: "control plane with a pending upgrade, but not yet at the current step of the upgrade plan, should requeue",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation: "v1.32.0",
+					},
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: clusterv1.Topology{
+						Version: "v1.33.0",
+					},
+				},
+			},
+			kcp: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Version: "v1.31.0",
+				},
+			},
+			machines: []*clusterv1.Machine{
+				{},
+			},
+
+			expectResult: ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
+			expectPreflight: internal.PreflightCheckResults{
+				HasDeletingMachine:               false,
+				ControlPlaneComponentsNotHealthy: false,
+				EtcdClusterNotHealthy:            false,
+				TopologyVersionMismatch:          true,
+			},
+		},
+		{
 			name: "control plane with a deleting machine should requeue",
 			kcp:  &controlplanev1.KubeadmControlPlane{},
 			machines: []*clusterv1.Machine{
@@ -679,6 +710,55 @@ func TestPreflightChecks(t *testing.T) {
 					},
 				},
 			},
+			expectResult: ctrl.Result{},
+			expectPreflight: internal.PreflightCheckResults{
+				HasDeletingMachine:               false,
+				ControlPlaneComponentsNotHealthy: false,
+				EtcdClusterNotHealthy:            false,
+				TopologyVersionMismatch:          false,
+			},
+		},
+		{
+			name: "control plane with a pending upgrade, but already at the current step of the upgrade plan, should pass",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation: "v1.32.0",
+					},
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: clusterv1.Topology{
+						Version: "v1.33.0",
+					},
+				},
+			},
+			kcp: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Version: "v1.32.0",
+				}, Status: controlplanev1.KubeadmControlPlaneStatus{
+					Conditions: []metav1.Condition{
+						{Type: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition, Status: metav1.ConditionTrue},
+						{Type: controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition, Status: metav1.ConditionTrue},
+					},
+				},
+			},
+			machines: []*clusterv1.Machine{
+				{
+					Status: clusterv1.MachineStatus{
+						NodeRef: clusterv1.MachineNodeReference{
+							Name: "node-1",
+						},
+						Conditions: []metav1.Condition{
+							{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionTrue},
+							{Type: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition, Status: metav1.ConditionTrue},
+						},
+					},
+				},
+			},
+
 			expectResult: ctrl.Result{},
 			expectPreflight: internal.PreflightCheckResults{
 				HasDeletingMachine:               false,

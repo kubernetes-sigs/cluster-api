@@ -895,16 +895,16 @@ spec:
     - each:
         info:
           labelsFromPath:
+            remediation_triggerif_unhealthyInRange:
+            - spec
+            - remediation
+            - triggerIf
+            - unhealthyInRange
             remediation_triggerif_unhealthylessthanorequalto:
             - spec
             - remediation
             - triggerIf
             - unhealthyLessThanOrEqualTo
-            remediation_triggerif_unhealthyrange:
-            - spec
-            - remediation
-            - triggerIf
-            - unhealthyRange
           path: null
         type: Info
       help: Information about a machinehealthcheck.

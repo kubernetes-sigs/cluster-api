@@ -319,7 +319,7 @@ type MachineHealthCheckV1Beta1DeprecatedStatus struct {
 // +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
 // +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
 // +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
-// +Metrics:info:name="info",help="Information about a machinehealthcheck.",labelsFromPath={remediation_triggerif_unhealthyrange:.spec.remediation.triggerIf.unhealthyRange,remediation_triggerif_unhealthylessthanorequalto:.spec.remediation.triggerIf.unhealthyLessThanOrEqualTo}
+// +Metrics:info:name="info",help="Information about a machinehealthcheck.",labelsFromPath={remediation_triggerif_unhealthyInRange:.spec.remediation.triggerIf.unhealthyInRange,remediation_triggerif_unhealthylessthanorequalto:.spec.remediation.triggerIf.unhealthyLessThanOrEqualTo}
 type MachineHealthCheck struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.

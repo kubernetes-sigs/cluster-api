@@ -2285,8 +2285,6 @@ func convertToObjectReference(ref clusterv1.ContractVersionedObjectReference, na
 }
 
 func Convert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(in *JSONSchemaProps, out *clusterv1.JSONSchemaProps, s apimachineryconversion.Scope) error {
-	// This conversion func is also required due to a bug in conversion gen that does not recognize the changes for converting bool to *bool.
-	// By implementing this func, autoConvert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps is generated properly.
 	if err := autoConvert_v1beta1_JSONSchemaProps_To_v1beta2_JSONSchemaProps(in, out, s); err != nil {
 		return err
 	}

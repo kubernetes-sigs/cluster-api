@@ -52,10 +52,9 @@ func TestRequestItemBuilder(t *testing.T) {
 					{
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Manager:    "manager",
-						Operation:  "op",
+						Operation:  "Apply",
 						Time:       ptr.To(metav1.Now()),
 						FieldsType: "FieldsV1",
-						FieldsV1:   &metav1.FieldsV1{Raw: []byte("fields")},
 					},
 				})
 				u.SetAnnotations(map[string]string{

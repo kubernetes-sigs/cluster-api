@@ -17,7 +17,6 @@ limitations under the License.
 package structuredmerge
 
 import (
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -79,27 +78,15 @@ type HelperOptions struct {
 func newHelperOptions(target client.Object, opts ...HelperOption) *HelperOptions {
 	helperOptions := &HelperOptions{
 		FilterObjectInput: ssa.FilterObjectInput{
-			AllowedPaths:          defaultAllowedPaths,
-			IgnorePaths:           []contract.Path{},
-			DropEmptyStructAndNil: false,
+			AllowedPaths: defaultAllowedPaths,
+			IgnorePaths:  []contract.Path{},
 		},
 	}
 	// Overwrite the allowedPaths for Cluster objects to prevent the topology controller
 	// to take ownership of fields it is not supposed to.
-	switch target.(type) {
-	case *clusterv1.Cluster:
+	if _, ok := target.(*clusterv1.Cluster); ok {
 		helperOptions.AllowedPaths = allowedPathsCluster
-		helperOptions.DropEmptyStructAndNil = true
-		// NOTE: DropEmptyStructAndNil is required for Cluster, because it is converted to unstructured using the DefaultUnstructuredConverter,
-		// and it does not handle omitzero (yet).
-	case *unstructured.Unstructured:
-		// NOTE: DropEmptyStructAndNil is not required for unstructured objects, because DefaultUnstructuredConverter is not called.
-	default:
-		helperOptions.DropEmptyStructAndNil = true
-		// NOTE: DropEmptyStructAndNil is required for typed objects, because they are converted to unstructured using the DefaultUnstructuredConverter,
-		// and it does not handle omitzero (yet).
 	}
-
 	helperOptions = helperOptions.ApplyOptions(opts)
 	return helperOptions
 }
@@ -121,14 +108,4 @@ type IgnorePaths []contract.Path
 // ApplyToHelper applies this configuration to the given helper options.
 func (i IgnorePaths) ApplyToHelper(opts *HelperOptions) {
 	opts.IgnorePaths = i
-}
-
-// DropEmptyStructAndNil instructs the Helper to drop all fields with values equal to empty struct or nil.
-// NOTE: This is required when using typed objects, because the DefaultUnstructuredConverter does
-// not handle omitzero (yet).
-type DropEmptyStructAndNil bool
-
-// ApplyToHelper applies this configuration to the given helper options.
-func (i DropEmptyStructAndNil) ApplyToHelper(opts *HelperOptions) {
-	opts.DropEmptyStructAndNil = bool(i)
 }

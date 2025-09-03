@@ -71,7 +71,7 @@ controller_runtime_webhook_panics_total 0
 			wantErr: "1 panics occurred in \"cluster\" controller (check logs for more details)",
 		},
 		{
-			name: "panic occurred in webhook",
+			name: "panic occurred in webhooks",
 			data: []byte(`
 # HELP controller_runtime_max_concurrent_reconciles Maximum number of concurrent reconciles per controller
 # TYPE controller_runtime_max_concurrent_reconciles gauge
@@ -84,8 +84,31 @@ controller_runtime_reconcile_panics_total{controller="clusterclass"} 0
 # HELP controller_runtime_webhook_panics_total Total number of webhook panics
 # TYPE controller_runtime_webhook_panics_total counter
 controller_runtime_webhook_panics_total 1
+# HELP controller_runtime_conversion_webhook_panics_total Total number of conversion webhook panics
+# TYPE controller_runtime_conversion_webhook_panics_total counter
+controller_runtime_conversion_webhook_panics_total 0
 `),
 			wantErr: "1 panics occurred in webhooks (check logs for more details)",
+		},
+		{
+			name: "panics occurred in conversion webhooks",
+			data: []byte(`
+# HELP controller_runtime_max_concurrent_reconciles Maximum number of concurrent reconciles per controller
+# TYPE controller_runtime_max_concurrent_reconciles gauge
+controller_runtime_max_concurrent_reconciles{controller="cluster"} 10
+controller_runtime_max_concurrent_reconciles{controller="clusterclass"} 10
+# HELP controller_runtime_reconcile_panics_total Total number of reconciliation panics per controller
+# TYPE controller_runtime_reconcile_panics_total counter
+controller_runtime_reconcile_panics_total{controller="cluster"} 0
+controller_runtime_reconcile_panics_total{controller="clusterclass"} 0
+# HELP controller_runtime_webhook_panics_total Total number of webhook panics
+# TYPE controller_runtime_webhook_panics_total counter
+controller_runtime_webhook_panics_total 0
+# HELP controller_runtime_conversion_webhook_panics_total Total number of conversion webhook panics
+# TYPE controller_runtime_conversion_webhook_panics_total counter
+controller_runtime_conversion_webhook_panics_total 2
+`),
+			wantErr: "2 panics occurred in conversion webhooks (check logs for more details)",
 		},
 	}
 	for _, tt := range tests {

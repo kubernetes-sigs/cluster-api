@@ -345,12 +345,8 @@ func TestIsOwnedByObject(t *testing.T) {
 	targetName := "fri3ndsh1p"
 
 	meta := fakeMeta{
-		metav1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: targetName,
-		},
-		metav1.TypeMeta{
-			APIVersion: "ponies.info/v1",
-			Kind:       targetKind,
 		},
 	}
 
@@ -437,7 +433,7 @@ func TestIsOwnedByObject(t *testing.T) {
 				OwnerReferences: test.refs,
 			}
 
-			g.Expect(IsOwnedByObject(pointer, &meta)).To(Equal(test.expected), "Could not find a ref to %+v in %+v", meta, test.refs)
+			g.Expect(IsOwnedByObject(pointer, &meta, schema.GroupKind{Group: "ponies.info", Kind: targetKind})).To(Equal(test.expected), "Could not find a ref to %+v in %+v", meta, test.refs)
 		})
 	}
 }

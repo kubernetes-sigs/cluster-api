@@ -43,11 +43,6 @@ var (
 	}
 )
 
-func unstructuredHasStatus(u *unstructured.Unstructured) bool {
-	_, ok := u.Object["status"]
-	return ok
-}
-
 // toUnstructured converts an object to Unstructured.
 // We have to pass in a gvk as we can't rely on GVK being set in a runtime.Object.
 func toUnstructured(obj runtime.Object, gvk schema.GroupVersionKind) (*unstructured.Unstructured, error) {

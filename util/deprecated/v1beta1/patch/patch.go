@@ -143,18 +143,16 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 		return errors.Wrapf(err, "failed to patch %s %s: failed to convert after object to Unstructured", h.gvk.Kind, klog.KObj(h.beforeObject))
 	}
 
-	// Determine if the object has status.
-	if unstructuredHasStatus(h.after) {
-		if options.IncludeStatusObservedGeneration {
-			// Set status.observedGeneration if we're asked to do so.
-			if err := unstructured.SetNestedField(h.after.Object, h.after.GetGeneration(), "status", "observedGeneration"); err != nil {
-				return errors.Wrapf(err, "failed to patch %s %s: failed to set .status.observedGeneration", h.gvk.Kind, klog.KObj(h.beforeObject))
-			}
+	// Include .status.observedGeneration if IncludeStatusObservedGeneration is set.
+	if options.IncludeStatusObservedGeneration {
+		// Set status.observedGeneration if we're asked to do so.
+		if err := unstructured.SetNestedField(h.after.Object, h.after.GetGeneration(), "status", "observedGeneration"); err != nil {
+			return errors.Wrapf(err, "failed to patch %s %s: failed to set .status.observedGeneration", h.gvk.Kind, klog.KObj(h.beforeObject))
+		}
 
-			// Restore the changes back to the original object.
-			if err := runtime.DefaultUnstructuredConverter.FromUnstructured(h.after.Object, obj); err != nil {
-				return errors.Wrapf(err, "failed to patch %s %s: failed to converted object from Unstructured", h.gvk.Kind, klog.KObj(h.beforeObject))
-			}
+		// Restore the changes back to the original object.
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(h.after.Object, obj); err != nil {
+			return errors.Wrapf(err, "failed to patch %s %s: failed to converted object from Unstructured", h.gvk.Kind, klog.KObj(h.beforeObject))
 		}
 	}
 

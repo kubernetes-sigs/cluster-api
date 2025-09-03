@@ -308,7 +308,7 @@ func (r *KubeadmControlPlaneReconciler) initControlPlaneScope(ctx context.Contex
 		return nil, true, r.adoptMachines(ctx, kcp, adoptableMachines, cluster)
 	}
 
-	ownedMachines := controlPlaneMachines.Filter(collections.OwnedMachines(kcp))
+	ownedMachines := controlPlaneMachines.Filter(collections.OwnedMachines(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane").GroupKind()))
 	if kcp.DeletionTimestamp.IsZero() && len(ownedMachines) != len(controlPlaneMachines) {
 		err := errors.New("not all control plane machines are owned by this KubeadmControlPlane, refusing to operate in mixed management mode")
 		log.Error(err, "KCP cannot reconcile")
@@ -1387,7 +1387,7 @@ func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, k
 
 	for i := range secrets.Items {
 		s := secrets.Items[i]
-		if !util.IsOwnedByObject(&s, currentOwner) {
+		if !util.IsOwnedByObject(&s, currentOwner, bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind()) {
 			continue
 		}
 		// avoid taking ownership of the bootstrap data secret

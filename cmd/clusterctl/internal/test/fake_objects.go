@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -358,11 +359,12 @@ func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []client.Object {
 		},
 		Spec: fakecontrolplane.GenericControlPlaneSpec{
 			MachineTemplate: fakecontrolplane.GenericMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					APIVersion: controlPlaneInfrastructure.APIVersion,
-					Kind:       controlPlaneInfrastructure.Kind,
-					Namespace:  controlPlaneInfrastructure.Namespace,
-					Name:       controlPlaneInfrastructure.Name,
+				Spec: fakecontrolplane.GenericMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: fakeinfrastructure.GroupVersion.Group,
+						Kind:     controlPlaneInfrastructure.Kind,
+						Name:     controlPlaneInfrastructure.Name,
+					},
 				},
 			},
 		},
@@ -1555,11 +1557,15 @@ func (f *FakeClusterClass) Objs() []client.Object {
 	}
 
 	clusterClass := clusterClassBuilder.Build()
+	clusterClass.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("ClusterClass"))
 	objMap[clusterClass] = false
 
 	for o := range objMap {
 		setUID(o)
 	}
+	// GVK should be only set for setUID to avoid the wrong assumption that GVK is set on a
+	// ClusterClass in other parts of the code.
+	clusterClass.SetGroupVersionKind(schema.GroupVersionKind{})
 
 	for o, setOwnerReference := range objMap {
 		if setOwnerReference {

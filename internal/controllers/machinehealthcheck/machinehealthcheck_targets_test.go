@@ -582,10 +582,6 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 
 	bootstrap := "bootstrap"
 	return &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -612,10 +608,6 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 
 func newTestNode(name string) *corev1.Node {
 	return &corev1.Node{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "Node",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},

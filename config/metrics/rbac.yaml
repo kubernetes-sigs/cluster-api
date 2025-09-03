@@ -2,9 +2,9 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kube-state-metrics-custom-resource-capi
   labels:
     kube-state-metrics/aggregate-to-manager: "true"
+  name: manager-metrics-role
 rules:
 - apiGroups:
   - addons.cluster.x-k8s.io

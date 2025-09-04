@@ -46,16 +46,6 @@ func newGithubFromToPRLister(repo string, fromRef, toRef ref, branch string) *gi
 	}
 }
 
-// for testing purposes.
-func newGithubFromToPRListerWithClient(client githubClientInterface, fromRef, toRef ref, branch string) *githubFromToPRLister {
-	return &githubFromToPRLister{
-		client:  client,
-		fromRef: fromRef,
-		toRef:   toRef,
-		branch:  branch,
-	}
-}
-
 // listPRs returns the PRs merged between `fromRef` and `toRef` (included).
 // It lists all PRs merged in main in the configured branch in the date
 // range between fromRef and toRef (we include main because minor releases

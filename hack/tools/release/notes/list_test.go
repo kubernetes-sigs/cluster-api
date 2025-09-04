@@ -26,6 +26,16 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// newGithubFromToPRListerWithClient is a helper function for testing purposes.
+// It creates a new githubFromToPRLister with the given client, fromRef, toRef and branch.
+func newGithubFromToPRListerWithClient(client githubClientInterface, fromRef, toRef ref, branch string) *githubFromToPRLister {
+	return &githubFromToPRLister{
+		client:  client,
+		fromRef: fromRef,
+		toRef:   toRef,
+		branch:  branch,
+	}
+}
 func Test_buildSetOfPRNumbers(t *testing.T) {
 	tests := []struct {
 		name    string

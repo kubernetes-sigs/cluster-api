@@ -652,7 +652,7 @@ func generateDeployment(input generateDeploymentInput) *appsv1.Deployment {
 					Containers: []corev1.Container{
 						{
 							Name:  "main",
-							Image: "registry.k8s.io/pause:3.10",
+							Image: "registry.k8s.io/pause:3.10.1",
 						},
 					},
 					Affinity: &corev1.Affinity{

@@ -157,7 +157,7 @@ type AddScaleUpDeploymentAndWaitInput struct {
 func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeploymentAndWaitInput, intervals ...interface{}) {
 	By("Create a scale up deployment with resource requests to force scale up")
 	if input.ContainerImage == "" {
-		input.ContainerImage = "registry.k8s.io/pause:3.10"
+		input.ContainerImage = "registry.k8s.io/pause:3.10.1"
 	}
 
 	// gets the node size

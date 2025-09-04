@@ -1009,7 +1009,7 @@ func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Clie
 			var infraMachinePool *unstructured.Unstructured
 
 			// Fallback to v1beta1's objectReference
-			if clusterv1.GroupVersion.Version == "v1beta1" {
+			if coreCAPIStorageVersion == "v1beta1" {
 				ref := &corev1.ObjectReference{}
 				err = util.UnstructuredUnmarshalField(&mp, ref, "spec", "template", "spec", "infrastructureRef")
 				if err != nil && !errors.Is(err, util.ErrUnstructuredFieldNotFound) {

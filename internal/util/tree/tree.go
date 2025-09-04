@@ -551,7 +551,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 
 		if available := tree.GetAvailableCondition(obj); available != nil {
 			availableColor, availableStatus, availableAge, availableReason, availableMessage := conditionInfo(*available, true)
-			v.status = availableColor.Sprintf("Available: %s", availableStatus)
+			v.status = availableColor.Sprintf("%s", availableStatus)
 			v.reason = availableReason
 			v.age = availableAge
 			v.message = availableMessage
@@ -574,7 +574,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 
 		if available := tree.GetAvailableCondition(obj); available != nil {
 			availableColor, availableStatus, availableAge, availableReason, availableMessage := conditionInfo(*available, true)
-			v.status = availableColor.Sprintf("Available: %s", availableStatus)
+			v.status = availableColor.Sprintf("%s", availableStatus)
 			v.reason = availableReason
 			v.age = availableAge
 			v.message = availableMessage
@@ -611,7 +611,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 		v.readyCounters = "0"
 		if ready := tree.GetReadyCondition(obj); ready != nil {
 			readyColor, readyStatus, readyAge, readyReason, readyMessage := conditionInfo(*ready, true)
-			v.status = readyColor.Sprintf("Ready: %s", readyStatus)
+			v.status = readyColor.Sprintf("%s", readyStatus)
 			v.reason = readyReason
 			v.age = readyAge
 			v.message = readyMessage
@@ -634,7 +634,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 		// corresponding replica counters.
 		if ready := tree.GetReadyCondition(obj); ready != nil {
 			readyColor, readyStatus, readyAge, readyReason, readyMessage := conditionInfo(*ready, true)
-			v.status = readyColor.Sprintf("Ready: %s", readyStatus)
+			v.status = readyColor.Sprintf("%s", readyStatus)
 			v.reason = readyReason
 			v.age = readyAge
 			v.message = readyMessage
@@ -671,7 +671,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 
 		if ready := tree.GetReadyCondition(obj); ready != nil {
 			readyColor, readyStatus, readyAge, readyReason, readyMessage := conditionInfo(*ready, true)
-			v.status = readyColor.Sprintf("Ready: %s", readyStatus)
+			v.status = readyColor.Sprintf("%s", readyStatus)
 			v.reason = readyReason
 			v.age = readyAge
 			v.message = readyMessage

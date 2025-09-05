@@ -99,11 +99,11 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 		}
 	}
 
-	patchOptions := []client.PatchOption{
+	applyOptions := []client.ApplyOption{
 		client.ForceOwnership,
 		client.FieldOwner(fieldManager),
 	}
-	if err := c.Patch(ctx, modifiedUnstructured, client.Apply, patchOptions...); err != nil {
+	if err := c.Apply(ctx, client.ApplyConfigurationFromUnstructured(modifiedUnstructured), applyOptions...); err != nil {
 		return errors.Wrapf(err, "failed to apply %s %s", gvk.Kind, klog.KObj(modifiedUnstructured))
 	}
 

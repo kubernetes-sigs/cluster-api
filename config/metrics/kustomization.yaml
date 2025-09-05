@@ -2,9 +2,10 @@ resources:
   - ./crd-clusterrole.yaml
 
 namespace: observability
+namePrefix: kube-state-metrics-
 
 configMapGenerator:
-- name: kube-state-metrics-crd-config-capi
+- name: crd-config-capi
   files:
   - capi.yaml=crd-metrics-config.yaml
   options:

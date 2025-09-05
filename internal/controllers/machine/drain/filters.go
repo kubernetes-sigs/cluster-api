@@ -212,10 +212,6 @@ func (d *Helper) daemonSetFilter(ctx context.Context, pod *corev1.Pod) PodDelete
 	if controllerRef == nil || controllerRef.Kind != appsv1.SchemeGroupVersion.WithKind("DaemonSet").Kind {
 		return MakePodDeleteStatusOkay()
 	}
-	// Any finished pod can be removed.
-	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
-		return MakePodDeleteStatusOkay()
-	}
 
 	if err := d.RemoteClient.Get(ctx, client.ObjectKey{Namespace: pod.Namespace, Name: controllerRef.Name}, &appsv1.DaemonSet{}); err != nil {
 		// remove orphaned pods with a warning

@@ -198,6 +198,8 @@ spec:
             # Note: The E2E test should only go up to 4 (assuming it starts with a min node group size of 2).
             # Using 6 for additional some buffer and to allow different starting min node group sizes.
             - --max-nodes-total=6
+            # CABPK sets this taint on startup, so we should configure it here accordingly
+            - --startup-taint=node.cluster.x-k8s.io/uninitialized
             # Set the log verbosity
             - --v=4
           volumeMounts:

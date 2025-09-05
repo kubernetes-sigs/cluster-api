@@ -195,10 +195,10 @@ func TestReconcile(t *testing.T) {
 			// Deploy test-cluster-1 and test-cluster-2.
 			testClusterT1 := unstructuredTestCluster("test-cluster-1", t1v1beta1.GroupVersion.WithKind("TestCluster"))
 			g.Expect(unstructured.SetNestedField(testClusterT1.Object, "foo-value", "spec", "foo")).To(Succeed())
-			g.Expect(managerT1.GetClient().Patch(ctx, testClusterT1, client.Apply, fieldOwner)).To(Succeed())
+			g.Expect(managerT1.GetClient().Apply(ctx, client.ApplyConfigurationFromUnstructured(testClusterT1), fieldOwner)).To(Succeed())
 			testClusterT1 = unstructuredTestCluster("test-cluster-2", t1v1beta1.GroupVersion.WithKind("TestCluster"))
 			g.Expect(unstructured.SetNestedField(testClusterT1.Object, "foo-value", "spec", "foo")).To(Succeed())
-			g.Expect(managerT1.GetClient().Patch(ctx, testClusterT1, client.Apply, fieldOwner)).To(Succeed())
+			g.Expect(managerT1.GetClient().Apply(ctx, client.ApplyConfigurationFromUnstructured(testClusterT1), fieldOwner)).To(Succeed())
 			validateManagedFields(t, g, "v1beta1", map[string][]string{
 				"test-cluster-1": {"test.cluster.x-k8s.io/v1beta1"},
 				"test-cluster-2": {"test.cluster.x-k8s.io/v1beta1"},
@@ -226,11 +226,11 @@ func TestReconcile(t *testing.T) {
 			// Set an additional field with a different field manager and v1beta2 apiVersion in test-cluster-2
 			testClusterT2 := unstructuredTestCluster("test-cluster-2", t2v1beta2.GroupVersion.WithKind("TestCluster"))
 			g.Expect(unstructured.SetNestedField(testClusterT2.Object, "bar-value", "spec", "bar")).To(Succeed())
-			g.Expect(managerT2.GetClient().Patch(ctx, testClusterT2, client.Apply, client.FieldOwner("different-unit-test-client"))).To(Succeed())
+			g.Expect(managerT2.GetClient().Apply(ctx, client.ApplyConfigurationFromUnstructured(testClusterT2), client.FieldOwner("different-unit-test-client"))).To(Succeed())
 			// Deploy test-cluster-3.
 			testClusterT2 = unstructuredTestCluster("test-cluster-3", t2v1beta2.GroupVersion.WithKind("TestCluster"))
 			g.Expect(unstructured.SetNestedField(testClusterT2.Object, "foo-value", "spec", "foo")).To(Succeed())
-			g.Expect(managerT2.GetClient().Patch(ctx, testClusterT2, client.Apply, fieldOwner)).To(Succeed())
+			g.Expect(managerT2.GetClient().Apply(ctx, client.ApplyConfigurationFromUnstructured(testClusterT2), fieldOwner)).To(Succeed())
 			// At this point we have clusters with all combinations of managedField apiVersions.
 			validateManagedFields(t, g, "v1beta2", map[string][]string{
 				"test-cluster-1": {"test.cluster.x-k8s.io/v1beta1"},
@@ -323,7 +323,7 @@ func TestReconcile(t *testing.T) {
 				// Try to patch the test-clusters CRs with SSA.
 				testClusterT4 := unstructuredTestCluster(clusterName, t4v1beta2.GroupVersion.WithKind("TestCluster"))
 				g.Expect(unstructured.SetNestedField(testClusterT4.Object, "new-foo-value", "spec", "foo")).To(Succeed())
-				err = managerT4.GetClient().Patch(ctx, testClusterT4, client.Apply, fieldOwner)
+				err = managerT4.GetClient().Apply(ctx, client.ApplyConfigurationFromUnstructured(testClusterT4), fieldOwner)
 
 				// If managedField cleanup was skipped before, the SSA patch will fail for the clusters which still have v1beta1 managedFields.
 				if skipCRDMigrationPhases.Has(CleanupManagedFieldsPhase) && (clusterName == "test-cluster-1" || clusterName == "test-cluster-2") {

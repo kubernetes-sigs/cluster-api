@@ -410,9 +410,9 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 		log.V(4).Info("Migrating to new storage version", gvk.Kind, klog.KObj(u))
 		var err error
 		if migrationConfig.UseStatusForStorageVersionMigration {
-			err = r.Client.Status().Patch(ctx, u, client.Apply, client.FieldOwner("crdmigrator"))
+			err = r.Client.Status().Patch(ctx, u, client.Apply, client.FieldOwner("crdmigrator")) //nolint:staticcheck //Currently client.Client.Apply() does not support updating Status subresource, Tracked in https://github.com/kubernetes-sigs/controller-runtime/issues/3183
 		} else {
-			err = r.Client.Patch(ctx, u, client.Apply, client.FieldOwner("crdmigrator"))
+			err = r.Client.Apply(ctx, client.ApplyConfigurationFromUnstructured(u), client.FieldOwner("crdmigrator"))
 		}
 		// If we got a NotFound error, the object no longer exists so no need to update it.
 		// If we got a Conflict error, another client wrote the object already so no need to update it.

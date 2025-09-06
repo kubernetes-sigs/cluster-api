@@ -31,10 +31,9 @@ import (
 )
 
 const (
-	missingAreaLabelPrefix   = "MISSING_AREA"
-	areaLabelPrefix          = "area/"
-	multipleAreaLabelsPrefix = "MULTIPLE_AREAS["
-	documentationArea        = "Documentation"
+	missingAreaLabelPrefix = "MISSING_AREA"
+	areaLabelPrefix        = "area/"
+	documentationArea      = "Documentation"
 )
 
 var (
@@ -192,7 +191,7 @@ func (g prEntriesProcessor) generateNoteEntry(p *pr) *notesEntry {
 	}
 
 	if g.addAreaPrefix {
-		entry.title = trimAreaFromTitle(entry.title, area)
+		entry.title = trimAreaFromTitle(entry.title)
 		entry.title = capitalize(entry.title)
 		entry.title = fmt.Sprintf("- %s: %s", area, entry.title)
 	} else {
@@ -227,7 +226,7 @@ func (g prEntriesProcessor) extractArea(pr *pr) string {
 	case 1:
 		return areaLabels[0]
 	default:
-		return multipleAreaLabelsPrefix + strings.Join(areaLabels, "/") + "]"
+		return strings.Join(areaLabels, "/")
 	}
 }
 
@@ -281,11 +280,10 @@ func removePrefixes(title string, prefixes []string) string {
 }
 
 // trimAreaFromTitle removes the prefixed area from title to avoid duplication.
-func trimAreaFromTitle(title, area string) string {
-	titleWithoutArea := title
-	pattern := `(?i)^` + regexp.QuoteMeta(area+":")
-	re := regexp.MustCompile(pattern)
-	titleWithoutArea = re.ReplaceAllString(titleWithoutArea, "")
+func trimAreaFromTitle(title string) string {
+	re := regexp.MustCompile(`^[^:]*:\s*`)
+	titleWithoutArea := re.ReplaceAllString(title, "")
 	titleWithoutArea = strings.TrimSpace(titleWithoutArea)
+
 	return titleWithoutArea
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package extensionconfig
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -56,23 +57,39 @@ const (
 
 // Reconciler reconciles an ExtensionConfig object.
 type Reconciler struct {
-	Client        client.Client
-	APIReader     client.Reader
-	RuntimeClient runtimeclient.Client
+	Client             client.Client
+	APIReader          client.Reader
+	RuntimeClient      runtimeclient.Client
+	PartialSecretCache cache.Cache
+
+	// ReadOnly configures if the ExtensionConfig controller should write ExtensionConfig objects or only read them
+	ReadOnly bool
+
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 }
 
-func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.APIReader == nil || r.RuntimeClient == nil {
 		return errors.New("Client, APIReader and RuntimeClient must not be nil")
 	}
+	if r.ReadOnly && r.PartialSecretCache != nil {
+		return errors.New("PartialSecretCache must not be set if ReadOnly is true")
+	}
+	if !r.ReadOnly && r.PartialSecretCache == nil {
+		return errors.New("PartialSecretCache must be set if ReadOnly is false")
+	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "extensionconfig")
-	err := ctrl.NewControllerManagedBy(mgr).
+	b := ctrl.NewControllerManagedBy(mgr).
 		For(&runtimev1.ExtensionConfig{}).
-		WatchesRawSource(source.Kind(
-			partialSecretCache,
+		WithOptions(options).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue))
+
+	if !r.ReadOnly {
+		// The watch on Secrets is only needed when reconciling caBundle (readOnly mode doesn't do that).
+		b.WatchesRawSource(source.Kind(
+			r.PartialSecretCache,
 			&metav1.PartialObjectMetadata{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Secret",
@@ -83,11 +100,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 				r.secretToExtensionConfig,
 			),
 			predicates.TypedResourceIsChanged[*metav1.PartialObjectMetadata](mgr.GetScheme(), predicateLog),
-		)).
-		WithOptions(options).
-		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
-		Complete(r)
-	if err != nil {
+		))
+	}
+
+	if err := b.Complete(r); err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
@@ -97,10 +113,11 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 	// warmupRunnable will attempt to sync the RuntimeSDK registry with existing ExtensionConfig objects to ensure extensions
 	// are discovered before controllers begin reconciling.
-	err = mgr.Add(&warmupRunnable{
+	err := mgr.Add(&warmupRunnable{
 		Client:        r.Client,
 		APIReader:     r.APIReader,
 		RuntimeClient: r.RuntimeClient,
+		ReadOnly:      r.ReadOnly,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed adding warmupRunnable to controller manager")
@@ -109,7 +126,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var errs []error
 	log := ctrl.LoggerFrom(ctx)
 
 	// Requeue events when the registry is not ready.
@@ -132,43 +148,47 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	// Copy to avoid modifying the original extensionConfig.
-	original := extensionConfig.DeepCopy()
-
-	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, nil, extensionConfig); err != nil || isPaused || requeue {
-		return ctrl.Result{}, err
-	}
-
 	// Handle deletion reconciliation loop.
+	// Note: This only unregisters the ExtensionConfig which is intentionally done even if the ExtensionConfig is paused.
 	if !extensionConfig.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, extensionConfig)
 	}
 
-	// Inject CABundle from secret if annotation is set. Otherwise https calls may fail.
-	if err := reconcileCABundle(ctx, r.Client, extensionConfig); err != nil {
-		return ctrl.Result{}, err
+	// In readOnly mode only validate instead of reconciling CA bundle and running discovery.
+	if r.ReadOnly {
+		if conditions.IsTrue(extensionConfig, clusterv1.PausedCondition) {
+			return ctrl.Result{}, nil
+		}
+
+		if err := validateExtensionConfig(extensionConfig); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to validate ExtensionConfig")
+		}
+
+		// Register the ExtensionConfig if it is valid.
+		log.V(4).Info("Registering ExtensionConfig information into registry")
+		if err = r.RuntimeClient.Register(extensionConfig); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to register ExtensionConfig %s/%s", extensionConfig.Namespace, extensionConfig.Name)
+		}
+	} else {
+		// Preserve original, EnsurePausedCondition might bump observedGeneration of the Paused condition without requeuing.
+		original := extensionConfig.DeepCopy()
+
+		if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, nil, extensionConfig); err != nil || isPaused || requeue {
+			return ctrl.Result{}, err
+		}
+
+		extensionConfig, err := reconcileExtensionConfig(ctx, r.Client, r.RuntimeClient, original, extensionConfig)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile ExtensionConfig")
+		}
+
+		// Register the ExtensionConfig if it was found and patched without error.
+		log.V(4).Info("Registering ExtensionConfig information into registry")
+		if err = r.RuntimeClient.Register(extensionConfig); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to register ExtensionConfig %s/%s", extensionConfig.Namespace, extensionConfig.Name)
+		}
 	}
 
-	// discoverExtensionConfig will return a discovered ExtensionConfig with the appropriate conditions.
-	discoveredExtensionConfig, err := discoverExtensionConfig(ctx, r.RuntimeClient, extensionConfig)
-	if err != nil {
-		errs = append(errs, err)
-	}
-
-	// Always patch the ExtensionConfig as it may contain updates in conditions or clientConfig.caBundle.
-	if err = patchExtensionConfig(ctx, r.Client, original, discoveredExtensionConfig); err != nil {
-		errs = append(errs, err)
-	}
-
-	if len(errs) != 0 {
-		return ctrl.Result{}, kerrors.NewAggregate(errs)
-	}
-
-	// Register the ExtensionConfig if it was found and patched without error.
-	log.V(4).Info("Registering ExtensionConfig information into registry")
-	if err = r.RuntimeClient.Register(discoveredExtensionConfig); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to register ExtensionConfig %s/%s", extensionConfig.Namespace, extensionConfig.Name)
-	}
 	return ctrl.Result{}, nil
 }
 
@@ -291,4 +311,62 @@ func splitNamespacedName(nameStr string) types.NamespacedName {
 		return types.NamespacedName{Name: nameStr}
 	}
 	return types.NamespacedName{Namespace: nameStr[:splitPoint], Name: nameStr[splitPoint+1:]}
+}
+
+func validateExtensionConfig(extensionConfig *runtimev1.ExtensionConfig) error {
+	// Verify caBundle (a more complete validation would be too much effort here)
+	if len(extensionConfig.Spec.ClientConfig.CABundle) == 0 {
+		return errors.Errorf("caBundle is not set on ExtensionConfig %s", klog.KObj(extensionConfig))
+	}
+
+	// Verify discovery.
+	discoveredCondition := conditions.Get(extensionConfig, runtimev1.ExtensionConfigDiscoveredCondition)
+	switch {
+	case discoveredCondition == nil:
+		return errors.Errorf("%s condition not yet set on ExtensionConfig %s", runtimev1.ExtensionConfigDiscoveredCondition, klog.KObj(extensionConfig))
+	case discoveredCondition.Status != metav1.ConditionTrue:
+		return errors.Errorf("%s condition on ExtensionConfig %s must have status: True (instead it has: %s)", runtimev1.ExtensionConfigDiscoveredCondition, klog.KObj(extensionConfig), discoveredCondition.Status)
+	case discoveredCondition.ObservedGeneration != extensionConfig.Generation:
+		return errors.Errorf("%s condition on ExtensionConfig %s must have observedGeneration: %d (instead it has: %d)", runtimev1.ExtensionConfigDiscoveredCondition, klog.KObj(extensionConfig), extensionConfig.Generation, discoveredCondition.ObservedGeneration)
+	}
+
+	return nil
+}
+
+func reconcileExtensionConfig(ctx context.Context, c client.Client, runtimeClient runtimeclient.Client, original, extensionConfig *runtimev1.ExtensionConfig) (*runtimev1.ExtensionConfig, error) {
+	// Inject CABundle from secret if annotation is set. Otherwise https calls may fail.
+	if err := reconcileCABundle(ctx, c, extensionConfig); err != nil {
+		return nil, err
+	}
+	if !bytes.Equal(original.Spec.ClientConfig.CABundle, extensionConfig.Spec.ClientConfig.CABundle) {
+		// Note: This is intentionally not using the patch helper as the patch helper does not propagate metadata.generation back.
+		// We want to have the current generation here because otherwise the condition set below would have an outdated observedGeneration.
+		if err := c.Patch(ctx, extensionConfig, client.MergeFrom(original)); err != nil {
+			return nil, errors.Wrapf(err, "failed to patch ExtensionConfig %s", klog.KObj(extensionConfig))
+		}
+		// Update original so that patchExtensionConfig below does not try to patch caBundle again.
+		// Note: This means that we might lose observedGeneration bumps on the Paused condition, but:
+		// * in this code path the generation changed again anyway (so the bump would have been outdated)
+		// * the next reconcile that doesn't change caBundle will bump the observedGeneration of the Paused
+		//   condition in patchExtensionConfig
+		original = extensionConfig.DeepCopy()
+	}
+
+	var errs []error
+	// discoverExtensionConfig will return a discovered ExtensionConfig with the appropriate conditions.
+	extensionConfig, err := discoverExtensionConfig(ctx, runtimeClient, extensionConfig)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	// Note: Intentionally always patching ExtensionConfig even if discoverExtensionConfig failed.
+	if err := patchExtensionConfig(ctx, c, original, extensionConfig); err != nil {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		return nil, kerrors.NewAggregate(errs)
+	}
+
+	return extensionConfig, nil
 }

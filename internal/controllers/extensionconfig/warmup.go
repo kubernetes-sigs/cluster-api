@@ -44,6 +44,7 @@ type warmupRunnable struct {
 	Client         client.Client
 	APIReader      client.Reader
 	RuntimeClient  runtimeclient.Client
+	ReadOnly       bool
 	warmupTimeout  time.Duration
 	warmupInterval time.Duration
 }
@@ -72,16 +73,16 @@ func (r *warmupRunnable) Start(ctx context.Context) error {
 	ctx, cancel := context.WithTimeoutCause(ctx, r.warmupTimeout, errors.New("warmup timeout expired"))
 	defer cancel()
 
+	var warmupErr error
 	err := wait.PollUntilContextTimeout(ctx, r.warmupInterval, r.warmupTimeout, true, func(ctx context.Context) (done bool, err error) {
-		if err = warmupRegistry(ctx, r.Client, r.APIReader, r.RuntimeClient); err != nil {
-			log.Error(err, "ExtensionConfig registry warmup failed")
-			return false, nil
+		if warmupErr = r.warmupRegistry(ctx); warmupErr != nil {
+			log.Error(warmupErr, "ExtensionConfig registry warmup failed")
+			return false, nil //nolint:nilerr // Intentionally not returning the error here
 		}
 		return true, nil
 	})
-
 	if err != nil {
-		return errors.Wrapf(err, "ExtensionConfig registry warmup timed out after %s", r.warmupTimeout.String())
+		return errors.Wrapf(warmupErr, "ExtensionConfig registry warmup timed out after %s", r.warmupTimeout.String())
 	}
 
 	return nil
@@ -89,48 +90,44 @@ func (r *warmupRunnable) Start(ctx context.Context) error {
 
 // warmupRegistry attempts to discover all existing ExtensionConfigs and patch their status with discovered Handlers.
 // It warms up the registry by passing it the up-to-date list of ExtensionConfigs.
-func warmupRegistry(ctx context.Context, client client.Client, reader client.Reader, runtimeClient runtimeclient.Client) error {
+func (r *warmupRunnable) warmupRegistry(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	var errs []error
-
 	extensionConfigList := runtimev1.ExtensionConfigList{}
-	if err := reader.List(ctx, &extensionConfigList); err != nil {
+	if err := r.APIReader.List(ctx, &extensionConfigList); err != nil {
 		return errors.Wrapf(err, "failed to list ExtensionConfigs")
 	}
 
+	var errs []error
 	for i := range extensionConfigList.Items {
 		extensionConfig := &extensionConfigList.Items[i]
-		original := extensionConfig.DeepCopy()
 
 		log := log.WithValues("ExtensionConfig", klog.KObj(extensionConfig))
 		ctx := ctrl.LoggerInto(ctx, log)
 
-		// Inject CABundle from secret if annotation is set. Otherwise https calls may fail.
-		if err := reconcileCABundle(ctx, client, extensionConfig); err != nil {
-			errs = append(errs, err)
-			// Note: we continue here because if reconcileCABundle doesn't work discovery will fail as well.
-			continue
+		// In readOnly mode only validate instead of reconciling CA bundle and running discovery.
+		if r.ReadOnly {
+			if err := validateExtensionConfig(extensionConfig); err != nil {
+				errs = append(errs, errors.Wrapf(err, "failed to validate ExtensionConfig"))
+			}
+		} else {
+			// extensionConfig is equal to original here, but we have to deepcopy so that if extensionConfig is changed original is not changed.
+			original := extensionConfig.DeepCopy()
+			extensionConfig, err := reconcileExtensionConfig(ctx, r.Client, r.RuntimeClient, original, extensionConfig)
+			if err != nil {
+				errs = append(errs, errors.Wrapf(err, "failed to reconcile ExtensionConfig"))
+				continue
+			}
+			extensionConfigList.Items[i] = *extensionConfig
 		}
-
-		extensionConfig, err := discoverExtensionConfig(ctx, runtimeClient, extensionConfig)
-		if err != nil {
-			errs = append(errs, err)
-		}
-
-		// Always patch the ExtensionConfig as it may contain updates in conditions or clientConfig.caBundle.
-		if err = patchExtensionConfig(ctx, client, original, extensionConfig); err != nil {
-			errs = append(errs, err)
-		}
-		extensionConfigList.Items[i] = *extensionConfig
 	}
 
-	// If there was some error in discovery or patching return before committing to the Registry.
-	if len(errs) != 0 {
+	// If there was an error in discovery or patching return before committing to the registry.
+	if len(errs) > 0 {
 		return kerrors.NewAggregate(errs)
 	}
 
-	if err := runtimeClient.WarmUp(&extensionConfigList); err != nil {
+	if err := r.RuntimeClient.WarmUp(&extensionConfigList); err != nil {
 		return err
 	}
 

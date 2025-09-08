@@ -620,11 +620,12 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
 		if err = (&controllers.ExtensionConfigReconciler{
-			Client:           mgr.GetClient(),
-			APIReader:        mgr.GetAPIReader(),
-			RuntimeClient:    runtimeClient,
-			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, concurrency(extensionConfigConcurrency), partialSecretCache); err != nil {
+			Client:             mgr.GetClient(),
+			APIReader:          mgr.GetAPIReader(),
+			RuntimeClient:      runtimeClient,
+			PartialSecretCache: partialSecretCache,
+			WatchFilterValue:   watchFilterValue,
+		}).SetupWithManager(ctx, mgr, concurrency(extensionConfigConcurrency)); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "ExtensionConfig")
 			os.Exit(1)
 		}

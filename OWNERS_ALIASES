@@ -114,14 +114,18 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-release-lead:
-  - cprivitere
+  #- pratik-mahalle
 
   cluster-api-release-team:
-  - adilGhaffarDev
+  #- arshadd-b
+  #- aman4433
+  #- anshuman-agarwala
+  #- avaneesh634
+  #- blind3dd
   - chandankumar4
-  - chiukapoor
-  - cprivitere
-  - hackeramitkumar
   - mboersma
-  - shecodesmagic
-  - tsuzu
+  #- neoaggelos
+  - Peppi-Lotta
+  #- s3rj1k
+  - SD-13
+  - wendy-ha18

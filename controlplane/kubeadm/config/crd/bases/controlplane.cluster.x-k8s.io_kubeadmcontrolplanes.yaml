@@ -5117,7 +5117,7 @@ spec:
       type: string
     - description: Cluster pass all availability checks
       jsonPath: .status.conditions[?(@.type=="Available")].status
-      name: Available
+      name: Cluster Available
       type: string
     - description: The desired number of machines
       jsonPath: .spec.replicas

@@ -341,7 +341,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 					toVersion,
 					input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
 
-				// Then check the upgrade is progressing step by step according to the upgrade plane
+				// Then check the upgrade is progressing step by step according to the upgrade plan
 				for _, version := range controlPlaneUpgradePlan {
 					// Wait CP to update to version
 					controlPlaneVersion = version
@@ -368,7 +368,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 					workersVersion = version
 					waitWorkersVersions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, workersVersion, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
 
-					// TODO: FP, we can't check next CP upgrade doesn't start, it starts immediately
+					// TODO(chained-upgrade): FP, we can't check next CP upgrade doesn't start, it starts immediately
 				}
 			},
 		})
@@ -747,7 +747,7 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, c
 		machineSetPreflightChecksTest(ctx, c, cluster)
 	}
 
-	// Test the AfterControlPlaneUpgrade the hook and performs machine set preflight checks before unblocking.
+	// Test the AfterControlPlaneUpgrade hook and perform machine set preflight checks before unblocking.
 	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, []string{controlPlaneVersion}, isBlockingUpgrade, beforeUnblockingUpgrade, intervals)
 }
 
@@ -846,7 +846,7 @@ func annotationHookTestHandler(ctx context.Context, c client.Client, cluster *cl
 		fmt.Sprintf("ClusterTopology reconcile did not proceed as expected when unblocking hook %s (via annotation %s)", hook, annotation))
 }
 
-// runtimeHookTestHandler runs a series of tests in sequence to check if the runtimeHook passed in have ben called, and it can block.
+// runtimeHookTestHandler runs a series of tests in sequence to check if the runtimeHook passed in has been called, and it can block.
 //  1. Check if the hook is actually called, it is blocking, and if the TopologyReconciled condition reports the hook is blocking.
 //  2. Remove the block.
 //  3. Check that hook is not blocking anymore.
@@ -989,7 +989,7 @@ func controlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv
 		}
 
 		return true
-	}, intervals...).Should(BeTrue(), "Failed to get the hook response configmap")
+	}, intervals...).Should(BeTrue(), fmt.Sprintf("Failed to wait for ControlPlane to reach version %s and Nodes to become healthy", version))
 }
 
 func waitWorkersVersions(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workersVersion string, intervals []interface{}) {
@@ -1042,7 +1042,7 @@ func workersVersions(ctx context.Context, c client.Client, cluster *clusterv1.Cl
 			}
 		}
 		return true
-	}, intervals...).Should(BeTrue(), "Failed to get the hook response configmap")
+	}, intervals...).Should(BeTrue(), fmt.Sprintf("Failed to wait for workers to reach version %s and Nodes to become healthy", workersVersion))
 }
 
 func dumpAndDeleteCluster(ctx context.Context, proxy framework.ClusterProxy, clusterctlConfigPath, namespace, clusterName, artifactFolder string) {

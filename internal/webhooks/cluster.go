@@ -391,11 +391,11 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			log.Info(warningMsg)
 			allWarnings = append(allWarnings, warningMsg)
 		} else {
-			// TODO: handle properly when upgrade paths are called using a runtime extension.
+			// TODO(chained-upgrade): handle properly when upgrade paths are called using a runtime extension.
 
-			// NOTE: we do not validate version ceiling only when we can validate the target version against version defined in a CC.
+			// NOTE: We validate the version ceiling only if we can't validate the version against versions defined in the ClusterClass.
 			shouldValidateVersionCeiling := len(clusterClass.Spec.KubernetesVersions) == 0
-			if err := webhook.validateTopologyVersion(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, oldCluster, shouldValidateVersionCeiling); err != nil {
+			if err := webhook.validateTopologyVersionUpdate(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, oldCluster, shouldValidateVersionCeiling); err != nil {
 				allErrs = append(allErrs, err)
 			}
 		}
@@ -433,7 +433,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	return allWarnings, allErrs
 }
 
-func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, oldCluster *clusterv1.Cluster, shouldValidateCeiling bool) *field.Error {
+func (webhook *Cluster) validateTopologyVersionUpdate(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, oldCluster *clusterv1.Cluster, shouldValidateCeiling bool) *field.Error {
 	// Nothing to do if the version doesn't change.
 	if inVersion.String() == oldVersion.String() {
 		return nil
@@ -895,7 +895,7 @@ func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *cl
 		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("ClusterClass can not be nil"))}
 	}
 
-	// If there the clusterClass defines a list of versions, check the version is one of them.
+	// If the ClusterClass defines a list of versions, check the version is one of them.
 	if len(clusterClass.Spec.KubernetesVersions) > 0 {
 		found := false
 		for _, clusterClassVersion := range clusterClass.Spec.KubernetesVersions {

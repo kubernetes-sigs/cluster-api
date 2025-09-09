@@ -81,7 +81,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass in a diff
 	})
 })
 
-var _ = Describe("When performing chained upgrades for workload cluster using ClusterClass in a different NS with RuntimeSDK [ClusterClass] [ChainedUpgrade]", Label("ClusterClass", "ChainedUpgrade"), func() {
+var _ = Describe("When performing chained upgrades for workload cluster using ClusterClass in a different NS with RuntimeSDK [ClusterClass]", Label("ClusterClass"), func() {
 	ClusterUpgradeWithRuntimeSDKSpec(ctx, func() ClusterUpgradeWithRuntimeSDKSpecInput {
 		return ClusterUpgradeWithRuntimeSDKSpecInput{
 			E2EConfig:              e2eConfig,
@@ -99,7 +99,7 @@ var _ = Describe("When performing chained upgrades for workload cluster using Cl
 			Flavor:                                ptr.To("upgrades-runtimesdk"),
 			DeployClusterClassInSeparateNamespace: true,
 			// Setting Kubernetes version from
-			KubernetesVersionFrom: e2eConfig.GetVariableOrEmpty(KubernetesVersionChainedUpgradeFrom),
+			KubernetesVersionFrom: e2eConfig.MustGetVariable(KubernetesVersionChainedUpgradeFrom),
 			// use Kubernetes versions from the kind mapper.
 			KubernetesVersions: kind.GetKubernetesVersions(),
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed

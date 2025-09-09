@@ -47,9 +47,9 @@ type ControlPlaneUpgradeTracker struct {
 	// The following rules apply:
 	// - there should be at least one version for every minor between currentControlPlaneVersion (excluded) and desiredVersion (included).
 	// - each version must be:
-	//   - greater than currentControlPlaneVersion
-	//   - greater than the previous version in the list
-	//   - less or equal to desiredVersion
+	//   - greater than currentControlPlaneVersion (or with a different build number)
+	//   - greater than the previous version in the list (or with a different build number)
+	//   - less or equal to desiredVersion (or with a different build number)
 	// - the last version in the plan must be equal to the desired version
 	UpgradePlan []string
 
@@ -91,8 +91,11 @@ type WorkerUpgradeTracker struct {
 	// the following rules apply:
 	// - each version must be:
 	//   - equal to currentControlPlaneVersion or to one of the versions in the control plane upgrade plan.
-	//   - greater than currentWorkerVersion
-	//   - greater than the previous version in the list
+	//   - greater than current min worker - MachineDeployment & MachinePool - version (or with a different build number)
+	//   - greater than the previous version in the list (or with a different build number)
+	//   - less or equal to the desiredVersion (or with a different build number)
+	//   - in case of versions with the same major/minor/patch version but different build number, also the order
+	//     of those versions must be the same for control plane and worker upgrade plan.
 	// - the last version in the plan must be equal to the desired version
 	// - the upgrade plane must have all the intermediate version which workers must go through to avoid breaking rules
 	//   defining the max version skew between control plane and workers.

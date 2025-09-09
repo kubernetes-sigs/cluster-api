@@ -147,6 +147,9 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 	// Validate metadata
 	allErrs = append(allErrs, validateClusterClassMetadata(newClusterClass)...)
 
+	// Ensure all kubernetes versions are valid.
+	allErrs = append(allErrs, validateKubernetesVersions(newClusterClass.Spec.KubernetesVersions)...)
+
 	// If this is an update run additional validation.
 	if oldClusterClass != nil {
 		// Ensure spec changes are compatible.
@@ -175,9 +178,6 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 		allErrs = append(allErrs,
 			validateAutoscalerAnnotationsForClusterClass(clusters, newClusterClass)...)
 	}
-
-	// Ensure all kubernetes versions are valid.
-	allErrs = append(allErrs, validateKubernetesVersions(newClusterClass.Spec.KubernetesVersions)...)
 
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), newClusterClass.Name, allErrs)

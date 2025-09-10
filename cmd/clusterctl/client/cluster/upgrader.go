@@ -175,6 +175,15 @@ func (u *providerUpgrader) ApplyPlan(ctx context.Context, opts UpgradeOptions, c
 		return err
 	}
 
+	// Make sure there is something to upgrade, clear providers that do not
+	// need it
+	for i := len(upgradePlan.Providers) - 1; i >= 0; i-- {
+		if upgradePlan.Providers[i].NextVersion == "" {
+			// Remove this from our plan
+			upgradePlan.Providers = append(upgradePlan.Providers[:i], upgradePlan.Providers[i+1:]...)
+		}
+	}
+
 	// Do the upgrade
 	return u.doUpgrade(ctx, upgradePlan, opts)
 }

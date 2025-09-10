@@ -190,7 +190,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				wantErr: false,
 			},
 			{
-				name: "control plane preflight check: should fail if the cluster defines a different version than the control plane, and the control plan is not yet at the current step of the upgrade plan",
+				name: "control plane preflight check: should fail if the cluster defines a different version than the control plane, and the control plane is not yet at the current step of the upgrade plan",
 				cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ns,
@@ -258,7 +258,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				wantErr:      false,
 			},
 			{
-				name: "control plane preflight check: should pass if the control plane is stable, and the control plan is at the current step of the upgrade plan",
+				name: "control plane preflight check: should pass if the control plane is stable, and the control plane is at the current step of the upgrade plan",
 				cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ns,

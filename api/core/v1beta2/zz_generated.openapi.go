@@ -618,6 +618,11 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassSpec(ref common.ReferenceCa
 						},
 					},
 					"kubernetesVersions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "kubernetesVersions is the list of Kubernetes versions that can be used for clusters using this ClusterClass. The list of version must be ordered from the older to the newer version, and there should be at least one version for every minor in between the first and the last version.",
 							Type:        []string{"array"},

@@ -40,7 +40,7 @@ import (
 // will determine the minimal number of workers upgrade steps, thus minimizing impact on workloads and reducing the overall upgrade time.
 func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetUpgradePlanFunc) error {
 	// Return early if control plane is not yet created.
-	if s.Current.ControlPlane.Object == nil {
+	if s.Current.ControlPlane == nil || s.Current.ControlPlane.Object == nil {
 		return nil
 	}
 
@@ -50,7 +50,7 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 	desiredVersion := s.Blueprint.Topology.Version
 	desiredSemVer, err := semver.ParseTolerant(desiredVersion)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse cluster version %s", desiredVersion)
+		return errors.Wrapf(err, "failed to parse Cluster version %s", desiredVersion)
 	}
 
 	controlPlaneVersion := ""
@@ -61,7 +61,7 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 	controlPlaneVersion = *v
 	controlPlaneSemVer, err := semver.ParseTolerant(*v)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse control plane version %s", *v)
+		return errors.Wrapf(err, "failed to parse ControlPlane version %s", *v)
 	}
 
 	var minWorkersSemVer *semver.Version
@@ -70,7 +70,7 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 		if md.Object.Spec.Template.Spec.Version != "" {
 			currentSemVer, err := semver.ParseTolerant(md.Object.Spec.Template.Spec.Version)
 			if err != nil {
-				return errors.Wrapf(err, "invalid machine deployment %s: failed to parse version %s", md.Object.Name, md.Object.Spec.Template.Spec.Version)
+				return errors.Wrapf(err, "failed to parse version %s of MachineDeployment %s", md.Object.Spec.Template.Spec.Version, md.Object.Name)
 			}
 			if minMachineDeploymentsSemVer == nil || isLowerThanMinVersion(currentSemVer, *minMachineDeploymentsSemVer, controlPlaneSemVer) {
 				minMachineDeploymentsSemVer = &currentSemVer
@@ -86,7 +86,7 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 		if mp.Object.Spec.Template.Spec.Version != "" {
 			currentSemVer, err := semver.ParseTolerant(mp.Object.Spec.Template.Spec.Version)
 			if err != nil {
-				return errors.Wrapf(err, "invalid machine pool %s: failed to parse version %s", mp.Object.Name, mp.Object.Spec.Template.Spec.Version)
+				return errors.Wrapf(err, "failed to parse version %s of MachinePool %s", mp.Object.Spec.Template.Spec.Version, mp.Object.Name)
 			}
 			if minMachinePoolsSemVer == nil || isLowerThanMinVersion(currentSemVer, *minMachinePoolsSemVer, controlPlaneSemVer) {
 				minMachinePoolsSemVer = &currentSemVer
@@ -97,9 +97,9 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 		}
 	}
 
-	workersVersion := ""
+	minWorkersVersion := ""
 	if minWorkersSemVer != nil {
-		workersVersion = fmt.Sprintf("v%s", minWorkersSemVer.String())
+		minWorkersVersion = fmt.Sprintf("v%s", minWorkersSemVer.String())
 	}
 
 	// If both control plane and workers are already at the desired version, there is no need to compute the upgrade plan.
@@ -108,14 +108,14 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 	}
 
 	// At this stage we know that an upgrade is required, then call the pluggable func that returns the upgrade plan.
-	controlPlaneUpgradePlan, workersUpgradePlan, err := getUpgradePlan(ctx, desiredVersion, controlPlaneVersion, workersVersion)
+	controlPlaneUpgradePlan, workersUpgradePlan, err := getUpgradePlan(ctx, desiredVersion, controlPlaneVersion, minWorkersVersion)
 	if err != nil {
 		return err
 	}
 
 	// DefaultAndValidateUpgradePlans validates both control plane and workers upgrade plan.
 	// If workers upgrade plan is not specified, default it with the minimal number of workers upgrade steps.
-	workersUpgradePlan, err = DefaultAndValidateUpgradePlans(desiredVersion, controlPlaneVersion, workersVersion, controlPlaneUpgradePlan, workersUpgradePlan)
+	workersUpgradePlan, err = DefaultAndValidateUpgradePlans(desiredVersion, controlPlaneVersion, minWorkersVersion, controlPlaneUpgradePlan, workersUpgradePlan)
 	if err != nil {
 		return err
 	}
@@ -156,22 +156,22 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 
 // DefaultAndValidateUpgradePlans validates both control plane and workers upgrade plan.
 // If workers upgrade plan is not specified, default it with the minimal number of workers upgrade steps.
-func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion string, workersVersion string, controlPlaneUpgradePlan []string, workersUpgradePlan []string) ([]string, error) {
+func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion string, minWorkersVersion string, controlPlaneUpgradePlan []string, workersUpgradePlan []string) ([]string, error) {
 	desiredSemVer, err := semver.ParseTolerant(desiredVersion)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse cluster version %s", desiredVersion)
+		return nil, errors.Wrapf(err, "failed to parse Cluster version %s", desiredVersion)
 	}
 
 	controlPlaneSemVer, err := semver.ParseTolerant(controlPlaneVersion)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse control plane version %s", controlPlaneVersion)
+		return nil, errors.Wrapf(err, "failed to parse ControlPlane version %s", controlPlaneVersion)
 	}
 
 	var minWorkersSemVer *semver.Version
-	if workersVersion != "" {
-		v, err := semver.ParseTolerant(workersVersion)
+	if minWorkersVersion != "" {
+		v, err := semver.ParseTolerant(minWorkersVersion)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse control plane version %s", workersVersion)
+			return nil, errors.Wrapf(err, "failed to parse min workers version %s", minWorkersVersion)
 		}
 		minWorkersSemVer = &v
 	}
@@ -193,28 +193,28 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 			versionOrder[targetVersion] = i
 			targetSemVer, err := semver.ParseTolerant(targetVersion)
 			if err != nil {
-				return nil, errors.Wrapf(err, "invalid control plane upgrade plan, item %d; failed to parse version %s", i, targetVersion)
+				return nil, errors.Wrapf(err, "invalid ControlPlane upgrade plan: item %d; failed to parse version %s", i, targetVersion)
 			}
 
 			// Check versions in the control plane upgrade plan are in the right order.
 			// Note: we tolerate having one version followed by another with the same major.minor.patch but different build tags (version.Compare==2)
 			if version.Compare(targetSemVer, currentSemVer, version.WithBuildTags()) <= 0 {
-				return nil, errors.Errorf("invalid control plane upgrade plan, item %d; version %s must be greater than v%s", i, targetVersion, currentSemVer)
+				return nil, errors.Errorf("invalid ControlPlane upgrade plan: item %d; version %s must be greater than v%s", i, targetVersion, currentSemVer)
 			}
 
 			// Check we are not skipping minors.
 			if currentSemVer.Minor != targetSemVer.Minor && currentSemVer.Minor+1 != targetSemVer.Minor {
-				return nil, errors.Errorf("invalid control plane upgrade plan, item %d; expecting a version with minor %d or %d, found version %s", i, currentSemVer.Minor, currentSemVer.Minor+1, targetVersion)
+				return nil, errors.Errorf("invalid ControlPlane upgrade plan: item %d; expecting a version with minor %d or %d, found version %s", i, currentSemVer.Minor, currentSemVer.Minor+1, targetVersion)
 			}
 
 			minors[targetSemVer.Minor] = targetVersion
 			currentSemVer = targetSemVer
 		}
 		if version.Compare(currentSemVer, desiredSemVer, version.WithBuildTags()) != 0 {
-			return nil, errors.Errorf("invalid control plane upgrade plan, item %d; control plane upgrade plan must end with version %s, found %s", len(controlPlaneUpgradePlan), desiredVersion, fmt.Sprintf("v%s", currentSemVer))
+			return nil, errors.Errorf("invalid ControlPlane upgrade plan: item %d; control plane upgrade plan must end with version %s, found %s", len(controlPlaneUpgradePlan)-1, desiredVersion, fmt.Sprintf("v%s", currentSemVer))
 		}
 	} else if len(controlPlaneUpgradePlan) > 0 {
-		return nil, errors.New("invalid control plane upgrade plan; control plane is already at the desired version")
+		return nil, errors.New("invalid ControlPlane upgrade plan: control plane is already at the desired version")
 	}
 
 	// Defaults and validate the workers upgrade plan.
@@ -235,13 +235,13 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 			targetMinor := desiredSemVer.Minor
 			for i := range targetMinor - currentMinor {
 				if i > 0 && i%3 == 0 {
-					tagetVersion, ok := minors[currentMinor+i]
+					targetVersion, ok := minors[currentMinor+i]
 					if !ok {
 						// Note: this should never happen, all the versions in the workers upgrade plan should exist in versionOrder, which is
 						// derived from control plane upgrade plan + current control plane version (a superset of the versions in the workers upgrade plan)
 						return nil, errors.Wrapf(err, "invalid upgrade plan; unable to identify version for minor %d", currentMinor+i)
 					}
-					workersUpgradePlan = append(workersUpgradePlan, tagetVersion)
+					workersUpgradePlan = append(workersUpgradePlan, targetVersion)
 				}
 			}
 			if len(workersUpgradePlan) == 0 || workersUpgradePlan[len(workersUpgradePlan)-1] != desiredVersion {
@@ -292,7 +292,7 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 			currentMinor = currentSemVer.Minor
 		}
 		if version.Compare(currentSemVer, desiredSemVer, version.WithBuildTags()) != 0 {
-			return nil, errors.Errorf("invalid workers upgrade plan, item %d; workers upgrade plan must end with version %s, found %s", len(controlPlaneUpgradePlan), desiredVersion, fmt.Sprintf("v%s", currentSemVer))
+			return nil, errors.Errorf("invalid workers upgrade plan, item %d; workers upgrade plan must end with version %s, found %s", len(workersUpgradePlan)-1, desiredVersion, fmt.Sprintf("v%s", currentSemVer))
 		}
 	} else if len(workersUpgradePlan) > 0 {
 		return nil, errors.New("invalid worker upgrade plan; there are no workers or workers already at the desired version")
@@ -320,7 +320,7 @@ func isLowerThanMinVersion(v, minVersion, controlPlaneSemVer semver.Version) boo
 //
 // The upgrade plan for control plane must be a list of intermediate version the control plane must go through
 // to reach the desired version. The following rules apply:
-// - there should be at least one version for every minor between currentControlPlaneVersion and desiredVersion.
+// - there should be at least one version for every minor between currentControlPlaneVersion (excluded) and desiredVersion (included).
 // - each version must be:
 //   - greater than currentControlPlaneVersion (or with a different build number)
 //   - greater than the previous version in the list (or with a different build number)
@@ -331,30 +331,32 @@ func isLowerThanMinVersion(v, minVersion, controlPlaneSemVer semver.Version) boo
 // determine the minimal number of workers upgrade steps, thus minimizing impact on workloads and reducing
 // the overall upgrade time.
 //
-// If instead for any reason the user wants to return a custom upgrade path for workers, the following rules apply:
+// If instead for any reason the GetUpgradePlanFunc returns a custom upgrade path for workers, the following rules apply:
 // - each version must be:
 //   - equal to currentControlPlaneVersion or to one of the versions in the control plane upgrade plan.
 //   - greater than current min worker - MachineDeployment & MachinePool - version (or with a different build number)
 //   - greater than the previous version in the list (or with a different build number)
 //   - less or equal to the desiredVersion (or with a different build number)
-//   - the last version in the plan must be equal to the desired version
 //   - in case of versions with the same major/minor/patch version but different build number, also the order
 //     of those versions must be the same for control plane and worker upgrade plan.
-type GetUpgradePlanFunc func(_ context.Context, desiredVersion, currentControlPlaneVersion, currentWorkerVersion string) ([]string, []string, error)
+//   - the last version in the plan must be equal to the desired version
+//   - the upgrade plane must have all the intermediate version which workers must go through to avoid breaking rules
+//     defining the max version skew between control plane and workers.
+type GetUpgradePlanFunc func(_ context.Context, desiredVersion, currentControlPlaneVersion, currentMinWorkersVersion string) ([]string, []string, error)
 
 // GetUpgradePlanOneMinor returns an upgrade plan to reach the next minor.
 // The workers upgrade plan will be left empty, thus deferring to ComputeUpgradePlan to compute it.
 // NOTE: This is the func the system is going to use when there are no Kubernetes versions or UpgradePlan hook
-// defined in the cluster class; In this scenario, only upgrade by one minor is supported (same as before implementing chained upgrades).
+// defined in the ClusterClass. In this scenario, only upgrade by one minor is supported (same as before implementing chained upgrades).
 func GetUpgradePlanOneMinor(_ context.Context, desiredVersion, currentControlPlaneVersion, _ string) ([]string, []string, error) {
 	desiredSemVer, err := semver.ParseTolerant(desiredVersion)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to parse control plane desired version")
+		return nil, nil, errors.Wrap(err, "failed to parse desired version")
 	}
 
 	currentControlPlaneSemVer, err := semver.ParseTolerant(currentControlPlaneVersion)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to parse control plane current version")
+		return nil, nil, errors.Wrap(err, "failed to parse current ControlPlane version")
 	}
 
 	if currentControlPlaneSemVer.String() == desiredSemVer.String() {
@@ -371,17 +373,17 @@ func GetUpgradePlanOneMinor(_ context.Context, desiredVersion, currentControlPla
 // GetUpgradePlanFromClusterClassVersions returns an upgrade plan based on versions defined on a ClusterClass.
 // The control plane plan will use the latest version for each minor in between currentControlPlaneVersion and desiredVersion;
 // workers upgrade plan will be left empty, thus deferring to ComputeUpgradePlan to compute the most efficient plan.
-// NOTE: This is the func the system is going to use when there are no Kubernetes versions defined in the cluster class.
+// NOTE: This is the func the system is going to use when there are Kubernetes versions defined in the ClusterClass.
 func GetUpgradePlanFromClusterClassVersions(clusterClassVersions []string) func(_ context.Context, desiredVersion, currentControlPlaneVersion, _ string) ([]string, []string, error) {
 	return func(_ context.Context, desiredVersion, currentControlPlaneVersion, _ string) ([]string, []string, error) {
 		desiredSemVer, err := semver.ParseTolerant(desiredVersion)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to parse control plane desired version")
+			return nil, nil, errors.Wrap(err, "failed to parse desired version")
 		}
 
 		currentControlPlaneSemVer, err := semver.ParseTolerant(currentControlPlaneVersion)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to parse control plane current version")
+			return nil, nil, errors.Wrap(err, "failed to parse current ControlPlane version")
 		}
 
 		if currentControlPlaneSemVer.String() == desiredSemVer.String() {

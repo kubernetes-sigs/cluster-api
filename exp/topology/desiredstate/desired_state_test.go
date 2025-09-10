@@ -443,12 +443,12 @@ func TestComputeControlPlane(t *testing.T) {
 		fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta1"): clusterv1.GroupVersionControlPlane.Version,
 	}
 	clientWithV1Beta1ContractCRD := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crdV1Beta1Contract).Build()
-	crdV2Beta1Contract := builder.GenericControlPlaneCRD.DeepCopy()
-	crdV2Beta1Contract.Labels = map[string]string{
+	crdV1Beta2Contract := builder.GenericControlPlaneCRD.DeepCopy()
+	crdV1Beta2Contract.Labels = map[string]string{
 		// Set contract label for tt.contract.
 		fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta2"): clusterv1.GroupVersionControlPlane.Version,
 	}
-	clientWithV1Beta2ContractCRD := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crdV2Beta1Contract).Build()
+	clientWithV1Beta2ContractCRD := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crdV1Beta2Contract).Build()
 
 	t.Run("Generates the ControlPlane from the template (v1beta1 contract)", func(t *testing.T) {
 		g := NewWithT(t)
@@ -994,7 +994,7 @@ func TestComputeControlPlane(t *testing.T) {
 				s.UpgradeTracker = scope.NewUpgradeTracker()
 				s.UpgradeTracker.ControlPlane.UpgradePlan = tt.upgradePlan
 
-				obj, err := (&generator{Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(crdV2Beta1Contract, clusterWithControlPlaneRef).Build()}).computeControlPlane(ctx, s, nil)
+				obj, err := (&generator{Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(crdV1Beta2Contract, clusterWithControlPlaneRef).Build()}).computeControlPlane(ctx, s, nil)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(obj).NotTo(BeNil())
 				assertNestedField(g, obj, tt.expectedVersion, contract.ControlPlane().Version().Path()...)
@@ -2164,7 +2164,7 @@ func TestComputeControlPlaneVersion_callBeforeClusterUpgrade_trackIntentOfCallin
 		// Before Cluster upgrade hook must have been be called.
 		g.Expect(runtimeClient.CallAllCount(runtimehooksv1.BeforeClusterUpgrade)).To(Equal(1))
 
-		// After a blocking response, current version should be picked up, intent to call AfterControlPlaneUpgrade and AfterClusterUpgrade hooks should not be registered.
+		// After a blocking response, current version should not be picked up, intent to call AfterControlPlaneUpgrade and AfterClusterUpgrade hooks should not be registered.
 		g.Expect(desiredVersion).To(Equal("v1.2.2"))
 		g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster)).To(BeFalse())
 		g.Expect(hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)).To(BeFalse())
@@ -2317,7 +2317,7 @@ func TestComputeControlPlaneVersion_callBeforeClusterUpgrade_trackIntentOfCallin
 
 		s := &scope.Scope{
 			Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
-				Version: "v1.5.3", // more than one minor after current
+				Version: "v1.5.3", // one minor after current
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](2),
 				},
@@ -2424,7 +2424,7 @@ func TestComputeCluster(t *testing.T) {
 
 	g.Expect(obj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation, "v1.30.3"))
 
-	// Use ClusterTopologyControlPlaneUpgradeStepAnnotation annotation after
+	// Delete ClusterTopologyControlPlaneUpgradeStepAnnotation annotation after upgrade is completed.
 	delete(annotations, runtimev1.PendingHooksAnnotation)
 	s.Current.Cluster.SetAnnotations(annotations)
 

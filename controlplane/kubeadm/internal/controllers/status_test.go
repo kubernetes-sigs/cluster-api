@@ -451,7 +451,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneScalingUpReason,
 				Message: "Scaling up from 3 to 5 replicas is blocked because:\n" +
-					"* waiting for a version upgrade to v1.32.0 to be propagated from Cluster.spec.topology\n" +
+					"* waiting for a version upgrade to v1.32.0 to be propagated\n" +
 					"* waiting for a control plane Machine to complete deletion\n" +
 					"* waiting for control plane components to become healthy\n" +
 					"* waiting for etcd cluster to become healthy",
@@ -645,7 +645,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneScalingDownReason,
 				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
-					"* waiting for a version upgrade to v1.32.0 to be propagated from Cluster.spec.topology\n" +
+					"* waiting for a version upgrade to v1.32.0 to be propagated\n" +
 					"* waiting for a control plane Machine to complete deletion\n" +
 					"* waiting for control plane components to become healthy\n" +
 					"* waiting for etcd cluster to become healthy",

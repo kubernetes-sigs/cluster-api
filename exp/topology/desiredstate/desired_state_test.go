@@ -881,7 +881,6 @@ func TestComputeControlPlane(t *testing.T) {
 				currentControlPlane: nil,
 				topologyVersion:     "v1.2.3",
 				expectedVersion:     "v1.2.3",
-				// NO MultiStepUpgradeVersions should be tracked
 			},
 			{
 				name: "use cluster.spec.topology.version if the control plane is already up to date",
@@ -898,7 +897,7 @@ func TestComputeControlPlane(t *testing.T) {
 				expectedVersion: "v1.2.3",
 			},
 			{
-				name: "use controlplane.spec.version if the control plane cannot upgrade", // NOTE: there are a few other conditions preventing to pick up latest cluster.spec.topology.version (other than is upgrading which is test here); all those conditions are validated in TestComputeControlPlaneVersion
+				name: "use controlplane.spec.version if the control plane's spec.version is not equal to status.version", // NOTE: there are a few other conditions preventing to pick up latest cluster.spec.topology.version (other than is upgrading which is test here); all those conditions are validated in TestComputeControlPlaneVersion
 				currentControlPlane: builder.ControlPlane("test1", "cp1").
 					WithSpecFields(map[string]interface{}{
 						"spec.version": "v1.2.2",
@@ -961,7 +960,6 @@ func TestComputeControlPlane(t *testing.T) {
 						"status.readyReplicas":   int64(2),
 					}).
 					Build(),
-				// TODO: set the annotation on the cluster
 				topologyVersion: "v1.5.3",
 				upgradePlan:     []string{"v1.5.3"},
 				expectedVersion: "v1.5.3",
@@ -1007,7 +1005,6 @@ func TestComputeControlPlane(t *testing.T) {
 
 		// current cluster objects
 		clusterWithoutReplicas := cluster.DeepCopy()
-		clusterWithoutReplicas.Spec.Topology.Version = "v1.2.2"
 		clusterWithoutReplicas.Spec.Topology.ControlPlane.Replicas = nil
 
 		blueprint := &scope.ClusterBlueprint{
@@ -1018,11 +1015,15 @@ func TestComputeControlPlane(t *testing.T) {
 			},
 		}
 
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
 		s := scope.New(clusterWithoutReplicas)
 		s.Current.ControlPlane = &scope.ControlPlaneState{
 			Object: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
 					"spec.version": "v1.2.2",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.2.1",
 				}).
 				Build(),
 		}
@@ -2172,7 +2173,6 @@ func TestComputeControlPlaneVersion_callBeforeClusterUpgrade_trackIntentOfCallin
 
 	t.Run("Call BeforeClusterUpgrade hook when doing the first step of a multistep cluster upgrade", func(t *testing.T) {
 		controlPlaneStable := builder.ControlPlane("test-ns", "cp1").
-			// there is no controlPlaneIntermediateVersionAnnotation, so it is the first step of a multistep cluster upgrade.
 			WithSpecFields(map[string]interface{}{
 				"spec.version":  "v1.2.2",
 				"spec.replicas": int64(2),
@@ -2404,13 +2404,13 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj.Namespace).To(Equal(cluster.Namespace))
 	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, cluster.Name))
 	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyOwnedLabel, ""))
-	g.Expect(obj.GetAnnotations()).ToNot(HaveKey(clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation))
+	g.Expect(obj.GetAnnotations()).ToNot(HaveKey(clusterv1.ClusterTopologyUpgradeStepAnnotation))
 
 	// Spec
 	g.Expect(obj.Spec.InfrastructureRef).To(BeComparableTo(contract.ObjToContractVersionedObjectReference(infrastructureCluster)))
 	g.Expect(obj.Spec.ControlPlaneRef).To(BeComparableTo(contract.ObjToContractVersionedObjectReference(controlPlane)))
 
-	// Surfaces the ClusterTopologyControlPlaneUpgradeStepAnnotation annotation during upgrades.
+	// Surfaces the ClusterTopologyUpgradeStepAnnotation annotation during upgrades.
 	annotations := s.Current.Cluster.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
@@ -2422,9 +2422,9 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj).ToNot(BeNil())
 	g.Expect(err).ToNot(HaveOccurred())
 
-	g.Expect(obj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation, "v1.30.3"))
+	g.Expect(obj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.ClusterTopologyUpgradeStepAnnotation, "v1.30.3"))
 
-	// Delete ClusterTopologyControlPlaneUpgradeStepAnnotation annotation after upgrade is completed.
+	// Delete ClusterTopologyUpgradeStepAnnotation annotation after upgrade is completed.
 	delete(annotations, runtimev1.PendingHooksAnnotation)
 	s.Current.Cluster.SetAnnotations(annotations)
 
@@ -2432,7 +2432,7 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj).ToNot(BeNil())
 	g.Expect(err).ToNot(HaveOccurred())
 
-	g.Expect(obj.GetAnnotations()).ToNot(HaveKey(clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation))
+	g.Expect(obj.GetAnnotations()).ToNot(HaveKey(clusterv1.ClusterTopologyUpgradeStepAnnotation))
 }
 
 func TestComputeMachineDeployment(t *testing.T) {
@@ -2853,6 +2853,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				upgradeConcurrency:          "1",
 				currentMDVersion:            nil,
 				topologyVersion:             "v1.2.3",
+				upgradePlan:                 []string{"v1.2.3"},
 				expectedVersion:             "v1.2.3",
 			},
 			{
@@ -2861,6 +2862,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				upgradeConcurrency:          "1",
 				currentMDVersion:            nil,
 				topologyVersion:             "v1.2.3",
+				upgradePlan:                 []string{"v1.2.3"},
 				expectedVersion:             "v1.2.3",
 			},
 			{
@@ -2869,6 +2871,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				upgradeConcurrency:          "1",
 				currentMDVersion:            ptr.To("v1.2.2"),
 				topologyVersion:             "v1.2.3",
+				upgradePlan:                 []string{"v1.2.3"},
 				expectedVersion:             "v1.2.2",
 			},
 			{
@@ -3259,6 +3262,7 @@ func TestComputeMachinePool(t *testing.T) {
 				upgradeConcurrency:    "1",
 				currentMPVersion:      nil,
 				topologyVersion:       "v1.2.3",
+				upgradePlan:           []string{"v1.2.3"},
 				expectedVersion:       "v1.2.3",
 			},
 			{
@@ -3267,6 +3271,7 @@ func TestComputeMachinePool(t *testing.T) {
 				upgradeConcurrency:    "1",
 				currentMPVersion:      nil,
 				topologyVersion:       "v1.2.3",
+				upgradePlan:           []string{"v1.2.3"},
 				expectedVersion:       "v1.2.3",
 			},
 			{
@@ -3275,6 +3280,7 @@ func TestComputeMachinePool(t *testing.T) {
 				upgradeConcurrency:    "1",
 				currentMPVersion:      ptr.To("v1.2.2"),
 				topologyVersion:       "v1.2.3",
+				upgradePlan:           []string{"v1.2.3"},
 				expectedVersion:       "v1.2.2",
 			},
 			{
@@ -3366,6 +3372,8 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 		currentMachineDeploymentState        *scope.MachineDeploymentState
 		upgradingMachineDeployments          []string
 		upgradeConcurrency                   int
+		controlPlanePendingUpgrade           bool
+		controlPlaneWaitingForWorkersUpgrade bool
 		controlPlaneStartingUpgrade          bool
 		controlPlaneUpgrading                bool
 		controlPlaneProvisioning             bool
@@ -3408,6 +3416,18 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			currentMachineDeploymentState: currentMachineDeploymentState,
 			upgradingMachineDeployments:   []string{},
 			topologyVersion:               "v1.2.3",
+			upgradePlan:                   []string{"v1.2.3"},
+			expectedVersion:               "v1.2.2",
+			expectPendingUpgrade:          true,
+		},
+		{
+			// Control plane is considered pending an upgrade if topology version did not yet propagate to the control plane.
+			name:                          "should return machine deployment's spec.template.spec.version if control plane is pending upgrading",
+			currentMachineDeploymentState: currentMachineDeploymentState,
+			upgradingMachineDeployments:   []string{},
+			controlPlanePendingUpgrade:    true,
+			topologyVersion:               "v1.2.3",
+			upgradePlan:                   []string{"v1.2.3"},
 			expectedVersion:               "v1.2.2",
 			expectPendingUpgrade:          true,
 		},
@@ -3418,6 +3438,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			upgradingMachineDeployments:   []string{},
 			controlPlaneUpgrading:         true,
 			topologyVersion:               "v1.2.3",
+			upgradePlan:                   []string{"v1.2.3"},
 			expectedVersion:               "v1.2.2",
 			expectPendingUpgrade:          true,
 		},
@@ -3428,6 +3449,16 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			upgradingMachineDeployments:   []string{},
 			controlPlaneStartingUpgrade:   true,
 			topologyVersion:               "v1.2.3",
+			upgradePlan:                   []string{"v1.2.3"},
+			expectedVersion:               "v1.2.2",
+			expectPendingUpgrade:          true,
+		},
+		{
+			name:                          "should return machine deployment's spec.template.spec.version if the Machine deployment already performed the upgrade step",
+			currentMachineDeploymentState: currentMachineDeploymentState,
+			upgradingMachineDeployments:   []string{},
+			topologyVersion:               "v1.2.3",
+			upgradePlan:                   []string{"v1.2.2", "v1.2.3"},
 			expectedVersion:               "v1.2.2",
 			expectPendingUpgrade:          true,
 		},
@@ -3450,12 +3481,25 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			expectPendingUpgrade:          false,
 		},
 		{
+			// Control plane is considered pending an upgrade if topology version did not yet propagate to the control plane.
+			name:                                 "should return next version from the upgrade plan if mutistep upgrade, if the control plane is pending an upgrade but this requires workers to upgrade first",
+			currentMachineDeploymentState:        currentMachineDeploymentState,
+			upgradingMachineDeployments:          []string{},
+			controlPlanePendingUpgrade:           true,
+			controlPlaneWaitingForWorkersUpgrade: true,
+			topologyVersion:                      "v1.4.3",
+			upgradePlan:                          []string{"v1.3.3", "v1.4.3"},
+			expectedVersion:                      "v1.3.3",
+			expectPendingUpgrade:                 false,
+		},
+		{
 			name:                                 "should return machine deployment's spec.template.spec.version if control plane is stable, other machine deployments are upgrading, concurrency limit not reached but AfterControlPlaneUpgrade hook is blocking",
 			currentMachineDeploymentState:        currentMachineDeploymentState,
 			upgradingMachineDeployments:          []string{"upgrading-md1"},
 			upgradeConcurrency:                   2,
 			afterControlPlaneUpgradeHookBlocking: true,
 			topologyVersion:                      "v1.2.3",
+			upgradePlan:                          []string{"v1.2.3"},
 			expectedVersion:                      "v1.2.2",
 			expectPendingUpgrade:                 true,
 		},
@@ -3475,6 +3519,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			upgradingMachineDeployments:   []string{"upgrading-md1", "upgrading-md2"},
 			upgradeConcurrency:            2,
 			topologyVersion:               "v1.2.3",
+			upgradePlan:                   []string{"v1.2.3"},
 			expectedVersion:               "v1.2.2",
 			expectPendingUpgrade:          true,
 		},
@@ -3511,6 +3556,8 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			s.UpgradeTracker.ControlPlane.IsStartingUpgrade = tt.controlPlaneStartingUpgrade
 			s.UpgradeTracker.ControlPlane.IsUpgrading = tt.controlPlaneUpgrading
 			s.UpgradeTracker.ControlPlane.IsProvisioning = tt.controlPlaneProvisioning
+			s.UpgradeTracker.ControlPlane.IsPendingUpgrade = tt.controlPlanePendingUpgrade
+			s.UpgradeTracker.ControlPlane.IsWaitingForWorkersUpgrade = tt.controlPlaneWaitingForWorkersUpgrade
 			s.UpgradeTracker.MachineDeployments.MarkUpgrading(tt.upgradingMachineDeployments...)
 
 			e := generator{}
@@ -3551,6 +3598,8 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 		currentMachinePoolState              *scope.MachinePoolState
 		upgradingMachinePools                []string
 		upgradeConcurrency                   int
+		controlPlanePendingUpgrade           bool
+		controlPlaneWaitingForWorkersUpgrade bool
 		controlPlaneStartingUpgrade          bool
 		controlPlaneUpgrading                bool
 		controlPlaneProvisioning             bool
@@ -3593,8 +3642,20 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			currentMachinePoolState: currentMachinePoolState,
 			upgradingMachinePools:   []string{},
 			topologyVersion:         "v1.2.3",
+			upgradePlan:             []string{"v1.2.3"},
 			expectedVersion:         "v1.2.2",
 			expectPendingUpgrade:    true,
+		},
+		{
+			// Control plane is considered pending an upgrade if topology version did not yet propagate to the control plane.
+			name:                       "should return machine MachinePool's spec.template.spec.version if control plane is pending upgrading",
+			currentMachinePoolState:    currentMachinePoolState,
+			upgradingMachinePools:      []string{},
+			controlPlanePendingUpgrade: true,
+			topologyVersion:            "v1.2.3",
+			upgradePlan:                []string{"v1.2.3"},
+			expectedVersion:            "v1.2.2",
+			expectPendingUpgrade:       true,
 		},
 		{
 			// Control plane is considered upgrading if the control plane's spec.version and status.version is not equal.
@@ -3603,6 +3664,7 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			upgradingMachinePools:   []string{},
 			controlPlaneUpgrading:   true,
 			topologyVersion:         "v1.2.3",
+			upgradePlan:             []string{"v1.2.3"},
 			expectedVersion:         "v1.2.2",
 			expectPendingUpgrade:    true,
 		},
@@ -3613,8 +3675,18 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			upgradingMachinePools:       []string{},
 			controlPlaneStartingUpgrade: true,
 			topologyVersion:             "v1.2.3",
+			upgradePlan:                 []string{"v1.2.3"},
 			expectedVersion:             "v1.2.2",
 			expectPendingUpgrade:        true,
+		},
+		{
+			name:                    "should return MachinePool's spec.template.spec.version if the MachinePool already performed the upgrade step",
+			currentMachinePoolState: currentMachinePoolState,
+			upgradingMachinePools:   []string{},
+			topologyVersion:         "v1.2.3",
+			upgradePlan:             []string{"v1.2.2", "v1.2.3"},
+			expectedVersion:         "v1.2.2",
+			expectPendingUpgrade:    true,
 		},
 		{
 			name:                    "should return cluster.spec.topology.version if the control plane is not upgrading, not scaling, not ready to upgrade and none of the MachinePools are upgrading",
@@ -3635,12 +3707,25 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			expectPendingUpgrade:    false,
 		},
 		{
+			// Control plane is considered pending an upgrade if topology version did not yet propagate to the control plane.
+			name:                                 "should return next version in the upgrade plan if multistep upgrade, if the control plane is pending an upgrade but this requires workers to upgrade first",
+			currentMachinePoolState:              currentMachinePoolState,
+			upgradingMachinePools:                []string{},
+			controlPlanePendingUpgrade:           true,
+			controlPlaneWaitingForWorkersUpgrade: true,
+			topologyVersion:                      "v1.4.3",
+			upgradePlan:                          []string{"v1.3.3", "v1.4.3"},
+			expectedVersion:                      "v1.3.3",
+			expectPendingUpgrade:                 false,
+		},
+		{
 			name:                                 "should return MachinePool's spec.template.spec.version if control plane is stable, other MachinePools are upgrading, concurrency limit not reached but AfterControlPlaneUpgrade hook is blocking",
 			currentMachinePoolState:              currentMachinePoolState,
 			upgradingMachinePools:                []string{"upgrading-mp1"},
 			upgradeConcurrency:                   2,
 			afterControlPlaneUpgradeHookBlocking: true,
 			topologyVersion:                      "v1.2.3",
+			upgradePlan:                          []string{"v1.2.3"},
 			expectedVersion:                      "v1.2.2",
 			expectPendingUpgrade:                 true,
 		},
@@ -3660,6 +3745,7 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			upgradingMachinePools:   []string{"upgrading-mp1", "upgrading-mp2"},
 			upgradeConcurrency:      2,
 			topologyVersion:         "v1.2.3",
+			upgradePlan:             []string{"v1.2.3"},
 			expectedVersion:         "v1.2.2",
 			expectPendingUpgrade:    true,
 		},
@@ -3693,6 +3779,8 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			s.UpgradeTracker.ControlPlane.IsStartingUpgrade = tt.controlPlaneStartingUpgrade
 			s.UpgradeTracker.ControlPlane.IsUpgrading = tt.controlPlaneUpgrading
 			s.UpgradeTracker.ControlPlane.IsProvisioning = tt.controlPlaneProvisioning
+			s.UpgradeTracker.ControlPlane.IsPendingUpgrade = tt.controlPlanePendingUpgrade
+			s.UpgradeTracker.ControlPlane.IsWaitingForWorkersUpgrade = tt.controlPlaneWaitingForWorkersUpgrade
 			s.UpgradeTracker.MachinePools.MarkUpgrading(tt.upgradingMachinePools...)
 			if tt.upgradePlan != nil {
 				s.UpgradeTracker.MachinePools.UpgradePlan = tt.upgradePlan

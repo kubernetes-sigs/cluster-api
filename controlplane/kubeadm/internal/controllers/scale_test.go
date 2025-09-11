@@ -567,7 +567,7 @@ func TestPreflightChecks(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation: "v1.32.0",
+						clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.32.0",
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
@@ -723,7 +723,7 @@ func TestPreflightChecks(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation: "v1.32.0",
+						clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.32.0",
 					},
 				},
 				Spec: clusterv1.ClusterSpec{

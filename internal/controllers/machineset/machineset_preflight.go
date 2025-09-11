@@ -152,16 +152,17 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		// Block when we expect an upgrade to be propagated to the control plane for topology clusters.
 		// NOTE: in case the cluster is performing an upgrade, allow creation of machines for the current step.
-		isMultiStepUpgradeForVersion := false
-		if versions, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation]; ok {
-			v := strings.Split(versions, ",")
-			if len(v) > 0 {
-				isMultiStepUpgradeForVersion = strings.TrimSpace(v[0]) == controlPlaneVersion
-			}
+		hasSameVersionOfCurrentUpgradeStep := false
+		if version, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok {
+			hasSameVersionOfCurrentUpgradeStep = version == controlPlaneVersion
 		}
 
-		if cluster.Spec.Topology.IsDefined() && cluster.Spec.Topology.Version != controlPlaneVersion && !isMultiStepUpgradeForVersion {
-			return ptr.To(fmt.Sprintf("%s %s has a pending version upgrade to %s (%q preflight check failed)", controlPlane.GetKind(), cpKlogRef, cluster.Spec.Topology.Version, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
+		if cluster.Spec.Topology.IsDefined() && cluster.Spec.Topology.Version != controlPlaneVersion && !hasSameVersionOfCurrentUpgradeStep {
+			v := cluster.Spec.Topology.Version
+			if version, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok {
+				v = version
+			}
+			return ptr.To(fmt.Sprintf("%s %s has a pending version upgrade to %s (%q preflight check failed)", controlPlane.GetKind(), cpKlogRef, v, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
 		}
 	}
 

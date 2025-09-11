@@ -39,6 +39,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
@@ -200,11 +201,9 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		// In this test we are defaulting all handlers to blocking because we expect the handlers to block the
 		// cluster lifecycle by default. Setting defaultAllHandlersToBlocking to true enforces that the test-extension
 		// automatically creates the ConfigMap with blocking preloaded responses.
-		err := input.BootstrapClusterProxy.GetClient().Create(ctx,
-			extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, namespaces...))
-		if !apierrors.IsAlreadyExists(err) {
-			Expect(err).To(Succeed(), "Failed to create the extension config")
-		}
+		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
+			extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, namespaces...))).
+			To(Succeed(), "Failed to create the extension config")
 
 		By("Creating a workload cluster; creation waits for BeforeClusterCreateHook to gate the operation")
 
@@ -302,8 +301,8 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		controlPlaneVersion := fromVersion
 		workersVersion := fromVersion
 
-		checkControlPlaneVersion(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, controlPlaneVersion, input.E2EConfig.GetIntervals(specName, "wait-control-plane-upgrade"))
-		checkWorkersVersions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, workersVersion, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
+		checkControlPlaneVersion(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, controlPlaneVersion)
+		checkWorkersVersions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, workersVersion)
 
 		// Add a BeforeClusterUpgrade hook annotation to block via the annotation.
 		beforeClusterUpgradeAnnotation := clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/upgrade-test"
@@ -348,7 +347,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 					waitControlPlaneVersion(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, controlPlaneVersion, input.E2EConfig.GetIntervals(specName, "wait-control-plane-upgrade"))
 
 					// Check workers are not yet upgraded.
-					checkWorkersVersions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, workersVersion, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
+					checkWorkersVersions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, workersVersion)
 
 					// make sure afterControlPlaneUpgrade still blocks, then unblock the upgrade.
 					afterControlPlaneUpgradeTestHandler(ctx,
@@ -674,7 +673,10 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, clust
 	beforeClusterUpgradeAnnotation := clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/upgrade-test"
 
 	isBlockingUpgrade := func() bool {
-		controlPlane := framework.GetControlPlaneByCluster(ctx, framework.GetControlPlaneByClusterInput{Reader: c, Cluster: cluster})
+		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+		if err != nil {
+			return false
+		}
 		controlPlaneVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 		if err != nil {
 			return false
@@ -716,7 +718,10 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, c
 	hookName := "AfterControlPlaneUpgrade"
 
 	isBlockingUpgrade := func() bool {
-		controlPlane := framework.GetControlPlaneByCluster(ctx, framework.GetControlPlaneByClusterInput{Reader: c, Cluster: cluster})
+		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+		if err != nil {
+			return false
+		}
 		v, err := contract.ControlPlane().Version().Get(controlPlane)
 		if err != nil {
 			return false
@@ -942,17 +947,20 @@ func clusterConditionShowsHookBlocking(cluster *clusterv1.Cluster, hookName stri
 
 func waitControlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals []interface{}) {
 	Byf("Waiting for control plane to have version %s", version)
-	controlPlaneVersion(ctx, c, cluster, version, intervals)
+	controlPlaneVersion(ctx, c, cluster, version, intervals...)
 }
 
-func checkControlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals []interface{}) {
+func checkControlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string) {
 	Byf("Checking control plane has version %s", version)
-	controlPlaneVersion(ctx, c, cluster, version, intervals)
+	controlPlaneVersion(ctx, c, cluster, version, "10s", "2s")
 }
 
-func controlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals []interface{}) {
+func controlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals ...interface{}) {
 	Eventually(func(_ Gomega) bool {
-		controlPlane := framework.GetControlPlaneByCluster(ctx, framework.GetControlPlaneByClusterInput{Reader: c, Cluster: cluster})
+		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+		if err != nil {
+			return false
+		}
 		v, err := contract.ControlPlane().Version().Get(controlPlane)
 		if err != nil {
 			return false
@@ -994,15 +1002,15 @@ func controlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv
 
 func waitWorkersVersions(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workersVersion string, intervals []interface{}) {
 	Byf("Waiting for workers to have version %s", workersVersion)
-	workersVersions(ctx, c, cluster, workersVersion, intervals)
+	workersVersions(ctx, c, cluster, workersVersion, intervals...)
 }
 
-func checkWorkersVersions(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workersVersion string, intervals []interface{}) {
+func checkWorkersVersions(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workersVersion string) {
 	Byf("Checking workers have version %s", workersVersion)
-	workersVersions(ctx, c, cluster, workersVersion, intervals)
+	workersVersions(ctx, c, cluster, workersVersion, "10s", "2s")
 }
 
-func workersVersions(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workersVersion string, intervals []interface{}) {
+func workersVersions(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workersVersion string, intervals ...interface{}) {
 	Eventually(func(_ Gomega) bool {
 		mds := framework.GetMachineDeploymentsByCluster(ctx,
 			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})

@@ -510,7 +510,7 @@ func validateAutoscalerAnnotationsForClusterClass(clusters []clusterv1.Cluster, 
 // validateKubernetesVersions iterates over a list of versions and check they are valid.
 func validateKubernetesVersions(versions []string) field.ErrorList {
 	var allErrs field.ErrorList
-	var currentVersion *semver.Version
+	var previousVersion *semver.Version
 	for i, v := range versions {
 		semV, err := semver.ParseTolerant(v)
 		if err != nil {
@@ -519,26 +519,27 @@ func validateKubernetesVersions(versions []string) field.ErrorList {
 				v,
 				"version must be a valid semantic version",
 			))
+			continue
 		}
-		if currentVersion != nil {
+		if previousVersion != nil {
 			// Note: we tolerate having one version followed by another with the same major.minor.patch but different build tags (version.Compare==2)
-			if version.Compare(semV, *currentVersion, version.WithBuildTags()) <= 0 {
+			if version.Compare(semV, *previousVersion, version.WithBuildTags()) <= 0 {
 				allErrs = append(allErrs, field.Invalid(
 					field.NewPath("spec", "kubernetesVersion").Index(i),
 					v,
-					fmt.Sprintf("version must be greater than v%s", currentVersion.String()),
+					fmt.Sprintf("version must be greater than v%s", previousVersion.String()),
 				))
 			}
 
-			if currentVersion.Minor != semV.Minor && currentVersion.Minor+1 != semV.Minor {
+			if previousVersion.Minor != semV.Minor && previousVersion.Minor+1 != semV.Minor {
 				allErrs = append(allErrs, field.Invalid(
 					field.NewPath("spec", "kubernetesVersion").Index(i),
 					v,
-					fmt.Sprintf("invalid control plane upgrade plan, item %d; expecting a version with minor %d or %d, found version %s", i, currentVersion.Minor, currentVersion.Minor+1, semV),
+					fmt.Sprintf("expecting a version with minor %d or %d, found version %s", previousVersion.Minor, previousVersion.Minor+1, semV),
 				))
 			}
 		}
-		currentVersion = &semV
+		previousVersion = &semV
 	}
 	return allErrs
 }

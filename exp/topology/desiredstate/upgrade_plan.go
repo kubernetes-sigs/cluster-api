@@ -65,15 +65,11 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 	}
 
 	var minWorkersSemVer *semver.Version
-	var minMachineDeploymentsSemVer *semver.Version
 	for _, md := range s.Current.MachineDeployments {
 		if md.Object.Spec.Template.Spec.Version != "" {
 			currentSemVer, err := semver.ParseTolerant(md.Object.Spec.Template.Spec.Version)
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse version %s of MachineDeployment %s", md.Object.Spec.Template.Spec.Version, md.Object.Name)
-			}
-			if minMachineDeploymentsSemVer == nil || isLowerThanMinVersion(currentSemVer, *minMachineDeploymentsSemVer, controlPlaneSemVer) {
-				minMachineDeploymentsSemVer = &currentSemVer
 			}
 			if minWorkersSemVer == nil || isLowerThanMinVersion(currentSemVer, *minWorkersSemVer, controlPlaneSemVer) {
 				minWorkersSemVer = &currentSemVer
@@ -81,15 +77,11 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 		}
 	}
 
-	var minMachinePoolsSemVer *semver.Version
 	for _, mp := range s.Current.MachinePools {
 		if mp.Object.Spec.Template.Spec.Version != "" {
 			currentSemVer, err := semver.ParseTolerant(mp.Object.Spec.Template.Spec.Version)
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse version %s of MachinePool %s", mp.Object.Spec.Template.Spec.Version, mp.Object.Name)
-			}
-			if minMachinePoolsSemVer == nil || isLowerThanMinVersion(currentSemVer, *minMachinePoolsSemVer, controlPlaneSemVer) {
-				minMachinePoolsSemVer = &currentSemVer
 			}
 			if minWorkersSemVer == nil || isLowerThanMinVersion(currentSemVer, *minWorkersSemVer, controlPlaneSemVer) {
 				minWorkersSemVer = &currentSemVer
@@ -124,31 +116,13 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 	s.UpgradeTracker.ControlPlane.UpgradePlan = controlPlaneUpgradePlan
 
 	// Sets the machine deployment and workers upgrade plan.
-	s.UpgradeTracker.MachineDeployments.UpgradePlan = nil
-	s.UpgradeTracker.MachinePools.UpgradePlan = nil
-
-	for _, targetVersion := range workersUpgradePlan {
-		targetSemVer, err := semver.ParseTolerant(targetVersion)
-		if err != nil {
-			// Note: this should never happen, all the versions have been validated above.
-			return errors.Wrapf(err, "invalid upgrade plan; failed to parse version %s from workers upgrade plan", targetVersion)
-		}
-
-		// If there are machineDeployments (minMachineDeploymentsSemVer != nil), the workers upgrade plan apply,
-		// but we should drop the first step all the machineDeployments have been already upgraded.
-		if minMachineDeploymentsSemVer != nil {
-			if targetSemVer.String() != minMachineDeploymentsSemVer.String() {
-				s.UpgradeTracker.MachineDeployments.UpgradePlan = append(s.UpgradeTracker.MachineDeployments.UpgradePlan, targetVersion)
-			}
-		}
-
-		// If there are machinePools (minMachinePoolSemVer != nil), the workers upgrade plan apply,
-		// but we should drop the first step all the machinePools have been already upgraded.
-		if minMachinePoolsSemVer != nil {
-			if targetSemVer.String() != minMachinePoolsSemVer.String() {
-				s.UpgradeTracker.MachinePools.UpgradePlan = append(s.UpgradeTracker.MachinePools.UpgradePlan, targetVersion)
-			}
-		}
+	// Note. Each MachineDeployment/MachinePool then has to figure out if/when to pick up the first version in the plan,
+	// because the minWorkersVersion will be included until all of them are upgraded.
+	if len(s.Current.MachineDeployments) > 0 {
+		s.UpgradeTracker.MachineDeployments.UpgradePlan = workersUpgradePlan
+	}
+	if len(s.Current.MachinePools) > 0 {
+		s.UpgradeTracker.MachinePools.UpgradePlan = workersUpgradePlan
 	}
 
 	return nil
@@ -185,6 +159,7 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 	// Setup for tracking version order, which is required for disambiguating where there are version with different build numbers
 	// and thus it is not possible to determine order (and thus the code relies on the version order in the upgrade plan).
 	versionOrder := map[string]int{}
+	versionOrder[controlPlaneVersion] = -1
 
 	// Validate the control plane upgrade plan.
 	if version.Compare(controlPlaneSemVer, desiredSemVer, version.WithBuildTags()) != 0 {
@@ -211,7 +186,7 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 			currentSemVer = targetSemVer
 		}
 		if version.Compare(currentSemVer, desiredSemVer, version.WithBuildTags()) != 0 {
-			return nil, errors.Errorf("invalid ControlPlane upgrade plan: item %d; control plane upgrade plan must end with version %s, found %s", len(controlPlaneUpgradePlan)-1, desiredVersion, fmt.Sprintf("v%s", currentSemVer))
+			return nil, errors.Errorf("invalid ControlPlane upgrade plan: control plane upgrade plan must end with version %s, ends with %s instead", desiredVersion, fmt.Sprintf("v%s", currentSemVer))
 		}
 	} else if len(controlPlaneUpgradePlan) > 0 {
 		return nil, errors.New("invalid ControlPlane upgrade plan: control plane is already at the desired version")
@@ -237,7 +212,7 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 				if i > 0 && i%3 == 0 {
 					targetVersion, ok := minors[currentMinor+i]
 					if !ok {
-						// Note: this should never happen, all the versions in the workers upgrade plan should exist in versionOrder, which is
+						// Note: this should never happen, all the minors in the range minWorkersSemVer.Minor-desiredSemVer.Minor should exist in the list of minors, which is
 						// derived from control plane upgrade plan + current control plane version (a superset of the versions in the workers upgrade plan)
 						return nil, errors.Wrapf(err, "invalid upgrade plan; unable to identify version for minor %d", currentMinor+i)
 					}
@@ -279,20 +254,20 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 					return nil, errors.Errorf("failer to determine version v%s order", currentSemVer)
 				}
 				if targetVersionOrder < currentVersionOrder {
-					return nil, errors.Errorf("invalid workers upgrade plan, item %d; version %s must be after v%s", i, targetVersion, currentSemVer)
+					return nil, errors.Errorf("invalid workers upgrade plan, item %d; version %s must be before v%s", i, targetVersion, currentSemVer)
 				}
 			}
 
 			targetMinor := targetSemVer.Minor
 			if targetMinor-currentMinor > 3 {
-				return nil, errors.Errorf("invalid workers upgrade plan, item %d; workers cannot go from minor %d to minor %d, an intermediate step is required to comply with Kubernetes version skew rules", i, currentMinor, targetMinor)
+				return nil, errors.Errorf("invalid workers upgrade plan, item %d; workers cannot go from minor %d (%s) to minor %d (%s), an intermediate step is required to comply with Kubernetes version skew rules", i, currentMinor, fmt.Sprintf("v%s", currentSemVer.String()), targetMinor, targetVersion)
 			}
 
 			currentSemVer = targetSemVer
 			currentMinor = currentSemVer.Minor
 		}
 		if version.Compare(currentSemVer, desiredSemVer, version.WithBuildTags()) != 0 {
-			return nil, errors.Errorf("invalid workers upgrade plan, item %d; workers upgrade plan must end with version %s, found %s", len(workersUpgradePlan)-1, desiredVersion, fmt.Sprintf("v%s", currentSemVer))
+			return nil, errors.Errorf("invalid workers upgrade plan; workers upgrade plan must end with version %s, ends with %s instead", desiredVersion, fmt.Sprintf("v%s", currentSemVer))
 		}
 	} else if len(workersUpgradePlan) > 0 {
 		return nil, errors.New("invalid worker upgrade plan; there are no workers or workers already at the desired version")
@@ -307,8 +282,8 @@ func isLowerThanMinVersion(v, minVersion, controlPlaneSemVer semver.Version) boo
 		// v is lower than minVersion
 		return true
 	case 2:
-		// v is different from minVersion, but it is not po cannot determine order;
-		// use control plane version to resolve: MD/MP version can either be equal to control plane version or the older version before the upgrade,
+		// v is different from minVersion, but it is not possible to determine order;
+		// use control plane version to resolve: MD/MP version can either be equal to control plane version or an older version,
 		// so v is considered lower than minVersion when different from control plane version.
 		return v.String() != controlPlaneSemVer.String()
 	default:

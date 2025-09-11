@@ -195,7 +195,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ns,
 						Annotations: map[string]string{
-							clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation: "v1.27.0",
+							clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.27.0",
 						},
 					},
 					Spec: clusterv1.ClusterSpec{
@@ -208,7 +208,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				controlPlane: controlPlaneStable,
 				machineSet:   &clusterv1.MachineSet{},
 				wantMessages: []string{
-					"GenericControlPlane ns1/cp1 has a pending version upgrade to v1.27.2 (\"ControlPlaneIsStable\" preflight check failed)",
+					"GenericControlPlane ns1/cp1 has a pending version upgrade to v1.27.0 (\"ControlPlaneIsStable\" preflight check failed)",
 				},
 				wantErr: false,
 			},
@@ -263,7 +263,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ns,
 						Annotations: map[string]string{
-							clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation: "v1.28.0",
+							clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.28.0",
 						},
 					},
 					Spec: clusterv1.ClusterSpec{

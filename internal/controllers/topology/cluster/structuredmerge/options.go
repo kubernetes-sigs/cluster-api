@@ -52,7 +52,7 @@ var (
 		{"kind"},
 		{"metadata", "name"},
 		{"metadata", "namespace"},
-		{"metadata", "annotations", clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation},
+		{"metadata", "annotations", clusterv1.ClusterTopologyUpgradeStepAnnotation},
 		// uid is optional for a server side apply intent but sets the expectation of an object getting created or a specific one updated.
 		{"metadata", "uid"},
 		// the topology controller controls/has an opinion for the labels ClusterNameLabel

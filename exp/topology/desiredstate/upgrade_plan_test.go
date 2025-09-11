@@ -172,7 +172,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return []string{"v1.31.1", "v1.32.0"}, nil, nil // v1.33 missing
 			},
 			wantErr:        true,
-			wantErrMessage: "invalid ControlPlane upgrade plan: item 1; control plane upgrade plan must end with version v1.33.1, found v1.32.0",
+			wantErrMessage: "invalid ControlPlane upgrade plan: control plane upgrade plan must end with version v1.33.1, ends with v1.32.0 instead",
 		},
 		{
 			name:                "Fails if control plane upgrade plan doesn't end with the target version (goes past the target version)",
@@ -182,7 +182,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return []string{"v1.31.1", "v1.32.0", "v1.33.1", "v1.34.1"}, nil, nil // v1.34 is after the target version
 			},
 			wantErr:        true,
-			wantErrMessage: "invalid ControlPlane upgrade plan: item 3; control plane upgrade plan must end with version v1.33.1, found v1.34.1",
+			wantErrMessage: "invalid ControlPlane upgrade plan: control plane upgrade plan must end with version v1.33.1, ends with v1.34.1 instead",
 		},
 		{
 			name:                     "Fails if control plane upgrade plan is returned but control plane is already up to date",
@@ -248,7 +248,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return nil, []string{"v1.32.1"}, nil // v1.32.1 is before the target version
 			},
 			wantErr:        true,
-			wantErrMessage: "invalid workers upgrade plan, item 0; workers upgrade plan must end with version v1.33.1, found v1.32.1",
+			wantErrMessage: "invalid workers upgrade plan; workers upgrade plan must end with version v1.33.1, ends with v1.32.1 instead",
 		},
 		{
 			name:                     "Fails if workers plan doesn't end with the target version (goes past the target version)",
@@ -259,7 +259,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return nil, []string{"v1.34.1"}, nil // v1.34.1 is past the target version
 			},
 			wantErr:        true,
-			wantErrMessage: "invalid workers upgrade plan, item 0; workers upgrade plan must end with version v1.33.1, found v1.34.1",
+			wantErrMessage: "invalid workers upgrade plan; workers upgrade plan must end with version v1.33.1, ends with v1.34.1 instead",
 		},
 		{
 			name:                     "Fails if workers plan doesn't comply with Kubernetes version skew versions",
@@ -270,7 +270,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return nil, []string{"v1.34.1"}, nil // workers cannot go from minor 30 to minor 34, an intermediate step is required
 			},
 			wantErr:        true,
-			wantErrMessage: "invalid workers upgrade plan, item 0; workers cannot go from minor 30 to minor 34, an intermediate step is required to comply with Kubernetes version skew rules",
+			wantErrMessage: "invalid workers upgrade plan, item 0; workers cannot go from minor 30 (v1.30.0) to minor 34 (v1.34.1), an intermediate step is required to comply with Kubernetes version skew rules",
 		},
 		{
 			name:                "Fails if there are no workers and a worker upgrade plan is provided",
@@ -462,7 +462,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return []string{"v1.34.1"}, nil, nil
 			},
 			wantControlPlaneUpgradePlan:      []string{"v1.34.1"},
-			wantMachineDeploymentUpgradePlan: []string{"v1.34.1"},
+			wantMachineDeploymentUpgradePlan: []string{"v1.33.1", "v1.34.1"},
 			wantMachinePoolUpgradePlan:       []string{"v1.33.1", "v1.34.1"},
 		},
 		{
@@ -501,7 +501,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return nil, nil, nil
 			},
 			wantControlPlaneUpgradePlan:      nil,
-			wantMachineDeploymentUpgradePlan: nil,
+			wantMachineDeploymentUpgradePlan: []string{"v1.34.1"},
 			wantMachinePoolUpgradePlan:       []string{"v1.34.1"},
 		},
 		{
@@ -549,7 +549,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return []string{"v1.32.0", "v1.33.1"}, []string{"v1.31.1", "v1.33.1"}, nil
 			},
 			wantControlPlaneUpgradePlan:      []string{"v1.32.0", "v1.33.1"},
-			wantMachineDeploymentUpgradePlan: []string{"v1.33.1"},
+			wantMachineDeploymentUpgradePlan: []string{"v1.31.1", "v1.33.1"},
 			wantMachinePoolUpgradePlan:       []string{"v1.31.1", "v1.33.1"},
 		},
 		{
@@ -601,7 +601,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return nil, []string{"v1.33.1"}, nil
 			},
 			wantControlPlaneUpgradePlan:      nil,
-			wantMachineDeploymentUpgradePlan: nil,
+			wantMachineDeploymentUpgradePlan: []string{"v1.33.1"},
 			wantMachinePoolUpgradePlan:       []string{"v1.33.1"},
 		},
 		{
@@ -649,7 +649,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return []string{"v1.32.0", "v1.33.1", "v1.34.2", "v1.35.2"}, []string{"v1.31.1", "v1.34.2", "v1.35.2"}, nil
 			},
 			wantControlPlaneUpgradePlan:      []string{"v1.32.0", "v1.33.1", "v1.34.2", "v1.35.2"},
-			wantMachineDeploymentUpgradePlan: []string{"v1.34.2", "v1.35.2"},
+			wantMachineDeploymentUpgradePlan: []string{"v1.31.1", "v1.34.2", "v1.35.2"},
 			wantMachinePoolUpgradePlan:       []string{"v1.31.1", "v1.34.2", "v1.35.2"},
 		},
 		{
@@ -714,7 +714,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return []string{"v1.35.2"}, []string{"v1.34.2", "v1.35.2"}, nil
 			},
 			wantControlPlaneUpgradePlan:      []string{"v1.35.2"},
-			wantMachineDeploymentUpgradePlan: []string{"v1.35.2"},
+			wantMachineDeploymentUpgradePlan: []string{"v1.34.2", "v1.35.2"},
 			wantMachinePoolUpgradePlan:       []string{"v1.34.2", "v1.35.2"},
 		},
 		{
@@ -753,7 +753,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return nil, []string{"v1.35.2"}, nil
 			},
 			wantControlPlaneUpgradePlan:      nil,
-			wantMachineDeploymentUpgradePlan: nil,
+			wantMachineDeploymentUpgradePlan: []string{"v1.35.2"},
 			wantMachinePoolUpgradePlan:       []string{"v1.35.2"},
 		},
 		{
@@ -861,7 +861,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return []string{"v1.31.1+foo.1-bar.1", "v1.31.1+foo.2-bar.1", "v1.32.1+foo.1-bar.1"}, []string{"v1.31.1+foo.2-bar.1", "v1.31.1+foo.1-bar.1", "v1.32.1+foo.1-bar.1"}, nil
 			},
 			wantErr:        true,
-			wantErrMessage: "invalid workers upgrade plan, item 1; version v1.31.1+foo.1-bar.1 must be after v1.31.1+foo.2-bar.1",
+			wantErrMessage: "invalid workers upgrade plan, item 1; version v1.31.1+foo.1-bar.1 must be before v1.31.1+foo.2-bar.1",
 		},
 		{
 			name:                     "Pass if control plane plan and workers upgrade plan do agree on ordering (chained upgrades)",
@@ -872,6 +872,17 @@ func TestComputeUpgradePlan(t *testing.T) {
 				return []string{"v1.31.1+foo.1-bar.1", "v1.31.1+foo.2-bar.1", "v1.32.1+foo.1-bar.1"}, []string{"v1.31.1+foo.1-bar.1", "v1.31.1+foo.2-bar.1", "v1.32.1+foo.1-bar.1"}, nil
 			},
 			wantControlPlaneUpgradePlan:      []string{"v1.31.1+foo.1-bar.1", "v1.31.1+foo.2-bar.1", "v1.32.1+foo.1-bar.1"},
+			wantMachineDeploymentUpgradePlan: []string{"v1.31.1+foo.1-bar.1", "v1.31.1+foo.2-bar.1", "v1.32.1+foo.1-bar.1"},
+		},
+		{
+			name:                     "Pass if control plane plan and workers upgrade plan do agree on ordering (chained upgrades)",
+			topologyVersion:          "v1.32.1+foo.1-bar.1",
+			controlPlaneVersion:      "v1.31.1+foo.1-bar.1",
+			machineDeploymentVersion: "v1.30.0+foo.1-bar.1",
+			F: func(_ context.Context, _, _, _ string) ([]string, []string, error) {
+				return []string{"v1.31.1+foo.2-bar.1", "v1.32.1+foo.1-bar.1"}, []string{"v1.31.1+foo.1-bar.1", "v1.31.1+foo.2-bar.1", "v1.32.1+foo.1-bar.1"}, nil
+			},
+			wantControlPlaneUpgradePlan:      []string{"v1.31.1+foo.2-bar.1", "v1.32.1+foo.1-bar.1"},
 			wantMachineDeploymentUpgradePlan: []string{"v1.31.1+foo.1-bar.1", "v1.31.1+foo.2-bar.1", "v1.32.1+foo.1-bar.1"},
 		},
 		{

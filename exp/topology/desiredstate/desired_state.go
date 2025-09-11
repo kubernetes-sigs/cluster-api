@@ -508,10 +508,10 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 // and the version defined in the topology.
 func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Scope) (string, error) {
 	log := ctrl.LoggerFrom(ctx)
-	desiredVersion := s.Blueprint.Topology.Version
+	topologyVersion := s.Blueprint.Topology.Version
 	// If we are creating the control plane object (current control plane is nil), use version from topology.
 	if s.Current.ControlPlane == nil || s.Current.ControlPlane.Object == nil {
-		return desiredVersion, nil
+		return topologyVersion, nil
 	}
 
 	// Get the current currentVersion of the control plane.
@@ -525,7 +525,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	// - computing a few more info for the update tracker, used to show the appropriate message for the TopologyReconciled condition.
 	// - call the AfterControlPlaneUpgrade hook (if not already called).
 	s.UpgradeTracker.ControlPlane.IsPendingUpgrade = true
-	if *currentVersion == desiredVersion {
+	if *currentVersion == topologyVersion {
 		s.UpgradeTracker.ControlPlane.IsPendingUpgrade = false
 	}
 
@@ -535,7 +535,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 		return "", errors.Wrap(err, "failed to check if the control plane is being provisioned")
 	}
 	// If the control plane is being provisioned (being craeted for the first time), then do not
-	// pick up the desiredVersion yet.
+	// pick up the topologyVersion yet.
 	// Return the current version of the control plane. We will pick up the new version after the
 	// control plane is provisioned.
 	if cpProvisioning {
@@ -549,7 +549,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 		return "", errors.Wrap(err, "failed to check if control plane is upgrading")
 	}
 	// If the current control plane is upgrading  (still completing a previous upgrade),
-	// then do not pick up the desiredVersion yet.
+	// then do not pick up the topologyVersion yet.
 	// Return the current version of the control plane. We will pick up the new version
 	// after the control plane is stable.
 	if cpUpgrading {
@@ -585,11 +585,11 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 			// change the UpgradeTracker accordingly, otherwise the hook call is completed and we
 			// can remove this hook from the list of pending-hooks.
 			if hookResponse.RetryAfterSeconds != 0 {
+				v := topologyVersion
 				if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 1 {
-					log.Info(fmt.Sprintf("Control plane upgrade to version %q is blocked by %q hook", s.UpgradeTracker.ControlPlane.UpgradePlan[0], runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)))
-				} else {
-					log.Info(fmt.Sprintf("MachineDeployments/MachinePools upgrade to version %q are blocked by %q hook", desiredVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)))
+					v = s.UpgradeTracker.ControlPlane.UpgradePlan[0]
 				}
+				log.Info(fmt.Sprintf("Upgrade to version %q is blocked by %q hook", v, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)))
 				return *currentVersion, nil
 			}
 			if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
@@ -660,12 +660,12 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 					},
 				})
 
-				log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q hook (via annotations)", desiredVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)), "hooks", strings.Join(hookAnnotations, ","))
+				log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q hook (via annotations)", topologyVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)), "hooks", strings.Join(hookAnnotations, ","))
 				return *currentVersion, nil
 			}
 
 			// At this point the control plane and the machine deployments are stable and we are almost ready to pick
-			// up the desiredVersion. Call the BeforeClusterUpgrade hook before picking up the desired version.
+			// up the topologyVersion. Call the BeforeClusterUpgrade hook before picking up the desired version.
 			v1beta1Cluster := &clusterv1beta1.Cluster{}
 			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
 			if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
@@ -675,7 +675,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 			hookRequest := &runtimehooksv1.BeforeClusterUpgradeRequest{
 				Cluster:               *cleanupCluster(v1beta1Cluster),
 				FromKubernetesVersion: *currentVersion,
-				ToKubernetesVersion:   desiredVersion,
+				ToKubernetesVersion:   topologyVersion,
 			}
 			hookResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{}
 			if err := g.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
@@ -685,7 +685,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 			s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, hookResponse)
 			if hookResponse.RetryAfterSeconds != 0 {
 				// Cannot pickup the new version right now. Need to try again later.
-				log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q hook", desiredVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)))
+				log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q hook", topologyVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)))
 				return *currentVersion, nil
 			}
 		}
@@ -703,14 +703,14 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	if len(s.UpgradeTracker.ControlPlane.UpgradePlan) == 0 {
 		return "", errors.New("cannot compute the control plane version if the control plane is pending upgrade and the upgrade plan is not set")
 	}
-	desiredVersion = s.UpgradeTracker.ControlPlane.UpgradePlan[0]
+	nextVersion := s.UpgradeTracker.ControlPlane.UpgradePlan[0]
 
 	// The upgrade is now starting in this reconcile and not pending anymore.
 	// Note: it is important to unset IsPendingUpgrade, otherwise reconcileState will assume that we are still waiting for another upgrade (and thus defer the one we are starting).
 	s.UpgradeTracker.ControlPlane.IsStartingUpgrade = true
 	s.UpgradeTracker.ControlPlane.IsPendingUpgrade = false
 
-	return desiredVersion, nil
+	return nextVersion, nil
 }
 
 // computeCluster computes the desired state for the Cluster object.
@@ -741,13 +741,13 @@ func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, co
 	//   TBD if the semantic of the new field can replace this annotation.
 	if hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster) {
 		// NOTE: to detect if we are at the beginning of an upgrade, we check if the intent to call the AfterClusterUpgrade is already tracked.
-		controlPlaneVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
+		controlPlaneVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting control plane version")
 		}
-		annotations.AddAnnotations(cluster, map[string]string{clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation: *controlPlaneVersion})
+		annotations.AddAnnotations(cluster, map[string]string{clusterv1.ClusterTopologyUpgradeStepAnnotation: *controlPlaneVersion})
 	} else {
-		delete(cluster.Annotations, clusterv1.ClusterTopologyControlPlaneUpgradeStepAnnotation)
+		delete(cluster.Annotations, clusterv1.ClusterTopologyUpgradeStepAnnotation)
 	}
 
 	return cluster, nil
@@ -1058,7 +1058,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 // The version is calculated using the state of the current machine deployments,
 // the current control plane and the version defined in the topology.
 func (g *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology, currentMDState *scope.MachineDeploymentState) (string, error) {
-	desiredVersion := s.Blueprint.Topology.Version
+	topologyVersion := s.Blueprint.Topology.Version
 	// If creating a new machine deployment, mark it as pending if the control plane is not
 	// yet stable. Creating a new MD while the control plane is upgrading can lead to unexpected race conditions.
 	// Example: join could fail if the load balancers are slow in detecting when CP machines are
@@ -1067,15 +1067,15 @@ func (g *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeplo
 		if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
 			s.UpgradeTracker.MachineDeployments.MarkPendingCreate(machineDeploymentTopology.Name)
 		}
-		return desiredVersion, nil
+		return topologyVersion, nil
 	}
 
 	// Get the current version of the machine deployment.
 	currentVersion := currentMDState.Object.Spec.Template.Spec.Version
 
-	// Return early if the currentVersion is already equal to the desiredVersion
+	// Return early if the currentVersion is already equal to the topologyVersion
 	// no further checks required.
-	if currentVersion == desiredVersion {
+	if currentVersion == topologyVersion {
 		return currentVersion, nil
 	}
 
@@ -1098,7 +1098,7 @@ func (g *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeplo
 		return currentVersion, nil
 	}
 
-	// Return early if the Control Plane is not stable. Do not pick up the desiredVersion yet.
+	// Return early if the Control Plane is not stable. Do not pick up the topologyVersion yet.
 	// Return the current version of the machine deployment. We will pick up the new version after the control
 	// plane is stable.
 	if !s.UpgradeTracker.ControlPlane.IsControlPlaneStableOrWaitingForWorkersUpgrade() {
@@ -1112,8 +1112,18 @@ func (g *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeplo
 		return "", errors.New("cannot compute the machine deployment version if the machine deployment is pending upgrade and the upgrade plan is not set")
 	}
 
+	// The upgrade plan for workers has all versions from minWorkersVersion version to topologyVersion.
+	// If this MachineDeployment is already at minWorkersVersion, it should wait for the control plane to pick up next version before upgrading.
+	// Note: at this point we know that MachineDeployment is not yet at topologyVersion, so also set that MachineDeployment is PendingUpgrade.
+	if s.UpgradeTracker.MachineDeployments.UpgradePlan[0] == currentVersion {
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
+		return currentVersion, nil
+	}
+
 	s.UpgradeTracker.MachineDeployments.MarkUpgrading(currentMDState.Object.Name)
-	return s.UpgradeTracker.MachineDeployments.UpgradePlan[0], nil
+
+	nextVersion := s.UpgradeTracker.MachineDeployments.UpgradePlan[0]
+	return nextVersion, nil
 }
 
 // isMachineDeploymentDeferred returns true if the upgrade for the mdTopology is deferred.
@@ -1362,7 +1372,7 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 // The version is calculated using the state of the current machine pools,
 // the current control plane and the version defined in the topology.
 func (g *generator) computeMachinePoolVersion(s *scope.Scope, machinePoolTopology clusterv1.MachinePoolTopology, currentMPState *scope.MachinePoolState) (string, error) {
-	desiredVersion := s.Blueprint.Topology.Version
+	topologyVersion := s.Blueprint.Topology.Version
 	// If creating a new machine pool, mark it as pending if the control plane is not
 	// yet stable. Creating a new MP while the control plane is upgrading can lead to unexpected race conditions.
 	// Example: join could fail if the load balancers are slow in detecting when CP machines are
@@ -1371,15 +1381,15 @@ func (g *generator) computeMachinePoolVersion(s *scope.Scope, machinePoolTopolog
 		if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
 			s.UpgradeTracker.MachinePools.MarkPendingCreate(machinePoolTopology.Name)
 		}
-		return desiredVersion, nil
+		return topologyVersion, nil
 	}
 
 	// Get the current version of the machine pool.
 	currentVersion := currentMPState.Object.Spec.Template.Spec.Version
 
-	// Return early if the currentVersion is already equal to the desiredVersion
+	// Return early if the currentVersion is already equal to the topologyVersion
 	// no further checks required.
-	if currentVersion == desiredVersion {
+	if currentVersion == topologyVersion {
 		return currentVersion, nil
 	}
 
@@ -1402,7 +1412,7 @@ func (g *generator) computeMachinePoolVersion(s *scope.Scope, machinePoolTopolog
 		return currentVersion, nil
 	}
 
-	// Return early if the Control Plane is not stable. Do not pick up the desiredVersion yet.
+	// Return early if the Control Plane is not stable. Do not pick up the topologyVersion yet.
 	// Return the current version of the machine pool. We will pick up the new version after the control
 	// plane is stable.
 	if !s.UpgradeTracker.ControlPlane.IsControlPlaneStableOrWaitingForWorkersUpgrade() {
@@ -1416,8 +1426,18 @@ func (g *generator) computeMachinePoolVersion(s *scope.Scope, machinePoolTopolog
 		return "", errors.New("cannot compute the machine pool version if the machine pool is pending upgrade and the upgrade plan is not set")
 	}
 
+	// The upgrade plan for workers has all versions from minWorkersVersion version to topologyVersion.
+	// If this MachinePool is already at minWorkersVersion, it should wait for the control plane to pick up next version before upgrading.
+	// Note: at this point we know that MachinePool is not yet at topologyVersion, so also set that MachinePool is PendingUpgrade.
+	if s.UpgradeTracker.MachinePools.UpgradePlan[0] == currentVersion {
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
 	s.UpgradeTracker.MachinePools.MarkUpgrading(currentMPState.Object.Name)
-	return s.UpgradeTracker.MachinePools.UpgradePlan[0], nil
+
+	nextVersion := s.UpgradeTracker.MachinePools.UpgradePlan[0]
+	return nextVersion, nil
 }
 
 // isMachinePoolDeferred returns true if the upgrade for the mpTopology is deferred.

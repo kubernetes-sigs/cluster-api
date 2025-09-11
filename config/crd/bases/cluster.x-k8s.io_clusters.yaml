@@ -1719,6 +1719,11 @@ spec:
                                   - name
                                   x-kubernetes-list-type: map
                               type: object
+                            version:
+                              description: version is the Kubernetes version of the
+                                worker group, can only be used if auto-upgrade is
+                                disabled.
+                              type: string
                           required:
                           - class
                           - name
@@ -3288,6 +3293,11 @@ spec:
                                   - name
                                   x-kubernetes-list-type: map
                               type: object
+                            version:
+                              description: version is the Kubernetes version of the
+                                worker group, can only be used if auto-upgrade is
+                                disabled.
+                              type: string
                           required:
                           - class
                           - name

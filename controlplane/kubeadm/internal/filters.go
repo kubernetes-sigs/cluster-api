@@ -17,17 +17,14 @@ limitations under the License.
 package internal
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/klog/v2"
 
-	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -158,15 +155,6 @@ func matchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.Kubead
 		return "Machine KubeadmConfig cannot be compared: Machine is nil", false, nil
 	}
 
-	// Check if KCP and machine ClusterConfiguration matches, if not return
-	match, diff, err := matchClusterConfiguration(kcp, machine)
-	if err != nil {
-		return "", false, errors.Wrapf(err, "failed to match KubeadmConfig")
-	}
-	if !match {
-		return fmt.Sprintf("Machine KubeadmConfig ClusterConfiguration is outdated: diff: %s", diff), false, nil
-	}
-
 	bootstrapRef := machine.Spec.Bootstrap.ConfigRef
 	if !bootstrapRef.IsDefined() {
 		// Missing bootstrap reference should not be considered as unmatching.
@@ -179,6 +167,15 @@ func matchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.Kubead
 		// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
 		// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
 		return "", true, nil
+	}
+
+	// Check if KCP and machine ClusterConfiguration matches, if not return
+	match, diff, err := matchClusterConfiguration(machineConfig, kcp)
+	if err != nil {
+		return "", false, errors.Wrapf(err, "failed to match KubeadmConfig")
+	}
+	if !match {
+		return fmt.Sprintf("Machine KubeadmConfig ClusterConfiguration is outdated: diff: %s", diff), false, nil
 	}
 
 	// Check if KCP and machine InitConfiguration or JoinConfiguration matches
@@ -196,114 +193,46 @@ func matchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.Kubead
 }
 
 // matchClusterConfiguration verifies if KCP and machine ClusterConfiguration matches.
-// NOTE: Machines that have KubeadmClusterConfigurationAnnotation will have to match with KCP ClusterConfiguration.
-// If the annotation is not present (machine is either old or adopted), we won't roll out on any possible changes
-// made in KCP's ClusterConfiguration given that we don't have enough information to make a decision.
-// Users should use KCP.Spec.RolloutAfter field to force a rollout in this case.
-func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (bool, string, error) {
-	if _, ok := machine.GetAnnotations()[controlplanev1.KubeadmClusterConfigurationAnnotation]; !ok {
-		// We don't have enough information to make a decision; don't' trigger a roll out.
+func matchClusterConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) (bool, string, error) {
+	if machineConfig == nil {
+		// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
+		// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
 		return true, "", nil
 	}
+	machineConfig = machineConfig.DeepCopy()
 
-	machineClusterConfig, err := ClusterConfigurationFromMachine(machine)
+	kcpLocalKubeadmConfig := kcp.Spec.KubeadmConfigSpec.DeepCopy()
+	if kcpLocalKubeadmConfig == nil {
+		kcpLocalKubeadmConfig = &bootstrapv1.KubeadmConfigSpec{}
+	}
+
+	// Default feature gates like in initializeControlPlane / scaleUpControlPlane.
+	// Note: Changes in feature gates can still trigger rollouts.
+	// TODO(in-place) refactor this area so the desired KubeadmConfig is not computed in multiple places independently.
+	parsedVersion, err := semver.ParseTolerant(kcp.Spec.Version)
 	if err != nil {
-		// ClusterConfiguration annotation is not correct, only solution is to rollout.
-		// The call to json.Unmarshal has to take a pointer to the pointer struct defined above,
-		// otherwise we won't be able to handle a nil ClusterConfiguration (that is serialized into "null").
-		// See https://github.com/kubernetes-sigs/cluster-api/issues/3353.
-		return false, "", nil //nolint:nilerr // Intentionally not returning the error here
+		return false, "", errors.Wrapf(err, "failed to parse Kubernetes version %q", kcp.Spec.Version)
 	}
+	DefaultFeatureGates(kcpLocalKubeadmConfig, parsedVersion)
 
-	// If any of the compared values are nil, treat them the same as an empty ClusterConfiguration.
-	if machineClusterConfig == nil {
-		machineClusterConfig = &bootstrapv1.ClusterConfiguration{}
-	}
-
-	kcpLocalClusterConfiguration := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DeepCopy()
-	if kcpLocalClusterConfiguration == nil {
-		kcpLocalClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
-	}
+	// Ignore ControlPlaneEndpoint which is added on the Machine KubeadmConfig by CABPK.
+	// Note: ControlPlaneEndpoint should also never change for a Cluster, so no reason to trigger a rollout because of that.
+	machineConfig.Spec.ClusterConfiguration.ControlPlaneEndpoint = kcpLocalKubeadmConfig.ClusterConfiguration.ControlPlaneEndpoint
 
 	// Skip checking DNS fields because we can update the configuration of the working cluster in place.
-	machineClusterConfig.DNS = kcpLocalClusterConfiguration.DNS
+	machineConfig.Spec.ClusterConfiguration.DNS = kcpLocalKubeadmConfig.ClusterConfiguration.DNS
 
 	// Drop differences that do not lead to changes to Machines, but that might exist due
 	// to changes in how we serialize objects or how webhooks work.
-	specKCP := &bootstrapv1.KubeadmConfigSpec{ClusterConfiguration: *kcpLocalClusterConfiguration}
-	specMachine := &bootstrapv1.KubeadmConfigSpec{ClusterConfiguration: *machineClusterConfig}
-	dropOmittableFields(specKCP)
-	dropOmittableFields(specMachine)
+	dropOmittableFields(kcpLocalKubeadmConfig)
+	dropOmittableFields(&machineConfig.Spec)
 
 	// Compare and return.
-	match, diff, err := compare.Diff(specMachine.ClusterConfiguration, specKCP.ClusterConfiguration)
+	match, diff, err := compare.Diff(machineConfig.Spec.ClusterConfiguration, kcpLocalKubeadmConfig.ClusterConfiguration)
 	if err != nil {
 		return false, "", errors.Wrapf(err, "failed to match ClusterConfiguration")
 	}
 	return match, diff, nil
-}
-
-type versionedClusterConfiguration struct {
-	MarshalVersion string `json:"marshalVersion,omitempty"`
-	*bootstrapv1.ClusterConfiguration
-}
-
-// ClusterConfigurationAnnotationFromMachineIsOutdated return true if the annotation is outdated.
-// Note: this is intentionally implemented with a string check to prevent an additional json.Unmarshal operation.
-func ClusterConfigurationAnnotationFromMachineIsOutdated(annotation string) bool {
-	return !strings.Contains(annotation, fmt.Sprintf("\"marshalVersion\":%q", bootstrapv1.GroupVersion.Version))
-}
-
-// ClusterConfigurationToMachineAnnotationValue returns an annotation valued to add on machines for
-// tracking the ClusterConfiguration value at the time the machine was created.
-func ClusterConfigurationToMachineAnnotationValue(clusterConfiguration *bootstrapv1.ClusterConfiguration) (string, error) {
-	machineClusterConfig := &versionedClusterConfiguration{
-		MarshalVersion:       bootstrapv1.GroupVersion.Version,
-		ClusterConfiguration: clusterConfiguration,
-	}
-
-	annotationBytes, err := json.Marshal(machineClusterConfig)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to marshal cluster configuration")
-	}
-	return string(annotationBytes), nil
-}
-
-// ClusterConfigurationFromMachine returns the ClusterConfiguration value at the time the machine was created.
-// Note: In case the annotation was created with an older version of the KCP API, the value is converted to the current API version.
-func ClusterConfigurationFromMachine(machine *clusterv1.Machine) (*bootstrapv1.ClusterConfiguration, error) {
-	machineClusterConfigStr, ok := machine.GetAnnotations()[controlplanev1.KubeadmClusterConfigurationAnnotation]
-	if !ok {
-		return nil, nil
-	}
-
-	if ClusterConfigurationAnnotationFromMachineIsOutdated(machineClusterConfigStr) {
-		// Note: Only conversion from v1beta1 is supported as of today.
-		machineClusterConfigV1Beta1 := &bootstrapv1beta1.ClusterConfiguration{}
-		if err := json.Unmarshal([]byte(machineClusterConfigStr), &machineClusterConfigV1Beta1); err != nil {
-			return nil, errors.Wrapf(err, "failed to unmarshal ClusterConfiguration from Machine %s", klog.KObj(machine))
-		}
-
-		kubeadmConfigV1Beta1 := &bootstrapv1beta1.KubeadmConfig{
-			Spec: bootstrapv1beta1.KubeadmConfigSpec{
-				ClusterConfiguration: machineClusterConfigV1Beta1,
-			},
-		}
-		kubeadmConfig := &bootstrapv1.KubeadmConfig{}
-		err := kubeadmConfigV1Beta1.ConvertTo(kubeadmConfig)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to convert ClusterConfiguration from Machine %s", klog.KObj(machine))
-		}
-
-		machineClusterConfig := kubeadmConfig.Spec.ClusterConfiguration
-		return &machineClusterConfig, nil
-	}
-
-	machineClusterConfig := &versionedClusterConfiguration{}
-	if err := json.Unmarshal([]byte(machineClusterConfigStr), &machineClusterConfig); err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshal ClusterConfiguration from Machine %s", klog.KObj(machine))
-	}
-	return machineClusterConfig.ClusterConfiguration, nil
 }
 
 // matchInitOrJoinConfiguration verifies if KCP and machine InitConfiguration or JoinConfiguration matches.
@@ -327,9 +256,10 @@ func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp 
 	defaulting.ApplyPreviousKubeadmConfigDefaults(kcpConfig)
 	defaulting.ApplyPreviousKubeadmConfigDefaults(&machineConfig.Spec)
 
-	// cleanups all the fields that are not relevant for the comparison.
+	// Cleanup all fields that are not relevant for the comparison.
 	cleanupConfigFields(kcpConfig, machineConfig)
 
+	// Compare and return.
 	match, diff, err := compare.Diff(&machineConfig.Spec, kcpConfig)
 	if err != nil {
 		return false, "", errors.Wrapf(err, "failed to match InitConfiguration or JoinConfiguration")

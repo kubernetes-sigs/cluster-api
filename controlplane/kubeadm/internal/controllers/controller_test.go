@@ -983,6 +983,9 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
 	kcp := &controlplanev1.KubeadmControlPlane{
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.30.0",
+		},
 		Status: controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
 				ControlPlaneInitialized: ptr.To(true),

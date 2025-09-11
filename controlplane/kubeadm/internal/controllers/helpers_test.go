@@ -508,13 +508,11 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                                   string
-		kcp                                    *controlplanev1.KubeadmControlPlane
-		isUpdatingExistingMachine              bool
-		existingClusterConfigurationAnnotation string
-		want                                   []gomegatypes.GomegaMatcher
-		wantClusterConfigurationAnnotation     string
-		wantErr                                bool
+		name                      string
+		kcp                       *controlplanev1.KubeadmControlPlane
+		isUpdatingExistingMachine bool
+		want                      []gomegatypes.GomegaMatcher
+		wantErr                   bool
 	}{
 		{
 			name: "should return the correct Machine object when creating a new Machine",
@@ -555,8 +553,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				HavePrefix(kcpName + namingTemplateKey),
 				Not(HaveSuffix("00000")),
 			},
-			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"certificatesDir\":\"foo\"}",
-			wantErr:                            false,
+			wantErr: false,
 		},
 		{
 			name: "should return error when creating a new Machine when '.random' is not added in template",
@@ -624,8 +621,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				ContainSubstring(fmt.Sprintf("%053d", 0)),
 				Not(HaveSuffix("00000")),
 			},
-			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"certificatesDir\":\"foo\"}",
-			wantErr:                            false,
+			wantErr: false,
 		},
 		{
 			name: "should return error when creating a new Machine with invalid template",
@@ -691,7 +687,6 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				HavePrefix(kcpName),
 				Not(HaveSuffix("00000")),
 			},
-			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"certificatesDir\":\"foo\"}",
 		},
 		{
 			name: "should return the correct Machine object when creating a new Machine with additional kcp readinessGates",
@@ -724,9 +719,8 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					},
 				},
 			},
-			isUpdatingExistingMachine:          false,
-			wantClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"certificatesDir\":\"foo\"}",
-			wantErr:                            false,
+			isUpdatingExistingMachine: false,
+			wantErr:                   false,
 		},
 		{
 			name: "should return the correct Machine object when updating an existing Machine (empty ClusterConfiguration annotation)",
@@ -762,10 +756,8 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					},
 				},
 			},
-			isUpdatingExistingMachine:              true,
-			existingClusterConfigurationAnnotation: "",
-			wantClusterConfigurationAnnotation:     "",
-			wantErr:                                false,
+			isUpdatingExistingMachine: true,
+			wantErr:                   false,
 		},
 		{
 			name: "should return the correct Machine object when updating an existing Machine (outdated ClusterConfiguration annotation)",
@@ -802,10 +794,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				},
 			},
 			isUpdatingExistingMachine: true,
-
-			existingClusterConfigurationAnnotation: "{\"etcd\":{},\"apiServer\":{\"extraArgs\":{\"foo\":\"bar\"}},\"certificatesDir\":\"foo\"}",
-			wantClusterConfigurationAnnotation:     "{\"marshalVersion\":\"v1beta2\",\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"certificatesDir\":\"foo\"}",
-			wantErr:                                false,
+			wantErr:                   false,
 		},
 		{
 			name: "should return the correct Machine object when updating an existing Machine (up to date ClusterConfiguration annotation)",
@@ -841,10 +830,8 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					},
 				},
 			},
-			isUpdatingExistingMachine:              true,
-			existingClusterConfigurationAnnotation: "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}",
-			wantClusterConfigurationAnnotation:     "{\"marshalVersion\":\"v1beta2\",\"etcd\":{},\"apiServer\":{\"extraArgs\":[{\"name\":\"foo\",\"value\":\"bar\"}]},\"controllerManager\":{},\"scheduler\":{},\"dns\":{},\"certificatesDir\":\"foo\"}",
-			wantErr:                                false,
+			isUpdatingExistingMachine: true,
+			wantErr:                   false,
 		},
 	}
 
@@ -887,9 +874,6 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 						ReadinessGates:    []clusterv1.MachineReadinessGate{{ConditionType: "Foo"}},
 					},
 				}
-				if tt.existingClusterConfigurationAnnotation != "" {
-					existingMachine.Annotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = tt.existingClusterConfigurationAnnotation
-				}
 
 				desiredMachine, err = (&KubeadmControlPlaneReconciler{}).computeDesiredMachine(
 					tt.kcp, cluster,
@@ -923,9 +907,6 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				expectedAnnotations := map[string]string{}
 				for k, v := range kcpMachineTemplateObjectMeta.Annotations {
 					expectedAnnotations[k] = v
-				}
-				if tt.wantClusterConfigurationAnnotation != "" {
-					expectedAnnotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = tt.wantClusterConfigurationAnnotation
 				}
 				expectedAnnotations[controlplanev1.RemediationForAnnotation] = remediationData
 				// The pre-terminate annotation should always be added
@@ -962,7 +943,6 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 				for k, v := range kcpMachineTemplateObjectMeta.Annotations {
 					expectedAnnotations[k] = v
 				}
-				expectedAnnotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = tt.wantClusterConfigurationAnnotation
 				// The pre-terminate annotation should always be added
 				expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
 				g.Expect(desiredMachine.Annotations).To(Equal(expectedAnnotations))

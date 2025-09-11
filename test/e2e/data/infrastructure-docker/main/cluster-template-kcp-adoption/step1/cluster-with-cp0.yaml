@@ -41,7 +41,13 @@ metadata:
 spec:
   clusterConfiguration:
     apiServer:
-      certSANs: [localhost, 127.0.0.1]
+      certSANs:
+        - localhost
+        - 127.0.0.1
+        - 0.0.0.0
+        - host.docker.internal
+    featureGates:
+      ControlPlaneKubeletLocalMode: true
 ---
 # cp0 Machine
 apiVersion: cluster.x-k8s.io/v1beta2

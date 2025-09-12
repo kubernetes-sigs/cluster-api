@@ -995,6 +995,87 @@ func Test_objectMover_toDirectory(t *testing.T) {
 	}
 }
 
+func Test_objectMover_toDirectory_preserve_pause(t *testing.T) {
+	tests := []struct {
+		name       string
+		cluster    *clusterv1.Cluster
+		wantPaused bool
+	}{
+		{
+			name: "Cluster is paused before toDirectory",
+			cluster: &clusterv1.Cluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Cluster",
+					APIVersion: clusterv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "cluster1",
+				},
+				Spec: clusterv1.ClusterSpec{
+					Paused: ptr.To(true),
+				},
+			},
+			wantPaused: true,
+		},
+		{
+			name: "Cluster isn't paused before toDirectory",
+			cluster: &clusterv1.Cluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Cluster",
+					APIVersion: clusterv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "cluster1",
+				},
+				Spec: clusterv1.ClusterSpec{},
+			},
+			wantPaused: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			ctx := context.Background()
+
+			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
+			graph := getObjectGraphWithObjs([]client.Object{tt.cluster})
+
+			// Get all the types to be considered for discovery
+			g.Expect(graph.getDiscoveryTypes(ctx)).To(Succeed())
+
+			// trigger discovery the content of the source cluster
+			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
+
+			// Run toDirectory
+			mover := objectMover{
+				fromProxy: graph.proxy,
+			}
+
+			dir := t.TempDir()
+
+			err := mover.toDirectory(ctx, graph, dir)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			csFrom, err := graph.proxy.NewClient(ctx)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			clusterCopy := tt.cluster.DeepCopy()
+
+			err = csFrom.Get(ctx, client.ObjectKeyFromObject(clusterCopy), clusterCopy)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			if tt.wantPaused {
+				g.Expect(*clusterCopy.Spec.Paused).To(BeTrue())
+			} else {
+				g.Expect(clusterCopy.Spec.Paused).To(BeNil())
+			}
+		})
+	}
+}
+
 func Test_objectMover_filesToObjs(t *testing.T) {
 	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
 	for _, tt := range backupRestoreTests {

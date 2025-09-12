@@ -641,6 +641,15 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 		}
 
 		if tree.GetObjectContract(obj) == "ControlPlane" {
+			// if a condition with type Available exist for a CP object, use it instead of ready.
+			if available := tree.GetAvailableCondition(obj); available != nil {
+				availableColor, availableStatus, availableAge, availableReason, availableMessage := conditionInfo(*available, true)
+				v.status = availableColor.Sprintf("%s", availableStatus)
+				v.reason = availableReason
+				v.age = availableAge
+				v.message = availableMessage
+			}
+
 			contractVersion := tree.GetObjectContractVersion(obj)
 
 			if current, err := contract.ControlPlane().StatusReplicas().Get(obj); err == nil && current != nil {

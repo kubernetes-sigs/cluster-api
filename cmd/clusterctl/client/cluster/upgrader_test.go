@@ -1100,6 +1100,43 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 			errorMsg: "detected multiple instances of the same provider",
 			opts:     UpgradeOptions{},
 		},
+		{
+			name: "does not fail when there is nothing to upgrade",
+			fields: fields{
+				// config for two providers
+				reader: test.NewFakeReader().
+					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
+					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
+				// two provider repositories, with current v1alpha3 contract and new versions for v1alpha4 contract
+				repository: map[string]repository.Repository{
+					"cluster-api": repository.NewMemoryRepository().
+						WithDefaultVersion("v2.0.0").
+						WithVersions("v2.0.0").
+						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 2, Minor: 0, Contract: currentContractVersion},
+							},
+						}),
+					"infrastructure-infra": repository.NewMemoryRepository().
+						WithDefaultVersion("v3.0.0").
+						WithVersions("v3.0.0").
+						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 2, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
+								{Major: 3, Minor: 0, Contract: currentContractVersion},
+							},
+						}),
+				},
+				// two providers with up to date versions
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v2.0.0", "cluster-api-system").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v3.0.0", "infra-system-1"),
+			},
+			contract: currentContractVersion,
+			wantErr:  false,
+			opts:     UpgradeOptions{},
+		},
 	}
 
 	for _, tt := range tests {

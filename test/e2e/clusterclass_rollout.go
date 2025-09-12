@@ -483,7 +483,7 @@ func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster
 		expectMapsToBeEquivalent(g,
 			union(
 				machineMetadata.Annotations,
-			).without(g, controlplanev1.KubeadmClusterConfigurationAnnotation, controlplanev1.PreTerminateHookCleanupAnnotation),
+			).without(g, controlplanev1.PreTerminateHookCleanupAnnotation),
 			controlPlaneMachineTemplateMetadata.Annotations,
 		)
 

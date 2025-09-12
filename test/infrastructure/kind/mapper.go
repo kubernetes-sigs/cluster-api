@@ -36,6 +36,7 @@ package kind
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/blang/semver/v4"
 
@@ -624,4 +625,28 @@ func pickFirstNotEmpty(a, b string) string {
 		return a
 	}
 	return b
+}
+
+// GetKubernetesVersions returns a sorted list with all the Kubernetes version know by the kind mapper.
+// Note: we are returning only Kubernetes version for the latest kind mode.
+func GetKubernetesVersions() []string {
+	versionMap := map[string]semver.Version{}
+	for _, m := range preBuiltMappings {
+		if m.Mode != latestMode {
+			continue
+		}
+		versionMap[m.KubernetesVersion.String()] = m.KubernetesVersion
+	}
+
+	semVersions := []semver.Version{}
+	for _, v := range versionMap {
+		semVersions = append(semVersions, v)
+	}
+	sort.Slice(semVersions, func(i, j int) bool { return semVersions[i].LT(semVersions[j]) })
+
+	versions := make([]string, len(semVersions))
+	for i, s := range semVersions {
+		versions[i] = fmt.Sprintf("v%s", s)
+	}
+	return versions
 }

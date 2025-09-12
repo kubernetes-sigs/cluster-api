@@ -683,6 +683,7 @@ func autoConvert_v1beta2_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in *v1bet
 	}
 	// WARNING: in.Variables requires manual conversion: does not exist in peer-type
 	// WARNING: in.Patches requires manual conversion: does not exist in peer-type
+	// WARNING: in.KubernetesVersions requires manual conversion: does not exist in peer-type
 	return nil
 }
 

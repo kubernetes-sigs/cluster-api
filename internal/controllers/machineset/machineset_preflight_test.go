@@ -190,6 +190,29 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				wantErr: false,
 			},
 			{
+				name: "control plane preflight check: should fail if the cluster defines a different version than the control plane, and the control plane is not yet at the current step of the upgrade plan",
+				cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Annotations: map[string]string{
+							clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.27.0",
+						},
+					},
+					Spec: clusterv1.ClusterSpec{
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
+						Topology: clusterv1.Topology{
+							Version: "v1.27.2",
+						},
+					},
+				},
+				controlPlane: controlPlaneStable,
+				machineSet:   &clusterv1.MachineSet{},
+				wantMessages: []string{
+					"GenericControlPlane ns1/cp1 has a pending version upgrade to v1.27.0 (\"ControlPlaneIsStable\" preflight check failed)",
+				},
+				wantErr: false,
+			},
+			{
 				name: "control plane preflight check: should pass if the control plane is upgrading but the preflight check is skipped",
 				cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -230,6 +253,27 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					},
 				},
 				controlPlane: controlPlaneStable,
+				machineSet:   &clusterv1.MachineSet{},
+				wantMessages: nil,
+				wantErr:      false,
+			},
+			{
+				name: "control plane preflight check: should pass if the control plane is stable, and the control plane is at the current step of the upgrade plan",
+				cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ns,
+						Annotations: map[string]string{
+							clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.28.0",
+						},
+					},
+					Spec: clusterv1.ClusterSpec{
+						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable128),
+						Topology: clusterv1.Topology{
+							Version: "v1.27.2",
+						},
+					},
+				},
+				controlPlane: controlPlaneStable128,
 				machineSet:   &clusterv1.MachineSet{},
 				wantMessages: nil,
 				wantErr:      false,

@@ -371,6 +371,7 @@ variables:
   # This avoids building node images in the default case which improves the test duration significantly.
   KUBERNETES_VERSION_MANAGEMENT: "v1.34.0"
   KUBERNETES_VERSION: "v1.34.0"
+  KUBERNETES_VERSION_CHAINED_UPGRADE_FROM: "v1.30.0" # Should always be KUBERNETES_VERSION_UPGRADE_TO - 4 minor
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.33.4"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.34.0"
   KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.35"
@@ -409,6 +410,8 @@ intervals:
   default/wait-machine-pool-nodes: ["5m", "10s"]
   default/wait-delete-cluster: ["3m", "10s"]
   default/wait-machine-upgrade: ["20m", "10s"]
+  default/wait-control-plane-upgrade: ["5m", "10s"]
+  default/wait-machine-deployment-upgrade: ["5m", "10s"]
   default/wait-machine-pool-upgrade: ["5m", "10s"]
   default/wait-nodes-ready: ["10m", "10s"]
   default/wait-machine-remediation: ["5m", "10s"]

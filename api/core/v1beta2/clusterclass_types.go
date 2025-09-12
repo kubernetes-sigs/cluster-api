@@ -135,6 +135,18 @@ type ClusterClassSpec struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=1000
 	Patches []ClusterClassPatch `json:"patches,omitempty"`
+
+	// kubernetesVersions is the list of Kubernetes versions that can be
+	// used for clusters using this ClusterClass.
+	// The list of version must be ordered from the older to the newer version, and there should be
+	// at least one version for every minor in between the first and the last version.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=256
+	KubernetesVersions []string `json:"kubernetesVersions,omitempty"`
 }
 
 // InfrastructureClass defines the class for the infrastructure cluster.

@@ -391,7 +391,11 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			log.Info(warningMsg)
 			allWarnings = append(allWarnings, warningMsg)
 		} else {
-			if err := webhook.validateTopologyVersion(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, oldCluster); err != nil {
+			// TODO(chained-upgrade): handle properly when upgrade paths are called using a runtime extension.
+
+			// NOTE: We validate the version ceiling only if we can't validate the version against versions defined in the ClusterClass.
+			shouldValidateVersionCeiling := len(clusterClass.Spec.KubernetesVersions) == 0
+			if err := webhook.validateTopologyVersionUpdate(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, oldCluster, shouldValidateVersionCeiling); err != nil {
 				allErrs = append(allErrs, err)
 			}
 		}
@@ -429,7 +433,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	return allWarnings, allErrs
 }
 
-func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, oldCluster *clusterv1.Cluster) *field.Error {
+func (webhook *Cluster) validateTopologyVersionUpdate(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, oldCluster *clusterv1.Cluster, shouldValidateCeiling bool) *field.Error {
 	// Nothing to do if the version doesn't change.
 	if inVersion.String() == oldVersion.String() {
 		return nil
@@ -444,18 +448,20 @@ func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *fi
 		)
 	}
 
-	// A +2 minor version upgrade is not allowed.
-	ceilVersion := semver.Version{
-		Major: oldVersion.Major,
-		Minor: oldVersion.Minor + 2,
-		Patch: 0,
-	}
-	if version.Compare(inVersion, ceilVersion, version.WithoutPreReleases()) >= 0 {
-		return field.Invalid(
-			fldPath,
-			fldValue,
-			fmt.Sprintf("version cannot be increased from %q to %q", oldVersion, inVersion),
-		)
+	if shouldValidateCeiling {
+		// A +2 minor version upgrade is not allowed.
+		ceilVersion := semver.Version{
+			Major: oldVersion.Major,
+			Minor: oldVersion.Minor + 2,
+			Patch: 0,
+		}
+		if version.Compare(inVersion, ceilVersion, version.WithoutPreReleases()) >= 0 {
+			return field.Invalid(
+				fldPath,
+				fldValue,
+				fmt.Sprintf("version cannot be increased from %q to %q", oldVersion, inVersion),
+			)
+		}
 	}
 
 	allErrs := []error{}
@@ -888,6 +894,25 @@ func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *cl
 	if clusterClass == nil {
 		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("ClusterClass can not be nil"))}
 	}
+
+	// If the ClusterClass defines a list of versions, check the version is one of them.
+	if len(clusterClass.Spec.KubernetesVersions) > 0 {
+		found := false
+		for _, clusterClassVersion := range clusterClass.Spec.KubernetesVersions {
+			if clusterClassVersion == cluster.Spec.Topology.Version {
+				found = true
+				break
+			}
+		}
+		if !found {
+			allErrs = append(allErrs, field.Invalid(
+				field.NewPath("spec", "topology", "version"),
+				cluster.Spec.Topology.Version,
+				"version must match one of the versions defined in the ClusterClass",
+			))
+		}
+	}
+
 	allErrs = append(allErrs, check.MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(cluster, clusterClass)...)
 
 	allErrs = append(allErrs, check.MachinePoolTopologiesAreValidAndDefinedInClusterClass(cluster, clusterClass)...)

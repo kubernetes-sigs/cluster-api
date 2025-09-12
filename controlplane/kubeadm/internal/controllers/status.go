@@ -836,7 +836,11 @@ func minTime(t1, t2 time.Time) time.Time {
 func getPreflightMessages(cluster *clusterv1.Cluster, preflightChecks internal.PreflightCheckResults) []string {
 	additionalMessages := []string{}
 	if preflightChecks.TopologyVersionMismatch {
-		additionalMessages = append(additionalMessages, fmt.Sprintf("* waiting for a version upgrade to %s to be propagated from Cluster.spec.topology", cluster.Spec.Topology.Version))
+		v := cluster.Spec.Topology.Version
+		if version, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok {
+			v = version
+		}
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* waiting for a version upgrade to %s to be propagated", v))
 	}
 
 	if preflightChecks.HasDeletingMachine {

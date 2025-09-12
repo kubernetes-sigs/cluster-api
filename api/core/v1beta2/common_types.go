@@ -36,6 +36,10 @@ const (
 	// to track the name of the MachineDeployment topology it represents.
 	ClusterTopologyMachineDeploymentNameLabel = "topology.cluster.x-k8s.io/deployment-name"
 
+	// ClusterTopologyUpgradeStepAnnotation tracks the version of the current upgrade step.
+	// It is only set when an upgrade is in progress, and it contains the control plane version computed by topology controller.
+	ClusterTopologyUpgradeStepAnnotation = "topology.internal.cluster.x-k8s.io/upgrade-step"
+
 	// ClusterTopologyHoldUpgradeSequenceAnnotation can be used to hold the entire MachineDeployment upgrade sequence.
 	// If the annotation is set on a MachineDeployment topology in Cluster.spec.topology.workers, the Kubernetes upgrade
 	// for this MachineDeployment topology and all subsequent ones is deferred.

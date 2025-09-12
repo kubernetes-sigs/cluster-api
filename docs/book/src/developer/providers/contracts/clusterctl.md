@@ -365,6 +365,7 @@ providers.
 | CAPK0S        | cluster.x-k8s.io/provider=infrastructure-k0smotron    |
 | CAIPAMIC      | cluster.x-k8s.io/provider=ipam-in-cluster             |
 | CAIPAMX       | cluster.x-k8s.io/provider=ipam-nutanix                |
+| CAIPAM3       | cluster.x-k8s.io/provider=ipam-metal3                 |
 | CAREX         | cluster.x-k8s.io/provider=runtime-extensions-nutanix  |
 
 ### Workload cluster templates

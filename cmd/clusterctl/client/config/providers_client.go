@@ -103,6 +103,7 @@ const (
 const (
 	InClusterIPAMProviderName = "in-cluster"
 	NutanixIPAMProviderName   = "nutanix"
+	Metal3IPAMProviderName    = "metal3"
 )
 
 // Add-on providers.
@@ -429,6 +430,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         InClusterIPAMProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/ipam-components.yaml",
+			providerType: clusterctlv1.IPAMProviderType,
+		},
+		&provider{
+			name:         Metal3IPAMProviderName,
+			url:          "https://github.com/metal3-io/ip-address-manager/releases/latest/ipam-components.yaml",
 			providerType: clusterctlv1.IPAMProviderType,
 		},
 		&provider{

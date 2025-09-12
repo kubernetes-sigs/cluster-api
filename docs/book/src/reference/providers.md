@@ -78,6 +78,7 @@ source of inspiration and ideas for others.
 ## IP Address Management (IPAM)
 - [In Cluster](https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster)
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-ipam-provider-nutanix)
+- [Metal3](https://github.com/metal3-io/ip-address-manager)
 
 ## Addon
 - [Fleet](https://github.com/rancher/cluster-api-addon-provider-fleet/)

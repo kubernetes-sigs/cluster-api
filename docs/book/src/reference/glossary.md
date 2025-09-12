@@ -123,6 +123,9 @@ Cluster API IPAM Provider In Cluster
 ### CAIPAMX
 Cluster API IPAM Provider Nutanix
 
+### CAIPAM3
+Cluster API IPAM Provider Metal3
+
 ### CAREX
 Cluster API Runtime Extensions Provider Nutanix
 

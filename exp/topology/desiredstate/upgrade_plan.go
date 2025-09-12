@@ -240,7 +240,7 @@ func DefaultAndValidateUpgradePlans(desiredVersion string, controlPlaneVersion s
 				return nil, errors.Errorf("invalid workers upgrade plan, item %d; version %s must be greater than v%s", i, targetVersion, currentSemVer)
 			case cmp == 2:
 				// In the case of same major.minor.patch but different build tags (version.Compare==2), check if
-				// versions are in the same order than in the control plane upgrade plan.
+				// versions are in the same order as in the control plane upgrade plan.
 				targetVersionOrder, ok := versionOrder[targetVersion]
 				if !ok {
 					// Note: this should never happen, all the versions in the workers upgrade plan should exist in versionOrder, which is

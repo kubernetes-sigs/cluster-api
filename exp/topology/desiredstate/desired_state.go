@@ -534,7 +534,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	if err != nil {
 		return "", errors.Wrap(err, "failed to check if the control plane is being provisioned")
 	}
-	// If the control plane is being provisioned (being craeted for the first time), then do not
+	// If the control plane is being provisioned (being created for the first time), then do not
 	// pick up the topologyVersion yet.
 	// Return the current version of the control plane. We will pick up the new version after the
 	// control plane is provisioned.
@@ -586,7 +586,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 			// can remove this hook from the list of pending-hooks.
 			if hookResponse.RetryAfterSeconds != 0 {
 				v := topologyVersion
-				if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 1 {
+				if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
 					v = s.UpgradeTracker.ControlPlane.UpgradePlan[0]
 				}
 				log.Info(fmt.Sprintf("Upgrade to version %q is blocked by %q hook", v, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)))
@@ -1114,7 +1114,7 @@ func (g *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeplo
 
 	// The upgrade plan for workers has all versions from minWorkersVersion version to topologyVersion.
 	// If this MachineDeployment is already at minWorkersVersion, it should wait for the control plane to pick up next version before upgrading.
-	// Note: at this point we know that MachineDeployment is not yet at topologyVersion, so also set that MachineDeployment is PendingUpgrade.
+	// Note: at this point we know that MachineDeployment is not yet at topologyVersion, so also set that MachineDeployment as PendingUpgrade.
 	if s.UpgradeTracker.MachineDeployments.UpgradePlan[0] == currentVersion {
 		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
 		return currentVersion, nil

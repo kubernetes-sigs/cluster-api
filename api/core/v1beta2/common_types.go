@@ -36,8 +36,8 @@ const (
 	// to track the name of the MachineDeployment topology it represents.
 	ClusterTopologyMachineDeploymentNameLabel = "topology.cluster.x-k8s.io/deployment-name"
 
-	// ClusterTopologyUpgradeStepAnnotation tracks version current upgrade step.
-	// It is only set when an upgrade is in progress, and it contains the control plan version computed by topology controller.
+	// ClusterTopologyUpgradeStepAnnotation tracks the version of the current upgrade step.
+	// It is only set when an upgrade is in progress, and it contains the control plane version computed by topology controller.
 	ClusterTopologyUpgradeStepAnnotation = "topology.internal.cluster.x-k8s.io/upgrade-step"
 
 	// ClusterTopologyHoldUpgradeSequenceAnnotation can be used to hold the entire MachineDeployment upgrade sequence.

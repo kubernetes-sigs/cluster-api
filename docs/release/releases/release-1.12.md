@@ -24,7 +24,7 @@ The following table shows the preliminary dates for the `v1.12` release cycle.
 | **v1.12.0 released**                                 | Release Lead | Tuesday 9th December 2025   | week 16  |
 | *v1.10.x & v1.11.x released*                         | Release Lead | Tuesday 9th December 2025   | week 16  |
 | Organize release retrospective                       | Release Lead | TBC                         | week 16  |
-| *v1.12.1 released (tentative)*                       | Release Lead | Tuesday 16th December 2025  |          |
+| *v1.12.1 released (tentative)*                       | Release Lead | Thursday 18th December 2025 |          |
 
 After CAPI v1.12.0, the .1 release will follow up to add support for Kubernetes 1.35.0 when it becomes available. After .1, we expect to do monthly patch releases (more details will be provided in the 1.13 release schedule).
 

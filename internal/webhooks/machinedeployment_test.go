@@ -17,7 +17,6 @@ limitations under the License.
 package webhooks
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -332,7 +331,7 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			replicas, err := calculateMachineDeploymentReplicas(context.Background(), tt.oldMD, tt.newMD, false)
+			replicas, err := calculateMachineDeploymentReplicas(t.Context(), tt.oldMD, tt.newMD, false)
 
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())

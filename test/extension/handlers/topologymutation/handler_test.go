@@ -18,7 +18,6 @@ package topologymutation
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"testing"
 
@@ -85,8 +84,8 @@ func Test_patchDockerClusterTemplate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(*testing.T) {
-			err := patchDockerClusterTemplate(context.Background(), tt.template, tt.variables)
+		t.Run(tt.name, func(t *testing.T) {
+			err := patchDockerClusterTemplate(t.Context(), tt.template, tt.variables)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -161,7 +160,7 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 		t.Run(tt.name, func(*testing.T) {
 			g := NewWithT(t)
 
-			err := patchKubeadmControlPlaneTemplate(context.Background(), tt.template, tt.variables)
+			err := patchKubeadmControlPlaneTemplate(t.Context(), tt.template, tt.variables)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -231,8 +230,8 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(*testing.T) {
-			err := patchDockerMachineTemplate(context.Background(), tt.template, tt.variables)
+		t.Run(tt.name, func(t *testing.T) {
+			err := patchDockerMachineTemplate(t.Context(), tt.template, tt.variables)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -288,8 +287,8 @@ func Test_patchDockerMachinePoolTemplate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(*testing.T) {
-			err := patchDockerMachinePoolTemplate(context.Background(), tt.template, tt.variables)
+		t.Run(tt.name, func(t *testing.T) {
+			err := patchDockerMachinePoolTemplate(t.Context(), tt.template, tt.variables)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -454,7 +453,7 @@ func TestHandler_GeneratePatches(t *testing.T) {
 
 			response := &runtimehooksv1.GeneratePatchesResponse{}
 			request := &runtimehooksv1.GeneratePatchesRequest{Items: tt.requestItems}
-			h.GeneratePatches(context.Background(), request, response)
+			h.GeneratePatches(t.Context(), request, response)
 
 			// Expect all response fields to be as expected. responseItems are ignored here and tested below.
 			// Ignore the message to not compare error strings.

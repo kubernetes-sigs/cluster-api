@@ -17,7 +17,6 @@ limitations under the License.
 package clusterresourceset
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -238,7 +237,7 @@ func TestReconcileApplyOnceScopeApplyObj(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
-			ctx := context.Background()
+			ctx := t.Context()
 			client := fake.NewClientBuilder().WithObjects(tt.existingObjs...).Build()
 			scope := &reconcileApplyOnceScope{}
 			err := scope.applyObj(ctx, client, tt.obj)

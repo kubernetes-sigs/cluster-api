@@ -128,7 +128,7 @@ func Test_clusterctlClient_Move(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			err := tt.fields.client.Move(ctx, tt.args.options)
 			if tt.wantErr {
@@ -189,7 +189,7 @@ func Test_clusterctlClient_ToDirectory(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			err := tt.fields.client.Move(ctx, tt.args.options)
 			if tt.wantErr {
@@ -250,7 +250,7 @@ func Test_clusterctlClient_FromDirectory(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			err := tt.fields.client.Move(ctx, tt.args.options)
 			if tt.wantErr {

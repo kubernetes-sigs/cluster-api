@@ -17,7 +17,6 @@ limitations under the License.
 package webhooks
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -157,9 +156,9 @@ func TestIPAddressValidateCreate(t *testing.T) {
 				Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.extraObjs...).Build(),
 			}
 			if tt.expectErr {
-				g.Expect(wh.validate(context.Background(), &tt.ip)).NotTo(Succeed())
+				g.Expect(wh.validate(t.Context(), &tt.ip)).NotTo(Succeed())
 			} else {
-				g.Expect(wh.validate(context.Background(), &tt.ip)).To(Succeed())
+				g.Expect(wh.validate(t.Context(), &tt.ip)).To(Succeed())
 			}
 		})
 	}
@@ -215,7 +214,7 @@ func TestIPAddressValidateUpdate(t *testing.T) {
 			wh := IPAddress{
 				Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.extraObjs...).Build(),
 			}
-			warnings, err := wh.ValidateUpdate(context.Background(), &tt.oldIP, &tt.newIP)
+			warnings, err := wh.ValidateUpdate(t.Context(), &tt.oldIP, &tt.newIP)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

@@ -17,7 +17,6 @@ limitations under the License.
 package log
 
 import (
-	"context"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -192,7 +191,7 @@ func Test_AddObjectHierarchy(t *testing.T) {
 				Build()
 
 			// Create fake log sink so we can later verify the added k/v pairs.
-			ctx := ctrl.LoggerInto(context.Background(), logr.New(&fakeLogSink{}))
+			ctx := ctrl.LoggerInto(t.Context(), logr.New(&fakeLogSink{}))
 
 			_, logger, err := AddOwners(ctx, c, tt.obj)
 			g.Expect(err).ToNot(HaveOccurred())

@@ -17,7 +17,6 @@ limitations under the License.
 package client
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -203,7 +202,7 @@ func TestClient_httpCall(t *testing.T) {
 				tt.opts.config.CABundle = testcerts.CACert
 			}
 
-			err := httpCall(context.TODO(), tt.request, tt.response, tt.opts)
+			err := httpCall(t.Context(), tt.request, tt.response, tt.opts)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -801,7 +800,7 @@ func TestClient_CallExtension(t *testing.T) {
 				},
 			}
 			// Call once without caching.
-			err := c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response)
+			err := c.CallExtension(t.Context(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -811,7 +810,7 @@ func TestClient_CallExtension(t *testing.T) {
 			// Call again with caching.
 			serverCallCount = 0
 			cache := cache.New[runtimeclient.CallExtensionCacheEntry](cache.DefaultTTL)
-			err = c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response,
+			err = c.CallExtension(t.Context(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response,
 				runtimeclient.WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -826,7 +825,7 @@ func TestClient_CallExtension(t *testing.T) {
 				g.Expect(isCached).To(BeTrue())
 				g.Expect(cacheEntry).ToNot(BeNil())
 
-				err = c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response,
+				err = c.CallExtension(t.Context(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response,
 					runtimeclient.WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
 				// When we expect the response to be cached we always expect no errors.
 				g.Expect(err).ToNot(HaveOccurred())
@@ -1220,7 +1219,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 					Namespace: "foo",
 				},
 			}
-			err := c.CallAllExtensions(context.Background(), tt.args.hook, obj, tt.args.request, tt.args.response)
+			err := c.CallAllExtensions(t.Context(), tt.args.hook, obj, tt.args.request, tt.args.response)
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -1333,7 +1332,7 @@ func Test_client_matchNamespace(t *testing.T) {
 					WithObjects(tt.existingNamespaces...).
 					Build(),
 			}
-			got, err := c.matchNamespace(context.Background(), tt.selector, tt.namespace)
+			got, err := c.matchNamespace(t.Context(), tt.selector, tt.namespace)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("matchNamespace() error = %v, wantErr %v", err, tt.wantErr)
 				return

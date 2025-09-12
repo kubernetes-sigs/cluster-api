@@ -17,7 +17,6 @@ limitations under the License.
 package runtime
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -95,7 +94,7 @@ func TestExtensionConfigValidationFeatureGated(t *testing.T) {
 			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.featureGate)
 			webhook := ExtensionConfig{}
 			g := NewWithT(t)
-			warnings, err := webhook.validate(context.TODO(), tt.old, tt.new)
+			warnings, err := webhook.validate(t.Context(), tt.old, tt.new)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())

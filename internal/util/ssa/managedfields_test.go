@@ -18,7 +18,6 @@ limitations under the License.
 package ssa
 
 import (
-	"context"
 	"encoding/json"
 	"testing"
 
@@ -32,7 +31,7 @@ import (
 )
 
 func TestDropManagedFields(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	ssaManager := "ssa-manager"
 
@@ -269,7 +268,7 @@ func TestDropManagedFieldsWithFakeClient(t *testing.T) {
 }
 
 func TestCleanUpManagedFieldsForSSAAdoption(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	ssaManager := "ssa-manager"
 

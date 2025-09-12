@@ -154,6 +154,7 @@ virtink                 InfrastructureProvider     https://github.com/smartxwork
 vsphere                 InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/                  infrastructure-components.yaml
 vultr-vultr             InfrastructureProvider     https://github.com/vultr/cluster-api-provider-vultr/releases/latest/                              infrastructure-components.yaml
 in-cluster              IPAMProvider               https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/          ipam-components.yaml
+metal3                  IPAMProvider               https://github.com/metal3-io/ip-address-manager/releases/latest/                                  ipam-components.yaml
 nutanix                 IPAMProvider               https://github.com/nutanix-cloud-native/cluster-api-ipam-provider-nutanix/releases/latest/        ipam-components.yaml
 nutanix                 RuntimeExtensionProvider   https://github.com/nutanix-cloud-native/cluster-api-runtime-extensions-nutanix/releases/latest/   runtime-extensions-components.yaml
 eitco-cdk8s             AddonProvider              https://github.com/eitco/cluster-api-addon-provider-cdk8s/releases/latest/                        addon-components.yaml
@@ -381,6 +382,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: in-cluster
   ProviderType: IPAMProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/
+- File: ipam-components.yaml
+  Name: metal3
+  ProviderType: IPAMProvider
+  URL: https://github.com/metal3-io/ip-address-manager/releases/latest/
 - File: ipam-components.yaml
   Name: nutanix
   ProviderType: IPAMProvider

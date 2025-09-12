@@ -141,11 +141,11 @@ func (h *serverSidePatchHelper) Patch(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(5).Info("Patching object", "intent", h.modified)
 
-	options := []client.PatchOption{
+	options := []client.ApplyOption{
 		client.FieldOwner(TopologyManagerName),
 		// NOTE: we are using force ownership so in case of conflicts the topology controller
 		// overwrite values and become sole manager.
 		client.ForceOwnership,
 	}
-	return h.client.Patch(ctx, h.modified, client.Apply, options...)
+	return h.client.Apply(ctx, client.ApplyConfigurationFromUnstructured(h.modified), options...)
 }

@@ -412,7 +412,7 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 		if migrationConfig.UseStatusForStorageVersionMigration {
 			err = r.Client.Status().Patch(ctx, u, client.Apply, client.FieldOwner("crdmigrator"))
 		} else {
-			err = r.Client.Patch(ctx, u, client.Apply, client.FieldOwner("crdmigrator"))
+			err = r.Client.Apply(ctx, client.ApplyConfigurationFromUnstructured(u), client.FieldOwner("crdmigrator"))
 		}
 		// If we got a NotFound error, the object no longer exists so no need to update it.
 		// If we got a Conflict error, another client wrote the object already so no need to update it.

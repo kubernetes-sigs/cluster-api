@@ -303,19 +303,23 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 
 // ExtensionConfigReconciler reconciles an ExtensionConfig object.
 type ExtensionConfigReconciler struct {
-	Client        client.Client
-	APIReader     client.Reader
-	RuntimeClient runtimeclient.Client
+	Client             client.Client
+	APIReader          client.Reader
+	RuntimeClient      runtimeclient.Client
+	PartialSecretCache cache.Cache
+	ReadOnly           bool
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 }
 
-func (r *ExtensionConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
+func (r *ExtensionConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&extensionconfigcontroller.Reconciler{
-		Client:           r.Client,
-		APIReader:        r.APIReader,
-		RuntimeClient:    r.RuntimeClient,
-		WatchFilterValue: r.WatchFilterValue,
-	}).SetupWithManager(ctx, mgr, options, partialSecretCache)
+		Client:             r.Client,
+		APIReader:          r.APIReader,
+		RuntimeClient:      r.RuntimeClient,
+		PartialSecretCache: r.PartialSecretCache,
+		ReadOnly:           r.ReadOnly,
+		WatchFilterValue:   r.WatchFilterValue,
+	}).SetupWithManager(ctx, mgr, options)
 }

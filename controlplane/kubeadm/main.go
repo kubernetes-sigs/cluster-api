@@ -56,22 +56,30 @@ import (
 	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	controlplanev1alpha3 "sigs.k8s.io/cluster-api/internal/api/controlplane/kubeadm/v1alpha3"
 	controlplanev1alpha4 "sigs.k8s.io/cluster-api/internal/api/controlplane/kubeadm/v1alpha4"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
+	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
 
 var (
+	catalog        = runtimecatalog.New()
 	scheme         = runtime.NewScheme()
 	setupLog       = ctrl.Log.WithName("setup")
 	controllerName = "cluster-api-kubeadm-control-plane-manager"
@@ -94,6 +102,8 @@ var (
 	webhookCertDir              string
 	webhookCertName             string
 	webhookKeyName              string
+	runtimeExtensionCertFile    string
+	runtimeExtensionKeyFile     string
 	healthAddr                  string
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
@@ -116,6 +126,10 @@ func init() {
 	_ = controlplanev1.AddToScheme(scheme)
 	_ = bootstrapv1.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
+	_ = runtimev1.AddToScheme(scheme)
+
+	// Register the RuntimeHook types into the catalog.
+	_ = runtimehooksv1.AddToCatalog(catalog)
 }
 
 // InitFlags initializes the flags.
@@ -186,6 +200,12 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&webhookKeyName, "webhook-key-name", "tls.key",
 		"Webhook key name.")
 
+	fs.StringVar(&runtimeExtensionCertFile, "runtime-extension-client-cert-file", "",
+		"Path of the PEM-encoded client certificate to be used when calling runtime extensions.")
+
+	fs.StringVar(&runtimeExtensionKeyFile, "runtime-extension-client-key-file", "",
+		"Path of the PEM-encoded client key to be used when calling runtime extensions.")
+
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
@@ -209,6 +229,9 @@ func InitFlags(fs *pflag.FlagSet) {
 // ADD CRD RBAC for CRD Migrator.
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=kubeadmcontrolplanes.controlplane.cluster.x-k8s.io;kubeadmcontrolplanetemplates.controlplane.cluster.x-k8s.io
+// Add RBAC for ExtensionConfig controller and runtime client (intentionally does not include write permissions)
+// +kubebuilder:rbac:groups=runtime.cluster.x-k8s.io,resources=extensionconfigs,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 
 func main() {
 	InitFlags(pflag.CommandLine)
@@ -437,6 +460,30 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create etcd logger")
 		os.Exit(1)
 	}
+
+	var runtimeClient runtimeclient.Client
+	if feature.Gates.Enabled(feature.InPlaceUpdates) {
+		// This is the creation of the runtimeClient for the controllers, embedding a shared catalog and registry instance.
+		runtimeClient = internalruntimeclient.New(internalruntimeclient.Options{
+			CertFile: runtimeExtensionCertFile,
+			KeyFile:  runtimeExtensionKeyFile,
+			Catalog:  catalog,
+			Registry: runtimeregistry.New(),
+			Client:   mgr.GetClient(),
+		})
+
+		if err = (&controllers.ExtensionConfigReconciler{
+			Client:           mgr.GetClient(),
+			APIReader:        mgr.GetAPIReader(),
+			RuntimeClient:    runtimeClient,
+			ReadOnly:         true,
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, concurrency(10)); err != nil {
+			setupLog.Error(err, "Unable to create controller", "controller", "ExtensionConfig")
+			os.Exit(1)
+		}
+	}
+
 	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
 		Client:                      mgr.GetClient(),
 		SecretCachingClient:         secretCachingClient,
@@ -446,6 +493,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		EtcdCallTimeout:             etcdCallTimeout,
 		EtcdLogger:                  etcdLogger,
 		RemoteConditionsGracePeriod: remoteConditionsGracePeriod,
+		//RuntimeClient:               runtimeClient, // TODO(in-place): enable once we want to use it, also validate in SetupWithManager that RuntimeClient is set if feature gate is enabled.
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 		os.Exit(1)

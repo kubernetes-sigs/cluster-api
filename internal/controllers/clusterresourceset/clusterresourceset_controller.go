@@ -314,7 +314,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 	for i, resource := range clusterResourceSet.Spec.Resources {
 		unstructuredObj, err := r.getResource(ctx, resource, cluster.GetNamespace())
 		if err != nil {
-			if err == ErrSecretTypeNotSupported {
+			if errors.Is(err, ErrSecretTypeNotSupported) {
 				v1beta1conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedV1Beta1Condition, addonsv1.WrongSecretTypeV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 				conditions.Set(clusterResourceSet, metav1.Condition{
 					Type:    addonsv1.ClusterResourceSetResourcesAppliedCondition,

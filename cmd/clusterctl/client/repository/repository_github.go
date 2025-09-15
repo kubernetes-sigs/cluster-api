@@ -50,7 +50,8 @@ const (
 )
 
 var (
-	errNotFound = errors.New("404 Not Found")
+	errNotFound  = errors.New("404 Not Found")
+	errRateLimit = errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")
 
 	// Caches used to limit the number of GitHub API calls.
 
@@ -319,7 +320,7 @@ func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
 		if listReleasesErr != nil {
 			retryError = g.handleGithubErr(listReleasesErr, "failed to get the list of releases")
 			// Return immediately if we are rate limited.
-			if _, ok := listReleasesErr.(*github.RateLimitError); ok {
+			if errors.Is(retryError, errRateLimit) {
 				return false, retryError
 			}
 			return false, nil
@@ -334,7 +335,7 @@ func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
 			if listReleasesErr != nil {
 				retryError = g.handleGithubErr(listReleasesErr, "failed to get the list of releases")
 				// Return immediately if we are rate limited.
-				if _, ok := listReleasesErr.(*github.RateLimitError); ok {
+				if errors.Is(retryError, errRateLimit) {
 					return false, retryError
 				}
 				return false, nil
@@ -384,7 +385,7 @@ func (g *gitHubRepository) getReleaseByTag(ctx context.Context, tag string) (*gi
 				return false, retryError
 			}
 			// Return immediately if we are rate limited.
-			if _, ok := getReleasesErr.(*github.RateLimitError); ok {
+			if errors.Is(retryError, errRateLimit) {
 				return false, retryError
 			}
 			return false, nil
@@ -466,7 +467,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release
 		if downloadReleaseError != nil {
 			retryError = g.handleGithubErr(downloadReleaseError, "failed to download file %q from %q release", *release.TagName, fileName)
 			// Return immediately if we are rate limited.
-			if _, ok := downloadReleaseError.(*github.RateLimitError); ok {
+			if errors.Is(retryError, errRateLimit) {
 				return false, retryError
 			}
 			return false, nil
@@ -500,12 +501,13 @@ func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release
 // handleGithubErr wraps error messages.
 func (g *gitHubRepository) handleGithubErr(err error, message string, args ...interface{}) error {
 	if _, ok := err.(*github.RateLimitError); ok {
-		return errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")
+		return errRateLimit
 	}
-	if ghErr, ok := err.(*github.ErrorResponse); ok {
-		if ghErr.Response.StatusCode == http.StatusNotFound {
-			return errNotFound
-		}
+
+	var ghErr *github.ErrorResponse
+	if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+		return errNotFound
 	}
-	return errors.Wrapf(err, message, args...)
+
+	return fmt.Errorf("%s: %w", fmt.Sprintf(message, args...), err)
 }

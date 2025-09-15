@@ -96,7 +96,7 @@ func (r *Reconciler) reconcileNodeRefs(ctx context.Context, s *scope) (ctrl.Resu
 
 	nodeRefsResult, err := r.getNodeReferences(ctx, mp.Spec.ProviderIDList, ptr.Deref(mp.Spec.Template.Spec.MinReadySeconds, 0), s.nodeRefMap)
 	if err != nil {
-		if err == errNoAvailableNodes {
+		if errors.Is(err, errNoAvailableNodes) {
 			log.Info("Cannot assign NodeRefs to MachinePool, no matching Nodes")
 			// No need to requeue here. Nodes emit an event that triggers reconciliation.
 			return ctrl.Result{}, nil

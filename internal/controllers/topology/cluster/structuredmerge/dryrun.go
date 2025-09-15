@@ -81,7 +81,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	}
 
 	// Do a server-side apply dry-run with modifiedUnstructured to get the updated object.
-	err = dryRunCtx.client.Patch(ctx, dryRunCtx.modifiedUnstructured, client.Apply, client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
+	err = dryRunCtx.client.Apply(ctx, client.ApplyConfigurationFromUnstructured(dryRunCtx.modifiedUnstructured), client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
 	if err != nil {
 		// This catches errors like metadata.uid changes.
 		return false, false, nil, errors.Wrap(err, "server side apply dry-run failed for modified object")
@@ -107,7 +107,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// Note: Otherwise we would get the following error:
 	// "failed to request dry-run server side apply: metadata.managedFields must be nil"
 	dryRunCtx.originalUnstructured.SetManagedFields(nil)
-	err = dryRunCtx.client.Patch(ctx, dryRunCtx.originalUnstructured, client.Apply, client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
+	err = dryRunCtx.client.Apply(ctx, client.ApplyConfigurationFromUnstructured(dryRunCtx.originalUnstructured), client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
 	if err != nil {
 		return false, false, nil, errors.Wrap(err, "server side apply dry-run failed for original object")
 	}

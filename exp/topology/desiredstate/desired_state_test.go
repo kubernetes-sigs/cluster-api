@@ -39,12 +39,14 @@ import (
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
@@ -4444,6 +4446,105 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
+}
+
+func TestGenerate(t *testing.T) {
+	// templates and ClusterClass
+	infrastructureClusterTemplate := builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "template1").
+		Build()
+	controlPlaneTemplate := builder.ControlPlaneTemplate(metav1.NamespaceDefault, "template1").
+		Build()
+	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
+		WithInfrastructureClusterTemplate(infrastructureClusterTemplate).
+		WithControlPlaneTemplate(controlPlaneTemplate).
+		Build()
+
+	// aggregating templates and cluster class into a blueprint
+	blueprint := &scope.ClusterBlueprint{
+		ClusterClass:                  clusterClass,
+		InfrastructureClusterTemplate: infrastructureClusterTemplate,
+		ControlPlane: &scope.ControlPlaneBlueprint{
+			Template: controlPlaneTemplate,
+		},
+	}
+
+	// current cluster objects
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster1",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	version := "v1.33.0"
+	workerInfrastructureMachinePool := builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "linux-worker-inframachinepool").
+		Build()
+	workerBootstrapConfig := builder.BootstrapTemplate(metav1.NamespaceDefault, "linux-worker-bootstrap").
+		Build()
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node-0",
+		},
+		Status: corev1.NodeStatus{
+			NodeInfo: corev1.NodeSystemInfo{
+				KubeletVersion: "v1.32.0", // Not yet upgraded to v1.33.0.
+			},
+		},
+	}
+	crd := builder.GenericControlPlaneCRD.DeepCopy()
+
+	t.Run("Generate desired state and verify MP is marked as upgrading", func(t *testing.T) {
+		g := NewWithT(t)
+
+		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(node, crd).Build()
+		fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().Build()
+		clusterCache := clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace})
+
+		desiredStateGenerator, err := NewGenerator(
+			fakeClient,
+			clusterCache,
+			fakeRuntimeClient,
+		)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		s := scope.New(cluster)
+		s.Blueprint = blueprint
+
+		mp := builder.MachinePool(metav1.NamespaceDefault, "existing-pool").
+			WithVersion(version).
+			WithReplicas(3).
+			WithBootstrap(workerBootstrapConfig).
+			WithInfrastructure(workerInfrastructureMachinePool).
+			WithStatus(clusterv1.MachinePoolStatus{
+				NodeRefs: []corev1.ObjectReference{
+					{
+						Kind:      "Node",
+						Namespace: metav1.NamespaceDefault,
+						Name:      "node-0",
+					},
+				},
+			}).
+			Build()
+
+		s.Current.MachinePools = map[string]*scope.MachinePoolState{
+			"pool-of-machines": {
+				Object:                          mp,
+				BootstrapObject:                 workerBootstrapConfig,
+				InfrastructureMachinePoolObject: workerInfrastructureMachinePool,
+			},
+		}
+
+		// Get the desired state.
+		desiredState, err := desiredStateGenerator.Generate(ctx, s)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(desiredState).ToNot(BeNil())
+		g.Expect(desiredState.Cluster).ToNot(BeNil())
+		g.Expect(desiredState.InfrastructureCluster).ToNot(BeNil())
+		g.Expect(desiredState.ControlPlane).ToNot(BeNil())
+		// Verify MP is marked as upgrading
+		g.Expect(s.UpgradeTracker.MachinePools.UpgradingNames()).To(ConsistOf(mp.Name))
+	})
 }
 
 func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runtimehooksv1.RequestObject) error {

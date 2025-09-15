@@ -20,6 +20,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Test_verifyMetrics(t *testing.T) {
@@ -68,7 +70,7 @@ controller_runtime_reconcile_panics_total{controller="clusterclass"} 0
 # TYPE controller_runtime_webhook_panics_total counter
 controller_runtime_webhook_panics_total 0
 `),
-			wantErr: "1 panics occurred in \"cluster\" controller (check logs for more details)",
+			wantErr: "panics occurred in Pod default/pod1: 1 panics occurred in \"cluster\" controller (check logs for more details)",
 		},
 		{
 			name: "panic occurred in webhooks",
@@ -88,7 +90,7 @@ controller_runtime_webhook_panics_total 1
 # TYPE controller_runtime_conversion_webhook_panics_total counter
 controller_runtime_conversion_webhook_panics_total 0
 `),
-			wantErr: "1 panics occurred in webhooks (check logs for more details)",
+			wantErr: "panics occurred in Pod default/pod1: 1 panics occurred in webhooks (check logs for more details)",
 		},
 		{
 			name: "panics occurred in conversion webhooks",
@@ -108,14 +110,14 @@ controller_runtime_webhook_panics_total 0
 # TYPE controller_runtime_conversion_webhook_panics_total counter
 controller_runtime_conversion_webhook_panics_total 2
 `),
-			wantErr: "2 panics occurred in conversion webhooks (check logs for more details)",
+			wantErr: "panics occurred in Pod default/pod1: 2 panics occurred in conversion webhooks (check logs for more details)",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := verifyMetrics(tt.data)
+			err := verifyMetrics(tt.data, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "pod1"}})
 			if tt.wantErr == "" {
 				g.Expect(err).ToNot(HaveOccurred())
 			} else {

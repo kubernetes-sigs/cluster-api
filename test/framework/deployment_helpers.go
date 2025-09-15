@@ -412,12 +412,12 @@ func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPa
 		}
 
 		if !errorRetrievingMetrics {
-			Expect(verifyMetrics(data)).To(Succeed())
+			Expect(verifyMetrics(data, &pod)).To(Succeed())
 		}
 	}
 }
 
-func verifyMetrics(data []byte) error {
+func verifyMetrics(data []byte, pod *corev1.Pod) error {
 	var parser expfmt.TextParser
 	mf, err := parser.TextToMetricFamilies(bytes.NewReader(data))
 	if err != nil {
@@ -458,7 +458,7 @@ func verifyMetrics(data []byte) error {
 	}
 
 	if len(errs) > 0 {
-		return kerrors.NewAggregate(errs)
+		return errors.WithMessagef(kerrors.NewAggregate(errs), "panics occurred in Pod %s", klog.KObj(pod))
 	}
 
 	return nil

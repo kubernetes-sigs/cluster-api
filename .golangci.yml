@@ -23,6 +23,7 @@ linters:
     - ginkgolinter # ginkgo and gomega
     - gocritic # bugs, performance, style (we could add custom ones to this one)
     - godot # checks that comments end in a period
+    - godox # block FIXMEs
     - goprintffuncname # printft-like functions should be named with f at the end
     - gosec # potential security problems
     - govet # basically 'go vet'
@@ -83,6 +84,9 @@ linters:
         - ^ \+.*
         - ^ ANCHOR.*
         - '^ (alpha|beta|GA): v.*'
+    godox:
+      keywords:
+        - FIXME # FIXME's should be removed before merging PRs
     gosec:
       excludes:
       # integer overflow conversion int -> int32

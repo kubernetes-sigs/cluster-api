@@ -974,6 +974,10 @@ func (webhook *Cluster) pollClusterClassForCluster(ctx context.Context, cluster 
 		return true, nil
 	})
 	if clusterClassPollErr != nil {
+		if errors.Is(clusterClassPollErr, errClusterClassNotReconciled) {
+			// Return ClusterClass if we were able to get it and it's just not reconciled.
+			return clusterClass, clusterClassPollErr
+		}
 		return nil, clusterClassPollErr
 	}
 	return clusterClass, nil

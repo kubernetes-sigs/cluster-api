@@ -892,13 +892,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster *clust
 
 	// Check if the hook keeps blocking.
 	Consistently(func(_ Gomega) bool {
-		if !topologyConditionCheck() {
-			return false
-		}
-		if !blockingCondition() {
-			return false
-		}
-		return true
+		return topologyConditionCheck() && blockingCondition()
 	}, 60*time.Second).Should(BeTrue(),
 		fmt.Sprintf("Cluster Topology reconciliation continued unexpectedly: hook %s not blocking", hookName))
 
@@ -924,19 +918,19 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster *clust
 	Byf("Waiting for %s hook to stop blocking", hookName)
 
 	Eventually(func(_ Gomega) bool {
-		if topologyConditionCheck() {
-			return false
+		if hook == "BeforeClusterDelete" {
+			// Only check blockingCondition for BeforeClusterDelete, because topologyConditionCheck
+			// always returns true for the BeforeClusterDelete hook.
+			return blockingCondition()
 		}
-		if blockingCondition() {
-			return false
-		}
-		return true
+		return topologyConditionCheck() || blockingCondition()
 	}, intervals...).Should(BeFalse(),
 		fmt.Sprintf("ClusterTopology reconcile did not proceed as expected when calling %s", hookName))
 }
 
 func computeHookName(hook string, attributes []string) string {
-	return strings.Join(append([]string{hook}, attributes...), "-")
+	// Note: + is not a valid character for ConfigMap keys (only alphanumeric characters, '-', '_' or '.')
+	return strings.ReplaceAll(strings.Join(append([]string{hook}, attributes...), "-"), "+", "_")
 }
 
 // clusterConditionShowsHookBlocking checks if the TopologyReconciled condition message contains both the hook name and hookFailedMessage.

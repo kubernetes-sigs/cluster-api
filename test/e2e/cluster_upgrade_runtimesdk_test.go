@@ -100,8 +100,12 @@ var _ = Describe("When performing chained upgrades for workload cluster using Cl
 			DeployClusterClassInSeparateNamespace: true,
 			// Setting Kubernetes version from
 			KubernetesVersionFrom: e2eConfig.MustGetVariable(KubernetesVersionChainedUpgradeFrom),
-			// use Kubernetes versions from the kind mapper.
-			KubernetesVersions: kind.GetKubernetesVersions(),
+			// use Kubernetes versions from the kind mapper
+			// Note: Ensure KUBERNETES_VERSION_UPGRADE_TO is always part of the list, this is required for cases where
+			// KUBERNETES_VERSION_UPGRADE_TO is not in the kind mapper, e.g. in the `e2e-latestk8s` prowjob.
+			// Note: KUBERNETES_VERSION_UPGRADE_TO has to be set either to one version in kind.GetKubernetesVersions() or
+			// to a version greater than the last in the list by at most one minor version.
+			KubernetesVersions: appendIfNecessary(kind.GetKubernetesVersions(), e2eConfig.MustGetVariable(KubernetesVersionUpgradeTo)),
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.
 			// The below values are used when creating the cluster-wide ExtensionConfig to refer
@@ -112,3 +116,12 @@ var _ = Describe("When performing chained upgrades for workload cluster using Cl
 		}
 	})
 })
+
+func appendIfNecessary(versions []string, v string) []string {
+	for _, version := range versions {
+		if version == v {
+			return versions
+		}
+	}
+	return append(versions, v)
+}

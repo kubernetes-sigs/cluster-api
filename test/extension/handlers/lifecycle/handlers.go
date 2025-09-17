@@ -293,5 +293,6 @@ func configMapName(clusterName, extensionConfigName string) string {
 }
 
 func computeHookName(hook runtimecatalog.Hook, attributes []string) string {
-	return strings.Join(append([]string{runtimecatalog.HookName(hook)}, attributes...), "-")
+	// Note: + is not a valid character for ConfigMap keys (only alphanumeric characters, '-', '_' or '.')
+	return strings.ReplaceAll(strings.Join(append([]string{runtimecatalog.HookName(hook)}, attributes...), "-"), "+", "_")
 }

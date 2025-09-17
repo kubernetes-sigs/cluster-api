@@ -895,7 +895,7 @@ spec:
     - each:
         info:
           labelsFromPath:
-            remediation_triggerif_unhealthyInRange:
+            remediation_triggerif_unhealthyinrange:
             - spec
             - remediation
             - triggerIf

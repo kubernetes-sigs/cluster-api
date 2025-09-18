@@ -26,3 +26,15 @@ Although MachinePools provide a similar feature to MachineDeployments, MachinePo
 | Each MachinePool corresponds 1:1 with an associated InfraMachinePool.                                                                                               | Each MachineDeployment includes a MachineSet, and for each replica, it creates a Machine and InfraMachine.                             |
 | Each MachinePool requires only a single BootstrapConfig.                                                                                                            | Each MachineDeployment uses an InfraMachineTemplate and a BootstrapConfigTemplate, and each Machine requires a unique BootstrapConfig. |
 | Maintains a list of instances in the `providerIDList` field in the MachinePool spec. This list is populated based on the response from the infrastructure provider. | Maintains a list of instances through the Machine resources owned by the MachineSet.                                                   |
+
+## MachinePool provider implementations
+
+The following Cluster API infrastructure providers have implemented support for MachinePools:
+
+| Provider | Implementations | Status | Documentation |
+| --- | --- | --- | --- |
+| AWS | `AWSManagedMachinePool`<br> `AWSMachinePool` | Implemented, MachinePoolMachines supported | https://cluster-api-aws.sigs.k8s.io/topics/machinepools.html|
+| Azure | `AzureASOManagedMachinePool`<br> `AzureManagedMachinePool`<br> `AzureMachinePool` | Implemented, MachinePoolMachines supported | https://capz.sigs.k8s.io/self-managed/machinepools |
+| GCP | `GCPMachinePool` | In Progress | https://github.com/kubernetes-sigs/cluster-api-provider-gcp/pull/1506 |
+| OCI | `OCIManagedMachinePool`<br> `OCIMachinePool` | Implemented, MachinePoolMachines supported | https://oracle.github.io/cluster-api-provider-oci/managed/managedcluster.html |
+| Scaleway | `ScalewayManagedMachinePool` | Implemented | https://github.com/scaleway/cluster-api-provider-scaleway/blob/main/docs/scalewaymanagedmachinepool.md |

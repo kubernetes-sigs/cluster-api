@@ -35,7 +35,7 @@ func Test_clusterctlClient_PlanCertUpgrade(t *testing.T) {
 	// create a fake config with a provider named P1 and a variable named var
 	repository1Config := config.NewProvider("p1", "url", clusterctlv1.CoreProviderType)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	config1 := newFakeConfig(ctx).
 		WithVar("var", "value").
@@ -78,7 +78,7 @@ func Test_clusterctlClient_PlanCertUpgrade(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			options := PlanUpgradeOptions{
 				Kubeconfig: Kubeconfig{Path: "cluster1"},
@@ -138,7 +138,7 @@ func Test_clusterctlClient_PlanUpgrade(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			_, err := tt.fields.client.PlanUpgrade(ctx, tt.args.options)
 			if tt.wantErr {
@@ -269,7 +269,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			err := tt.fields.client.ApplyUpgrade(ctx, tt.args.options)
 			if tt.wantErr {
@@ -386,7 +386,7 @@ func Test_parseUpgradeItem(t *testing.T) {
 		provider string
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	configClient := newFakeConfig(ctx)
 	clusterClient := newFakeCluster(cluster.Kubeconfig{Path: "cluster1"}, configClient)
@@ -481,7 +481,7 @@ func Test_parseUpgradeItem(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			got, err := parseUpgradeItem(ctx, clusterClient, tt.args.provider, clusterctlv1.CoreProviderType)
 			if tt.wantErr {

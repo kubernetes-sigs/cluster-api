@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -145,11 +144,11 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	}
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-	result, err = r.reconcile(context.Background(), controlPlane)
+	result, err = r.reconcile(t.Context(), controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
 	g.Eventually(func(g Gomega) {
-		g.Expect(env.List(context.Background(), bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
+		g.Expect(env.List(t.Context(), bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
 		g.Expect(bothMachines.Items).To(HaveLen(2))
 	}, timeout).Should(Succeed())
 

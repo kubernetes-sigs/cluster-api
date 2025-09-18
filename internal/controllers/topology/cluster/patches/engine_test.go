@@ -17,7 +17,6 @@ limitations under the License.
 package patches
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -1040,7 +1039,7 @@ func TestApply(t *testing.T) {
 				}
 
 				// Apply patches.
-				if err := patchEngine.Apply(context.Background(), blueprint, desired); err != nil {
+				if err := patchEngine.Apply(t.Context(), blueprint, desired); err != nil {
 					if !tt.wantErr {
 						t.Fatal(err)
 					}

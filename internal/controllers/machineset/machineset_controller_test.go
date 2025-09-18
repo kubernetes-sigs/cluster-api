@@ -2367,7 +2367,7 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 		bootstrapTmpl.SetAPIVersion(clusterv1.GroupVersionBootstrap.String())
 		bootstrapTmpl.SetName("ms-template")
 		bootstrapTmpl.SetNamespace(metav1.NamespaceDefault)
-		g.Expect(r.Client.Create(context.TODO(), bootstrapTmpl)).To(Succeed())
+		g.Expect(r.Client.Create(t.Context(), bootstrapTmpl)).To(Succeed())
 
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
@@ -2393,7 +2393,7 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 		infraTmpl.SetAPIVersion(clusterv1.GroupVersionInfrastructure.String())
 		infraTmpl.SetName("ms-template")
 		infraTmpl.SetNamespace(metav1.NamespaceDefault)
-		g.Expect(r.Client.Create(context.TODO(), infraTmpl)).To(Succeed())
+		g.Expect(r.Client.Create(t.Context(), infraTmpl)).To(Succeed())
 
 		s := &scope{
 			cluster:    testCluster,

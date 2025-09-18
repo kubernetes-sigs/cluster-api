@@ -3492,7 +3492,7 @@ func TestNodeDeletion(t *testing.T) {
 				infraMachineIsNotFound:    true,
 				bootstrapConfigIsNotFound: true,
 			}
-			_, err := r.reconcileDelete(context.Background(), s)
+			_, err := r.reconcileDelete(t.Context(), s)
 
 			if tc.resultErr {
 				g.Expect(err).To(HaveOccurred())
@@ -3500,7 +3500,7 @@ func TestNodeDeletion(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 				if tc.expectNodeDeletion {
 					n := &corev1.Node{}
-					g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
+					g.Expect(fakeClient.Get(t.Context(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
 				}
 			}
 			g.Expect(s.deletingReason).To(Equal(tc.expectDeletingReason))
@@ -3620,7 +3620,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 				infraMachineIsNotFound:    true,
 				bootstrapConfigIsNotFound: true,
 			}
-			_, err := r.reconcileDelete(context.Background(), s)
+			_, err := r.reconcileDelete(t.Context(), s)
 
 			if tc.resultErr {
 				g.Expect(err).To(HaveOccurred())
@@ -3628,7 +3628,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 				if tc.expectNodeDeletion {
 					n := &corev1.Node{}
-					g.Expect(apierrors.IsNotFound(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n))).To(BeTrue())
+					g.Expect(apierrors.IsNotFound(fakeClient.Get(t.Context(), client.ObjectKeyFromObject(node), n))).To(BeTrue())
 				}
 			}
 			g.Expect(s.deletingReason).To(Equal(tc.expectDeletingReason))

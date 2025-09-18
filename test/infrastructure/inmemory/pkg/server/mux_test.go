@@ -401,7 +401,7 @@ func TestAPI_corev1_Watch(t *testing.T) {
 		DebugPort: DefaultDebugPort + 4,
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	nodeWatcher, err := c.Watch(ctx, &corev1.NodeList{})
 	g.Expect(err).ToNot(HaveOccurred())

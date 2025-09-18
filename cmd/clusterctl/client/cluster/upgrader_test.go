@@ -414,7 +414,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			configClient, _ := config.New(ctx, "", config.InjectReader(tt.fields.reader))
 
@@ -985,7 +985,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			configClient, _ := config.New(ctx, "", config.InjectReader(tt.fields.reader))
 
@@ -1143,7 +1143,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			configClient, _ := config.New(ctx, "", config.InjectReader(tt.fields.reader))
 
@@ -1397,7 +1397,7 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			configClient, _ := config.New(ctx, "", config.InjectReader(tt.fields.reader))
 

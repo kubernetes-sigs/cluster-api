@@ -664,7 +664,7 @@ func TestReconcileEtcdMembersAndControlPlaneNodes(t *testing.T) {
 				Client:              env.Client,
 				etcdClientGenerator: tt.etcdClientGenerator,
 			}
-			ctx := context.TODO()
+			ctx := t.Context()
 			_, err := w.ReconcileEtcdMembersAndControlPlaneNodes(ctx, tt.members, tt.nodes)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())

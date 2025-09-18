@@ -48,9 +48,6 @@ linters:
     - usestdlibvars # using variables/constants from the standard library
     - usetesting # report function to be replace by testing
     - whitespace # unnecessary newlines
-  disable:
-    # TODO: It will be dropped when the Go version migration is done.
-    - usetesting
   settings:
     ginkgolinter:
       forbid-focus-container: true

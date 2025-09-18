@@ -17,7 +17,6 @@ limitations under the License.
 package clusterresourceset
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -106,7 +105,7 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			clusterResourceSetBinding, err := r.getOrCreateClusterResourceSetBinding(context.TODO(), tt.cluster, &addonsv1.ClusterResourceSet{})
+			clusterResourceSetBinding, err := r.getOrCreateClusterResourceSetBinding(t.Context(), tt.cluster, &addonsv1.ClusterResourceSet{})
 			gs.Expect(err).ToNot(HaveOccurred())
 
 			gs.Expect(clusterResourceSetBinding.Spec.Bindings).To(HaveLen(tt.numOfClusterResourceSets))
@@ -151,7 +150,7 @@ func TestGetSecretFromNamespacedName(t *testing.T) {
 				WithObjects(existingSecret).
 				Build()
 
-			got, err := getSecret(context.TODO(), c, tt.secretName)
+			got, err := getSecret(t.Context(), c, tt.secretName)
 
 			if tt.wantErr {
 				gs.Expect(err).To(HaveOccurred())
@@ -207,7 +206,7 @@ func TestGetConfigMapFromNamespacedName(t *testing.T) {
 				WithObjects(existingConfigMap).
 				Build()
 
-			got, err := getConfigMap(context.TODO(), c, tt.configMapName)
+			got, err := getConfigMap(t.Context(), c, tt.configMapName)
 
 			if tt.wantErr {
 				gs.Expect(err).To(HaveOccurred())
@@ -260,7 +259,7 @@ func TestEnsureKubernetesServiceCreated(t *testing.T) {
 				WithObjects(tt.existingObjs...).
 				Build()
 
-			err := ensureKubernetesServiceCreated(context.TODO(), c)
+			err := ensureKubernetesServiceCreated(t.Context(), c)
 
 			if tt.wantErr {
 				gs.Expect(err).To(HaveOccurred())

@@ -35,7 +35,7 @@ import (
 func TestExternalPatchGenerator_Generate(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	tests := []struct {
 		name          string
 		runtimeClient *fakeRuntimeClient

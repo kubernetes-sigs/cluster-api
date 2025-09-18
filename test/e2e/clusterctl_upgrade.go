@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -58,6 +59,18 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/version"
 )
+
+// isValidClusterName validates that a cluster name is safe to use in shell commands.
+// It only allows alphanumeric characters, hyphens, and underscores.
+func isValidClusterName(name string) bool {
+	if name == "" {
+		return false
+	}
+	// Allow alphanumeric characters, hyphens, and underscores
+	// This matches typical Kubernetes resource naming conventions
+	validNameRegex := regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	return validNameRegex.MatchString(name)
+}
 
 // ClusterctlUpgradeSpecInput is the input for ClusterctlUpgradeSpec.
 type ClusterctlUpgradeSpecInput struct {
@@ -882,7 +895,6 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		By("PASSED!")
 	})
-
 }
 
 func setupClusterctl(ctx context.Context, clusterctlBinaryURL, clusterctlConfigPath string) (string, string) {
@@ -1298,8 +1310,14 @@ func cleanupRemainingKindClusters(ctx context.Context, testPrefix string) {
 			strings.Contains(cluster, "-management-")
 
 		if shouldDelete {
+			// Validate cluster name to prevent command injection
+			if !isValidClusterName(cluster) {
+				log.Logf("Skipping cluster %s due to invalid name format", cluster)
+				continue
+			}
+
 			log.Logf("Found remaining kind cluster %s, cleaning it up", cluster)
-			deleteCmd := exec.CommandContext(ctx, "kind", "delete", "cluster", "--name", cluster)
+			deleteCmd := exec.CommandContext(ctx, "kind", "delete", "cluster", "--name", cluster) // #nosec G204 - cluster name is validated
 			if err := deleteCmd.Run(); err != nil {
 				log.Logf("Failed to delete kind cluster %s: %v", cluster, err)
 			} else {

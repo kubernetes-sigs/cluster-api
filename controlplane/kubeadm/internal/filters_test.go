@@ -333,22 +333,6 @@ func TestCleanupConfigFields(t *testing.T) {
 		g.Expect(kcpConfig.ClusterConfiguration.IsDefined()).To(BeFalse())
 		g.Expect(machineConfig.Spec.ClusterConfiguration.IsDefined()).To(BeFalse())
 	})
-	t.Run("JoinConfiguration gets removed from MachineConfig if it was not derived by KCPConfig", func(t *testing.T) {
-		g := NewWithT(t)
-		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
-			JoinConfiguration: bootstrapv1.JoinConfiguration{}, // KCP not providing a JoinConfiguration
-		}
-		machineConfig := &bootstrapv1.KubeadmConfig{
-			Spec: bootstrapv1.KubeadmConfigSpec{
-				JoinConfiguration: bootstrapv1.JoinConfiguration{
-					ControlPlane: &bootstrapv1.JoinControlPlane{},
-				}, // Machine gets a default JoinConfiguration from CABPK
-			},
-		}
-		cleanupConfigFields(kcpConfig, machineConfig)
-		g.Expect(kcpConfig.JoinConfiguration.IsDefined()).To(BeFalse())
-		g.Expect(machineConfig.Spec.JoinConfiguration.IsDefined()).To(BeFalse())
-	})
 	t.Run("JoinConfiguration.Discovery gets removed because it is not relevant for compare", func(t *testing.T) {
 		g := NewWithT(t)
 		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
@@ -367,7 +351,7 @@ func TestCleanupConfigFields(t *testing.T) {
 		g.Expect(kcpConfig.JoinConfiguration.Discovery).To(BeComparableTo(bootstrapv1.Discovery{}))
 		g.Expect(machineConfig.Spec.JoinConfiguration.Discovery).To(BeComparableTo(bootstrapv1.Discovery{}))
 	})
-	t.Run("JoinConfiguration.ControlPlane gets removed from MachineConfig if it was not derived by KCPConfig", func(t *testing.T) {
+	t.Run("JoinConfiguration.ControlPlane gets removed from MachineConfig if it was added by CABPK", func(t *testing.T) {
 		g := NewWithT(t)
 		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
 			JoinConfiguration: bootstrapv1.JoinConfiguration{
@@ -385,23 +369,28 @@ func TestCleanupConfigFields(t *testing.T) {
 		g.Expect(kcpConfig.JoinConfiguration).ToNot(BeNil())
 		g.Expect(machineConfig.Spec.JoinConfiguration.ControlPlane).To(BeNil())
 	})
-	t.Run("JoinConfiguration.NodeRegistrationOptions gets removed from MachineConfig if it was not derived by KCPConfig", func(t *testing.T) {
+	t.Run("JoinConfiguration.ControlPlane gets not removed from MachineConfig if it is not empty", func(t *testing.T) {
 		g := NewWithT(t)
 		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
 			JoinConfiguration: bootstrapv1.JoinConfiguration{
-				NodeRegistration: bootstrapv1.NodeRegistrationOptions{}, // NodeRegistrationOptions configuration missing in KCP
+				ControlPlane: nil, // Control plane configuration missing in KCP
 			},
 		}
 		machineConfig := &bootstrapv1.KubeadmConfig{
 			Spec: bootstrapv1.KubeadmConfigSpec{
 				JoinConfiguration: bootstrapv1.JoinConfiguration{
-					NodeRegistration: bootstrapv1.NodeRegistrationOptions{Name: "test"}, // Machine gets a some JoinConfiguration.NodeRegistrationOptions
+					ControlPlane: &bootstrapv1.JoinControlPlane{
+						LocalAPIEndpoint: bootstrapv1.APIEndpoint{
+							AdvertiseAddress: "1.2.3.4",
+							BindPort:         6443,
+						},
+					},
 				},
 			},
 		}
 		cleanupConfigFields(kcpConfig, machineConfig)
 		g.Expect(kcpConfig.JoinConfiguration).ToNot(BeNil())
-		g.Expect(machineConfig.Spec.JoinConfiguration.NodeRegistration).To(BeComparableTo(bootstrapv1.NodeRegistrationOptions{}))
+		g.Expect(machineConfig.Spec.JoinConfiguration.ControlPlane).ToNot(BeNil())
 	})
 	t.Run("drops omittable fields", func(t *testing.T) {
 		g := NewWithT(t)
@@ -598,6 +587,53 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
       NodeRegistration: v1beta2.NodeRegistrationOptions{
 -       Name:      "An old name",
 +       Name:      "A new name",
+        CRISocket: "",
+        Taints:    nil,
+        ... // 4 identical fields
+      },
+      CACertPath: "",
+      Discovery:  {},
+      ... // 4 identical fields
+    },
+    Files:     nil,
+    DiskSetup: {},
+    ... // 9 identical fields
+  }`))
+	})
+	t.Run("returns false if JoinConfiguration is NOT equal", func(t *testing.T) {
+		g := NewWithT(t)
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+					ClusterConfiguration: bootstrapv1.ClusterConfiguration{},
+					InitConfiguration:    bootstrapv1.InitConfiguration{},
+					// JoinConfiguration not set anymore.
+				},
+			},
+		}
+		machineConfig := &bootstrapv1.KubeadmConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "test",
+			},
+			Spec: bootstrapv1.KubeadmConfigSpec{
+				JoinConfiguration: bootstrapv1.JoinConfiguration{
+					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+						Name: "An old name", // This is a change
+					},
+				},
+			},
+		}
+		match, diff, err := matchInitOrJoinConfiguration(machineConfig, kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeFalse())
+		g.Expect(diff).To(BeComparableTo(`&v1beta2.KubeadmConfigSpec{
+    ClusterConfiguration: {},
+    InitConfiguration:    {NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
+    JoinConfiguration: v1beta2.JoinConfiguration{
+      NodeRegistration: v1beta2.NodeRegistrationOptions{
+-       Name:      "An old name",
++       Name:      "",
         CRISocket: "",
         Taints:    nil,
         ... // 4 identical fields

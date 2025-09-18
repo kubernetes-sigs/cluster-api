@@ -288,40 +288,26 @@ func getAdjustedKcpConfig(kcp *controlplanev1.KubeadmControlPlane, machineConfig
 }
 
 // cleanupConfigFields cleanups all the fields that are not relevant for the comparison.
+// Note: This function assumes that old defaults have been applied to kcpConfig and machineConfig
+// as a consequence we can assume JoinConfiguration and JoinConfiguration.NodeRegistration are always defined.
 func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig *bootstrapv1.KubeadmConfig) {
-	// KCP ClusterConfiguration will only be compared with a machine's ClusterConfiguration annotation, so
-	// we are cleaning up from the reflect.DeepEqual comparison.
+	// KCP ClusterConfiguration will be compared in `matchClusterConfiguration` so we are cleaning it up here
+	// so it doesn't lead to a duplicate diff in `matchInitOrJoinConfiguration`.
 	kcpConfig.ClusterConfiguration = bootstrapv1.ClusterConfiguration{}
 	machineConfig.Spec.ClusterConfiguration = bootstrapv1.ClusterConfiguration{}
 
-	// If KCP JoinConfiguration is not present, set machine JoinConfiguration to nil (nothing can trigger rollout here).
-	// NOTE: this is required because CABPK applies an empty joinConfiguration in case no one is provided.
-	if !kcpConfig.JoinConfiguration.IsDefined() {
-		machineConfig.Spec.JoinConfiguration = bootstrapv1.JoinConfiguration{}
-	}
-
 	// Cleanup JoinConfiguration.Discovery from kcpConfig and machineConfig, because those info are relevant only for
 	// the join process and not for comparing the configuration of the machine.
-	emptyDiscovery := bootstrapv1.Discovery{}
-	if kcpConfig.JoinConfiguration.IsDefined() {
-		kcpConfig.JoinConfiguration.Discovery = emptyDiscovery
-	}
-	if machineConfig.Spec.JoinConfiguration.IsDefined() {
-		machineConfig.Spec.JoinConfiguration.Discovery = emptyDiscovery
-	}
+	// Note: Changes to Discovery will apply for the next join, but they will not lead to a rollout.
+	kcpConfig.JoinConfiguration.Discovery = bootstrapv1.Discovery{}
+	machineConfig.Spec.JoinConfiguration.Discovery = bootstrapv1.Discovery{}
 
-	// If KCP JoinConfiguration.ControlPlane is not present, set machine join configuration to nil (nothing can trigger rollout here).
-	// NOTE: this is required because CABPK applies an empty joinConfiguration.ControlPlane in case no one is provided.
-	if kcpConfig.JoinConfiguration.IsDefined() && kcpConfig.JoinConfiguration.ControlPlane == nil &&
-		machineConfig.Spec.JoinConfiguration.ControlPlane != nil {
+	// If KCP JoinConfiguration.ControlPlane is nil and the Machine JoinConfiguration.ControlPlane is empty,
+	// set Machine JoinConfiguration.ControlPlane to nil.
+	// NOTE: This is required because CABPK applies an empty JoinConfiguration.ControlPlane in case it is nil.
+	if kcpConfig.JoinConfiguration.ControlPlane == nil &&
+		reflect.DeepEqual(machineConfig.Spec.JoinConfiguration.ControlPlane, &bootstrapv1.JoinControlPlane{}) {
 		machineConfig.Spec.JoinConfiguration.ControlPlane = nil
-	}
-
-	// If KCP's join NodeRegistration is empty, set machine's node registration to empty as no changes should trigger rollout.
-	emptyNodeRegistration := bootstrapv1.NodeRegistrationOptions{}
-	if kcpConfig.JoinConfiguration.IsDefined() && reflect.DeepEqual(kcpConfig.JoinConfiguration.NodeRegistration, emptyNodeRegistration) &&
-		!reflect.DeepEqual(machineConfig.Spec.JoinConfiguration.NodeRegistration, emptyNodeRegistration) {
-		machineConfig.Spec.JoinConfiguration.NodeRegistration = emptyNodeRegistration
 	}
 
 	// Drop differences that do not lead to changes to Machines, but that might exist due

@@ -342,6 +342,7 @@ func (m *MachinePoolTopologyBuilder) Build() clusterv1.MachinePoolTopology {
 type ClusterClassBuilder struct {
 	namespace                                 string
 	name                                      string
+	annotations                               map[string]string
 	infrastructureClusterTemplate             *unstructured.Unstructured
 	controlPlaneMetadata                      *clusterv1.ObjectMeta
 	controlPlaneReadinessGates                []clusterv1.MachineReadinessGate
@@ -368,6 +369,12 @@ func ClusterClass(namespace, name string) *ClusterClassBuilder {
 		namespace: namespace,
 		name:      name,
 	}
+}
+
+// WithAnnotations adds the passed annotations to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithAnnotations(annotations map[string]string) *ClusterClassBuilder {
+	c.annotations = annotations
+	return c
 }
 
 // WithInfrastructureClusterTemplate adds the passed InfrastructureClusterTemplate to the ClusterClassBuilder.
@@ -501,6 +508,9 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 		Status: clusterv1.ClusterClassStatus{
 			Variables: c.statusVariables,
 		},
+	}
+	if c.annotations != nil {
+		obj.Annotations = c.annotations
 	}
 	if c.conditions != nil {
 		obj.Status.Conditions = c.conditions

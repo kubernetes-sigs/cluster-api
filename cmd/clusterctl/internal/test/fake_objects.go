@@ -48,6 +48,7 @@ import (
 type FakeCluster struct {
 	namespace              string
 	name                   string
+	paused                 bool
 	controlPlane           *FakeControlPlane
 	machinePools           []*FakeMachinePool
 	machineDeployments     []*FakeMachineDeployment
@@ -117,6 +118,11 @@ func (f *FakeCluster) WithTopologyClassNamespace(namespace string) *FakeCluster 
 	return f
 }
 
+func (f *FakeCluster) WithPaused() *FakeCluster {
+	f.paused = true
+	return f
+}
+
 func (f *FakeCluster) Objs() []client.Object {
 	clusterInfrastructure := &fakeinfrastructure.GenericInfrastructureCluster{
 		TypeMeta: metav1.TypeMeta{
@@ -159,6 +165,10 @@ func (f *FakeCluster) Objs() []client.Object {
 		if f.topologyClassNamespace != nil {
 			cluster.Spec.Topology.ClassRef.Namespace = *f.topologyClassNamespace
 		}
+	}
+
+	if f.paused {
+		cluster.Spec.Paused = ptr.To(true)
 	}
 
 	// Ensure the cluster gets a UID to be used by dependant objects for creating OwnerReferences.
@@ -1486,6 +1496,7 @@ func FakeCRDList() []*apiextensionsv1.CustomResourceDefinition {
 type FakeClusterClass struct {
 	namespace                                 string
 	name                                      string
+	paused                                    bool
 	infrastructureClusterTemplate             *unstructured.Unstructured
 	controlPlaneTemplate                      *unstructured.Unstructured
 	controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
@@ -1519,6 +1530,11 @@ func (f *FakeClusterClass) WithWorkerMachineDeploymentClasses(classes []*FakeMac
 	return f
 }
 
+func (f *FakeClusterClass) WithPaused() *FakeClusterClass {
+	f.paused = true
+	return f
+}
+
 func (f *FakeClusterClass) Objs() []client.Object {
 	// objMap map where the key is the object to which the owner reference to the cluster class should be added
 	// and the value dictates if the onwner ref needs to be added.
@@ -1544,6 +1560,10 @@ func (f *FakeClusterClass) Objs() []client.Object {
 	if f.controlPlaneInfrastructureMachineTemplate != nil {
 		clusterClassBuilder.WithControlPlaneInfrastructureMachineTemplate(f.controlPlaneInfrastructureMachineTemplate)
 		objMap[f.controlPlaneInfrastructureMachineTemplate] = true
+	}
+
+	if f.paused {
+		clusterClassBuilder.WithAnnotations(map[string]string{clusterv1.PausedAnnotation: "true"})
 	}
 
 	if len(f.workerMachineDeploymentClasses) > 0 {

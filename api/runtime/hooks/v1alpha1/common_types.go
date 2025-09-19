@@ -134,3 +134,28 @@ func (r *CommonRetryResponse) GetRetryAfterSeconds() int32 {
 func (r *CommonRetryResponse) SetRetryAfterSeconds(retryAfterSeconds int32) {
 	r.RetryAfterSeconds = retryAfterSeconds
 }
+
+// PatchType defines the supported patch types.
+// +enum
+type PatchType string
+
+const (
+	// JSONPatchType identifies a https://datatracker.ietf.org/doc/html/rfc6902 JSON patch.
+	JSONPatchType PatchType = "JSONPatch"
+
+	// JSONMergePatchType identifies a https://datatracker.ietf.org/doc/html/rfc7386 JSON merge patch.
+	JSONMergePatchType PatchType = "JSONMergePatch"
+)
+
+// PatchItem represents a single patch to be applied to an object.
+type PatchItem struct {
+	// patchType defines the type of the patch.
+	// One of: "JSONPatch" or "JSONMergePatch".
+	// +required
+	PatchType PatchType `json:"patchType"`
+
+	// patch contains the patch which should be applied to the target object.
+	// It must be of the corresponding PatchType.
+	// +required
+	Patch []byte `json:"patch"`
+}

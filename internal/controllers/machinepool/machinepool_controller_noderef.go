@@ -84,6 +84,7 @@ func (r *Reconciler) reconcileNodeRefs(ctx context.Context, s *scope) (ctrl.Resu
 
 				// If node not found or UID doesn't match, mark as invalid
 				if !exists || foundNode.UID != nodeRef.UID {
+					log.V(1).Info("NodeRefs do not match current Nodes, will reassign")
 					validNodeRefs = false
 					break
 				}

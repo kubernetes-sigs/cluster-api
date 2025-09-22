@@ -62,50 +62,9 @@ var (
 	cyan   = color.New(color.FgCyan)
 )
 
-// PrintObjectTree prints the cluster status to stdout.
-// Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
-func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) {
-	cfg := getObjectTreeConfig()
-	// Creates the output table
-	tbl := tablewriter.NewTable(os.Stdin, tablewriter.WithConfig(cfg), tablewriter.WithRendition(tw.Rendition{
-		Settings: tw.Settings{
-			Separators: tw.SeparatorsNone, Lines: tw.LinesNone,
-		},
-		Borders: tw.BorderNone,
-	}))
-
-	// tbl := tablewriter.NewWriter(w)
-	tbl.Header([]string{"NAME", "REPLICAS", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
-
-	addObjectRow("", tbl, tree, tree.GetRoot())
-
-	// Prints the output table
-	tbl.Render()
-}
-
-// PrintObjectTreeV1Beta1 prints the cluster status to stdout.
-// Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
-func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) {
-	cfg := getObjectTreeConfigV1Beta1()
-
-	// Creates the output table
-	tbl := tablewriter.NewTable(os.Stdin, tablewriter.WithConfig(cfg), tablewriter.WithRendition(tw.Rendition{
-		Settings: tw.Settings{
-			Separators: tw.SeparatorsNone, Lines: tw.LinesNone,
-		},
-		Borders: tw.BorderNone,
-	}))
-	tbl.Header([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
-
-	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
-	addObjectRowV1Beta1("", tbl, tree, tree.GetRoot())
-
-	// Prints the output table
-	tbl.Render()
-}
-
-// Creates custom configuration for the table for the object tree.
-func getObjectTreeConfig() tablewriter.Config {
+// CreateObjectTree creates a new tablewriter.Table for the object tree.
+// Returns a new tablewriter.Table for the object tree.
+func CreateObjectTree(w io.Writer) *tablewriter.Table {
 	cfg := tablewriter.Config{
 		Row: tw.CellConfig{
 			Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
@@ -118,10 +77,20 @@ func getObjectTreeConfig() tablewriter.Config {
 		Behavior: tw.Behavior{TrimSpace: tw.Off},
 	}
 
-	return cfg
+	// Creates the output table
+	tbl := tablewriter.NewTable(w, tablewriter.WithConfig(cfg), tablewriter.WithRendition(tw.Rendition{
+		Settings: tw.Settings{
+			Separators: tw.SeparatorsNone, Lines: tw.LinesNone,
+		},
+		Borders: tw.BorderNone,
+	}))
+
+	return tbl
 }
 
-func getObjectTreeConfigV1Beta1() tablewriter.Config {
+// CreateObjectTreeV1Beta1 creates a new tablewriter.Table for the object tree.
+// Returns a new tablewriter.Table for the object tree.
+func CreateObjectTreeV1Beta1(w io.Writer) *tablewriter.Table {
 	cfg := tablewriter.Config{
 		Row: tw.CellConfig{
 			Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
@@ -133,8 +102,41 @@ func getObjectTreeConfigV1Beta1() tablewriter.Config {
 		},
 		Behavior: tw.Behavior{TrimSpace: tw.Off},
 	}
+	// Creates the output table
+	tbl := tablewriter.NewTable(w, tablewriter.WithConfig(cfg), tablewriter.WithRendition(tw.Rendition{
+		Settings: tw.Settings{
+			Separators: tw.SeparatorsNone, Lines: tw.LinesNone,
+		},
+		Borders: tw.BorderNone,
+	}))
 
-	return cfg
+	return tbl
+}
+
+// PrintObjectTree prints the cluster status to stdout.
+// Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
+func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) {
+	tbl := CreateObjectTree(w)
+
+	tbl.Header([]string{"NAME", "REPLICAS", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
+
+	addObjectRow("", tbl, tree, tree.GetRoot())
+
+	// Prints the output table
+	tbl.Render()
+}
+
+// PrintObjectTreeV1Beta1 prints the cluster status to stdout.
+// Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
+func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) {
+	tbl := CreateObjectTreeV1Beta1(os.Stdin)
+	tbl.Header([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
+
+	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
+	addObjectRowV1Beta1("", tbl, tree, tree.GetRoot())
+
+	// Prints the output table
+	tbl.Render()
 }
 
 // addObjectRow add a row for a given object, and recursively for all the object's children.

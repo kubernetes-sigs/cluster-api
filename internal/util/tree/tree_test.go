@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	"github.com/fatih/color"
-	"github.com/olekukonko/tablewriter"
-	"github.com/olekukonko/tablewriter/tw"
+	// "github.com/olekukonko/tablewriter"
+	// "github.com/olekukonko/tablewriter/tw".
 	. "github.com/onsi/gomega"
 	gtype "github.com/onsi/gomega/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -280,16 +280,7 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			var output bytes.Buffer
-
-			cfg := getObjectTreeConfigV1Beta1()
-
-			// Creates the output table
-			tbl := tablewriter.NewTable(&output, tablewriter.WithConfig(cfg), tablewriter.WithRendition(tw.Rendition{
-				Settings: tw.Settings{
-					Separators: tw.SeparatorsNone, Lines: tw.LinesNone,
-				},
-				Borders: tw.BorderNone,
-			}))
+			tbl := CreateObjectTreeV1Beta1(&output)
 
 			// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
 			addObjectRowV1Beta1("", tbl, tt.objectTree, tt.objectTree.GetRoot())
@@ -517,16 +508,7 @@ func Test_TreePrefix(t *testing.T) {
 			g := NewWithT(t)
 			var output bytes.Buffer
 
-			cfg := getObjectTreeConfig()
-			// Creates the output table
-			tbl := tablewriter.NewTable(&output, tablewriter.WithConfig(cfg), tablewriter.WithRendition(tw.Rendition{
-				Settings: tw.Settings{
-					Separators: tw.SeparatorsNone, Lines: tw.LinesNone,
-				},
-				Borders: tw.BorderNone,
-			}))
-
-			// tbl := tablewriter.NewWriter(w)
+			tbl := CreateObjectTree(&output)
 
 			// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
 			addObjectRow("", tbl, tt.objectTree, tt.objectTree.GetRoot())

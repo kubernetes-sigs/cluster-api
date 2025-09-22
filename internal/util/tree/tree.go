@@ -65,7 +65,6 @@ var (
 // PrintObjectTree prints the cluster status to stdout.
 // Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
 func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) {
-
 	cfg := getObjectTreeConfig()
 	// Creates the output table
 	tbl := tablewriter.NewTable(os.Stdin, tablewriter.WithConfig(cfg), tablewriter.WithRendition(tw.Rendition{
@@ -137,6 +136,7 @@ func getObjectTreeConfigV1Beta1() tablewriter.Config {
 
 	return cfg
 }
+
 // addObjectRow add a row for a given object, and recursively for all the object's children.
 // NOTE: each row name gets a prefix, that generates a tree view like representation.
 func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {

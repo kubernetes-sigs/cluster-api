@@ -1244,7 +1244,6 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			Kind:       "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			UID:       "abc-123-uid",
 			Name:      "in-place-mutating-machine",
 			Namespace: namespace.Name,
 			Labels: map[string]string{
@@ -1274,7 +1273,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			},
 		},
 	}
-	g.Expect(env.Create(ctx, inPlaceMutatingMachine, client.FieldOwner(classicManager))).To(Succeed())
+	g.Expect(env.PatchAndWait(ctx, inPlaceMutatingMachine, client.FieldOwner(machineSetManagerName))).To(Succeed())
 
 	deletingMachine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
@@ -1282,7 +1281,6 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			Kind:       "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			UID:         "abc-123-uid",
 			Name:        "deleting-machine",
 			Namespace:   namespace.Name,
 			Labels:      map[string]string{},
@@ -1301,7 +1299,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			},
 		},
 	}
-	g.Expect(env.Create(ctx, deletingMachine, client.FieldOwner(classicManager))).To(Succeed())
+	g.Expect(env.PatchAndWait(ctx, deletingMachine, client.FieldOwner(machineSetManagerName))).To(Succeed())
 	// Delete the machine to put it in the deleting state
 	g.Expect(env.Delete(ctx, deletingMachine)).To(Succeed())
 	// Wait till the machine is marked for deletion
@@ -1476,13 +1474,13 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
 
 		// Verify ManagedFields
-		g.Expect(updatedDeletingMachine.ManagedFields).ShouldNot(
-			ContainElement(ssa.MatchManagedFieldsEntry(machineSetManagerName, metav1.ManagedFieldsOperationApply)),
-			"deleting machine should not contain an entry for SSA manager",
-		)
 		g.Expect(updatedDeletingMachine.ManagedFields).Should(
-			ContainElement(ssa.MatchManagedFieldsEntry("manager", metav1.ManagedFieldsOperationUpdate)),
-			"in-place mutable machine should still contain an entry for old manager",
+			ContainElement(ssa.MatchManagedFieldsEntry(machineSetManagerName, metav1.ManagedFieldsOperationApply)),
+			"deleting machine should contain an entry for SSA manager",
+		)
+		g.Expect(updatedDeletingMachine.ManagedFields).ShouldNot(
+			ContainElement(ssa.MatchManagedFieldsEntry(classicManager, metav1.ManagedFieldsOperationUpdate)),
+			"deleting machine should not contain an entry for old manager",
 		)
 
 		// Verify in-place mutable fields are still the same.

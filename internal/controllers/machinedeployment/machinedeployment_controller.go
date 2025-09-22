@@ -286,19 +286,6 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		}
 	}
 
-	// Loop over all MachineSets and cleanup managed fields.
-	// We do this so that MachineSets that were created/patched before (< v1.4.0) the controller adopted
-	// Server-Side-Apply (SSA) can also work with SSA. Otherwise, fields would be co-owned by our "old" "manager" and
-	// "capi-machinedeployment" and then we would not be able to e.g. drop labels and annotations.
-	// Note: We are cleaning up managed fields for all MachineSets, so we're able to remove this code in a few
-	// Cluster API releases. If we do this only for selected MachineSets, we would have to keep this code forever.
-	for idx := range s.machineSets {
-		machineSet := s.machineSets[idx]
-		if err := ssa.CleanUpManagedFieldsForSSAAdoption(ctx, r.Client, machineSet, machineDeploymentManagerName); err != nil {
-			return errors.Wrapf(err, "failed to clean up managedFields of MachineSet %s", klog.KObj(machineSet))
-		}
-	}
-
 	templateExists := s.infrastructureTemplateExists && (!md.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() || s.bootstrapTemplateExists)
 
 	if ptr.Deref(md.Spec.Paused, false) {

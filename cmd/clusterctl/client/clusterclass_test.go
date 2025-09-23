@@ -17,7 +17,6 @@ limitations under the License.
 package client
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -68,7 +67,7 @@ func TestClusterClassExists(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			config := newFakeConfig(ctx)
 			client := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config).WithObjs(tt.objs...)
@@ -178,7 +177,7 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 
 			config1 := newFakeConfig(ctx).WithProvider(infraProviderConfig)
 			repository1 := newFakeRepository(ctx, infraProviderConfig, config1).

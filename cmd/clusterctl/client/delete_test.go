@@ -189,7 +189,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			err := tt.fields.client.Delete(ctx, tt.args.options)
 			if tt.wantErr {

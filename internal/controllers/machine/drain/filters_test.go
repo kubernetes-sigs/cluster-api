@@ -17,7 +17,6 @@ limitations under the License.
 package drain
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -67,7 +66,7 @@ func TestSkipDeletedFilter(t *testing.T) {
 			pod.SetDeletionTimestamp(dTime)
 		}
 
-		podDeleteStatus := h.skipDeletedFilter(context.Background(), &pod)
+		podDeleteStatus := h.skipDeletedFilter(t.Context(), &pod)
 		if podDeleteStatus.DrainBehavior != tc.expectedDrainBehavior {
 			t.Errorf("test %v: unexpected podDeleteStatus.DrainBehavior; actual %v; expected %v", i, podDeleteStatus.DrainBehavior, tc.expectedDrainBehavior)
 		}

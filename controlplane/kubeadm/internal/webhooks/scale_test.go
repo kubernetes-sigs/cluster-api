@@ -17,7 +17,6 @@ limitations under the License.
 package webhooks
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -204,7 +203,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 				decoder: admission.NewDecoder(scheme),
 			}
 
-			resp := scaleHandler.Handle(context.Background(), tt.admissionRequest)
+			resp := scaleHandler.Handle(t.Context(), tt.admissionRequest)
 			g.Expect(resp.Allowed).Should(Equal(tt.expectRespAllowed))
 			g.Expect(resp.Result.Message).Should(Equal(tt.expectRespMessage))
 		})

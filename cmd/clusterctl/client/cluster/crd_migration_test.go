@@ -203,7 +203,7 @@ func Test_CRDMigrator(t *testing.T) {
 				objs = append(objs, &tt.CRs[i])
 			}
 
-			c, err := test.NewFakeProxy().WithObjs(objs...).NewClient(context.Background())
+			c, err := test.NewFakeProxy().WithObjs(objs...).NewClient(t.Context())
 			g.Expect(err).ToNot(HaveOccurred())
 			countingClient := newUpgradeCountingClient(c)
 
@@ -211,7 +211,7 @@ func Test_CRDMigrator(t *testing.T) {
 				Client: countingClient,
 			}
 
-			isMigrated, err := m.run(context.Background(), tt.newCRD)
+			isMigrated, err := m.run(t.Context(), tt.newCRD)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -228,7 +228,7 @@ func Test_CRDMigrator(t *testing.T) {
 
 				// Check storage versions has been cleaned up.
 				currentCRD := &apiextensionsv1.CustomResourceDefinition{}
-				err = c.Get(context.Background(), client.ObjectKeyFromObject(tt.newCRD), currentCRD)
+				err = c.Get(t.Context(), client.ObjectKeyFromObject(tt.newCRD), currentCRD)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(currentCRD.Status.StoredVersions).To(Equal(tt.wantStoredVersions))
 			}

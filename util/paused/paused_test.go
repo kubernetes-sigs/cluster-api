@@ -18,7 +18,6 @@ limitations under the License.
 package paused
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -102,7 +101,7 @@ func TestEnsurePausedCondition(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&clusterv1.Cluster{}, &builder.Phase1Obj{}).
 				WithObjects(tt.object, tt.cluster).Build()

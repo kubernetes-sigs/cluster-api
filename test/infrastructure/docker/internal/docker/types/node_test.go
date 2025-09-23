@@ -17,7 +17,6 @@ limitations under the License.
 package types
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -28,7 +27,7 @@ import (
 func TestIP(t *testing.T) {
 	g := NewWithT(t)
 	containerRuntime := &container.FakeRuntime{}
-	ctx := container.RuntimeInto(context.Background(), containerRuntime)
+	ctx := container.RuntimeInto(t.Context(), containerRuntime)
 
 	node := &Node{
 		Name: "TestNode",
@@ -44,7 +43,7 @@ func TestIP(t *testing.T) {
 func TestDeleteContainer(t *testing.T) {
 	g := NewWithT(t)
 	containerRuntime := &container.FakeRuntime{}
-	ctx := container.RuntimeInto(context.Background(), containerRuntime)
+	ctx := container.RuntimeInto(t.Context(), containerRuntime)
 
 	node := &Node{
 		Name: "TestNode",
@@ -63,7 +62,7 @@ func TestDeleteContainer(t *testing.T) {
 func TestKillContainer(t *testing.T) {
 	g := NewWithT(t)
 	containerRuntime := &container.FakeRuntime{}
-	ctx := container.RuntimeInto(context.Background(), containerRuntime)
+	ctx := container.RuntimeInto(t.Context(), containerRuntime)
 
 	node := &Node{
 		Name: "TestNode",
@@ -83,7 +82,7 @@ func TestKillContainer(t *testing.T) {
 func TestCommandRun(t *testing.T) {
 	g := NewWithT(t)
 	containerRuntime := &container.FakeRuntime{}
-	ctx := container.RuntimeInto(context.Background(), containerRuntime)
+	ctx := container.RuntimeInto(t.Context(), containerRuntime)
 
 	containerRuntime.ResetExecContainerCallLogs()
 	cmd := GetContainerCmder("TestContainer").Command("test", "one", "two")
@@ -101,7 +100,7 @@ func TestCommandRun(t *testing.T) {
 func TestWriteFile(t *testing.T) {
 	g := NewWithT(t)
 	containerRuntime := &container.FakeRuntime{}
-	ctx := container.RuntimeInto(context.Background(), containerRuntime)
+	ctx := container.RuntimeInto(t.Context(), containerRuntime)
 
 	containerRuntime.ResetExecContainerCallLogs()
 

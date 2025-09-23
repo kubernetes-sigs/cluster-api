@@ -292,7 +292,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			configClient, _ := config.New(ctx, "", config.InjectReader(fakeReader))
 

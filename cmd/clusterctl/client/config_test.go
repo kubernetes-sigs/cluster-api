@@ -51,7 +51,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 		{
 			name: "Returns default providers",
 			field: field{
-				client: newFakeClient(context.Background(), newFakeConfig(context.Background())),
+				client: newFakeClient(t.Context(), newFakeConfig(t.Context())),
 			},
 			// note: these will be sorted by name by the Providers() call, so be sure they are in alphabetical order here too
 			wantProviders: []string{
@@ -120,7 +120,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 		{
 			name: "Returns default providers and custom providers if defined",
 			field: field{
-				client: newFakeClient(context.Background(), newFakeConfig(context.Background()).WithProvider(customProviderConfig)),
+				client: newFakeClient(t.Context(), newFakeConfig(t.Context()).WithProvider(customProviderConfig)),
 			},
 			// note: these will be sorted by name by the Providers() call, so be sure they are in alphabetical order here too
 			wantProviders: []string{
@@ -210,7 +210,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 }
 
 func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	config1 := newFakeConfig(ctx).
 		WithProvider(capiProviderConfig)
@@ -262,7 +262,7 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			options := ComponentsOptions{
 				TargetNamespace: tt.args.targetNameSpace,
@@ -283,7 +283,7 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 func Test_getComponentsByName_withEmptyVariables(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create a fake config with a provider named P1 and a variable named foo.
 	repository1Config := config.NewProvider("p1", "url", clusterctlv1.InfrastructureProviderType)
@@ -458,7 +458,7 @@ func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			config := newFakeConfig(ctx).
 				WithVar("KUBERNETES_VERSION", "v3.4.5") // with this line we are simulating an env var
@@ -483,7 +483,7 @@ func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
 }
 
 func Test_clusterctlClient_templateOptionsToVariables_withExistingMachineCountVariables(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	configClient := newFakeConfig(ctx).
 		WithVar("CONTROL_PLANE_MACHINE_COUNT", "3").
@@ -524,7 +524,7 @@ func Test_clusterctlClient_templateOptionsToVariables_withExistingMachineCountVa
 func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rawTemplate := templateYAML("ns3", "${ CLUSTER_NAME }")
 
@@ -706,7 +706,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 func Test_clusterctlClient_GetClusterTemplate_withClusterClass(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rawTemplate := mangedTopologyTemplateYAML("ns4", "${CLUSTER_NAME}", "dev")
 	rawClusterClassTemplate := clusterClassYAML("ns4", "dev")
@@ -920,7 +920,7 @@ func newFakeClientWithoutCluster(configClient config.Client) *fakeClient {
 func Test_clusterctlClient_GetClusterTemplate_withoutCluster(t *testing.T) {
 	rawTemplate := templateYAML("ns3", "${ CLUSTER_NAME }")
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	config1 := newFakeConfig(ctx).
 		WithProvider(infraProviderConfig)

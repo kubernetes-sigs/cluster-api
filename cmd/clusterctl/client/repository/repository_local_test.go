@@ -17,7 +17,6 @@ limitations under the License.
 package repository
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -113,7 +112,7 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := newLocalRepository(context.Background(), tt.fields.provider, tt.fields.configVariablesClient)
+			got, err := newLocalRepository(t.Context(), tt.fields.provider, tt.fields.configVariablesClient)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -160,7 +159,7 @@ func Test_localRepository_newLocalRepository_Latest(t *testing.T) {
 	p2URLLatestAbs := filepath.Join(tmpDir, p2URLLatest)
 	p2 := config.NewProvider("foo", p2URLLatestAbs, clusterctlv1.BootstrapProviderType)
 
-	got, err := newLocalRepository(context.Background(), p2, test.NewFakeVariableClient())
+	got, err := newLocalRepository(t.Context(), p2, test.NewFakeVariableClient())
 	g.Expect(err).ToNot(HaveOccurred())
 
 	g.Expect(got.basepath).To(Equal(tmpDir))
@@ -291,10 +290,10 @@ func Test_localRepository_GetFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			r, err := newLocalRepository(context.Background(), tt.fields.provider, tt.fields.configVariablesClient)
+			r, err := newLocalRepository(t.Context(), tt.fields.provider, tt.fields.configVariablesClient)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := r.GetFile(context.Background(), tt.args.version, tt.args.fileName)
+			got, err := r.GetFile(t.Context(), tt.args.version, tt.args.fileName)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -366,7 +365,7 @@ func Test_localRepository_GetVersions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			r, err := newLocalRepository(ctx, tt.fields.provider, tt.fields.configVariablesClient)
 			g.Expect(err).ToNot(HaveOccurred())

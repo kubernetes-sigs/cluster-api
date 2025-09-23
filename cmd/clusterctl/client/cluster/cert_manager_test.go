@@ -61,7 +61,7 @@ var certManagerNamespaceYaml = []byte("apiVersion: v1\n" +
 func Test_getManifestObjs(t *testing.T) {
 	g := NewWithT(t)
 
-	defaultConfigClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "")))
+	defaultConfigClient, err := config.New(t.Context(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "")))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	type fields struct {
@@ -109,7 +109,7 @@ func Test_getManifestObjs(t *testing.T) {
 			name: "successfully gets the cert-manager components for a custom release",
 			fields: fields{
 				configClient: func() config.Client {
-					configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "").WithCertManager("", "v1.0.0", "")))
+					configClient, err := config.New(t.Context(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "").WithCertManager("", "v1.0.0", "")))
 					g.Expect(err).ToNot(HaveOccurred())
 					return configClient
 				}(),
@@ -125,7 +125,7 @@ func Test_getManifestObjs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			cm := &certManagerClient{
 				configClient: defaultConfigClient,
@@ -590,7 +590,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
 			cm := &certManagerClient{
@@ -622,7 +622,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 				cl, err := proxy.NewClient(ctx)
 				g.Expect(err).ToNot(HaveOccurred())
 
-				err = cl.Get(context.Background(), client.ObjectKeyFromObject(obj), obj)
+				err = cl.Get(t.Context(), client.ObjectKeyFromObject(obj), obj)
 				switch objShouldStillExist {
 				case true:
 					g.Expect(err).ToNot(HaveOccurred())
@@ -736,7 +736,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			proxy := test.NewFakeProxy().WithObjs(tt.objs...)
 			fakeConfigClient := newFakeConfig()
@@ -798,7 +798,7 @@ func Test_certManagerClient_EnsureLatestVersion(t *testing.T) {
 				proxy: tt.fields.proxy,
 			}
 
-			err := cm.EnsureLatestVersion(context.Background())
+			err := cm.EnsureLatestVersion(t.Context())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

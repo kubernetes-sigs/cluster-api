@@ -38,7 +38,7 @@ func Test_cache_client(t *testing.T) {
 
 		c := NewCache(scheme).(*cache)
 		h := &fakeHandler{}
-		iMachine, err := c.GetInformer(context.TODO(), &cloudv1.CloudMachine{})
+		iMachine, err := c.GetInformer(t.Context(), &cloudv1.CloudMachine{})
 		g.Expect(err).ToNot(HaveOccurred())
 		err = iMachine.AddEventHandler(h)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -340,7 +340,7 @@ func Test_cache_client(t *testing.T) {
 
 		c := NewCache(scheme).(*cache)
 		h := &fakeHandler{}
-		i, err := c.GetInformer(context.TODO(), &cloudv1.CloudMachine{})
+		i, err := c.GetInformer(t.Context(), &cloudv1.CloudMachine{})
 		g.Expect(err).ToNot(HaveOccurred())
 		err = i.AddEventHandler(h)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -552,7 +552,7 @@ func Test_cache_client(t *testing.T) {
 
 		c := NewCache(scheme).(*cache)
 		h := &fakeHandler{}
-		i, err := c.GetInformer(context.TODO(), &cloudv1.CloudMachine{})
+		i, err := c.GetInformer(t.Context(), &cloudv1.CloudMachine{})
 		g.Expect(err).ToNot(HaveOccurred())
 		err = i.AddEventHandler(h)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -637,7 +637,7 @@ func Test_cache_client(t *testing.T) {
 		t.Run("delete with finalizers", func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx, cancel := context.WithCancel(context.TODO())
+			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
 			c.garbageCollectorQueue = workqueue.NewTypedRateLimitingQueue[any](workqueue.DefaultTypedControllerRateLimiter[any]())

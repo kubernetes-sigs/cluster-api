@@ -86,7 +86,7 @@ func TestReconcile(t *testing.T) {
 		client:                env.GetAPIReader(),
 		clusterAccessorConfig: accessorConfig,
 		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
-		cacheCtx:              context.Background(),
+		cacheCtx:              t.Context(),
 	}
 
 	// Add a Cluster source and start it (queue will be later used to verify the source works correctly)

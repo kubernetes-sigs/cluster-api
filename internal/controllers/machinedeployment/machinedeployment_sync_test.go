@@ -17,7 +17,6 @@ limitations under the License.
 package machinedeployment
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -364,7 +363,7 @@ func TestScaleMachineSet(t *testing.T) {
 				recorder: record.NewFakeRecorder(32),
 			}
 
-			err := r.scaleMachineSet(context.Background(), tc.machineSet, tc.newScale, tc.machineDeployment)
+			err := r.scaleMachineSet(t.Context(), tc.machineSet, tc.newScale, tc.machineDeployment)
 			if tc.error != nil {
 				g.Expect(err.Error()).To(BeEquivalentTo(tc.error.Error()))
 				return

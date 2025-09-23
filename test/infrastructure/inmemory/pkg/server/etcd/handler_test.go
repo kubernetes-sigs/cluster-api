@@ -17,7 +17,6 @@ limitations under the License.
 package etcd
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -41,7 +40,7 @@ func Test_etcd_scalingflow(t *testing.T) {
 
 	// During a scale down event - for example during upgrade - KCP will call `MoveLeader` and `MemberRemove` in sequence.
 	g := NewWithT(t)
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{":authority": "etcd-1"}))
+	ctx := metadata.NewIncomingContext(t.Context(), metadata.New(map[string]string{":authority": "etcd-1"}))
 	manager := inmemoryruntime.NewManager(scheme)
 	resourceGroupResolver := func(string) (string, error) { return "group1", nil }
 	c := &clusterServerServer{

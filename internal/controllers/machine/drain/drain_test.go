@@ -77,10 +77,10 @@ func TestRunCordonOrUncordon(t *testing.T) {
 				RemoteClient: fakeClient,
 			}
 
-			g.Expect(drainer.CordonNode(context.Background(), tt.node)).To(Succeed())
+			g.Expect(drainer.CordonNode(t.Context(), tt.node)).To(Succeed())
 
 			gotNode := tt.node.DeepCopy()
-			g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(gotNode), gotNode)).To(Succeed())
+			g.Expect(fakeClient.Get(t.Context(), client.ObjectKeyFromObject(gotNode), gotNode)).To(Succeed())
 			g.Expect(gotNode.Spec.Unschedulable).To(BeTrue())
 		})
 	}
@@ -888,7 +888,7 @@ func TestGetPodsForEviction(t *testing.T) {
 				SkipWaitForDeleteTimeoutSeconds: 10,
 			}
 
-			gotPodDeleteList, err := drainer.GetPodsForEviction(context.Background(), cluster, machine, "node-1")
+			gotPodDeleteList, err := drainer.GetPodsForEviction(t.Context(), cluster, machine, "node-1")
 			if tt.wantErr != "" {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(BeComparableTo(tt.wantErr))
@@ -1103,7 +1103,7 @@ func Test_getMatchingMachineDrainRules(t *testing.T) {
 				Client: fakeClient,
 			}
 
-			gotMachineDrainRules, err := drainer.getMatchingMachineDrainRules(context.Background(), cluster, machine)
+			gotMachineDrainRules, err := drainer.getMatchingMachineDrainRules(t.Context(), cluster, machine)
 			if tt.wantErr != "" {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(ContainSubstring(tt.wantErr))
@@ -1705,7 +1705,7 @@ func TestEvictPods(t *testing.T) {
 				RemoteClient: fakeClient,
 			}
 
-			gotEvictionResult := drainer.EvictPods(context.Background(), tt.podDeleteList)
+			gotEvictionResult := drainer.EvictPods(t.Context(), tt.podDeleteList)
 			// Cleanup for easier diff.
 			for i, pod := range gotEvictionResult.PodsDeletionTimestampSet {
 				gotEvictionResult.PodsDeletionTimestampSet[i] = &corev1.Pod{

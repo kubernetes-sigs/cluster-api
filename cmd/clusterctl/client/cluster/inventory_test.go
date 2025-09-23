@@ -66,7 +66,7 @@ func Test_inventoryClient_CheckInventoryCRDs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			proxy := test.NewFakeProxy()
 			p := newInventoryClient(proxy, fakePollImmediateWaiter, currentContractVersion)
@@ -117,7 +117,7 @@ func Test_inventoryClient_List(t *testing.T) {
 			g := NewWithT(t)
 
 			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter, currentContractVersion)
-			got, err := p.List(context.Background())
+			got, err := p.List(t.Context())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -179,7 +179,7 @@ func Test_inventoryClient_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			p := &inventoryClient{
 				proxy: tt.fields.proxy,
@@ -336,7 +336,7 @@ func Test_CheckCAPIContract(t *testing.T) {
 				proxy:                  tt.fields.proxy,
 				currentContractVersion: currentContractVersion,
 			}
-			err := p.CheckCAPIContract(context.Background(), tt.args.options...)
+			err := p.CheckCAPIContract(t.Context(), tt.args.options...)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -383,7 +383,7 @@ func Test_inventoryClient_CheckSingleProviderInstance(t *testing.T) {
 			g := NewWithT(t)
 
 			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter, currentContractVersion)
-			err := p.CheckSingleProviderInstance(context.Background())
+			err := p.CheckSingleProviderInstance(t.Context())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

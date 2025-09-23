@@ -17,7 +17,6 @@ limitations under the License.
 package client
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -27,7 +26,7 @@ import (
 )
 
 func Test_clusterctlClient_GetKubeconfig(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	configClient := newFakeConfig(ctx)
 	kubeconfig := cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}

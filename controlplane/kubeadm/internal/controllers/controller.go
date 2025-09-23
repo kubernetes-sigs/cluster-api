@@ -467,12 +467,12 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	}
 
 	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.
-	machinesNeedingRollout, machinesNeedingRolloutLogMessages := controlPlane.MachinesNeedingRollout()
+	machinesNeedingRollout, machinesNeedingRolloutResults := controlPlane.MachinesNeedingRollout()
 	switch {
 	case len(machinesNeedingRollout) > 0:
 		var allMessages []string
-		for machine, messages := range machinesNeedingRolloutLogMessages {
-			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", machine, strings.Join(messages, ",")))
+		for machine, machinesNeedingRolloutResult := range machinesNeedingRolloutResults {
+			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", machine, strings.Join(machinesNeedingRolloutResult.LogMessages, ",")))
 		}
 		log.Info(fmt.Sprintf("Rolling out Control Plane machines: %s", strings.Join(allMessages, ",")), "machinesNeedingRollout", machinesNeedingRollout.Names())
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateV1Beta1Condition, controlplanev1.RollingUpdateInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
@@ -840,7 +840,7 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 				return errors.Wrapf(err, "failed to clean up managedFields of InfrastructureMachine %s", klog.KObj(infraMachine))
 			}
 			// Update in-place mutating fields on InfrastructureMachine.
-			if err := r.updateExternalObject(ctx, infraMachine, controlPlane.KCP, controlPlane.Cluster); err != nil {
+			if err := r.updateExternalObject(ctx, infraMachine, infraMachine.GroupVersionKind(), controlPlane.KCP, controlPlane.Cluster); err != nil {
 				return errors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
 			}
 		}
@@ -849,8 +849,6 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 		// Only update the KubeadmConfig if it is already found, otherwise just skip it.
 		// This could happen e.g. if the cache is not up-to-date yet.
 		if kubeadmConfigFound {
-			// Note: Set the GroupVersionKind because updateExternalObject depends on it.
-			kubeadmConfig.SetGroupVersionKind(bootstrapv1.GroupVersion.WithKind("KubeadmConfig"))
 			// Cleanup managed fields of all KubeadmConfigs to drop ownership of labels and annotations
 			// from "manager". We do this so that KubeadmConfigs that are created using the Create method
 			// can also work with SSA. Otherwise, labels and annotations would be co-owned by our "old" "manager"
@@ -859,7 +857,7 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 				return errors.Wrapf(err, "failed to clean up managedFields of KubeadmConfig %s", klog.KObj(kubeadmConfig))
 			}
 			// Update in-place mutating fields on BootstrapConfig.
-			if err := r.updateExternalObject(ctx, kubeadmConfig, controlPlane.KCP, controlPlane.Cluster); err != nil {
+			if err := r.updateExternalObject(ctx, kubeadmConfig, bootstrapv1.GroupVersion.WithKind("KubeadmConfig"), controlPlane.KCP, controlPlane.Cluster); err != nil {
 				return errors.Wrapf(err, "failed to update KubeadmConfig %s", klog.KObj(kubeadmConfig))
 			}
 		}
@@ -980,16 +978,17 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneAndMachinesConditio
 }
 
 func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal.ControlPlane) {
-	machinesNotUptoDate, machinesNotUptoDateConditionMessages := controlPlane.NotUpToDateMachines()
+	machinesNotUptoDate, machinesNotUpToDateResults := controlPlane.NotUpToDateMachines()
 	machinesNotUptoDateNames := sets.New(machinesNotUptoDate.Names()...)
 
 	for _, machine := range controlPlane.Machines {
 		if machinesNotUptoDateNames.Has(machine.Name) {
 			// Note: the code computing the message for KCP's RolloutOut condition is making assumptions on the format/content of this message.
 			message := ""
-			if reasons, ok := machinesNotUptoDateConditionMessages[machine.Name]; ok {
-				for i := range reasons {
-					reasons[i] = fmt.Sprintf("* %s", reasons[i])
+			if machinesNotUpToDateResult, ok := machinesNotUpToDateResults[machine.Name]; ok && len(machinesNotUpToDateResult.ConditionMessages) > 0 {
+				var reasons []string
+				for _, conditionMessage := range machinesNotUpToDateResult.ConditionMessages {
+					reasons = append(reasons, fmt.Sprintf("* %s", conditionMessage))
 				}
 				message = strings.Join(reasons, "\n")
 			}

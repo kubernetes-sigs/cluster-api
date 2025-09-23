@@ -50,9 +50,8 @@ type ControlPlane struct {
 	Machines             collections.Machines
 	machinesPatchHelpers map[string]*patch.Helper
 
-	machinesNotUptoDate                  collections.Machines
-	machinesNotUptoDateLogMessages       map[string][]string
-	machinesNotUptoDateConditionMessages map[string][]string
+	machinesNotUptoDate        collections.Machines
+	machinesNotUpToDateResults map[string]NotUpToDateResult
 
 	// reconciliationTime is the time of the current reconciliation, and should be used for all "now" calculations
 	reconciliationTime metav1.Time
@@ -98,7 +97,7 @@ type PreflightCheckResults struct {
 
 // NewControlPlane returns an instantiated ControlPlane.
 func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
-	infraObjects, err := getInfraResources(ctx, client, ownedMachines)
+	infraMachines, err := getInfraMachines(ctx, client, ownedMachines)
 	if err != nil {
 		return nil, err
 	}
@@ -118,32 +117,29 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, c
 	// Select machines that should be rolled out because of an outdated configuration or because rolloutAfter/Before expired.
 	reconciliationTime := metav1.Now()
 	machinesNotUptoDate := make(collections.Machines, len(ownedMachines))
-	machinesNotUptoDateLogMessages := map[string][]string{}
-	machinesNotUptoDateConditionMessages := map[string][]string{}
+	machinesNotUpToDateResults := map[string]NotUpToDateResult{}
 	for _, m := range ownedMachines {
-		upToDate, logMessages, conditionMessages, err := UpToDate(m, kcp, &reconciliationTime, infraObjects, kubeadmConfigs)
+		upToDate, notUpToDateResult, err := UpToDate(m, kcp, &reconciliationTime, infraMachines, kubeadmConfigs)
 		if err != nil {
 			return nil, err
 		}
 		if !upToDate {
 			machinesNotUptoDate.Insert(m)
-			machinesNotUptoDateLogMessages[m.Name] = logMessages
-			machinesNotUptoDateConditionMessages[m.Name] = conditionMessages
+			machinesNotUpToDateResults[m.Name] = *notUpToDateResult
 		}
 	}
 
 	return &ControlPlane{
-		KCP:                                  kcp,
-		Cluster:                              cluster,
-		Machines:                             ownedMachines,
-		machinesPatchHelpers:                 patchHelpers,
-		machinesNotUptoDate:                  machinesNotUptoDate,
-		machinesNotUptoDateLogMessages:       machinesNotUptoDateLogMessages,
-		machinesNotUptoDateConditionMessages: machinesNotUptoDateConditionMessages,
-		KubeadmConfigs:                       kubeadmConfigs,
-		InfraResources:                       infraObjects,
-		reconciliationTime:                   reconciliationTime,
-		managementCluster:                    managementCluster,
+		KCP:                        kcp,
+		Cluster:                    cluster,
+		Machines:                   ownedMachines,
+		machinesPatchHelpers:       patchHelpers,
+		machinesNotUptoDate:        machinesNotUptoDate,
+		machinesNotUpToDateResults: machinesNotUpToDateResults,
+		KubeadmConfigs:             kubeadmConfigs,
+		InfraResources:             infraMachines,
+		reconciliationTime:         reconciliationTime,
+		managementCluster:          managementCluster,
 	}, nil
 }
 
@@ -256,15 +252,15 @@ func (c *ControlPlane) GetKubeadmConfig(machineName string) (*bootstrapv1.Kubead
 }
 
 // MachinesNeedingRollout return a list of machines that need to be rolled out.
-func (c *ControlPlane) MachinesNeedingRollout() (collections.Machines, map[string][]string) {
+func (c *ControlPlane) MachinesNeedingRollout() (collections.Machines, map[string]NotUpToDateResult) {
 	// Note: Machines already deleted are dropped because they will be replaced by new machines after deletion completes.
-	return c.machinesNotUptoDate.Filter(collections.Not(collections.HasDeletionTimestamp)), c.machinesNotUptoDateLogMessages
+	return c.machinesNotUptoDate.Filter(collections.Not(collections.HasDeletionTimestamp)), c.machinesNotUpToDateResults
 }
 
 // NotUpToDateMachines return a list of machines that are not up to date with the control
 // plane's configuration.
-func (c *ControlPlane) NotUpToDateMachines() (collections.Machines, map[string][]string) {
-	return c.machinesNotUptoDate, c.machinesNotUptoDateConditionMessages
+func (c *ControlPlane) NotUpToDateMachines() (collections.Machines, map[string]NotUpToDateResult) {
+	return c.machinesNotUptoDate, c.machinesNotUpToDateResults
 }
 
 // UpToDateMachines returns the machines that are up to date with the control
@@ -273,18 +269,18 @@ func (c *ControlPlane) UpToDateMachines() collections.Machines {
 	return c.Machines.Difference(c.machinesNotUptoDate)
 }
 
-// getInfraResources fetches the external infrastructure resource for each machine in the collection and returns a map of machine.Name -> infraResource.
-func getInfraResources(ctx context.Context, cl client.Client, machines collections.Machines) (map[string]*unstructured.Unstructured, error) {
+// getInfraMachines fetches the InfraMachine for each machine in the collection and returns a map of machine.Name -> InfraMachine.
+func getInfraMachines(ctx context.Context, cl client.Client, machines collections.Machines) (map[string]*unstructured.Unstructured, error) {
 	result := map[string]*unstructured.Unstructured{}
 	for _, m := range machines {
-		infraObj, err := external.GetObjectFromContractVersionedRef(ctx, cl, m.Spec.InfrastructureRef, m.Namespace)
+		infraMachine, err := external.GetObjectFromContractVersionedRef(ctx, cl, m.Spec.InfrastructureRef, m.Namespace)
 		if err != nil {
 			if apierrors.IsNotFound(errors.Cause(err)) {
 				continue
 			}
-			return nil, errors.Wrapf(err, "failed to retrieve infra obj for machine %q", m.Name)
+			return nil, errors.Wrapf(err, "failed to retrieve InfraMachine for Machine %s", m.Name)
 		}
-		result[m.Name] = infraObj
+		result[m.Name] = infraMachine
 	}
 	return result, nil
 }
@@ -297,14 +293,14 @@ func getKubeadmConfigs(ctx context.Context, cl client.Client, machines collectio
 		if !bootstrapRef.IsDefined() {
 			continue
 		}
-		machineConfig := &bootstrapv1.KubeadmConfig{}
-		if err := cl.Get(ctx, client.ObjectKey{Name: bootstrapRef.Name, Namespace: m.Namespace}, machineConfig); err != nil {
+		kubeadmConfig := &bootstrapv1.KubeadmConfig{}
+		if err := cl.Get(ctx, client.ObjectKey{Name: bootstrapRef.Name, Namespace: m.Namespace}, kubeadmConfig); err != nil {
 			if apierrors.IsNotFound(errors.Cause(err)) {
 				continue
 			}
-			return nil, errors.Wrapf(err, "failed to retrieve bootstrap config for machine %q", m.Name)
+			return nil, errors.Wrapf(err, "failed to retrieve KubeadmConfig for Machine %s", m.Name)
 		}
-		result[m.Name] = machineConfig
+		result[m.Name] = kubeadmConfig
 	}
 	return result, nil
 }

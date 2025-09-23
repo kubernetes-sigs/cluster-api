@@ -25,7 +25,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
-	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 )
 
 // Cluster implements a validating and defaulting webhook for Cluster.
@@ -132,7 +131,7 @@ type ExtensionConfig struct{}
 
 // SetupWebhookWithManager sets up ClusterResourceSet webhooks.
 func (webhook *ExtensionConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&runtimewebhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr)
+	return (&webhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr)
 }
 
 // MachinePool implements a validating and defaulting webhook for MachinePool.

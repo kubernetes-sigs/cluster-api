@@ -55,6 +55,28 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-runtime-cluster-x-k8s-io-v1beta2-extensionconfig
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.extensionconfig.runtime.addons.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - runtime.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - extensionconfigs
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-cluster-x-k8s-io-v1beta2-machine
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -158,28 +180,6 @@ webhooks:
     resources:
     - machinesets
   sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-runtime-cluster-x-k8s-io-v1beta2-extensionconfig
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: default.extensionconfig.runtime.addons.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - runtime.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - extensionconfigs
-  sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -275,6 +275,28 @@ webhooks:
     - UPDATE
     resources:
     - clusterresourcesetbindings
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-runtime-cluster-x-k8s-io-v1beta2-extensionconfig
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.extensionconfig.runtime.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - runtime.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - extensionconfigs
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -453,26 +475,4 @@ webhooks:
     - UPDATE
     resources:
     - machinesets
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-runtime-cluster-x-k8s-io-v1beta2-extensionconfig
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.extensionconfig.runtime.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - runtime.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - extensionconfigs
   sideEffects: None

@@ -797,13 +797,6 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 			continue
 		}
 
-		// Cleanup managed fields of all Machines.
-		// We do this so that Machines that were created/patched before the controller adopted Server-Side-Apply (SSA)
-		// (< v1.4.0) can also work with SSA. Otherwise, fields would be co-owned by our "old" "manager" and
-		// "capi-kubeadmcontrolplane" and then we would not be able to e.g. drop labels and annotations.
-		if err := ssa.CleanUpManagedFieldsForSSAAdoption(ctx, r.Client, m, kcpManagerName); err != nil {
-			return errors.Wrapf(err, "failed to update Machine: failed to adjust the managedFields of the Machine %s", klog.KObj(m))
-		}
 		// Update Machine to propagate in-place mutable fields from KCP.
 		updatedMachine, err := r.updateMachine(ctx, m, controlPlane.KCP, controlPlane.Cluster)
 		if err != nil {

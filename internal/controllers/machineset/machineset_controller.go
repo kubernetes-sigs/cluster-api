@@ -544,14 +544,6 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 			}
 		}
 
-		// Cleanup managed fields of all Machines.
-		// We do this so that Machines that were created/patched before the controller adopted Server-Side-Apply (SSA)
-		// (< v1.4.0) can also work with SSA. Otherwise, fields would be co-owned by our "old" "manager" and
-		// "capi-machineset" and then we would not be able to e.g. drop labels and annotations.
-		if err := ssa.CleanUpManagedFieldsForSSAAdoption(ctx, r.Client, m, machineSetManagerName); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to update machine: failed to adjust the managedFields of the Machine %q", m.Name)
-		}
-
 		// Update Machine to propagate in-place mutable fields from the MachineSet.
 		updatedMachine, err := r.computeDesiredMachine(machineSet, m)
 		if err != nil {

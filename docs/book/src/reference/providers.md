@@ -28,6 +28,7 @@ source of inspiration and ideas for others.
 
 ## Control Plane
 - [Canonical Kubernetes Platform](https://github.com/canonical/cluster-api-k8s)
+- [Hosted Control Plane](https://github.com/teutonet/cluster-api-provider-hosted-control-plane)
 - [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
 - [K3s](https://github.com/cluster-api-provider-k3s/cluster-api-k3s)
 - [Kamaji](https://github.com/clastix/cluster-api-control-plane-provider-kamaji)

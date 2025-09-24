@@ -122,17 +122,17 @@ func TestControlPlane(t *testing.T) {
 
 		g.Expect(controlPlane.Machines).To(HaveLen(5))
 
-		machinesNotUptoDate, machinesNotUptoDateConditionMessages := controlPlane.NotUpToDateMachines()
+		machinesNotUptoDate, machinesNotUpToDateResults := controlPlane.NotUpToDateMachines()
 		g.Expect(machinesNotUptoDate.Names()).To(ConsistOf("m2", "m3"))
-		g.Expect(machinesNotUptoDateConditionMessages).To(HaveLen(2))
-		g.Expect(machinesNotUptoDateConditionMessages).To(HaveKeyWithValue("m2", []string{"Version v1.29.0, v1.31.0 required"}))
-		g.Expect(machinesNotUptoDateConditionMessages).To(HaveKeyWithValue("m3", []string{"Version v1.29.3, v1.31.0 required"}))
+		g.Expect(machinesNotUpToDateResults).To(HaveLen(2))
+		g.Expect(machinesNotUpToDateResults["m2"].ConditionMessages).To(Equal([]string{"Version v1.29.0, v1.31.0 required"}))
+		g.Expect(machinesNotUpToDateResults["m3"].ConditionMessages).To(Equal([]string{"Version v1.29.3, v1.31.0 required"}))
 
-		machinesNeedingRollout, machinesNotUptoDateLogMessages := controlPlane.MachinesNeedingRollout()
+		machinesNeedingRollout, machinesNotUpToDateResults := controlPlane.MachinesNeedingRollout()
 		g.Expect(machinesNeedingRollout.Names()).To(ConsistOf("m2"))
-		g.Expect(machinesNotUptoDateLogMessages).To(HaveLen(2))
-		g.Expect(machinesNotUptoDateLogMessages).To(HaveKeyWithValue("m2", []string{"Machine version \"v1.29.0\" is not equal to KCP version \"v1.31.0\""}))
-		g.Expect(machinesNotUptoDateLogMessages).To(HaveKeyWithValue("m3", []string{"Machine version \"v1.29.3\" is not equal to KCP version \"v1.31.0\""}))
+		g.Expect(machinesNotUpToDateResults).To(HaveLen(2))
+		g.Expect(machinesNotUpToDateResults["m2"].LogMessages).To(Equal([]string{"Machine version \"v1.29.0\" is not equal to KCP version \"v1.31.0\""}))
+		g.Expect(machinesNotUpToDateResults["m3"].LogMessages).To(Equal([]string{"Machine version \"v1.29.3\" is not equal to KCP version \"v1.31.0\""}))
 
 		upToDateMachines := controlPlane.UpToDateMachines()
 		g.Expect(upToDateMachines).To(HaveLen(3))

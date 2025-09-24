@@ -35,13 +35,13 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	controlPlane *internal.ControlPlane,
 	machinesRequireUpgrade collections.Machines,
 ) (ctrl.Result, error) {
-	logger := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx)
 
 	// TODO: handle reconciliation of etcd members and kubeadm config in case they get out of sync with cluster
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
-		logger.Error(err, "failed to get remote client for workload cluster", "Cluster", klog.KObj(controlPlane.Cluster))
+		log.Error(err, "failed to get remote client for workload cluster", "Cluster", klog.KObj(controlPlane.Cluster))
 		return ctrl.Result{}, err
 	}
 
@@ -95,7 +95,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		}
 		return r.scaleDownControlPlane(ctx, controlPlane, machinesRequireUpgrade)
 	default:
-		logger.Info("RolloutStrategy type is not set to RollingUpdate, unable to determine the strategy for rolling out machines")
+		log.Info("RolloutStrategy type is not set to RollingUpdate, unable to determine the strategy for rolling out machines")
 		return ctrl.Result{}, nil
 	}
 }

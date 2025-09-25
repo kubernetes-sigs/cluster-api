@@ -538,9 +538,17 @@ func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachineSpec,
 		spokeMachinePool,
+		hubMachinePoolSpec,
 		hubMachinePoolStatus,
 		spokeMachineSpec,
 	}
+}
+
+func hubMachinePoolSpec(in *clusterv1.MachinePoolSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Subfields differ in v1beta2, no conversion possible
+	in.Remediation = clusterv1.MachinePoolRemediationSpec{}
 }
 
 func hubMachinePoolStatus(in *clusterv1.MachinePoolStatus, c randfill.Continue) {

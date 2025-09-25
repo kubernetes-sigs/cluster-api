@@ -784,12 +784,20 @@ func spokeObjectReference(in *corev1.ObjectReference, c randfill.Continue) {
 
 func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubMachinePoolSpec,
 		hubMachinePoolStatus,
 		hubMachineSpec,
 		spokeMachinePool,
 		spokeMachinePoolStatus,
 		spokeMachineSpec,
 	}
+}
+
+func hubMachinePoolSpec(in *clusterv1.MachinePoolSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Readded in v1beta2 with different type than in v1alpha's, no conversion possible
+	in.Remediation = clusterv1.MachinePoolRemediationSpec{}
 }
 
 func hubMachinePoolStatus(in *clusterv1.MachinePoolStatus, c randfill.Continue) {

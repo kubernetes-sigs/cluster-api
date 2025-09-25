@@ -119,6 +119,13 @@ func hubMachineSpec(in *clusterv1.MachineSpec, c randfill.Continue) {
 	}
 }
 
+func hubMachinePoolSpec(in *clusterv1.MachinePoolSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Subfields differ in v1beta2, no conversion possible
+	in.Remediation = clusterv1.MachinePoolRemediationSpec{}
+}
+
 func hubMachineStatus(in *clusterv1.MachineStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// Drop empty structs with only omit empty fields.
@@ -470,6 +477,7 @@ func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeBootstrap,
 		spokeObjectMeta,
 		spokeMachinePoolSpec,
+		hubMachinePoolSpec,
 		hubMachinePoolStatus,
 		spokeMachineSpec,
 	}
@@ -503,8 +511,7 @@ func spokeMachinePool(in *MachinePool, c randfill.Continue) {
 func spokeMachinePoolSpec(in *MachinePoolSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
-	// These fields have been removed in v1beta1
-	// data is going to be lost, so we're forcing zero values here.
+	// Subfields differ in v1beta2, no conversion possible
 	in.Strategy = nil
 }
 

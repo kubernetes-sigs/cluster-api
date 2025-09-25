@@ -796,6 +796,10 @@ func Convert_v1alpha4_LocalObjectTemplate_To_v1beta2_InfrastructureClass(in *Loc
 	return nil
 }
 
+func Convert_v1beta2_MachinePoolSpec_To_v1alpha4_MachinePoolSpec(in *clusterv1.MachinePoolSpec, out *MachinePoolSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_MachinePoolSpec_To_v1alpha4_MachinePoolSpec(in, out, s)
+}
+
 func Convert_v1beta2_MachineSpec_To_v1alpha4_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apimachineryconversion.Scope) error {
 	// spec.nodeDeletionTimeout was added in v1beta1.
 	// ReadinessGates was added in v1beta1.

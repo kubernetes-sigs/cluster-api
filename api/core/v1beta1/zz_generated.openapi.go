@@ -97,6 +97,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta1.MachinePoolList":                          schema_cluster_api_api_core_v1beta1_MachinePoolList(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta1.MachinePoolSpec":                          schema_cluster_api_api_core_v1beta1_MachinePoolSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta1.MachinePoolStatus":                        schema_cluster_api_api_core_v1beta1_MachinePoolStatus(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta1.MachinePoolStrategy":                      schema_cluster_api_api_core_v1beta1_MachinePoolStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta1.MachinePoolTopology":                      schema_cluster_api_api_core_v1beta1_MachinePoolTopology(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta1.MachinePoolV1Beta2Status":                 schema_cluster_api_api_core_v1beta1_MachinePoolV1Beta2Status(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta1.MachinePoolVariables":                     schema_cluster_api_api_core_v1beta1_MachinePoolVariables(ref),
@@ -3893,6 +3894,27 @@ func schema_cluster_api_api_core_v1beta1_MachinePoolStatus(ref common.ReferenceC
 		},
 		Dependencies: []string{
 			"k8s.io/api/core/v1.ObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta1.Condition", "sigs.k8s.io/cluster-api/api/core/v1beta1.MachinePoolV1Beta2Status"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta1_MachinePoolStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePoolStrategy describes how to replace existing machines with new ones.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"remediation": {
+						SchemaProps: spec.SchemaProps{
+							Description: "remediation controls the strategy of remediating unhealthy machines as marked by a MachineHealthCheck. This only applies to infrastructure providers supporting \"MachinePool Machines\". For other providers, no remediation is done.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.RemediationStrategy"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.RemediationStrategy"},
 	}
 }
 

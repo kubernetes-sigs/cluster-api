@@ -1706,6 +1706,27 @@ spec:
                 maxItems: 10000
                 type: array
                 x-kubernetes-list-type: atomic
+              remediation:
+                description: |-
+                  remediation controls how unhealthy Machines are remediated (through a MachineHealthCheck).
+                  This only applies to infrastructure providers supporting and enabling the
+                  "MachinePool Machines" feature. For other setups, no remediation is done.
+                minProperties: 1
+                properties:
+                  maxInFlight:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: |-
+                      maxInFlight determines how many in flight remediations should happen at the same time.
+
+                      MaxInFlight can be set to a fixed number or a percentage.
+                      Example: when this is set to 20%, the MachinePool controller deletes at most 20% of
+                      the desired replicas.
+
+                      If not set, remediation is limited to all machines under the active MachinePool's management.
+                    x-kubernetes-int-or-string: true
+                type: object
               replicas:
                 description: |-
                   replicas is the number of desired machines. Defaults to 1.

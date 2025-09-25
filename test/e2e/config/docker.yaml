@@ -333,6 +333,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/cluster-template.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-md-remediation.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-md-taints.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-mp-remediation.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-remediation.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-adoption.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-machine-pool.yaml"

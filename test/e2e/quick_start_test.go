@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/kubetest"
 )
 
-var _ = Describe("When following the Cluster API quick-start", func() {
+var _ = Describe("When following the Cluster API quick-start11 [PR-Blocking] [ClusterClass]", Label("PR-Blocking", "ClusterClass"), func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:             e2eConfig,
@@ -75,7 +75,7 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 	})
 })
 
-var _ = Describe("When following the Cluster API quick-start with ClusterClass [PR-Blocking] [ClusterClass]", Label("PR-Blocking", "ClusterClass"), func() {
+var _ = Describe("When following the Cluster API quick-start with ClusterClass ", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:             e2eConfig,

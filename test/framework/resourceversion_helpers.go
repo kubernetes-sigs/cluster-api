@@ -87,6 +87,12 @@ func printObjectDiff(previousObjects, newObjects map[string]client.Object) func(
 
 		if len(preservedObjects) > 0 {
 			output.WriteString("\nDetected objects with changed resourceVersion\n")
+
+			newresourceYAML, _ := yaml.Marshal(newObjects)
+			output.WriteString(fmt.Sprintf("\nComplete New object:\n%s\n", newresourceYAML))
+			preresourceYAML, _ := yaml.Marshal(previousObjects)
+			output.WriteString(fmt.Sprintf("\nComplete previous object:\n%s\n", preresourceYAML))
+
 			for objID := range preservedObjects {
 				previousObj := previousObjects[objID]
 				newObj := newObjects[objID]
@@ -155,6 +161,34 @@ func getObjectsWithResourceVersion(ctx context.Context, proxy ClusterProxy, name
 		if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
 			if dataSecretName, ok, err := unstructured.NestedString(objUnstructured.Object, "status", "dataSecretName"); ok && err == nil {
 				keysToDelete.Insert(fmt.Sprintf("Secret/%s/%s", obj.GetNamespace(), dataSecretName))
+			}
+		}
+	}
+
+	// Drop any object that has a status condition with type: EtcdMemberHealthy.
+	skipTypes := map[string]struct{}{
+		"EtcdMemberHealthy":  {},
+		"EtcdClusterHealthy": {},
+	}
+	for key, obj := range objects {
+		u, ok := obj.(*unstructured.Unstructured)
+		if !ok {
+			continue
+		}
+		conds, found, err := unstructured.NestedSlice(u.Object, "status", "conditions")
+		if err != nil || !found || len(conds) == 0 {
+			continue
+		}
+		for _, c := range conds {
+			cm, ok := c.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if t, ok := cm["type"].(string); ok {
+				if _, skip := skipTypes[t]; skip {
+					keysToDelete.Insert(key)
+					break
+				}
 			}
 		}
 	}

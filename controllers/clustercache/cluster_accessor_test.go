@@ -210,6 +210,69 @@ func TestDisconnect(t *testing.T) {
 	g.Expect(accessor.lockedState.healthChecking.lastProbeSuccessTime.IsZero()).To(BeFalse())
 }
 
+func TestGetUncachedReaderLifecycle(t *testing.T) {
+	g := NewWithT(t)
+
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
+			},
+		},
+	}
+	clusterKey := client.ObjectKeyFromObject(testCluster)
+	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
+	defer func() { g.Expect(env.CleanupAndWait(ctx, testCluster)).To(Succeed()) }()
+
+	// Create kubeconfig Secret
+	kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
+	g.Expect(env.CreateAndWait(ctx, kubeconfigSecret)).To(Succeed())
+	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
+
+	config := buildClusterAccessorConfig(env.GetScheme(), Options{
+		SecretClient: env.GetClient(),
+		Client: ClientOptions{
+			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
+			Timeout:   10 * time.Second,
+		},
+	}, nil)
+	accessor := newClusterAccessor(context.Background(), clusterKey, config)
+
+	// Before connect, getting the uncached reader should fail with ErrClusterNotConnected
+	_, err := accessor.GetUncachedReader(ctx)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(errors.Is(err, ErrClusterNotConnected)).To(BeTrue())
+
+	// Connect
+	g.Expect(accessor.Connect(ctx)).To(Succeed())
+	g.Expect(accessor.Connected(ctx)).To(BeTrue())
+
+	// After connect, getting the uncached reader should succeed and support live GET/LIST
+	r, err := accessor.GetUncachedReader(ctx)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(r).ToNot(BeNil())
+
+	// List Nodes via the uncached reader
+	nodeList := &corev1.NodeList{}
+	g.Expect(r.List(ctx, nodeList)).To(Succeed())
+	g.Expect(nodeList.Items).To(BeEmpty())
+
+	// Disconnect
+	accessor.Disconnect(ctx)
+	g.Expect(accessor.Connected(ctx)).To(BeFalse())
+
+	// After disconnect, getting the uncached reader should fail with ErrClusterNotConnected
+	_, err = accessor.GetUncachedReader(ctx)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(errors.Is(err, ErrClusterNotConnected)).To(BeTrue())
+}
+
 func TestHealthCheck(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{

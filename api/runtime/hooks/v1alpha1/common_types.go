@@ -134,3 +134,15 @@ func (r *CommonRetryResponse) GetRetryAfterSeconds() int32 {
 func (r *CommonRetryResponse) SetRetryAfterSeconds(retryAfterSeconds int32) {
 	r.RetryAfterSeconds = retryAfterSeconds
 }
+
+// PatchType defines the supported patch types.
+// +kubebuilder:validation:Enum=JSONPatch;JSONMergePatch
+type PatchType string
+
+const (
+	// JSONPatchType identifies a https://datatracker.ietf.org/doc/html/rfc6902 JSON patch.
+	JSONPatchType PatchType = "JSONPatch"
+
+	// JSONMergePatchType identifies a https://datatracker.ietf.org/doc/html/rfc7386 JSON merge patch.
+	JSONMergePatchType PatchType = "JSONMergePatch"
+)

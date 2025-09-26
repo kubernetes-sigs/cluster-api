@@ -41,6 +41,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.BeforeClusterUpgradeRequest":                          schema_api_runtime_hooks_v1alpha1_BeforeClusterUpgradeRequest(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.BeforeClusterUpgradeResponse":                         schema_api_runtime_hooks_v1alpha1_BeforeClusterUpgradeResponse(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Builtins":                                             schema_api_runtime_hooks_v1alpha1_Builtins(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineRequest":                              schema_api_runtime_hooks_v1alpha1_CanUpdateMachineRequest(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineRequestObjects":                       schema_api_runtime_hooks_v1alpha1_CanUpdateMachineRequestObjects(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineResponse":                             schema_api_runtime_hooks_v1alpha1_CanUpdateMachineResponse(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineSetRequest":                           schema_api_runtime_hooks_v1alpha1_CanUpdateMachineSetRequest(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineSetRequestObjects":                    schema_api_runtime_hooks_v1alpha1_CanUpdateMachineSetRequestObjects(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineSetResponse":                          schema_api_runtime_hooks_v1alpha1_CanUpdateMachineSetResponse(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ClusterBuiltins":                                      schema_api_runtime_hooks_v1alpha1_ClusterBuiltins(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ClusterNetworkBuiltins":                               schema_api_runtime_hooks_v1alpha1_ClusterNetworkBuiltins(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ClusterTopologyBuiltins":                              schema_api_runtime_hooks_v1alpha1_ClusterTopologyBuiltins(ref),
@@ -67,6 +73,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.MachineDeploymentBuiltins":                            schema_api_runtime_hooks_v1alpha1_MachineDeploymentBuiltins(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.MachineInfrastructureRefBuiltins":                     schema_api_runtime_hooks_v1alpha1_MachineInfrastructureRefBuiltins(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.MachinePoolBuiltins":                                  schema_api_runtime_hooks_v1alpha1_MachinePoolBuiltins(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch":                                                schema_api_runtime_hooks_v1alpha1_Patch(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpdateMachineRequest":                                 schema_api_runtime_hooks_v1alpha1_UpdateMachineRequest(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpdateMachineRequestObjects":                          schema_api_runtime_hooks_v1alpha1_UpdateMachineRequestObjects(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpdateMachineResponse":                                schema_api_runtime_hooks_v1alpha1_UpdateMachineResponse(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ValidateTopologyRequest":                              schema_api_runtime_hooks_v1alpha1_ValidateTopologyRequest(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ValidateTopologyRequestItem":                          schema_api_runtime_hooks_v1alpha1_ValidateTopologyRequestItem(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ValidateTopologyResponse":                             schema_api_runtime_hooks_v1alpha1_ValidateTopologyResponse(ref),
@@ -756,6 +766,330 @@ func schema_api_runtime_hooks_v1alpha1_Builtins(ref common.ReferenceCallback) co
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ClusterBuiltins", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ControlPlaneBuiltins", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.MachineDeploymentBuiltins", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.MachinePoolBuiltins"},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CanUpdateMachineRequest is the request of the CanUpdateMachine hook.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"settings": {
+						SchemaProps: spec.SchemaProps{
+							Description: "settings defines key value pairs to be passed to the call.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"current": {
+						SchemaProps: spec.SchemaProps{
+							Description: "current contains the current state of the Machine and related objects.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineRequestObjects"),
+						},
+					},
+					"desired": {
+						SchemaProps: spec.SchemaProps{
+							Description: "desired contains the desired state of the Machine and related objects.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineRequestObjects"),
+						},
+					},
+				},
+				Required: []string{"current", "desired"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineRequestObjects"},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineRequestObjects(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CanUpdateMachineRequestObjects groups objects for CanUpdateMachineRequest.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"machine": {
+						SchemaProps: spec.SchemaProps{
+							Description: "machine is the full Machine object.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.Machine"),
+						},
+					},
+					"infrastructureMachine": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructureMachine is the infra Machine object.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"bootstrapConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "bootstrapConfig is the bootstrap config object.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+				},
+				Required: []string{"machine", "infrastructureMachine"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/runtime.RawExtension", "sigs.k8s.io/cluster-api/api/core/v1beta2.Machine"},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineResponse(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CanUpdateMachineResponse is the response of the CanUpdateMachine hook.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"Failure", "Success"},
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "message is a human-readable description of the status of the call.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"machinePatch": {
+						SchemaProps: spec.SchemaProps{
+							Description: "machinePatch when applied to the current Machine spec, indicates changes handled in-place.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"),
+						},
+					},
+					"infrastructureMachinePatch": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructureMachinePatch indicates infra Machine spec changes handled in-place.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"),
+						},
+					},
+					"bootstrapConfigPatch": {
+						SchemaProps: spec.SchemaProps{
+							Description: "bootstrapConfigPatch indicates bootstrap config spec changes handled in-place.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"),
+						},
+					},
+				},
+				Required: []string{"status"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineSetRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CanUpdateMachineSetRequest is the request of the CanUpdateMachineSet hook.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"settings": {
+						SchemaProps: spec.SchemaProps{
+							Description: "settings defines key value pairs to be passed to the call.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"current": {
+						SchemaProps: spec.SchemaProps{
+							Description: "current contains the current state of the MachineSet and related objects.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineSetRequestObjects"),
+						},
+					},
+					"desired": {
+						SchemaProps: spec.SchemaProps{
+							Description: "desired contains the desired state of the MachineSet and related objects.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineSetRequestObjects"),
+						},
+					},
+				},
+				Required: []string{"current", "desired"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineSetRequestObjects"},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineSetRequestObjects(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CanUpdateMachineSetRequestObjects groups objects for CanUpdateMachineSetRequest.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"machineSet": {
+						SchemaProps: spec.SchemaProps{
+							Description: "machineSet is the full MachineSet object.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSet"),
+						},
+					},
+					"infrastructureMachineTemplate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructureMachineTemplate is the provider-specific InfrastructureMachineTemplate object.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"bootstrapConfigTemplate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "bootstrapConfigTemplate is the provider-specific BootstrapConfigTemplate object.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+				},
+				Required: []string{"machineSet", "infrastructureMachineTemplate"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/runtime.RawExtension", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSet"},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineSetResponse(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CanUpdateMachineSetResponse is the response of the CanUpdateMachineSet hook.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"Failure", "Success"},
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "message is a human-readable description of the status of the call.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"machineSetPatch": {
+						SchemaProps: spec.SchemaProps{
+							Description: "machineSetPatch when applied to the current MachineSet spec, indicates changes handled in-place.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"),
+						},
+					},
+					"infrastructureMachineTemplatePatch": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructureMachineTemplatePatch indicates infra template spec changes handled in-place.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"),
+						},
+					},
+					"bootstrapConfigTemplatePatch": {
+						SchemaProps: spec.SchemaProps{
+							Description: "bootstrapConfigTemplatePatch indicates bootstrap template spec changes handled in-place.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"),
+						},
+					},
+				},
+				Required: []string{"status"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"},
 	}
 }
 
@@ -1569,11 +1903,10 @@ func schema_api_runtime_hooks_v1alpha1_GeneratePatchesResponseItem(ref common.Re
 					},
 					"patchType": {
 						SchemaProps: spec.SchemaProps{
-							Description: "patchType defines the type of the patch. One of: \"JSONPatch\" or \"JSONMergePatch\".\n\nPossible enum values:\n - `\"JSONMergePatch\"` identifies a https://datatracker.ietf.org/doc/html/rfc7386 JSON merge patch.\n - `\"JSONPatch\"` identifies a https://datatracker.ietf.org/doc/html/rfc6902 JSON patch.",
+							Description: "patchType defines the type of the patch. One of: \"JSONPatch\" or \"JSONMergePatch\".",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
-							Enum:        []interface{}{"JSONMergePatch", "JSONPatch"},
 						},
 					},
 					"patch": {
@@ -1868,6 +2201,174 @@ func schema_api_runtime_hooks_v1alpha1_MachinePoolBuiltins(ref common.ReferenceC
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/core/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.MachineBootstrapBuiltins", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.MachineInfrastructureRefBuiltins"},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_Patch(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Patch is a single patch (JSONPatch or JSONMergePatch) which can include multiple operations.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"patchType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "patchType JSONPatch or JSONMergePatch.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"patch": {
+						SchemaProps: spec.SchemaProps{
+							Description: "patch data for the target object.",
+							Type:        []string{"string"},
+							Format:      "byte",
+						},
+					},
+				},
+				Required: []string{"patchType", "patch"},
+			},
+		},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_UpdateMachineRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "UpdateMachineRequest is the request of the UpdateMachine hook.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"settings": {
+						SchemaProps: spec.SchemaProps{
+							Description: "settings defines key value pairs to be passed to the call.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"desired": {
+						SchemaProps: spec.SchemaProps{
+							Description: "desired contains the desired state of the Machine and related objects.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpdateMachineRequestObjects"),
+						},
+					},
+				},
+				Required: []string{"desired"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpdateMachineRequestObjects"},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_UpdateMachineRequestObjects(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "UpdateMachineRequestObjects groups objects for UpdateMachineRequest.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"machine": {
+						SchemaProps: spec.SchemaProps{
+							Description: "machine is the full Machine object.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.Machine"),
+						},
+					},
+					"infrastructureMachine": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructureMachine is the infra Machine object.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"bootstrapConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "bootstrapConfig is the bootstrap config object.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+				},
+				Required: []string{"machine", "infrastructureMachine"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/runtime.RawExtension", "sigs.k8s.io/cluster-api/api/core/v1beta2.Machine"},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_UpdateMachineResponse(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "UpdateMachineResponse is the response of the UpdateMachine hook. The status of the update operation is determined by the CommonRetryResponse fields: - Status=Success + RetryAfterSeconds > 0: update is in progress - Status=Success + RetryAfterSeconds = 0: update completed successfully - Status=Failure: update failed",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"Failure", "Success"},
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "message is a human-readable description of the status of the call.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"retryAfterSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "retryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"status", "retryAfterSeconds"},
+			},
+		},
 	}
 }
 

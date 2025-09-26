@@ -105,7 +105,11 @@ linters:
     ## Excludes for current clusterctl v1alpha3 and Runtime Hooks v1alpha1 apiVersions (can be fixed once we bump their apiVersion).
     # Note: The types in api/runtime/hooks/v1alpha1 are not CRDs, so e.g. SSA markers don't make sense there.
     - path: "cmd/clusterctl/api/v1alpha3|api/runtime/hooks/v1alpha1"
-      text: "optionalfields|requiredfields|maxlength|ssatags"
+      text: "maxlength|ssatags"
+      linters:
+        - kubeapilinter
+    - path: "cmd/clusterctl/api/v1alpha3|api/runtime/hooks/v1alpha1/(common_types.go|discovery_types.go|lifecyclehooks_types.go|topologymutation_types.go|topologymutation_variable_types.go)"
+      text: "optionalfields|requiredfields"
       linters:
         - kubeapilinter
 

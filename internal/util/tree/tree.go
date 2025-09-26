@@ -28,6 +28,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/gobuffalo/flect"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -61,64 +62,87 @@ var (
 	cyan   = color.New(color.FgCyan)
 )
 
+// CreateObjectTree creates a new tablewriter.Table for the object tree.
+// Returns a new tablewriter.Table for the object tree.
+func CreateObjectTree(w io.Writer) *tablewriter.Table {
+	cfg := tablewriter.Config{
+		Row: tw.CellConfig{
+			Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
+			Alignment:  tw.CellAlignment{Global: tw.AlignLeft},
+			Padding:    tw.CellPadding{Global: tw.Padding{Left: "", Right: "  "}},
+		},
+		Header: tw.CellConfig{
+			Alignment: tw.CellAlignment{Global: tw.AlignLeft},
+		},
+		Behavior: tw.Behavior{TrimSpace: tw.Off},
+	}
+
+	// Creates the output table
+	tbl := tablewriter.NewTable(w, tablewriter.WithConfig(cfg), tablewriter.WithRendition(tw.Rendition{
+		Settings: tw.Settings{
+			Separators: tw.SeparatorsNone, Lines: tw.LinesNone,
+		},
+		Borders: tw.BorderNone,
+	}))
+
+	return tbl
+}
+
+// CreateObjectTreeV1Beta1 creates a new tablewriter.Table for the object tree.
+// Returns a new tablewriter.Table for the object tree.
+func CreateObjectTreeV1Beta1(w io.Writer) *tablewriter.Table {
+	cfg := tablewriter.Config{
+		Row: tw.CellConfig{
+			Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
+			Alignment:  tw.CellAlignment{Global: tw.AlignLeft},
+			Padding:    tw.CellPadding{Global: tw.Padding{Left: "", Right: " "}},
+		},
+		Header: tw.CellConfig{
+			Alignment: tw.CellAlignment{Global: tw.AlignLeft},
+		},
+		Behavior: tw.Behavior{TrimSpace: tw.Off},
+	}
+	// Creates the output table
+	tbl := tablewriter.NewTable(w, tablewriter.WithConfig(cfg), tablewriter.WithRendition(tw.Rendition{
+		Settings: tw.Settings{
+			Separators: tw.SeparatorsNone, Lines: tw.LinesNone,
+		},
+		Borders: tw.BorderNone,
+	}))
+
+	return tbl
+}
+
 // PrintObjectTree prints the cluster status to stdout.
 // Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
 func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) {
-	// Creates the output table
-	tbl := tablewriter.NewWriter(w)
-	tbl.SetHeader([]string{"NAME", "REPLICAS", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
+	tbl := CreateObjectTree(w)
 
-	formatTableTree(tbl)
-	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
+	tbl.Header([]string{"NAME", "REPLICAS", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
+
 	addObjectRow("", tbl, tree, tree.GetRoot())
 
 	// Prints the output table
-	tbl.Render()
+	if err := tbl.Render(); err != nil {
+		fmt.Printf("Error rendering table: %v", err)
+		os.Exit(1)
+	}
 }
 
 // PrintObjectTreeV1Beta1 prints the cluster status to stdout.
 // Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
 func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) {
-	// Creates the output table
-	tbl := tablewriter.NewWriter(os.Stdout)
-	tbl.SetHeader([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
+	tbl := CreateObjectTreeV1Beta1(os.Stdin)
+	tbl.Header([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
 
-	formatTableTreeV1Beta1(tbl)
 	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
 	addObjectRowV1Beta1("", tbl, tree, tree.GetRoot())
 
 	// Prints the output table
-	tbl.Render()
-}
-
-// formats the table with required attributes.
-func formatTableTree(tbl *tablewriter.Table) {
-	tbl.SetAutoWrapText(false)
-	tbl.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	tbl.SetAlignment(tablewriter.ALIGN_LEFT)
-
-	tbl.SetCenterSeparator("")
-	tbl.SetRowSeparator("")
-
-	tbl.SetHeaderLine(false)
-	tbl.SetTablePadding("  ")
-	tbl.SetNoWhiteSpace(true)
-}
-
-// formats the table with required attributes.
-func formatTableTreeV1Beta1(tbl *tablewriter.Table) {
-	tbl.SetAutoWrapText(false)
-	tbl.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	tbl.SetAlignment(tablewriter.ALIGN_LEFT)
-
-	tbl.SetCenterSeparator("")
-	tbl.SetColumnSeparator("")
-	tbl.SetRowSeparator("")
-
-	tbl.SetHeaderLine(false)
-	tbl.SetBorder(false)
-	tbl.SetTablePadding("  ")
-	tbl.SetNoWhiteSpace(true)
+	if err := tbl.Render(); err != nil {
+		fmt.Printf("Error rendering table: %v", err)
+		os.Exit(1)
+	}
 }
 
 // addObjectRow add a row for a given object, and recursively for all the object's children.
@@ -161,7 +185,7 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 	if len(msg) >= 1 {
 		msg0 = msg[0]
 	}
-	tbl.Append([]string{
+	if err := tbl.Append([]string{
 		fmt.Sprintf("%s%s", gray.Sprint(prefix), name),
 		rowDescriptor.replicas,
 		rowDescriptor.availableCounters,
@@ -170,11 +194,14 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 		rowDescriptor.status,
 		rowDescriptor.reason,
 		rowDescriptor.age,
-		msg0})
+		msg0}); err != nil {
+		fmt.Printf("Error appending row: %v", err)
+		os.Exit(1)
+	}
 
 	multilinePrefix := getRootMultiLineObjectPrefix(obj, objectTree)
 	for _, m := range msg[1:] {
-		tbl.Append([]string{
+		if err := tbl.Append([]string{
 			gray.Sprint(multilinePrefix),
 			"",
 			"",
@@ -183,7 +210,10 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 			"",
 			"",
 			"",
-			m})
+			m}); err != nil {
+			fmt.Printf("Error appending row: %v", err)
+			os.Exit(1)
+		}
 	}
 
 	// If it is required to show all the conditions for the object, add a row for each object's conditions.
@@ -241,13 +271,16 @@ func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree
 	// Add the row representing the object that includes
 	// - The row name with the tree view prefix.
 	// - The object's ready condition.
-	tbl.Append([]string{
+	if err := tbl.Append([]string{
 		fmt.Sprintf("%s%s", gray.Sprint(prefix), name),
 		readyDescriptor.readyColor.Sprint(readyDescriptor.status),
 		readyDescriptor.readyColor.Sprint(readyDescriptor.severity),
 		readyDescriptor.readyColor.Sprint(readyDescriptor.reason),
 		readyDescriptor.age,
-		readyDescriptor.message})
+		readyDescriptor.message}); err != nil {
+		fmt.Printf("Error appending row: %v", err)
+		os.Exit(1)
+	}
 
 	// If it is required to show all the conditions for the object, add a row for each object's conditions.
 	if tree.IsShowConditionsObject(obj) {
@@ -312,7 +345,7 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 		if len(msg) >= 1 {
 			msg0 = msg[0]
 		}
-		tbl.Append([]string{
+		if err := tbl.Append([]string{
 			fmt.Sprintf("%s%s", gray.Sprint(childPrefix), cyan.Sprint(condition.Type)),
 			"",
 			"",
@@ -321,10 +354,13 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 			c.Sprint(status),
 			reason,
 			age,
-			msg0})
+			msg0}); err != nil {
+			fmt.Printf("Error appending row: %v", err)
+			os.Exit(1)
+		}
 
 		for _, m := range msg[1:] {
-			tbl.Append([]string{
+			if err := tbl.Append([]string{
 				gray.Sprint(getMultilineConditionPrefix(childPrefix)),
 				"",
 				"",
@@ -333,7 +369,10 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 				"",
 				"",
 				"",
-				m})
+				m}); err != nil {
+				fmt.Printf("Error appending row: %v", err)
+				os.Exit(1)
+			}
 		}
 	}
 }
@@ -355,13 +394,16 @@ func addOtherConditionsV1Beta1(prefix string, tbl *tablewriter.Table, objectTree
 		otherCondition := otherConditions[i]
 		otherDescriptor := newV1Beta1ConditionDescriptor(otherCondition)
 		otherConditionPrefix := getChildPrefix(prefix+childrenPipe+filler, i, len(otherConditions))
-		tbl.Append([]string{
+		if err := tbl.Append([]string{
 			fmt.Sprintf("%s%s", gray.Sprint(otherConditionPrefix), cyan.Sprint(otherCondition.Type)),
 			otherDescriptor.readyColor.Sprint(otherDescriptor.status),
 			otherDescriptor.readyColor.Sprint(otherDescriptor.severity),
 			otherDescriptor.readyColor.Sprint(otherDescriptor.reason),
 			otherDescriptor.age,
-			otherDescriptor.message})
+			otherDescriptor.message}); err != nil {
+			fmt.Printf("Error appending row: %v", err)
+			os.Exit(1)
+		}
 	}
 }
 

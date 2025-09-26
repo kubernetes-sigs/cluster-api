@@ -99,6 +99,40 @@ var moveTests = []struct {
 		wantErr: false,
 	},
 	{
+		name: "Paused Cluster",
+		fields: moveTestsFields{
+			objs: test.NewFakeCluster("ns1", "foo").WithPaused().Objs(),
+		},
+		wantMoveGroups: [][]string{
+			{ // group 1
+				clusterv1.GroupVersion.String() + ", Kind=Cluster, ns1/foo",
+			},
+			{ // group 2 (objects with ownerReferences in group 1)
+				// owned by Clusters
+				"/v1, Kind=Secret, ns1/foo-ca",
+				"/v1, Kind=Secret, ns1/foo-kubeconfig",
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureCluster, ns1/foo",
+			},
+		},
+		wantErr: true,
+	},
+	{
+		name: "Paused ClusterClass",
+		fields: moveTestsFields{
+			objs: test.NewFakeClusterClass("ns1", "class1").WithPaused().Objs(),
+		},
+		wantMoveGroups: [][]string{
+			{ // group 1
+				clusterv1.GroupVersion.String() + ", Kind=ClusterClass, ns1/class1",
+			},
+			{ // group 2
+				clusterv1.GroupVersionInfrastructure.String() + ", Kind=GenericInfrastructureClusterTemplate, ns1/class1",
+				clusterv1.GroupVersionControlPlane.String() + ", Kind=GenericControlPlaneTemplate, ns1/class1",
+			},
+		},
+		wantErr: true,
+	},
+	{
 		name: "Cluster with cloud config secret with the force move label",
 		fields: moveTestsFields{
 			objs: test.NewFakeCluster("ns1", "foo").WithCloudConfigSecret().Objs(),
@@ -923,8 +957,29 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 }
 
 func Test_objectMover_toDirectory(t *testing.T) {
-	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
-	for _, tt := range backupRestoreTests {
+	tests := []struct {
+		name    string
+		fields  moveTestsFields
+		files   map[string]string
+		wantErr bool
+	}{
+		{
+			name: "Cluster is paused",
+			fields: moveTestsFields{
+				objs: test.NewFakeCluster("ns1", "foo").WithPaused().Objs(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "ClusterClass is paused",
+			fields: moveTestsFields{
+				objs: test.NewFakeClusterClass("ns1", "foo").WithPaused().Objs(),
+			},
+			wantErr: true,
+		},
+	}
+	tests = append(tests, backupRestoreTests...)
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 

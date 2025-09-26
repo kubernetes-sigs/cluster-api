@@ -166,6 +166,12 @@ type ClusterCache interface {
 	GetClusterSource(controllerName string, mapFunc func(ctx context.Context, cluster client.Object) []ctrl.Request, opts ...GetClusterSourceOption) source.Source
 }
 
+// UncachedReaderProvider provides live (uncached) GET/LIST access to the workload cluster API server.
+// This is an optional extension interface; callers can type assert a ClusterCache to this interface to retrieve an uncached reader for a given workload cluster.
+type UncachedReaderProvider interface {
+	GetUncachedReader(ctx context.Context, cluster client.ObjectKey) (client.Reader, error)
+}
+
 // HealthCheckingState holds the health checking state for a Cluster.
 type HealthCheckingState struct {
 	// LastProbeTime is the time when a health probe was executed last.
@@ -390,6 +396,16 @@ func (cc *clusterCache) GetReader(ctx context.Context, cluster client.ObjectKey)
 		return nil, errors.Wrapf(ErrClusterNotConnected, "error getting client reader")
 	}
 	return accessor.GetReader(ctx)
+}
+
+// GetUncachedReader returns a live (uncached) read-only client for the given cluster.
+// If there is no connection to the workload cluster ErrClusterNotConnected will be returned.
+func (cc *clusterCache) GetUncachedReader(ctx context.Context, cluster client.ObjectKey) (client.Reader, error) {
+	accessor := cc.getClusterAccessor(cluster)
+	if accessor == nil {
+		return nil, errors.Wrapf(ErrClusterNotConnected, "error getting uncached reader")
+	}
+	return accessor.GetUncachedReader(ctx)
 }
 
 func (cc *clusterCache) GetRESTConfig(ctx context.Context, cluster client.ObjectKey) (*rest.Config, error) {

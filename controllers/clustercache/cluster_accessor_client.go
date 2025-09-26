@@ -42,10 +42,11 @@ import (
 )
 
 type createConnectionResult struct {
-	RESTConfig   *rest.Config
-	RESTClient   *rest.RESTClient
-	CachedClient client.Client
-	Cache        *stoppableCache
+	RESTConfig     *rest.Config
+	RESTClient     *rest.RESTClient
+	CachedClient   client.Client
+	UncachedClient client.Client
+	Cache          *stoppableCache
 }
 
 func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnectionResult, error) {
@@ -99,6 +100,15 @@ func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnect
 		}
 	}
 
+	log.V(6).Info("Creating uncached client (finalized)")
+	// Create the production uncached client using the finalized rest.Config/httpClient/mapper.
+	// Wrap it so GET/LIST calls respect the configured timeout similar to the cached client path.
+	finalizedUncachedClient, err := createUncachedClient(ca.config.Scheme, restConfig, httpClient, mapper)
+	if err != nil {
+		return nil, err
+	}
+	finalizedUncachedClient = newClientWithTimeout(finalizedUncachedClient, restConfig.Timeout)
+
 	log.V(6).Info("Creating cached client and cache")
 	cachedClient, cache, err := createCachedClient(ctx, ca.cacheCtx, ca.config, restConfig, httpClient, mapper)
 	if err != nil {
@@ -106,10 +116,11 @@ func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnect
 	}
 
 	return &createConnectionResult{
-		RESTConfig:   restConfig,
-		RESTClient:   restClient,
-		CachedClient: cachedClient,
-		Cache:        cache,
+		RESTConfig:     restConfig,
+		RESTClient:     restClient,
+		CachedClient:   cachedClient,
+		UncachedClient: finalizedUncachedClient,
+		Cache:          cache,
 	}, nil
 }
 

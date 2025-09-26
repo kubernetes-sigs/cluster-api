@@ -20,11 +20,22 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
 )
 
+// newGithubFromToPRListerWithClient is a helper function for testing purposes.
+// It creates a new githubFromToPRLister with the given client, fromRef, toRef and branch.
+func newGithubFromToPRListerWithClient(client githubClientInterface, fromRef, toRef ref, branch string) *githubFromToPRLister {
+	return &githubFromToPRLister{
+		client:  client,
+		fromRef: fromRef,
+		toRef:   toRef,
+		branch:  branch,
+	}
+}
 func Test_buildSetOfPRNumbers(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -62,6 +73,95 @@ func Test_buildSetOfPRNumbers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			g.Expect(buildSetOfPRNumbers(tt.commits)).To(Equal(tt.want))
+		})
+	}
+}
+
+func Test_githubFromToPRLister_listPRs(t *testing.T) {
+	tests := []struct {
+		name    string
+		lister  *githubFromToPRLister
+		args    ref
+		wantErr bool
+	}{
+		{
+			name: "Successful PR Listing",
+			lister: newGithubFromToPRListerWithClient(
+				newMockGithubClient(),
+				ref{reType: "tags", value: "v0.26.0"},
+				ref{reType: "tags", value: "v0.27.0"},
+				"main",
+			),
+			args: ref{
+				reType: "tags",
+				value:  "v0.26.0",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Setting previousReleaseRef.value blank - should use toRef and fromRef from fields",
+			lister: newGithubFromToPRListerWithClient(
+				newMockGithubClient(),
+				ref{reType: "tags", value: "v0.26.0"},
+				ref{reType: "tags", value: "v0.27.0"},
+				"main",
+			),
+			args: ref{
+				reType: "tags",
+				value:  "",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Create PR List when fromRef is not set",
+			lister: newGithubFromToPRListerWithClient(
+				newMockGithubClient(),
+				ref{reType: "tags", value: ""},
+				ref{reType: "tags", value: "v0.27.0"},
+				"main",
+			),
+			args: ref{
+				reType: "tags",
+				value:  "v0.26.0",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Fail when previousReleaseRef.value is set to invalid",
+			lister: newGithubFromToPRListerWithClient(
+				newMockGithubClientForInvalidRef(),
+				ref{reType: "tags", value: "v0.26.0"},
+				ref{reType: "tags", value: "v0.27.0"},
+				"main",
+			),
+			args: ref{
+				reType: "tags",
+				value:  "invalid",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Fail when toRef and previousReleaseRef set blank",
+			lister: newGithubFromToPRListerWithClient(
+				newMockGithubClientWithError("diff", fmt.Errorf("invalid ref")),
+				ref{reType: "tags", value: "v0.26.0"},
+				ref{reType: "tags", value: ""},
+				"main",
+			),
+			args: ref{
+				reType: "tags",
+				value:  "",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := tt.lister.listPRs(tt.args)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("githubFromToPRLister.listPRs() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
 		})
 	}
 }

@@ -48,7 +48,7 @@ func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineD
 	allMSs := append(oldMSs, newMS)
 
 	// Scale up, if we can.
-	if err := r.reconcileNewMachineSetOnDelete(ctx, allMSs, newMS, md); err != nil {
+	if err := r.reconcileNewMachineSetOnDelete(ctx, oldMSs, newMS, md); err != nil {
 		return err
 	}
 
@@ -164,10 +164,26 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 }
 
 // reconcileNewMachineSetOnDelete handles reconciliation of the latest MachineSet associated with the MachineDeployment in the OnDelete rollout strategy.
-func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
 	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
 		return err
 	}
 
-	return r.reconcileNewMachineSet(ctx, allMSs, newMS, deployment)
+	// TODO(in-place): also apply/remove labels should go into rolloutPlanner
+	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
+		return err
+	}
+
+	planner := newRolloutPlanner()
+	if err := planner.reconcileNewMachineSet(ctx, deployment, newMS, oldMSs); err != nil {
+		return err
+	}
+
+	// TODO(in-place): this should be changed as soon as rolloutPlanner support MS creation and adding/removing labels from MS
+	if scaleIntent, ok := planner.scaleIntents[newMS.Name]; ok {
+		if err := r.scaleMachineSet(ctx, newMS, scaleIntent, deployment); err != nil {
+			return err
+		}
+	}
+	return nil
 }

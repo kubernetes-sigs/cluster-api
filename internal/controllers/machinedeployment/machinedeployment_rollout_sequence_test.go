@@ -327,7 +327,11 @@ func runTestCase(ctx context.Context, t *testing.T, tt rolloutSequenceTestCase, 
 
 				// Running a small subset of MD reconcile (the rollout logic and a bit of setReplicas)
 				p := newRolloutPlanner()
-				err := p.Plan(ctx, current.machineDeployment, current.newMS(), current.oldMSs())
+				p.md = current.machineDeployment
+				p.newMS = current.newMS()
+				p.oldMSs = current.oldMSs()
+
+				err := p.Plan(ctx)
 				g.Expect(err).ToNot(HaveOccurred())
 				// Apply changes.
 				for _, ms := range current.machineSets {
@@ -494,7 +498,7 @@ func initCurrentRolloutScope(tt rolloutSequenceTestCase) (current *rolloutScope)
 	currentMachines := []*clusterv1.Machine{}
 	for _, machineSetMachineName := range tt.currentMachineNames {
 		totMachines++
-		currentMachines = append(currentMachines, createM(machineSetMachineName, ms.Name, ms.Spec.ClusterName))
+		currentMachines = append(currentMachines, createM(machineSetMachineName, ms.Name, ms.Spec.Template.Spec.FailureDomain))
 	}
 	current.machineSetMachines = map[string][]*clusterv1.Machine{}
 	current.machineSetMachines[ms.Name] = currentMachines
@@ -503,7 +507,7 @@ func initCurrentRolloutScope(tt rolloutSequenceTestCase) (current *rolloutScope)
 	current.machineUID = totMachines
 
 	// TODO(in-place): this should be removed as soon as rolloutPlanner will take care of creating newMS
-	newMS := createMS("ms2", current.machineDeployment.Spec.ClusterName, 0)
+	newMS := createMS("ms2", current.machineDeployment.Spec.Template.Spec.FailureDomain, 0)
 	current.machineSets = append(current.machineSets, newMS)
 
 	return current
@@ -535,7 +539,7 @@ func computeDesiredRolloutScope(current *rolloutScope, desiredMachineNames []str
 		oldMS.Status.AvailableReplicas = ptr.To(int32(0))
 		desired.machineSets = append(desired.machineSets, oldMS)
 
-		if oldMS.Spec.ClusterName == desired.machineDeployment.Spec.ClusterName {
+		if upToDate, _, _ := mdutil.MachineTemplateUpToDate(&oldMS.Spec.Template, &desired.machineDeployment.Spec.Template); upToDate {
 			newMS = oldMS
 		}
 	}
@@ -549,7 +553,7 @@ func computeDesiredRolloutScope(current *rolloutScope, desiredMachineNames []str
 		newMS.Status.AvailableReplicas = desired.machineDeployment.Status.AvailableReplicas
 	} else {
 		totMachineSets++
-		newMS = createMS(fmt.Sprintf("ms%d", totMachineSets), desired.machineDeployment.Spec.ClusterName, *desired.machineDeployment.Spec.Replicas)
+		newMS = createMS(fmt.Sprintf("ms%d", totMachineSets), desired.machineDeployment.Spec.Template.Spec.FailureDomain, *desired.machineDeployment.Spec.Replicas)
 		desired.machineSets = append(desired.machineSets, newMS)
 	}
 
@@ -558,7 +562,7 @@ func computeDesiredRolloutScope(current *rolloutScope, desiredMachineNames []str
 	desiredMachines := []*clusterv1.Machine{}
 	for _, machineSetMachineName := range desiredMachineNames {
 		totMachines++
-		desiredMachines = append(desiredMachines, createM(machineSetMachineName, newMS.Name, newMS.Spec.ClusterName))
+		desiredMachines = append(desiredMachines, createM(machineSetMachineName, newMS.Name, newMS.Spec.Template.Spec.FailureDomain))
 	}
 	desired.machineSetMachines = map[string][]*clusterv1.Machine{}
 	desired.machineSetMachines[newMS.Name] = desiredMachines
@@ -595,7 +599,7 @@ func msLog(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) string {
 
 func (r rolloutScope) newMS() *clusterv1.MachineSet {
 	for _, ms := range r.machineSets {
-		if ms.Spec.ClusterName == r.machineDeployment.Spec.ClusterName {
+		if upToDate, _, _ := mdutil.MachineTemplateUpToDate(&r.machineDeployment.Spec.Template, &ms.Spec.Template); upToDate {
 			return ms
 		}
 	}
@@ -605,7 +609,7 @@ func (r rolloutScope) newMS() *clusterv1.MachineSet {
 func (r rolloutScope) oldMSs() []*clusterv1.MachineSet {
 	var oldMSs []*clusterv1.MachineSet
 	for _, ms := range r.machineSets {
-		if ms.Spec.ClusterName != r.machineDeployment.Spec.ClusterName {
+		if upToDate, _, _ := mdutil.MachineTemplateUpToDate(&r.machineDeployment.Spec.Template, &ms.Spec.Template); !upToDate {
 			oldMSs = append(oldMSs, ms)
 		}
 	}
@@ -617,7 +621,7 @@ func (r *rolloutScope) Equal(s *rolloutScope) bool {
 }
 
 func machineDeploymentIsEqual(a, b *clusterv1.MachineDeployment) bool {
-	if a.Spec.ClusterName != b.Spec.ClusterName ||
+	if upToDate, _, _ := mdutil.MachineTemplateUpToDate(&a.Spec.Template, &b.Spec.Template); !upToDate ||
 		ptr.Deref(a.Spec.Replicas, 0) != ptr.Deref(b.Spec.Replicas, 0) ||
 		ptr.Deref(a.Status.Replicas, 0) != ptr.Deref(b.Status.Replicas, 0) ||
 		ptr.Deref(a.Status.AvailableReplicas, 0) != ptr.Deref(b.Status.AvailableReplicas, 0) {
@@ -642,7 +646,7 @@ func machineSetsAreEqual(a, b []*clusterv1.MachineSet) bool {
 		if !ok {
 			return false
 		}
-		if desiredMS.Spec.ClusterName != currentMS.Spec.ClusterName ||
+		if upToDate, _, _ := mdutil.MachineTemplateUpToDate(&desiredMS.Spec.Template, &currentMS.Spec.Template); !upToDate ||
 			ptr.Deref(desiredMS.Spec.Replicas, 0) != ptr.Deref(currentMS.Spec.Replicas, 0) ||
 			ptr.Deref(desiredMS.Status.Replicas, 0) != ptr.Deref(currentMS.Status.Replicas, 0) ||
 			ptr.Deref(desiredMS.Status.AvailableReplicas, 0) != ptr.Deref(currentMS.Status.AvailableReplicas, 0) {
@@ -810,13 +814,13 @@ func randomTaskOrder(current *rolloutScope, rng *rand.Rand) []int {
 	return taskOrder
 }
 
-func createMD(spec string, replicas int32, maxSurge, maxUnavailable int32) *clusterv1.MachineDeployment {
+func createMD(failureDomain string, replicas int32, maxSurge, maxUnavailable int32) *clusterv1.MachineDeployment {
 	return &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{Name: "md"},
 		Spec: clusterv1.MachineDeploymentSpec{
-			// Note: using ClusterName to track MD revision and detect MD changes
-			ClusterName: spec,
-			Replicas:    &replicas,
+			// Note: using failureDomain as a template field to determine upToDete
+			Template: clusterv1.MachineTemplateSpec{Spec: clusterv1.MachineSpec{FailureDomain: failureDomain}},
+			Replicas: &replicas,
 			Rollout: clusterv1.MachineDeploymentRolloutSpec{
 				Strategy: clusterv1.MachineDeploymentRolloutStrategy{
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
@@ -834,15 +838,15 @@ func createMD(spec string, replicas int32, maxSurge, maxUnavailable int32) *clus
 	}
 }
 
-func createMS(name, spec string, replicas int32) *clusterv1.MachineSet {
+func createMS(name, failureDomain string, replicas int32) *clusterv1.MachineSet {
 	return &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Spec: clusterv1.MachineSetSpec{
-			// Note: using ClusterName to track MD revision and detect MD changes
-			ClusterName: spec,
-			Replicas:    ptr.To(replicas),
+			// Note: using failureDomain as a template field to determine upToDete
+			Template: clusterv1.MachineTemplateSpec{Spec: clusterv1.MachineSpec{FailureDomain: failureDomain}},
+			Replicas: ptr.To(replicas),
 		},
 		Status: clusterv1.MachineSetStatus{
 			Replicas:          ptr.To(replicas),
@@ -851,7 +855,7 @@ func createMS(name, spec string, replicas int32) *clusterv1.MachineSet {
 	}
 }
 
-func createM(name, ownedByMS, spec string) *clusterv1.Machine {
+func createM(name, ownedByMS, failureDomain string) *clusterv1.Machine {
 	return &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -865,8 +869,8 @@ func createM(name, ownedByMS, spec string) *clusterv1.Machine {
 			},
 		},
 		Spec: clusterv1.MachineSpec{
-			// Note: using ClusterName to track MD revision and detect MD changes
-			ClusterName: spec,
+			// Note: using failureDomain as a template field to determine upToDete
+			FailureDomain: failureDomain,
 		},
 	}
 }

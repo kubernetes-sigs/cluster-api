@@ -233,7 +233,11 @@ func TestReconcileNewMachineSet(t *testing.T) {
 			g := NewWithT(t)
 
 			planner := newRolloutPlanner()
-			err := planner.reconcileNewMachineSet(ctx, tc.machineDeployment, tc.newMachineSet, tc.oldMachineSets)
+			planner.md = tc.machineDeployment
+			planner.newMS = tc.newMachineSet
+			planner.oldMSs = tc.oldMachineSets
+
+			err := planner.reconcileNewMachineSet(ctx)
 			if tc.error != nil {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(BeEquivalentTo(tc.error.Error()))
@@ -388,7 +392,11 @@ func TestReconcileOldMachineSets(t *testing.T) {
 			g := NewWithT(t)
 
 			planner := newRolloutPlanner()
-			err := planner.reconcileOldMachineSets(ctx, tc.machineDeployment, tc.newMachineSet, tc.oldMachineSets)
+			planner.md = tc.machineDeployment
+			planner.newMS = tc.newMachineSet
+			planner.oldMSs = tc.oldMachineSets
+
+			err := planner.reconcileOldMachineSets(ctx)
 			if tc.error != nil {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(BeEquivalentTo(tc.error.Error()))

@@ -48,7 +48,7 @@ func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineD
 	allMSs := append(oldMSs, newMS)
 
 	// Scale up, if we can.
-	if err := r.reconcileNewMachineSetOnDelete(ctx, oldMSs, newMS, md); err != nil {
+	if err := r.reconcileNewMachineSetOnDelete(ctx, md, oldMSs, newMS, md); err != nil {
 		return err
 	}
 
@@ -164,7 +164,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 }
 
 // reconcileNewMachineSetOnDelete handles reconciliation of the latest MachineSet associated with the MachineDeployment in the OnDelete rollout strategy.
-func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, md *clusterv1.MachineDeployment, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
 	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
 		return err
 	}
@@ -175,7 +175,11 @@ func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, oldMSs 
 	}
 
 	planner := newRolloutPlanner()
-	if err := planner.reconcileNewMachineSet(ctx, deployment, newMS, oldMSs); err != nil {
+	planner.md = md
+	planner.newMS = newMS
+	planner.oldMSs = oldMSs
+
+	if err := planner.reconcileNewMachineSet(ctx); err != nil {
 		return err
 	}
 

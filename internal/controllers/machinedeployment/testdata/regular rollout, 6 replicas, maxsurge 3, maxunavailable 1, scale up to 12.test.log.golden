@@ -1,4 +1,4 @@
-## Regular rollout, 6 Replicas, maxSurge 3, MaxUnavailable 1, scale up to 12
+## Regular rollout, 6 Replicas, maxSurge 3, maxUnavailable 1, scale up to 12
 
 [Test] Initial state
   md, 12/12 replicas
@@ -14,7 +14,7 @@
   md, 6/12 replicas
   - ms1, 3/3 replicas (m4,m5,m6)
   - ms2, 3/12 replicas (m7,m8,m9)
-[Toleration] tolerate minAvailable breach
+[Toleration] tolerate maxUnavailable breach
 [MS controller] Iteration 1, Reconcile ms1, 3/3 replicas (m4,m5,m6)
 [MS controller] Iteration 1, Reconcile ms2, 3/12 replicas (m7,m8,m9)
 [MS controller] - ms2 scale up to 12/12 replicas (m10,m11,m12,m13,m14,m15,m16,m17,m18 created)

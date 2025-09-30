@@ -1,4 +1,4 @@
-## Regular rollout, 6 Replicas, maxSurge 1, MaxUnavailable 3
+## Regular rollout, 6 Replicas, maxSurge 1, maxUnavailable 3
 
 [Test] Initial state
   md, 6/6 replicas

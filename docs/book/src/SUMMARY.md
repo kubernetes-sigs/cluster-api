@@ -4,6 +4,7 @@
 [Quick Start](./user/quick-start.md)
 [Quick Start Operator](./user/quick-start-operator.md)
 [Concepts](./user/concepts.md)
+    - [MachinePool](./concepts/machinepool.md)
 [Manifesto](./user/manifesto.md)
 - [Tasks](./tasks/index.md)
     - [Certificate Management](./tasks/certs/index.md)

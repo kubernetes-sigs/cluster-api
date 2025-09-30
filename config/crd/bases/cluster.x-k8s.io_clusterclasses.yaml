@@ -3559,6 +3559,24 @@ spec:
                 minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
+              upgrade:
+                description: upgrade defines the upgrade configuration for clusters
+                  using this ClusterClass.
+                minProperties: 1
+                properties:
+                  external:
+                    description: external defines external runtime extensions for
+                      upgrade operations.
+                    minProperties: 1
+                    properties:
+                      generateUpgradePlanExtension:
+                        description: generateUpgradePlanExtension references an extension
+                          which is called to generate upgrade plan.
+                        maxLength: 512
+                        minLength: 1
+                        type: string
+                    type: object
+                type: object
               variables:
                 description: |-
                   variables defines the variables which can be configured

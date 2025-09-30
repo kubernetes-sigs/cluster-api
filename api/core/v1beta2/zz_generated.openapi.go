@@ -42,6 +42,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassStatusVariable":                               schema_cluster_api_api_core_v1beta2_ClusterClassStatusVariable(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassStatusVariableDefinition":                     schema_cluster_api_api_core_v1beta2_ClusterClassStatusVariableDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassTemplateReference":                            schema_cluster_api_api_core_v1beta2_ClusterClassTemplateReference(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassUpgrade":                                      schema_cluster_api_api_core_v1beta2_ClusterClassUpgrade(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassUpgradeExternal":                              schema_cluster_api_api_core_v1beta2_ClusterClassUpgradeExternal(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassV1Beta1DeprecatedStatus":                      schema_cluster_api_api_core_v1beta2_ClusterClassV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassVariable":                                     schema_cluster_api_api_core_v1beta2_ClusterClassVariable(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassVariableMetadata":                             schema_cluster_api_api_core_v1beta2_ClusterClassVariableMetadata(ref),
@@ -617,6 +619,13 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassSpec(ref common.ReferenceCa
 							},
 						},
 					},
+					"upgrade": {
+						SchemaProps: spec.SchemaProps{
+							Description: "upgrade defines the upgrade configuration for clusters using this ClusterClass.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassUpgrade"),
+						},
+					},
 					"kubernetesVersions": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
@@ -642,7 +651,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassSpec(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterAvailabilityGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassPatch", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassVariable", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersClass"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterAvailabilityGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassPatch", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassUpgrade", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassVariable", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.InfrastructureClass", "sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersClass"},
 	}
 }
 
@@ -838,6 +847,48 @@ func schema_cluster_api_api_core_v1beta2_ClusterClassTemplateReference(ref commo
 					},
 				},
 				Required: []string{"kind", "name", "apiVersion"},
+			},
+		},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ClusterClassUpgrade(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterClassUpgrade defines the upgrade configuration for clusters using the ClusterClass.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"external": {
+						SchemaProps: spec.SchemaProps{
+							Description: "external defines external runtime extensions for upgrade operations.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassUpgradeExternal"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassUpgradeExternal"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_ClusterClassUpgradeExternal(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterClassUpgradeExternal defines external runtime extensions for upgrade operations.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"generateUpgradePlanExtension": {
+						SchemaProps: spec.SchemaProps{
+							Description: "generateUpgradePlanExtension references an extension which is called to generate upgrade plan.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
 			},
 		},
 	}

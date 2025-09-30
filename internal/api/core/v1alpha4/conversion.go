@@ -263,6 +263,7 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Workers.MachineDeployments[i].Rollout.Strategy = restored.Spec.Workers.MachineDeployments[i].Rollout.Strategy
 	}
 	dst.Status = restored.Status
+	dst.Spec.Upgrade.External.GenerateUpgradePlanExtension = restored.Spec.Upgrade.External.GenerateUpgradePlanExtension
 
 	return nil
 }

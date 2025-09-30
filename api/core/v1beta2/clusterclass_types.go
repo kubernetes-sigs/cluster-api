@@ -136,6 +136,10 @@ type ClusterClassSpec struct {
 	// +kubebuilder:validation:MaxItems=1000
 	Patches []ClusterClassPatch `json:"patches,omitempty"`
 
+	// upgrade defines the upgrade configuration for clusters using this ClusterClass.
+	// +optional
+	Upgrade ClusterClassUpgrade `json:"upgrade,omitempty,omitzero"`
+
 	// kubernetesVersions is the list of Kubernetes versions that can be
 	// used for clusters using this ClusterClass.
 	// The list of version must be ordered from the older to the newer version, and there should be
@@ -1250,6 +1254,24 @@ type ClusterClassPatch struct {
 	// Note: Exactly one of Definitions or External must be set.
 	// +optional
 	External *ExternalPatchDefinition `json:"external,omitempty"`
+}
+
+// ClusterClassUpgrade defines the upgrade configuration for clusters using the ClusterClass.
+// +kubebuilder:validation:MinProperties=1
+type ClusterClassUpgrade struct {
+	// external defines external runtime extensions for upgrade operations.
+	// +optional
+	External ClusterClassUpgradeExternal `json:"external,omitempty,omitzero"`
+}
+
+// ClusterClassUpgradeExternal defines external runtime extensions for upgrade operations.
+// +kubebuilder:validation:MinProperties=1
+type ClusterClassUpgradeExternal struct {
+	// generateUpgradePlanExtension references an extension which is called to generate upgrade plan.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	GenerateUpgradePlanExtension string `json:"generateUpgradePlanExtension,omitempty"`
 }
 
 // PatchDefinition defines a patch which is applied to customize the referenced templates.

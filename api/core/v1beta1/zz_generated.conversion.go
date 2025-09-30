@@ -1207,6 +1207,7 @@ func autoConvert_v1beta2_ClusterClassSpec_To_v1beta1_ClusterClassSpec(in *v1beta
 	} else {
 		out.Patches = nil
 	}
+	// WARNING: in.Upgrade requires manual conversion: does not exist in peer-type
 	// WARNING: in.KubernetesVersions requires manual conversion: does not exist in peer-type
 	return nil
 }

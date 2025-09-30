@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -48,7 +49,7 @@ func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineD
 	allMSs := append(oldMSs, newMS)
 
 	// Scale up, if we can.
-	if err := r.reconcileNewMachineSetOnDelete(ctx, md, oldMSs, newMS, md); err != nil {
+	if err := r.reconcileNewMachineSetOnDelete(ctx, md, oldMSs, newMS); err != nil {
 		return err
 	}
 
@@ -164,11 +165,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 }
 
 // reconcileNewMachineSetOnDelete handles reconciliation of the latest MachineSet associated with the MachineDeployment in the OnDelete rollout strategy.
-func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, md *clusterv1.MachineDeployment, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
-	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
-		return err
-	}
-
+func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, md *clusterv1.MachineDeployment, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet) error {
 	// TODO(in-place): also apply/remove labels should go into rolloutPlanner
 	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
 		return err
@@ -184,10 +181,9 @@ func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, md *clu
 	}
 
 	// TODO(in-place): this should be changed as soon as rolloutPlanner support MS creation and adding/removing labels from MS
-	if scaleIntent, ok := planner.scaleIntents[newMS.Name]; ok {
-		if err := r.scaleMachineSet(ctx, newMS, scaleIntent, deployment); err != nil {
-			return err
-		}
+	scaleIntent := ptr.Deref(newMS.Spec.Replicas, 0)
+	if v, ok := planner.scaleIntents[newMS.Name]; ok {
+		scaleIntent = v
 	}
-	return nil
+	return r.scaleMachineSet(ctx, newMS, scaleIntent, md)
 }

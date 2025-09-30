@@ -65,10 +65,12 @@ func (r *Reconciler) rolloutRolling(ctx context.Context, md *clusterv1.MachineDe
 
 	// TODO(in-place): this should be changed as soon as rolloutPlanner support MS creation and adding/removing labels from MS
 	for _, ms := range allMSs {
-		if scaleIntent, ok := planner.scaleIntents[ms.Name]; ok {
-			if err := r.scaleMachineSet(ctx, ms, scaleIntent, md); err != nil {
-				return err
-			}
+		scaleIntent := ptr.Deref(ms.Spec.Replicas, 0)
+		if v, ok := planner.scaleIntents[ms.Name]; ok {
+			scaleIntent = v
+		}
+		if err := r.scaleMachineSet(ctx, ms, scaleIntent, md); err != nil {
+			return err
 		}
 	}
 
@@ -98,7 +100,7 @@ func newRolloutPlanner() *rolloutPlanner {
 	}
 }
 
-// Plan determine if it is.
+// Plan determine how to proceed with the rollout if we are not yet at the desired state.
 func (p *rolloutPlanner) Plan(ctx context.Context) error {
 	if p.md.Spec.Replicas == nil {
 		return errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(p.md))
@@ -134,7 +136,7 @@ func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 
 	if *(p.newMS.Spec.Replicas) > *(p.md.Spec.Replicas) {
 		// Scale down.
-		log.V(5).Info(fmt.Sprintf("Setting scale down intent for %s to %d replicas", p.newMS.Name, *(p.md.Spec.Replicas)), "machineset", client.ObjectKeyFromObject(p.newMS).String())
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas", p.newMS.Name, *(p.md.Spec.Replicas)), "MachineSet", klog.KObj(p.newMS))
 		p.scaleIntents[p.newMS.Name] = *(p.md.Spec.Replicas)
 		return nil
 	}
@@ -146,12 +148,12 @@ func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 
 	if newReplicasCount < *(p.newMS.Spec.Replicas) {
 		scaleDownCount := *(p.newMS.Spec.Replicas) - newReplicasCount
-		log.V(5).Info(fmt.Sprintf("Setting scale down intent for %s to %d replicas (-%d)", p.newMS.Name, newReplicasCount, scaleDownCount), "machineset", client.ObjectKeyFromObject(p.newMS).String())
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", p.newMS.Name, newReplicasCount, scaleDownCount), "MachineSet", klog.KObj(p.newMS))
 		p.scaleIntents[p.newMS.Name] = newReplicasCount
 	}
 	if newReplicasCount > *(p.newMS.Spec.Replicas) {
 		scaleUpCount := newReplicasCount - *(p.newMS.Spec.Replicas)
-		log.V(5).Info(fmt.Sprintf("Setting scale up intent for %s to %d replicas (+%d)", p.newMS.Name, newReplicasCount, scaleUpCount), "machineset", client.ObjectKeyFromObject(p.newMS).String())
+		log.V(5).Info(fmt.Sprintf("Setting scale up intent for MachineSet %s to %d replicas (+%d)", p.newMS.Name, newReplicasCount, scaleUpCount), "MachineSet", klog.KObj(p.newMS))
 		p.scaleIntents[p.newMS.Name] = newReplicasCount
 	}
 	return nil
@@ -159,7 +161,6 @@ func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 
 func (p *rolloutPlanner) reconcileOldMachineSets(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
-	allMSs := append(p.oldMSs, p.newMS)
 
 	oldMachinesCount := mdutil.GetReplicaCountForMachineSets(p.oldMSs)
 	if oldMachinesCount == 0 {
@@ -167,7 +168,11 @@ func (p *rolloutPlanner) reconcileOldMachineSets(ctx context.Context) error {
 		return nil
 	}
 
-	allMachinesCount := mdutil.GetReplicaCountForMachineSets(allMSs)
+	newMSReplicas := ptr.Deref(p.newMS.Spec.Replicas, 0)
+	if v, ok := p.scaleIntents[p.newMS.Name]; ok {
+		newMSReplicas = v
+	}
+	allMachinesCount := oldMachinesCount + newMSReplicas
 	log.V(4).Info("New MachineSet has available machines",
 		"machineset", client.ObjectKeyFromObject(p.newMS).String(), "available-replicas", ptr.Deref(p.newMS.Status.AvailableReplicas, 0))
 	maxUnavailable := mdutil.MaxUnavailable(*p.md)
@@ -205,7 +210,7 @@ func (p *rolloutPlanner) reconcileOldMachineSets(ctx context.Context) error {
 	availableReplicas := ptr.Deref(p.newMS.Status.AvailableReplicas, 0)
 
 	minAvailable := *(p.md.Spec.Replicas) - maxUnavailable
-	newMSUnavailableMachineCount := *(p.newMS.Spec.Replicas) - availableReplicas
+	newMSUnavailableMachineCount := newMSReplicas - availableReplicas
 	maxScaledDown := allMachinesCount - minAvailable - newMSUnavailableMachineCount
 	if maxScaledDown <= 0 {
 		return nil
@@ -281,7 +286,7 @@ func (p *rolloutPlanner) cleanupUnhealthyReplicas(ctx context.Context, maxCleanu
 		}
 
 		scaleDownCount := *(oldMS.Spec.Replicas) - newReplicasCount
-		log.V(5).Info(fmt.Sprintf("Setting scale down intent for %s to %d replicas (-%d)", oldMS.Name, newReplicasCount, scaleDownCount), "machineset", client.ObjectKeyFromObject(oldMS).String())
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, newReplicasCount, scaleDownCount), "MachineSet", klog.KObj(oldMS))
 		p.scaleIntents[oldMS.Name] = newReplicasCount
 
 		totalScaledDown += scaledDownCount
@@ -328,25 +333,25 @@ func (p *rolloutPlanner) scaleDownOldMachineSetsForRollingUpdate(ctx context.Con
 			break
 		}
 
-		scaleIntent := ptr.Deref(oldMS.Spec.Replicas, 0)
+		oldMSReplicas := ptr.Deref(oldMS.Spec.Replicas, 0)
 		if v, ok := p.scaleIntents[oldMS.Name]; ok {
-			scaleIntent = v
+			oldMSReplicas = v
 		}
 
-		if scaleIntent == 0 {
+		if oldMSReplicas == 0 {
 			// cannot scale down this MachineSet.
 			continue
 		}
 
 		// Scale down.
-		scaleDownCount := min(scaleIntent, totalScaleDownCount-totalScaledDown)
-		newReplicasCount := scaleIntent - scaleDownCount
-		if newReplicasCount > scaleIntent {
+		scaleDownCount := min(oldMSReplicas, totalScaleDownCount-totalScaledDown)
+		newReplicasCount := oldMSReplicas - scaleDownCount
+		if newReplicasCount > oldMSReplicas {
 			return totalScaledDown, errors.Errorf("when scaling down old MachineSet, got invalid request to scale down %v: %d -> %d",
-				client.ObjectKeyFromObject(oldMS), scaleIntent, newReplicasCount)
+				client.ObjectKeyFromObject(oldMS), oldMSReplicas, newReplicasCount)
 		}
 
-		log.V(5).Info(fmt.Sprintf("Setting scale down intent for %s to %d replicas (-%d)", oldMS.Name, newReplicasCount, scaleDownCount), "machineset", client.ObjectKeyFromObject(oldMS).String())
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, newReplicasCount, scaleDownCount), "MachineSet", klog.KObj(oldMS))
 		p.scaleIntents[oldMS.Name] = newReplicasCount
 
 		totalScaledDown += scaleDownCount

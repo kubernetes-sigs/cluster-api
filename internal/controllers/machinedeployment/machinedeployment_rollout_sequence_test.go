@@ -549,7 +549,7 @@ func computeDesiredRolloutScope(current *rolloutScope, desiredMachineNames []str
 		oldMS.Status.AvailableReplicas = ptr.To(int32(0))
 		desired.machineSets = append(desired.machineSets, oldMS)
 
-		if upToDate, _, _ := mdutil.MachineTemplateUpToDate(&oldMS.Spec.Template, &desired.machineDeployment.Spec.Template); upToDate {
+		if upToDate, _ := mdutil.MachineTemplateUpToDate(&oldMS.Spec.Template, &desired.machineDeployment.Spec.Template); upToDate {
 			if newMS != nil {
 				panic("there should be only one MachineSet with MachineTemplateUpToDate")
 			}
@@ -635,7 +635,7 @@ func msLog(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) string {
 
 func (r rolloutScope) newMS() *clusterv1.MachineSet {
 	for _, ms := range r.machineSets {
-		if upToDate, _, _ := mdutil.MachineTemplateUpToDate(&r.machineDeployment.Spec.Template, &ms.Spec.Template); upToDate {
+		if upToDate, _ := mdutil.MachineTemplateUpToDate(&r.machineDeployment.Spec.Template, &ms.Spec.Template); upToDate {
 			return ms
 		}
 	}
@@ -645,7 +645,7 @@ func (r rolloutScope) newMS() *clusterv1.MachineSet {
 func (r rolloutScope) oldMSs() []*clusterv1.MachineSet {
 	var oldMSs []*clusterv1.MachineSet
 	for _, ms := range r.machineSets {
-		if upToDate, _, _ := mdutil.MachineTemplateUpToDate(&r.machineDeployment.Spec.Template, &ms.Spec.Template); !upToDate {
+		if upToDate, _ := mdutil.MachineTemplateUpToDate(&r.machineDeployment.Spec.Template, &ms.Spec.Template); !upToDate {
 			oldMSs = append(oldMSs, ms)
 		}
 	}
@@ -665,7 +665,7 @@ func (r *rolloutScope) Equal(s *rolloutScope) bool {
 }
 
 func machineDeploymentIsEqual(a, b *clusterv1.MachineDeployment) bool {
-	if upToDate, _, _ := mdutil.MachineTemplateUpToDate(&a.Spec.Template, &b.Spec.Template); !upToDate ||
+	if upToDate, _ := mdutil.MachineTemplateUpToDate(&a.Spec.Template, &b.Spec.Template); !upToDate ||
 		ptr.Deref(a.Spec.Replicas, 0) != ptr.Deref(b.Spec.Replicas, 0) ||
 		ptr.Deref(a.Status.Replicas, 0) != ptr.Deref(b.Status.Replicas, 0) ||
 		ptr.Deref(a.Status.AvailableReplicas, 0) != ptr.Deref(b.Status.AvailableReplicas, 0) {
@@ -690,7 +690,7 @@ func machineSetsAreEqual(a, b []*clusterv1.MachineSet) bool {
 		if !ok {
 			return false
 		}
-		if upToDate, _, _ := mdutil.MachineTemplateUpToDate(&desiredMS.Spec.Template, &currentMS.Spec.Template); !upToDate ||
+		if upToDate, _ := mdutil.MachineTemplateUpToDate(&desiredMS.Spec.Template, &currentMS.Spec.Template); !upToDate ||
 			ptr.Deref(desiredMS.Spec.Replicas, 0) != ptr.Deref(currentMS.Spec.Replicas, 0) ||
 			ptr.Deref(desiredMS.Status.Replicas, 0) != ptr.Deref(currentMS.Status.Replicas, 0) ||
 			ptr.Deref(desiredMS.Status.AvailableReplicas, 0) != ptr.Deref(currentMS.Status.AvailableReplicas, 0) {

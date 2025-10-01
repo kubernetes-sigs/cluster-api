@@ -18,6 +18,7 @@ package machinedeployment
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/pkg/errors"
@@ -33,6 +34,7 @@ import (
 
 // rolloutRolling implements the logic for rolling a new MachineSet.
 func (r *Reconciler) rolloutRolling(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, templateExists bool) error {
+	// TODO(in-place): move create newMS into rolloutPlanner
 	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, md, msList, true, templateExists)
 	if err != nil {
 		return err
@@ -47,18 +49,29 @@ func (r *Reconciler) rolloutRolling(ctx context.Context, md *clusterv1.MachineDe
 
 	allMSs := append(oldMSs, newMS)
 
-	// Scale up, if we can.
-	if err := r.reconcileNewMachineSet(ctx, allMSs, newMS, md); err != nil {
+	// TODO(in-place): also apply/remove labels to MS should go into rolloutPlanner
+	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
 		return err
 	}
 
-	if err := r.syncDeploymentStatus(allMSs, newMS, md); err != nil {
+	planner := newRolloutPlanner()
+	planner.md = md
+	planner.newMS = newMS
+	planner.oldMSs = oldMSs
+
+	if err := planner.Plan(ctx); err != nil {
 		return err
 	}
 
-	// Scale down, if we can.
-	if err := r.reconcileOldMachineSets(ctx, allMSs, oldMSs, newMS, md); err != nil {
-		return err
+	// TODO(in-place): this should be changed as soon as rolloutPlanner support MS creation and adding/removing labels from MS
+	for _, ms := range allMSs {
+		scaleIntent := ptr.Deref(ms.Spec.Replicas, 0)
+		if v, ok := planner.scaleIntents[ms.Name]; ok {
+			scaleIntent = v
+		}
+		if err := r.scaleMachineSet(ctx, ms, scaleIntent, md); err != nil {
+			return err
+		}
 	}
 
 	if err := r.syncDeploymentStatus(allMSs, newMS, md); err != nil {
@@ -74,59 +87,95 @@ func (r *Reconciler) rolloutRolling(ctx context.Context, md *clusterv1.MachineDe
 	return nil
 }
 
-func (r *Reconciler) reconcileNewMachineSet(ctx context.Context, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
-	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
+type rolloutPlanner struct {
+	md           *clusterv1.MachineDeployment
+	newMS        *clusterv1.MachineSet
+	oldMSs       []*clusterv1.MachineSet
+	scaleIntents map[string]int32
+}
+
+func newRolloutPlanner() *rolloutPlanner {
+	return &rolloutPlanner{
+		scaleIntents: make(map[string]int32),
+	}
+}
+
+// Plan determine how to proceed with the rollout if we are not yet at the desired state.
+func (p *rolloutPlanner) Plan(ctx context.Context) error {
+	if p.md.Spec.Replicas == nil {
+		return errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(p.md))
+	}
+
+	if p.newMS.Spec.Replicas == nil {
+		return errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(p.newMS))
+	}
+
+	for _, oldMS := range p.oldMSs {
+		if oldMS.Spec.Replicas == nil {
+			return errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(oldMS))
+		}
+	}
+
+	// Scale up, if we can.
+	if err := p.reconcileNewMachineSet(ctx); err != nil {
 		return err
 	}
 
-	if deployment.Spec.Replicas == nil {
-		return errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(deployment))
-	}
+	// Scale down, if we can.
+	return p.reconcileOldMachineSets(ctx)
+}
 
-	if newMS.Spec.Replicas == nil {
-		return errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(newMS))
-	}
+func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+	allMSs := append(p.oldMSs, p.newMS)
 
-	if *(newMS.Spec.Replicas) == *(deployment.Spec.Replicas) {
+	if *(p.newMS.Spec.Replicas) == *(p.md.Spec.Replicas) {
 		// Scaling not required.
 		return nil
 	}
 
-	if *(newMS.Spec.Replicas) > *(deployment.Spec.Replicas) {
+	if *(p.newMS.Spec.Replicas) > *(p.md.Spec.Replicas) {
 		// Scale down.
-		return r.scaleMachineSet(ctx, newMS, *(deployment.Spec.Replicas), deployment)
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas", p.newMS.Name, *(p.md.Spec.Replicas)), "MachineSet", klog.KObj(p.newMS))
+		p.scaleIntents[p.newMS.Name] = *(p.md.Spec.Replicas)
+		return nil
 	}
 
-	newReplicasCount, err := mdutil.NewMSNewReplicas(deployment, allMSs, *newMS.Spec.Replicas)
+	newReplicasCount, err := mdutil.NewMSNewReplicas(p.md, allMSs, *p.newMS.Spec.Replicas)
 	if err != nil {
 		return err
 	}
-	return r.scaleMachineSet(ctx, newMS, newReplicasCount, deployment)
+
+	if newReplicasCount < *(p.newMS.Spec.Replicas) {
+		scaleDownCount := *(p.newMS.Spec.Replicas) - newReplicasCount
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", p.newMS.Name, newReplicasCount, scaleDownCount), "MachineSet", klog.KObj(p.newMS))
+		p.scaleIntents[p.newMS.Name] = newReplicasCount
+	}
+	if newReplicasCount > *(p.newMS.Spec.Replicas) {
+		scaleUpCount := newReplicasCount - *(p.newMS.Spec.Replicas)
+		log.V(5).Info(fmt.Sprintf("Setting scale up intent for MachineSet %s to %d replicas (+%d)", p.newMS.Name, newReplicasCount, scaleUpCount), "MachineSet", klog.KObj(p.newMS))
+		p.scaleIntents[p.newMS.Name] = newReplicasCount
+	}
+	return nil
 }
 
-func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+func (p *rolloutPlanner) reconcileOldMachineSets(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	if deployment.Spec.Replicas == nil {
-		return errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected",
-			client.ObjectKeyFromObject(deployment))
-	}
-
-	if newMS.Spec.Replicas == nil {
-		return errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected",
-			client.ObjectKeyFromObject(newMS))
-	}
-
-	oldMachinesCount := mdutil.GetReplicaCountForMachineSets(oldMSs)
+	oldMachinesCount := mdutil.GetReplicaCountForMachineSets(p.oldMSs)
 	if oldMachinesCount == 0 {
 		// Can't scale down further
 		return nil
 	}
 
-	allMachinesCount := mdutil.GetReplicaCountForMachineSets(allMSs)
+	newMSReplicas := ptr.Deref(p.newMS.Spec.Replicas, 0)
+	if v, ok := p.scaleIntents[p.newMS.Name]; ok {
+		newMSReplicas = v
+	}
+	allMachinesCount := oldMachinesCount + newMSReplicas
 	log.V(4).Info("New MachineSet has available machines",
-		"machineset", client.ObjectKeyFromObject(newMS).String(), "available-replicas", ptr.Deref(newMS.Status.AvailableReplicas, 0))
-	maxUnavailable := mdutil.MaxUnavailable(*deployment)
+		"machineset", client.ObjectKeyFromObject(p.newMS).String(), "available-replicas", ptr.Deref(p.newMS.Status.AvailableReplicas, 0))
+	maxUnavailable := mdutil.MaxUnavailable(*p.md)
 
 	// Check if we can scale down. We can scale down in the following 2 cases:
 	// * Some old MachineSets have unhealthy replicas, we could safely scale down those unhealthy replicas since that won't further
@@ -158,10 +207,10 @@ func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clus
 	// * The new MachineSet created must start with 0 replicas because allMachinesCount is already at 13.
 	// * However, newMSMachinesUnavailable would also be 0, so the 2 old MachineSets could be scaled down by 5 (13 - 8 - 0), which would then
 	// allow the new MachineSet to be scaled up by 5.
-	availableReplicas := ptr.Deref(newMS.Status.AvailableReplicas, 0)
+	availableReplicas := ptr.Deref(p.newMS.Status.AvailableReplicas, 0)
 
-	minAvailable := *(deployment.Spec.Replicas) - maxUnavailable
-	newMSUnavailableMachineCount := *(newMS.Spec.Replicas) - availableReplicas
+	minAvailable := *(p.md.Spec.Replicas) - maxUnavailable
+	newMSUnavailableMachineCount := newMSReplicas - availableReplicas
 	maxScaledDown := allMachinesCount - minAvailable - newMSUnavailableMachineCount
 	if maxScaledDown <= 0 {
 		return nil
@@ -169,7 +218,7 @@ func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clus
 
 	// Clean up unhealthy replicas first, otherwise unhealthy replicas will block deployment
 	// and cause timeout. See https://github.com/kubernetes/kubernetes/issues/16737
-	oldMSs, cleanupCount, err := r.cleanupUnhealthyReplicas(ctx, oldMSs, deployment, maxScaledDown)
+	cleanupCount, err := p.cleanupUnhealthyReplicas(ctx, maxScaledDown)
 	if err != nil {
 		return err
 	}
@@ -177,9 +226,7 @@ func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clus
 	log.V(4).Info("Cleaned up unhealthy replicas from old MachineSets", "count", cleanupCount)
 
 	// Scale down old MachineSets, need check maxUnavailable to ensure we can scale down
-	allMSs = oldMSs
-	allMSs = append(allMSs, newMS)
-	scaledDownCount, err := r.scaleDownOldMachineSetsForRollingUpdate(ctx, allMSs, oldMSs, deployment)
+	scaledDownCount, err := p.scaleDownOldMachineSetsForRollingUpdate(ctx)
 	if err != nil {
 		return err
 	}
@@ -189,10 +236,10 @@ func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clus
 }
 
 // cleanupUnhealthyReplicas will scale down old MachineSets with unhealthy replicas, so that all unhealthy replicas will be deleted.
-func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment, maxCleanupCount int32) ([]*clusterv1.MachineSet, int32, error) {
+func (p *rolloutPlanner) cleanupUnhealthyReplicas(ctx context.Context, maxCleanupCount int32) (int32, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	sort.Sort(mdutil.MachineSetsByCreationTimestamp(oldMSs))
+	sort.Sort(mdutil.MachineSetsByCreationTimestamp(p.oldMSs))
 
 	// Scale down all old MachineSets with any unhealthy replicas. MachineSet will honour spec.deletion.order
 	// for deleting Machines. Machines with a deletion timestamp, with a failure message or without a nodeRef
@@ -200,28 +247,33 @@ func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clu
 	// This results in a best effort to remove machines backing unhealthy nodes.
 	totalScaledDown := int32(0)
 
-	for _, targetMS := range oldMSs {
-		if targetMS.Spec.Replicas == nil {
-			return nil, 0, errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(targetMS))
+	for _, oldMS := range p.oldMSs {
+		if oldMS.Spec.Replicas == nil {
+			return 0, errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(oldMS))
 		}
 
 		if totalScaledDown >= maxCleanupCount {
 			break
 		}
 
-		oldMSReplicas := *(targetMS.Spec.Replicas)
+		oldMSReplicas := *(oldMS.Spec.Replicas)
 		if oldMSReplicas == 0 {
 			// cannot scale down this MachineSet.
 			continue
 		}
 
-		oldMSAvailableReplicas := ptr.Deref(targetMS.Status.AvailableReplicas, 0)
+		oldMSAvailableReplicas := ptr.Deref(oldMS.Status.AvailableReplicas, 0)
 		log.V(4).Info("Found available Machines in old MachineSet",
-			"count", oldMSAvailableReplicas, "target-machineset", client.ObjectKeyFromObject(targetMS).String())
+			"count", oldMSAvailableReplicas, "target-machineset", client.ObjectKeyFromObject(oldMS).String())
 		if oldMSReplicas == oldMSAvailableReplicas {
 			// no unhealthy replicas found, no scaling required.
 			continue
 		}
+
+		// TODO(in-place): fix this logic
+		//  It looks like that the current logic fails when the MD controller is called twice in a row, without MS controller being triggered in the between, e.g.
+		//  - first reconcile scales down ms1, 6-->5 (-1)
+		//  - second reconcile is not taking into account scales down already in progress, unhealthy count is wrongly computed as -1 instead of 0, this leads to increasing replica count instead of keeping it as it is (or scaling down), and then the safeguard below errors out.
 
 		remainingCleanupCount := maxCleanupCount - totalScaledDown
 		unhealthyCount := oldMSReplicas - oldMSAvailableReplicas
@@ -229,31 +281,28 @@ func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clu
 		newReplicasCount := oldMSReplicas - scaledDownCount
 
 		if newReplicasCount > oldMSReplicas {
-			return nil, 0, errors.Errorf("when cleaning up unhealthy replicas, got invalid request to scale down %v: %d -> %d",
-				client.ObjectKeyFromObject(targetMS), oldMSReplicas, newReplicasCount)
+			return 0, errors.Errorf("when cleaning up unhealthy replicas, got invalid request to scale down %v: %d -> %d",
+				client.ObjectKeyFromObject(oldMS), oldMSReplicas, newReplicasCount)
 		}
 
-		if err := r.scaleMachineSet(ctx, targetMS, newReplicasCount, deployment); err != nil {
-			return nil, totalScaledDown, err
-		}
+		scaleDownCount := *(oldMS.Spec.Replicas) - newReplicasCount
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, newReplicasCount, scaleDownCount), "MachineSet", klog.KObj(oldMS))
+		p.scaleIntents[oldMS.Name] = newReplicasCount
 
 		totalScaledDown += scaledDownCount
 	}
 
-	return oldMSs, totalScaledDown, nil
+	return totalScaledDown, nil
 }
 
 // scaleDownOldMachineSetsForRollingUpdate scales down old MachineSets when deployment strategy is "RollingUpdate".
 // Need check maxUnavailable to ensure availability.
-func (r *Reconciler) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context, allMSs []*clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) (int32, error) {
+func (p *rolloutPlanner) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context) (int32, error) {
 	log := ctrl.LoggerFrom(ctx)
+	allMSs := append(p.oldMSs, p.newMS)
 
-	if deployment.Spec.Replicas == nil {
-		return 0, errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(deployment))
-	}
-
-	maxUnavailable := mdutil.MaxUnavailable(*deployment)
-	minAvailable := *(deployment.Spec.Replicas) - maxUnavailable
+	maxUnavailable := mdutil.MaxUnavailable(*p.md)
+	minAvailable := *(p.md.Spec.Replicas) - maxUnavailable
 
 	// Find the number of available machines.
 	availableMachineCount := ptr.Deref(mdutil.GetAvailableReplicaCountForMachineSets(allMSs), 0)
@@ -266,36 +315,44 @@ func (r *Reconciler) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context
 
 	log.V(4).Info("Found available machines in deployment, scaling down old MSes", "count", availableMachineCount)
 
-	sort.Sort(mdutil.MachineSetsByCreationTimestamp(oldMSs))
+	sort.Sort(mdutil.MachineSetsByCreationTimestamp(p.oldMSs))
+
+	// TODO(in-place): fix this logic
+	//  It looks like that the current logic fails when the MD controller is called twice in a row e.g. reconcile of md 6 replicas MaxSurge=3, MaxUnavailable=1 and
+	//     ms1, 6/5 replicas << one is scaling down, but scale down not yet processed by the MS controller.
+	//     ms2, 3/3 replicas
+	//  Leads to:
+	//     ms1, 6/1 replicas << it further scaled down by 4, which leads to totAvailable machines is less than MinUnavailable, which should not happen
+	//     ms2, 3/3 replicas
 
 	totalScaledDown := int32(0)
 	totalScaleDownCount := availableMachineCount - minAvailable
-	for _, targetMS := range oldMSs {
-		if targetMS.Spec.Replicas == nil {
-			return 0, errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(targetMS))
-		}
-
+	for _, oldMS := range p.oldMSs {
 		if totalScaledDown >= totalScaleDownCount {
 			// No further scaling required.
 			break
 		}
 
-		if *(targetMS.Spec.Replicas) == 0 {
+		oldMSReplicas := ptr.Deref(oldMS.Spec.Replicas, 0)
+		if v, ok := p.scaleIntents[oldMS.Name]; ok {
+			oldMSReplicas = v
+		}
+
+		if oldMSReplicas == 0 {
 			// cannot scale down this MachineSet.
 			continue
 		}
 
 		// Scale down.
-		scaleDownCount := min(*(targetMS.Spec.Replicas), totalScaleDownCount-totalScaledDown)
-		newReplicasCount := *(targetMS.Spec.Replicas) - scaleDownCount
-		if newReplicasCount > *(targetMS.Spec.Replicas) {
+		scaleDownCount := min(oldMSReplicas, totalScaleDownCount-totalScaledDown)
+		newReplicasCount := oldMSReplicas - scaleDownCount
+		if newReplicasCount > oldMSReplicas {
 			return totalScaledDown, errors.Errorf("when scaling down old MachineSet, got invalid request to scale down %v: %d -> %d",
-				client.ObjectKeyFromObject(targetMS), *(targetMS.Spec.Replicas), newReplicasCount)
+				client.ObjectKeyFromObject(oldMS), oldMSReplicas, newReplicasCount)
 		}
 
-		if err := r.scaleMachineSet(ctx, targetMS, newReplicasCount, deployment); err != nil {
-			return totalScaledDown, err
-		}
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, newReplicasCount, scaleDownCount), "MachineSet", klog.KObj(oldMS))
+		p.scaleIntents[oldMS.Name] = newReplicasCount
 
 		totalScaledDown += scaleDownCount
 	}

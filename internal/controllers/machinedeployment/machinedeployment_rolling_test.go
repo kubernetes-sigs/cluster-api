@@ -17,19 +17,13 @@ limitations under the License.
 package machinedeployment
 
 import (
-	"strconv"
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 )
 
 func TestReconcileNewMachineSet(t *testing.T) {
@@ -41,36 +35,6 @@ func TestReconcileNewMachineSet(t *testing.T) {
 		expectedNewMachineSetReplicas int
 		error                         error
 	}{
-		{
-			name: "It fails when machineDeployment has no replicas",
-			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
-			},
-			newMachineSet: &clusterv1.MachineSet{
-				Spec: clusterv1.MachineSetSpec{
-					Replicas: ptr.To[int32](2),
-				},
-			},
-			error: errors.Errorf("spec.replicas for MachineDeployment foo/bar is nil, this is unexpected"),
-		},
-		{
-			name: "It fails when new machineSet has no replicas",
-			machineDeployment: &clusterv1.MachineDeployment{
-				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: ptr.To[int32](2),
-				},
-			},
-			newMachineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
-			},
-			error: errors.Errorf("spec.replicas for MachineSet foo/bar is nil, this is unexpected"),
-		},
 		{
 			name: "RollingUpdate strategy: Scale up: 0 -> 2",
 			machineDeployment: &clusterv1.MachineDeployment{
@@ -268,21 +232,12 @@ func TestReconcileNewMachineSet(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			resources := []client.Object{
-				tc.machineDeployment,
-			}
+			planner := newRolloutPlanner()
+			planner.md = tc.machineDeployment
+			planner.newMS = tc.newMachineSet
+			planner.oldMSs = tc.oldMachineSets
 
-			allMachineSets := append(tc.oldMachineSets, tc.newMachineSet)
-			for key := range allMachineSets {
-				resources = append(resources, allMachineSets[key])
-			}
-
-			r := &Reconciler{
-				Client:   fake.NewClientBuilder().WithObjects(resources...).Build(),
-				recorder: record.NewFakeRecorder(32),
-			}
-
-			err := r.reconcileNewMachineSet(ctx, allMachineSets, tc.newMachineSet, tc.machineDeployment)
+			err := planner.reconcileNewMachineSet(ctx)
 			if tc.error != nil {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(BeEquivalentTo(tc.error.Error()))
@@ -291,22 +246,23 @@ func TestReconcileNewMachineSet(t *testing.T) {
 
 			g.Expect(err).ToNot(HaveOccurred())
 
-			freshNewMachineSet := &clusterv1.MachineSet{}
-			err = r.Client.Get(ctx, client.ObjectKeyFromObject(tc.newMachineSet), freshNewMachineSet)
-			g.Expect(err).ToNot(HaveOccurred())
+			scaleIntent := ptr.Deref(tc.newMachineSet.Spec.Replicas, 0)
+			if v, ok := planner.scaleIntents[tc.newMachineSet.Name]; ok {
+				scaleIntent = v
+			}
+			g.Expect(scaleIntent).To(BeEquivalentTo(tc.expectedNewMachineSetReplicas))
 
-			g.Expect(*freshNewMachineSet.Spec.Replicas).To(BeEquivalentTo(tc.expectedNewMachineSetReplicas))
-
-			_, ok := freshNewMachineSet.GetAnnotations()[clusterv1.DisableMachineCreateAnnotation]
-			g.Expect(ok).To(BeFalse())
-
-			desiredReplicasAnnotation, ok := freshNewMachineSet.GetAnnotations()[clusterv1.DesiredReplicasAnnotation]
-			g.Expect(ok).To(BeTrue())
-			g.Expect(strconv.Atoi(desiredReplicasAnnotation)).To(BeEquivalentTo(*tc.machineDeployment.Spec.Replicas))
-
-			maxReplicasAnnotation, ok := freshNewMachineSet.GetAnnotations()[clusterv1.MaxReplicasAnnotation]
-			g.Expect(ok).To(BeTrue())
-			g.Expect(strconv.Atoi(maxReplicasAnnotation)).To(BeEquivalentTo(*tc.machineDeployment.Spec.Replicas + mdutil.MaxSurge(*tc.machineDeployment)))
+			// TODO(in-place): Restore tests on DisableMachineCreateAnnotation and MaxReplicasAnnotation as soon as handling those annotation is moved into the rollout planner
+			// 	_, ok := freshNewMachineSet.GetAnnotations()[clusterv1.DisableMachineCreateAnnotation]
+			// 	g.Expect(ok).To(BeFalse())
+			//
+			// 	desiredReplicasAnnotation, ok := freshNewMachineSet.GetAnnotations()[clusterv1.DesiredReplicasAnnotation]
+			// 	g.Expect(ok).To(BeTrue())
+			// 	g.Expect(strconv.Atoi(desiredReplicasAnnotation)).To(BeEquivalentTo(*tc.machineDeployment.Spec.Replicas))
+			//
+			// 	maxReplicasAnnotation, ok := freshNewMachineSet.GetAnnotations()[clusterv1.MaxReplicasAnnotation]
+			// 	g.Expect(ok).To(BeTrue())
+			// 	g.Expect(strconv.Atoi(maxReplicasAnnotation)).To(BeEquivalentTo(*tc.machineDeployment.Spec.Replicas + mdutil.MaxSurge(*tc.machineDeployment)))
 		})
 	}
 }
@@ -320,36 +276,6 @@ func TestReconcileOldMachineSets(t *testing.T) {
 		expectedOldMachineSetsReplicas int
 		error                          error
 	}{
-		{
-			name: "It fails when machineDeployment has no replicas",
-			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
-			},
-			newMachineSet: &clusterv1.MachineSet{
-				Spec: clusterv1.MachineSetSpec{
-					Replicas: ptr.To[int32](2),
-				},
-			},
-			error: errors.Errorf("spec.replicas for MachineDeployment foo/bar is nil, this is unexpected"),
-		},
-		{
-			name: "It fails when new machineSet has no replicas",
-			machineDeployment: &clusterv1.MachineDeployment{
-				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: ptr.To[int32](2),
-				},
-			},
-			newMachineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
-			},
-			error: errors.Errorf("spec.replicas for MachineSet foo/bar is nil, this is unexpected"),
-		},
 		{
 			name: "RollingUpdate strategy: Scale down old MachineSets when all new replicas are available",
 			machineDeployment: &clusterv1.MachineDeployment{
@@ -465,21 +391,12 @@ func TestReconcileOldMachineSets(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			resources := []client.Object{
-				tc.machineDeployment,
-			}
+			planner := newRolloutPlanner()
+			planner.md = tc.machineDeployment
+			planner.newMS = tc.newMachineSet
+			planner.oldMSs = tc.oldMachineSets
 
-			allMachineSets := append(tc.oldMachineSets, tc.newMachineSet)
-			for key := range allMachineSets {
-				resources = append(resources, allMachineSets[key])
-			}
-
-			r := &Reconciler{
-				Client:   fake.NewClientBuilder().WithObjects(resources...).Build(),
-				recorder: record.NewFakeRecorder(32),
-			}
-
-			err := r.reconcileOldMachineSets(ctx, allMachineSets, tc.oldMachineSets, tc.newMachineSet, tc.machineDeployment)
+			err := planner.reconcileOldMachineSets(ctx)
 			if tc.error != nil {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(BeEquivalentTo(tc.error.Error()))
@@ -487,11 +404,12 @@ func TestReconcileOldMachineSets(t *testing.T) {
 			}
 
 			g.Expect(err).ToNot(HaveOccurred())
-			for key := range tc.oldMachineSets {
-				freshOldMachineSet := &clusterv1.MachineSet{}
-				err = r.Client.Get(ctx, client.ObjectKeyFromObject(tc.oldMachineSets[key]), freshOldMachineSet)
-				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(*freshOldMachineSet.Spec.Replicas).To(BeEquivalentTo(tc.expectedOldMachineSetsReplicas))
+			for i := range tc.oldMachineSets {
+				scaleIntent := ptr.Deref(tc.oldMachineSets[i].Spec.Replicas, 0)
+				if v, ok := planner.scaleIntents[tc.oldMachineSets[i].Name]; ok {
+					scaleIntent = v
+				}
+				g.Expect(scaleIntent).To(BeEquivalentTo(tc.expectedOldMachineSetsReplicas))
 			}
 		})
 	}

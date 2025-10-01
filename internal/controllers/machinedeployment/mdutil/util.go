@@ -376,7 +376,7 @@ func getMachineSetFraction(ms clusterv1.MachineSet, md clusterv1.MachineDeployme
 	return integer.RoundToInt32(newMSsize) - *(ms.Spec.Replicas)
 }
 
-// NotUpToDateResult is the result of calling the UpToDate func for a MachineTemplateSpec.
+// NotUpToDateResult is the result of calling the MachineTemplateUpToDate func for a MachineTemplateSpec.
 type NotUpToDateResult struct {
 	LogMessages              []string // consider if to make this private.
 	ConditionMessages        []string
@@ -469,13 +469,15 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 		return nil, nil, nil, "no MachineSets exist for the MachineDeployment"
 	}
 
-	// In rare cases, such as after cluster upgrades, Deployment may end up with
-	// having more than one new MachineSets that have the same template,
-	// see https://github.com/kubernetes/kubernetes/issues/40415
-	// We deterministically choose the oldest new MachineSet with matching template hash.
+	// It could happen that there is more than one newMS candidate when reconciliationTime is > rolloutAfter; considering this, the
+	// current implementation treats candidates that will be discarded as old machine sets not eligible for in-place updates.
+	// NOTE: We could also have more than one MS candidate in the very unlikely case where
+	// the diff logic MachineTemplateUpToDate is changed by dropping one of the existing criteria (version, failureDomain, infra/BootstrapRef).
+	// NOTE: When dealing with more than one newMS candidate, deterministically choose the MS with the most replicas
+	// so that there is minimum machine churn.
+	var newMSCandidates []*clusterv1.MachineSet
 	sort.Sort(MachineSetsByDecreasingReplicas(msList))
 
-	var newMSCandidates []*clusterv1.MachineSet
 	oldMSs = make([]*clusterv1.MachineSet, 0)
 	oldMSNotUpToDateResults = make(map[string]NotUpToDateResult)
 	var diffs []string
@@ -485,6 +487,12 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 			newMSCandidates = append(newMSCandidates, ms)
 		} else {
 			oldMSs = append(oldMSs, ms)
+			// Override the EligibleForInPlaceUpdate decision if rollout after is expired.
+			if !deployment.Spec.Rollout.After.IsZero() && ms.CreationTimestamp.Sub(deployment.Spec.Rollout.After.Time) < 0 {
+				notUpToDateResult.EligibleForInPlaceUpdate = false
+				notUpToDateResult.LogMessages = append(notUpToDateResult.LogMessages, "metadata.creationTimestamp is older than MachineDeployment.spec.rollout.after")
+				// No need to set an additional condition message, it is not used anywhere.
+			}
 			oldMSNotUpToDateResults[ms.Name] = *notUpToDateResult
 			diffs = append(diffs, fmt.Sprintf("MachineSet %s: diff: %s", ms.Name, strings.Join(notUpToDateResult.LogMessages, ", ")))
 		}
@@ -500,7 +508,6 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 			oldMSs = append(oldMSs, ms)
 			oldMSNotUpToDateResults[ms.Name] = NotUpToDateResult{
 				// No need to set log or condition message for discarded candidates, it is not used anywhere.
-				// NOTE: in future we might consider to move not selected newMSCandidates to newMS without performing rollouts, but this is not in scope for the first iteration of in-place.
 				EligibleForInPlaceUpdate: false,
 			}
 		}
@@ -513,7 +520,6 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 			oldMSs = append(oldMSs, ms)
 			oldMSNotUpToDateResults[ms.Name] = NotUpToDateResult{
 				// No need to set log or condition for discarded candidates, it is not used anywhere.
-				// NOTE: in future we might consider to move not selected newMSCandidates to newMS without performing rollouts, but this is not in scope for the first iteration of in-place.
 				EligibleForInPlaceUpdate: false,
 			}
 		}
@@ -530,7 +536,6 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 		oldMSs = append(oldMSs, ms)
 		oldMSNotUpToDateResults[ms.Name] = NotUpToDateResult{
 			// No need to set log or condition for discarded candidates, it is not used anywhere.
-			// NOTE: in future we might consider to move not selected newMSCandidates to newMS without performing rollouts, but this is not in scope for the first iteration of in-place.
 			EligibleForInPlaceUpdate: false,
 		}
 	}

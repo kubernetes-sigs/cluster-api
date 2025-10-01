@@ -163,109 +163,88 @@ func matchesKubeadmConfig(kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig, 
 		return "", true, nil
 	}
 
-	// Check if KCP and machine ClusterConfiguration matches, if not return
-	match, diff, err := matchClusterConfiguration(currentKubeadmConfig, kcp)
+	// takes the KubeadmConfigSpec from KCP and applies the transformations required
+	// to allow a comparison with the KubeadmConfig referenced from the machine.
+	desiredKubeadmConfig := getAdjustedKcpConfig(kcp, currentKubeadmConfig)
+
+	desiredKubeadmConfigForDiff, currentKubeadmConfigForDiff, err := PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig, kcp)
 	if err != nil {
 		return "", false, errors.Wrapf(err, "failed to match KubeadmConfig")
-	}
-	if !match {
-		return fmt.Sprintf("Machine KubeadmConfig ClusterConfiguration is outdated: diff: %s", diff), false, nil
 	}
 
-	// Check if KCP and machine InitConfiguration or JoinConfiguration matches
+	// Check if current and desired KubeadmConfigs match.
 	// NOTE: only one between init configuration and join configuration is set on a machine, depending
 	// on the fact that the machine was the initial control plane node or a joining control plane node.
-	match, diff, err = matchInitOrJoinConfiguration(currentKubeadmConfig, kcp)
+	match, diff, err := compare.Diff(&currentKubeadmConfigForDiff.Spec, &desiredKubeadmConfigForDiff.Spec)
 	if err != nil {
 		return "", false, errors.Wrapf(err, "failed to match KubeadmConfig")
 	}
 	if !match {
-		return fmt.Sprintf("Machine KubeadmConfig InitConfiguration or JoinConfiguration are outdated: diff: %s", diff), false, nil
+		return fmt.Sprintf("Machine KubeadmConfig is outdated: diff: %s", diff), false, nil
 	}
 
 	return "", true, nil
 }
 
-// matchClusterConfiguration verifies if KCP and machine ClusterConfiguration matches.
-func matchClusterConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) (bool, string, error) {
-	if machineConfig == nil {
-		// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
-		// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
-		return true, "", nil
-	}
-	machineConfig = machineConfig.DeepCopy()
-
-	kcpLocalKubeadmConfig := kcp.Spec.KubeadmConfigSpec.DeepCopy()
-	if kcpLocalKubeadmConfig == nil {
-		kcpLocalKubeadmConfig = &bootstrapv1.KubeadmConfigSpec{}
-	}
+// PrepareKubeadmConfigsForDiff cleans up all fields that are not relevant for the comparison.
+func PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig *bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) (desired *bootstrapv1.KubeadmConfig, current *bootstrapv1.KubeadmConfig, _ error) {
+	// DeepCopy to ensure the passed in KubeadmConfigs are not modified.
+	// This has to be done because we eventually want to be able to apply the desiredKubeadmConfig
+	// (without the modifications that we make here).
+	desiredKubeadmConfig = desiredKubeadmConfig.DeepCopy()
+	currentKubeadmConfig = currentKubeadmConfig.DeepCopy()
 
 	// Default feature gates like in initializeControlPlane / scaleUpControlPlane.
 	// Note: Changes in feature gates can still trigger rollouts.
 	// TODO(in-place) refactor this area so the desired KubeadmConfig is not computed in multiple places independently.
 	parsedVersion, err := semver.ParseTolerant(kcp.Spec.Version)
 	if err != nil {
-		return false, "", errors.Wrapf(err, "failed to parse Kubernetes version %q", kcp.Spec.Version)
+		return nil, nil, errors.Wrapf(err, "failed to parse Kubernetes version %q", kcp.Spec.Version)
 	}
-	DefaultFeatureGates(kcpLocalKubeadmConfig, parsedVersion)
+	DefaultFeatureGates(&desiredKubeadmConfig.Spec, parsedVersion)
 
 	// Ignore ControlPlaneEndpoint which is added on the Machine KubeadmConfig by CABPK.
 	// Note: ControlPlaneEndpoint should also never change for a Cluster, so no reason to trigger a rollout because of that.
-	machineConfig.Spec.ClusterConfiguration.ControlPlaneEndpoint = kcpLocalKubeadmConfig.ClusterConfiguration.ControlPlaneEndpoint
+	currentKubeadmConfig.Spec.ClusterConfiguration.ControlPlaneEndpoint = desiredKubeadmConfig.Spec.ClusterConfiguration.ControlPlaneEndpoint
 
 	// Skip checking DNS fields because we can update the configuration of the working cluster in place.
-	machineConfig.Spec.ClusterConfiguration.DNS = kcpLocalKubeadmConfig.ClusterConfiguration.DNS
-
-	// Drop differences that do not lead to changes to Machines, but that might exist due
-	// to changes in how we serialize objects or how webhooks work.
-	dropOmittableFields(kcpLocalKubeadmConfig)
-	dropOmittableFields(&machineConfig.Spec)
-
-	// Compare and return.
-	match, diff, err := compare.Diff(machineConfig.Spec.ClusterConfiguration, kcpLocalKubeadmConfig.ClusterConfiguration)
-	if err != nil {
-		return false, "", errors.Wrapf(err, "failed to match ClusterConfiguration")
-	}
-	return match, diff, nil
-}
-
-// matchInitOrJoinConfiguration verifies if KCP and machine InitConfiguration or JoinConfiguration matches.
-// NOTE: By extension this method takes care of detecting changes in other fields of the KubeadmConfig configuration (e.g. Files, Mounts etc.)
-func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) (bool, string, error) {
-	if machineConfig == nil {
-		// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
-		// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
-		return true, "", nil
-	}
-	machineConfig = machineConfig.DeepCopy()
-
-	// takes the KubeadmConfigSpec from KCP and applies the transformations required
-	// to allow a comparison with the KubeadmConfig referenced from the machine.
-	kcpConfig := getAdjustedKcpConfig(kcp, machineConfig)
+	currentKubeadmConfig.Spec.ClusterConfiguration.DNS = desiredKubeadmConfig.Spec.ClusterConfiguration.DNS
 
 	// Default both KubeadmConfigSpecs before comparison.
 	// *Note* This assumes that newly added default values never
 	// introduce a semantic difference to the unset value.
 	// But that is something that is ensured by our API guarantees.
-	defaulting.ApplyPreviousKubeadmConfigDefaults(kcpConfig)
-	defaulting.ApplyPreviousKubeadmConfigDefaults(&machineConfig.Spec)
+	defaulting.ApplyPreviousKubeadmConfigDefaults(&desiredKubeadmConfig.Spec)
+	defaulting.ApplyPreviousKubeadmConfigDefaults(&currentKubeadmConfig.Spec)
 
-	// Cleanup all fields that are not relevant for the comparison.
-	cleanupConfigFields(kcpConfig, machineConfig)
+	// Cleanup JoinConfiguration.Discovery from desiredKubeadmConfig and currentKubeadmConfig, because those info are relevant only for
+	// the join process and not for comparing the configuration of the machine.
+	// Note: Changes to Discovery will apply for the next join, but they will not lead to a rollout.
+	// Note: We should also not send Discovery.BootstrapToken.Token to a RuntimeExtension for security reasons.
+	desiredKubeadmConfig.Spec.JoinConfiguration.Discovery = bootstrapv1.Discovery{}
+	currentKubeadmConfig.Spec.JoinConfiguration.Discovery = bootstrapv1.Discovery{}
 
-	// Compare and return.
-	match, diff, err := compare.Diff(&machineConfig.Spec, kcpConfig)
-	if err != nil {
-		return false, "", errors.Wrapf(err, "failed to match InitConfiguration or JoinConfiguration")
+	// If KCP JoinConfiguration.ControlPlane is nil and the Machine JoinConfiguration.ControlPlane is empty,
+	// set Machine JoinConfiguration.ControlPlane to nil.
+	// NOTE: This is required because CABPK applies an empty JoinConfiguration.ControlPlane in case it is nil.
+	if desiredKubeadmConfig.Spec.JoinConfiguration.ControlPlane == nil &&
+		reflect.DeepEqual(currentKubeadmConfig.Spec.JoinConfiguration.ControlPlane, &bootstrapv1.JoinControlPlane{}) {
+		currentKubeadmConfig.Spec.JoinConfiguration.ControlPlane = nil
 	}
-	return match, diff, nil
+
+	// Drop differences that do not lead to changes to Machines, but that might exist due
+	// to changes in how we serialize objects or how webhooks work.
+	dropOmittableFields(&desiredKubeadmConfig.Spec)
+	dropOmittableFields(&currentKubeadmConfig.Spec)
+
+	return desiredKubeadmConfig, currentKubeadmConfig, nil
 }
 
 // getAdjustedKcpConfig takes the KubeadmConfigSpec from KCP and applies the transformations required
 // to allow a comparison with the KubeadmConfig referenced from the machine.
 // NOTE: The KCP controller applies a set of transformations when creating a KubeadmConfig referenced from the machine;
 // those transformations are implemented in ControlPlane.InitialControlPlaneConfig() and ControlPlane.JoinControlPlaneConfig().
-func getAdjustedKcpConfig(kcp *controlplanev1.KubeadmControlPlane, machineConfig *bootstrapv1.KubeadmConfig) *bootstrapv1.KubeadmConfigSpec {
+func getAdjustedKcpConfig(kcp *controlplanev1.KubeadmControlPlane, machineConfig *bootstrapv1.KubeadmConfig) *bootstrapv1.KubeadmConfig {
 	kcpConfig := kcp.Spec.KubeadmConfigSpec.DeepCopy()
 
 	// if Machine's JoinConfiguration is set, this is a joining control plane machine, so empty out the InitConfiguration;
@@ -278,36 +257,7 @@ func getAdjustedKcpConfig(kcp *controlplanev1.KubeadmControlPlane, machineConfig
 		kcpConfig.JoinConfiguration = bootstrapv1.JoinConfiguration{}
 	}
 
-	return kcpConfig
-}
-
-// cleanupConfigFields cleanups all the fields that are not relevant for the comparison.
-// Note: This function assumes that old defaults have been applied to kcpConfig and machineConfig
-// as a consequence we can assume JoinConfiguration and JoinConfiguration.NodeRegistration are always defined.
-func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig *bootstrapv1.KubeadmConfig) {
-	// KCP ClusterConfiguration will be compared in `matchClusterConfiguration` so we are cleaning it up here
-	// so it doesn't lead to a duplicate diff in `matchInitOrJoinConfiguration`.
-	kcpConfig.ClusterConfiguration = bootstrapv1.ClusterConfiguration{}
-	machineConfig.Spec.ClusterConfiguration = bootstrapv1.ClusterConfiguration{}
-
-	// Cleanup JoinConfiguration.Discovery from kcpConfig and machineConfig, because those info are relevant only for
-	// the join process and not for comparing the configuration of the machine.
-	// Note: Changes to Discovery will apply for the next join, but they will not lead to a rollout.
-	kcpConfig.JoinConfiguration.Discovery = bootstrapv1.Discovery{}
-	machineConfig.Spec.JoinConfiguration.Discovery = bootstrapv1.Discovery{}
-
-	// If KCP JoinConfiguration.ControlPlane is nil and the Machine JoinConfiguration.ControlPlane is empty,
-	// set Machine JoinConfiguration.ControlPlane to nil.
-	// NOTE: This is required because CABPK applies an empty JoinConfiguration.ControlPlane in case it is nil.
-	if kcpConfig.JoinConfiguration.ControlPlane == nil &&
-		reflect.DeepEqual(machineConfig.Spec.JoinConfiguration.ControlPlane, &bootstrapv1.JoinControlPlane{}) {
-		machineConfig.Spec.JoinConfiguration.ControlPlane = nil
-	}
-
-	// Drop differences that do not lead to changes to Machines, but that might exist due
-	// to changes in how we serialize objects or how webhooks work.
-	dropOmittableFields(kcpConfig)
-	dropOmittableFields(&machineConfig.Spec)
+	return &bootstrapv1.KubeadmConfig{Spec: *kcpConfig}
 }
 
 // dropOmittableFields makes the comparison tolerant to omittable fields being set in the go struct. It applies to:

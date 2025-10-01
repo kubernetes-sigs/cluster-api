@@ -4,7 +4,7 @@
   md, 12/12 replicas
   - ms1, 3/3 replicas (m4,m5,m6)
   - ms2, 3/3 replicas (m7,m8,m9)
-[Test] Rollout 0 replicas, MaxSurge=3, MaxUnavailable=1
+[Test] Rollout 6 replicas, MaxSurge=3, MaxUnavailable=1
 [MD controller] Iteration 1, Reconcile md
 [MD controller] - Input to rollout planner
   md, 12/12 replicas

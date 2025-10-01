@@ -305,6 +305,7 @@ func runTestCase(ctx context.Context, t *testing.T, tt rolloutSequenceTestCase) 
 
 	rng := rand.New(rand.NewSource(tt.seed)) //nolint:gosec // it is ok to use a weak randomizer here
 	fLogger := newFileLogger(t, tt.name, fmt.Sprintf("testdata/%s", tt.logAndGoldenFileName))
+	// uncomment this line to automatically generate/update golden files: fLogger.writeGoldenFile = true
 
 	// Init current and desired state from test case
 	current := tt.currentScope.Clone()
@@ -319,7 +320,7 @@ func runTestCase(ctx context.Context, t *testing.T, tt rolloutSequenceTestCase) 
 	if tt.randomControllerOrder {
 		random = fmt.Sprintf(", random(%d)", tt.seed)
 	}
-	fLogger.Logf("[Test] Rollout %d replicas, MaxSurge=%d, MaxUnavailable=%d%s\n", len(tt.currentMachineNames), tt.maxSurge, tt.maxUnavailable, random)
+	fLogger.Logf("[Test] Rollout %d replicas, MaxSurge=%d, MaxUnavailable=%d%s\n", len(current.machines()), tt.maxSurge, tt.maxUnavailable, random)
 	i := 1
 	maxIterations := tt.maxIterations
 	for {
@@ -399,6 +400,7 @@ func runTestCase(ctx context.Context, t *testing.T, tt rolloutSequenceTestCase) 
 		// Safeguard for infinite reconcile
 		i++
 		if i > maxIterations {
+			// NOTE: the following can be used to set a breakpoint for debugging why the system is not reaching desired state after maxIterations (to check what is not yet equal)
 			current.Equal(desired)
 			// Log desired state we never reached
 			fLogger.Logf("[Test] Desired state\n%s", desired)
@@ -512,7 +514,6 @@ func initCurrentRolloutScope(tt rolloutSequenceTestCase) (current *rolloutScope)
 	current.machineSetMachines = map[string][]*clusterv1.Machine{}
 	current.machineSetMachines[ms.Name] = currentMachines
 
-	current.machineDeployment.Spec.Replicas = ptr.To(mdReplicaCount)
 	current.machineUID = totMachines
 
 	// TODO(in-place): this should be removed as soon as rolloutPlanner will take care of creating newMS
@@ -651,6 +652,14 @@ func (r rolloutScope) oldMSs() []*clusterv1.MachineSet {
 	return oldMSs
 }
 
+func (r rolloutScope) machines() []*clusterv1.Machine {
+	machines := []*clusterv1.Machine{}
+	for _, ms := range r.machineSets {
+		machines = append(machines, r.machineSetMachines[ms.Name]...)
+	}
+	return machines
+}
+
 func (r *rolloutScope) Equal(s *rolloutScope) bool {
 	return machineDeploymentIsEqual(r.machineDeployment, s.machineDeployment) && machineSetsAreEqual(r.machineSets, s.machineSets) && machineSetMachinesAreEqual(r.machineSetMachines, s.machineSetMachines)
 }
@@ -750,6 +759,7 @@ type fileLogger struct {
 	testCase              string
 	fileName              string
 	testCaseStringBuilder strings.Builder
+	writeGoldenFile       bool
 }
 
 func newFileLogger(t *testing.T, name, fileName string) *fileLogger {
@@ -787,6 +797,11 @@ func (l *fileLogger) Logf(format string, args ...interface{}) {
 func (l *fileLogger) WriteLogAndCompareWithGoldenFile() (string, string, error) {
 	if err := os.WriteFile(fmt.Sprintf("%s.test.log", l.fileName), []byte(l.testCaseStringBuilder.String()), 0600); err != nil {
 		return "", "", err
+	}
+	if l.writeGoldenFile {
+		if err := os.WriteFile(fmt.Sprintf("%s.test.log.golden", l.fileName), []byte(l.testCaseStringBuilder.String()), 0600); err != nil {
+			return "", "", err
+		}
 	}
 
 	currentBytes, _ := os.ReadFile(fmt.Sprintf("%s.test.log", l.fileName))
@@ -836,7 +851,7 @@ func randomTaskOrder(current *rolloutScope, rng *rand.Rand) []int {
 		max:       len(current.machineSets) + 1 + 1, // +1 is for the MachineSet that might be created when reconciling md, +1 is for the md itself
 	}
 	taskOrder := []int{}
-	for {
+	for !u.Done() {
 		n := u.Int()
 		if rng.Intn(10) < 3 { // skip a step in the 30% of cases
 			continue
@@ -844,9 +859,6 @@ func randomTaskOrder(current *rolloutScope, rng *rand.Rand) []int {
 		taskOrder = append(taskOrder, n)
 		if r := rng.Intn(10); r < 3 { // repeat a step in the 30% of cases
 			u.Forget(n)
-		}
-		if u.Done() {
-			break
 		}
 	}
 	return taskOrder

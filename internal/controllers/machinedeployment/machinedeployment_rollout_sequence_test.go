@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -107,9 +108,10 @@ type rolloutSequenceTestCase struct {
 	seed int64
 }
 
-func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
+func Test_rolloutRollingSequences(t *testing.T) {
 	ctx := context.Background()
 	ctx = ctrl.LoggerInto(ctx, klog.Background())
+	klog.SetOutput(ginkgo.GinkgoWriter)
 
 	tests := []rolloutSequenceTestCase{
 		// Regular rollout (no in-place)
@@ -249,9 +251,8 @@ func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
 	}
 
 	testWithPredictableReconcileOrder := true
-	// TODO(in-place): enable tests with random reconcile order as soon as the issues in reconcileOldMachineSets are fixed
-	testWithRandomReconcileOrderFromConstantSeed := false
-	testWithRandomReconcileOrderFromRandomSeed := false
+	testWithRandomReconcileOrderFromConstantSeed := true
+	testWithRandomReconcileOrderFromRandomSeed := true
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -260,9 +261,7 @@ func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
 			if testWithPredictableReconcileOrder {
 				tt.maxIterations = 50
 				tt.randomControllerOrder = false
-				if tt.logAndGoldenFileName == "" {
-					tt.logAndGoldenFileName = strings.ToLower(tt.name)
-				}
+				tt.logAndGoldenFileName = strings.ToLower(tt.name)
 				t.Run("default", func(t *testing.T) {
 					runTestCase(ctx, t, tt)
 				})
@@ -273,11 +272,7 @@ func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
 				tt.name = fmt.Sprintf("%s, random(0)", name)
 				tt.randomControllerOrder = true
 				tt.seed = 0
-				// TODO(in-place): drop the following line as soon as issue with scale down are fixed
-				tt.skipLogToFileAndGoldenFileCheck = true
-				if tt.logAndGoldenFileName == "" {
-					tt.logAndGoldenFileName = strings.ToLower(tt.name)
-				}
+				tt.logAndGoldenFileName = strings.ToLower(tt.name)
 				t.Run("random(0)", func(t *testing.T) {
 					runTestCase(ctx, t, tt)
 				})
@@ -305,7 +300,7 @@ func runTestCase(ctx context.Context, t *testing.T, tt rolloutSequenceTestCase) 
 
 	rng := rand.New(rand.NewSource(tt.seed)) //nolint:gosec // it is ok to use a weak randomizer here
 	fLogger := newFileLogger(t, tt.name, fmt.Sprintf("testdata/%s", tt.logAndGoldenFileName))
-	// uncomment this line to automatically generate/update golden files: fLogger.writeGoldenFile = true
+	fLogger.writeGoldenFile = true
 
 	// Init current and desired state from test case
 	current := tt.currentScope.Clone()
@@ -888,8 +883,14 @@ func createMD(failureDomain string, replicas int32, maxSurge, maxUnavailable int
 	}
 }
 
-func createMS(name, failureDomain string, replicas int32) *clusterv1.MachineSet {
-	return &clusterv1.MachineSet{
+func withStatusAvailableReplicas(r int32) fakeMachineSetOption {
+	return func(ms *clusterv1.MachineSet) {
+		ms.Status.AvailableReplicas = ptr.To(r)
+	}
+}
+
+func createMS(name, failureDomain string, replicas int32, opts ...fakeMachineSetOption) *clusterv1.MachineSet {
+	ms := &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -903,6 +904,10 @@ func createMS(name, failureDomain string, replicas int32) *clusterv1.MachineSet 
 			AvailableReplicas: ptr.To(replicas),
 		},
 	}
+	for _, opt := range opts {
+		opt(ms)
+	}
+	return ms
 }
 
 func createM(name, ownedByMS, failureDomain string) *clusterv1.Machine {

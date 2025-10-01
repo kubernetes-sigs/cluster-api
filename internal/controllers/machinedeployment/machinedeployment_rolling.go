@@ -122,7 +122,16 @@ func (p *rolloutPlanner) Plan(ctx context.Context) error {
 	}
 
 	// Scale down, if we can.
-	return p.reconcileOldMachineSets(ctx)
+	if err := p.reconcileOldMachineSets(ctx); err != nil {
+		return err
+	}
+
+	// This funcs tries to detect and address the case when a rollout is not making progress because both scaling down and scaling up are blocked.
+	// Note. this func must be called after computing scale up/down intent for all the MachineSets.
+	// Note. this func only address deadlock due to unavailable machines not getting deleted on oldMSs, e.g. due to a wrong configuration.
+	// unblocking deadlock when unavailable machines exists only on oldMSs, is required also because failures on old machines set are not remediated by MHC.
+	p.reconcileDeadlockBreaker(ctx)
+	return nil
 }
 
 func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
@@ -160,204 +169,177 @@ func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 }
 
 func (p *rolloutPlanner) reconcileOldMachineSets(ctx context.Context) error {
-	log := ctrl.LoggerFrom(ctx)
+	allMSs := append(p.oldMSs, p.newMS)
 
-	oldMachinesCount := mdutil.GetReplicaCountForMachineSets(p.oldMSs)
-	if oldMachinesCount == 0 {
-		// Can't scale down further
+	// no op if there are no replicas on old machinesets
+	if mdutil.GetReplicaCountForMachineSets(p.oldMSs) == 0 {
 		return nil
 	}
 
-	newMSReplicas := ptr.Deref(p.newMS.Spec.Replicas, 0)
-	if v, ok := p.scaleIntents[p.newMS.Name]; ok {
-		newMSReplicas = v
-	}
-	allMachinesCount := oldMachinesCount + newMSReplicas
-	log.V(4).Info("New MachineSet has available machines",
-		"machineset", client.ObjectKeyFromObject(p.newMS).String(), "available-replicas", ptr.Deref(p.newMS.Status.AvailableReplicas, 0))
 	maxUnavailable := mdutil.MaxUnavailable(*p.md)
+	minAvailable := max(ptr.Deref(p.md.Spec.Replicas, 0)-maxUnavailable, 0)
 
-	// Check if we can scale down. We can scale down in the following 2 cases:
-	// * Some old MachineSets have unhealthy replicas, we could safely scale down those unhealthy replicas since that won't further
-	//  increase unavailability.
-	// * New MachineSet has scaled up and it's replicas becomes ready, then we can scale down old MachineSets in a further step.
-	//
-	// maxScaledDown := allMachinesCount - minAvailable - newMachineSetMachinesUnavailable
-	// take into account not only maxUnavailable and any surge machines that have been created, but also unavailable machines from
-	// the newMS, so that the unavailable machines from the newMS would not make us scale down old MachineSets in a further
-	// step(that will increase unavailability).
-	//
-	// Concrete example:
-	//
-	// * 10 replicas
-	// * 2 maxUnavailable (absolute number, not percent)
-	// * 3 maxSurge (absolute number, not percent)
-	//
-	// case 1:
-	// * Deployment is updated, newMS is created with 3 replicas, oldMS is scaled down to 8, and newMS is scaled up to 5.
-	// * The new MachineSet machines crashloop and never become available.
-	// * allMachinesCount is 13. minAvailable is 8. newMSMachinesUnavailable is 5.
-	// * A node fails and causes one of the oldMS machines to become unavailable. However, 13 - 8 - 5 = 0, so the oldMS won't be scaled down.
-	// * The user notices the crashloop and does kubectl rollout undo to rollback.
-	// * newMSMachinesUnavailable is 1, since we rolled back to the good MachineSet, so maxScaledDown = 13 - 8 - 1 = 4. 4 of the crashlooping machines will be scaled down.
-	// * The total number of machines will then be 9 and the newMS can be scaled up to 10.
-	//
-	// case 2:
-	// Same example, but pushing a new machine template instead of rolling back (aka "roll over"):
-	// * The new MachineSet created must start with 0 replicas because allMachinesCount is already at 13.
-	// * However, newMSMachinesUnavailable would also be 0, so the 2 old MachineSets could be scaled down by 5 (13 - 8 - 0), which would then
-	// allow the new MachineSet to be scaled up by 5.
-	availableReplicas := ptr.Deref(p.newMS.Status.AvailableReplicas, 0)
+	totReplicas := mdutil.GetReplicaCountForMachineSets(allMSs)
 
-	minAvailable := *(p.md.Spec.Replicas) - maxUnavailable
-	newMSUnavailableMachineCount := newMSReplicas - availableReplicas
-	maxScaledDown := allMachinesCount - minAvailable - newMSUnavailableMachineCount
-	if maxScaledDown <= 0 {
+	// Find the number of available machines.
+	totAvailableReplicas := ptr.Deref(mdutil.GetAvailableReplicaCountForMachineSets(allMSs), 0)
+
+	// Find the number of pending scale down from previous reconcile/from current reconcile;
+	// This is required because whenever we are reducing the number of replicas, this operation could further impact availability e.g.
+	// - in case of regular rollout, there is no certainty about which machine is going to be deleted (and if this machine is currently available or not):
+	// 	 - e.g. MS controller is going to delete first machines with deletion annotation; also MS controller has a slight different notion of unavailable as of now.
+	// - in case of in-place rollout, in-place upgrade are always assumed as impacting availability (they can always fail).
+	totPendingScaleDown := int32(0)
+	for _, ms := range allMSs {
+		scaleIntent := ptr.Deref(ms.Spec.Replicas, 0)
+		if v, ok := p.scaleIntents[ms.Name]; ok {
+			scaleIntent = min(scaleIntent, v)
+		}
+
+		// NOTE: we are counting only pending scale down from the current status.replicas (so scale down of actual machines).
+		if scaleIntent < ptr.Deref(ms.Status.Replicas, 0) {
+			totPendingScaleDown += max(ptr.Deref(ms.Status.Replicas, 0)-scaleIntent, 0)
+		}
+	}
+
+	// Compute the total number of replicas that can be scaled down.
+	// Exit immediately if there is no room for scaling down.
+	totalScaleDownCount := max(totReplicas-totPendingScaleDown-minAvailable, 0)
+	if totalScaleDownCount <= 0 {
 		return nil
 	}
 
-	// Clean up unhealthy replicas first, otherwise unhealthy replicas will block deployment
-	// and cause timeout. See https://github.com/kubernetes/kubernetes/issues/16737
-	cleanupCount, err := p.cleanupUnhealthyReplicas(ctx, maxScaledDown)
-	if err != nil {
-		return err
-	}
+	sort.Sort(mdutil.MachineSetsByCreationTimestamp(p.oldMSs))
 
-	log.V(4).Info("Cleaned up unhealthy replicas from old MachineSets", "count", cleanupCount)
+	// Scale down only unavailable replicas / up to residual totalScaleDownCount.
+	// NOTE: we are scaling up unavailable machines first in order to increase chances for the rollout to progress;
+	// however, the MS controller might have different opinion on which machines to scale down.
+	// As a consequence, the scale down operation must continuously assess if reducing the number of replicas
+	// for an older MS could further impact availability under the assumption than any scale down could further impact availability (same as above).
+	// if reducing the number of replicase might lead to breaching minAvailable, scale down extent must be limited accordingly.
+	totalScaleDownCount, totAvailableReplicas = p.scaleDownOldMSs(ctx, totalScaleDownCount, totAvailableReplicas, minAvailable, false)
 
-	// Scale down old MachineSets, need check maxUnavailable to ensure we can scale down
-	scaledDownCount, err := p.scaleDownOldMachineSetsForRollingUpdate(ctx)
-	if err != nil {
-		return err
-	}
+	// Then scale down old MS up to zero replicas / up to residual totalScaleDownCount.
+	// NOTE: also in this case, continuously assess if reducing the number of replicase could further impact availability,
+	// and if necessary, limit scale down extent to ensure the operation respects minAvailable limits.
+	_, _ = p.scaleDownOldMSs(ctx, totalScaleDownCount, totAvailableReplicas, minAvailable, true)
 
-	log.V(4).Info("Scaled down old MachineSets of MachineDeployment", "count", scaledDownCount)
 	return nil
 }
 
-// cleanupUnhealthyReplicas will scale down old MachineSets with unhealthy replicas, so that all unhealthy replicas will be deleted.
-func (p *rolloutPlanner) cleanupUnhealthyReplicas(ctx context.Context, maxCleanupCount int32) (int32, error) {
+func (p *rolloutPlanner) scaleDownOldMSs(ctx context.Context, totalScaleDownCount, totAvailableReplicas, minAvailable int32, scaleToZero bool) (int32, int32) {
 	log := ctrl.LoggerFrom(ctx)
 
-	sort.Sort(mdutil.MachineSetsByCreationTimestamp(p.oldMSs))
-
-	// Scale down all old MachineSets with any unhealthy replicas. MachineSet will honour spec.deletion.order
-	// for deleting Machines. Machines with a deletion timestamp, with a failure message or without a nodeRef
-	// are preferred for all strategies.
-	// This results in a best effort to remove machines backing unhealthy nodes.
-	totalScaledDown := int32(0)
-
 	for _, oldMS := range p.oldMSs {
-		if oldMS.Spec.Replicas == nil {
-			return 0, errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(oldMS))
-		}
-
-		if totalScaledDown >= maxCleanupCount {
+		// No op if there is no scaling down left.
+		if totalScaleDownCount <= 0 {
 			break
 		}
 
-		oldMSReplicas := *(oldMS.Spec.Replicas)
-		if oldMSReplicas == 0 {
-			// cannot scale down this MachineSet.
+		// No op if this MS has been already scaled down to zero.
+		scaleIntent := ptr.Deref(oldMS.Spec.Replicas, 0)
+		if v, ok := p.scaleIntents[oldMS.Name]; ok {
+			scaleIntent = min(scaleIntent, v)
+		}
+
+		if scaleIntent <= 0 {
 			continue
 		}
 
-		oldMSAvailableReplicas := ptr.Deref(oldMS.Status.AvailableReplicas, 0)
-		log.V(4).Info("Found available Machines in old MachineSet",
-			"count", oldMSAvailableReplicas, "target-machineset", client.ObjectKeyFromObject(oldMS).String())
-		if oldMSReplicas == oldMSAvailableReplicas {
-			// no unhealthy replicas found, no scaling required.
+		// Compute the scale down extent by considering either unavailable replicas or, if scaleToZero is set, all replicas.
+		// In both cases, scale down is limited to totalScaleDownCount.
+		maxScaleDown := max(scaleIntent-ptr.Deref(oldMS.Status.AvailableReplicas, 0), 0)
+		if scaleToZero {
+			maxScaleDown = scaleIntent
+		}
+		scaleDown := min(maxScaleDown, totalScaleDownCount)
+
+		// Exit if there is no room for scaling down the MS.
+		if scaleDown == 0 {
 			continue
 		}
 
-		// TODO(in-place): fix this logic
-		//  It looks like that the current logic fails when the MD controller is called twice in a row, without MS controller being triggered in the between, e.g.
-		//  - first reconcile scales down ms1, 6-->5 (-1)
-		//  - second reconcile is not taking into account scales down already in progress, unhealthy count is wrongly computed as -1 instead of 0, this leads to increasing replica count instead of keeping it as it is (or scaling down), and then the safeguard below errors out.
+		// Before scaling down validate if the operation will lead to a breach to minAvailability
+		// In order to do so, consider how many machines will be actually deleted, and consider this operation as impacting availability;
+		// if the projected state breaches minAvailability, reduce the scale down extend accordingly.
+		availableMachineScaleDown := int32(0)
+		if ptr.Deref(oldMS.Status.AvailableReplicas, 0) > 0 {
+			newScaleIntent := scaleIntent - scaleDown
+			machineScaleDownIntent := max(ptr.Deref(oldMS.Status.Replicas, 0)-newScaleIntent, 0)
+			if totAvailableReplicas-machineScaleDownIntent < minAvailable {
+				availableMachineScaleDown = max(totAvailableReplicas-minAvailable, 0)
+				scaleDown = scaleDown - machineScaleDownIntent + availableMachineScaleDown
 
-		remainingCleanupCount := maxCleanupCount - totalScaledDown
-		unhealthyCount := oldMSReplicas - oldMSAvailableReplicas
-		scaledDownCount := min(remainingCleanupCount, unhealthyCount)
-		newReplicasCount := oldMSReplicas - scaledDownCount
-
-		if newReplicasCount > oldMSReplicas {
-			return 0, errors.Errorf("when cleaning up unhealthy replicas, got invalid request to scale down %v: %d -> %d",
-				client.ObjectKeyFromObject(oldMS), oldMSReplicas, newReplicasCount)
+				totAvailableReplicas = max(totAvailableReplicas-availableMachineScaleDown, 0)
+			}
 		}
 
-		scaleDownCount := *(oldMS.Spec.Replicas) - newReplicasCount
-		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, newReplicasCount, scaleDownCount), "MachineSet", klog.KObj(oldMS))
-		p.scaleIntents[oldMS.Name] = newReplicasCount
-
-		totalScaledDown += scaledDownCount
+		if scaleDown > 0 {
+			newScaleIntent := max(scaleIntent-scaleDown, 0)
+			log.V(5).Info(fmt.Sprintf("Setting scale down intent for %s to %d replicas (-%d)", oldMS.Name, newScaleIntent, scaleDown), "machineset", client.ObjectKeyFromObject(oldMS).String())
+			p.scaleIntents[oldMS.Name] = newScaleIntent
+			totalScaleDownCount = max(totalScaleDownCount-scaleDown, 0)
+		}
 	}
 
-	return totalScaledDown, nil
+	return totalScaleDownCount, totAvailableReplicas
 }
 
-// scaleDownOldMachineSetsForRollingUpdate scales down old MachineSets when deployment strategy is "RollingUpdate".
-// Need check maxUnavailable to ensure availability.
-func (p *rolloutPlanner) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context) (int32, error) {
+// This funcs tries to detect and address the case when a rollout is not making progress because both scaling down and scaling up are blocked.
+// Note. this func must be called after computing scale up/down intent for all the MachineSets.
+// Note. this func only address deadlock due to unavailable machines not getting deleted on oldMSs, e.g. due to a wrong configuration.
+// unblocking deadlock when unavailable machines exists only on oldMSs, is required also because failures on old machines set are not remediated by MHC.
+func (p *rolloutPlanner) reconcileDeadlockBreaker(ctx context.Context) {
 	log := ctrl.LoggerFrom(ctx)
 	allMSs := append(p.oldMSs, p.newMS)
 
-	maxUnavailable := mdutil.MaxUnavailable(*p.md)
-	minAvailable := *(p.md.Spec.Replicas) - maxUnavailable
-
-	// Find the number of available machines.
-	availableMachineCount := ptr.Deref(mdutil.GetAvailableReplicaCountForMachineSets(allMSs), 0)
-
-	// Check if we can scale down.
-	if availableMachineCount <= minAvailable {
-		// Cannot scale down.
-		return 0, nil
+	// if there are no replicas on the old MS, rollout is completed, no deadlock (actually no rollout in progress).
+	if ptr.Deref(mdutil.GetActualReplicaCountForMachineSets(p.oldMSs), 0) == 0 {
+		return
 	}
 
-	log.V(4).Info("Found available machines in deployment, scaling down old MSes", "count", availableMachineCount)
+	// if all the replicas on OldMS are available, no deadlock (regular scale up newMS and scale down oldMS should take over from here).
+	if ptr.Deref(mdutil.GetActualReplicaCountForMachineSets(p.oldMSs), 0) == ptr.Deref(mdutil.GetAvailableReplicaCountForMachineSets(p.oldMSs), 0) {
+		return
+	}
 
-	sort.Sort(mdutil.MachineSetsByCreationTimestamp(p.oldMSs))
+	// if there are scale operation in progress, no deadlock.
+	// Note: we are considering both scale operation from previous and current reconcile.
+	// Note: we are counting only pending scale up & down from the current status.replicas (so actual scale up & down of replicas number, not any other possible "re-alignment" of spec.replicas).
+	for _, ms := range allMSs {
+		scaleIntent := ptr.Deref(ms.Spec.Replicas, 0)
+		if v, ok := p.scaleIntents[ms.Name]; ok {
+			scaleIntent = v
+		}
+		if scaleIntent != ptr.Deref(ms.Status.Replicas, 0) {
+			return
+		}
+	}
 
-	// TODO(in-place): fix this logic
-	//  It looks like that the current logic fails when the MD controller is called twice in a row e.g. reconcile of md 6 replicas MaxSurge=3, MaxUnavailable=1 and
-	//     ms1, 6/5 replicas << one is scaling down, but scale down not yet processed by the MS controller.
-	//     ms2, 3/3 replicas
-	//  Leads to:
-	//     ms1, 6/1 replicas << it further scaled down by 4, which leads to totAvailable machines is less than MinUnavailable, which should not happen
-	//     ms2, 3/3 replicas
+	// if there are unavailable replicas on the newMS, wait for them to become available first.
+	// Note: a rollout cannot be unblocked if new machines do not become available.
+	// Note: if the replicas on the newMS are not going to become available for any issue either:
+	// - automatic remediation can help in addressing temporary failures.
+	// - user intervention is required to fix more permanent issues e.g. to fix a wrong configuration.
+	if ptr.Deref(p.newMS.Status.AvailableReplicas, 0) != ptr.Deref(p.newMS.Status.Replicas, 0) {
+		return
+	}
 
-	totalScaledDown := int32(0)
-	totalScaleDownCount := availableMachineCount - minAvailable
+	// At this point we can assume there is a deadlock that can be remediated by breaching maxUnavailability constraint
+	// and scaling down an oldMS with unavailable machines by one.
+	//
+	// Note: in most cases this is only a formal violation of maxUnavailability, because there is a good changes
+	// that the machine that will be deleted is one of the unavailable machines
 	for _, oldMS := range p.oldMSs {
-		if totalScaledDown >= totalScaleDownCount {
-			// No further scaling required.
-			break
-		}
-
-		oldMSReplicas := ptr.Deref(oldMS.Spec.Replicas, 0)
-		if v, ok := p.scaleIntents[oldMS.Name]; ok {
-			oldMSReplicas = v
-		}
-
-		if oldMSReplicas == 0 {
-			// cannot scale down this MachineSet.
+		if ptr.Deref(oldMS.Status.AvailableReplicas, 0) == ptr.Deref(oldMS.Status.Replicas, 0) || ptr.Deref(oldMS.Spec.Replicas, 0) == 0 {
 			continue
 		}
 
-		// Scale down.
-		scaleDownCount := min(oldMSReplicas, totalScaleDownCount-totalScaledDown)
-		newReplicasCount := oldMSReplicas - scaleDownCount
-		if newReplicasCount > oldMSReplicas {
-			return totalScaledDown, errors.Errorf("when scaling down old MachineSet, got invalid request to scale down %v: %d -> %d",
-				client.ObjectKeyFromObject(oldMS), oldMSReplicas, newReplicasCount)
-		}
-
-		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, newReplicasCount, scaleDownCount), "MachineSet", klog.KObj(oldMS))
-		p.scaleIntents[oldMS.Name] = newReplicasCount
-
-		totalScaledDown += scaleDownCount
+		newScaleIntent := max(ptr.Deref(oldMS.Spec.Replicas, 0)-1, 0)
+		log.Info(fmt.Sprintf("Setting scale down intent for %s to %d replicas (-%d) to unblock rollout stuck due to unavailable machine on oldMS only", oldMS.Name, newScaleIntent, 1), "machineset", client.ObjectKeyFromObject(oldMS).String())
+		p.scaleIntents[oldMS.Name] = newScaleIntent
+		return
 	}
-
-	return totalScaledDown, nil
 }
 
 // cleanupDisableMachineCreateAnnotation will remove the disable machine create annotation from new MachineSets that were created during reconcileOldMachineSetsOnDelete.

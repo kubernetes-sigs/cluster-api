@@ -625,25 +625,28 @@ func newMachineUpToDateCondition(s *scope) *metav1.Condition {
 	current := &s.machineSet.Spec.Template
 	desired := &s.owningMachineDeployment.Spec.Template
 
-	upToDate, _, conditionMessages := mdutil.MachineTemplateUpToDate(current, desired)
+	upToDate, notUpToDateResult := mdutil.MachineTemplateUpToDate(current, desired)
 
 	if !s.owningMachineDeployment.Spec.Rollout.After.IsZero() {
 		if s.owningMachineDeployment.Spec.Rollout.After.Time.Before(s.reconciliationTime) && !s.machineSet.CreationTimestamp.After(s.owningMachineDeployment.Spec.Rollout.After.Time) {
 			upToDate = false
-			conditionMessages = append(conditionMessages, "MachineDeployment spec.rolloutAfter expired")
+			if notUpToDateResult == nil {
+				notUpToDateResult = &mdutil.NotUpToDateResult{}
+			}
+			notUpToDateResult.ConditionMessages = append(notUpToDateResult.ConditionMessages, "MachineDeployment spec.rolloutAfter expired")
 		}
 	}
 
 	if !upToDate {
-		for i := range conditionMessages {
-			conditionMessages[i] = fmt.Sprintf("* %s", conditionMessages[i])
+		for i := range notUpToDateResult.ConditionMessages {
+			notUpToDateResult.ConditionMessages[i] = fmt.Sprintf("* %s", notUpToDateResult.ConditionMessages[i])
 		}
 		return &metav1.Condition{
 			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.MachineNotUpToDateReason,
 			// Note: the code computing the message for MachineDeployment's RolloutOut condition is making assumptions on the format/content of this message.
-			Message: strings.Join(conditionMessages, "\n"),
+			Message: strings.Join(notUpToDateResult.ConditionMessages, "\n"),
 		}
 	}
 

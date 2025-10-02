@@ -2489,6 +2489,102 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 				Build(),
 			expectErr: false,
 		},
+		{
+			name: "pass if ClusterClass does not contain any kubernetes version",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVersion("v1.33.0").
+							Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()).
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "pass if ClusterClass contains cluster's kubernetes version",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVersion("v1.33.0").
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster2").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVersion("v1.34.0").
+							Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()).
+				WithVersions("v1.32.0", "v1.33.0", "v1.34.0").
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "fail if ClusterClass does not contains all of cluster's kubernetes version",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVersion("v1.33.0").
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster2").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVersion("v1.34.0").
+							Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()).
+				WithVersions("v1.32.0", "v1.33.0").
+				Build(),
+			expectErr: true,
+		},
 	}
 
 	for _, tt := range tests {

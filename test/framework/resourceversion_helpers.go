@@ -56,6 +56,13 @@ func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, name
 	Consistently(func(g Gomega) {
 		objectsWithResourceVersion, objects, err := getObjectsWithResourceVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
 		g.Expect(err).ToNot(HaveOccurred())
+		resource, er := yaml.Marshal(objectsWithResourceVersion)
+		g.Expect(er).ToNot(HaveOccurred())
+		fmt.Printf("objectsWithResourceVersion:: %s\n", string(resource))
+		resource1, er := yaml.Marshal(previousResourceVersions)
+		g.Expect(er).ToNot(HaveOccurred())
+		fmt.Printf("previousResourceVersions:: %s\n", string(resource1))
+
 		g.Expect(previousResourceVersions).To(BeComparableTo(objectsWithResourceVersion), printObjectDiff(previousObjects, objects))
 	}, 2*time.Minute, 15*time.Second).Should(Succeed(), "resourceVersions didn't stay stable")
 }
@@ -67,7 +74,9 @@ func printObjectDiff(previousObjects, newObjects map[string]client.Object) func(
 		preservedObjects := objectIDs(previousObjects).Intersection(objectIDs(newObjects))
 
 		var output strings.Builder
-
+		previousResource, _ := yaml.Marshal(previousObjects)
+		newResource, _ := yaml.Marshal(newObjects)
+		output.WriteString(fmt.Sprintf("\n printing Objects %s:\n%s\n", string(previousResource), string(newResource)))
 		if len(createdObjects) > 0 {
 			output.WriteString("\nDetected new objects\n")
 			for objID := range createdObjects {

@@ -488,9 +488,9 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 		} else {
 			oldMSs = append(oldMSs, ms)
 			// Override the EligibleForInPlaceUpdate decision if rollout after is expired.
-			if !deployment.Spec.Rollout.After.IsZero() && ms.CreationTimestamp.Sub(deployment.Spec.Rollout.After.Time) < 0 {
+			if !deployment.Spec.Rollout.After.IsZero() && deployment.Spec.Rollout.After.Before(reconciliationTime) && !ms.CreationTimestamp.After(deployment.Spec.Rollout.After.Time) {
 				notUpToDateResult.EligibleForInPlaceUpdate = false
-				notUpToDateResult.LogMessages = append(notUpToDateResult.LogMessages, "metadata.creationTimestamp is older than MachineDeployment.spec.rollout.after")
+				notUpToDateResult.LogMessages = append(notUpToDateResult.LogMessages, "MachineDeployment spec.rolloutAfter expired")
 				// No need to set an additional condition message, it is not used anywhere.
 			}
 			oldMSNotUpToDateResults[ms.Name] = *notUpToDateResult

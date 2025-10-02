@@ -2703,7 +2703,6 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 				Build(),
 			wantErr: false,
 		},
-
 		{
 			name: "Reject cluster.topology.class change with an incompatible infrastructureCluster Kind ref change",
 			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -2762,7 +2761,6 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 				Build(),
 			wantErr: false,
 		},
-
 		{
 			name: "Reject cluster.topology.class change with an incompatible controlPlane Kind ref change",
 			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -3120,6 +3118,38 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 						WithBootstrapTemplate(refToUnstructured(ref)).
 						Build(),
 				).
+				Build(),
+			wantErr: true,
+		},
+
+		// Kubernetes Version changes.
+		{
+			name: "Accept cluster.topology.class change with a compatible Kubernetes Version",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(compatibleNameChangeRef)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithVersions("v1.22.2", "v1.23.2").
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "Reject cluster.topology.class change with an incompatible Kubernetes Version",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(compatibleNameChangeRef)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithVersions("v1.33.0", "v1.34.0").
 				Build(),
 			wantErr: true,
 		},

@@ -163,6 +163,10 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), newClusterClass.Name, allErrs)
 		}
 
+		// Ensure New ClusterClass contains Kubernetes versions of all the Clusters of ClusterClass.
+		allErrs = append(allErrs,
+			webhook.validateKubernetesVersionsOfClusters(clusters, oldClusterClass, newClusterClass)...)
+
 		// Ensure no MachineDeploymentClass currently in use has been removed from the ClusterClass.
 		allErrs = append(allErrs,
 			webhook.validateRemovedMachineDeploymentClassesAreNotUsed(clusters, oldClusterClass, newClusterClass)...)
@@ -240,6 +244,32 @@ func validateUpdatesToMachineHealthCheckClasses(clusters []clusterv1.Cluster, ol
 					fmt.Sprintf("healthCheck cannot be deleted because it is used by Cluster(s) %q", strings.Join(clustersUsingMHC, ",")),
 				))
 			}
+		}
+	}
+
+	return allErrs
+}
+
+func (webhook *ClusterClass) validateKubernetesVersionsOfClusters(clusters []clusterv1.Cluster, _, newClusterClass *clusterv1.ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// If there is no KubernetesVersions is set in the ClusterClass return early.
+	if len(newClusterClass.Spec.KubernetesVersions) == 0 {
+		return allErrs
+	}
+
+	kubernetesVersions := sets.Set[string]{}
+	for _, v := range newClusterClass.Spec.KubernetesVersions {
+		kubernetesVersions.Insert(v)
+	}
+
+	// Error if any Cluster's Kubernetes version is not set in the ClusterClass.
+	for _, c := range clusters {
+		if !kubernetesVersions.Has(c.Spec.Topology.Version) {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "kubernetesVersions"),
+				fmt.Sprintf("Kubernetes Version %s is used by Cluster %q but not set in ClusterClass",
+					c.Spec.Topology.Version, c.Name),
+			))
 		}
 	}
 

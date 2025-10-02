@@ -47,6 +47,7 @@
     - [ClusterResourceSet](./tasks/cluster-resource-set.md)
 - [Security Guidelines](./security/index.md)
     - [Pod Security Standards](./security/pod-security-standards.md)
+    - [Security Guidelines for Cluster API Users](./security/security-guidelines.md)
 - [clusterctl CLI](./clusterctl/overview.md)
     - [clusterctl Commands](clusterctl/commands/commands.md)
         - [init](clusterctl/commands/init.md)

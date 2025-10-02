@@ -23,7 +23,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -57,6 +59,18 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/version"
 )
+
+// isValidClusterName validates that a cluster name is safe to use in shell commands.
+// It only allows alphanumeric characters, hyphens, and underscores.
+func isValidClusterName(name string) bool {
+	if name == "" {
+		return false
+	}
+	// Allow alphanumeric characters, hyphens, and underscores
+	// This matches typical Kubernetes resource naming conventions
+	validNameRegex := regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	return validNameRegex.MatchString(name)
+}
 
 // ClusterctlUpgradeSpecInput is the input for ClusterctlUpgradeSpec.
 type ClusterctlUpgradeSpecInput struct {
@@ -260,6 +274,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 	})
 
 	It("Should create a management cluster and then upgrade all the providers", func() {
+		// Clean up any leftover clusters from previous test runs at the very beginning
+		By("Cleaning up any leftover clusters from previous runs")
+		cleanupRemainingKindClusters(ctx, specName)
+
 		infrastructureProvider := clusterctl.DefaultInfrastructureProvider
 		if input.InfrastructureProvider != nil {
 			infrastructureProvider = *input.InfrastructureProvider
@@ -282,11 +300,35 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			})
 			Expect(managementClusterProvider).ToNot(BeNil(), "Failed to create a kind cluster")
 
+			// Set up cleanup for kind management cluster
+			DeferCleanup(func() {
+				if !input.SkipCleanup && managementClusterProvider != nil {
+					By("Disposing kind management cluster provider")
+					managementClusterProvider.Dispose(ctx)
+				}
+			})
+
 			kubeconfigPath := managementClusterProvider.GetKubeconfigPath()
 			Expect(kubeconfigPath).To(BeAnExistingFile(), "Failed to get the kubeconfig file for the kind cluster")
 
 			managementClusterProxy = input.KindManagementClusterNewClusterProxyFunc(managementClusterName, kubeconfigPath)
 			Expect(managementClusterProxy).ToNot(BeNil(), "Failed to get a kind cluster proxy")
+
+			// Set up cleanup for kind management cluster proxy
+			DeferCleanup(func() {
+				if !input.SkipCleanup && managementClusterProxy != nil {
+					By("Disposing kind management cluster proxy")
+					managementClusterProxy.Dispose(ctx)
+				}
+			})
+
+			// Set up cleanup for kind cluster logs
+			DeferCleanup(func() {
+				if managementClusterProxy != nil {
+					By("Dumping kind cluster logs")
+					dumpKindClusterLogs(ctx, input.ArtifactFolder, managementClusterProxy)
+				}
+			})
 
 			managementClusterResources.Cluster = &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -321,6 +363,14 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 				WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 			}, managementClusterResources)
+
+			// Set up cleanup for non-kind management cluster
+			DeferCleanup(func() {
+				if managementClusterNamespace != nil && managementClusterCancelWatches != nil && managementClusterResources.Cluster != nil {
+					By("Cleaning up non-kind management cluster resources")
+					framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+				}
+			})
 
 			// If the cluster is a DockerCluster, we should load controller images into the nodes.
 			// Nb. this can be achieved also by changing the DockerMachine spec, but for the time being we are using
@@ -408,6 +458,67 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			LogFolder: filepath.Join(input.ArtifactFolder, "clusters", "bootstrap"),
 		})
 
+		// Set up cleanup for test namespace and workload cluster
+		DeferCleanup(func() {
+			if testNamespace != nil {
+				By("Cleaning up test namespace and workload cluster")
+
+				// Dump all the logs from the workload cluster before deleting them.
+				if workloadClusterName != "" {
+					framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, testNamespace, &clusterv1.Cluster{
+						// DumpAllResourcesAndLogs only uses Namespace + Name from the Cluster object.
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: testNamespace.Name,
+							Name:      workloadClusterName,
+						},
+					})
+				}
+
+				if !input.SkipCleanup {
+					// Delete all clusters in the test namespace
+					Byf("Deleting all clusters in namespace %s in management cluster %s", testNamespace.Name, managementClusterName)
+					deleteAllClustersAndWait(ctx, deleteAllClustersAndWaitInput{
+						Client:    managementClusterProxy.GetClient(),
+						Namespace: testNamespace.Name,
+					}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
+
+					// Cleanup any remaining Kind clusters that might not have been cleaned up by the above
+					By("Cleaning up any remaining Kind clusters")
+					cleanupRemainingKindClusters(ctx, specName)
+
+					// Delete the test namespace
+					Byf("Deleting namespace %s used for hosting the %q test", testNamespace.Name, specName)
+					framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
+						Deleter: managementClusterProxy.GetClient(),
+						Name:    testNamespace.Name,
+					})
+
+					// Delete providers
+					if managementClusterResources.Cluster != nil {
+						Byf("Deleting providers")
+						clusterctl.Delete(ctx, clusterctl.DeleteInput{
+							LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", managementClusterResources.Cluster.Name),
+							ClusterctlConfigPath: input.ClusterctlConfigPath,
+							KubeconfigPath:       managementClusterProxy.GetKubeconfigPath(),
+						})
+					}
+				}
+
+				// Cancel watches
+				if testCancelWatches != nil {
+					testCancelWatches()
+				}
+			}
+		})
+
+		// Set up cleanup for pre-cleanup management cluster hook
+		DeferCleanup(func() {
+			if input.PreCleanupManagementCluster != nil {
+				By("Running PreCleanupManagementCluster steps against the management cluster")
+				input.PreCleanupManagementCluster(managementClusterProxy)
+			}
+		})
+
 		if input.PostNamespaceCreated != nil {
 			log.Logf("Calling postNamespaceCreated for namespace %s", testNamespace.Name)
 			input.PostNamespaceCreated(managementClusterProxy, testNamespace.Name)
@@ -421,6 +532,15 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		workloadClusterName = fmt.Sprintf("%s-workload-%s", specName, util.RandomString(6))
 		workloadClusterNamespace := testNamespace.Name
+
+		// Register cleanup for the workload cluster immediately after naming it
+		// This ensures cleanup happens even if the test fails during cluster creation
+		DeferCleanup(func() {
+			By("Cleaning up workload cluster (early cleanup)")
+			if workloadClusterName != "" {
+				cleanupRemainingKindClusters(ctx, workloadClusterName)
+			}
+		})
 		kubernetesVersion := input.WorkloadKubernetesVersion
 		if kubernetesVersion == "" {
 			kubernetesVersion = input.E2EConfig.MustGetVariable(KubernetesVersion)
@@ -774,58 +894,6 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		}
 
 		By("PASSED!")
-	})
-
-	AfterEach(func() {
-		if testNamespace != nil {
-			// Dump all the logs from the workload cluster before deleting them.
-			framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, testNamespace, &clusterv1.Cluster{
-				// DumpAllResourcesAndLogs only uses Namespace + Name from the Cluster object.
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: testNamespace.Name,
-					Name:      workloadClusterName,
-				},
-			})
-
-			if !input.SkipCleanup {
-				Byf("Deleting all clusters in namespace %s in management cluster %s", testNamespace.Name, managementClusterName)
-				deleteAllClustersAndWait(ctx, deleteAllClustersAndWaitInput{
-					Client:    managementClusterProxy.GetClient(),
-					Namespace: testNamespace.Name,
-				}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
-
-				Byf("Deleting namespace %s used for hosting the %q test", testNamespace.Name, specName)
-				framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
-					Deleter: managementClusterProxy.GetClient(),
-					Name:    testNamespace.Name,
-				})
-
-				Byf("Deleting providers")
-				clusterctl.Delete(ctx, clusterctl.DeleteInput{
-					LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", managementClusterResources.Cluster.Name),
-					ClusterctlConfigPath: input.ClusterctlConfigPath,
-					KubeconfigPath:       managementClusterProxy.GetKubeconfigPath(),
-				})
-			}
-			testCancelWatches()
-		}
-
-		if input.PreCleanupManagementCluster != nil {
-			By("Running PreCleanupManagementCluster steps against the management cluster")
-			input.PreCleanupManagementCluster(managementClusterProxy)
-		}
-
-		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		if input.UseKindForManagementCluster {
-			dumpKindClusterLogs(ctx, input.ArtifactFolder, managementClusterProxy)
-
-			if !input.SkipCleanup {
-				managementClusterProxy.Dispose(ctx)
-				managementClusterProvider.Dispose(ctx)
-			}
-		} else {
-			framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
-		}
 	})
 }
 
@@ -1210,4 +1278,51 @@ func getValueOrFallback(value []string, fallback []string) []string {
 		return value
 	}
 	return fallback
+}
+
+// cleanupRemainingKindClusters cleans up any Kind clusters that might be left behind after the test.
+// This is a safety net to ensure proper cleanup in case the normal cluster deletion doesn't clean up Kind clusters.
+func cleanupRemainingKindClusters(ctx context.Context, testPrefix string) {
+	if testPrefix == "" {
+		return
+	}
+
+	// Get list of all Kind clusters
+	cmd := exec.CommandContext(ctx, "kind", "get", "clusters")
+	output, err := cmd.Output()
+	if err != nil {
+		log.Logf("Failed to get kind clusters: %v", err)
+		return
+	}
+
+	clusters := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, cluster := range clusters {
+		cluster = strings.TrimSpace(cluster)
+		if cluster == "" {
+			continue
+		}
+
+		// Check if this cluster is related to our test (either management or workload cluster)
+		// We check for both the exact prefix and common test cluster patterns
+		shouldDelete := strings.Contains(cluster, testPrefix) ||
+			strings.HasPrefix(cluster, "clusterctl-upgrade-") ||
+			strings.Contains(cluster, "-workload-") ||
+			strings.Contains(cluster, "-management-")
+
+		if shouldDelete {
+			// Validate cluster name to prevent command injection
+			if !isValidClusterName(cluster) {
+				log.Logf("Skipping cluster %s due to invalid name format", cluster)
+				continue
+			}
+
+			log.Logf("Found remaining kind cluster %s, cleaning it up", cluster)
+			deleteCmd := exec.CommandContext(ctx, "kind", "delete", "cluster", "--name", cluster) // #nosec G204 - cluster name is validated
+			if err := deleteCmd.Run(); err != nil {
+				log.Logf("Failed to delete kind cluster %s: %v", cluster, err)
+			} else {
+				log.Logf("Successfully deleted kind cluster %s", cluster)
+			}
+		}
+	}
 }

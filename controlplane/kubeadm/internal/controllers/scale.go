@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -41,20 +40,12 @@ import (
 func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	bootstrapSpec := controlPlane.InitialControlPlaneConfig()
-
-	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
-	}
-	internal.DefaultFeatureGates(bootstrapSpec, parsedVersion)
-
 	fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	newMachine, err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, bootstrapSpec, fd)
+	newMachine, err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, false, fd)
 	if err != nil {
 		log.Error(err, "Failed to create initial control plane Machine")
 		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "FailedInitialization", "Failed to create initial control plane Machine for cluster %s control plane: %v", klog.KObj(controlPlane.Cluster), err)
@@ -79,21 +70,12 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 		return result, err
 	}
 
-	// Create the bootstrap configuration
-	bootstrapSpec := controlPlane.JoinControlPlaneConfig()
-
-	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
-	}
-	internal.DefaultFeatureGates(bootstrapSpec, parsedVersion)
-
 	fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	newMachine, err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, bootstrapSpec, fd)
+	newMachine, err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, true, fd)
 	if err != nil {
 		log.Error(err, "Failed to create additional control plane Machine")
 		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "FailedScaleUp", "Failed to create additional control plane Machine for cluster % control plane: %v", klog.KObj(controlPlane.Cluster), err)

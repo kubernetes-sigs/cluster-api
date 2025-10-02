@@ -347,6 +347,11 @@ type APIEndpoint struct {
 	BindPort int32 `json:"bindPort,omitempty"`
 }
 
+// IsDefined returns true if the APIEndpoint is defined.
+func (r *APIEndpoint) IsDefined() bool {
+	return r.AdvertiseAddress != "" || r.BindPort != 0
+}
+
 // NodeRegistrationOptions holds fields that relate to registering a new control-plane or node to the cluster, either via "kubeadm init" or "kubeadm join".
 // Note: The NodeRegistrationOptions struct has to be kept in sync with the structs in MarshalJSON.
 // +kubebuilder:validation:MinProperties=1

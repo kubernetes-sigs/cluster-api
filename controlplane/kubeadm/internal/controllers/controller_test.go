@@ -52,6 +52,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
 	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -520,7 +521,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
-					Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+					Labels:    desiredstate.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -588,7 +589,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
-					Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+					Labels:    desiredstate.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -703,7 +704,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
-					Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+					Labels:    desiredstate.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -761,7 +762,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: cluster.Namespace,
 						Name:      "test0",
-						Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+						Labels:    desiredstate.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
 					},
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
@@ -1841,7 +1842,12 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 				NodeVolumeDetachTimeoutSeconds: duration5s,
 				NodeDeletionTimeoutSeconds:     duration5s,
 			},
-			ReadinessGates: mandatoryMachineReadinessGates,
+			ReadinessGates: []clusterv1.MachineReadinessGate{
+				// mandatoryMachineReadinessGates from desiredstate pkg.
+				{ConditionType: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition},
+				{ConditionType: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition},
+				{ConditionType: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition},
+			},
 		},
 	}
 	g.Expect(env.PatchAndWait(ctx, deletingMachine, client.FieldOwner(kcpManagerName))).To(Succeed())
@@ -4038,7 +4044,7 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   cluster.Namespace,
 			Name:        name,
-			Labels:      internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+			Labels:      desiredstate.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
 			Annotations: map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),

@@ -45,13 +45,13 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/cluster-api/util/version"
 )
 
 const (
@@ -63,13 +63,6 @@ const (
 )
 
 var (
-	// minKubernetesVersionControlPlaneKubeletLocalMode is the min version from which
-	// we will enable the ControlPlaneKubeletLocalMode kubeadm feature gate.
-	// Note: We have to do this with Kubernetes 1.31. Because with that version we encountered
-	// a case where it's not okay anymore to ignore the Kubernetes version skew (kubelet 1.31 uses
-	// the spec.clusterIP field selector that is only implemented in kube-apiserver >= 1.31.0).
-	minKubernetesVersionControlPlaneKubeletLocalMode = semver.MustParse("1.31.0")
-
 	// ErrControlPlaneMinNodes signals that a cluster doesn't meet the minimum required nodes
 	// to remove an etcd member.
 	ErrControlPlaneMinNodes = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
@@ -166,32 +159,11 @@ func (w *Workload) UpdateFeatureGatesInKubeadmConfigMap(kubeadmConfigSpec bootst
 	return func(c *bootstrapv1.ClusterConfiguration) {
 		// We use DeepCopy here to avoid modifying the KCP object in the apiserver.
 		kubeadmConfigSpec := kubeadmConfigSpec.DeepCopy()
-		DefaultFeatureGates(kubeadmConfigSpec, kubernetesVersion)
+		desiredstate.DefaultFeatureGates(kubeadmConfigSpec, kubernetesVersion)
 
 		// Even if featureGates is nil, reset it to ClusterConfiguration
 		// to override any previously set feature gates.
 		c.FeatureGates = kubeadmConfigSpec.ClusterConfiguration.FeatureGates
-	}
-}
-
-const (
-	// ControlPlaneKubeletLocalMode is a feature gate of kubeadm that ensures
-	// kubelets only communicate with the local apiserver.
-	ControlPlaneKubeletLocalMode = "ControlPlaneKubeletLocalMode"
-)
-
-// DefaultFeatureGates defaults the feature gates field.
-func DefaultFeatureGates(kubeadmConfigSpec *bootstrapv1.KubeadmConfigSpec, kubernetesVersion semver.Version) {
-	if version.Compare(kubernetesVersion, minKubernetesVersionControlPlaneKubeletLocalMode, version.WithoutPreReleases()) < 0 {
-		return
-	}
-
-	if kubeadmConfigSpec.ClusterConfiguration.FeatureGates == nil {
-		kubeadmConfigSpec.ClusterConfiguration.FeatureGates = map[string]bool{}
-	}
-
-	if _, ok := kubeadmConfigSpec.ClusterConfiguration.FeatureGates[ControlPlaneKubeletLocalMode]; !ok {
-		kubeadmConfigSpec.ClusterConfiguration.FeatureGates[ControlPlaneKubeletLocalMode] = true
 	}
 }
 

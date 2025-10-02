@@ -78,40 +78,25 @@ func (r *Reconciler) sync(ctx context.Context, md *clusterv1.MachineDeployment, 
 // This may lead to stale reads of machine sets, thus incorrect deployment status.
 func (r *Reconciler) getAllMachineSetsAndSyncRevision(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, createIfNotExisted, templateExists bool) (*clusterv1.MachineSet, []*clusterv1.MachineSet, error) {
 	reconciliationTime := metav1.Now()
-	allOldMSs, err := mdutil.FindOldMachineSets(md, msList, &reconciliationTime)
-	if err != nil {
-		return nil, nil, err
-	}
+	newMS, oldMSs, _, createReason := mdutil.FindNewAndOldMachineSets(md, msList, &reconciliationTime)
 
 	// Get new machine set with the updated revision number
-	newMS, err := r.getNewMachineSet(ctx, md, msList, allOldMSs, createIfNotExisted, templateExists, &reconciliationTime)
+	newMS, err := r.getNewMachineSet(ctx, md, newMS, oldMSs, createIfNotExisted, templateExists, createReason)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return newMS, allOldMSs, nil
+	return newMS, oldMSs, nil
 }
 
 // Returns a MachineSet that matches the intent of the given MachineDeployment.
 // If there does not exist such a MachineSet and createIfNotExisted is true, create a new MachineSet.
 // If there is already such a MachineSet, update it to propagate in-place mutable fields from the MachineDeployment.
-func (r *Reconciler) getNewMachineSet(ctx context.Context, md *clusterv1.MachineDeployment, msList, oldMSs []*clusterv1.MachineSet, createIfNotExists, templateExists bool, reconciliationTime *metav1.Time) (*clusterv1.MachineSet, error) {
-	// Try to find a MachineSet which matches the MachineDeployments intent, while ignore diffs between
-	// the in-place mutable fields.
-	// If we find a matching MachineSet we just update it to propagate any changes to the in-place mutable
-	// fields and thus we do not trigger an unnecessary rollout (i.e. create a new MachineSet).
-	// If we don't find a matching MachineSet, we need a rollout and thus create a new MachineSet.
-	// Note: The in-place mutable fields can be just updated inline, because they do not affect the actual machines
-	// themselves (i.e. the infrastructure and the software running on the Machines not the Machine object).
-	matchingMS, createReason, err := mdutil.FindNewMachineSet(md, msList, reconciliationTime)
-	if err != nil {
-		return nil, err
-	}
-
+func (r *Reconciler) getNewMachineSet(ctx context.Context, md *clusterv1.MachineDeployment, newMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, createIfNotExists, templateExists bool, createReason string) (*clusterv1.MachineSet, error) {
 	// If there is a MachineSet that matches the intent of the MachineDeployment, update the MachineSet
 	// to propagate all in-place mutable fields from MachineDeployment to the MachineSet.
-	if matchingMS != nil {
-		updatedMS, err := r.updateMachineSet(ctx, md, matchingMS, oldMSs)
+	if newMS != nil {
+		updatedMS, err := r.updateMachineSet(ctx, md, newMS, oldMSs)
 		if err != nil {
 			return nil, err
 		}

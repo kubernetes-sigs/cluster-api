@@ -547,6 +547,16 @@ type KubeadmConfig struct {
 	Status KubeadmConfigStatus `json:"status,omitempty,omitzero"`
 }
 
+// IsForJoin returns true if the KubeadmConfig is for a kubeadm join.
+func (c *KubeadmConfig) IsForJoin() bool {
+	return c.Spec.JoinConfiguration.IsDefined()
+}
+
+// IsForInit returns true if the KubeadmConfig is for a kubeadm init.
+func (c *KubeadmConfig) IsForInit() bool {
+	return !c.IsForJoin()
+}
+
 // GetV1Beta1Conditions returns the set of conditions for this object.
 func (c *KubeadmConfig) GetV1Beta1Conditions() clusterv1.Conditions {
 	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {

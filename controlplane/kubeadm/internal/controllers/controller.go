@@ -803,6 +803,9 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 			return errors.Wrapf(err, "failed to update Machine: %s", klog.KObj(m))
 		}
 		controlPlane.Machines[machineName] = updatedMachine
+		if _, ok := controlPlane.MachinesNotUptoDate[machineName]; ok {
+			controlPlane.MachinesNotUptoDate[machineName] = updatedMachine
+		}
 		// Since the machine is updated, re-create the patch helper so that any subsequent
 		// Patch calls use the correct base machine object to calculate the diffs.
 		// Example: reconcileControlPlaneAndMachinesConditions patches the machine objects in a subsequent call

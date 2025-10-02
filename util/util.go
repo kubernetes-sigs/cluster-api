@@ -453,6 +453,17 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 	return false
 }
 
+// HasOwnerWithKind checks if any of the references in the passed list matches the given kind.
+func HasOwnerWithKind(refList []metav1.OwnerReference, kind string) bool {
+	for _, ref := range refList {
+		if ref.Kind == kind {
+			return true
+		}
+	}
+
+	return false
+}
+
 // ClusterToTypedObjectsMapper returns a mapper function that gets a cluster and lists all objects for the object passed in
 // and returns a list of requests.
 // Note: This function uses the passed in typed ObjectList and thus with the default client configuration all list calls

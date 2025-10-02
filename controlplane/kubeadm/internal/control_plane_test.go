@@ -124,13 +124,13 @@ func TestControlPlane(t *testing.T) {
 
 		machinesNotUptoDate, machinesNotUpToDateResults := controlPlane.NotUpToDateMachines()
 		g.Expect(machinesNotUptoDate.Names()).To(ConsistOf("m2", "m3"))
-		g.Expect(machinesNotUpToDateResults).To(HaveLen(2))
+		g.Expect(machinesNotUpToDateResults).To(HaveLen(5))
 		g.Expect(machinesNotUpToDateResults["m2"].ConditionMessages).To(Equal([]string{"Version v1.29.0, v1.31.0 required"}))
 		g.Expect(machinesNotUpToDateResults["m3"].ConditionMessages).To(Equal([]string{"Version v1.29.3, v1.31.0 required"}))
 
 		machinesNeedingRollout, machinesNotUpToDateResults := controlPlane.MachinesNeedingRollout()
 		g.Expect(machinesNeedingRollout.Names()).To(ConsistOf("m2"))
-		g.Expect(machinesNotUpToDateResults).To(HaveLen(2))
+		g.Expect(machinesNotUpToDateResults).To(HaveLen(5))
 		g.Expect(machinesNotUpToDateResults["m2"].LogMessages).To(Equal([]string{"Machine version \"v1.29.0\" is not equal to KCP version \"v1.31.0\""}))
 		g.Expect(machinesNotUpToDateResults["m3"].LogMessages).To(Equal([]string{"Machine version \"v1.29.3\" is not equal to KCP version \"v1.31.0\""}))
 
@@ -339,7 +339,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 	c := &ControlPlane{
 		KCP:                 &controlplanev1.KubeadmControlPlane{},
 		Machines:            collections.FromMachines(healthyMachine, machineWithoutNode, machineJustDeleted, machineNotUpToDate, machineMarkedForRemediation),
-		machinesNotUptoDate: collections.FromMachines(machineNotUpToDate),
+		MachinesNotUptoDate: collections.FromMachines(machineNotUpToDate),
 		EtcdMembers:         []*etcd.Member{{Name: "m1"}, {Name: "m2"}, {Name: "m3"}},
 	}
 

@@ -1,31 +1,34 @@
 # Experimental Feature: MachinePool (beta)
 
-The `MachinePool` feature provides a way to manage a set of machines by defining a common configuration, number of desired machine replicas etc. similar to `MachineDeployment`,
-except `MachineSet` controllers are responsible for the lifecycle management of the machines for `MachineDeployment`, whereas in `MachinePools`,
-each infrastructure provider has a specific solution for orchestrating these `Machines`.
+The `MachinePool` feature provides a way to manage a set of machines by leveraging infrastructure provider scaling groups (e.g., AWS Auto Scaling Groups, Azure VM Scale Sets) rather than managing individual machines through MachineDeployments.
 
 **Feature gate name**: `MachinePool`
 
 **Variable name to enable/disable the feature gate**: `EXP_MACHINE_POOL`
 
-Infrastructure providers can support this feature by implementing their specific `MachinePool` such as `AzureMachinePool`.
+## Overview
 
-More details on `MachinePool` can be found at:
-[MachinePool CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20190919-machinepool-api.md)
+Infrastructure providers can support this feature by implementing their specific `MachinePool` such as `AWSMachinePool` or `AzureMachinePool`.
 
-For developer docs on the MachinePool controller, see [here](./../../developer/core/controllers/machine-pool.md).
+📖 **For comprehensive information about MachinePool concepts, use cases, and comparisons with MachineDeployment**, see the [MachinePool Concepts Guide](../../concepts/machinepool.md).
 
-## MachinePools vs MachineDeployments
+## Enabling MachinePool
 
-Although MachinePools provide a similar feature to MachineDeployments, MachinePools do so by leveraging an InfraMachinePool which corresponds 1:1 with a resource like VMSS on Azure or Autoscaling Groups on AWS which we treat as a black box. When a MachinePool is scaled up, the InfraMachinePool scales itself up and populates its provider ID list based on the response from the infrastructure provider. On the other hand, when a MachineDeployment is scaled up, new Machines are created which then create an individual InfraMachine, which corresponds to a VM in any infrastructure provider.
+Starting from Cluster API v1.7, MachinePool is enabled by default. No additional configuration is needed.
 
-| MachinePools                                                                                                                                                        | MachineDeployments                                                                                                                     |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Creates new instances through a single infrastructure resource like VMSS in Azure or Autoscaling Groups in AWS.                                                     | Creates new instances by creating new Machines, which create individual VM instances on the infra provider.                            |
-| Set of instances is orchestrated by the infrastructure provider.                                                                                                    | Set of instances is orchestrated by Cluster API using a MachineSet.                                                                    |
-| Each MachinePool corresponds 1:1 with an associated InfraMachinePool.                                                                                               | Each MachineDeployment includes a MachineSet, and for each replica, it creates a Machine and InfraMachine.                             |
-| Each MachinePool requires only a single BootstrapConfig.                                                                                                            | Each MachineDeployment uses an InfraMachineTemplate and a BootstrapConfigTemplate, and each Machine requires a unique BootstrapConfig. |
-| Maintains a list of instances in the `providerIDList` field in the MachinePool spec. This list is populated based on the response from the infrastructure provider. | Maintains a list of instances through the Machine resources owned by the MachineSet.                                                   |
+For Cluster API versions prior to v1.7, you need to set the `EXP_MACHINE_POOL` environment variable:
+
+```bash
+export EXP_MACHINE_POOL=true
+clusterctl init
+```
+
+Or when upgrading an existing management cluster:
+
+```bash
+export EXP_MACHINE_POOL=true
+clusterctl upgrade
+```
 
 ## MachinePool provider implementations
 
@@ -38,3 +41,8 @@ The following Cluster API infrastructure providers have implemented support for 
 | GCP | `GCPMachinePool` | In Progress | https://github.com/kubernetes-sigs/cluster-api-provider-gcp/pull/1506 |
 | OCI | `OCIManagedMachinePool`<br> `OCIMachinePool` | Implemented, MachinePoolMachines supported | https://oracle.github.io/cluster-api-provider-oci/managed/managedcluster.html |
 | Scaleway | `ScalewayManagedMachinePool` | Implemented | https://github.com/scaleway/cluster-api-provider-scaleway/blob/main/docs/scalewaymanagedmachinepool.md |
+
+## Additional Resources
+
+- **Design Document**: [MachinePool CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20190919-machinepool-api.md)
+- **Developer Documentation**: [MachinePool Controller](./../../developer/core/controllers/machine-pool.md)

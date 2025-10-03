@@ -527,6 +527,37 @@ func (e *Environment) CreateAndWait(ctx context.Context, obj client.Object, opts
 	return nil
 }
 
+// DeleteAndWait deletes the given object and waits for the cache to be updated accordingly.
+//
+// NOTE: Waiting for the cache to be updated helps in preventing test flakes due to the cache sync delays.
+func (e *Environment) DeleteAndWait(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
+	if err := e.Delete(ctx, obj, opts...); err != nil {
+		return err
+	}
+
+	// Makes sure the cache is updated with the new object
+	objCopy := obj.DeepCopyObject().(client.Object)
+	key := client.ObjectKeyFromObject(obj)
+	if err := wait.ExponentialBackoff(
+		cacheSyncBackoff,
+		func() (done bool, err error) {
+			if err := e.Get(ctx, key, objCopy); err != nil {
+				if apierrors.IsNotFound(err) {
+					// if not found possible no finalizer and delete just removed the object.
+					return true, nil
+				}
+				return false, err
+			}
+			if objCopy.GetDeletionTimestamp() != nil {
+				return true, nil
+			}
+			return false, nil
+		}); err != nil {
+		return errors.Wrapf(err, "object %s, %s is not being added to the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
+	}
+	return nil
+}
+
 // PatchAndWait creates or updates the given object using server-side apply and waits for the cache to be updated accordingly.
 //
 // NOTE: Waiting for the cache to be updated helps in preventing test flakes due to the cache sync delays.

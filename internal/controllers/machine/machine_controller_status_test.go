@@ -2071,7 +2071,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
-		g.Expect(env.Create(ctx, machine)).To(Succeed())
+		// Create and wait on machine to make sure caches sync and reconciliation triggers.
+		g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
 
 		// Wait until BootstrapConfig has the ownerReference.
 		g.Eventually(func(g Gomega) bool {
@@ -2123,7 +2124,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
-		g.Expect(env.Create(ctx, machine)).To(Succeed())
+		// Create and wait on machine to make sure caches sync and reconciliation triggers.
+		g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
 
 		// Wait until Machine was reconciled.
 		g.Eventually(func(g Gomega) bool {
@@ -2168,7 +2170,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
 		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
 		preUpdate := time.Now().Add(-2 * time.Second)
-		g.Expect(env.Create(ctx, machine)).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
 
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		modifiedMachine := machine.DeepCopy()
@@ -2240,7 +2242,9 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
 		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
 		preUpdate := time.Now().Add(-2 * time.Second)
-		g.Expect(env.Create(ctx, machine)).To(Succeed())
+
+		// Create and wait on machine to make sure caches sync and reconciliation triggers.
+		g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
@@ -2329,7 +2333,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
 		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
 		preUpdate := time.Now().Add(-2 * time.Second)
-		g.Expect(env.Create(ctx, machine)).To(Succeed())
+		// Create and wait on machine to make sure caches sync and reconciliation triggers.
+		g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
@@ -2407,7 +2412,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
 		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
 		preUpdate := time.Now().Add(-2 * time.Second)
-		g.Expect(env.Create(ctx, machine)).To(Succeed())
+		// Create and wait on machine to make sure caches sync and reconciliation triggers.
+		g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
@@ -2474,7 +2480,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
 		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
 		preUpdate := time.Now().Add(-2 * time.Second)
-		g.Expect(env.Create(ctx, machine)).To(Succeed())
+		// Create and wait on machine to make sure caches sync and reconciliation triggers.
+		g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
 
 		// Set bootstrap ready.
 		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
@@ -2546,7 +2553,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
 		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
 		preUpdate := time.Now().Add(-2 * time.Second)
-		g.Expect(env.Create(ctx, machine)).To(Succeed())
+		// Create and wait on machine to make sure caches sync and reconciliation triggers.
+		g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
 
 		// Set bootstrap ready.
 		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
@@ -2578,7 +2586,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Delete Machine
-		g.Expect(env.Delete(ctx, machine)).To(Succeed())
+		g.Expect(env.DeleteAndWait(ctx, machine)).To(Succeed())
 
 		// Wait until Machine was reconciled.
 		g.Eventually(func(g Gomega) bool {

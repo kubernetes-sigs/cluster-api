@@ -2085,7 +2085,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Wait until InfraMachine has the ownerReference.
 		g.Eventually(func(g Gomega) bool {
-			if err := env.Get(ctx, client.ObjectKeyFromObject(infraMachine), infraMachine); err != nil {
+			if err := env.DirectApiServerGet(ctx, client.ObjectKeyFromObject(infraMachine), infraMachine); err != nil {
 				return false
 			}
 			g.Expect(infraMachine.GetOwnerReferences()).To(HaveLen(1))
@@ -2127,7 +2127,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Wait until Machine was reconciled.
 		g.Eventually(func(g Gomega) bool {
-			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+			if err := env.DirectApiServerGet(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
 				return false
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhasePending))
@@ -2182,7 +2182,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Wait until Machine was reconciled.
 		g.Eventually(func(g Gomega) bool {
-			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+			if err := env.DirectApiServerGet(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
 				return false
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioning))
@@ -2270,7 +2270,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Wait until Machine was reconciled.
 		g.Eventually(func(g Gomega) bool {
-			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+			if err := env.DirectApiServerGet(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
 				return false
 			}
 			g.Expect(machine.Status.Addresses).To(HaveLen(2))
@@ -2349,7 +2349,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Wait until Machine was reconciled.
 		g.Eventually(func(g Gomega) bool {
-			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+			if err := env.DirectApiServerGet(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
 				return false
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
@@ -2427,7 +2427,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Wait until Machine was reconciled.
 		g.Eventually(func(g Gomega) bool {
-			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+			if err := env.DirectApiServerGet(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
 				return false
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
@@ -2489,7 +2489,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Wait until Machine was reconciled.
 		g.Eventually(func(g Gomega) bool {
-			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+			if err := env.DirectApiServerGet(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
 				return false
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
@@ -2582,7 +2582,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Wait until Machine was reconciled.
 		g.Eventually(func(g Gomega) bool {
-			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+			if err := env.DirectApiServerGet(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
 				return false
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseDeleting))

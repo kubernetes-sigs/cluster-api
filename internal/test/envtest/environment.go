@@ -565,6 +565,13 @@ func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, opts 
 	return nil
 }
 
+// DirectApiServerGet gets an object directly from apiserver bypassing informer caches..
+//
+// NOTE: Bypassing cache helps in preventing test flakes due to the cache sync delays but should only be used in validation steps of testing.
+func (e *Environment) DirectApiServerGet(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	return e.Manager.GetAPIReader().Get(ctx, key, obj, opts...)
+}
+
 // CreateNamespace creates a new namespace with a generated name.
 func (e *Environment) CreateNamespace(ctx context.Context, generateName string) (*corev1.Namespace, error) {
 	ns := &corev1.Namespace{

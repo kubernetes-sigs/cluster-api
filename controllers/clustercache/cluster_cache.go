@@ -134,6 +134,10 @@ type ClusterCache interface {
 	// If there is no connection to the workload cluster ErrClusterNotConnected will be returned.
 	GetReader(ctx context.Context, cluster client.ObjectKey) (client.Reader, error)
 
+	// GetUncachedClient returns a live (uncached) client for the given cluster.
+	// If there is no connection to the workload cluster ErrClusterNotConnected will be returned.
+	GetUncachedClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error)
+
 	// GetRESTConfig returns a REST config for the given cluster.
 	// If there is no connection to the workload cluster ErrClusterNotConnected will be returned.
 	GetRESTConfig(ctx context.Context, cluster client.ObjectKey) (*rest.Config, error)
@@ -390,6 +394,16 @@ func (cc *clusterCache) GetReader(ctx context.Context, cluster client.ObjectKey)
 		return nil, errors.Wrapf(ErrClusterNotConnected, "error getting client reader")
 	}
 	return accessor.GetReader(ctx)
+}
+
+// GetUncachedClient returns a live (uncached) client for the given cluster.
+// If there is no connection to the workload cluster ErrClusterNotConnected will be returned.
+func (cc *clusterCache) GetUncachedClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
+	accessor := cc.getClusterAccessor(cluster)
+	if accessor == nil {
+		return nil, errors.Wrapf(ErrClusterNotConnected, "error getting uncached client")
+	}
+	return accessor.GetUncachedClient(ctx)
 }
 
 func (cc *clusterCache) GetRESTConfig(ctx context.Context, cluster client.ObjectKey) (*rest.Config, error) {

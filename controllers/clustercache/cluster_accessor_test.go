@@ -76,8 +76,13 @@ func TestConnect(t *testing.T) {
 	}, nil)
 	accessor := newClusterAccessor(context.Background(), clusterKey, config)
 
+	// Before connect, getting the uncached client should fail with ErrClusterNotConnected
+	_, err := accessor.GetUncachedClient(ctx)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(errors.Is(err, ErrClusterNotConnected)).To(BeTrue())
+
 	// Connect when kubeconfig Secret doesn't exist (should fail)
-	err := accessor.Connect(ctx)
+	err = accessor.Connect(ctx)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("error creating REST config: error getting kubeconfig secret: Secret \"test-cluster-kubeconfig\" not found"))
 	g.Expect(accessor.Connected(ctx)).To(BeFalse())
@@ -136,6 +141,16 @@ func TestConnect(t *testing.T) {
 	g.Expect(accessor.lockedState.healthChecking.lastProbeSuccessTime.IsZero()).To(BeFalse())
 	g.Expect(accessor.lockedState.healthChecking.consecutiveFailures).To(Equal(0))
 
+	// After connect, getting the uncached client should succeed
+	r, err := accessor.GetUncachedClient(ctx)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(r).ToNot(BeNil())
+
+	// List Nodes via the uncached client
+	nodeListUncached := &corev1.NodeList{}
+	g.Expect(r.List(ctx, nodeListUncached)).To(Succeed())
+	g.Expect(nodeListUncached.Items).To(BeEmpty())
+
 	// Get client and test Get & List
 	c, err := accessor.GetClient(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -150,6 +165,11 @@ func TestConnect(t *testing.T) {
 	// Disconnect
 	accessor.Disconnect(ctx)
 	g.Expect(accessor.Connected(ctx)).To(BeFalse())
+
+	// After disconnect, getting the uncached client should fail with ErrClusterNotConnected
+	_, err = accessor.GetUncachedClient(ctx)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(errors.Is(err, ErrClusterNotConnected)).To(BeTrue())
 }
 
 func TestDisconnect(t *testing.T) {

@@ -21,7 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/api/core/errors"
 	bootstrapv1alpha4 "sigs.k8s.io/cluster-api/internal/api/bootstrap/kubeadm/v1alpha4"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha4"
 )

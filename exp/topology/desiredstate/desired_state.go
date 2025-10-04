@@ -56,6 +56,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/cluster-api/util/converter"
 )
 
 // Generator is a generator to generate the desired state.
@@ -565,7 +566,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 		if hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
 			v1beta1Cluster := &clusterv1beta1.Cluster{}
 			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
-			if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
+			if err := converter.ConvertClusterHubToV1Beta1(ctx, s.Current.Cluster.DeepCopy(), v1beta1Cluster); err != nil {
 				return "", errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 			}
 
@@ -668,7 +669,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 			// up the topologyVersion. Call the BeforeClusterUpgrade hook before picking up the desired version.
 			v1beta1Cluster := &clusterv1beta1.Cluster{}
 			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
-			if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
+			if err := converter.ConvertClusterHubToV1Beta1(ctx, s.Current.Cluster.DeepCopy(), v1beta1Cluster); err != nil {
 				return "", errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 			}
 

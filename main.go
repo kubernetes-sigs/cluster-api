@@ -58,7 +58,6 @@ import (
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
 	ipamv1alpha1 "sigs.k8s.io/cluster-api/api/ipam/v1alpha1"
 	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
@@ -74,13 +73,13 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	addonsv1alpha3 "sigs.k8s.io/cluster-api/internal/api/addons/v1alpha3"
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/internal/api/addons/v1alpha4"
-	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha3"
-	clusterv1alpha4 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha4"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
+	"sigs.k8s.io/cluster-api/util/converter"
 	"sigs.k8s.io/cluster-api/util/flags"
+	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
@@ -139,8 +138,6 @@ func init() {
 	_ = apiextensionsv1.AddToScheme(scheme)
 	_ = storagev1.AddToScheme(scheme)
 
-	_ = clusterv1alpha3.AddToScheme(scheme)
-	_ = clusterv1alpha4.AddToScheme(scheme)
 	_ = clusterv1beta1.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 
@@ -427,7 +424,7 @@ func main() {
 	setupChecks(mgr)
 	setupIndexes(ctx, mgr)
 	clusterCache := setupReconcilers(ctx, mgr, watchNamespaces, &syncPeriod)
-	setupWebhooks(ctx, mgr, clusterCache)
+	setupWebhooks(mgr, clusterCache)
 
 	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
@@ -760,14 +757,12 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	return clusterCache
 }
 
-func setupWebhooks(ctx context.Context, mgr ctrl.Manager, clusterCacheReader webhooks.ClusterCacheReader) {
+func setupWebhooks(mgr ctrl.Manager, clusterCacheReader webhooks.ClusterCacheReader) {
 	// Setup the func to retrieve apiVersion for a GroupKind for conversion webhooks.
-	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
+	apiVersionGetter := func(ctx context.Context, gk schema.GroupKind) (string, error) {
 		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
 	}
-	clusterv1alpha3.SetAPIVersionGetter(apiVersionGetter)
-	clusterv1alpha4.SetAPIVersionGetter(apiVersionGetter)
-	clusterv1beta1.SetAPIVersionGetter(apiVersionGetter)
+	converter.SetAPIVersionGetter(apiVersionGetter)
 
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled.

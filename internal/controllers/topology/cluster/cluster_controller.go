@@ -45,7 +45,6 @@ import (
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -61,6 +60,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/cluster-api/util/converter"
+	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -437,7 +438,7 @@ func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.S
 	if !s.Current.Cluster.Spec.InfrastructureRef.IsDefined() && !s.Current.Cluster.Spec.ControlPlaneRef.IsDefined() {
 		v1beta1Cluster := &clusterv1beta1.Cluster{}
 		// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
-		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
+		if err := converter.ConvertClusterHubToV1Beta1(ctx, s.Current.Cluster.DeepCopy(), v1beta1Cluster); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 		}
 
@@ -531,7 +532,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		if !hooks.IsOkToDelete(cluster) {
 			v1beta1Cluster := &clusterv1beta1.Cluster{}
 			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
-			if err := v1beta1Cluster.ConvertFrom(cluster.DeepCopy()); err != nil {
+			if err := converter.ConvertClusterHubToV1Beta1(ctx, cluster.DeepCopy(), v1beta1Cluster); err != nil {
 				return ctrl.Result{}, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 			}
 

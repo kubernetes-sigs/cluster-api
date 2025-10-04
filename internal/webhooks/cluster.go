@@ -44,6 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/converter"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -57,6 +58,7 @@ func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		For(&clusterv1.Cluster{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(converter.Cluster).
 		Complete()
 }
 

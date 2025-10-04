@@ -21,8 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	"sigs.k8s.io/cluster-api/api/core/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/errors"
 )
 
 // KubeadmControlPlaneRolloutStrategyType defines the rollout strategies for a KubeadmControlPlane.

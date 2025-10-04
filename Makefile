@@ -23,8 +23,8 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.24.7
-GO_DIRECTIVE_VERSION ?= 1.24.0
+GO_VERSION ?= 1.25.3
+GO_DIRECTIVE_VERSION ?= 1.23.0
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
 # Ensure correct toolchain is used
@@ -554,6 +554,7 @@ generate-go-openapi: $(OPENAPI_GEN) ## Generate openapi go code for runtime SDK
 .PHONY: generate-modules
 generate-modules: ## Run go mod tidy to ensure modules are up to date
 	go mod tidy
+	cd ./api/core; go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
 	cd $(TEST_DIR); go mod tidy
 

@@ -59,16 +59,31 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	addonsv1beta1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	ipamv1alpha1 "sigs.k8s.io/cluster-api/api/ipam/v1alpha1"
+	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
+	runtimev1alpha1 "sigs.k8s.io/cluster-api/api/runtime/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	bootstrapwebhooks "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	controlplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
+	addonsv1alpha3 "sigs.k8s.io/cluster-api/internal/api/addons/v1alpha3"
+	addonsv1alpha4 "sigs.k8s.io/cluster-api/internal/api/addons/v1alpha4"
+	bootstrapv1alpha3 "sigs.k8s.io/cluster-api/internal/api/bootstrap/kubeadm/v1alpha3"
+	bootstrapv1alpha4 "sigs.k8s.io/cluster-api/internal/api/bootstrap/kubeadm/v1alpha4"
+	controlplanev1alpha3 "sigs.k8s.io/cluster-api/internal/api/controlplane/kubeadm/v1alpha3"
+	controlplanev1alpha4 "sigs.k8s.io/cluster-api/internal/api/controlplane/kubeadm/v1alpha4"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha3"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha4"
 	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -112,12 +127,33 @@ func registerSchemes(s *runtime.Scheme) {
 	utilruntime.Must(admissionv1.AddToScheme(s))
 	utilruntime.Must(apiextensionsv1.AddToScheme(s))
 
-	utilruntime.Must(addonsv1.AddToScheme(s))
-	utilruntime.Must(bootstrapv1.AddToScheme(s))
-	utilruntime.Must(clusterv1.AddToScheme(s))
-	utilruntime.Must(controlplanev1.AddToScheme(s))
-	utilruntime.Must(ipamv1.AddToScheme(s))
-	utilruntime.Must(runtimev1.AddToScheme(s))
+	// Register all versions so conversion is set up correctly.
+	_ = clusterv1alpha3.AddToScheme(s)
+	_ = clusterv1alpha4.AddToScheme(s)
+	_ = clusterv1beta1.AddToScheme(s)
+	_ = clusterv1.AddToScheme(s)
+
+	_ = addonsv1alpha3.AddToScheme(s)
+	_ = addonsv1alpha4.AddToScheme(s)
+	_ = addonsv1beta1.AddToScheme(s)
+	_ = addonsv1.AddToScheme(s)
+
+	_ = runtimev1alpha1.AddToScheme(s)
+	_ = runtimev1.AddToScheme(s)
+
+	_ = ipamv1alpha1.AddToScheme(s)
+	_ = ipamv1beta1.AddToScheme(s)
+	_ = ipamv1.AddToScheme(s)
+
+	_ = bootstrapv1alpha3.AddToScheme(s)
+	_ = bootstrapv1alpha4.AddToScheme(s)
+	_ = bootstrapv1beta1.AddToScheme(s)
+	_ = bootstrapv1.AddToScheme(s)
+
+	_ = controlplanev1alpha3.AddToScheme(s)
+	_ = controlplanev1alpha4.AddToScheme(s)
+	_ = controlplanev1beta1.AddToScheme(s)
+	_ = controlplanev1.AddToScheme(s)
 }
 
 // RunInput is the input for Run.

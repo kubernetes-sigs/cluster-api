@@ -269,7 +269,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 	}
 }
 
-func Test_reconcileOldMachineSets(t *testing.T) {
+func Test_reconcileOldMachineSetsRolloutRolling(t *testing.T) {
 	var ctx = context.Background()
 
 	tests := []struct {
@@ -284,7 +284,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "no op if there are no replicas on old machinesets",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 10, 1, 0),
+			md:          createMD("v2", 10, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms2", "v2", 10, withStatusReplicas(10), withStatusAvailableReplicas(10)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 0, withStatusReplicas(0), withStatusAvailableReplicas(0)),
@@ -296,7 +296,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "do not scale down if replicas is equal to minAvailable replicas",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 3, 1, 0),
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
@@ -309,7 +309,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "do not scale down if replicas is less then minAvailable replicas",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 3, 1, 0),
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(1)),
@@ -323,7 +323,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "do not scale down if there are more replicas than minAvailable replicas, but scale down from a previous reconcile already takes the availability buffer",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 3, 1, 0),
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 2, withStatusReplicas(3), withStatusAvailableReplicas(3)), // OldMS is scaling down from a previous reconcile
@@ -336,7 +336,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "do not scale down if there are more replicas than minAvailable replicas, but scale down from a previous reconcile already takes the availability buffer, scale down from a previous reconcile on another MSr",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 6, 3, 1),
+			md:          createMD("v2", 6, withRolloutStrategy(3, 1)),
 			newMS:       createMS("ms3", "v2", 3, withStatusReplicas(0), withStatusAvailableReplicas(0)), // NewMS is scaling up from previous reconcile, but replicas do not exists yet
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 2, withStatusReplicas(3), withStatusAvailableReplicas(3)), // OldMS is scaling down from a previous reconcile
@@ -352,7 +352,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 			scaleIntent: map[string]int32{
 				"ms2": 1, // newMS (ms2) has a scaling down intent from current reconcile
 			},
-			md:    createMD("v2", 3, 1, 0),
+			md:    createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS: createMS("ms2", "v2", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
@@ -366,7 +366,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "do not scale down replicas when there are more replicas than minAvailable replicas, but not all the replicas are available (unavailability on newMS)",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 3, 1, 0),
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(0)), // no replicas are available
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3, withStatusReplicas(3), withStatusAvailableReplicas(3)),
@@ -379,7 +379,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "do not scale down replicas when there are more replicas than minAvailable replicas, but not all the replicas are available (unavailability on oldMS)",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 3, 1, 0),
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3, withStatusReplicas(3), withStatusAvailableReplicas(2)), // only 2 replicas are available
@@ -392,7 +392,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "scale down replicas when there are more replicas than minAvailable replicas, all replicas are available",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 3, 1, 0),
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3, withStatusReplicas(3), withStatusAvailableReplicas(3)),
@@ -405,7 +405,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "scale down replicas when there are more replicas than minAvailable replicas, unavailable replicas are scaled down first",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 3, 1, 0),
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms4", "v3", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v0", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
@@ -423,7 +423,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "scale down replicas when there are more replicas than minAvailable replicas, unavailable replicas are scaled down first, available replicas are scaled down when unavailable replicas are gone",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 3, 1, 0),
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms4", "v3", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v0", 3, withStatusReplicas(3), withStatusAvailableReplicas(3)),
@@ -441,7 +441,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "scale down replicas when there are more replicas than minAvailable replicas, unavailable replicas are scaled down first, available replicas are scaled down when unavailable replicas are gone is not affected by replicas without machines",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 3, 1, 0),
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms4", "v3", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v0", 4, withStatusReplicas(3), withStatusAvailableReplicas(3)), // 1 replica without machine
@@ -459,7 +459,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "scale down replicas when there are more replicas than minAvailable replicas, unavailable replicas are scaled down first, scale down stops before breaching minAvailable replicas",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 3, 1, 0),
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms4", "v3", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v0", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
@@ -476,7 +476,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "scale down replicas when there are more replicas than minAvailable replicas, unavailable replicas are scaled down first, scale down stops before breaching minAvailable replicas is not affected by replicas without machines",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 3, 1, 0),
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms4", "v3", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v0", 2, withStatusReplicas(1), withStatusAvailableReplicas(1)), // 1 replica without machine
@@ -494,7 +494,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 		{
 			name:        "scale down replicas when there are more replicas than minAvailable replicas, scale down keeps into account scale downs from a previous reconcile",
 			scaleIntent: map[string]int32{},
-			md:          createMD("v2", 3, 1, 0),
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS:       createMS("ms2", "v3", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v0", 3, withStatusReplicas(4), withStatusAvailableReplicas(4)), // OldMS is scaling down from a previous reconcile
@@ -509,7 +509,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 			scaleIntent: map[string]int32{
 				"ms2": 1, // newMS (ms2) has a scaling down intent from current reconcile
 			},
-			md:    createMD("v2", 3, 1, 0),
+			md:    createMD("v2", 3, withRolloutStrategy(1, 0)),
 			newMS: createMS("ms2", "v3", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
 			oldMSs: []*clusterv1.MachineSet{
 				createMS("ms1", "v0", 3, withStatusReplicas(3), withStatusAvailableReplicas(3)),
@@ -531,7 +531,7 @@ func Test_reconcileOldMachineSets(t *testing.T) {
 				oldMSs:       tt.oldMSs,
 				scaleIntents: tt.scaleIntent,
 			}
-			err := p.reconcileOldMachineSets(ctx)
+			err := p.reconcileOldMachineSetsRolloutRolling(ctx)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(p.scaleIntents).To(Equal(tt.expectScaleIntent), "unexpected scaleIntents")
 

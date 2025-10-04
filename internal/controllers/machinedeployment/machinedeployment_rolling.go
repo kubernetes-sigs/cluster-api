@@ -59,7 +59,7 @@ func (r *Reconciler) rolloutRolling(ctx context.Context, md *clusterv1.MachineDe
 	planner.newMS = newMS
 	planner.oldMSs = oldMSs
 
-	if err := planner.Plan(ctx); err != nil {
+	if err := planner.planRolloutRolling(ctx); err != nil {
 		return err
 	}
 
@@ -100,8 +100,8 @@ func newRolloutPlanner() *rolloutPlanner {
 	}
 }
 
-// Plan determine how to proceed with the rollout if we are not yet at the desired state.
-func (p *rolloutPlanner) Plan(ctx context.Context) error {
+// planRolloutRolling determine how to proceed with the rollout when using the RolloutRolling strategy if we are not yet at the desired state.
+func (p *rolloutPlanner) planRolloutRolling(ctx context.Context) error {
 	if p.md.Spec.Replicas == nil {
 		return errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(p.md))
 	}
@@ -122,7 +122,7 @@ func (p *rolloutPlanner) Plan(ctx context.Context) error {
 	}
 
 	// Scale down, if we can.
-	if err := p.reconcileOldMachineSets(ctx); err != nil {
+	if err := p.reconcileOldMachineSetsRolloutRolling(ctx); err != nil {
 		return err
 	}
 
@@ -168,7 +168,7 @@ func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 	return nil
 }
 
-func (p *rolloutPlanner) reconcileOldMachineSets(ctx context.Context) error {
+func (p *rolloutPlanner) reconcileOldMachineSetsRolloutRolling(ctx context.Context) error {
 	allMSs := append(p.oldMSs, p.newMS)
 
 	// no op if there are no replicas on old machinesets

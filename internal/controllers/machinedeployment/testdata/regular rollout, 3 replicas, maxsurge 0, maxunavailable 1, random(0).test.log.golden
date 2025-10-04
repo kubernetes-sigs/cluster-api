@@ -1,0 +1,105 @@
+## Regular rollout, 3 Replicas, maxSurge 0, maxUnavailable 1, random(0)
+
+[Test] Initial state
+  md, 3/3 replicas
+  - ms1, 3/3 replicas (m1,m2,m3)
+  - ms2, 0/0 replicas ()
+[Test] Rollout 3 replicas, MaxSurge=0, MaxUnavailable=1, random(0)
+[MS controller] Iteration 1, Reconcile ms2, 0/0 replicas ()
+[MS controller] Iteration 1, Reconcile ms1, 3/3 replicas (m1,m2,m3)
+[MD controller] Iteration 1, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 3/3 replicas
+  - ms1, 3/3 replicas (m1,m2,m3)
+  - ms2, 0/0 replicas ()
+[MD controller] - Result of rollout planner
+  md, 3/3 replicas
+  - ms1, 3/2 replicas (m1,m2,m3)
+  - ms2, 0/0 replicas ()
+[MS controller] Iteration 2, Reconcile ms1, 3/2 replicas (m1,m2,m3)
+[MS controller] - ms1 scale down to 2/2 replicas (m1 deleted)
+[MS controller] Iteration 2, Reconcile ms1, 2/2 replicas (m2,m3)
+[MD controller] Iteration 3, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 3/3 replicas
+  - ms1, 2/2 replicas (m2,m3)
+  - ms2, 0/0 replicas ()
+[MD controller] - Result of rollout planner
+  md, 2/3 replicas
+  - ms1, 2/2 replicas (m2,m3)
+  - ms2, 0/1 replicas ()
+[MS controller] Iteration 3, Reconcile ms2, 0/1 replicas ()
+[MS controller] - ms2 scale up to 1/1 replicas (m4 created)
+[MD controller] Iteration 4, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 2/3 replicas
+  - ms1, 2/2 replicas (m2,m3)
+  - ms2, 1/1 replicas (m4)
+[MD controller] - Result of rollout planner
+  md, 3/3 replicas
+  - ms1, 2/1 replicas (m2,m3)
+  - ms2, 1/1 replicas (m4)
+[MS controller] Iteration 4, Reconcile ms1, 2/1 replicas (m2,m3)
+[MS controller] - ms1 scale down to 1/1 replicas (m2 deleted)
+[MS controller] Iteration 4, Reconcile ms2, 1/1 replicas (m4)
+[MS controller] Iteration 5, Reconcile ms2, 1/1 replicas (m4)
+[MD controller] Iteration 5, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 3/3 replicas
+  - ms1, 1/1 replicas (m3)
+  - ms2, 1/1 replicas (m4)
+[MD controller] - Result of rollout planner
+  md, 2/3 replicas
+  - ms1, 1/1 replicas (m3)
+  - ms2, 1/2 replicas (m4)
+[MS controller] Iteration 6, Reconcile ms2, 1/2 replicas (m4)
+[MS controller] - ms2 scale up to 2/2 replicas (m5 created)
+[MD controller] Iteration 7, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 2/3 replicas
+  - ms1, 1/1 replicas (m3)
+  - ms2, 2/2 replicas (m4,m5)
+[MD controller] - Result of rollout planner
+  md, 3/3 replicas
+  - ms1, 1/0 replicas (m3)
+  - ms2, 2/2 replicas (m4,m5)
+[MS controller] Iteration 7, Reconcile ms2, 2/2 replicas (m4,m5)
+[MD controller] Iteration 8, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 3/3 replicas
+  - ms1, 1/0 replicas (m3)
+  - ms2, 2/2 replicas (m4,m5)
+[MD controller] - Result of rollout planner
+  md, 3/3 replicas
+  - ms1, 1/0 replicas (m3)
+  - ms2, 2/2 replicas (m4,m5)
+[MS controller] Iteration 8, Reconcile ms1, 1/0 replicas (m3)
+[MS controller] - ms1 scale down to 0/0 replicas (m3 deleted)
+[MS controller] Iteration 9, Reconcile ms2, 2/2 replicas (m4,m5)
+[MS controller] Iteration 9, Reconcile ms1, 0/0 replicas ()
+[MD controller] Iteration 9, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 3/3 replicas
+  - ms1, 0/0 replicas ()
+  - ms2, 2/2 replicas (m4,m5)
+[MD controller] - Result of rollout planner
+  md, 2/3 replicas
+  - ms1, 0/0 replicas ()
+  - ms2, 2/3 replicas (m4,m5)
+[MS controller] Iteration 10, Reconcile ms2, 2/3 replicas (m4,m5)
+[MS controller] - ms2 scale up to 3/3 replicas (m6 created)
+[MS controller] Iteration 10, Reconcile ms1, 0/0 replicas ()
+[MS controller] Iteration 11, Reconcile ms2, 3/3 replicas (m4,m5,m6)
+[MD controller] Iteration 11, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 2/3 replicas
+  - ms1, 0/0 replicas ()
+  - ms2, 3/3 replicas (m4,m5,m6)
+[MD controller] - Result of rollout planner
+  md, 3/3 replicas
+  - ms1, 0/0 replicas ()
+  - ms2, 3/3 replicas (m4,m5,m6)
+[Test] Final state
+  md, 3/3 replicas
+  - ms1, 0/0 replicas ()
+  - ms2, 3/3 replicas (m4,m5,m6)

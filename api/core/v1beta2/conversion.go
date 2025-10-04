@@ -24,7 +24,6 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func (*Cluster) Hub()            {}
 func (*ClusterClass) Hub()       {}
 func (*Machine) Hub()            {}
 func (*MachineSet) Hub()         {}

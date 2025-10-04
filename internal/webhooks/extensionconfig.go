@@ -31,7 +31,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/conversion"
 
+	runtimev1alpha1 "sigs.k8s.io/cluster-api/api/runtime/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 )
@@ -40,10 +42,14 @@ import (
 type ExtensionConfig struct{}
 
 func (webhook *ExtensionConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
+
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&runtimev1.ExtensionConfig{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverter(conversion.MustNewHubSpokeConverter(mgr.GetScheme(), &runtimev1.ExtensionConfig{},
+			conversion.NewSpokeConverter(&runtimev1alpha1.ExtensionConfig{}, ConvertExtensionConfigHubToV1Alpha1, ConvertExtensionConfigV1Alpha1ToHub),
+		)).
 		Complete()
 }
 

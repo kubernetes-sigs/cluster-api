@@ -55,6 +55,7 @@ func TestFuzzyConversion(t *testing.T) {
 		return "", fmt.Errorf("failed to map GroupKind %s to version", gk.String())
 	})
 
+	// FIXME: implement a new test util for the new conversion.
 	t.Run("for Cluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.Cluster{},
 		Spoke:       &Cluster{},

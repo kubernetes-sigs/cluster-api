@@ -36,10 +36,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/conversion"
 
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha3"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha4"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
@@ -57,6 +61,11 @@ func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		For(&clusterv1.Cluster{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
+		WithConverters(
+			conversion.NewConverter(&clusterv1.Cluster{}, &clusterv1beta1.Cluster{}, ConvertClusterHubToV1Beta1, ConvertClusterV1Beta1ToHub),
+			conversion.NewConverter(&clusterv1.Cluster{}, &clusterv1alpha4.Cluster{}, ConvertClusterHubToV1Alpha4, ConvertClusterV1Alpha4ToHub),
+			conversion.NewConverter(&clusterv1.Cluster{}, &clusterv1alpha3.Cluster{}, ConvertClusterHubToV1Alpha3, ConvertClusterV1Alpha3ToHub),
+		).
 		Complete()
 }
 

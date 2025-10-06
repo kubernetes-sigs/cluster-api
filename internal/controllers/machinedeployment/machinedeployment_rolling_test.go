@@ -334,7 +334,7 @@ func Test_reconcileOldMachineSetsRolloutRolling(t *testing.T) {
 			},
 		},
 		{
-			name:        "do not scale down if there are more replicas than minAvailable replicas, but scale down from a previous reconcile already takes the availability buffer, scale down from a previous reconcile on another MSr",
+			name:        "do not scale down if there are more replicas than minAvailable replicas, but scale down from a previous reconcile already takes the availability buffer, scale down from a previous reconcile on another MS",
 			scaleIntent: map[string]int32{},
 			md:          createMD("v2", 6, withRolloutStrategy(3, 1)),
 			newMS:       createMS("ms3", "v2", 3, withStatusReplicas(0), withStatusAvailableReplicas(0)), // NewMS is scaling up from previous reconcile, but replicas do not exists yet
@@ -573,7 +573,7 @@ func Test_reconcileDeadlockBreaker(t *testing.T) {
 			scaleIntent: map[string]int32{},
 			newMS:       createMS("ms2", "v2", 10, withStatusReplicas(10), withStatusAvailableReplicas(10)),
 			oldMSs: []*clusterv1.MachineSet{
-				createMS("ms1", "v1", 0, withStatusReplicas(0), withStatusAvailableReplicas(0)),
+				createMS("ms1", "v1", 0, withStatusReplicas(0), withStatusAvailableReplicas(0)), // there no replicas, not a deadlock, we are actually at desired state
 			},
 			expectScaleIntent: map[string]int32{
 				// no new scale down intent for oldMSs (ms1):
@@ -584,7 +584,7 @@ func Test_reconcileDeadlockBreaker(t *testing.T) {
 			scaleIntent: map[string]int32{},
 			newMS:       createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
 			oldMSs: []*clusterv1.MachineSet{
-				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)), // there no unavailable replicas, not a deadlock (rollout will continue as usual)
 			},
 			expectScaleIntent: map[string]int32{
 				// no new scale down intent for oldMSs (ms1):
@@ -595,7 +595,7 @@ func Test_reconcileDeadlockBreaker(t *testing.T) {
 			scaleIntent: map[string]int32{},
 			newMS:       createMS("ms2", "v2", 6, withStatusReplicas(5), withStatusAvailableReplicas(5)), // scale up from a previous reconcile
 			oldMSs: []*clusterv1.MachineSet{
-				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(4)), // one unavailable replica, potential deadlock
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(4)), // there is at least one unavailable replica, not yet considered deadlock because scale operation still in progress
 			},
 			expectScaleIntent: map[string]int32{
 				// no new scale down intent for oldMSs (ms1):
@@ -606,7 +606,7 @@ func Test_reconcileDeadlockBreaker(t *testing.T) {
 			scaleIntent: map[string]int32{},
 			newMS:       createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
 			oldMSs: []*clusterv1.MachineSet{
-				createMS("ms1", "v1", 4, withStatusReplicas(5), withStatusAvailableReplicas(4)), // one unavailable replica, potential deadlock, scale down from a previous reconcile
+				createMS("ms1", "v1", 4, withStatusReplicas(5), withStatusAvailableReplicas(4)), // there is at least one unavailable replica, not yet considered deadlock because scale operation still in progress
 			},
 			expectScaleIntent: map[string]int32{
 				// no new scale down intent for oldMSs (ms1):
@@ -619,7 +619,7 @@ func Test_reconcileDeadlockBreaker(t *testing.T) {
 			},
 			newMS: createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
 			oldMSs: []*clusterv1.MachineSet{
-				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(4)), // one unavailable replica, potential deadlock
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(4)), // there is at least one unavailable replica, not yet considered deadlock because scale operation still in progress
 			},
 			expectScaleIntent: map[string]int32{
 				"ms2": 6,
@@ -633,7 +633,7 @@ func Test_reconcileDeadlockBreaker(t *testing.T) {
 			},
 			newMS: createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
 			oldMSs: []*clusterv1.MachineSet{
-				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(4)), // one unavailable replica, potential deadlock
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(4)), // there is at least one unavailable replica, not yet considered deadlock because scale operation still in progress
 			},
 			expectScaleIntent: map[string]int32{
 				// no new scale down intent for oldMSs (ms1):
@@ -645,7 +645,7 @@ func Test_reconcileDeadlockBreaker(t *testing.T) {
 			scaleIntent: map[string]int32{},
 			newMS:       createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(3)), // one unavailable replica
 			oldMSs: []*clusterv1.MachineSet{
-				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(4)), // one unavailable replica, potential deadlock
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(4)), // there is at least one unavailable replica, no scale operations in progress, potential deadlock, but the system must wait until all replica on newMS are available before unblocking further deletion on oldMS.
 			},
 			expectScaleIntent: map[string]int32{
 				// no new scale down intent for oldMSs (ms1):
@@ -656,7 +656,7 @@ func Test_reconcileDeadlockBreaker(t *testing.T) {
 			scaleIntent: map[string]int32{},
 			newMS:       createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
 			oldMSs: []*clusterv1.MachineSet{
-				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(3)), // one unavailable replica, potential deadlock
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(3)), // there is at least one unavailable replica, all replicas on newMS available, no scale operations in progress, deadlock
 			},
 			expectScaleIntent: map[string]int32{
 				// new scale down intent for oldMSs (ms1):

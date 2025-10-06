@@ -282,7 +282,8 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 			tbl := CreateObjectTreeV1Beta1(&output)
 
 			// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
-			addObjectRowV1Beta1("", tbl, tt.objectTree, tt.objectTree.GetRoot())
+			err := addObjectRowV1Beta1("", tbl, tt.objectTree, tt.objectTree.GetRoot())
+			g.Expect(err).ToNot(HaveOccurred(), "Failed to add object rows")
 			if err := tbl.Render(); err != nil {
 				fmt.Printf("Error rendering table: %v", err)
 				os.Exit(1)
@@ -512,7 +513,8 @@ func Test_TreePrefix(t *testing.T) {
 			tbl := CreateObjectTree(&output)
 
 			// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
-			addObjectRow("", tbl, tt.objectTree, tt.objectTree.GetRoot())
+			err := addObjectRow("", tbl, tt.objectTree, tt.objectTree.GetRoot())
+			g.Expect(err).ToNot(HaveOccurred(), "Failed to add object rows")
 
 			if err := tbl.Render(); err != nil {
 				fmt.Printf("Error rendering table: %v", err)

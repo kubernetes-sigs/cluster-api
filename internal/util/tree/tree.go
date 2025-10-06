@@ -115,39 +115,45 @@ func CreateObjectTreeV1Beta1(w io.Writer) *tablewriter.Table {
 
 // PrintObjectTree prints the cluster status to stdout.
 // Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
-func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) {
+func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) error {
 	tbl := CreateObjectTree(w)
 
 	tbl.Header([]string{"NAME", "REPLICAS", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
 
-	addObjectRow("", tbl, tree, tree.GetRoot())
+	if err := addObjectRow("", tbl, tree, tree.GetRoot()); err != nil {
+		return fmt.Errorf("failed to add object rows: %w", err)
+	}
 
 	// Prints the output table
 	if err := tbl.Render(); err != nil {
-		fmt.Printf("Error rendering table: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to render table: %w", err)
 	}
+
+	return nil
 }
 
 // PrintObjectTreeV1Beta1 prints the cluster status to stdout.
 // Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
-func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) {
+func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) error {
 	tbl := CreateObjectTreeV1Beta1(os.Stdin)
 	tbl.Header([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
 
 	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
-	addObjectRowV1Beta1("", tbl, tree, tree.GetRoot())
+	if err := addObjectRowV1Beta1("", tbl, tree, tree.GetRoot()); err != nil {
+		return fmt.Errorf("failed to add object rows: %w", err)
+	}
 
 	// Prints the output table
 	if err := tbl.Render(); err != nil {
-		fmt.Printf("Error rendering table: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to render table: %w", err)
 	}
+
+	return nil
 }
 
 // addObjectRow add a row for a given object, and recursively for all the object's children.
 // NOTE: each row name gets a prefix, that generates a tree view like representation.
-func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
+func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) error {
 	// Get a row descriptor for a given object.
 	// With v1beta2, the return value of this func adapt to the object represented in the line.
 	rowDescriptor := newRowDescriptor(obj)
@@ -195,8 +201,7 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 		rowDescriptor.reason,
 		rowDescriptor.age,
 		msg0}); err != nil {
-		fmt.Printf("Error appending row: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to append main row: %w", err)
 	}
 
 	multilinePrefix := getRootMultiLineObjectPrefix(obj, objectTree)
@@ -211,14 +216,15 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 			"",
 			"",
 			m}); err != nil {
-			fmt.Printf("Error appending row: %v", err)
-			os.Exit(1)
+			return fmt.Errorf("failed to append multiline row: %w", err)
 		}
 	}
 
 	// If it is required to show all the conditions for the object, add a row for each object's conditions.
 	if tree.IsShowConditionsObject(obj) {
-		addOtherConditions(prefix, tbl, objectTree, obj)
+		if err := addOtherConditions(prefix, tbl, objectTree, obj); err != nil {
+			return fmt.Errorf("failed to add other conditions: %w", err)
+		}
 	}
 
 	// Add a row for each object's children, taking care of updating the tree view prefix.
@@ -226,8 +232,12 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 	childrenObj = orderChildrenObjects(childrenObj)
 
 	for i, child := range childrenObj {
-		addObjectRow(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child)
+		if err := addObjectRow(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child); err != nil {
+			return fmt.Errorf("failed to add child object row: %w", err)
+		}
 	}
+
+	return nil
 }
 
 func orderChildrenObjects(childrenObj []ctrlclient.Object) []ctrlclient.Object {
@@ -247,7 +257,7 @@ func orderChildrenObjects(childrenObj []ctrlclient.Object) []ctrlclient.Object {
 
 // addObjectRowV1Beta1 add a row for a given object, and recursively for all the object's children.
 // NOTE: each row name gets a prefix, that generates a tree view like representation.
-func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
+func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) error {
 	// Gets the descriptor for the object's ready condition, if any.
 	readyDescriptor := v1beta1ConditionDescriptor{readyColor: gray}
 	if ready := tree.GetV1Beta1ReadyCondition(obj); ready != nil {
@@ -278,13 +288,14 @@ func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree
 		readyDescriptor.readyColor.Sprint(readyDescriptor.reason),
 		readyDescriptor.age,
 		readyDescriptor.message}); err != nil {
-		fmt.Printf("Error appending row: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to append main row: %w", err)
 	}
 
 	// If it is required to show all the conditions for the object, add a row for each object's conditions.
 	if tree.IsShowConditionsObject(obj) {
-		addOtherConditionsV1Beta1(prefix, tbl, objectTree, obj)
+		if err := addOtherConditionsV1Beta1(prefix, tbl, objectTree, obj); err != nil {
+			return fmt.Errorf("failed to add other conditions: %w", err)
+		}
 	}
 
 	// Add a row for each object's children, taking care of updating the tree view prefix.
@@ -303,12 +314,16 @@ func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree
 	sort.Slice(childrenObj, printBefore)
 
 	for i, child := range childrenObj {
-		addObjectRowV1Beta1(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child)
+		if err := addObjectRowV1Beta1(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child); err != nil {
+			return fmt.Errorf("failed to add child object row: %w", err)
+		}
 	}
+
+	return nil
 }
 
 // addOtherConditions adds a row for each object condition.
-func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
+func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) error {
 	// Add a row for each other condition, taking care of updating the tree view prefix.
 	// In this case the tree prefix get a filler, to indent conditions from objects, and eventually a
 	// and additional pipe if the object has children that should be presented after the conditions.
@@ -355,8 +370,7 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 			reason,
 			age,
 			msg0}); err != nil {
-			fmt.Printf("Error appending row: %v", err)
-			os.Exit(1)
+			return fmt.Errorf("failed to append condition row: %w", err)
 		}
 
 		for _, m := range msg[1:] {
@@ -370,16 +384,17 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 				"",
 				"",
 				m}); err != nil {
-				fmt.Printf("Error appending row: %v", err)
-				os.Exit(1)
+				return fmt.Errorf("failed to append multiline condition row: %w", err)
 			}
 		}
 	}
+
+	return nil
 }
 
 // addOtherConditionsV1Beta1 adds a row for each object condition except the ready condition,
 // which is already represented on the object's main row.
-func addOtherConditionsV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
+func addOtherConditionsV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) error {
 	// Add a row for each other condition, taking care of updating the tree view prefix.
 	// In this case the tree prefix get a filler, to indent conditions from objects, and eventually a
 	// and additional pipe if the object has children that should be presented after the conditions.
@@ -401,10 +416,11 @@ func addOtherConditionsV1Beta1(prefix string, tbl *tablewriter.Table, objectTree
 			otherDescriptor.readyColor.Sprint(otherDescriptor.reason),
 			otherDescriptor.age,
 			otherDescriptor.message}); err != nil {
-			fmt.Printf("Error appending row: %v", err)
-			os.Exit(1)
+			return fmt.Errorf("failed to append other condition row: %w", err)
 		}
 	}
+
+	return nil
 }
 
 // getChildPrefix return the tree view prefix for a row representing a child object.

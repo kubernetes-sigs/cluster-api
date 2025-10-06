@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/fatih/color"
@@ -158,9 +159,13 @@ func runDescribeCluster(cmd *cobra.Command, name string) error {
 
 	switch dc.v1beta2 {
 	case true:
-		cmdtree.PrintObjectTree(tree, os.Stdout)
+		if err := cmdtree.PrintObjectTree(tree, os.Stdout); err != nil {
+			return fmt.Errorf("failed to print object tree: %w", err)
+		}
 	default:
-		cmdtree.PrintObjectTreeV1Beta1(tree)
+		if err := cmdtree.PrintObjectTreeV1Beta1(tree); err != nil {
+			return fmt.Errorf("failed to print object tree v1beta1: %w", err)
+		}
 	}
 
 	return nil

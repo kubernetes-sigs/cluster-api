@@ -1,0 +1,215 @@
+## 6 replicas, maxUserUnavailable 2
+
+[Test] Initial state
+  md, 6/6 replicas
+  - ms1, 6/6 replicas (m1,m2,m3,m4,m5,m6)
+  - ms2, 0/0 replicas ()
+[Test] Rollout 6 replicas, onDeleteStrategy
+[MD controller] Iteration 1, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 6/6 replicas (m1,m2,m3,m4,m5,m6)
+  - ms2, 0/0 replicas ()
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 6/6 replicas (m1,m2,m3,m4,m5,m6)
+  - ms2, 0/0 replicas ()
+[MS controller] Iteration 1, Reconcile ms1, 6/6 replicas (m1,m2,m3,m4,m5,m6)
+[MS controller] Iteration 1, Reconcile ms2, 0/0 replicas ()
+[User] Iteration 1, Deleting machine m1
+[M controller] Iteration 1, Reconcile m1
+[M controller] - m1 finalizer removed
+[M controller] Iteration 1, Reconcile m2
+[M controller] Iteration 1, Reconcile m3
+[M controller] Iteration 1, Reconcile m4
+[M controller] Iteration 1, Reconcile m5
+[M controller] Iteration 1, Reconcile m6
+[MD controller] Iteration 2, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 6/6 replicas (m2,m3,m4,m5,m6)
+  - ms2, 0/0 replicas ()
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 6/6 replicas (m2,m3,m4,m5,m6)
+  - ms2, 0/0 replicas ()
+[MS controller] Iteration 2, Reconcile ms1, 6/6 replicas (m2,m3,m4,m5,m6)
+[MS controller] Iteration 2, Reconcile ms2, 0/0 replicas ()
+[User] Iteration 2, Deleting machine m2
+[M controller] Iteration 2, Reconcile m2
+[M controller] - m2 finalizer removed
+[M controller] Iteration 2, Reconcile m3
+[M controller] Iteration 2, Reconcile m4
+[M controller] Iteration 2, Reconcile m5
+[M controller] Iteration 2, Reconcile m6
+[MD controller] Iteration 3, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 5/6 replicas (m3,m4,m5,m6)
+  - ms2, 0/0 replicas ()
+[MD controller] - Result of rollout planner
+  md, 5/6 replicas
+  - ms1, 5/5 replicas (m3,m4,m5,m6)
+  - ms2, 0/0 replicas ()
+[MS controller] Iteration 3, Reconcile ms1, 5/5 replicas (m3,m4,m5,m6)
+[MS controller] Iteration 3, Reconcile ms2, 0/0 replicas ()
+[M controller] Iteration 3, Reconcile m3
+[M controller] Iteration 3, Reconcile m4
+[M controller] Iteration 3, Reconcile m5
+[M controller] Iteration 3, Reconcile m6
+[MD controller] Iteration 4, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 5/6 replicas
+  - ms1, 4/5 replicas (m3,m4,m5,m6)
+  - ms2, 0/0 replicas ()
+[MD controller] - Result of rollout planner
+  md, 4/6 replicas
+  - ms1, 4/4 replicas (m3,m4,m5,m6)
+  - ms2, 0/1 replicas ()
+[MS controller] Iteration 4, Reconcile ms1, 4/4 replicas (m3,m4,m5,m6)
+[MS controller] Iteration 4, Reconcile ms2, 0/1 replicas ()
+[MS controller] - ms2 scale up to 1/1 replicas (m7 created)
+[User] Iteration 4, Deleting machine m3
+[M controller] Iteration 4, Reconcile m3
+[M controller] - m3 finalizer removed
+[M controller] Iteration 4, Reconcile m4
+[M controller] Iteration 4, Reconcile m5
+[M controller] Iteration 4, Reconcile m6
+[MD controller] Iteration 5, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 4/6 replicas
+  - ms1, 4/4 replicas (m4,m5,m6)
+  - ms2, 1/1 replicas (m7)
+[MD controller] - Result of rollout planner
+  md, 5/6 replicas
+  - ms1, 4/4 replicas (m4,m5,m6)
+  - ms2, 1/2 replicas (m7)
+[MS controller] Iteration 5, Reconcile ms1, 4/4 replicas (m4,m5,m6)
+[MS controller] Iteration 5, Reconcile ms2, 1/2 replicas (m7)
+[MS controller] - ms2 scale up to 2/2 replicas (m8 created)
+[User] Iteration 5, Deleting machine m4
+[M controller] Iteration 5, Reconcile m4
+[M controller] - m4 finalizer removed
+[M controller] Iteration 5, Reconcile m5
+[M controller] Iteration 5, Reconcile m6
+[M controller] Iteration 5, Reconcile m7
+[MD controller] Iteration 6, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 5/6 replicas
+  - ms1, 3/4 replicas (m5,m6)
+  - ms2, 2/2 replicas (m7,m8)
+[MD controller] - Result of rollout planner
+  md, 5/6 replicas
+  - ms1, 3/3 replicas (m5,m6)
+  - ms2, 2/2 replicas (m7,m8)
+[MS controller] Iteration 6, Reconcile ms1, 3/3 replicas (m5,m6)
+[MS controller] Iteration 6, Reconcile ms2, 2/2 replicas (m7,m8)
+[M controller] Iteration 6, Reconcile m5
+[M controller] Iteration 6, Reconcile m6
+[M controller] Iteration 6, Reconcile m7
+[M controller] Iteration 6, Reconcile m8
+[MD controller] Iteration 7, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 5/6 replicas
+  - ms1, 2/3 replicas (m5,m6)
+  - ms2, 2/2 replicas (m7,m8)
+[MD controller] - Result of rollout planner
+  md, 4/6 replicas
+  - ms1, 2/2 replicas (m5,m6)
+  - ms2, 2/3 replicas (m7,m8)
+[MS controller] Iteration 7, Reconcile ms1, 2/2 replicas (m5,m6)
+[MS controller] Iteration 7, Reconcile ms2, 2/3 replicas (m7,m8)
+[MS controller] - ms2 scale up to 3/3 replicas (m9 created)
+[User] Iteration 7, Deleting machine m5
+[M controller] Iteration 7, Reconcile m5
+[M controller] - m5 finalizer removed
+[M controller] Iteration 7, Reconcile m6
+[M controller] Iteration 7, Reconcile m7
+[M controller] Iteration 7, Reconcile m8
+[MD controller] Iteration 8, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 4/6 replicas
+  - ms1, 2/2 replicas (m6)
+  - ms2, 3/3 replicas (m7,m8,m9)
+[MD controller] - Result of rollout planner
+  md, 5/6 replicas
+  - ms1, 2/2 replicas (m6)
+  - ms2, 3/4 replicas (m7,m8,m9)
+[MS controller] Iteration 8, Reconcile ms1, 2/2 replicas (m6)
+[MS controller] Iteration 8, Reconcile ms2, 3/4 replicas (m7,m8,m9)
+[MS controller] - ms2 scale up to 4/4 replicas (m10 created)
+[User] Iteration 8, Deleting machine m6
+[M controller] Iteration 8, Reconcile m6
+[M controller] - m6 finalizer removed
+[M controller] Iteration 8, Reconcile m7
+[M controller] Iteration 8, Reconcile m8
+[M controller] Iteration 8, Reconcile m9
+[MD controller] Iteration 9, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 5/6 replicas
+  - ms1, 1/2 replicas ()
+  - ms2, 4/4 replicas (m7,m8,m9,m10)
+[MD controller] - Result of rollout planner
+  md, 5/6 replicas
+  - ms1, 1/1 replicas ()
+  - ms2, 4/4 replicas (m7,m8,m9,m10)
+[MS controller] Iteration 9, Reconcile ms1, 1/1 replicas ()
+[MS controller] Iteration 9, Reconcile ms2, 4/4 replicas (m7,m8,m9,m10)
+[M controller] Iteration 9, Reconcile m7
+[M controller] Iteration 9, Reconcile m8
+[M controller] Iteration 9, Reconcile m9
+[M controller] Iteration 9, Reconcile m10
+[MD controller] Iteration 10, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 5/6 replicas
+  - ms1, 0/1 replicas ()
+  - ms2, 4/4 replicas (m7,m8,m9,m10)
+[MD controller] - Result of rollout planner
+  md, 4/6 replicas
+  - ms1, 0/0 replicas ()
+  - ms2, 4/5 replicas (m7,m8,m9,m10)
+[MS controller] Iteration 10, Reconcile ms1, 0/0 replicas ()
+[MS controller] Iteration 10, Reconcile ms2, 4/5 replicas (m7,m8,m9,m10)
+[MS controller] - ms2 scale up to 5/5 replicas (m11 created)
+[M controller] Iteration 10, Reconcile m7
+[M controller] Iteration 10, Reconcile m8
+[M controller] Iteration 10, Reconcile m9
+[M controller] Iteration 10, Reconcile m10
+[MD controller] Iteration 11, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 4/6 replicas
+  - ms1, 0/0 replicas ()
+  - ms2, 5/5 replicas (m7,m8,m9,m10,m11)
+[MD controller] - Result of rollout planner
+  md, 5/6 replicas
+  - ms1, 0/0 replicas ()
+  - ms2, 5/6 replicas (m7,m8,m9,m10,m11)
+[MS controller] Iteration 11, Reconcile ms1, 0/0 replicas ()
+[MS controller] Iteration 11, Reconcile ms2, 5/6 replicas (m7,m8,m9,m10,m11)
+[MS controller] - ms2 scale up to 6/6 replicas (m12 created)
+[M controller] Iteration 11, Reconcile m7
+[M controller] Iteration 11, Reconcile m8
+[M controller] Iteration 11, Reconcile m9
+[M controller] Iteration 11, Reconcile m10
+[M controller] Iteration 11, Reconcile m11
+[MD controller] Iteration 12, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 5/6 replicas
+  - ms1, 0/0 replicas ()
+  - ms2, 6/6 replicas (m7,m8,m9,m10,m11,m12)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ()
+  - ms2, 6/6 replicas (m7,m8,m9,m10,m11,m12)
+[MS controller] Iteration 12, Reconcile ms1, 0/0 replicas ()
+[MS controller] Iteration 12, Reconcile ms2, 6/6 replicas (m7,m8,m9,m10,m11,m12)
+[M controller] Iteration 12, Reconcile m7
+[M controller] Iteration 12, Reconcile m8
+[M controller] Iteration 12, Reconcile m9
+[M controller] Iteration 12, Reconcile m10
+[M controller] Iteration 12, Reconcile m11
+[M controller] Iteration 12, Reconcile m12
+[Test] Final state
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ()
+  - ms2, 6/6 replicas (m7,m8,m9,m10,m11,m12)

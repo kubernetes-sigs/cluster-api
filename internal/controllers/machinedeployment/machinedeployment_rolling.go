@@ -263,7 +263,7 @@ func (p *rolloutPlanner) scaleDownOldMSs(ctx context.Context, totalScaleDownCoun
 
 		replicas := ptr.Deref(oldMS.Spec.Replicas, 0)
 		if v, ok := p.scaleIntents[oldMS.Name]; ok {
-			replicas = min(replicas, v)
+			replicas = v
 		}
 
 		// No op if this MS has been already scaled down to zero.
@@ -364,13 +364,11 @@ func (p *rolloutPlanner) reconcileDeadlockBreaker(ctx context.Context) {
 
 	// If there are scale operation in progress, no deadlock.
 	// Note: we are considering both scale operation from previous and current reconcile.
-	// Note: we are counting only pending scale up & down from the current status.replicas (so actual scale up & down of replicas number, not any other possible "re-alignment" of spec.replicas).
 	for _, ms := range allMSs {
-		scaleIntent := ptr.Deref(ms.Spec.Replicas, 0)
-		if v, ok := p.scaleIntents[ms.Name]; ok {
-			scaleIntent = v
+		if ptr.Deref(ms.Spec.Replicas, 0) != ptr.Deref(ms.Status.Replicas, 0) {
+			return
 		}
-		if scaleIntent != ptr.Deref(ms.Status.Replicas, 0) {
+		if _, ok := p.scaleIntents[ms.Name]; ok {
 			return
 		}
 	}
@@ -387,8 +385,9 @@ func (p *rolloutPlanner) reconcileDeadlockBreaker(ctx context.Context) {
 	// At this point we can assume there is a deadlock that can only be remediated by breaching maxUnavailability constraint
 	// and scaling down an oldMS with unavailable machines by one.
 	//
-	// Note: in most cases this is only a formal violation of maxUnavailability, because there is a good chance
+	// Note: In most cases this is only a formal violation of maxUnavailability, because there is a good chance
 	// that the machine that will be deleted is one of the unavailable machines.
+	// Note: This for loop relies on the same ordering of oldMSs that has been applied by reconcileOldMachineSetsRolloutRolling.
 	for _, oldMS := range p.oldMSs {
 		if ptr.Deref(oldMS.Status.AvailableReplicas, 0) == ptr.Deref(oldMS.Status.Replicas, 0) || ptr.Deref(oldMS.Spec.Replicas, 0) == 0 {
 			continue

@@ -348,7 +348,7 @@ func Test_reconcileOldMachineSetsRolloutRolling(t *testing.T) {
 			},
 		},
 		{
-			name: "do not scale down if there are more replicas than minAvailable replicas, but scale down from current reconcile already takes the availability buffer",
+			name: "do not scale down if there are more replicas than minAvailable replicas, but scale down from current reconcile already takes the availability buffer (newMS is scaling down)",
 			scaleIntent: map[string]int32{
 				"ms2": 1, // newMS (ms2) has a scaling down intent from current reconcile
 			},
@@ -361,6 +361,22 @@ func Test_reconcileOldMachineSetsRolloutRolling(t *testing.T) {
 				"ms2": 1,
 				// no new scale down intent for oldMSs (ms1):
 				// 2 available replicas from ms1 + 2 available replicas from ms2 - 1 replica already scaling down from ms2 = 3 available replicas == minAvailability, we cannot further scale down
+			},
+		},
+		{
+			name: "do not scale down if there are more replicas than minAvailable replicas, but scale down from current reconcile already takes the availability buffer (oldMS is scaling down)",
+			scaleIntent: map[string]int32{
+				"ms1": 1, // oldMS (ms1) has a scaling down intent from current reconcile
+			},
+			md:    createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS: createMS("ms2", "v2", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs:
+				"ms1": 1,
+				// 2 available replicas from ms1 - 1 replica already scaling down from ms1 + 2 available replicas from ms2 = 3 available replicas == minAvailability, we cannot further scale down
 			},
 		},
 		{
@@ -501,11 +517,11 @@ func Test_reconcileOldMachineSetsRolloutRolling(t *testing.T) {
 			},
 			expectScaleIntent: map[string]int32{
 				// new scale down intent for oldMSs:
-				"ms1": 2, // 4 available replicas from ms1 - 1 replica already scaling down from ms1 + 2 available replicas from ms2 = 4 available replicas > minAvailability, scale down to 2 (-1)
+				"ms1": 2, // 4 available replicas from ms1 - 1 replica already scaling down from ms1 + 2 available replicas from ms2 = 5 available replicas > minAvailability, scale down to 2 (-1)
 			},
 		},
 		{
-			name: "scale down replicas when there are more replicas than minAvailable replicas, scale down keeps into account scale downs from the current reconcile",
+			name: "scale down replicas when there are more replicas than minAvailable replicas, scale down keeps into account scale downs from the current reconcile (newMS is scaling down)",
 			scaleIntent: map[string]int32{
 				"ms2": 1, // newMS (ms2) has a scaling down intent from current reconcile
 			},
@@ -518,6 +534,21 @@ func Test_reconcileOldMachineSetsRolloutRolling(t *testing.T) {
 				"ms2": 1,
 				// new scale down intent for oldMSs:
 				"ms1": 2, // 3 available replicas from ms1 + 2 available replicas from ms2 - 1 replica already scaling down from ms2 = 4 available replicas > minAvailability, scale down to 2 (-1)
+			},
+		},
+		{
+			name: "scale down replicas when there are more replicas than minAvailable replicas, scale down keeps into account scale downs from the current reconcile (oldMS is scaling down)",
+			scaleIntent: map[string]int32{
+				"ms1": 2, // oldMS (ms1) has a scaling down intent from current reconcile
+			},
+			md:    createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS: createMS("ms2", "v3", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v0", 3, withStatusReplicas(3), withStatusAvailableReplicas(3)),
+			},
+			expectScaleIntent: map[string]int32{
+				// new scale down intent for oldMSs:
+				"ms1": 1, // 3 available replicas from ms1 - 1 replica already scaling down from ms1 + 2 available replicas from ms2 = 4 available replicas > minAvailability, scale down to 1 (-1)
 			},
 		},
 	}

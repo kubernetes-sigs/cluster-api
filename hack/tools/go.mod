@@ -16,7 +16,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/valyala/fastjson v1.6.4
 	golang.org/x/oauth2 v0.31.0
-	google.golang.org/api v0.250.0
+	google.golang.org/api v0.251.0
 	k8s.io/api v0.34.1
 	k8s.io/apiextensions-apiserver v0.34.1
 	k8s.io/apimachinery v0.34.1
@@ -26,7 +26,7 @@ require (
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/controller-runtime v0.22.1
+	sigs.k8s.io/controller-runtime v0.22.2
 	sigs.k8s.io/controller-tools v0.19.0
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20211028165026-57688c578b5d
 	sigs.k8s.io/kustomize/api v0.17.3
@@ -70,7 +70,7 @@ require (
 
 require (
 	cloud.google.com/go v0.121.6 // indirect
-	cloud.google.com/go/compute/metadata v0.8.4 // indirect
+	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.5.2 // indirect
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
@@ -85,7 +85,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/docker v28.4.0+incompatible // indirect
+	github.com/docker/docker v28.5.0+incompatible // indirect
 	github.com/docker/go-connections v0.6.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46
@@ -164,7 +164,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/genproto v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250818200422-3122310a409c // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250908214217-97024824d090 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250929231259-57b25ae835d4 // indirect
 	google.golang.org/grpc v1.75.1 // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect

@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -249,6 +250,48 @@ func PatchNodeCondition(ctx context.Context, input PatchNodeConditionInput) {
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, node)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch node %s", input.Machine.Status.NodeRef.Name)
+}
+
+type PatchMachineConditionInput struct {
+	ClusterProxy     ClusterProxy
+	Cluster          *clusterv1.Cluster
+	Machine          *clusterv1.Machine
+	MachineCondition clusterv1.Condition
+}
+
+// PatchMachineCondition patches a Machine resource's status with a given condition
+// to simulate an unhealthy machine for MHC testing.
+func PatchMachineCondition(ctx context.Context, input PatchMachineConditionInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for PatchMachineCondition")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling PatchMachineCondition")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling PatchMachineCondition")
+	Expect(input.Machine).ToNot(BeNil(), "Invalid argument. input.Machine can't be nil when calling PatchMachineCondition")
+
+	machine := &clusterv1.Machine{}
+	Eventually(func() error {
+		return input.ClusterProxy.GetClient().Get(ctx, types.NamespacedName{
+			Namespace: input.Machine.Namespace,
+			Name:      input.Machine.Name,
+		}, machine)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Machine %s", input.Machine.Name)
+
+	patchHelper, err := patch.NewHelper(machine, input.ClusterProxy.GetClient())
+	Expect(err).ToNot(HaveOccurred())
+
+	// Convert clusterv1.Condition -> metav1.Condition
+	cond := metav1.Condition{
+		Type:               string(input.MachineCondition.Type),
+		Status:             metav1.ConditionStatus(input.MachineCondition.Status),
+		LastTransitionTime: input.MachineCondition.LastTransitionTime,
+		Reason:             input.MachineCondition.Reason,
+		Message:            input.MachineCondition.Message,
+	}
+
+	machine.Status.Conditions = append(machine.Status.Conditions, cond)
+
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, machine)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch Machine %s", input.Machine.Name)
 }
 
 // MachineStatusCheck is a type that operates a status check on a Machine.

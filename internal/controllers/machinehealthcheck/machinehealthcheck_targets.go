@@ -181,7 +181,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		return false, nextCheck
 	}
 
-	// check conditions
+	// check node conditions
 	for _, c := range t.MHC.Spec.Checks.UnhealthyNodeConditions {
 		nodeCondition := getNodeCondition(t.Node, c.Type)
 
@@ -191,7 +191,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 			continue
 		}
 
-		// If the condition has been in the unhealthy state for longer than the
+		// If the node condition has been in the unhealthy state for longer than the
 		// timeout, return true with no requeue time.
 		timeoutSecondsDuration := time.Duration(ptr.Deref(c.TimeoutSeconds, 0)) * time.Second
 
@@ -214,6 +214,41 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 			nextCheckTimes = append(nextCheckTimes, nextCheck)
 		}
 	}
+
+	// check machine conditions
+	for _, c := range t.MHC.Spec.Checks.UnhealthyMachineConditions {
+		machineCondition := getMachineCondition(t.Machine, c.Type)
+
+		// Skip when current machine condition is different from the one reported
+		// in the MachineHealthCheck.
+		if machineCondition == nil || machineCondition.Status != c.Status {
+			continue
+		}
+
+		// If the machine condition has been in the unhealthy state for longer than the
+		// timeout, return true with no requeue time.
+		timeoutSecondsDuration := time.Duration(ptr.Deref(c.TimeoutSeconds, 0)) * time.Second
+
+		if machineCondition.LastTransitionTime.Add(timeoutSecondsDuration).Before(now) {
+			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyMachineConditionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Condition %s on machine is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String())
+			logger.V(3).Info("Target is unhealthy: condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", timeoutSecondsDuration.String())
+
+			conditions.Set(t.Machine, metav1.Condition{
+				Type:    clusterv1.MachineHealthCheckSucceededCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineHealthCheckUnhealthyMachineReason,
+				Message: fmt.Sprintf("Health check failed: Condition %s on Machine is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String()),
+			})
+			return true, time.Duration(0)
+		}
+
+		durationUnhealthy := now.Sub(machineCondition.LastTransitionTime.Time)
+		nextCheck := timeoutSecondsDuration - durationUnhealthy + time.Second
+		if nextCheck > 0 {
+			nextCheckTimes = append(nextCheckTimes, nextCheck)
+		}
+	}
+
 	return false, minDuration(nextCheckTimes)
 }
 
@@ -352,6 +387,16 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 
 // getNodeCondition returns node condition by type.
 func getNodeCondition(node *corev1.Node, conditionType corev1.NodeConditionType) *corev1.NodeCondition {
+	for _, cond := range node.Status.Conditions {
+		if cond.Type == conditionType {
+			return &cond
+		}
+	}
+	return nil
+}
+
+// getMachineCondition returns machine condition by type.
+func getMachineCondition(node *clusterv1.Machine, conditionType string) *metav1.Condition {
 	for _, cond := range node.Status.Conditions {
 		if cond.Type == conditionType {
 			return &cond

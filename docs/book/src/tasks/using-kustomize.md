@@ -96,6 +96,13 @@ spec:
   - type: Ready
     status: "False"
     timeout: 300s
+  unhealthyMachineConditions:
+  - type: "Ready"
+    status: Unknown
+    timeout: 300s
+  - type: "Ready"
+    status: "False"
+    timeout: 300s
 ```
 
 You would want to ensure the `clusterName` field in the MachineHealthCheck manifest appropriately

@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
@@ -1151,12 +1152,13 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		assertMachinesOwnerRemediated(g, mhc, 1)
 	})
 
-	t.Run("Machine's Node without conditions", func(t *testing.T) {
+	t.Run("Machine's Node and Machine without conditions", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 		mhc.Spec.Checks.UnhealthyNodeConditions = nil
+		mhc.Spec.Checks.UnhealthyMachineConditions = nil
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -1287,6 +1289,115 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			},
 		}
 		g.Expect(env.Status().Patch(ctx, node, nodePatch)).To(Succeed())
+
+		// Make sure the status matches.
+		g.Eventually(func() *clusterv1.MachineHealthCheckStatus {
+			err := env.Get(ctx, util.ObjectKey(mhc), mhc)
+			if err != nil {
+				return nil
+			}
+			return &mhc.Status
+		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+			ExpectedMachines:    ptr.To[int32](1),
+			CurrentHealthy:      ptr.To[int32](0),
+			RemediationsAllowed: ptr.To[int32](0),
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedReason,
+				},
+			},
+		}))
+
+		assertMachinesNotHealthy(g, mhc, 1)
+		assertMachinesOwnerRemediated(g, mhc, 1)
+	})
+
+	t.Run("should react when a Machine transitions to unhealthy", func(t *testing.T) {
+		g := NewWithT(t)
+		cluster := createCluster(g, ns.Name)
+
+		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
+
+		g.Expect(env.Create(ctx, mhc)).To(Succeed())
+		defer func(do ...client.Object) {
+			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+		}(cluster, mhc)
+
+		// Healthy nodes and machines.
+		_, machines, cleanup := createMachinesWithNodes(g, cluster,
+			count(1),
+			firstMachineAsControlPlane(),
+			createNodeRefForMachine(true),
+			nodeStatus(corev1.ConditionTrue),
+			machineLabels(mhc.Spec.Selector.MatchLabels),
+		)
+		defer cleanup()
+		targetMachines := make([]string, len(machines))
+		for i, m := range machines {
+			targetMachines[i] = m.Name
+		}
+		sort.Strings(targetMachines)
+
+		// Make sure the status matches.
+		g.Eventually(func() *clusterv1.MachineHealthCheckStatus {
+			err := env.Get(ctx, util.ObjectKey(mhc), mhc)
+			if err != nil {
+				return nil
+			}
+			return &mhc.Status
+		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+			ExpectedMachines:    ptr.To[int32](1),
+			CurrentHealthy:      ptr.To[int32](1),
+			RemediationsAllowed: ptr.To[int32](1),
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Deprecated: &clusterv1.MachineHealthCheckDeprecatedStatus{
+				V1Beta1: &clusterv1.MachineHealthCheckV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.RemediationAllowedV1Beta1Condition,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
+					Status: metav1.ConditionTrue,
+					Reason: clusterv1.MachineHealthCheckRemediationAllowedReason,
+				},
+			},
+		}))
+
+		assertMachinesNotHealthy(g, mhc, 0)
+		assertMachinesOwnerRemediated(g, mhc, 0)
+
+		// Transition the machine to unhealthy.
+		machine := machines[0]
+		machinePatch := client.MergeFrom(machine.DeepCopy())
+		machine.Status.Conditions = []metav1.Condition{
+			{
+				Type:               controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
+			},
+		}
+		g.Expect(env.Status().Patch(ctx, machine, machinePatch)).To(Succeed())
 
 		// Make sure the status matches.
 		g.Eventually(func() *clusterv1.MachineHealthCheckStatus {
@@ -2764,6 +2875,13 @@ func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHeal
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionUnknown,
+						TimeoutSeconds: ptr.To(int32(5 * 60)),
+					},
+				},
+				UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+					{
+						Type:           clusterv1.MachineOwnerRemediatedCondition,
+						Status:         metav1.ConditionUnknown,
 						TimeoutSeconds: ptr.To(int32(5 * 60)),
 					},
 				},

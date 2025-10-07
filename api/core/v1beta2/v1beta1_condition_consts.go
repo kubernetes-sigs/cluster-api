@@ -157,6 +157,9 @@ const (
 
 	// UnhealthyNodeConditionV1Beta1Reason is the reason used when a machine's node has one of the MachineHealthCheck's unhealthy conditions.
 	UnhealthyNodeConditionV1Beta1Reason = "UnhealthyNode"
+
+	// UnhealthyMachineConditionV1Beta1Reason is the reason used when a machine has one of the MachineHealthCheck's unhealthy conditions.
+	UnhealthyMachineConditionV1Beta1Reason = "UnhealthyMachine"
 )
 
 const (

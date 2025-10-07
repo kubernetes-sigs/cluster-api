@@ -194,6 +194,13 @@ spec:
         - type: Ready
           status: "False"
           timeoutSeconds: 300
+        unhealthyMachineConditions:
+        - type: "Ready"
+          status: Unknown
+          timeoutSeconds: 300
+        - type: "Ready"
+          status: "False"
+          timeoutSeconds: 300
       remediation:
         triggerIf:
           unhealthyLessThanOrEqualTo: 33%
@@ -205,6 +212,13 @@ spec:
         checks:
           nodeStartupTimeoutSeconds: 600
           unhealthyNodeConditions:
+          - type: Ready
+            status: Unknown
+            timeoutSeconds: 300
+          - type: Ready
+            status: "False"
+            timeoutSeconds: 300
+          unhealthyMachineConditions:
           - type: Ready
             status: Unknown
             timeoutSeconds: 300

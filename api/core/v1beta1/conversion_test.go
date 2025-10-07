@@ -99,6 +99,7 @@ func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubClusterVariable,
 		hubFailureDomain,
 		hubUnhealthyNodeCondition,
+		hubUnhealthyMachineCondition,
 		spokeCluster,
 		spokeClusterTopology,
 		spokeObjectReference,
@@ -125,6 +126,17 @@ func hubClusterSpec(in *clusterv1.ClusterSpec, c randfill.Continue) {
 		gvk := testGVKs[c.Int31n(4)]
 		in.ControlPlaneRef.APIGroup = gvk.Group
 		in.ControlPlaneRef.Kind = gvk.Kind
+	}
+
+	// remove MachineHealthCheck.UnhealthyMachineConditions as it does not exist in v1beta1.
+	if in.Topology.IsDefined() && in.Topology.ControlPlane.HealthCheck.IsDefined() {
+		in.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions = nil
+	}
+
+	if in.Topology.IsDefined() && len(in.Topology.Workers.MachineDeployments) > 0 {
+		for i := range in.Topology.Workers.MachineDeployments {
+			in.Topology.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = nil
+		}
 	}
 }
 
@@ -170,6 +182,14 @@ func hubFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
 }
 
 func hubUnhealthyNodeCondition(in *clusterv1.UnhealthyNodeCondition, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.TimeoutSeconds == nil {
+		in.TimeoutSeconds = ptr.To(int32(0)) // TimeoutSeconds is a required field and nil does not round trip
+	}
+}
+
+func hubUnhealthyMachineCondition(in *clusterv1.UnhealthyMachineCondition, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.TimeoutSeconds == nil {
@@ -267,12 +287,14 @@ func spokeClusterVariable(in *ClusterVariable, c randfill.Continue) {
 
 func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		hubClusterClassSpec,
 		hubClusterClassVariable,
 		hubClusterClassStatusVariableDefinition,
 		hubClusterClassStatus,
 		hubJSONPatch,
 		hubJSONSchemaProps,
 		hubUnhealthyNodeCondition,
+		hubUnhealthyMachineCondition,
 		spokeClusterClass,
 		spokeObjectReference,
 		spokeClusterClassStatus,
@@ -284,6 +306,21 @@ func ClusterClassFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		spokeMachineHealthCheckClass,
 		spokeUnhealthyCondition,
 		spokeLocalObjectTemplate,
+	}
+}
+
+func hubClusterClassSpec(in *clusterv1.ClusterClassSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// remove MachineHealthCheck.UnhealthyMachineConditions as it does not exist in v1beta1.
+	if in.ControlPlane.HealthCheck.IsDefined() && in.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions != nil {
+		in.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions = nil
+	}
+
+	if len(in.Workers.MachineDeployments) > 0 {
+		for i := range in.Workers.MachineDeployments {
+			in.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = nil
+		}
 	}
 }
 
@@ -728,12 +765,22 @@ func spokeMachineDeploymentStatus(in *MachineDeploymentStatus, c randfill.Contin
 func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubUnhealthyNodeCondition,
+		hubUnhealthyMachineCondition,
 		hubMachineHealthCheckStatus,
+		hubMachineHealthCheckSpec,
 		spokeMachineHealthCheck,
 		spokeMachineHealthCheckSpec,
 		spokeObjectReference,
 		spokeMachineHealthCheckStatus,
 		spokeUnhealthyCondition,
+	}
+}
+
+func hubMachineHealthCheckSpec(in *clusterv1.MachineHealthCheckSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Checks.UnhealthyMachineConditions != nil {
+		in.Checks.UnhealthyMachineConditions = nil
 	}
 }
 

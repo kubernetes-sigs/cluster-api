@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -68,6 +69,13 @@ func TestGetTargetsFromMHC(t *testing.T) {
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionUnknown,
+						TimeoutSeconds: ptr.To(int32(5 * 60)),
+					},
+				},
+				UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+					{
+						Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+						Status:         metav1.ConditionUnknown,
 						TimeoutSeconds: ptr.To(int32(5 * 60)),
 					},
 				},
@@ -215,6 +223,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	timeoutForMachineToHaveNode := 10 * time.Minute
 	disabledTimeoutForMachineToHaveNode := time.Duration(0)
 	timeoutForUnhealthyNodeConditions := int32(5 * 60)
+	timeoutForUnhealthyMachineConditions := int32(5 * 60)
 
 	// Create a test MHC
 	testMHC := &clusterv1.MachineHealthCheck{
@@ -238,6 +247,18 @@ func TestHealthCheckTargets(t *testing.T) {
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionFalse,
 						TimeoutSeconds: ptr.To(timeoutForUnhealthyNodeConditions),
+					},
+				},
+				UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+					{
+						Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+						Status:         metav1.ConditionUnknown,
+						TimeoutSeconds: ptr.To(timeoutForUnhealthyMachineConditions),
+					},
+					{
+						Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+						Status:         metav1.ConditionFalse,
+						TimeoutSeconds: ptr.To(timeoutForUnhealthyMachineConditions),
 					},
 				},
 			},
@@ -370,7 +391,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		nodeMissing: false,
 	}
 	nodeUnknown400Condition := newFailedHealthCheckV1Beta1Condition(clusterv1.UnhealthyNodeConditionV1Beta1Reason, "Condition Ready on node is reporting status Unknown for more than %s", (time.Duration(timeoutForUnhealthyNodeConditions) * time.Second).String())
-	nodeUnknown400V1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckUnhealthyNodeReason, "Health check failed: Condition Ready on Node is reporting status Unknown for more than %s", (time.Duration(timeoutForUnhealthyNodeConditions) * time.Second).String())
+	nodeUnknown400V1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckUnhealthyNodeReason, "Health check failed: Condition Ready on Node is reporting status Unknown for more than %s", (time.Duration(timeoutForUnhealthyMachineConditions) * time.Second).String())
 
 	// Target for when a node is healthy
 	testNodeHealthy := newTestNode("node1")
@@ -382,6 +403,36 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node:        testNodeHealthy,
 		nodeMissing: false,
 	}
+
+	// Machine unhealthy for shorter than timeout
+	testMachineUnhealthy200 := newTestUnhealthyMachine("machine1", namespace, clusterName, "node1", mhcSelector, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, metav1.ConditionFalse, 200*time.Second)
+	machineUnhealthy200 := healthCheckTarget{
+		Cluster:     cluster,
+		MHC:         testMHC,
+		Machine:     testMachineUnhealthy200,
+		Node:        testNodeHealthy,
+		nodeMissing: false,
+	}
+
+	// Machine unhealthy for longer than timeout
+	testMachineUnhealthy400 := newTestUnhealthyMachine("machine1", namespace, clusterName, "node1", mhcSelector, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, metav1.ConditionFalse, 400*time.Second)
+	machineUnhealthy400 := healthCheckTarget{
+		Cluster:     cluster,
+		MHC:         testMHC,
+		Machine:     testMachineUnhealthy400,
+		Node:        testNodeHealthy,
+		nodeMissing: false,
+	}
+	machineUnhealthy400Condition := newFailedHealthCheckV1Beta1Condition(
+		clusterv1.UnhealthyMachineConditionV1Beta1Reason,
+		"Condition EtcdPodHealthy on machine is reporting status False for more than %s",
+		(time.Duration(timeoutForUnhealthyMachineConditions) * time.Second).String(),
+	)
+	machineUnhealthy400V1Beta2Condition := newFailedHealthCheckCondition(
+		clusterv1.MachineHealthCheckUnhealthyMachineReason,
+		"Health check failed: Condition EtcdPodHealthy on Machine is reporting status False for more than %s",
+		(time.Duration(timeoutForUnhealthyMachineConditions) * time.Second).String(),
+	)
 
 	// Target for when the machine has the remediate machine annotation
 	const annotationRemediationMsg = "Marked for remediation via remediate-machine annotation"
@@ -453,6 +504,22 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNeedsRemediation:                 []healthCheckTarget{nodeUnknown400},
 			expectedNeedsRemediationCondition:        []clusterv1.Condition{nodeUnknown400Condition},
 			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{nodeUnknown400V1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
+		},
+		{
+			desc:                     "when the machine condition has been unhealthy for shorter than the timeout",
+			targets:                  []healthCheckTarget{machineUnhealthy200},
+			expectedHealthy:          []healthCheckTarget{},
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{100 * time.Second}, // 300s timeout - 200s elapsed = 100s remaining
+		},
+		{
+			desc:                                     "when the machine condition has been unhealthy for longer than the timeout",
+			targets:                                  []healthCheckTarget{machineUnhealthy400},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{machineUnhealthy400},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{machineUnhealthy400Condition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{machineUnhealthy400V1Beta2Condition},
 			expectedNextCheckTimes:                   []time.Duration{},
 		},
 		{
@@ -627,6 +694,51 @@ func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, statu
 					Status:             status,
 					LastTransitionTime: metav1.NewTime(time.Now().Add(-unhealthyDuration)),
 				},
+			},
+		},
+	}
+}
+
+func newTestUnhealthyMachine(name, namespace, clusterName, nodeName string, labels map[string]string, condition string, status metav1.ConditionStatus, unhealthyDuration time.Duration) *clusterv1.Machine {
+	// Copy the labels so that the map is unique to each test Machine
+	l := make(map[string]string)
+	for k, v := range labels {
+		l[k] = v
+	}
+	l[clusterv1.ClusterNameLabel] = clusterName
+
+	bootstrap := "bootstrap"
+	return &clusterv1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Machine",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    l,
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: clusterName,
+			Bootstrap: clusterv1.Bootstrap{
+				DataSecretName: &bootstrap,
+			},
+		},
+		Status: clusterv1.MachineStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               condition,
+					Status:             status,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(-unhealthyDuration)),
+				},
+			},
+			Initialization: clusterv1.MachineInitializationStatus{
+				InfrastructureProvisioned:  ptr.To(true),
+				BootstrapDataSecretCreated: ptr.To(true),
+			},
+			Phase: string(clusterv1.MachinePhaseRunning),
+			NodeRef: clusterv1.MachineNodeReference{
+				Name: nodeName,
 			},
 		},
 	}

@@ -60,15 +60,17 @@ import (
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
+// Allow alphanumeric characters, hyphens, and underscores
+// This matches typical Kubernetes resource naming conventions
+var validNameRegex = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	
 // isValidClusterName validates that a cluster name is safe to use in shell commands.
 // It only allows alphanumeric characters, hyphens, and underscores.
 func isValidClusterName(name string) bool {
 	if name == "" {
 		return false
 	}
-	// Allow alphanumeric characters, hyphens, and underscores
-	// This matches typical Kubernetes resource naming conventions
-	validNameRegex := regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	
 	return validNameRegex.MatchString(name)
 }
 

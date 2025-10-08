@@ -29,58 +29,27 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
-	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // rolloutRollingUpdate reconcile machine sets controlled by a MachineDeployment that is using the RolloutUpdate strategy.
 func (r *Reconciler) rolloutRollingUpdate(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, templateExists bool) error {
-	// TODO(in-place): move create newMS into rolloutPlanner
-	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, md, msList, true, templateExists)
-	if err != nil {
-		return err
-	}
-
-	// newMS can be nil in case there is already a MachineSet associated with this deployment,
-	// but there are only either changes in annotations or MinReadySeconds. Or in other words,
-	// this can be nil if there are changes, but no replacement of existing machines is needed.
-	if newMS == nil {
-		return nil
-	}
-
-	allMSs := append(oldMSs, newMS)
-
-	// TODO(in-place): also apply/remove labels to MS should go into rolloutPlanner
-	//   Note: looks like the current implementation is missing proper management of the DisableMachineCreateAnnotation on oldMS:
-	//   - Currently the DisableMachineCreateAnnotation is not removed from oldMS, so the annotation might be there or not depending it the users
-	//     transitioned back and forth from RolloutUpdate strategy and OnDelete strategy.
-	//   - TBD is we want to implement a proper cleanup thus ensuring create machines on oldMS can always happen when using the
-	//     RolloutUpdate strategy, or if we want to always prevent machine creation on oldMS also in this case.
-	//   Note: When rollout is paused the code assumes it can always scale up oldMS (see scale in machinedeployment_sync.go).
-	//   however current implementation is missing removal of the DisableMachineCreateAnnotation that might exist or not
-	//   on oldMS (depending on strategy / proper cleanup etc.).
-	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
-		return err
-	}
-
 	planner := newRolloutPlanner()
-	planner.md = md
-	planner.newMS = newMS
-	planner.oldMSs = oldMSs
+	if err := planner.init(ctx, md, msList, nil, true, templateExists); err != nil {
+		return err
+	}
 
+	// TODO(in-place): TBD if we want to always prevent machine creation on oldMS.
 	if err := planner.planRollingUpdate(ctx); err != nil {
 		return err
 	}
 
-	// TODO(in-place): this should be changed as soon as rolloutPlanner support MS creation and adding/removing labels from MS
-	for _, ms := range allMSs {
-		scaleIntent := ptr.Deref(ms.Spec.Replicas, 0)
-		if v, ok := planner.scaleIntents[ms.Name]; ok {
-			scaleIntent = v
-		}
-		if err := r.scaleMachineSet(ctx, ms, scaleIntent, md); err != nil {
-			return err
-		}
+	if err := r.createOrUpdateMachineSets(ctx, planner); err != nil {
+		return err
 	}
+
+	newMS := planner.newMS
+	oldMSs := planner.oldMSs
+	allMSs := append(oldMSs, newMS)
 
 	if err := r.syncDeploymentStatus(allMSs, newMS, md); err != nil {
 		return err
@@ -93,19 +62,6 @@ func (r *Reconciler) rolloutRollingUpdate(ctx context.Context, md *clusterv1.Mac
 	}
 
 	return nil
-}
-
-type rolloutPlanner struct {
-	md           *clusterv1.MachineDeployment
-	newMS        *clusterv1.MachineSet
-	oldMSs       []*clusterv1.MachineSet
-	scaleIntents map[string]int32
-}
-
-func newRolloutPlanner() *rolloutPlanner {
-	return &rolloutPlanner{
-		scaleIntents: make(map[string]int32),
-	}
 }
 
 // planRollingUpdate determine how to proceed with the rollout when using the RollingUpdate strategy if the system is not yet at the desired state.
@@ -406,26 +362,4 @@ func (p *rolloutPlanner) reconcileDeadlockBreaker(ctx context.Context) {
 		p.scaleIntents[oldMS.Name] = newScaleIntent
 		return
 	}
-}
-
-// cleanupDisableMachineCreateAnnotation will remove the disable machine create annotation from new MachineSets that were created during reconcileOldMachineSetsOnDelete.
-func (r *Reconciler) cleanupDisableMachineCreateAnnotation(ctx context.Context, newMS *clusterv1.MachineSet) error {
-	log := ctrl.LoggerFrom(ctx, "MachineSet", klog.KObj(newMS))
-
-	if newMS.Annotations != nil {
-		if _, ok := newMS.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok {
-			log.V(4).Info("removing annotation on latest MachineSet to enable machine creation")
-			patchHelper, err := patch.NewHelper(newMS, r.Client)
-			if err != nil {
-				return err
-			}
-			delete(newMS.Annotations, clusterv1.DisableMachineCreateAnnotation)
-			err = patchHelper.Patch(ctx, newMS)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }

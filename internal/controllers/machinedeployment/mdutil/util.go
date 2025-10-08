@@ -102,21 +102,6 @@ func (o MachineSetsBySizeNewer) Less(i, j int) bool {
 	return *(o[i].Spec.Replicas) > *(o[j].Spec.Replicas)
 }
 
-// SetDeploymentRevision updates the revision for a deployment.
-func SetDeploymentRevision(deployment *clusterv1.MachineDeployment, revision string) bool {
-	updated := false
-
-	if deployment.Annotations == nil {
-		deployment.Annotations = make(map[string]string)
-	}
-	if deployment.Annotations[clusterv1.RevisionAnnotation] != revision {
-		deployment.Annotations[clusterv1.RevisionAnnotation] = revision
-		updated = true
-	}
-
-	return updated
-}
-
 // MaxRevision finds the highest revision in the machine sets.
 func MaxRevision(ctx context.Context, allMSs []*clusterv1.MachineSet) int64 {
 	log := ctrl.LoggerFrom(ctx)
@@ -193,9 +178,9 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 // Deprecated: This annotation is deprecated and is going to be removed in the next release.
 const revisionHistoryAnnotation = "machinedeployment.clusters.x-k8s.io/revision-history"
 
-// ComputeMachineSetAnnotations computes the annotations that should be set on the MachineSet.
-// Note: The passed in newMS is nil if the new MachineSet doesn't exist in the apiserver yet.
-func ComputeMachineSetAnnotations(ctx context.Context, deployment *clusterv1.MachineDeployment, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet) (map[string]string, error) {
+// MachineSetAnnotationsFromMachineDeployment return the annotations that should be set on all the MachineSets and
+// that are derived from the controlling MachineDeployment.
+func MachineSetAnnotationsFromMachineDeployment(_ context.Context, deployment *clusterv1.MachineDeployment) map[string]string {
 	// Copy annotations from Deployment annotations while filtering out some annotations
 	// that we don't want to propagate.
 	annotations := map[string]string{}
@@ -205,6 +190,17 @@ func ComputeMachineSetAnnotations(ctx context.Context, deployment *clusterv1.Mac
 		}
 		annotations[k] = v
 	}
+
+	annotations[clusterv1.DesiredReplicasAnnotation] = fmt.Sprintf("%d", *deployment.Spec.Replicas)
+	annotations[clusterv1.MaxReplicasAnnotation] = fmt.Sprintf("%d", *(deployment.Spec.Replicas)+MaxSurge(*deployment))
+	return annotations
+}
+
+// ComputeRevisionAnnotations returns revision annotations to be set on a newMS.
+func ComputeRevisionAnnotations(ctx context.Context, newMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet) (map[string]string, error) {
+	// Copy annotations from Deployment annotations while filtering out some annotations
+	// that we don't want to propagate.
+	annotations := map[string]string{}
 
 	// The newMS's revision should be the greatest among all MSes. Usually, its revision number is newRevision (the max revision number
 	// of all old MSes + 1). However, it's possible that some old MSes are deleted after the newMS revision being updated, and
@@ -243,9 +239,19 @@ func ComputeMachineSetAnnotations(ctx context.Context, deployment *clusterv1.Mac
 	}
 
 	annotations[clusterv1.RevisionAnnotation] = newRevision
-	annotations[clusterv1.DesiredReplicasAnnotation] = fmt.Sprintf("%d", *deployment.Spec.Replicas)
-	annotations[clusterv1.MaxReplicasAnnotation] = fmt.Sprintf("%d", *(deployment.Spec.Replicas)+MaxSurge(*deployment))
 	return annotations, nil
+}
+
+// GetRevisionAnnotations returns revision annotations to be preserved on oldMSs.
+func GetRevisionAnnotations(_ context.Context, oldMS *clusterv1.MachineSet) map[string]string {
+	annotations := map[string]string{}
+	if v, ok := oldMS.Annotations[clusterv1.RevisionAnnotation]; ok {
+		annotations[clusterv1.RevisionAnnotation] = v
+	}
+	if v, ok := oldMS.Annotations[revisionHistoryAnnotation]; ok {
+		annotations[revisionHistoryAnnotation] = v
+	}
+	return annotations
 }
 
 // FindOneActiveOrLatest returns the only active or the latest machine set in case there is at most one active
@@ -271,39 +277,6 @@ func FindOneActiveOrLatest(newMS *clusterv1.MachineSet, oldMSs []*clusterv1.Mach
 	default:
 		return nil
 	}
-}
-
-// SetReplicasAnnotations sets the desiredReplicas and maxReplicas into the annotations.
-func SetReplicasAnnotations(ms *clusterv1.MachineSet, desiredReplicas, maxReplicas int32) bool {
-	updated := false
-	if ms.Annotations == nil {
-		ms.Annotations = make(map[string]string)
-	}
-	desiredString := fmt.Sprintf("%d", desiredReplicas)
-	if hasString := ms.Annotations[clusterv1.DesiredReplicasAnnotation]; hasString != desiredString {
-		ms.Annotations[clusterv1.DesiredReplicasAnnotation] = desiredString
-		updated = true
-	}
-	if hasString := ms.Annotations[clusterv1.MaxReplicasAnnotation]; hasString != fmt.Sprintf("%d", maxReplicas) {
-		ms.Annotations[clusterv1.MaxReplicasAnnotation] = fmt.Sprintf("%d", maxReplicas)
-		updated = true
-	}
-	return updated
-}
-
-// ReplicasAnnotationsNeedUpdate return true if the replicas annotation needs to be updated.
-func ReplicasAnnotationsNeedUpdate(ms *clusterv1.MachineSet, desiredReplicas, maxReplicas int32) bool {
-	if ms.Annotations == nil {
-		return true
-	}
-	desiredString := fmt.Sprintf("%d", desiredReplicas)
-	if hasString := ms.Annotations[clusterv1.DesiredReplicasAnnotation]; hasString != desiredString {
-		return true
-	}
-	if hasString := ms.Annotations[clusterv1.MaxReplicasAnnotation]; hasString != fmt.Sprintf("%d", maxReplicas) {
-		return true
-	}
-	return false
 }
 
 // MaxUnavailable returns the maximum unavailable machines a rolling deployment can take.
@@ -378,7 +351,7 @@ func getMachineSetFraction(ms clusterv1.MachineSet, md clusterv1.MachineDeployme
 
 // NotUpToDateResult is the result of calling the MachineTemplateUpToDate func for a MachineTemplateSpec.
 type NotUpToDateResult struct {
-	LogMessages              []string // consider if to make this private.
+	logMessages              []string
 	ConditionMessages        []string
 	EligibleForInPlaceUpdate bool
 }
@@ -394,7 +367,7 @@ func MachineTemplateUpToDate(current, desired *clusterv1.MachineTemplateSpec) (b
 	desiredCopy := MachineTemplateDeepCopyRolloutFields(desired)
 
 	if currentCopy.Spec.Version != desiredCopy.Spec.Version {
-		res.LogMessages = append(res.LogMessages, fmt.Sprintf("spec.version %s, %s required", currentCopy.Spec.Version, desiredCopy.Spec.Version))
+		res.logMessages = append(res.logMessages, fmt.Sprintf("spec.version %s, %s required", currentCopy.Spec.Version, desiredCopy.Spec.Version))
 		// Note: the code computing the message for MachineDeployment's RolloutOut condition is making assumptions on the format/content of this message.
 		res.ConditionMessages = append(res.ConditionMessages, fmt.Sprintf("Version %s, %s required", currentCopy.Spec.Version, desiredCopy.Spec.Version))
 	}
@@ -405,29 +378,29 @@ func MachineTemplateUpToDate(current, desired *clusterv1.MachineTemplateSpec) (b
 	// common operation so it is acceptable to handle it in this way).
 	if currentCopy.Spec.Bootstrap.ConfigRef.IsDefined() {
 		if !reflect.DeepEqual(currentCopy.Spec.Bootstrap, desiredCopy.Spec.Bootstrap) {
-			res.LogMessages = append(res.LogMessages, fmt.Sprintf("spec.bootstrap.configRef %s %s, %s %s required", currentCopy.Spec.Bootstrap.ConfigRef.Kind, currentCopy.Spec.Bootstrap.ConfigRef.Name, desiredCopy.Spec.Bootstrap.ConfigRef.Kind, desiredCopy.Spec.Bootstrap.ConfigRef.Name))
+			res.logMessages = append(res.logMessages, fmt.Sprintf("spec.bootstrap.configRef %s %s, %s %s required", currentCopy.Spec.Bootstrap.ConfigRef.Kind, currentCopy.Spec.Bootstrap.ConfigRef.Name, desiredCopy.Spec.Bootstrap.ConfigRef.Kind, desiredCopy.Spec.Bootstrap.ConfigRef.Name))
 			// Note: dropping "Template" suffix because conditions message will surface on machine.
 			res.ConditionMessages = append(res.ConditionMessages, fmt.Sprintf("%s is not up-to-date", strings.TrimSuffix(currentCopy.Spec.Bootstrap.ConfigRef.Kind, clusterv1.TemplateSuffix)))
 		}
 	} else {
 		if !reflect.DeepEqual(currentCopy.Spec.Bootstrap, desiredCopy.Spec.Bootstrap) {
-			res.LogMessages = append(res.LogMessages, fmt.Sprintf("spec.bootstrap.dataSecretName %s, %s required", ptr.Deref(currentCopy.Spec.Bootstrap.DataSecretName, "nil"), ptr.Deref(desiredCopy.Spec.Bootstrap.DataSecretName, "nil")))
+			res.logMessages = append(res.logMessages, fmt.Sprintf("spec.bootstrap.dataSecretName %s, %s required", ptr.Deref(currentCopy.Spec.Bootstrap.DataSecretName, "nil"), ptr.Deref(desiredCopy.Spec.Bootstrap.DataSecretName, "nil")))
 			res.ConditionMessages = append(res.ConditionMessages, fmt.Sprintf("spec.bootstrap.dataSecretName %s, %s required", ptr.Deref(currentCopy.Spec.Bootstrap.DataSecretName, "nil"), ptr.Deref(desiredCopy.Spec.Bootstrap.DataSecretName, "nil")))
 		}
 	}
 
 	if !reflect.DeepEqual(currentCopy.Spec.InfrastructureRef, desiredCopy.Spec.InfrastructureRef) {
-		res.LogMessages = append(res.LogMessages, fmt.Sprintf("spec.infrastructureRef %s %s, %s %s required", currentCopy.Spec.InfrastructureRef.Kind, currentCopy.Spec.InfrastructureRef.Name, desiredCopy.Spec.InfrastructureRef.Kind, desiredCopy.Spec.InfrastructureRef.Name))
+		res.logMessages = append(res.logMessages, fmt.Sprintf("spec.infrastructureRef %s %s, %s %s required", currentCopy.Spec.InfrastructureRef.Kind, currentCopy.Spec.InfrastructureRef.Name, desiredCopy.Spec.InfrastructureRef.Kind, desiredCopy.Spec.InfrastructureRef.Name))
 		// Note: dropping "Template" suffix because conditions message will surface on machine.
 		res.ConditionMessages = append(res.ConditionMessages, fmt.Sprintf("%s is not up-to-date", strings.TrimSuffix(currentCopy.Spec.InfrastructureRef.Kind, clusterv1.TemplateSuffix)))
 	}
 
 	if currentCopy.Spec.FailureDomain != desiredCopy.Spec.FailureDomain {
-		res.LogMessages = append(res.LogMessages, fmt.Sprintf("spec.failureDomain %s, %s required", currentCopy.Spec.FailureDomain, desiredCopy.Spec.FailureDomain))
+		res.logMessages = append(res.logMessages, fmt.Sprintf("spec.failureDomain %s, %s required", currentCopy.Spec.FailureDomain, desiredCopy.Spec.FailureDomain))
 		res.ConditionMessages = append(res.ConditionMessages, fmt.Sprintf("Failure domain %s, %s required", currentCopy.Spec.FailureDomain, desiredCopy.Spec.FailureDomain))
 	}
 
-	if len(res.LogMessages) > 0 || len(res.ConditionMessages) > 0 {
+	if len(res.logMessages) > 0 || len(res.ConditionMessages) > 0 {
 		return false, res
 	}
 
@@ -464,7 +437,7 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 // NOTE: If we find a matching MachineSet which only differs in in-place mutable fields we can use it to
 // fulfill the intent of the MachineDeployment by just updating the MachineSet to propagate in-place mutable fields.
 // Thus we don't have to create a new MachineSet and we can avoid an unnecessary rollout.
-func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, reconciliationTime *metav1.Time) (newMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, oldMSNotUpToDateResults map[string]NotUpToDateResult, createReason string) {
+func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, reconciliationTime metav1.Time) (newMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, oldMSNotUpToDateResults map[string]NotUpToDateResult, createReason string) {
 	if len(msList) == 0 {
 		return nil, nil, nil, "no MachineSets exist for the MachineDeployment"
 	}
@@ -488,13 +461,13 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 		} else {
 			oldMSs = append(oldMSs, ms)
 			// Override the EligibleForInPlaceUpdate decision if rollout after is expired.
-			if !deployment.Spec.Rollout.After.IsZero() && deployment.Spec.Rollout.After.Before(reconciliationTime) && !ms.CreationTimestamp.After(deployment.Spec.Rollout.After.Time) {
+			if !deployment.Spec.Rollout.After.IsZero() && deployment.Spec.Rollout.After.Before(&reconciliationTime) && !ms.CreationTimestamp.After(deployment.Spec.Rollout.After.Time) {
 				notUpToDateResult.EligibleForInPlaceUpdate = false
-				notUpToDateResult.LogMessages = append(notUpToDateResult.LogMessages, "MachineDeployment spec.rolloutAfter expired")
+				notUpToDateResult.logMessages = append(notUpToDateResult.logMessages, "MachineDeployment spec.rolloutAfter expired")
 				// No need to set an additional condition message, it is not used anywhere.
 			}
 			oldMSNotUpToDateResults[ms.Name] = *notUpToDateResult
-			diffs = append(diffs, fmt.Sprintf("MachineSet %s: diff: %s", ms.Name, strings.Join(notUpToDateResult.LogMessages, ", ")))
+			diffs = append(diffs, fmt.Sprintf("MachineSet %s: diff: %s", ms.Name, strings.Join(notUpToDateResult.logMessages, ", ")))
 		}
 	}
 
@@ -833,16 +806,4 @@ func CloneSelectorAndAddLabel(selector *metav1.LabelSelector, labelKey, labelVal
 	}
 
 	return newSelector
-}
-
-// GetDeletingMachineCount gets the number of machines that are in the process of being deleted
-// in a machineList.
-func GetDeletingMachineCount(machineList *clusterv1.MachineList) int32 {
-	var deletingMachineCount int32
-	for _, machine := range machineList.Items {
-		if !machine.GetDeletionTimestamp().IsZero() {
-			deletingMachineCount++
-		}
-	}
-	return deletingMachineCount
 }

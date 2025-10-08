@@ -1,6 +1,6 @@
 # Security Guidelines for Cluster API Users
 
-This document compiles security best practices for using Cluster API. We recommend that organizations adapt these guidelines to their specific infrastructure and security requirements to ensure safe operations.
+This document compiles security best practices for using Cluster API. These guidelines are based on the [Cluster API Security Self-Assessment](https://github.com/kubernetes/sig-security/blob/main/sig-security-assessments/cluster-api/self-assessment.md#threat-modeling-with-stride) conducted by the Kubernetes SIG Security. We recommend that organizations adapt these guidelines to their specific infrastructure and security requirements to ensure safe operations.
 
 ## Comprehensive auditing
 

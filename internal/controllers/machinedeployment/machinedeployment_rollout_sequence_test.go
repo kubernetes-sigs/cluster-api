@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -39,7 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 )
 
-type rolloutSequenceTestCase struct {
+type rolloutRollingSequenceTestCase struct {
 	name           string
 	maxSurge       int32
 	maxUnavailable int32
@@ -107,11 +108,12 @@ type rolloutSequenceTestCase struct {
 	seed int64
 }
 
-func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
+func Test_rolloutRollingSequences(t *testing.T) {
 	ctx := context.Background()
 	ctx = ctrl.LoggerInto(ctx, klog.Background())
+	klog.SetOutput(ginkgo.GinkgoWriter)
 
-	tests := []rolloutSequenceTestCase{
+	tests := []rolloutRollingSequenceTestCase{
 		// Regular rollout (no in-place)
 
 		{ // scale out by 1
@@ -161,7 +163,7 @@ func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
 			maxSurge:       3,
 			maxUnavailable: 1,
 			currentScope: &rolloutScope{ // Manually providing a scope simulating a MD originally with 6 replica in the middle of a rollout, with 3 machines already created in the newMS and 3 still on the oldMS, and then MD scaled up to 12.
-				machineDeployment: createMD("v2", 12, 3, 1),
+				machineDeployment: createMD("v2", 12, withRolloutStrategy(3, 1)),
 				machineSets: []*clusterv1.MachineSet{
 					createMS("ms1", "v1", 3),
 					createMS("ms2", "v2", 3),
@@ -189,7 +191,7 @@ func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
 			maxSurge:       3,
 			maxUnavailable: 1,
 			currentScope: &rolloutScope{ // Manually providing a scope simulating a MD originally with 12 replica in the middle of a rollout, with 3 machines already created in the newMS and 9 still on the oldMS, and then MD scaled down to 6.
-				machineDeployment: createMD("v2", 6, 3, 1),
+				machineDeployment: createMD("v2", 6, withRolloutStrategy(3, 1)),
 				machineSets: []*clusterv1.MachineSet{
 					createMS("ms1", "v1", 9),
 					createMS("ms2", "v2", 3),
@@ -223,7 +225,7 @@ func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
 			maxSurge:       3,
 			maxUnavailable: 1,
 			currentScope: &rolloutScope{ // Manually providing a scope simulating a MD with 6 replica in the middle of a rollout, with 3 machines already created in the newMS and 3 still on the oldMS, and then MD spec is changed.
-				machineDeployment: createMD("v3", 6, 3, 1),
+				machineDeployment: createMD("v3", 6, withRolloutStrategy(3, 1)),
 				machineSets: []*clusterv1.MachineSet{
 					createMS("ms1", "v1", 3),
 					createMS("ms2", "v2", 3),
@@ -249,9 +251,8 @@ func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
 	}
 
 	testWithPredictableReconcileOrder := true
-	// TODO(in-place): enable tests with random reconcile order as soon as the issues in reconcileOldMachineSets are fixed
-	testWithRandomReconcileOrderFromConstantSeed := false
-	testWithRandomReconcileOrderFromRandomSeed := false
+	testWithRandomReconcileOrderFromConstantSeed := true
+	testWithRandomReconcileOrderFromRandomSeed := true
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -260,11 +261,9 @@ func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
 			if testWithPredictableReconcileOrder {
 				tt.maxIterations = 50
 				tt.randomControllerOrder = false
-				if tt.logAndGoldenFileName == "" {
-					tt.logAndGoldenFileName = strings.ToLower(tt.name)
-				}
+				tt.logAndGoldenFileName = strings.ToLower(tt.name)
 				t.Run("default", func(t *testing.T) {
-					runTestCase(ctx, t, tt)
+					runRolloutRollingTestCase(ctx, t, tt)
 				})
 			}
 
@@ -273,13 +272,9 @@ func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
 				tt.name = fmt.Sprintf("%s, random(0)", name)
 				tt.randomControllerOrder = true
 				tt.seed = 0
-				// TODO(in-place): drop the following line as soon as issue with scale down are fixed
-				tt.skipLogToFileAndGoldenFileCheck = true
-				if tt.logAndGoldenFileName == "" {
-					tt.logAndGoldenFileName = strings.ToLower(tt.name)
-				}
+				tt.logAndGoldenFileName = strings.ToLower(tt.name)
 				t.Run("random(0)", func(t *testing.T) {
-					runTestCase(ctx, t, tt)
+					runRolloutRollingTestCase(ctx, t, tt)
 				})
 			}
 
@@ -291,7 +286,7 @@ func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
 					tt.randomControllerOrder = true
 					tt.skipLogToFileAndGoldenFileCheck = true
 					t.Run(fmt.Sprintf("random(%d)", tt.seed), func(t *testing.T) {
-						runTestCase(ctx, t, tt)
+						runRolloutRollingTestCase(ctx, t, tt)
 					})
 				}
 			}
@@ -299,7 +294,7 @@ func Test_rolloutSequencesWithPredictableReconcileOrder(t *testing.T) {
 	}
 }
 
-func runTestCase(ctx context.Context, t *testing.T, tt rolloutSequenceTestCase) {
+func runRolloutRollingTestCase(ctx context.Context, t *testing.T, tt rolloutRollingSequenceTestCase) {
 	t.Helper()
 	g := NewWithT(t)
 
@@ -310,7 +305,7 @@ func runTestCase(ctx context.Context, t *testing.T, tt rolloutSequenceTestCase) 
 	// Init current and desired state from test case
 	current := tt.currentScope.Clone()
 	if current == nil {
-		current = initCurrentRolloutScope(tt)
+		current = initCurrentRolloutScope(tt.currentMachineNames, withRolloutStrategy(tt.maxSurge, tt.maxUnavailable))
 	}
 	desired := computeDesiredRolloutScope(current, tt.desiredMachineNames)
 
@@ -324,12 +319,15 @@ func runTestCase(ctx context.Context, t *testing.T, tt rolloutSequenceTestCase) 
 	i := 1
 	maxIterations := tt.maxIterations
 	for {
-		taskOrder := defaultTaskOrder(current)
+		taskList := getTaskListRolloutRolling(current)
+		taskCount := len(taskList)
+		taskOrder := defaultTaskOrder(taskCount)
 		if tt.randomControllerOrder {
-			taskOrder = randomTaskOrder(current, rng)
+			taskOrder = randomTaskOrder(taskCount, rng)
 		}
 		for _, taskID := range taskOrder {
-			if taskID == 0 {
+			task := taskList[taskID]
+			if task == "md" {
 				fLogger.Logf("[MD controller] Iteration %d, Reconcile md", i)
 				fLogger.Logf("[MD controller] - Input to rollout planner\n%s", current)
 
@@ -339,8 +337,9 @@ func runTestCase(ctx context.Context, t *testing.T, tt rolloutSequenceTestCase) 
 				p.newMS = current.newMS()
 				p.oldMSs = current.oldMSs()
 
-				err := p.Plan(ctx)
+				err := p.planRolloutRolling(ctx)
 				g.Expect(err).ToNot(HaveOccurred())
+
 				// Apply changes.
 				for _, ms := range current.machineSets {
 					if scaleIntent, ok := p.scaleIntents[ms.Name]; ok {
@@ -383,8 +382,8 @@ func runTestCase(ctx context.Context, t *testing.T, tt rolloutSequenceTestCase) 
 
 			// Run mutators faking other controllers
 			for _, ms := range current.machineSets {
-				if fmt.Sprintf("ms%d", taskID) == ms.Name {
-					fLogger.Logf("[MS controller] Iteration %d, Reconcile ms%d, %s", i, taskID, msLog(ms, current.machineSetMachines[ms.Name]))
+				if ms.Name == task {
+					fLogger.Logf("[MS controller] Iteration %d, Reconcile %s, %s", i, ms.Name, msLog(ms, current.machineSetMachines[ms.Name]))
 					machineSetControllerMutator(fLogger, ms, current)
 					break
 				}
@@ -486,15 +485,14 @@ type rolloutScope struct {
 	machineUID int32
 }
 
-// Init creates current state and desired state for rolling out a md from currentMachines to wantMachineNames.
-func initCurrentRolloutScope(tt rolloutSequenceTestCase) (current *rolloutScope) {
+func initCurrentRolloutScope(currentMachineNames []string, mdOptions ...machineDeploymentOption) (current *rolloutScope) {
 	// create current state, with a MD with
 	// - given MaxSurge, MaxUnavailable
 	// - replica counters assuming all the machines are at stable state
 	// - spec different from the MachineSets and Machines we are going to create down below (to simulate a change that triggers a rollout, but it is not yet started)
-	mdReplicaCount := int32(len(tt.currentMachineNames))
+	mdReplicaCount := int32(len(currentMachineNames))
 	current = &rolloutScope{
-		machineDeployment: createMD("v2", mdReplicaCount, tt.maxSurge, tt.maxUnavailable),
+		machineDeployment: createMD("v2", mdReplicaCount, mdOptions...),
 	}
 
 	// Create current MS, with
@@ -507,13 +505,12 @@ func initCurrentRolloutScope(tt rolloutSequenceTestCase) (current *rolloutScope)
 	// - spec at stable state (rollout is not yet propagated to machines)
 	var totMachines int32
 	currentMachines := []*clusterv1.Machine{}
-	for _, machineSetMachineName := range tt.currentMachineNames {
+	for _, machineSetMachineName := range currentMachineNames {
 		totMachines++
 		currentMachines = append(currentMachines, createM(machineSetMachineName, ms.Name, ms.Spec.Template.Spec.FailureDomain))
 	}
 	current.machineSetMachines = map[string][]*clusterv1.Machine{}
 	current.machineSetMachines[ms.Name] = currentMachines
-
 	current.machineUID = totMachines
 
 	// TODO(in-place): this should be removed as soon as rolloutPlanner will take care of creating newMS
@@ -835,20 +832,30 @@ func maxSurgeToleration() func(log *fileLogger, _ int, _ *rolloutScope, _, _ int
 	}
 }
 
+func getTaskListRolloutRolling(current *rolloutScope) []string {
+	taskList := make([]string, 0)
+	taskList = append(taskList, "md")
+	for _, ms := range current.machineSets {
+		taskList = append(taskList, ms.Name)
+	}
+	taskList = append(taskList, fmt.Sprintf("ms%d", len(current.machineSets)+1)) // r the MachineSet that might be created when reconciling md
+	return taskList
+}
+
 // default task order ensure the controllers are run in a consistent and predictable way: md, ms1, ms2 and so on.
-func defaultTaskOrder(current *rolloutScope) []int {
+func defaultTaskOrder(taskCount int) []int {
 	taskOrder := []int{}
-	for t := range len(current.machineSets) + 1 + 1 { // +1 is for the MachineSet that might be created when reconciling md, +1 is for the md itself
+	for t := range taskCount {
 		taskOrder = append(taskOrder, t)
 	}
 	return taskOrder
 }
 
-func randomTaskOrder(current *rolloutScope, rng *rand.Rand) []int {
+func randomTaskOrder(taskCount int, rng *rand.Rand) []int {
 	u := &UniqueRand{
 		rng:       rng,
 		generated: map[int]bool{},
-		max:       len(current.machineSets) + 1 + 1, // +1 is for the MachineSet that might be created when reconciling md, +1 is for the md itself
+		max:       taskCount,
 	}
 	taskOrder := []int{}
 	for !u.Done() {
@@ -864,32 +871,47 @@ func randomTaskOrder(current *rolloutScope, rng *rand.Rand) []int {
 	return taskOrder
 }
 
-func createMD(failureDomain string, replicas int32, maxSurge, maxUnavailable int32) *clusterv1.MachineDeployment {
-	return &clusterv1.MachineDeployment{
+type machineDeploymentOption func(md *clusterv1.MachineDeployment)
+
+func withRolloutStrategy(maxSurge, maxUnavailable int32) func(md *clusterv1.MachineDeployment) {
+	return func(md *clusterv1.MachineDeployment) {
+		md.Spec.Rollout.Strategy = clusterv1.MachineDeploymentRolloutStrategy{
+			Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+			RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+				MaxSurge:       ptr.To(intstr.FromInt32(maxSurge)),
+				MaxUnavailable: ptr.To(intstr.FromInt32(maxUnavailable)),
+			},
+		}
+	}
+}
+
+func createMD(failureDomain string, replicas int32, options ...machineDeploymentOption) *clusterv1.MachineDeployment {
+	md := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{Name: "md"},
 		Spec: clusterv1.MachineDeploymentSpec{
 			// Note: using failureDomain as a template field to determine upToDate
 			Template: clusterv1.MachineTemplateSpec{Spec: clusterv1.MachineSpec{FailureDomain: failureDomain}},
 			Replicas: &replicas,
-			Rollout: clusterv1.MachineDeploymentRolloutSpec{
-				Strategy: clusterv1.MachineDeploymentRolloutStrategy{
-					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-					RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-						MaxSurge:       ptr.To(intstr.FromInt32(maxSurge)),
-						MaxUnavailable: ptr.To(intstr.FromInt32(maxUnavailable)),
-					},
-				},
-			},
 		},
 		Status: clusterv1.MachineDeploymentStatus{
 			Replicas:          &replicas,
 			AvailableReplicas: &replicas,
 		},
 	}
+	for _, opt := range options {
+		opt(md)
+	}
+	return md
 }
 
-func createMS(name, failureDomain string, replicas int32) *clusterv1.MachineSet {
-	return &clusterv1.MachineSet{
+func withStatusAvailableReplicas(r int32) fakeMachineSetOption {
+	return func(ms *clusterv1.MachineSet) {
+		ms.Status.AvailableReplicas = ptr.To(r)
+	}
+}
+
+func createMS(name, failureDomain string, replicas int32, opts ...fakeMachineSetOption) *clusterv1.MachineSet {
+	ms := &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -903,6 +925,10 @@ func createMS(name, failureDomain string, replicas int32) *clusterv1.MachineSet 
 			AvailableReplicas: ptr.To(replicas),
 		},
 	}
+	for _, opt := range opts {
+		opt(ms)
+	}
+	return ms
 }
 
 func createM(name, ownedByMS, failureDomain string) *clusterv1.Machine {

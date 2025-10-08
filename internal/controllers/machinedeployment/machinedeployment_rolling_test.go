@@ -17,6 +17,7 @@ limitations under the License.
 package machinedeployment
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -24,6 +25,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 )
 
 func TestReconcileNewMachineSet(t *testing.T) {
@@ -267,150 +269,443 @@ func TestReconcileNewMachineSet(t *testing.T) {
 	}
 }
 
-func TestReconcileOldMachineSets(t *testing.T) {
-	testCases := []struct {
-		name                           string
-		machineDeployment              *clusterv1.MachineDeployment
-		newMachineSet                  *clusterv1.MachineSet
-		oldMachineSets                 []*clusterv1.MachineSet
-		expectedOldMachineSetsReplicas int
-		error                          error
+func Test_reconcileOldMachineSetsRolloutRolling(t *testing.T) {
+	var ctx = context.Background()
+
+	tests := []struct {
+		name                       string
+		md                         *clusterv1.MachineDeployment
+		scaleIntent                map[string]int32
+		newMS                      *clusterv1.MachineSet
+		oldMSs                     []*clusterv1.MachineSet
+		expectScaleIntent          map[string]int32
+		skipMaxUnavailabilityCheck bool
 	}{
 		{
-			name: "RollingUpdate strategy: Scale down old MachineSets when all new replicas are available",
-			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
-				Spec: clusterv1.MachineDeploymentSpec{
-					Rollout: clusterv1.MachineDeploymentRolloutSpec{
-						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
-							Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-							RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-								MaxUnavailable: intOrStrPtr(1),
-								MaxSurge:       intOrStrPtr(3),
-							},
-						},
-					},
-					Replicas: ptr.To[int32](2),
-				},
+			name:        "no op if there are no replicas on old machinesets",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 10, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms2", "v2", 10, withStatusReplicas(10), withStatusAvailableReplicas(10)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 0, withStatusReplicas(0), withStatusAvailableReplicas(0)),
 			},
-			newMachineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
-				Spec: clusterv1.MachineSetSpec{
-					Replicas: ptr.To[int32](0),
-				},
-				Status: clusterv1.MachineSetStatus{
-					AvailableReplicas: ptr.To[int32](2),
-				},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
 			},
-			oldMachineSets: []*clusterv1.MachineSet{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "foo",
-						Name:      "2replicas",
-					},
-					Spec: clusterv1.MachineSetSpec{
-						Replicas: ptr.To[int32](2),
-					},
-					Status: clusterv1.MachineSetStatus{
-						AvailableReplicas: ptr.To[int32](2),
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "foo",
-						Name:      "1replicas",
-					},
-					Spec: clusterv1.MachineSetSpec{
-						Replicas: ptr.To[int32](1),
-					},
-					Status: clusterv1.MachineSetStatus{
-						AvailableReplicas: ptr.To[int32](1),
-					},
-				},
-			},
-			expectedOldMachineSetsReplicas: 0,
 		},
 		{
-			name: "RollingUpdate strategy: It does not scale down old MachineSets when above maxUnavailable",
-			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
-				Spec: clusterv1.MachineDeploymentSpec{
-					Rollout: clusterv1.MachineDeploymentRolloutSpec{
-						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
-							Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-							RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-								MaxUnavailable: intOrStrPtr(2),
-								MaxSurge:       intOrStrPtr(3),
-							},
-						},
-					},
-					Replicas: ptr.To[int32](10),
-				},
+			name:        "do not scale down if replicas is equal to minAvailable replicas",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
 			},
-			newMachineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
-				Spec: clusterv1.MachineSetSpec{
-					Replicas: ptr.To[int32](5),
-				},
-				Status: clusterv1.MachineSetStatus{
-					Replicas: ptr.To[int32](5),
-				},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+				// 2 available replicas from ms1 + 1 available replica from ms2 = 3 available replicas == minAvailability, we cannot scale down
 			},
-			oldMachineSets: []*clusterv1.MachineSet{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "foo",
-						Name:      "8replicas",
-					},
-					Spec: clusterv1.MachineSetSpec{
-						Replicas: ptr.To[int32](8),
-					},
-					Status: clusterv1.MachineSetStatus{
-						Replicas:          ptr.To[int32](10),
-						ReadyReplicas:     ptr.To[int32](8),
-						AvailableReplicas: ptr.To[int32](8),
-					},
-				},
+		},
+		{
+			name:        "do not scale down if replicas is less then minAvailable replicas",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(1)),
 			},
-			expectedOldMachineSetsReplicas: 8,
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+				// 1 available replicas from ms1 + 1 available replica from ms2 = 2 available replicas < minAvailability, we cannot scale down
+			},
+			skipMaxUnavailabilityCheck: true,
+		},
+		{
+			name:        "do not scale down if there are more replicas than minAvailable replicas, but scale down from a previous reconcile already takes the availability buffer",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2, withStatusReplicas(3), withStatusAvailableReplicas(3)), // OldMS is scaling down from a previous reconcile
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+				// 3 available replicas from ms1 - 1 replica already scaling down from ms1 + 1 available replica from ms2 = 3 available replicas == minAvailability, we cannot further scale down
+			},
+		},
+		{
+			name:        "do not scale down if there are more replicas than minAvailable replicas, but scale down from a previous reconcile already takes the availability buffer, scale down from a previous reconcile on another MS",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 6, withRolloutStrategy(3, 1)),
+			newMS:       createMS("ms3", "v2", 3, withStatusReplicas(0), withStatusAvailableReplicas(0)), // NewMS is scaling up from previous reconcile, but replicas do not exist yet
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2, withStatusReplicas(3), withStatusAvailableReplicas(3)), // OldMS is scaling down from a previous reconcile
+				createMS("ms2", "v1", 3, withStatusReplicas(3), withStatusAvailableReplicas(3)), // OldMS
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+				// 3 available replicas from ms1 - 1 replica already scaling down from ms1 + 3 available replica from ms2 = 5 available replicas == minAvailability, we cannot further scale down
+			},
+		},
+		{
+			name: "do not scale down if there are more replicas than minAvailable replicas, but scale down from current reconcile already takes the availability buffer (newMS is scaling down)",
+			scaleIntent: map[string]int32{
+				"ms2": 1, // newMS (ms2) has a scaling down intent from current reconcile
+			},
+			md:    createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS: createMS("ms2", "v2", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
+			},
+			expectScaleIntent: map[string]int32{
+				"ms2": 1,
+				// no new scale down intent for oldMSs (ms1):
+				// 2 available replicas from ms1 + 2 available replicas from ms2 - 1 replica already scaling down from ms2 = 3 available replicas == minAvailability, we cannot further scale down
+			},
+		},
+		{
+			name: "do not scale down if there are more replicas than minAvailable replicas, but scale down from current reconcile already takes the availability buffer (oldMS is scaling down)",
+			scaleIntent: map[string]int32{
+				"ms1": 1, // oldMS (ms1) has a scaling down intent from current reconcile
+			},
+			md:    createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS: createMS("ms2", "v2", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs:
+				"ms1": 1,
+				// 2 available replicas from ms1 - 1 replica already scaling down from ms1 + 2 available replicas from ms2 = 3 available replicas == minAvailability, we cannot further scale down
+			},
+		},
+		{
+			name:        "do not scale down replicas when there are more replicas than minAvailable replicas, but not all the replicas are available (unavailability on newMS)",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(0)), // no replicas are available
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 3, withStatusReplicas(3), withStatusAvailableReplicas(3)),
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+				// 3 available replicas from ms1 + 0 available replicas from ms2 = 3 available replicas == minAvailability, we cannot further scale down
+			},
+		},
+		{
+			name:        "do not scale down replicas when there are more replicas than minAvailable replicas, but not all the replicas are available (unavailability on oldMS)",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 3, withStatusReplicas(3), withStatusAvailableReplicas(2)), // only 2 replicas are available
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+				// 2 available replicas from ms1 + 1 available replicas from ms2 = 3 available replicas == minAvailability, we cannot further scale down
+			},
+		},
+		{
+			name:        "scale down replicas when there are more replicas than minAvailable replicas, all replicas are available",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 3, withStatusReplicas(3), withStatusAvailableReplicas(3)),
+			},
+			expectScaleIntent: map[string]int32{
+				// new scale down intent for oldMSs (ms1):
+				"ms1": 2, // 3 available replicas from ms1 + 1 available replicas from ms2 = 4 available replicas > minAvailability, scale down to 2 replicas (-1)
+			},
+		},
+		{
+			name:        "scale down replicas when there are more replicas than minAvailable replicas, unavailable replicas are scaled down first",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms4", "v3", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v0", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
+				createMS("ms2", "v1", 1, withStatusReplicas(1), withStatusAvailableReplicas(0)), // no replicas are available
+				createMS("ms3", "v2", 2, withStatusReplicas(2), withStatusAvailableReplicas(0)), // no replicas are available
+			},
+			expectScaleIntent: map[string]int32{
+				// new scale down intent for oldMSs:
+				// ms1 skipped in the first iteration because it does not have any unavailable replica
+				"ms2": 0, // 0 available replicas from ms2, it can be scaled down without impact on availability (-1)
+				"ms3": 0, // 0 available replicas from ms3, it can be scaled down without impact on availability (-2)
+				// no need to further scale down.
+			},
+		},
+		{
+			name:        "scale down replicas when there are more replicas than minAvailable replicas, unavailable replicas are scaled down first, available replicas are scaled down when unavailable replicas are gone",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms4", "v3", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v0", 3, withStatusReplicas(3), withStatusAvailableReplicas(3)),
+				createMS("ms2", "v1", 1, withStatusReplicas(1), withStatusAvailableReplicas(0)), // no replicas are available
+				createMS("ms3", "v2", 2, withStatusReplicas(2), withStatusAvailableReplicas(0)), // no replicas are available
+			},
+			expectScaleIntent: map[string]int32{
+				// new scale down intent for oldMSs:
+				// ms1 skipped in the first iteration because it does not have any unavailable replica
+				"ms2": 0, // 0 available replicas from ms2, it can be scaled down to 0 without any impact on availability (-1)
+				"ms3": 0, // 0 available replicas from ms3, it can be scaled down to 0 without any impact on availability (-2)
+				"ms1": 2, // 3 available replicas from ms1 + 1 available replica from ms4 = 4 available replicas > minAvailability, scale down to 2 replicas (-1)
+			},
+		},
+		{
+			name:        "scale down replicas when there are more replicas than minAvailable replicas, unavailable replicas are scaled down first, available replicas are scaled down when unavailable replicas are gone is not affected by replicas without machines",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms4", "v3", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v0", 4, withStatusReplicas(3), withStatusAvailableReplicas(3)), // 1 replica without machine
+				createMS("ms2", "v1", 2, withStatusReplicas(1), withStatusAvailableReplicas(0)), // no replicas are available, 1 replica without machine
+				createMS("ms3", "v2", 5, withStatusReplicas(2), withStatusAvailableReplicas(0)), // no replicas are available, 3 replicas without machines
+			},
+			expectScaleIntent: map[string]int32{
+				// new scale down intent for oldMSs:
+				// ms1 skipped in the first iteration because it does not have any unavailable replica
+				"ms2": 0, // 0 available replicas from ms2, it can be scaled down to 0 without any impact on availability (-2)
+				"ms3": 0, // 0 available replicas from ms3, it can be scaled down to 0 without any impact on availability (-5)
+				"ms1": 2, // 3 available replicas from ms1 + 1 available replica from ms4 = 4 available replicas > minAvailability, scale down to 2 replicas, also drop the replica without machine (-2)
+			},
+		},
+		{
+			name:        "scale down replicas when there are more replicas than minAvailable replicas, unavailable replicas are scaled down first, scale down stops before breaching minAvailable replicas",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms4", "v3", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v0", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
+				createMS("ms2", "v1", 1, withStatusReplicas(1), withStatusAvailableReplicas(0)), // no replicas are available
+				createMS("ms3", "v2", 2, withStatusReplicas(2), withStatusAvailableReplicas(1)), // only 1 replica is available
+			},
+			expectScaleIntent: map[string]int32{
+				// new scale down intent for oldMSs:
+				"ms2": 0, // 0 available replicas from ms2, it can be scaled down to 0 without any impact on availability (-1)
+				// even if there is still room to scale down, we cannot scale down ms3: 1 available replica from ms1 + 1 available replica from ms4 = 2 available replicas < minAvailability
+				// does not make sense to continue scale down as there is no guarantee that MS3 would remove the unavailable replica
+			},
+		},
+		{
+			name:        "scale down replicas when there are more replicas than minAvailable replicas, unavailable replicas are scaled down first, scale down stops before breaching minAvailable replicas is not affected by replicas without machines",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms4", "v3", 1, withStatusReplicas(1), withStatusAvailableReplicas(1)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v0", 2, withStatusReplicas(1), withStatusAvailableReplicas(1)), // 1 replica without machine
+				createMS("ms2", "v1", 3, withStatusReplicas(1), withStatusAvailableReplicas(0)), // no replicas are available, 2 replica without machines
+				createMS("ms3", "v2", 3, withStatusReplicas(2), withStatusAvailableReplicas(1)), // only 1 replica is available, 1 replica without machine
+			},
+			expectScaleIntent: map[string]int32{
+				// new scale down intent for oldMSs:
+				"ms1": 1, // 1 replica without machine, it can be scaled down to 1 without any impact on availability (-1)
+				"ms2": 0, // 2 replica without machine, 0 available replicas from ms2, it can be scaled down to 0 without any impact on availability (-3)
+				"ms3": 2, // 1 replica without machine, it can be scaled down to 2 without any impact on availability (-1); even if there is still room to scale down, we cannot further scale down ms3: 1 available replica from ms1 + 1 available replica from ms4 = 2 available replicas < minAvailability
+				// does not make sense to continue scale down.
+			},
+		},
+		{
+			name:        "scale down replicas when there are more replicas than minAvailable replicas, scale down keeps into account scale downs from a previous reconcile",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS:       createMS("ms2", "v3", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v0", 3, withStatusReplicas(4), withStatusAvailableReplicas(4)), // OldMS is scaling down from a previous reconcile
+			},
+			expectScaleIntent: map[string]int32{
+				// new scale down intent for oldMSs:
+				"ms1": 2, // 4 available replicas from ms1 - 1 replica already scaling down from ms1 + 2 available replicas from ms2 = 5 available replicas > minAvailability, scale down to 2 (-1)
+			},
+		},
+		{
+			name: "scale down replicas when there are more replicas than minAvailable replicas, scale down keeps into account scale downs from the current reconcile (newMS is scaling down)",
+			scaleIntent: map[string]int32{
+				"ms2": 1, // newMS (ms2) has a scaling down intent from current reconcile
+			},
+			md:    createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS: createMS("ms2", "v3", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v0", 3, withStatusReplicas(3), withStatusAvailableReplicas(3)),
+			},
+			expectScaleIntent: map[string]int32{
+				"ms2": 1,
+				// new scale down intent for oldMSs:
+				"ms1": 2, // 3 available replicas from ms1 + 2 available replicas from ms2 - 1 replica already scaling down from ms2 = 4 available replicas > minAvailability, scale down to 2 (-1)
+			},
+		},
+		{
+			name: "scale down replicas when there are more replicas than minAvailable replicas, scale down keeps into account scale downs from the current reconcile (oldMS is scaling down)",
+			scaleIntent: map[string]int32{
+				"ms1": 2, // oldMS (ms1) has a scaling down intent from current reconcile
+			},
+			md:    createMD("v2", 3, withRolloutStrategy(1, 0)),
+			newMS: createMS("ms2", "v3", 2, withStatusReplicas(2), withStatusAvailableReplicas(2)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v0", 3, withStatusReplicas(3), withStatusAvailableReplicas(3)),
+			},
+			expectScaleIntent: map[string]int32{
+				// new scale down intent for oldMSs:
+				"ms1": 1, // 3 available replicas from ms1 - 1 replica already scaling down from ms1 + 2 available replicas from ms2 = 4 available replicas > minAvailability, scale down to 1 (-1)
+			},
 		},
 	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			planner := newRolloutPlanner()
-			planner.md = tc.machineDeployment
-			planner.newMS = tc.newMachineSet
-			planner.oldMSs = tc.oldMachineSets
-
-			err := planner.reconcileOldMachineSets(ctx)
-			if tc.error != nil {
-				g.Expect(err).To(HaveOccurred())
-				g.Expect(err.Error()).To(BeEquivalentTo(tc.error.Error()))
-				return
+			p := &rolloutPlanner{
+				md:           tt.md,
+				newMS:        tt.newMS,
+				oldMSs:       tt.oldMSs,
+				scaleIntents: tt.scaleIntent,
 			}
-
+			err := p.reconcileOldMachineSetsRolloutRolling(ctx)
 			g.Expect(err).ToNot(HaveOccurred())
-			for i := range tc.oldMachineSets {
-				scaleIntent := ptr.Deref(tc.oldMachineSets[i].Spec.Replicas, 0)
-				if v, ok := planner.scaleIntents[tc.oldMachineSets[i].Name]; ok {
-					scaleIntent = v
+			g.Expect(p.scaleIntents).To(Equal(tt.expectScaleIntent), "unexpected scaleIntents")
+
+			// Check we are not breaching minAvailability by simulating what will happen by applying intent + worst scenario when a machine deletion is always an available machine deletion.
+			for _, oldMS := range tt.oldMSs {
+				scaleIntent, ok := p.scaleIntents[oldMS.Name]
+				if !ok {
+					continue
 				}
-				g.Expect(scaleIntent).To(BeEquivalentTo(tc.expectedOldMachineSetsReplicas))
+				machineScaleDown := max(ptr.Deref(oldMS.Status.Replicas, 0)-scaleIntent, 0)
+				if machineScaleDown > 0 {
+					oldMS.Status.AvailableReplicas = ptr.To(max(ptr.Deref(oldMS.Status.AvailableReplicas, 0)-machineScaleDown, 0))
+				}
 			}
+			minAvailableReplicas := ptr.Deref(tt.md.Spec.Replicas, 0) - mdutil.MaxUnavailable(*tt.md)
+			totAvailableReplicas := ptr.Deref(mdutil.GetAvailableReplicaCountForMachineSets(append(tt.oldMSs, tt.newMS)), 0)
+			if !tt.skipMaxUnavailabilityCheck {
+				g.Expect(totAvailableReplicas).To(BeNumerically(">=", minAvailableReplicas), "totAvailable machines is less than minAvailable")
+			} else {
+				t.Logf("skipping MaxUnavailability check (totAvailableReplicas: %d, minAvailableReplicas: %d)", totAvailableReplicas, minAvailableReplicas)
+			}
+		})
+	}
+}
+
+func Test_reconcileDeadlockBreaker(t *testing.T) {
+	var ctx = context.Background()
+
+	tests := []struct {
+		name                       string
+		scaleIntent                map[string]int32
+		newMS                      *clusterv1.MachineSet
+		oldMSs                     []*clusterv1.MachineSet
+		expectScaleIntent          map[string]int32
+		skipMaxUnavailabilityCheck bool
+	}{
+		{
+			name:        "no op if there are no replicas on old machinesets",
+			scaleIntent: map[string]int32{},
+			newMS:       createMS("ms2", "v2", 10, withStatusReplicas(10), withStatusAvailableReplicas(10)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 0, withStatusReplicas(0), withStatusAvailableReplicas(0)), // there no replicas, not a deadlock, we are actually at desired state
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+			},
+		},
+		{
+			name:        "no op if all the replicas on OldMS are available",
+			scaleIntent: map[string]int32{},
+			newMS:       createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)), // there no unavailable replicas, not a deadlock (rollout will continue as usual)
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+			},
+		},
+		{
+			name:        "no op if there are scale operation still in progress from a previous reconcile on newMS",
+			scaleIntent: map[string]int32{},
+			newMS:       createMS("ms2", "v2", 6, withStatusReplicas(5), withStatusAvailableReplicas(5)), // scale up from a previous reconcile
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(4)), // there is at least one unavailable replica, not yet considered deadlock because scale operation still in progress
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+			},
+		},
+		{
+			name:        "no op if there are scale operation still in progress from a previous reconcile on oldMS",
+			scaleIntent: map[string]int32{},
+			newMS:       createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 4, withStatusReplicas(5), withStatusAvailableReplicas(4)), // there is at least one unavailable replica, not yet considered deadlock because scale operation still in progress
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+			},
+		},
+		{
+			name: "no op if there are scale operation from the current reconcile on newMS",
+			scaleIntent: map[string]int32{
+				"ms2": 6, // scale up intent for newMS
+			},
+			newMS: createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(4)), // there is at least one unavailable replica, not yet considered deadlock because scale operation still in progress
+			},
+			expectScaleIntent: map[string]int32{
+				"ms2": 6,
+				// no new scale down intent for oldMSs (ms1):
+			},
+		},
+		{
+			name: "no op if there are scale operation from the current reconcile on oldMS",
+			scaleIntent: map[string]int32{
+				"ms1": 4, // scale up intent for oldMS
+			},
+			newMS: createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(4)), // there is at least one unavailable replica, not yet considered deadlock because scale operation still in progress
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+				"ms1": 4,
+			},
+		},
+		{
+			name:        "wait for unavailable replicas on the newMS if any",
+			scaleIntent: map[string]int32{},
+			newMS:       createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(3)), // one unavailable replica
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(4)), // there is at least one unavailable replica, no scale operations in progress, potential deadlock, but the system must wait until all replica on newMS are available before unblocking further deletion on oldMS.
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+			},
+		},
+		{
+			name:        "unblock a deadlock when necessary",
+			scaleIntent: map[string]int32{},
+			newMS:       createMS("ms2", "v2", 5, withStatusReplicas(5), withStatusAvailableReplicas(5)),
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 5, withStatusReplicas(5), withStatusAvailableReplicas(3)), // there is at least one unavailable replica, all replicas on newMS available, no scale operations in progress, deadlock
+			},
+			expectScaleIntent: map[string]int32{
+				// new scale down intent for oldMSs (ms1):
+				"ms1": 4,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			p := &rolloutPlanner{
+				newMS:        tt.newMS,
+				oldMSs:       tt.oldMSs,
+				scaleIntents: tt.scaleIntent,
+			}
+			p.reconcileDeadlockBreaker(ctx)
+			g.Expect(p.scaleIntents).To(Equal(tt.expectScaleIntent), "unexpected scaleIntents")
 		})
 	}
 }

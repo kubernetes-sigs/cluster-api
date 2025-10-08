@@ -181,6 +181,11 @@ const (
 	// This annotation can be used to inform MachinePool status during in-progress scaling scenarios.
 	ReplicasManagedByAnnotation = "cluster.x-k8s.io/replicas-managed-by"
 
+	// InPlaceUpdateInProgressAnnotation is set on Machine, InfraMachine, and BootstrapConfig when an in-place update is in progress.
+	// The Machine controller waits for all three objects to have this annotation before starting the update.
+	// The Machine controller removes this annotation when the update is complete.
+	InPlaceUpdateInProgressAnnotation = "cluster.x-k8s.io/in-place-update-in-progress"
+
 	// AutoscalerMinSizeAnnotation defines the minimum node group size.
 	// The annotation is used by autoscaler.
 	// The annotation is copied from kubernetes/autoscaler.

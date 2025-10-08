@@ -301,8 +301,9 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		controlPlaneVersion := fromVersion
 		workersVersion := fromVersion
 
-		checkControlPlaneVersion(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, controlPlaneVersion)
-		checkWorkersVersions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, workersVersion)
+		// wait for all Machines to exist before starting the upgrade.
+		waitControlPlaneVersion(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, controlPlaneVersion, input.E2EConfig.GetIntervals(specName, "wait-control-plane-upgrade"))
+		waitWorkersVersions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, workersVersion, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
 
 		// Add a BeforeClusterUpgrade hook annotation to block via the annotation.
 		beforeClusterUpgradeAnnotation := clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/upgrade-test"

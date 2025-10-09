@@ -596,6 +596,44 @@ func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, opts 
 	return nil
 }
 
+// PatchStatusAndWait creates or updates the given object status using server-side apply and waits for the cache to be updated accordingly.
+//
+// NOTE: Waiting for the cache to be updated helps in preventing test flakes due to the cache sync delays.
+func (e *Environment) PatchStatusAndWait(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.SubResourcePatchOption) error {
+	key := client.ObjectKeyFromObject(obj)
+	objCopy := obj.DeepCopyObject().(client.Object)
+	if err := e.GetAPIReader().Get(ctx, key, objCopy); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+	// Store old resource version, empty string if not found.
+	oldResourceVersion := objCopy.GetResourceVersion()
+
+	if err := e.Status().Patch(ctx, obj, patch, opts...); err != nil {
+		return err
+	}
+
+	// Makes sure the cache is updated with the new object
+	if err := wait.ExponentialBackoff(
+		cacheSyncBackoff,
+		func() (done bool, err error) {
+			if err := e.Get(ctx, key, objCopy); err != nil {
+				if apierrors.IsNotFound(err) {
+					return false, nil
+				}
+				return false, err
+			}
+			if objCopy.GetResourceVersion() == oldResourceVersion {
+				return false, nil
+			}
+			return true, nil
+		}); err != nil {
+		return errors.Wrapf(err, "object %s, %s is not being added to or did not get updated in the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
+	}
+	return nil
+}
+
 // DirectAPIServerGet gets an object directly from apiserver bypassing informer caches..
 //
 // NOTE: Bypassing cache helps in preventing test flakes due to the cache sync delays but should only be used in validation steps of testing.

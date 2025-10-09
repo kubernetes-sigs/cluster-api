@@ -341,7 +341,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 	c := &ControlPlane{
 		KCP:                 &controlplanev1.KubeadmControlPlane{},
 		Machines:            collections.FromMachines(healthyMachine, machineWithoutNode, machineJustDeleted, machineNotUpToDate, machineMarkedForRemediation),
-		MachinesNotUptoDate: collections.FromMachines(machineNotUpToDate),
+		MachinesNotUpToDate: collections.FromMachines(machineNotUpToDate),
 		EtcdMembers:         []*etcd.Member{{Name: "m1"}, {Name: "m2"}, {Name: "m3"}},
 	}
 

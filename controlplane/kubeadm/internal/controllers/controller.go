@@ -804,8 +804,8 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 		}
 		// Note: Ensure ControlPlane has the latest version of the Machine.
 		controlPlane.Machines[machineName] = updatedMachine
-		if _, ok := controlPlane.MachinesNotUptoDate[machineName]; ok {
-			controlPlane.MachinesNotUptoDate[machineName] = updatedMachine
+		if _, ok := controlPlane.MachinesNotUpToDate[machineName]; ok {
+			controlPlane.MachinesNotUpToDate[machineName] = updatedMachine
 		}
 		// Since the machine is updated, re-create the patch helper so that any subsequent
 		// Patch calls use the correct base machine object to calculate the diffs.

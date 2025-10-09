@@ -189,3 +189,10 @@ see [Let's chat about ...](https://github.com/kubernetes-sigs/cluster-api/discus
 * [Local CAPI development and debugging with Tilt (APAC/EMEA) - February 2022](https://www.youtube.com/watch?v=CM-dotO2nSU)
 * [Code structure & Makefile targets (EMEA/Americas) - February 2022](https://www.youtube.com/watch?v=_prbOnziCJw)
 * [Code structure & Makefile targets (APAC/EMEA) - February 2022](https://www.youtube.com/watch?v=Y6Gws65H1tE)
+
+**CAPI e2e Deep Dive***
+
+These are Deep-dive sessions with the CI team to investigate failing and flaking tests.
+
+* [CAPI e2e Deep Dive - 2023-05-11](https://www.youtube.com/watch?v=H6s2SWpTGtU)
+* [CAPI e2e Deep Dive - 2023-05-04](https://www.youtube.com/watch?v=YApWftmiDTg)

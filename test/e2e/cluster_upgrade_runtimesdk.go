@@ -301,8 +301,9 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		controlPlaneVersion := fromVersion
 		workersVersion := fromVersion
 
-		checkControlPlaneVersion(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, controlPlaneVersion)
-		checkWorkersVersions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, workersVersion)
+		// wait for all Machines to exist before starting the upgrade.
+		waitControlPlaneVersion(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, controlPlaneVersion, input.E2EConfig.GetIntervals(specName, "wait-control-plane-upgrade"))
+		waitWorkersVersions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, workersVersion, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
 
 		// Add a BeforeClusterUpgrade hook annotation to block via the annotation.
 		beforeClusterUpgradeAnnotation := clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/upgrade-test"
@@ -942,11 +943,6 @@ func clusterConditionShowsHookBlocking(cluster *clusterv1.Cluster, hookName stri
 func waitControlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals []interface{}) {
 	Byf("Waiting for control plane to have version %s", version)
 	controlPlaneVersion(ctx, c, cluster, version, intervals...)
-}
-
-func checkControlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string) {
-	Byf("Checking control plane has version %s", version)
-	controlPlaneVersion(ctx, c, cluster, version, "10s", "2s")
 }
 
 func controlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals ...interface{}) {

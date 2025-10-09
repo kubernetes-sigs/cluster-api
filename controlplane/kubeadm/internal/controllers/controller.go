@@ -95,6 +95,11 @@ type KubeadmControlPlaneReconciler struct {
 	managementCluster         internal.ManagementCluster
 	managementClusterUncached internal.ManagementCluster
 	ssaCache                  ssa.Cache
+
+	// Only used for testing
+	overrideTryInPlaceUpdateFunc      func(ctx context.Context, controlPlane *internal.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machinesNeedingRolloutResult internal.NotUpToDateResult) (bool, ctrl.Result, error)
+	overrideScaleUpControlPlaneFunc   func(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error)
+	overrideScaleDownControlPlaneFunc func(ctx context.Context, controlPlane *internal.ControlPlane, machineToDelete *clusterv1.Machine) (ctrl.Result, error)
 }
 
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -476,7 +481,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		}
 		log.Info(fmt.Sprintf("Rolling out Control Plane machines: %s", strings.Join(allMessages, ",")), "machinesNeedingRollout", machinesNeedingRollout.Names())
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateV1Beta1Condition, controlplanev1.RollingUpdateInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
-		return r.upgradeControlPlane(ctx, controlPlane, machinesNeedingRollout)
+		return r.updateControlPlane(ctx, controlPlane, machinesNeedingRollout, machinesNeedingRolloutResults)
 	default:
 		// make sure last upgrade operation is marked as completed.
 		// NOTE: we are checking the condition already exists in order to avoid to set this condition at the first
@@ -506,7 +511,12 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	case numMachines > desiredReplicas:
 		log.Info("Scaling down control plane", "desired", desiredReplicas, "existing", numMachines)
 		// The last parameter (i.e. machines needing to be rolled out) should always be empty here.
-		return r.scaleDownControlPlane(ctx, controlPlane, collections.Machines{})
+		// Pick the Machine that we should scale down.
+		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, collections.Machines{})
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to select machine for scale down")
+		}
+		return r.scaleDownControlPlane(ctx, controlPlane, machineToDelete)
 	}
 
 	// Get the workload cluster client.

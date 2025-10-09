@@ -102,7 +102,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 		return
 	}
 
-	// Determine if there are replicas to be scaled down due to a scale down in MD.
+	// Determine if there are more Machines than MD.spec.replicas, e.g. due to a scale down in MD.
 	newMSReplicas := ptr.Deref(p.newMS.Spec.Replicas, 0)
 	if v, ok := p.scaleIntents[p.newMS.Name]; ok {
 		newMSReplicas = v
@@ -116,10 +116,10 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 	// Start scaling down old machine sets to acknowledge spec.replicas without corresponding status.replicas.
 	// Note: spec.replicas without corresponding status.replicas exists
 	// - after a user manually deletes a replica
-	// - when a newMS non yet fully provisioned suddenly becomes an oldMS.
+	// - when a newMS not yet fully provisioned suddenly becomes an oldMS.
 	// In both cases spec.replicas without corresponding status.replicas should be dropped, no matter
 	// if there are replicas to be scaled down due to a scale down in MD or not.
-	// However, if there are replicas to be scaled down due to a scale down in MD, deleted replicas should
+	// However, just in case there are replicas to be scaled down due to a scale down in MD, deleted replicas should
 	// be deducted from the totalScaleDownCount.
 	for _, oldMS := range p.oldMSs {
 		// No op if this MS has been already scaled down to zero.
@@ -147,7 +147,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 		// No op if this MS has been already scaled down to zero.
 		scaleIntent := ptr.Deref(oldMS.Spec.Replicas, 0)
 		if v, ok := p.scaleIntents[oldMS.Name]; ok {
-			scaleIntent = min(scaleIntent, v)
+			scaleIntent = v
 		}
 
 		if scaleIntent <= 0 {

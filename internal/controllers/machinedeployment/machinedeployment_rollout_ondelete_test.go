@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -201,8 +202,8 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 			},
 			expectScaleIntent: map[string]int32{
 				// new intent for old MS
-				"ms1": 0, // scale down by one,1 exceeding machine removed from ms1
-				"ms2": 1, // scale down by one,1 exceeding machine removed from ms1
+				"ms1": 0, // scale down by one, 1 exceeding machine removed from ms1
+				"ms2": 1, // scale down by one, 1 exceeding machine removed from ms2
 			},
 		},
 		{
@@ -259,7 +260,7 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 				"ms3": 2,
 				// new intent for old MS
 				"ms1": 0, // scale down by one, 1 exceeding machine removed from ms1
-				"ms2": 1, // scale down by one,1 exceeding machine removed from ms1
+				"ms2": 1, // scale down by one, 1 exceeding machine removed from ms2
 			},
 		},
 		{
@@ -390,6 +391,7 @@ type onDeleteSequenceTestCase struct {
 func Test_OnDeleteSequences(t *testing.T) {
 	ctx := context.Background()
 	ctx = ctrl.LoggerInto(ctx, klog.Background())
+	klog.SetOutput(ginkgo.GinkgoWriter)
 
 	tests := []onDeleteSequenceTestCase{
 		{ // delete 1
@@ -578,8 +580,6 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 				fLogger.Logf("[MD controller] - Input to rollout planner\n%s", current)
 
 				// Running a small subset of MD reconcile (the rollout logic and a bit of setReplicas)
-
-				// create rollout planner and override the func that computeDesiredMS so it uses a predictable MS name when creating newMS.
 				p := newRolloutPlanner()
 				p.md = current.machineDeployment
 				p.newMS = current.newMS()
@@ -618,11 +618,11 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 
 			// Simulate the user deleting machines not upToDate; in order to make this realistic deletion will be performed
 			// if the operation respects maxUserUnavailable e.g.
-			// - with maxUserUnavailable=1, perform deletion only when previous deletion has been completed and a replacement machines,
-			//   which we assume it is the most common behaviour.
-			// - maxUserUnavailable > 1 can be used to test scenarios where the users delete machines in a more aggressive
-			// Also deletion cannot happen before the newMS has been created (thus preventing machines being deleted and
-			// re-created on oldMSs in case of random sequences, which will lead to result different than what expected)
+			// - with maxUserUnavailable=1, perform deletion only when previous deletion has been completed and a replacement machines
+			//   has been created, which we assume it is the most common behaviour.
+			// - maxUserUnavailable > 1 can be used to test scenarios where the users delete machines in a more aggressive way.
+			// Also, deletion cannot happen before the newMS has been created (thus preventing machines being deleted and
+			// re-created on oldMSs in case of random sequences, which will lead to result different from what expected)
 			if task == "delete-machine" {
 				deletionsInFlight := int32(0)
 				for _, m := range current.machines() {
@@ -634,7 +634,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 				totAvailable := max(int32(len(current.machines()))-deletionsInFlight, 0)
 				minAvailable := max(ptr.Deref(current.machineDeployment.Spec.Replicas, 0)-tt.maxUserUnavailable, 0)
 				if totAvailable > minAvailable && canDelete {
-					// Determine the list of machines that should be deleted manually, which are the machines not yet upd to date.
+					// Determine the list of machines that should be deleted manually, which are the machines not yet UpToDate.
 					machinesToDelete := []*clusterv1.Machine{}
 					for _, m := range current.machines() {
 						if upToDate, _ := mdutil.MachineTemplateUpToDate(&clusterv1.MachineTemplateSpec{Spec: m.Spec}, &desired.machineDeployment.Spec.Template); !upToDate {
@@ -644,7 +644,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 
 					if len(machinesToDelete) > 0 {
 						// When running with default controller order, also delete machines in order;
-						// conversely, when running with random controller order, also machine deletion happens in rando order.
+						// conversely, when running with random controller order, also machine deletion happens in random order.
 						n := 0
 						if tt.randomControllerOrder {
 							n = rng.Intn(len(machinesToDelete))

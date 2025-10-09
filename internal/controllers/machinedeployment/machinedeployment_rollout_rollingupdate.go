@@ -56,7 +56,7 @@ func (r *Reconciler) rolloutRollingUpdate(ctx context.Context, md *clusterv1.Mac
 	//   - TBD is we want to implement a proper cleanup thus ensuring create machines on oldMS can always happen when using the
 	//     RolloutUpdate strategy, or if we want to always prevent machine creation on oldMS also in this case.
 	//   Note: When rollout is paused the code assumes it can always scale up oldMS (see scale in machinedeployment_sync.go).
-	//   however current implement it is of missing removal of the DisableMachineCreateAnnotation that might exist or not
+	//   however current implementation is missing removal of the DisableMachineCreateAnnotation that might exist or not
 	//   on oldMS (depending on strategy / proper cleanup etc.).
 	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
 		return err

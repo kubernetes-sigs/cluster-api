@@ -945,11 +945,6 @@ func waitControlPlaneVersion(ctx context.Context, c client.Client, cluster *clus
 	controlPlaneVersion(ctx, c, cluster, version, intervals...)
 }
 
-func checkControlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string) {
-	Byf("Checking control plane has version %s", version)
-	controlPlaneVersion(ctx, c, cluster, version, "10s", "2s")
-}
-
 func controlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals ...interface{}) {
 	Eventually(func(_ Gomega) bool {
 		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)

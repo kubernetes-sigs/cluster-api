@@ -49,8 +49,19 @@ type NotUpToDateResult struct {
 
 // UpToDate checks if a Machine is up to date with the control plane's configuration.
 // If not, messages explaining why are provided with different level of detail for logs and conditions.
-func UpToDate(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlane, reconciliationTime *metav1.Time, infraMachines map[string]*unstructured.Unstructured, kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig) (bool, *NotUpToDateResult, error) {
+func UpToDate(
+	ctx context.Context,
+	c client.Client,
+	cluster *clusterv1.Cluster,
+	machine *clusterv1.Machine,
+	kcp *controlplanev1.KubeadmControlPlane,
+	reconciliationTime *metav1.Time,
+	infraMachines map[string]*unstructured.Unstructured,
+	kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig,
+) (bool, *NotUpToDateResult, error) {
 	res := &NotUpToDateResult{
+		// A Machine is eligible for in-place update except if we find a reason why it shouldn't be,
+		// e.g. rollout.before, rollout.after or the Machine is already up-to-date.
 		EligibleForInPlaceUpdate: true,
 	}
 
@@ -70,7 +81,7 @@ func UpToDate(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, 
 	}
 
 	// Machines that do not match with KCP config.
-	// Note: matchesMachineSpec will update res if necessary.
+	// Note: matchesMachineSpec will update res with desired and current objects if necessary.
 	matches, specLogMessages, specConditionMessages, err := matchesMachineSpec(ctx, c, infraMachines, kubeadmConfigs, kcp, cluster, machine, res)
 	if err != nil {
 		return false, nil, errors.Wrapf(err, "failed to determine if Machine %s is up-to-date", machine.Name)
@@ -97,16 +108,19 @@ func UpToDate(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, 
 // - mutated in-place (ex: NodeDrainTimeoutSeconds)
 // - are not dictated by KCP (ex: ProviderID)
 // - are not relevant for the rollout decision (ex: failureDomain).
-func matchesMachineSpec(ctx context.Context, c client.Client, infraMachines map[string]*unstructured.Unstructured, kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, machine *clusterv1.Machine, res *NotUpToDateResult) (bool, []string, []string, error) {
+func matchesMachineSpec(
+	ctx context.Context,
+	c client.Client,
+	infraMachines map[string]*unstructured.Unstructured,
+	kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig,
+	kcp *controlplanev1.KubeadmControlPlane,
+	cluster *clusterv1.Cluster,
+	machine *clusterv1.Machine,
+	res *NotUpToDateResult,
+) (bool, []string, []string, error) {
 	logMessages := []string{}
 	conditionMessages := []string{}
 
-	if !collections.MatchesKubernetesVersion(kcp.Spec.Version)(machine) {
-		machineVersion := machine.Spec.Version
-		logMessages = append(logMessages, fmt.Sprintf("Machine version %q is not equal to KCP version %q", machineVersion, kcp.Spec.Version))
-		// Note: the code computing the message for KCP's RolloutOut condition is making assumptions on the format/content of this message.
-		conditionMessages = append(conditionMessages, fmt.Sprintf("Version %s, %s required", machineVersion, kcp.Spec.Version))
-	}
 	desiredMachine, err := desiredstate.ComputeDesiredMachine(kcp, cluster, machine.Spec.FailureDomain, machine)
 	if err != nil {
 		return false, nil, nil, errors.Wrapf(err, "failed to match Machine")
@@ -117,6 +131,11 @@ func matchesMachineSpec(ctx context.Context, c client.Client, infraMachines map[
 	// Note: spec.failureDomain is in general only changed on delete/create, so we don't have to update it here for in-place.
 	res.DesiredMachine = desiredMachine
 	// Note: Intentionally not storing currentMachine as it can change later, e.g. through syncMachines.
+	if desiredMachine.Spec.Version != machine.Spec.Version {
+		logMessages = append(logMessages, fmt.Sprintf("Machine version %q is not equal to KCP version %q", machine.Spec.Version, desiredMachine.Spec.Version))
+		// Note: the code computing the message for KCP's RolloutOut condition is making assumptions on the format/content of this message.
+		conditionMessages = append(conditionMessages, fmt.Sprintf("Version %s, %s required", machine.Spec.Version, desiredMachine.Spec.Version))
+	}
 
 	reason, currentKubeadmConfig, desiredKubeadmConfig, matches, err := matchesKubeadmConfig(kubeadmConfigs, kcp, cluster, machine)
 	if err != nil {
@@ -151,7 +170,14 @@ func matchesMachineSpec(ctx context.Context, c client.Client, infraMachines map[
 // matches a given KCP infra template and if it doesn't match returns the reason why.
 // Note: Differences to the labels and annotations on the infrastructure machine are not considered for matching
 // criteria, because changes to labels and annotations are propagated in-place to the infrastructure machines.
-func matchesInfraMachine(ctx context.Context, c client.Client, infraMachines map[string]*unstructured.Unstructured, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, *unstructured.Unstructured, *unstructured.Unstructured, bool, error) {
+func matchesInfraMachine(
+	ctx context.Context,
+	c client.Client,
+	infraMachines map[string]*unstructured.Unstructured,
+	kcp *controlplanev1.KubeadmControlPlane,
+	cluster *clusterv1.Cluster,
+	machine *clusterv1.Machine,
+) (string, *unstructured.Unstructured, *unstructured.Unstructured, bool, error) {
 	currentInfraMachine, found := infraMachines[machine.Name]
 	if !found {
 		// Return true here because failing to get infrastructure machine should not be considered as unmatching.
@@ -167,7 +193,7 @@ func matchesInfraMachine(ctx context.Context, c client.Client, infraMachines map
 		return "", nil, nil, true, nil
 	}
 
-	desiredInfraMachine, err := desiredstate.ComputeInfraMachine(ctx, c, kcp, cluster, machine.Name, currentInfraMachine)
+	desiredInfraMachine, err := desiredstate.ComputeDesiredInfraMachine(ctx, c, kcp, cluster, machine.Name, currentInfraMachine)
 	if err != nil {
 		return "", nil, nil, false, errors.Wrapf(err, "failed to match InfraMachine")
 	}
@@ -186,7 +212,12 @@ func matchesInfraMachine(ctx context.Context, c client.Client, infraMachines map
 // matchesKubeadmConfig checks if machine's KubeadmConfigSpec is equivalent with KCP's KubeadmConfigSpec.
 // Note: Differences to the labels and annotations on the KubeadmConfig are not considered for matching
 // criteria, because changes to labels and annotations are propagated in-place to KubeadmConfig.
-func matchesKubeadmConfig(kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, *bootstrapv1.KubeadmConfig, *bootstrapv1.KubeadmConfig, bool, error) {
+func matchesKubeadmConfig(
+	kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig,
+	kcp *controlplanev1.KubeadmControlPlane,
+	cluster *clusterv1.Cluster,
+	machine *clusterv1.Machine,
+) (string, *bootstrapv1.KubeadmConfig, *bootstrapv1.KubeadmConfig, bool, error) {
 	bootstrapRef := machine.Spec.Bootstrap.ConfigRef
 	if !bootstrapRef.IsDefined() {
 		// Missing bootstrap reference should not be considered as unmatching.
@@ -201,10 +232,12 @@ func matchesKubeadmConfig(kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig, 
 		return "", nil, nil, true, nil
 	}
 
-	// Note: We compute a KubeadmConfig with joinConfiguration.
-	// If necessary, PrepareKubeadmConfigsForDiff below will convert initConfiguration to joinConfiguration
-	// in currentKubeadmConfig. So that we compare two KubeadmConfigs that both have joinConfigurations.
-	desiredKubeadmConfigWithJoin, err := desiredstate.ComputeKubeadmConfig(kcp, cluster, true, machine.Name, currentKubeadmConfig)
+	// Note: Compute a KubeadmConfig assuming we are dealing with a joining machine, which is the most common scenario.
+	// When dealing with the KubeadmConfig for the init machine, the code will make a first tentative comparison under
+	// the assumption that KCP initConfiguration and joinConfiguration should be configured identically.
+	// In order to do so, PrepareKubeadmConfigsForDiff will attempt to convert initConfiguration to
+	// joinConfiguration in currentKubeadmConfig.
+	desiredKubeadmConfigWithJoin, err := desiredstate.ComputeDesiredKubeadmConfig(kcp, cluster, true, machine.Name, currentKubeadmConfig)
 	if err != nil {
 		return "", nil, nil, false, errors.Wrapf(err, "failed to match KubeadmConfig")
 	}
@@ -224,8 +257,8 @@ func matchesKubeadmConfig(kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig, 
 		// Accordingly, we also have to compare the currentKubeadmConfig against a desiredKubeadmConfig
 		// computed for init to avoid unnecessary rollouts.
 		// Note: In any case we are going to use desiredKubeadmConfigWithJoin for in-place updates and return it accordingly.
-		if currentKubeadmConfig.IsForInit() {
-			desiredKubeadmConfigWithInit, err := desiredstate.ComputeKubeadmConfig(kcp, cluster, false, machine.Name, currentKubeadmConfig)
+		if isKubeadmConfigForInit(currentKubeadmConfig) {
+			desiredKubeadmConfigWithInit, err := desiredstate.ComputeDesiredKubeadmConfig(kcp, cluster, false, machine.Name, currentKubeadmConfig)
 			if err != nil {
 				return "", nil, nil, false, errors.Wrapf(err, "failed to match KubeadmConfig")
 			}
@@ -234,11 +267,15 @@ func matchesKubeadmConfig(kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig, 
 			// Check if current and desired KubeadmConfigs match.
 			// Note: desiredKubeadmConfigWithInitForDiff has been computed for a kubeadm init.
 			// Note: currentKubeadmConfigWithInitForDiff is for a kubeadm init.
-			if match, _, err := compare.Diff(&currentKubeadmConfigWithInitForDiff.Spec, &desiredKubeadmConfigWithInitForDiff.Spec); err != nil {
+			match, diff, err := compare.Diff(&currentKubeadmConfigWithInitForDiff.Spec, &desiredKubeadmConfigWithInitForDiff.Spec)
+			if err != nil {
 				return "", nil, nil, false, errors.Wrapf(err, "failed to match KubeadmConfig")
-			} else if match {
-				return "", currentKubeadmConfig, desiredKubeadmConfigWithJoin, true, nil
 			}
+			// Always return desiredKubeadmConfigWithJoin (not desiredKubeadmConfigWithInit) as it should always be used for in-place updates.
+			if !match {
+				return fmt.Sprintf("Machine KubeadmConfig is outdated: diff: %s", diff), currentKubeadmConfig, desiredKubeadmConfigWithJoin, false, nil
+			}
+			return "", currentKubeadmConfig, desiredKubeadmConfigWithJoin, true, nil
 		}
 
 		return fmt.Sprintf("Machine KubeadmConfig is outdated: diff: %s", diff), currentKubeadmConfig, desiredKubeadmConfigWithJoin, false, nil
@@ -255,7 +292,7 @@ func PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig *bo
 	desiredKubeadmConfig = desiredKubeadmConfig.DeepCopy()
 	currentKubeadmConfig = currentKubeadmConfig.DeepCopy()
 
-	if convertCurrentInitConfigurationToJoinConfiguration && currentKubeadmConfig.IsForInit() {
+	if convertCurrentInitConfigurationToJoinConfiguration && isKubeadmConfigForInit(currentKubeadmConfig) {
 		// Convert InitConfiguration to JoinConfiguration
 		currentKubeadmConfig.Spec.JoinConfiguration.Timeouts = currentKubeadmConfig.Spec.InitConfiguration.Timeouts
 		currentKubeadmConfig.Spec.JoinConfiguration.Patches = currentKubeadmConfig.Spec.InitConfiguration.Patches
@@ -480,4 +517,20 @@ func dropOmittableFields(spec *bootstrapv1.KubeadmConfigSpec) {
 	if len(spec.NTP.Servers) == 0 {
 		spec.NTP.Servers = nil
 	}
+}
+
+// isKubeadmConfigForJoin returns true if the KubeadmConfig is for a control plane
+// or a worker machine that joined an existing cluster.
+// Note: this check is based on the assumption that KubeadmConfig for joining
+// control plane and workers nodes always have a non-empty join configuration, while
+// instead the join configuration for the first control plane machine in the
+// cluster is emptied out by KCP.
+func isKubeadmConfigForJoin(c *bootstrapv1.KubeadmConfig) bool {
+	return c.Spec.JoinConfiguration.IsDefined()
+}
+
+// isKubeadmConfigForInit returns true if the KubeadmConfig is for the first control plane
+// machine in the cluster.
+func isKubeadmConfigForInit(c *bootstrapv1.KubeadmConfig) bool {
+	return !isKubeadmConfigForJoin(c)
 }

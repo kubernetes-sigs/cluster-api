@@ -229,7 +229,7 @@ func (r *KubeadmControlPlaneReconciler) cleanupFromGeneration(ctx context.Contex
 }
 
 func (r *KubeadmControlPlaneReconciler) createInfraMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, name string) (*unstructured.Unstructured, clusterv1.ContractVersionedObjectReference, error) {
-	infraMachine, err := desiredstate.ComputeInfraMachine(ctx, r.Client, kcp, cluster, name, nil)
+	infraMachine, err := desiredstate.ComputeDesiredInfraMachine(ctx, r.Client, kcp, cluster, name, nil)
 	if err != nil {
 		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create InfraMachine")
 	}
@@ -246,7 +246,7 @@ func (r *KubeadmControlPlaneReconciler) createInfraMachine(ctx context.Context, 
 }
 
 func (r *KubeadmControlPlaneReconciler) createKubeadmConfig(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, isJoin bool, name string) (*bootstrapv1.KubeadmConfig, clusterv1.ContractVersionedObjectReference, error) {
-	kubeadmConfig, err := desiredstate.ComputeKubeadmConfig(kcp, cluster, isJoin, name, nil)
+	kubeadmConfig, err := desiredstate.ComputeDesiredKubeadmConfig(kcp, cluster, isJoin, name, nil)
 	if err != nil {
 		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create KubeadmConfig")
 	}
@@ -273,9 +273,9 @@ func (r *KubeadmControlPlaneReconciler) updateExternalObject(ctx context.Context
 	updatedObject.SetUID(obj.GetUID())
 
 	// Update labels
-	updatedObject.SetLabels(desiredstate.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name))
+	updatedObject.SetLabels(desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name))
 	// Update annotations
-	updatedObject.SetAnnotations(desiredstate.ControlPlaneMachineAnnotationsForCluster(kcp))
+	updatedObject.SetAnnotations(desiredstate.ControlPlaneMachineAnnotations(kcp))
 
 	return ssa.Patch(ctx, r.Client, kcpManagerName, updatedObject, ssa.WithCachingProxy{Cache: r.ssaCache, Original: obj})
 }

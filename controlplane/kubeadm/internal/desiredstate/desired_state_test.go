@@ -535,7 +535,7 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 	}
 }
 
-func Test_ComputeKubeadmConfig(t *testing.T) {
+func Test_ComputeDesiredKubeadmConfig(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
@@ -624,7 +624,7 @@ func Test_ComputeKubeadmConfig(t *testing.T) {
 			expectedKubeadmConfigWithoutOwner.Spec.JoinConfiguration = bootstrapv1.JoinConfiguration{}
 		}
 
-		kubeadmConfig, err := ComputeKubeadmConfig(kcp, cluster, isJoin, "machine-1", nil)
+		kubeadmConfig, err := ComputeDesiredKubeadmConfig(kcp, cluster, isJoin, "machine-1", nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		expectedKubeadmConfig := expectedKubeadmConfigWithoutOwner.DeepCopy()
 		// New KubeadmConfig should have KCP ownerReference.
@@ -636,7 +636,7 @@ func Test_ComputeKubeadmConfig(t *testing.T) {
 		}})
 		g.Expect(kubeadmConfig).To(BeComparableTo(expectedKubeadmConfig))
 
-		kubeadmConfig, err = ComputeKubeadmConfig(kcp, cluster, isJoin, "machine-1", preExistingKubeadmConfigOwnedByMachine)
+		kubeadmConfig, err = ComputeDesiredKubeadmConfig(kcp, cluster, isJoin, "machine-1", preExistingKubeadmConfigOwnedByMachine)
 		g.Expect(err).ToNot(HaveOccurred())
 		// If there is a pre-existing KubeadmConfig that is owned by a Machine, the computed KubeadmConfig
 		// should have no ownerReferences, so we don't overwrite the ownerReference set by the Machine controller.
@@ -644,7 +644,7 @@ func Test_ComputeKubeadmConfig(t *testing.T) {
 	}
 }
 
-func Test_ComputeInfraMachine(t *testing.T) {
+func Test_ComputeDesiredInfraMachine(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
@@ -744,7 +744,7 @@ func Test_ComputeInfraMachine(t *testing.T) {
 	_ = apiextensionsv1.AddToScheme(scheme)
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(infrastructureMachineTemplate.DeepCopy(), builder.GenericInfrastructureMachineTemplateCRD).Build()
 
-	infraMachine, err := ComputeInfraMachine(t.Context(), fakeClient, kcp, cluster, "machine-1", nil)
+	infraMachine, err := ComputeDesiredInfraMachine(t.Context(), fakeClient, kcp, cluster, "machine-1", nil)
 	g.Expect(err).ToNot(HaveOccurred())
 	expectedInfraMachine := expectedInfraMachineWithoutOwner.DeepCopy()
 	// New InfraMachine should have KCP ownerReference.
@@ -756,7 +756,7 @@ func Test_ComputeInfraMachine(t *testing.T) {
 	}})
 	g.Expect(infraMachine).To(BeComparableTo(expectedInfraMachine))
 
-	infraMachine, err = ComputeInfraMachine(t.Context(), fakeClient, kcp, cluster, "machine-1", preExistingInfraMachineOwnedByMachine)
+	infraMachine, err = ComputeDesiredInfraMachine(t.Context(), fakeClient, kcp, cluster, "machine-1", preExistingInfraMachineOwnedByMachine)
 	g.Expect(err).ToNot(HaveOccurred())
 	// If there is a pre-existing InfraMachine that is owned by a Machine, the computed InfraMachine
 	// should have no ownerReferences, so we don't overwrite the ownerReference set by the Machine controller.

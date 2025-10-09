@@ -205,7 +205,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: cluster.Namespace,
 				Name:      name,
-				Labels:    desiredstate.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+				Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 			},
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{

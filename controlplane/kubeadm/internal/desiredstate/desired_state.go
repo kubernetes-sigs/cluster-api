@@ -154,10 +154,10 @@ func ComputeDesiredMachine(kcp *controlplanev1.KubeadmControlPlane, cluster *clu
 	// When we update an existing Machine will we update the fields on the existing Machine (in-place mutate).
 
 	// Set labels
-	desiredMachine.Labels = ControlPlaneMachineLabelsForCluster(kcp, cluster.Name)
+	desiredMachine.Labels = ControlPlaneMachineLabels(kcp, cluster.Name)
 
 	// Set annotations
-	desiredMachine.Annotations = ControlPlaneMachineAnnotationsForCluster(kcp)
+	desiredMachine.Annotations = ControlPlaneMachineAnnotations(kcp)
 	for k, v := range annotations {
 		desiredMachine.Annotations[k] = v
 	}
@@ -195,8 +195,8 @@ func ComputeDesiredMachine(kcp *controlplanev1.KubeadmControlPlane, cluster *clu
 	return desiredMachine, nil
 }
 
-// ComputeKubeadmConfig computes the desired KubeadmConfig.
-func ComputeKubeadmConfig(kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, isJoin bool, name string, existingKubeadmConfig *bootstrapv1.KubeadmConfig) (*bootstrapv1.KubeadmConfig, error) {
+// ComputeDesiredKubeadmConfig computes the desired KubeadmConfig.
+func ComputeDesiredKubeadmConfig(kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, isJoin bool, name string, existingKubeadmConfig *bootstrapv1.KubeadmConfig) (*bootstrapv1.KubeadmConfig, error) {
 	// Create an owner reference without a controller reference because the owning controller is the machine controller
 	var ownerReferences []metav1.OwnerReference
 	if existingKubeadmConfig == nil || !util.HasOwner(existingKubeadmConfig.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Machine"}) {
@@ -229,16 +229,16 @@ func ComputeKubeadmConfig(kcp *controlplanev1.KubeadmControlPlane, cluster *clus
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
 			Namespace:       kcp.Namespace,
-			Labels:          ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
-			Annotations:     ControlPlaneMachineAnnotationsForCluster(kcp),
+			Labels:          ControlPlaneMachineLabels(kcp, cluster.Name),
+			Annotations:     ControlPlaneMachineAnnotations(kcp),
 			OwnerReferences: ownerReferences,
 		},
 		Spec: *spec,
 	}, nil
 }
 
-// ComputeInfraMachine computes the desired InfraMachine.
-func ComputeInfraMachine(ctx context.Context, c client.Client, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, name string, existingInfraMachine *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+// ComputeDesiredInfraMachine computes the desired InfraMachine.
+func ComputeDesiredInfraMachine(ctx context.Context, c client.Client, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, name string, existingInfraMachine *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	// Create an owner reference without a controller reference because the owning controller is the machine controller
 	var ownerReference *metav1.OwnerReference
 	if existingInfraMachine == nil || !util.HasOwner(existingInfraMachine.GetOwnerReferences(), clusterv1.GroupVersion.String(), []string{"Machine"}) {
@@ -272,8 +272,8 @@ func ComputeInfraMachine(ctx context.Context, c client.Client, kcp *controlplane
 		Name:        name,
 		ClusterName: cluster.Name,
 		OwnerRef:    ownerReference,
-		Labels:      ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
-		Annotations: ControlPlaneMachineAnnotationsForCluster(kcp),
+		Labels:      ControlPlaneMachineLabels(kcp, cluster.Name),
+		Annotations: ControlPlaneMachineAnnotations(kcp),
 	}
 	infraMachine, err := external.GenerateTemplate(generateTemplateInput)
 	if err != nil {
@@ -297,8 +297,8 @@ func DefaultFeatureGates(kubeadmConfigSpec *bootstrapv1.KubeadmConfigSpec, kuber
 	}
 }
 
-// ControlPlaneMachineLabelsForCluster returns a set of labels to add to a control plane machine for this specific cluster.
-func ControlPlaneMachineLabelsForCluster(kcp *controlplanev1.KubeadmControlPlane, clusterName string) map[string]string {
+// ControlPlaneMachineLabels returns a set of labels to add to a control plane machine for this specific cluster.
+func ControlPlaneMachineLabels(kcp *controlplanev1.KubeadmControlPlane, clusterName string) map[string]string {
 	labels := map[string]string{}
 
 	// Add the labels from the MachineTemplate.
@@ -315,8 +315,8 @@ func ControlPlaneMachineLabelsForCluster(kcp *controlplanev1.KubeadmControlPlane
 	return labels
 }
 
-// ControlPlaneMachineAnnotationsForCluster returns a set of annotations to add to a control plane machine for this specific cluster.
-func ControlPlaneMachineAnnotationsForCluster(kcp *controlplanev1.KubeadmControlPlane) map[string]string {
+// ControlPlaneMachineAnnotations returns a set of annotations to add to a control plane machine for this specific cluster.
+func ControlPlaneMachineAnnotations(kcp *controlplanev1.KubeadmControlPlane) map[string]string {
 	annotations := map[string]string{}
 
 	// Add the annotations from the MachineTemplate.

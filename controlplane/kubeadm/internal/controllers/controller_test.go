@@ -521,7 +521,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
-					Labels:    desiredstate.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+					Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -589,7 +589,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
-					Labels:    desiredstate.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+					Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -704,7 +704,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
-					Labels:    desiredstate.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+					Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -762,7 +762,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: cluster.Namespace,
 						Name:      "test0",
-						Labels:    desiredstate.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+						Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 					},
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
@@ -4039,7 +4039,7 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   cluster.Namespace,
 			Name:        name,
-			Labels:      desiredstate.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+			Labels:      desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 			Annotations: map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),

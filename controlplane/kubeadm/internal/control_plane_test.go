@@ -124,12 +124,14 @@ func TestControlPlane(t *testing.T) {
 
 		machinesNotUptoDate, machinesNotUpToDateResults := controlPlane.NotUpToDateMachines()
 		g.Expect(machinesNotUptoDate.Names()).To(ConsistOf("m2", "m3"))
+		// machinesNotUpToDateResults contains results for all Machines (including up-to-date Machines).
 		g.Expect(machinesNotUpToDateResults).To(HaveLen(5))
 		g.Expect(machinesNotUpToDateResults["m2"].ConditionMessages).To(Equal([]string{"Version v1.29.0, v1.31.0 required"}))
 		g.Expect(machinesNotUpToDateResults["m3"].ConditionMessages).To(Equal([]string{"Version v1.29.3, v1.31.0 required"}))
 
 		machinesNeedingRollout, machinesNotUpToDateResults := controlPlane.MachinesNeedingRollout()
 		g.Expect(machinesNeedingRollout.Names()).To(ConsistOf("m2"))
+		// machinesNotUpToDateResults contains results for all Machines (including up-to-date Machines).
 		g.Expect(machinesNotUpToDateResults).To(HaveLen(5))
 		g.Expect(machinesNotUpToDateResults["m2"].LogMessages).To(Equal([]string{"Machine version \"v1.29.0\" is not equal to KCP version \"v1.31.0\""}))
 		g.Expect(machinesNotUpToDateResults["m3"].LogMessages).To(Equal([]string{"Machine version \"v1.29.3\" is not equal to KCP version \"v1.31.0\""}))

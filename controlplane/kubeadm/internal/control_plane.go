@@ -50,7 +50,12 @@ type ControlPlane struct {
 	Machines             collections.Machines
 	machinesPatchHelpers map[string]*patch.Helper
 
-	MachinesNotUptoDate        collections.Machines
+	// MachinesNotUptoDate is the source of truth for Machines that are not up-to-date.
+	// It should be used to check if a Machine is up-to-date (not machinesNotUpToDateResults).
+	MachinesNotUptoDate collections.Machines
+	// machinesNotUpToDateResults is used to store the result of the UpToDate call for all Machines
+	// (even for Machines that are up-to-date).
+	// MachinesNotUptoDate should always be used instead to check if a Machine is up-to-date.
 	machinesNotUpToDateResults map[string]NotUpToDateResult
 
 	// reconciliationTime is the time of the current reconciliation, and should be used for all "now" calculations

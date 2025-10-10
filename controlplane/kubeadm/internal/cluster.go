@@ -119,27 +119,9 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 		return nil, err
 	}
 
-	// If the CA key is defined, the cluster is using a managed etcd, and so we can generate a new
-	// etcd client certificate for the controllers.
-	// Otherwise the cluster is using an external etcd; in this case the only option to connect to etcd is to re-use
-	// the apiserver-etcd-client certificate.
-	// TODO: consider if we can detect if we are using external etcd in a more explicit way (e.g. looking at the config instead of deriving from the existing certificates)
-	var clientCert tls.Certificate
-	if keyData != nil {
-		clientKey, err := m.ClusterCache.GetClientCertificatePrivateKey(ctx, clusterKey)
-		if err != nil {
-			return nil, err
-		}
-
-		clientCert, err = generateClientCert(crtData, keyData, clientKey)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		clientCert, err = m.getAPIServerEtcdClientCert(ctx, clusterKey)
-		if err != nil {
-			return nil, err
-		}
+	clientCert, err := m.getOrGenerateEtcdClientCert(ctx, clusterKey, crtData, keyData)
+	if err != nil {
+		return nil, err
 	}
 
 	caPool := x509.NewCertPool()
@@ -156,6 +138,32 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 		CoreDNSMigrator:     &CoreDNSMigrator{},
 		etcdClientGenerator: NewEtcdClientGenerator(restConfig, tlsConfig, m.EtcdDialTimeout, m.EtcdCallTimeout, m.EtcdLogger),
 	}, nil
+}
+
+func (m *Management) getOrGenerateEtcdClientCert(ctx context.Context, clusterKey client.ObjectKey, crtData, keyData []byte) (tls.Certificate, error) {
+	// If the apiserver-etcd-client doesn't exist, we try to generate a new
+	// etcd client certificate for the controllers.
+	// TODO: consider if we can detect if we are in external etcd mode or in external ca in a more explicit way (e.g. looking at the config instead of deriving from the existing certificates)
+
+	clientCert, err := m.getAPIServerEtcdClientCert(ctx, clusterKey)
+	if err == nil {
+		return clientCert, nil
+	}
+
+	if !apierrors.IsNotFound(err) {
+		return tls.Certificate{}, err
+	}
+
+	if keyData == nil {
+		return tls.Certificate{}, fmt.Errorf("missing keyData in etcd CA bundle %s/%s", clusterKey.Namespace, fmt.Sprintf("%s-etcd", clusterKey.Name))
+	}
+
+	clientKey, err := m.ClusterCache.GetClientCertificatePrivateKey(ctx, clusterKey)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	return generateClientCert(crtData, keyData, clientKey)
 }
 
 func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey client.ObjectKey) ([]byte, []byte, error) {

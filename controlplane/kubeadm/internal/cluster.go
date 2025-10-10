@@ -32,6 +32,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -53,6 +54,18 @@ type Management struct {
 	EtcdDialTimeout     time.Duration
 	EtcdCallTimeout     time.Duration
 	EtcdLogger          *zap.Logger
+	ClientCertCache     cache.Cache[ClientCertEntry]
+}
+
+// ClientCertEntry is an Entry for the Cache that stores the client cert.
+type ClientCertEntry struct {
+	Cluster    client.ObjectKey
+	ClientCert *tls.Certificate
+}
+
+// Key returns the cache key of a ClientCertEntry.
+func (r ClientCertEntry) Key() string {
+	return r.Cluster.String()
 }
 
 // RemoteClusterConnectionError represents a failure to connect to a remote cluster.
@@ -126,14 +139,18 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	// TODO: consider if we can detect if we are using external etcd in a more explicit way (e.g. looking at the config instead of deriving from the existing certificates)
 	var clientCert tls.Certificate
 	if keyData != nil {
-		clientKey, err := m.ClusterCache.GetClientCertificatePrivateKey(ctx, clusterKey)
-		if err != nil {
-			return nil, err
-		}
-
-		clientCert, err = generateClientCert(crtData, keyData, clientKey)
-		if err != nil {
-			return nil, err
+		// Get client cert from cache if possible, otherwise generate it and add it to the cache.
+		// TODO: When we implement ClusterConfiguration.EncryptionAlgorithm we should add it to
+		//       the ClientCertEntries and make it part of the key.
+		if entry, ok := m.ClientCertCache.Has(ClientCertEntry{Cluster: clusterKey}.Key()); ok {
+			clientCert = *entry.ClientCert
+		} else {
+			// The client cert expires after 10 years, but that's okay as the cache has a TTL of 1 day.
+			clientCert, err = generateClientCert(crtData, keyData)
+			if err != nil {
+				return nil, err
+			}
+			m.ClientCertCache.Add(ClientCertEntry{Cluster: clusterKey, ClientCert: &clientCert})
 		}
 	} else {
 		clientCert, err = m.getAPIServerEtcdClientCert(ctx, clusterKey)

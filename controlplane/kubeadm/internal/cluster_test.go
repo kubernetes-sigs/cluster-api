@@ -42,6 +42,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -239,6 +240,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 				Client:              env.GetClient(),
 				SecretCachingClient: secretCachingClient,
 				ClusterCache:        clusterCache,
+				ClientCertCache:     cache.New[ClientCertEntry](24 * time.Hour),
 			}
 
 			// Ensure the ClusterCache reconciled at least once (and if possible created a clusterAccessor).

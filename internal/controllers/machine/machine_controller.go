@@ -286,7 +286,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 }
 
 func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clusterv1.Machine, options ...patch.Option) error {
-	log := ctrl.LoggerFrom(ctx)
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding it
 	// after provisioning - e.g. when a MHC condition exists - or during the deletion process).
@@ -329,10 +328,6 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.MachineDeletingCondition,
 		}},
 	)
-
-	log.Info(fmt.Sprintf("Patching machine %v", machine))
-	log.Info(fmt.Sprintf("Machine phase %v", machine.Status.Phase))
-	log.Info(fmt.Sprintf("Machine addresses %v", machine.Status.Addresses))
 
 	return patchHelper.Patch(ctx, machine, options...)
 }

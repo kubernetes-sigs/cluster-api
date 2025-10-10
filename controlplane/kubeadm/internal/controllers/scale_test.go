@@ -284,7 +284,9 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
+		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, controlPlane.Machines)
+		g.Expect(err).ToNot(HaveOccurred())
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, machineToDelete)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
 
@@ -326,7 +328,9 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
+		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, controlPlane.Machines)
+		g.Expect(err).ToNot(HaveOccurred())
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, machineToDelete)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
 
@@ -364,7 +368,9 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		}
 		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
+		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, controlPlane.Machines)
+		g.Expect(err).ToNot(HaveOccurred())
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, machineToDelete)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
 
@@ -374,7 +380,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 	})
 }
 
-func TestSelectMachineForScaleDown(t *testing.T) {
+func TestSelectMachineForInPlaceUpdateOrScaleDown(t *testing.T) {
 	kcp := controlplanev1.KubeadmControlPlane{
 		Spec: controlplanev1.KubeadmControlPlaneSpec{},
 	}
@@ -503,7 +509,7 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			selectedMachine, err := selectMachineForScaleDown(ctx, tc.cp, tc.outDatedMachines)
+			selectedMachine, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, tc.cp, tc.outDatedMachines)
 
 			if tc.expectErr {
 				g.Expect(err).To(HaveOccurred())

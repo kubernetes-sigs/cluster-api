@@ -63,6 +63,10 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 }
 
 func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	if r.overrideScaleUpControlPlaneFunc != nil {
+		return r.overrideScaleUpControlPlaneFunc(ctx, controlPlane)
+	}
+
 	log := ctrl.LoggerFrom(ctx)
 
 	// Run preflight checks to ensure that the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
@@ -95,15 +99,13 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	ctx context.Context,
 	controlPlane *internal.ControlPlane,
-	outdatedMachines collections.Machines,
+	machineToDelete *clusterv1.Machine,
 ) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	// Pick the Machine that we should scale down.
-	machineToDelete, err := selectMachineForScaleDown(ctx, controlPlane, outdatedMachines)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to select machine for scale down")
+	if r.overrideScaleDownControlPlaneFunc != nil {
+		return r.overrideScaleDownControlPlaneFunc(ctx, controlPlane, machineToDelete)
 	}
+
+	log := ctrl.LoggerFrom(ctx)
 
 	// Run preflight checks ensuring the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
 	// Given that we're scaling down, we can exclude the machineToDelete from the preflight checks.
@@ -265,7 +267,8 @@ func preflightCheckCondition(kind string, obj *clusterv1.Machine, conditionType 
 	return nil
 }
 
-// selectMachineForScaleDown select a machine candidate for scaling down. The selection is a two phase process:
+// selectMachineForInPlaceUpdateOrScaleDown select a machine candidate for scaling down or for in-place update.
+// The selection is a two phase process:
 //
 // In the first phase it selects a subset of machines eligible for deletion:
 // - if there are outdated machines with the delete machine annotation, use them as eligible subset (priority to user requests, part 1)
@@ -276,18 +279,20 @@ func preflightCheckCondition(kind string, obj *clusterv1.Machine, conditionType 
 //
 // Once the subset of machines eligible for deletion is identified, one machine is picked out of this subset by
 // selecting the machine in the failure domain with most machines (including both eligible and not eligible machines).
-func selectMachineForScaleDown(ctx context.Context, controlPlane *internal.ControlPlane, outdatedMachines collections.Machines) (*clusterv1.Machine, error) {
+func selectMachineForInPlaceUpdateOrScaleDown(ctx context.Context, controlPlane *internal.ControlPlane, outdatedMachines collections.Machines) (*clusterv1.Machine, error) {
 	// Select the subset of machines eligible for scale down.
-	eligibleMachines := controlPlane.Machines
+	var eligibleMachines collections.Machines
 	switch {
 	case controlPlane.MachineWithDeleteAnnotation(outdatedMachines).Len() > 0:
 		eligibleMachines = controlPlane.MachineWithDeleteAnnotation(outdatedMachines)
-	case controlPlane.MachineWithDeleteAnnotation(eligibleMachines).Len() > 0:
-		eligibleMachines = controlPlane.MachineWithDeleteAnnotation(eligibleMachines)
+	case controlPlane.MachineWithDeleteAnnotation(controlPlane.Machines).Len() > 0:
+		eligibleMachines = controlPlane.MachineWithDeleteAnnotation(controlPlane.Machines)
 	case controlPlane.UnhealthyMachinesWithUnhealthyControlPlaneComponents(outdatedMachines).Len() > 0:
 		eligibleMachines = controlPlane.UnhealthyMachinesWithUnhealthyControlPlaneComponents(outdatedMachines)
 	case outdatedMachines.Len() > 0:
 		eligibleMachines = outdatedMachines
+	default:
+		eligibleMachines = controlPlane.Machines
 	}
 
 	// Pick an eligible machine from the failure domain with most machines in (including both eligible and not eligible machines)

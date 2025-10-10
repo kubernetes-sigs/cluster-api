@@ -32,12 +32,18 @@ import (
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
+type pollSnap struct {
+	at   time.Duration
+	objs map[string]client.Object
+}
+
 // ValidateResourceVersionStable checks that resourceVersions are stable.
 func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, namespace string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) {
 	// Wait until resourceVersions are stable for a bit.
 	byf("Check resourceVersions are stable")
 	var previousResourceVersions map[string]string
 	var previousObjects map[string]client.Object
+
 	Eventually(func(g Gomega) {
 		objectsWithResourceVersion, objects, err := getObjectsWithResourceVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -49,15 +55,50 @@ func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, name
 		}()
 		// This is intentionally failing on the first run.
 		g.Expect(objectsWithResourceVersion).To(BeComparableTo(previousResourceVersions))
-	}, 1*time.Minute, 15*time.Second).Should(Succeed(), "resourceVersions never became stable")
+	}, 2*time.Minute, 15*time.Second).MustPassRepeatedly(3).Should(Succeed(), "resourceVersions remain stay stable")
 
 	// Verify resourceVersions are stable for a while.
 	byf("Check resourceVersions remain stable")
+
+	start := time.Now()
+	var times []time.Duration
+	var snaps []map[string]client.Object
 	Consistently(func(g Gomega) {
 		objectsWithResourceVersion, objects, err := getObjectsWithResourceVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
 		g.Expect(err).ToNot(HaveOccurred())
+
+		times = append(times, time.Since(start))
+		snaps = append(snaps, objects)
 		g.Expect(previousResourceVersions).To(BeComparableTo(objectsWithResourceVersion), printObjectDiff(previousObjects, objects))
-	}, 2*time.Minute, 15*time.Second).Should(Succeed(), "resourceVersions didn't stay stable")
+	}, 1*time.Minute, 5*time.Second).Should(Succeed(), func() string {
+		// Build diffs only if Consistently fails
+		if len(snaps) < 2 {
+			return "insufficient samples to produce a diff"
+		}
+		first := snaps[0]
+		last := snaps[len(snaps)-1]
+		var b strings.Builder
+
+		overall := printObjectDiff(first, last)
+		if msg := overall(); msg != "" {
+			fmt.Fprintf(&b, "Overall diff first→last (elapsed %s):\n%s\n",
+				times[len(times)-1]-times[0], msg)
+		} else {
+			fmt.Fprintf(&b, "Overall first→last unchanged after %s\n",
+				times[len(times)-1]-times[0])
+		}
+
+		// Consecutive diffs, skipping empties
+		for i := 0; i < len(snaps)-1; i++ {
+			step := printObjectDiff(snaps[i], snaps[i+1])
+			if msg := step(); msg != "" {
+				fmt.Fprintf(&b, "Step %d (%s→%s) diff:\n%s\n",
+					i, times[i], times[i+1], msg)
+			}
+		}
+		return b.String()
+	})
+
 }
 
 func printObjectDiff(previousObjects, newObjects map[string]client.Object) func() string {

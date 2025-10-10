@@ -348,10 +348,9 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			g.Expect(env.List(ctx, machineSets, msListOpts...)).To(Succeed())
 			// Verify we still only have 2 MachineSets.
 			g.Expect(machineSets.Items).To(HaveLen(2))
-			// Verify that the new MachineSet gets the updated labels.
+			// Verify that the new and old MachineSet gets the updated labels.
 			g.Expect(machineSets.Items[0].Spec.Template.Labels).To(HaveKeyWithValue("updated", "true"))
-			// Verify that the old MachineSet does not get the updated labels.
-			g.Expect(machineSets.Items[1].Spec.Template.Labels).ShouldNot(HaveKeyWithValue("updated", "true"))
+			g.Expect(machineSets.Items[1].Spec.Template.Labels).To(HaveKeyWithValue("updated", "true"))
 		}, timeout).Should(Succeed())
 
 		// Update the NodeDrainTimout, NodeDeletionTimeoutSeconds, NodeVolumeDetachTimeoutSeconds of the MachineDeployment,
@@ -384,10 +383,19 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				HaveValue(Equal(duration10s)),
 			), "NodeVolumeDetachTimeoutSeconds value does not match expected")
 
-			// Verify that the old machine set keeps the old values.
-			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).Should(BeNil())
-			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(BeNil())
-			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(BeNil())
+			// Verify that the old machine set have the new values.
+			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).Should(And(
+				Not(BeNil()),
+				HaveValue(Equal(duration10s)),
+			), "NodeDrainTimout value does not match expected")
+			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(And(
+				Not(BeNil()),
+				HaveValue(Equal(duration10s)),
+			), "NodeDeletionTimeoutSeconds value does not match expected")
+			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(And(
+				Not(BeNil()),
+				HaveValue(Equal(duration10s)),
+			), "NodeVolumeDetachTimeoutSeconds value does not match expected")
 		}).Should(Succeed())
 
 		// Update the deletion.order of the MachineDeployment,
@@ -404,8 +412,8 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			// Verify the deletion.order value is updated
 			g.Expect(machineSets.Items[0].Spec.Deletion.Order).Should(Equal(clusterv1.NewestMachineSetDeletionOrder))
 
-			// Verify that the old machine set retains its delete policy
-			g.Expect(machineSets.Items[1].Spec.Deletion.Order).To(Equal(clusterv1.OldestMachineSetDeletionOrder))
+			// Verify that the old machine set have the new values.
+			g.Expect(machineSets.Items[1].Spec.Deletion.Order).Should(Equal(clusterv1.NewestMachineSetDeletionOrder))
 		}).Should(Succeed())
 
 		// Verify that all the MachineSets have the expected OwnerRef.

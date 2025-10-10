@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -301,6 +303,84 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 	}
 
 	return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Rollout.Strategy.Type)
+}
+
+// createOrUpdateMachineSets apply changes identified by the rolloutPlanner to both newMS and oldMSs.
+// Note: Both newMS and oldMS include the full intent for the SSA apply call with mandatory labels,
+// in place propagated fields, the annotations derived from the MachineDeployment, revision annotations
+// and also annotations influencing how to perform scale up/down operations.
+// scaleIntents instead are handled separately in the rolloutPlanner and should be applied to MachineSets
+// before persisting changes.
+// Note: When the newMS has been created by the rollout planner, also wait for the cache to be up to date.
+func (r *Reconciler) createOrUpdateMachineSets(ctx context.Context, p *rolloutPlanner) error {
+	log := ctrl.LoggerFrom(ctx)
+	allMSs := append(p.oldMSs, p.newMS)
+
+	for _, ms := range allMSs {
+		log = log.WithValues("MachineSet", klog.KObj(ms))
+		ctx = ctrl.LoggerInto(ctx, log)
+
+		originalReplicas := ptr.Deref(ms.Spec.Replicas, 0)
+		if scaleIntent, ok := p.scaleIntents[ms.Name]; ok {
+			ms.Spec.Replicas = &scaleIntent
+		}
+
+		if ms.GetUID() == "" {
+			// Create the MachineSet.
+			if err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, ms); err != nil {
+				r.recorder.Eventf(p.md, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %s: %v", klog.KObj(ms), err)
+				return errors.Wrapf(err, "failed to create new MachineSet %s", klog.KObj(ms))
+			}
+			log.Info(fmt.Sprintf("MachineSet created (%s)", p.createReason))
+			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %s with %d replicas", klog.KObj(ms), ptr.Deref(ms.Spec.Replicas, 0))
+
+			// Keep trying to get the MachineSet. This will force the cache to update and prevent any future reconciliation of
+			// the MachineDeployment to reconcile with an outdated list of MachineSets which could lead to unwanted creation of
+			// a duplicate MachineSet.
+			var pollErrors []error
+			tmpMS := &clusterv1.MachineSet{}
+			if err := wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 10*time.Second, true, func(ctx context.Context) (bool, error) {
+				if err := r.Client.Get(ctx, client.ObjectKeyFromObject(ms), tmpMS); err != nil {
+					// Do not return error here. Continue to poll even if we hit an error
+					// so that we avoid existing because of transient errors like network flakes.
+					// Capture all the errors and return the aggregate error if the poll fails eventually.
+					pollErrors = append(pollErrors, err)
+					return false, nil
+				}
+				return true, nil
+			}); err != nil {
+				return errors.Wrapf(kerrors.NewAggregate(pollErrors), "failed to get the MachineSet %s after creation", klog.KObj(ms))
+			}
+
+			// Report back creation timestamp, because legacy scale func leverage on this info to sort machines.
+			// TODO(in-place): drop this as soon as handling of MD with paused rollouts is moved into rollout planner (see scale in machinedeployment_sync.go).
+			ms.CreationTimestamp = tmpMS.CreationTimestamp
+			continue
+		}
+
+		// Update the MachineSet to propagate in-place mutable fields from the MachineDeployment and/or changes applied by the rollout planner.
+		originalMS, ok := p.originalMS[ms.Name]
+		if !ok {
+			return errors.Errorf("failed to update MachineSet %s, original MS is missing", klog.KObj(ms))
+		}
+
+		err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, ms, ssa.WithCachingProxy{Cache: r.ssaCache, Original: originalMS})
+		if err != nil {
+			r.recorder.Eventf(p.md, corev1.EventTypeWarning, "FailedUpdate", "Failed to update MachineSet %s: %v", klog.KObj(ms), err)
+			return errors.Wrapf(err, "failed to update MachineSet %s", klog.KObj(ms))
+		}
+
+		newReplicas := ptr.Deref(ms.Spec.Replicas, 0)
+		if newReplicas < originalReplicas {
+			log.Info(fmt.Sprintf("Scaled down MachineSet %s to %d replicas (-%d)", ms.Name, newReplicas, originalReplicas-newReplicas))
+			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled Down MachineSet %v: %d -> %d", ms.Name, originalReplicas, newReplicas)
+		}
+		if newReplicas > originalReplicas {
+			log.Info(fmt.Sprintf("Scaled up MachineSet %s to %d replicas (+%d)", ms.Name, newReplicas, newReplicas-originalReplicas))
+			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled Up MachineSet %v: %d -> %d", ms.Name, originalReplicas, newReplicas)
+		}
+	}
+	return nil
 }
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {

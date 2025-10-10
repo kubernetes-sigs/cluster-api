@@ -3,13 +3,11 @@
 [Test] Initial state
   md, 6/6 replicas
   - ms1, 6/6 replicas (m1,m2,m3,m4,m5,m6)
-  - ms2, 0/0 replicas ()
 [Test] Rollout 6 replicas, MaxSurge=10, MaxUnavailable=0
 [MD controller] Iteration 1, Reconcile md
 [MD controller] - Input to rollout planner
   md, 6/6 replicas
   - ms1, 6/6 replicas (m1,m2,m3,m4,m5,m6)
-  - ms2, 0/0 replicas ()
 [MD controller] - Result of rollout planner
   md, 6/6 replicas
   - ms1, 6/6 replicas (m1,m2,m3,m4,m5,m6)

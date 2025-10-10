@@ -3,13 +3,11 @@
 [Test] Initial state
   md, 3/3 replicas
   - ms1, 3/3 replicas (m1,m2,m3)
-  - ms2, 0/0 replicas ()
 [Test] Rollout 3 replicas, onDeleteStrategy
 [MD controller] Iteration 1, Reconcile md
 [MD controller] - Input to rollout planner
   md, 3/3 replicas
   - ms1, 3/3 replicas (m1,m2,m3)
-  - ms2, 0/0 replicas ()
 [MD controller] - Result of rollout planner
   md, 3/3 replicas
   - ms1, 3/3 replicas (m1,m2,m3)

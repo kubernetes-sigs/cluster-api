@@ -3,60 +3,69 @@
 [Test] Initial state
   md, 6/6 replicas
   - ms1, 6/6 replicas (m1,m2,m3,m4,m5,m6)
-  - ms2, 0/0 replicas ()
 [Test] Rollout 6 replicas, MaxSurge=1, MaxUnavailable=3, random(0)
-[MS controller] Iteration 1, Reconcile ms2, 0/0 replicas ()
-[MS controller] Iteration 1, Reconcile ms1, 6/6 replicas (m1,m2,m3,m4,m5,m6)
 [MD controller] Iteration 1, Reconcile md
 [MD controller] - Input to rollout planner
   md, 6/6 replicas
   - ms1, 6/6 replicas (m1,m2,m3,m4,m5,m6)
-  - ms2, 0/0 replicas ()
 [MD controller] - Result of rollout planner
   md, 6/6 replicas
   - ms1, 6/3 replicas (m1,m2,m3,m4,m5,m6)
   - ms2, 0/1 replicas ()
-[MS controller] Iteration 2, Reconcile ms1, 6/3 replicas (m1,m2,m3,m4,m5,m6)
+[MS controller] Iteration 1, Reconcile ms1, 6/3 replicas (m1,m2,m3,m4,m5,m6)
 [MS controller] - ms1 scale down to 3/3 replicas (m1,m2,m3 deleted)
-[MS controller] Iteration 2, Reconcile ms1, 3/3 replicas (m4,m5,m6)
-[MD controller] Iteration 3, Reconcile md
+[MS controller] Iteration 1, Reconcile ms2, 0/1 replicas ()
+[MS controller] - ms2 scale up to 1/1 replicas (m7 created)
+[MD controller] Iteration 2, Reconcile md
 [MD controller] - Input to rollout planner
   md, 6/6 replicas
   - ms1, 3/3 replicas (m4,m5,m6)
-  - ms2, 0/1 replicas ()
+  - ms2, 1/1 replicas (m7)
+[MD controller] - Result of rollout planner
+  md, 4/6 replicas
+  - ms1, 3/2 replicas (m4,m5,m6)
+  - ms2, 1/4 replicas (m7)
+[MS controller] Iteration 2, Reconcile ms1, 3/2 replicas (m4,m5,m6)
+[MS controller] - ms1 scale down to 2/2 replicas (m4 deleted)
+[MS controller] Iteration 2, Reconcile ms1, 2/2 replicas (m5,m6)
+[MD controller] Iteration 3, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 4/6 replicas
+  - ms1, 2/2 replicas (m5,m6)
+  - ms2, 1/4 replicas (m7)
 [MD controller] - Result of rollout planner
   md, 3/6 replicas
-  - ms1, 3/3 replicas (m4,m5,m6)
-  - ms2, 0/4 replicas ()
-[MS controller] Iteration 3, Reconcile ms2, 0/4 replicas ()
-[MS controller] - ms2 scale up to 4/4 replicas (m7,m8,m9,m10 created)
+  - ms1, 2/2 replicas (m5,m6)
+  - ms2, 1/5 replicas (m7)
+[MS controller] Iteration 3, Reconcile ms2, 1/5 replicas (m7)
+[MS controller] - ms2 scale up to 5/5 replicas (m8,m9,m10,m11 created)
 [MD controller] Iteration 4, Reconcile md
 [MD controller] - Input to rollout planner
   md, 3/6 replicas
-  - ms1, 3/3 replicas (m4,m5,m6)
-  - ms2, 4/4 replicas (m7,m8,m9,m10)
+  - ms1, 2/2 replicas (m5,m6)
+  - ms2, 5/5 replicas (m7,m8,m9,m10,m11)
 [MD controller] - Result of rollout planner
   md, 7/6 replicas
-  - ms1, 3/0 replicas (m4,m5,m6)
-  - ms2, 4/4 replicas (m7,m8,m9,m10)
-[MS controller] Iteration 4, Reconcile ms1, 3/0 replicas (m4,m5,m6)
-[MS controller] - ms1 scale down to 0/0 replicas (m4,m5,m6 deleted)
-[MS controller] Iteration 4, Reconcile ms2, 4/4 replicas (m7,m8,m9,m10)
-[MS controller] Iteration 5, Reconcile ms2, 4/4 replicas (m7,m8,m9,m10)
+  - ms1, 2/0 replicas (m5,m6)
+  - ms2, 5/5 replicas (m7,m8,m9,m10,m11)
+[MS controller] Iteration 4, Reconcile ms1, 2/0 replicas (m5,m6)
+[MS controller] - ms1 scale down to 0/0 replicas (m5,m6 deleted)
+[MS controller] Iteration 4, Reconcile ms2, 5/5 replicas (m7,m8,m9,m10,m11)
+[MS controller] Iteration 5, Reconcile ms2, 5/5 replicas (m7,m8,m9,m10,m11)
 [MD controller] Iteration 5, Reconcile md
 [MD controller] - Input to rollout planner
   md, 7/6 replicas
   - ms1, 0/0 replicas ()
-  - ms2, 4/4 replicas (m7,m8,m9,m10)
+  - ms2, 5/5 replicas (m7,m8,m9,m10,m11)
 [MD controller] - Result of rollout planner
-  md, 4/6 replicas
+  md, 5/6 replicas
   - ms1, 0/0 replicas ()
-  - ms2, 4/6 replicas (m7,m8,m9,m10)
-[MS controller] Iteration 6, Reconcile ms2, 4/6 replicas (m7,m8,m9,m10)
-[MS controller] - ms2 scale up to 6/6 replicas (m11,m12 created)
+  - ms2, 5/6 replicas (m7,m8,m9,m10,m11)
+[MS controller] Iteration 6, Reconcile ms2, 5/6 replicas (m7,m8,m9,m10,m11)
+[MS controller] - ms2 scale up to 6/6 replicas (m12 created)
 [MD controller] Iteration 7, Reconcile md
 [MD controller] - Input to rollout planner
-  md, 4/6 replicas
+  md, 5/6 replicas
   - ms1, 0/0 replicas ()
   - ms2, 6/6 replicas (m7,m8,m9,m10,m11,m12)
 [MD controller] - Result of rollout planner

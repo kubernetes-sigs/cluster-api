@@ -147,6 +147,9 @@ type ClusterCache interface {
 	// cert to communicate with etcd.
 	// This private key is stored and cached in the ClusterCache because it's expensive to generate a new
 	// private key in every single Reconcile.
+	//
+	// Deprecated: This method is deprecated and will be removed in a future release as caching a rsa.PrivateKey
+	// is outside the scope of the ClusterCache.
 	GetClientCertificatePrivateKey(ctx context.Context, cluster client.ObjectKey) (*rsa.PrivateKey, error)
 
 	// Watch watches a workload cluster for events.

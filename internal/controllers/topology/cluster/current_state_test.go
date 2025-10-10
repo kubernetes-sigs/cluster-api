@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
@@ -169,6 +170,18 @@ func testGetCurrentState(t *testing.T, controlPlaneContractVersion string) {
 				TimeoutSeconds: ptr.To(int32(5 * 60)),
 			},
 		}).
+		WithUnhealthyMachineConditions([]clusterv1.UnhealthyMachineCondition{
+			{
+				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:         metav1.ConditionUnknown,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
+			},
+			{
+				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:         metav1.ConditionFalse,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
+			},
+		}).
 		WithClusterName("cluster1").
 		Build()
 
@@ -183,6 +196,18 @@ func testGetCurrentState(t *testing.T, controlPlaneContractVersion string) {
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionFalse,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
+			},
+		}).
+		WithUnhealthyMachineConditions([]clusterv1.UnhealthyMachineCondition{
+			{
+				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:         metav1.ConditionUnknown,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
+			},
+			{
+				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:         metav1.ConditionFalse,
 				TimeoutSeconds: ptr.To(int32(5 * 60)),
 			},
 		}).

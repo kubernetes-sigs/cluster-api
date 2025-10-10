@@ -417,11 +417,21 @@ func spokeCluster(in *Cluster, c randfill.Continue) {
 func MachineHealthCheckFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMachineHealthCheckStatus,
+		hubMachineHealthCheckSpec,
 		hubUnhealthyNodeCondition,
 		spokeMachineHealthCheck,
 		spokeMachineHealthCheckSpec,
 		spokeObjectReference,
 		spokeUnhealthyCondition,
+	}
+}
+
+func hubMachineHealthCheckSpec(in *clusterv1.MachineHealthCheckSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Drop UnhealthyMachineConditions as it does not exist in v1alpha3.
+	if in.Checks.UnhealthyMachineConditions != nil {
+		in.Checks.UnhealthyMachineConditions = nil
 	}
 }
 

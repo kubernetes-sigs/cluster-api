@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
@@ -2369,8 +2370,9 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
 							Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
-								UnhealthyNodeConditions:   []clusterv1.UnhealthyNodeCondition{},
-								NodeStartupTimeoutSeconds: ptr.To(int32(30)),
+								UnhealthyNodeConditions:    []clusterv1.UnhealthyNodeCondition{},
+								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{},
+								NodeStartupTimeoutSeconds:  ptr.To(int32(30)),
 							},
 						}).
 						Build()).
@@ -2395,6 +2397,12 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 									{
 										Type:   corev1.NodeReady,
 										Status: corev1.ConditionFalse,
+									},
+								},
+								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+									{
+										Type:   controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+										Status: metav1.ConditionFalse,
 									},
 								},
 							},
@@ -2429,6 +2437,13 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 								TimeoutSeconds: ptr.To(int32(5 * 60)),
 							},
 						},
+						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+							{
+								Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+								Status:         metav1.ConditionUnknown,
+								TimeoutSeconds: ptr.To(int32(5 * 60)),
+							},
+						},
 					},
 				}).
 				Build(),
@@ -2450,6 +2465,12 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 									{
 										Type:   corev1.NodeReady,
 										Status: corev1.ConditionFalse,
+									},
+								},
+								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+									{
+										Type:   controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+										Status: metav1.ConditionFalse,
 									},
 								},
 							},
@@ -2501,8 +2522,9 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 								WithClass("worker-class").
 								WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
 									Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
-										UnhealthyNodeConditions:   []clusterv1.UnhealthyNodeCondition{},
-										NodeStartupTimeoutSeconds: ptr.To(int32(30)),
+										UnhealthyNodeConditions:    []clusterv1.UnhealthyNodeCondition{},
+										UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{},
+										NodeStartupTimeoutSeconds:  ptr.To(int32(30)),
 									},
 								}).
 								Build(),
@@ -2547,6 +2569,13 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
+								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+									{
+										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+										Status:         metav1.ConditionUnknown,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
+									},
+								},
 							},
 						}).
 						Build(),
@@ -2573,6 +2602,12 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 											{
 												Type:   corev1.NodeReady,
 												Status: corev1.ConditionFalse,
+											},
+										},
+										UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+											{
+												Type:   controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+												Status: metav1.ConditionFalse,
 											},
 										},
 									},

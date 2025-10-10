@@ -29,10 +29,10 @@ func (r *KubeadmControlPlaneReconciler) tryInPlaceUpdate(
 	ctx context.Context,
 	controlPlane *internal.ControlPlane,
 	machineToInPlaceUpdate *clusterv1.Machine,
-	machinesNeedingRolloutResult internal.NotUpToDateResult,
+	machineUpToDateResult internal.UpToDateResult,
 ) (fallbackToScaleDown bool, _ ctrl.Result, _ error) {
 	if r.overrideTryInPlaceUpdateFunc != nil {
-		return r.overrideTryInPlaceUpdateFunc(ctx, controlPlane, machineToInPlaceUpdate, machinesNeedingRolloutResult)
+		return r.overrideTryInPlaceUpdateFunc(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult)
 	}
 
 	// Always fallback to scale down until in-place is implemented.

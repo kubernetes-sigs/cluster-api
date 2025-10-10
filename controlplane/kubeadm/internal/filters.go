@@ -35,8 +35,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
-// NotUpToDateResult is the result of calling the UpToDate func for a Machine.
-type NotUpToDateResult struct {
+// UpToDateResult is the result of calling the UpToDate func for a Machine.
+type UpToDateResult struct {
 	LogMessages              []string
 	ConditionMessages        []string
 	EligibleForInPlaceUpdate bool
@@ -58,8 +58,8 @@ func UpToDate(
 	reconciliationTime *metav1.Time,
 	infraMachines map[string]*unstructured.Unstructured,
 	kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig,
-) (bool, *NotUpToDateResult, error) {
-	res := &NotUpToDateResult{
+) (bool, *UpToDateResult, error) {
+	res := &UpToDateResult{
 		// A Machine is eligible for in-place update except if we find a reason why it shouldn't be,
 		// e.g. rollout.before, rollout.after or the Machine is already up-to-date.
 		EligibleForInPlaceUpdate: true,
@@ -121,7 +121,7 @@ func matchesMachineSpec(
 	kcp *controlplanev1.KubeadmControlPlane,
 	cluster *clusterv1.Cluster,
 	machine *clusterv1.Machine,
-	res *NotUpToDateResult,
+	res *UpToDateResult,
 ) (bool, []string, []string, error) {
 	logMessages := []string{}
 	conditionMessages := []string{}

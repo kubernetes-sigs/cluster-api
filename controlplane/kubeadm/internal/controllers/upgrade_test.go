@@ -132,11 +132,11 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	// run upgrade the first time, expect we scale up
 	needingUpgrade := collections.FromMachineList(initialMachine)
 	controlPlane.Machines = needingUpgrade
-	machinesNeedingRolloutResults := map[string]internal.NotUpToDateResult{}
+	machinesUpToDateResults := map[string]internal.UpToDateResult{}
 	for _, m := range needingUpgrade {
-		machinesNeedingRolloutResults[m.Name] = internal.NotUpToDateResult{EligibleForInPlaceUpdate: false}
+		machinesUpToDateResults[m.Name] = internal.UpToDateResult{EligibleForInPlaceUpdate: false}
 	}
-	result, err = r.updateControlPlane(ctx, controlPlane, needingUpgrade, machinesNeedingRolloutResults)
+	result, err = r.updateControlPlane(ctx, controlPlane, needingUpgrade, machinesUpToDateResults)
 	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
 	g.Expect(err).ToNot(HaveOccurred())
 	bothMachines := &clusterv1.MachineList{}
@@ -176,13 +176,13 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 			machinesRequireUpgrade[bothMachines.Items[i].Name] = &bothMachines.Items[i]
 		}
 	}
-	machinesNeedingRolloutResults = map[string]internal.NotUpToDateResult{}
+	machinesUpToDateResults = map[string]internal.UpToDateResult{}
 	for _, m := range machinesRequireUpgrade {
-		machinesNeedingRolloutResults[m.Name] = internal.NotUpToDateResult{EligibleForInPlaceUpdate: false}
+		machinesUpToDateResults[m.Name] = internal.UpToDateResult{EligibleForInPlaceUpdate: false}
 	}
 
 	// run upgrade the second time, expect we scale down
-	result, err = r.updateControlPlane(ctx, controlPlane, machinesRequireUpgrade, machinesNeedingRolloutResults)
+	result, err = r.updateControlPlane(ctx, controlPlane, machinesRequireUpgrade, machinesUpToDateResults)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
 	finalMachine := &clusterv1.MachineList{}
@@ -273,11 +273,11 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	// run upgrade, expect we scale down
 	needingUpgrade := collections.FromMachineList(machineList)
 	controlPlane.Machines = needingUpgrade
-	machinesNeedingRolloutResults := map[string]internal.NotUpToDateResult{}
+	machinesUpToDateResults := map[string]internal.UpToDateResult{}
 	for _, m := range needingUpgrade {
-		machinesNeedingRolloutResults[m.Name] = internal.NotUpToDateResult{EligibleForInPlaceUpdate: false}
+		machinesUpToDateResults[m.Name] = internal.UpToDateResult{EligibleForInPlaceUpdate: false}
 	}
-	result, err = r.updateControlPlane(ctx, controlPlane, needingUpgrade, machinesNeedingRolloutResults)
+	result, err = r.updateControlPlane(ctx, controlPlane, needingUpgrade, machinesUpToDateResults)
 	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
 	g.Expect(err).ToNot(HaveOccurred())
 	remainingMachines := &clusterv1.MachineList{}
@@ -294,7 +294,7 @@ func Test_rollingUpdate(t *testing.T) {
 		desiredReplicas                 int32
 		enableInPlaceUpdatesFeatureGate bool
 		machineEligibleForInPlaceUpdate bool
-		tryInPlaceUpdateFunc            func(ctx context.Context, controlPlane *internal.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machinesNeedingRolloutResult internal.NotUpToDateResult) (bool, ctrl.Result, error)
+		tryInPlaceUpdateFunc            func(ctx context.Context, controlPlane *internal.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (bool, ctrl.Result, error)
 		wantTryInPlaceUpdateCalled      bool
 		wantScaleDownCalled             bool
 		wantScaleUpCalled               bool
@@ -381,7 +381,7 @@ func Test_rollingUpdate(t *testing.T) {
 			desiredReplicas:                 3,
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: true,
-			tryInPlaceUpdateFunc: func(_ context.Context, _ *internal.ControlPlane, _ *clusterv1.Machine, _ internal.NotUpToDateResult) (bool, ctrl.Result, error) {
+			tryInPlaceUpdateFunc: func(_ context.Context, _ *internal.ControlPlane, _ *clusterv1.Machine, _ internal.UpToDateResult) (bool, ctrl.Result, error) {
 				return false, ctrl.Result{}, errors.New("in-place update error")
 			},
 			wantTryInPlaceUpdateCalled: true,
@@ -397,7 +397,7 @@ func Test_rollingUpdate(t *testing.T) {
 			desiredReplicas:                 3,
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: true,
-			tryInPlaceUpdateFunc: func(_ context.Context, _ *internal.ControlPlane, _ *clusterv1.Machine, _ internal.NotUpToDateResult) (fallbackToScaleDown bool, _ ctrl.Result, _ error) {
+			tryInPlaceUpdateFunc: func(_ context.Context, _ *internal.ControlPlane, _ *clusterv1.Machine, _ internal.UpToDateResult) (fallbackToScaleDown bool, _ ctrl.Result, _ error) {
 				return false, ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
 			},
 			wantTryInPlaceUpdateCalled: true,
@@ -412,7 +412,7 @@ func Test_rollingUpdate(t *testing.T) {
 			desiredReplicas:                 3,
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: true,
-			tryInPlaceUpdateFunc: func(_ context.Context, _ *internal.ControlPlane, _ *clusterv1.Machine, _ internal.NotUpToDateResult) (fallbackToScaleDown bool, _ ctrl.Result, _ error) {
+			tryInPlaceUpdateFunc: func(_ context.Context, _ *internal.ControlPlane, _ *clusterv1.Machine, _ internal.UpToDateResult) (fallbackToScaleDown bool, _ ctrl.Result, _ error) {
 				return true, ctrl.Result{}, nil
 			},
 			wantTryInPlaceUpdateCalled: true,
@@ -426,7 +426,7 @@ func Test_rollingUpdate(t *testing.T) {
 			desiredReplicas:                 3,
 			enableInPlaceUpdatesFeatureGate: true,
 			machineEligibleForInPlaceUpdate: true,
-			tryInPlaceUpdateFunc: func(_ context.Context, _ *internal.ControlPlane, _ *clusterv1.Machine, _ internal.NotUpToDateResult) (fallbackToScaleDown bool, _ ctrl.Result, _ error) {
+			tryInPlaceUpdateFunc: func(_ context.Context, _ *internal.ControlPlane, _ *clusterv1.Machine, _ internal.UpToDateResult) (fallbackToScaleDown bool, _ ctrl.Result, _ error) {
 				return false, ctrl.Result{}, nil
 			},
 			wantTryInPlaceUpdateCalled: true,
@@ -445,9 +445,9 @@ func Test_rollingUpdate(t *testing.T) {
 			var scaleDownCalled bool
 			var scaleUpCalled bool
 			r := &KubeadmControlPlaneReconciler{
-				overrideTryInPlaceUpdateFunc: func(ctx context.Context, controlPlane *internal.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machinesNeedingRolloutResult internal.NotUpToDateResult) (bool, ctrl.Result, error) {
+				overrideTryInPlaceUpdateFunc: func(ctx context.Context, controlPlane *internal.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (bool, ctrl.Result, error) {
 					inPlaceUpdateCalled = true
-					return tt.tryInPlaceUpdateFunc(ctx, controlPlane, machineToInPlaceUpdate, machinesNeedingRolloutResult)
+					return tt.tryInPlaceUpdateFunc(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult)
 				},
 				overrideScaleDownControlPlaneFunc: func(_ context.Context, _ *internal.ControlPlane, _ *clusterv1.Machine) (ctrl.Result, error) {
 					scaleDownCalled = true
@@ -486,11 +486,11 @@ func Test_rollingUpdate(t *testing.T) {
 				MachinesNotUpToDate: machines.Difference(machinesUpToDate),
 			}
 			machinesNeedingRollout, _ := controlPlane.MachinesNeedingRollout()
-			machinesNeedingRolloutResults := map[string]internal.NotUpToDateResult{}
+			machinesUpToDateResults := map[string]internal.UpToDateResult{}
 			for _, m := range machinesNeedingRollout {
-				machinesNeedingRolloutResults[m.Name] = internal.NotUpToDateResult{EligibleForInPlaceUpdate: tt.machineEligibleForInPlaceUpdate}
+				machinesUpToDateResults[m.Name] = internal.UpToDateResult{EligibleForInPlaceUpdate: tt.machineEligibleForInPlaceUpdate}
 			}
-			res, err := r.rollingUpdate(ctx, controlPlane, machinesNeedingRollout, machinesNeedingRolloutResults)
+			res, err := r.rollingUpdate(ctx, controlPlane, machinesNeedingRollout, machinesUpToDateResults)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrorMessage))

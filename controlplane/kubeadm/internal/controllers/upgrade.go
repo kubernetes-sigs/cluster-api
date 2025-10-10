@@ -35,7 +35,7 @@ func (r *KubeadmControlPlaneReconciler) updateControlPlane(
 	ctx context.Context,
 	controlPlane *internal.ControlPlane,
 	machinesNeedingRollout collections.Machines,
-	machinesNeedingRolloutResults map[string]internal.NotUpToDateResult,
+	machinesUpToDateResults map[string]internal.UpToDateResult,
 ) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -89,7 +89,7 @@ func (r *KubeadmControlPlaneReconciler) updateControlPlane(
 	switch controlPlane.KCP.Spec.Rollout.Strategy.Type {
 	case controlplanev1.RollingUpdateStrategyType:
 		// RolloutStrategy is currently defaulted and validated to be RollingUpdate
-		res, err := r.rollingUpdate(ctx, controlPlane, machinesNeedingRollout, machinesNeedingRolloutResults)
+		res, err := r.rollingUpdate(ctx, controlPlane, machinesNeedingRollout, machinesUpToDateResults)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to update control plane")
 		}
@@ -104,7 +104,7 @@ func (r *KubeadmControlPlaneReconciler) rollingUpdate(
 	ctx context.Context,
 	controlPlane *internal.ControlPlane,
 	machinesNeedingRollout collections.Machines,
-	machinesNeedingRolloutResults map[string]internal.NotUpToDateResult,
+	machinesUpToDateResults map[string]internal.UpToDateResult,
 ) (ctrl.Result, error) {
 	currentReplicas := int32(controlPlane.Machines.Len())
 	currentUpToDateReplicas := int32(controlPlane.UpToDateMachines().Len())
@@ -129,9 +129,9 @@ func (r *KubeadmControlPlaneReconciler) rollingUpdate(
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to select next Machine for rollout")
 	}
-	machinesNeedingRolloutResult, ok := machinesNeedingRolloutResults[machineToInPlaceUpdateOrScaleDown.Name]
+	machineUpToDateResult, ok := machinesUpToDateResults[machineToInPlaceUpdateOrScaleDown.Name]
 	if !ok {
-		// Note: This should never happen as we store results for all Machines in machinesNeedingRolloutResults.
+		// Note: This should never happen as we store results for all Machines in machinesUpToDateResults.
 		return ctrl.Result{}, errors.Errorf("failed to check if Machine %s is UpToDate", machineToInPlaceUpdateOrScaleDown.Name)
 	}
 
@@ -139,9 +139,9 @@ func (r *KubeadmControlPlaneReconciler) rollingUpdate(
 	// Note: To be safe we only try an in-place update when we would otherwise delete a Machine. This ensures we could
 	// afford if the in-place update fails and the Machine becomes unavailable (and eventually MHC kicks in and the Machine is recreated).
 	if feature.Gates.Enabled(feature.InPlaceUpdates) &&
-		machinesNeedingRolloutResult.EligibleForInPlaceUpdate &&
+		machineUpToDateResult.EligibleForInPlaceUpdate &&
 		currentUpToDateReplicas < desiredReplicas {
-		fallbackToScaleDown, res, err := r.tryInPlaceUpdate(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, machinesNeedingRolloutResult)
+		fallbackToScaleDown, res, err := r.tryInPlaceUpdate(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, machineUpToDateResult)
 		if err != nil {
 			return ctrl.Result{}, err
 		}

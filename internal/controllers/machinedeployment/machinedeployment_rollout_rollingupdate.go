@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-// rolloutRolling implements the logic for rolling a new MachineSet.
-func (r *Reconciler) rolloutRolling(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, templateExists bool) error {
+// rolloutRollingUpdate reconcile machine sets controlled by a MachineDeployment that is using the RolloutUpdate strategy.
+func (r *Reconciler) rolloutRollingUpdate(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, templateExists bool) error {
 	// TODO(in-place): move create newMS into rolloutPlanner
 	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, md, msList, true, templateExists)
 	if err != nil {
@@ -50,6 +50,14 @@ func (r *Reconciler) rolloutRolling(ctx context.Context, md *clusterv1.MachineDe
 	allMSs := append(oldMSs, newMS)
 
 	// TODO(in-place): also apply/remove labels to MS should go into rolloutPlanner
+	//   Note: looks like the current implementation is missing proper management of the DisableMachineCreateAnnotation on oldMS:
+	//   - Currently the DisableMachineCreateAnnotation is not removed from oldMS, so the annotation might be there or not depending it the users
+	//     transitioned back and forth from RolloutUpdate strategy and OnDelete strategy.
+	//   - TBD is we want to implement a proper cleanup thus ensuring create machines on oldMS can always happen when using the
+	//     RolloutUpdate strategy, or if we want to always prevent machine creation on oldMS also in this case.
+	//   Note: When rollout is paused the code assumes it can always scale up oldMS (see scale in machinedeployment_sync.go).
+	//   however current implementation is missing removal of the DisableMachineCreateAnnotation that might exist or not
+	//   on oldMS (depending on strategy / proper cleanup etc.).
 	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
 		return err
 	}
@@ -59,7 +67,7 @@ func (r *Reconciler) rolloutRolling(ctx context.Context, md *clusterv1.MachineDe
 	planner.newMS = newMS
 	planner.oldMSs = oldMSs
 
-	if err := planner.planRolloutRolling(ctx); err != nil {
+	if err := planner.planRollingUpdate(ctx); err != nil {
 		return err
 	}
 
@@ -100,8 +108,8 @@ func newRolloutPlanner() *rolloutPlanner {
 	}
 }
 
-// planRolloutRolling determine how to proceed with the rollout when using the RolloutRolling strategy if the system is not yet at the desired state.
-func (p *rolloutPlanner) planRolloutRolling(ctx context.Context) error {
+// planRollingUpdate determine how to proceed with the rollout when using the RollingUpdate strategy if the system is not yet at the desired state.
+func (p *rolloutPlanner) planRollingUpdate(ctx context.Context) error {
 	if p.md.Spec.Replicas == nil {
 		return errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(p.md))
 	}
@@ -122,22 +130,22 @@ func (p *rolloutPlanner) planRolloutRolling(ctx context.Context) error {
 	}
 
 	// Scale down, if we can.
-	if err := p.reconcileOldMachineSetsRolloutRolling(ctx); err != nil {
+	if err := p.reconcileOldMachineSetsRollingUpdate(ctx); err != nil {
 		return err
 	}
 
 	// This func tries to detect and address the case when a rollout is not making progress because both scaling down and scaling up are blocked.
 	// Note: This func must be called after computing scale up/down intent for all the MachineSets.
 	// Note: This func only addresses deadlocks due to unavailable replicas not getting deleted on oldMSs, which can happen
-	// because reconcileOldMachineSetsRolloutRolling called above always assumes the worst case when deleting replicas e.g.
+	// because reconcileOldMachineSetsRollingUpdate called above always assumes the worst case when deleting replicas e.g.
 	//  - MD with spec.replicas 3, MaxSurge 1, MaxUnavailable 0
 	//  - OldMS with 3 replicas, 2 available replica (and thus 1 unavailable replica)
 	//  - NewMS with 1 replica, 1 available replica
 	//  - In theory it is possible to scale down oldMS from 3->2 replicas by deleting the unavailable replica.
-	//  - However, reconcileOldMachineSetsRolloutRolling cannot assume that the MachineSet controller is going to delete
+	//  - However, reconcileOldMachineSetsRollingUpdate cannot assume that the MachineSet controller is going to delete
 	//    the unavailable replica when scaling down from 3->2, because it might happen that one of the available replicas
 	//    is deleted instead.
-	//  - As a consequence reconcileOldMachineSetsRolloutRolling, which assumes the worst case when deleting replicas, did not scaled down oldMS.
+	//  - As a consequence reconcileOldMachineSetsRollingUpdate, which assumes the worst case when deleting replicas, did not scaled down oldMS.
 	// This situation, rollout not proceeding due to unavailable replicas, is considered a deadlock to be addressed by reconcileDeadlockBreaker.
 	// Note: Unblocking deadlocks when unavailable replicas exist only on oldMSs, is required also because replicas on oldMSs are not remediated by MHC.
 	p.reconcileDeadlockBreaker(ctx)
@@ -178,7 +186,7 @@ func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 	return nil
 }
 
-func (p *rolloutPlanner) reconcileOldMachineSetsRolloutRolling(ctx context.Context) error {
+func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Context) error {
 	allMSs := append(p.oldMSs, p.newMS)
 
 	// no op if there are no replicas on old machinesets
@@ -387,7 +395,7 @@ func (p *rolloutPlanner) reconcileDeadlockBreaker(ctx context.Context) {
 	//
 	// Note: In most cases this is only a formal violation of maxUnavailability, because there is a good chance
 	// that the machine that will be deleted is one of the unavailable machines.
-	// Note: This for loop relies on the same ordering of oldMSs that has been applied by reconcileOldMachineSetsRolloutRolling.
+	// Note: This for loop relies on the same ordering of oldMSs that has been applied by reconcileOldMachineSetsRollingUpdate.
 	for _, oldMS := range p.oldMSs {
 		if ptr.Deref(oldMS.Status.AvailableReplicas, 0) == ptr.Deref(oldMS.Status.Replicas, 0) || ptr.Deref(oldMS.Spec.Replicas, 0) == 0 {
 			continue

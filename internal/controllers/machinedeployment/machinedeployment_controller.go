@@ -293,7 +293,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 	}
 
 	if md.Spec.Rollout.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
-		return r.rolloutRolling(ctx, md, s.machineSets, templateExists)
+		return r.rolloutRollingUpdate(ctx, md, s.machineSets, templateExists)
 	}
 
 	if md.Spec.Rollout.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {

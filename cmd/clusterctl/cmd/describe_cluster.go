@@ -158,9 +158,13 @@ func runDescribeCluster(cmd *cobra.Command, name string) error {
 
 	switch dc.v1beta2 {
 	case true:
-		cmdtree.PrintObjectTree(tree, os.Stdout)
+		if err := cmdtree.PrintObjectTree(tree, os.Stdout); err != nil {
+			return errors.Wrap(err, "failed to print object tree")
+		}
 	default:
-		cmdtree.PrintObjectTreeV1Beta1(tree)
+		if err := cmdtree.PrintObjectTreeV1Beta1(tree); err != nil {
+			return errors.Wrap(err, "failed to print object tree v1beta1")
+		}
 	}
 
 	return nil

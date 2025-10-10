@@ -41,8 +41,11 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/labels/format"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -1412,7 +1415,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			scope := &scope{
 				machinePool: &machinePool,
 			}
-			err = r.reconcileMachines(ctx, scope, &unstructured.Unstructured{Object: infraConfig})
+			_, err = r.reconcileMachines(ctx, scope, &unstructured.Unstructured{Object: infraConfig})
 			r.reconcilePhase(&machinePool)
 			g.Expect(err).ToNot(HaveOccurred())
 
@@ -1483,7 +1486,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 				machinePool: &machinePool,
 			}
 
-			err = r.reconcileMachines(ctx, scope, &unstructured.Unstructured{Object: infraConfig})
+			_, err = r.reconcileMachines(ctx, scope, &unstructured.Unstructured{Object: infraConfig})
 			r.reconcilePhase(&machinePool)
 			g.Expect(err).ToNot(HaveOccurred())
 
@@ -1536,15 +1539,24 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			r := &Reconciler{
 				Client:   env,
 				ssaCache: ssa.NewCache(testController),
+				externalTracker: external.ObjectTracker{
+					Controller:      externalfake.Controller{},
+					Cache:           &informertest.FakeInformers{},
+					Scheme:          env.Scheme(),
+					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				},
 			}
 
 			scope := &scope{
 				machinePool: &machinePool,
 			}
 
-			err = r.reconcileMachines(ctx, scope, &unstructured.Unstructured{Object: infraConfig})
+			res, err := r.reconcileMachines(ctx, scope, &unstructured.Unstructured{Object: infraConfig})
 			r.reconcilePhase(&machinePool)
 			g.Expect(err).ToNot(HaveOccurred())
+			// Regular reconciliation makes no sense if infra provider
+			// doesn't support MachinePool machines
+			g.Expect(res.RequeueAfter).To(BeZero())
 
 			machineList := &clusterv1.MachineList{}
 			labels := map[string]string{
@@ -1553,6 +1565,136 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			}
 			g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace), client.MatchingLabels(labels))).To(Succeed())
 			g.Expect(machineList.Items).To(BeEmpty())
+		})
+
+		t.Run("Should delete unhealthy machines", func(*testing.T) {
+			machinePool := getMachinePool(3, "machinepool-test-4", clusterName, ns.Name)
+			g.Expect(env.CreateAndWait(ctx, &machinePool)).To(Succeed())
+
+			infraMachines := getInfraMachines(3, machinePool.Name, clusterName, ns.Name)
+			for i := range infraMachines {
+				g.Expect(env.CreateAndWait(ctx, &infraMachines[i])).To(Succeed())
+			}
+
+			machines := getMachines(3, machinePool.Name, clusterName, ns.Name)
+			for i := range machines {
+				g.Expect(env.CreateAndWait(ctx, &machines[i])).To(Succeed())
+			}
+
+			// machines[0] isn't changed here (no conditions = considered healthy).
+
+			// machines[1] is marked as unhealthy by conditions
+			patchHelper, err := patch.NewHelper(&machines[1], env)
+			unhealthyMachineName := machines[1].Name
+			v1beta1conditions.MarkFalse(&machines[1], clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.MachineHasFailureV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
+			conditions.Set(&machines[1], metav1.Condition{
+				Type:   clusterv1.MachineHealthCheckSucceededCondition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineHasFailureV1Beta1Reason,
+			})
+			v1beta1conditions.MarkFalse(&machines[1], clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
+			conditions.Set(&machines[1], metav1.Condition{
+				Type:   clusterv1.MachineOwnerRemediatedCondition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.WaitingForRemediationV1Beta1Reason,
+			})
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(patchHelper.Patch(ctx, &machines[1], patch.WithStatusObservedGeneration{}, patch.WithOwnedConditions{Conditions: []string{
+				clusterv1.MachineHealthCheckSucceededCondition,
+				clusterv1.MachineOwnerRemediatedCondition,
+			}}, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+				clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
+				clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+			}})).To(Succeed())
+
+			// machines[2] is marked as healthy by conditions
+			patchHelper, err = patch.NewHelper(&machines[2], env)
+			v1beta1conditions.MarkTrue(&machines[2], clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
+			conditions.Set(&machines[2], metav1.Condition{
+				Type:   clusterv1.MachineHealthCheckSucceededCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineHealthCheckSucceededReason,
+			})
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(patchHelper.Patch(ctx, &machines[2], patch.WithStatusObservedGeneration{}, patch.WithOwnedConditions{Conditions: []string{
+				clusterv1.MachineHealthCheckSucceededCondition,
+				clusterv1.MachineOwnerRemediatedCondition,
+			}}, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+				clusterv1.MachineHealthCheckSucceededV1Beta1Condition,
+				clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+			}})).To(Succeed())
+
+			infraConfig := map[string]interface{}{
+				"kind":       builder.GenericInfrastructureMachinePoolKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config4",
+					"namespace": ns.Name,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+					"infrastructureMachineKind": builder.GenericInfrastructureMachineKind,
+				},
+			}
+			g.Expect(env.CreateAndWait(ctx, &unstructured.Unstructured{Object: infraConfig})).To(Succeed())
+
+			r := &Reconciler{
+				Client:   env,
+				ssaCache: ssa.NewCache("test-controller"),
+				externalTracker: external.ObjectTracker{
+					Controller:      externalfake.Controller{},
+					Cache:           &informertest.FakeInformers{},
+					Scheme:          env.Scheme(),
+					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				},
+			}
+			scope := &scope{
+				machinePool: &machinePool,
+			}
+			res, err := r.reconcileMachines(ctx, scope, &unstructured.Unstructured{Object: infraConfig})
+			r.reconcilePhase(&machinePool)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(res.RequeueAfter).To(BeNumerically(">=", 0))
+
+			machineList := &clusterv1.MachineList{}
+			labels := map[string]string{
+				clusterv1.ClusterNameLabel:     clusterName,
+				clusterv1.MachinePoolNameLabel: machinePool.Name,
+			}
+			g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace), client.MatchingLabels(labels))).To(Succeed())
+
+			// The unhealthy machine should have been remediated (= deleted)
+			g.Expect(machineList.Items).To(HaveLen(2))
+
+			for i := range machineList.Items {
+				machine := &machineList.Items[i]
+
+				// Healthy machines should remain
+				g.Expect(machine.Name).ToNot(Equal(unhealthyMachineName))
+
+				_, err := external.Get(ctx, r.Client, &corev1.ObjectReference{
+					APIVersion: builder.InfrastructureGroupVersion.String(),
+					Kind:       machine.Spec.InfrastructureRef.Kind,
+					Namespace:  machine.Namespace,
+					Name:       machine.Spec.InfrastructureRef.Name,
+				})
+				g.Expect(err).ToNot(HaveOccurred())
+			}
 		})
 	})
 }

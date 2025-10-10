@@ -63,9 +63,9 @@ var (
 	cyan   = color.New(color.FgCyan)
 )
 
-// CreateObjectTree creates a new tablewriter.Table for the object tree.
+// createObjectTree creates a new tablewriter.Table for the object tree.
 // Returns a new tablewriter.Table for the object tree.
-func CreateObjectTree(w io.Writer) *tablewriter.Table {
+func createObjectTree(w io.Writer) *tablewriter.Table {
 	cfg := tablewriter.Config{
 		Row: tw.CellConfig{
 			Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
@@ -89,9 +89,9 @@ func CreateObjectTree(w io.Writer) *tablewriter.Table {
 	return tbl
 }
 
-// CreateObjectTreeV1Beta1 creates a new tablewriter.Table for the object tree.
+// createObjectTreeV1Beta1 creates a new tablewriter.Table for the object tree.
 // Returns a new tablewriter.Table for the object tree.
-func CreateObjectTreeV1Beta1(w io.Writer) *tablewriter.Table {
+func createObjectTreeV1Beta1(w io.Writer) *tablewriter.Table {
 	cfg := tablewriter.Config{
 		Row: tw.CellConfig{
 			Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
@@ -117,7 +117,7 @@ func CreateObjectTreeV1Beta1(w io.Writer) *tablewriter.Table {
 // PrintObjectTree prints the cluster status to stdout.
 // Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
 func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) error {
-	tbl := CreateObjectTree(w)
+	tbl := createObjectTree(w)
 
 	tbl.Header([]string{"NAME", "REPLICAS", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
 
@@ -136,7 +136,7 @@ func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) error {
 // PrintObjectTreeV1Beta1 prints the cluster status to stdout.
 // Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
 func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) error {
-	tbl := CreateObjectTreeV1Beta1(os.Stdin)
+	tbl := createObjectTreeV1Beta1(os.Stdin)
 	tbl.Header([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
 
 	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.

@@ -279,7 +279,7 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			var output bytes.Buffer
-			tbl := CreateObjectTreeV1Beta1(&output)
+			tbl := createObjectTreeV1Beta1(&output)
 
 			// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
 			err := addObjectRowV1Beta1("", tbl, tt.objectTree, tt.objectTree.GetRoot())
@@ -510,7 +510,7 @@ func Test_TreePrefix(t *testing.T) {
 			g := NewWithT(t)
 			var output bytes.Buffer
 
-			tbl := CreateObjectTree(&output)
+			tbl := createObjectTree(&output)
 
 			// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
 			err := addObjectRow("", tbl, tt.objectTree, tt.objectTree.GetRoot())

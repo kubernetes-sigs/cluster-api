@@ -41,6 +41,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/yaml"
@@ -232,8 +233,7 @@ func (o *objectMover) checkProvisioningCompleted(ctx context.Context, graph *obj
 	// Checking all the clusters have infrastructure is ready
 	readClusterBackoff := newReadBackoff()
 	clusters := graph.getClusters()
-	for i := range clusters {
-		cluster := clusters[i]
+	for _, cluster := range clusters {
 		clusterObj := &clusterv1.Cluster{}
 		if err := retryWithExponentialBackoff(ctx, readClusterBackoff, func(ctx context.Context) error {
 			return getClusterObj(ctx, o.fromProxy, cluster, clusterObj)
@@ -297,6 +297,25 @@ func getClusterObj(ctx context.Context, proxy Proxy, cluster *node, clusterObj *
 	return nil
 }
 
+// getClusterClassObj retrieves the clusterClassObj corresponding to a node with type ClusterClass.
+func getClusterClassObj(ctx context.Context, proxy Proxy, clusterClass *node, clusterClassObj *clusterv1.ClusterClass) error {
+	c, err := proxy.NewClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	clusterClassObjKey := client.ObjectKey{
+		Namespace: clusterClass.identity.Namespace,
+		Name:      clusterClass.identity.Name,
+	}
+
+	if err := c.Get(ctx, clusterClassObjKey, clusterClassObj); err != nil {
+		return errors.Wrapf(err, "error reading ClusterClass %s/%s",
+			clusterClass.identity.Namespace, clusterClass.identity.Name)
+	}
+	return nil
+}
+
 // getMachineObj retrieves the machineObj corresponding to a node with type Machine.
 func getMachineObj(ctx context.Context, proxy Proxy, machine *node, machineObj *clusterv1.Machine) error {
 	c, err := proxy.NewClient(ctx)
@@ -320,9 +339,17 @@ func (o *objectMover) move(ctx context.Context, graph *objectGraph, toProxy Prox
 	log := logf.Log
 
 	clusters := graph.getClusters()
+	if err := checkClustersNotPaused(ctx, o.fromProxy, clusters); err != nil {
+		return err
+	}
+
 	log.Info("Moving Cluster API objects", "Clusters", len(clusters))
 
 	clusterClasses := graph.getClusterClasses()
+	if err := checkClusterClassesNotPaused(ctx, o.fromProxy, clusterClasses); err != nil {
+		return err
+	}
+
 	log.Info("Moving Cluster API objects", "ClusterClasses", len(clusterClasses))
 
 	// Sets the pause field on the Cluster object in the source management cluster, so the controllers stop reconciling it.
@@ -395,9 +422,17 @@ func (o *objectMover) toDirectory(ctx context.Context, graph *objectGraph, direc
 	log := logf.Log
 
 	clusters := graph.getClusters()
+	if err := checkClustersNotPaused(ctx, o.fromProxy, clusters); err != nil {
+		return err
+	}
+
 	log.Info("Starting move of Cluster API objects", "Clusters", len(clusters))
 
 	clusterClasses := graph.getClusterClasses()
+	if err := checkClusterClassesNotPaused(ctx, o.fromProxy, clusterClasses); err != nil {
+		return err
+	}
+
 	log.Info("Moving Cluster API objects", "ClusterClasses", len(clusterClasses))
 
 	// Sets the pause field on the Cluster object in the source management cluster, so the controllers stop reconciling it.
@@ -570,8 +605,7 @@ func setClusterPause(ctx context.Context, proxy Proxy, clusters []*node, value b
 	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%s}}", patchValue)))
 
 	setClusterPauseBackoff := newWriteBackoff()
-	for i := range clusters {
-		cluster := clusters[i]
+	for _, cluster := range clusters {
 		log.V(5).Info("Set Cluster.Spec.Paused", "paused", value, "Cluster", klog.KRef(cluster.identity.Namespace, cluster.identity.Name))
 
 		// Nb. The operation is wrapped in a retry loop to make setClusterPause more resilient to unexpected conditions.
@@ -593,8 +627,7 @@ func setClusterClassPause(ctx context.Context, proxy Proxy, clusterclasses []*no
 	log := logf.Log
 
 	setClusterClassPauseBackoff := newWriteBackoff()
-	for i := range clusterclasses {
-		clusterclass := clusterclasses[i]
+	for _, clusterclass := range clusterclasses {
 		if pause {
 			log.V(5).Info("Set Paused annotation", "ClusterClass", clusterclass.identity.Name, "Namespace", clusterclass.identity.Namespace)
 		} else {
@@ -608,6 +641,38 @@ func setClusterClassPause(ctx context.Context, proxy Proxy, clusterclasses []*no
 			return errors.Wrapf(err, "error updating ClusterClass %s/%s", clusterclass.identity.Namespace, clusterclass.identity.Name)
 		}
 	}
+	return nil
+}
+
+// checkClustersNotPaused checks that no cluster in the graph is paused before proceeding.
+func checkClustersNotPaused(ctx context.Context, proxy Proxy, clusters []*node) error {
+	for _, cluster := range clusters {
+		clusterObj := &clusterv1.Cluster{}
+		if err := getClusterObj(ctx, proxy, cluster, clusterObj); err != nil {
+			return err
+		}
+
+		if ptr.Deref(clusterObj.Spec.Paused, false) || annotations.HasPaused(clusterObj) {
+			return errors.Errorf("cannot start operation while Cluster %s/%s is paused", clusterObj.Namespace, clusterObj.Name)
+		}
+	}
+
+	return nil
+}
+
+// checkClusterClassesNotPaused checks that no clusterClass in the graph is paused before proceeding.
+func checkClusterClassesNotPaused(ctx context.Context, proxy Proxy, clusterClasses []*node) error {
+	for _, clusterClass := range clusterClasses {
+		clusterClassObj := &clusterv1.ClusterClass{}
+		if err := getClusterClassObj(ctx, proxy, clusterClass, clusterClassObj); err != nil {
+			return err
+		}
+
+		if annotations.HasPaused(clusterClassObj) {
+			return errors.Errorf("cannot start operation while ClusterClass %s/%s is paused", clusterClassObj.Namespace, clusterClassObj.Name)
+		}
+	}
+
 	return nil
 }
 
@@ -723,7 +788,8 @@ func pauseClusterClass(ctx context.Context, proxy Proxy, n *node, pause bool, mu
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      n.identity.Name,
 			Namespace: n.identity.Namespace,
-		}}, mutators...)
+		},
+	}, mutators...)
 	if err != nil {
 		return err
 	}
@@ -1173,7 +1239,6 @@ func (o *objectMover) deleteGroup(ctx context.Context, group moveGroup) error {
 		err := retryWithExponentialBackoff(ctx, deleteSourceObjectBackoff, func(ctx context.Context) error {
 			return o.deleteSourceObject(ctx, nodeToDelete)
 		})
-
 		if err != nil {
 			errList = append(errList, err)
 		}

@@ -50,7 +50,12 @@ type ControlPlane struct {
 	Machines             collections.Machines
 	machinesPatchHelpers map[string]*patch.Helper
 
-	machinesNotUptoDate        collections.Machines
+	// MachinesNotUpToDate is the source of truth for Machines that are not up-to-date.
+	// It should be used to check if a Machine is up-to-date (not machinesNotUpToDateResults).
+	MachinesNotUpToDate collections.Machines
+	// machinesNotUpToDateResults is used to store the result of the UpToDate call for all Machines
+	// (even for Machines that are up-to-date).
+	// MachinesNotUpToDate should always be used instead to check if a Machine is up-to-date.
 	machinesNotUpToDateResults map[string]NotUpToDateResult
 
 	// reconciliationTime is the time of the current reconciliation, and should be used for all "now" calculations
@@ -119,14 +124,16 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, c
 	machinesNotUptoDate := make(collections.Machines, len(ownedMachines))
 	machinesNotUpToDateResults := map[string]NotUpToDateResult{}
 	for _, m := range ownedMachines {
-		upToDate, notUpToDateResult, err := UpToDate(m, kcp, &reconciliationTime, infraMachines, kubeadmConfigs)
+		upToDate, notUpToDateResult, err := UpToDate(ctx, client, cluster, m, kcp, &reconciliationTime, infraMachines, kubeadmConfigs)
 		if err != nil {
 			return nil, err
 		}
 		if !upToDate {
 			machinesNotUptoDate.Insert(m)
-			machinesNotUpToDateResults[m.Name] = *notUpToDateResult
 		}
+		// Set this even if machine is UpToDate. This is needed to complete triggering in-place updates
+		// MachinesNotUpToDate should always be used instead to check if a Machine is up-to-date.
+		machinesNotUpToDateResults[m.Name] = *notUpToDateResult
 	}
 
 	return &ControlPlane{
@@ -134,7 +141,7 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, c
 		Cluster:                    cluster,
 		Machines:                   ownedMachines,
 		machinesPatchHelpers:       patchHelpers,
-		machinesNotUptoDate:        machinesNotUptoDate,
+		MachinesNotUpToDate:        machinesNotUptoDate,
 		machinesNotUpToDateResults: machinesNotUpToDateResults,
 		KubeadmConfigs:             kubeadmConfigs,
 		InfraResources:             infraMachines,
@@ -216,25 +223,6 @@ func getGetFailureDomainIDs(failureDomains []clusterv1.FailureDomain) []string {
 	return ids
 }
 
-// InitialControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for an initializing control plane.
-func (c *ControlPlane) InitialControlPlaneConfig() *bootstrapv1.KubeadmConfigSpec {
-	bootstrapSpec := c.KCP.Spec.KubeadmConfigSpec.DeepCopy()
-	// Note: When building a KubeadmConfig for the first CP machine empty out the unnecessary JoinConfiguration.
-	bootstrapSpec.JoinConfiguration = bootstrapv1.JoinConfiguration{}
-	return bootstrapSpec
-}
-
-// JoinControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for joining control planes.
-func (c *ControlPlane) JoinControlPlaneConfig() *bootstrapv1.KubeadmConfigSpec {
-	bootstrapSpec := c.KCP.Spec.KubeadmConfigSpec.DeepCopy()
-	// Note: When building a KubeadmConfig for a joining CP machine empty out the unnecessary InitConfiguration.
-	bootstrapSpec.InitConfiguration = bootstrapv1.InitConfiguration{}
-	// NOTE: For the joining we are preserving the ClusterConfiguration in order to determine if the
-	// cluster is using an external etcd in the kubeadm bootstrap provider (even if this is not required by kubeadm Join).
-	// TODO: Determine if this copy of cluster configuration can be used for rollouts (thus allowing to remove the annotation at machine level)
-	return bootstrapSpec
-}
-
 // HasDeletingMachine returns true if any machine in the control plane is in the process of being deleted.
 func (c *ControlPlane) HasDeletingMachine() bool {
 	return len(c.Machines.Filter(collections.HasDeletionTimestamp)) > 0
@@ -254,19 +242,19 @@ func (c *ControlPlane) GetKubeadmConfig(machineName string) (*bootstrapv1.Kubead
 // MachinesNeedingRollout return a list of machines that need to be rolled out.
 func (c *ControlPlane) MachinesNeedingRollout() (collections.Machines, map[string]NotUpToDateResult) {
 	// Note: Machines already deleted are dropped because they will be replaced by new machines after deletion completes.
-	return c.machinesNotUptoDate.Filter(collections.Not(collections.HasDeletionTimestamp)), c.machinesNotUpToDateResults
+	return c.MachinesNotUpToDate.Filter(collections.Not(collections.HasDeletionTimestamp)), c.machinesNotUpToDateResults
 }
 
 // NotUpToDateMachines return a list of machines that are not up to date with the control
 // plane's configuration.
 func (c *ControlPlane) NotUpToDateMachines() (collections.Machines, map[string]NotUpToDateResult) {
-	return c.machinesNotUptoDate, c.machinesNotUpToDateResults
+	return c.MachinesNotUpToDate, c.machinesNotUpToDateResults
 }
 
 // UpToDateMachines returns the machines that are up to date with the control
 // plane's configuration.
 func (c *ControlPlane) UpToDateMachines() collections.Machines {
-	return c.Machines.Difference(c.machinesNotUptoDate)
+	return c.Machines.Difference(c.MachinesNotUpToDate)
 }
 
 // getInfraMachines fetches the InfraMachine for each machine in the collection and returns a map of machine.Name -> InfraMachine.

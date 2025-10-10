@@ -103,8 +103,11 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 		client.ForceOwnership,
 		client.FieldOwner(fieldManager),
 	}
+	// Note: Intentionally not including the name of the object in the error message
+	// as during create the name might be random generated in every reconcile.
+	// If these errors are written to conditions this would lead to an infinite reconcile.
 	if err := c.Apply(ctx, client.ApplyConfigurationFromUnstructured(modifiedUnstructured), applyOptions...); err != nil {
-		return errors.Wrapf(err, "failed to apply %s %s", gvk.Kind, klog.KObj(modifiedUnstructured))
+		return errors.Wrapf(err, "failed to apply %s", gvk.Kind)
 	}
 
 	// Write back the modified object so callers can access the patched object.

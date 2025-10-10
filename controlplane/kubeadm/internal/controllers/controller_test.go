@@ -52,6 +52,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
 	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -520,7 +521,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
-					Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+					Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -588,7 +589,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
-					Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+					Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -703,7 +704,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
-					Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+					Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -761,7 +762,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: cluster.Namespace,
 						Name:      "test0",
-						Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+						Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 					},
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
@@ -1841,7 +1842,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 				NodeVolumeDetachTimeoutSeconds: duration5s,
 				NodeDeletionTimeoutSeconds:     duration5s,
 			},
-			ReadinessGates: mandatoryMachineReadinessGates,
+			ReadinessGates: desiredstate.MandatoryMachineReadinessGates,
 		},
 	}
 	g.Expect(env.PatchAndWait(ctx, deletingMachine, client.FieldOwner(kcpManagerName))).To(Succeed())
@@ -3921,17 +3922,17 @@ func TestObjectsPendingDelete(t *testing.T) {
 
 // test utils.
 
-func newFakeClient(initObjs ...client.Object) client.Client {
+func newFakeClient(initObjs ...client.Object) client.WithWatch {
 	return &fakeClient{
 		startTime: time.Now(),
-		Client:    fake.NewClientBuilder().WithObjects(initObjs...).WithStatusSubresource(&controlplanev1.KubeadmControlPlane{}).Build(),
+		WithWatch: fake.NewClientBuilder().WithObjects(initObjs...).WithStatusSubresource(&controlplanev1.KubeadmControlPlane{}).Build(),
 	}
 }
 
 type fakeClient struct {
 	startTime time.Time
 	mux       sync.Mutex
-	client.Client
+	client.WithWatch
 }
 
 type fakeClientI interface {
@@ -3947,7 +3948,7 @@ func (c *fakeClient) Create(ctx context.Context, obj client.Object, opts ...clie
 		f.SetCreationTimestamp(metav1.NewTime(c.startTime))
 		c.mux.Unlock()
 	}
-	return c.Client.Create(ctx, obj, opts...)
+	return c.WithWatch.Create(ctx, obj, opts...)
 }
 
 func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *controlplanev1.KubeadmControlPlane, *unstructured.Unstructured) {
@@ -4038,7 +4039,7 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   cluster.Namespace,
 			Name:        name,
-			Labels:      internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+			Labels:      desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 			Annotations: map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),

@@ -131,6 +131,7 @@ type RunInput struct {
 	MinK8sVersion               string
 	AdditionalSchemeBuilder     runtime.SchemeBuilder
 	AdditionalCRDDirectoryPaths []string
+	AuditLogsFileName           string
 }
 
 // Run executes the tests of the given testing.M in a test environment.
@@ -164,7 +165,7 @@ func Run(ctx context.Context, input RunInput) int {
 	}
 
 	// Bootstrapping test environment
-	env := newEnvironment(scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.ManagerUncachedObjs...)
+	env := newEnvironment(scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.AuditLogsFileName, input.ManagerUncachedObjs...)
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	env.cancelManager = cancel
@@ -249,7 +250,7 @@ type Environment struct {
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, uncachedObjs ...client.Object) *Environment {
+func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, auditLogsFileName string, uncachedObjs ...client.Object) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")
@@ -294,6 +295,20 @@ func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string
 		// initialize webhook here to be able to test the envtest install via webhookOptions
 		// This should set LocalServingCertDir and LocalServingPort that are used below.
 		WebhookInstallOptions: initWebhookInstallOptions(),
+	}
+
+	if auditLogsFileName != "" && os.Getenv("ARTIFACTS") != "" {
+		auditPolicyPath := writeAuditPolicy()
+		auditLogsFilePath := filepath.Join(os.Getenv("ARTIFACTS"), auditLogsFileName)
+
+		env.ControlPlane = envtest.ControlPlane{}
+		env.ControlPlane.APIServer = &envtest.APIServer{}
+		env.ControlPlane.APIServer.Configure().Set("audit-log-path", auditLogsFilePath)
+		env.ControlPlane.APIServer.Configure().Set("audit-log-format", "json")
+		env.ControlPlane.APIServer.Configure().Set("audit-policy-file", auditPolicyPath)
+		env.ControlPlane.APIServer.Configure().Set("audit-log-maxage", "0")
+		env.ControlPlane.APIServer.Configure().Set("audit-log-maxbackup", "0")
+		env.ControlPlane.APIServer.Configure().Set("audit-log-maxsize", "0")
 	}
 
 	if _, err := env.Start(); err != nil {
@@ -403,6 +418,24 @@ func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string
 		Config:  mgr.GetConfig(),
 		env:     env,
 	}
+}
+
+func writeAuditPolicy() string {
+	policyFile := filepath.Join(os.Getenv("ARTIFACTS"), "audit-policy.yaml")
+
+	policyYAML := []byte(`
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+  - level: RequestResponse
+    resources:
+      - resources: ["*"]
+`)
+
+	if err := os.WriteFile(policyFile, policyYAML, 0644); err != nil {
+		klog.Fatalf("failed to write audit policy: %v", err)
+	}
+	return policyFile
 }
 
 // start starts the manager.

@@ -330,6 +330,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	addresses, err := contract.InfrastructureMachine().Addresses().Get(s.infraMachine)
 	switch {
 	case errors.Is(err, contract.ErrFieldNotFound): // no-op
+		log.Info("No addresses found on machine")
 	case err != nil:
 		return ctrl.Result{}, errors.Wrapf(err, "failed to read addresses from %s %s",
 			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
@@ -341,6 +342,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	failureDomain, err := contract.InfrastructureMachine().FailureDomain().Get(s.infraMachine)
 	switch {
 	case errors.Is(err, contract.ErrFieldNotFound): // no-op
+		log.Info("No failure domain found on machine")
 	case err != nil:
 		return ctrl.Result{}, errors.Wrapf(err, "failed to read failureDomain from %s %s",
 			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))

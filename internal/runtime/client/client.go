@@ -124,7 +124,7 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 	if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
 		log.Info(fmt.Sprintf("Failed to discover extension %q: got failure response with message %v", extensionConfig.Name, response.GetMessage()))
 		// Don't add the message to the error as it is may be unique causing too many reconciliations. Ref: https://github.com/kubernetes-sigs/cluster-api/issues/6921
-		return nil, errors.Errorf("failed to discover extension %q: got failure response", extensionConfig.Name)
+		return nil, errors.Errorf("failed to discover extension %q: got failure response, please check controller logs for errors", extensionConfig.Name)
 	}
 
 	// Check to see if the response is valid.
@@ -366,7 +366,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
 		log.Info(fmt.Sprintf("Failed to call extension handler %q: got failure response with message %v", name, response.GetMessage()))
 		// Don't add the message to the error as it is may be unique causing too many reconciliations. Ref: https://github.com/kubernetes-sigs/cluster-api/issues/6921
-		return errors.Errorf("failed to call extension handler %q: got failure response", name)
+		return errors.Errorf("failed to call extension handler %q: got failure response, please check controller logs for errors", name)
 	}
 
 	if retryResponse, ok := response.(runtimehooksv1.RetryResponseObject); ok && retryResponse.GetRetryAfterSeconds() != 0 {

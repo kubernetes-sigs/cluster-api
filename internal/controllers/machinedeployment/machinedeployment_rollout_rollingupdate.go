@@ -21,11 +21,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
@@ -66,20 +64,6 @@ func (r *Reconciler) rolloutRollingUpdate(ctx context.Context, md *clusterv1.Mac
 
 // planRollingUpdate determine how to proceed with the rollout when using the RollingUpdate strategy if the system is not yet at the desired state.
 func (p *rolloutPlanner) planRollingUpdate(ctx context.Context) error {
-	if p.md.Spec.Replicas == nil {
-		return errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(p.md))
-	}
-
-	if p.newMS.Spec.Replicas == nil {
-		return errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(p.newMS))
-	}
-
-	for _, oldMS := range p.oldMSs {
-		if oldMS.Spec.Replicas == nil {
-			return errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(oldMS))
-		}
-	}
-
 	// Scale up, if we can.
 	if err := p.reconcileNewMachineSet(ctx); err != nil {
 		return err

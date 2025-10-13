@@ -82,12 +82,6 @@ linters:
       linters:
         - kubeapilinter
 
-    ## Apply forbiddenmarkers only to api/bootstrap/kubeadm
-    - path-except: "api/bootstrap/kubeadm/.*"
-      text: "forbiddenmarkers"
-      linters:
-        - kubeapilinter
-
     ## Excludes for old apiVersions that can be removed once the apiVersions are dropped (we don't want to make any changes to these APIs).
     - path: "api/addons/v1beta1|api/bootstrap/kubeadm/v1beta1|api/controlplane/kubeadm/v1beta1|api/core/v1beta1|api/ipam/v1beta1|api/ipam/v1alpha1|api/runtime/v1alpha1"
       linters:
@@ -165,6 +159,17 @@ linters:
     ## Today we have MinItems=1, but we might have to support MinItems=0 in the future if kubeadm starts supporting it.
     - path: "api/bootstrap/kubeadm/v1beta2/kubeadm_types.go"
       text: "optionalfields: field ExtraEnvs does not allow the zero value. The field does not need to be a pointer."
+      linters:
+        - kubeapilinter
+
+    # Excludes for existing default markers 
+    # We don't want to use OpenAPI defaulting anymore.
+    - path: "api/core/v1beta2/clusterclass_types.go"
+      text: 'forbiddenmarkers: field Reason has forbidden marker "kubebuilder:default=FieldValueInvalid"'
+      linters:
+        - kubeapilinter
+    - path: "api/core/v1beta2/clusterclass_types.go"
+      text: 'forbiddenmarkers: field Reason has forbidden marker "default=ref\(sigs.k8s.io/cluster-api/api/core/v1beta2.FieldValueInvalid\)"'
       linters:
         - kubeapilinter
 

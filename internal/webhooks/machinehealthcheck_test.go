@@ -301,7 +301,7 @@ func TestMachineHealthCheckUnhealthyMachineConditions(t *testing.T) {
 			expectErr:                  false,
 		},
 		{
-			name:                       "do not fail if the UnhealthyMachineCondition array is nil",
+			name:                       "do not fail if the UnhealthyMachineCondition array is empty",
 			unhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{},
 			expectErr:                  false,
 		},

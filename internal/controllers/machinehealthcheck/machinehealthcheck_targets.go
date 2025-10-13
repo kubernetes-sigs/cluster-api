@@ -19,6 +19,7 @@ package machinehealthcheck
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -181,6 +182,13 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		return false, nextCheck
 	}
 
+	// Collect all unhealthy conditions (both node and machine) to provide comprehensive status
+	var (
+		unhealthyMessages       []string
+		unhealthyReasons        []string
+		foundUnhealthyCondition bool
+	)
+
 	// check node conditions
 	for _, c := range t.MHC.Spec.Checks.UnhealthyNodeConditions {
 		nodeCondition := getNodeCondition(t.Node, c.Type)
@@ -192,20 +200,15 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		}
 
 		// If the node condition has been in the unhealthy state for longer than the
-		// timeout, return true with no requeue time.
+		// timeout, mark as unhealthy and collect the message.
 		timeoutSecondsDuration := time.Duration(ptr.Deref(c.TimeoutSeconds, 0)) * time.Second
 
 		if nodeCondition.LastTransitionTime.Add(timeoutSecondsDuration).Before(now) {
-			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyNodeConditionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Condition %s on Node is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String())
-			logger.V(3).Info("Target is unhealthy: condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", timeoutSecondsDuration.String())
-
-			conditions.Set(t.Machine, metav1.Condition{
-				Type:    clusterv1.MachineHealthCheckSucceededCondition,
-				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineHealthCheckUnhealthyNodeReason,
-				Message: fmt.Sprintf("Health check failed: Condition %s on Node is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String()),
-			})
-			return true, time.Duration(0)
+			foundUnhealthyCondition = true
+			unhealthyMessages = append(unhealthyMessages, fmt.Sprintf("Node condition %s is %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String()))
+			unhealthyReasons = append(unhealthyReasons, "UnhealthyNode")
+			logger.V(3).Info("Target is unhealthy: node condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", timeoutSecondsDuration.String())
+			continue
 		}
 
 		durationUnhealthy := now.Sub(nodeCondition.LastTransitionTime.Time)
@@ -226,20 +229,15 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		}
 
 		// If the machine condition has been in the unhealthy state for longer than the
-		// timeout, return true with no requeue time.
+		// timeout, mark as unhealthy and collect the message.
 		timeoutSecondsDuration := time.Duration(ptr.Deref(c.TimeoutSeconds, 0)) * time.Second
 
 		if machineCondition.LastTransitionTime.Add(timeoutSecondsDuration).Before(now) {
-			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyMachineConditionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Condition %s on Machine is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String())
-			logger.V(3).Info("Target is unhealthy: condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", timeoutSecondsDuration.String())
-
-			conditions.Set(t.Machine, metav1.Condition{
-				Type:    clusterv1.MachineHealthCheckSucceededCondition,
-				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineHealthCheckUnhealthyMachineReason,
-				Message: fmt.Sprintf("Health check failed: Condition %s on Machine is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String()),
-			})
-			return true, time.Duration(0)
+			foundUnhealthyCondition = true
+			unhealthyMessages = append(unhealthyMessages, fmt.Sprintf("Machine condition %s is %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String()))
+			unhealthyReasons = append(unhealthyReasons, "UnhealthyMachine")
+			logger.V(3).Info("Target is unhealthy: machine condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", timeoutSecondsDuration.String())
+			continue
 		}
 
 		durationUnhealthy := now.Sub(machineCondition.LastTransitionTime.Time)
@@ -247,6 +245,52 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		if nextCheck > 0 {
 			nextCheckTimes = append(nextCheckTimes, nextCheck)
 		}
+	}
+
+	// If any unhealthy conditions were found, set the combined status
+	if foundUnhealthyCondition {
+		// Determine the primary reason based on a consistent priority order:
+		// 1. If both node and machine conditions are present, use a combined reason
+		// 2. Otherwise use the specific reason for the type that failed
+		var primaryReason, v1beta1Reason string
+		if len(unhealthyReasons) > 0 {
+			// Check if we have both node and machine reasons
+			hasNodeReason := false
+			hasMachineReason := false
+			for _, reason := range unhealthyReasons {
+				switch reason {
+				case "UnhealthyNode":
+					hasNodeReason = true
+				case "UnhealthyMachine":
+					hasMachineReason = true
+				}
+			}
+
+			if hasNodeReason && hasMachineReason {
+				// Both types of conditions are unhealthy - use machine reason but indicate it's combined
+				primaryReason = clusterv1.MachineHealthCheckUnhealthyMachineReason
+				v1beta1Reason = clusterv1.UnhealthyMachineConditionV1Beta1Reason
+			} else if hasMachineReason {
+				primaryReason = clusterv1.MachineHealthCheckUnhealthyMachineReason
+				v1beta1Reason = clusterv1.UnhealthyMachineConditionV1Beta1Reason
+			} else if hasNodeReason {
+				primaryReason = clusterv1.MachineHealthCheckUnhealthyNodeReason
+				v1beta1Reason = clusterv1.UnhealthyNodeConditionV1Beta1Reason
+			}
+		}
+
+		// Combine all messages into a single comprehensive message
+		combinedMessage := fmt.Sprintf("Health check failed: %s", strings.Join(unhealthyMessages, "; "))
+
+		v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, v1beta1Reason, clusterv1.ConditionSeverityWarning, "%s", combinedMessage)
+
+		conditions.Set(t.Machine, metav1.Condition{
+			Type:    clusterv1.MachineHealthCheckSucceededCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  primaryReason,
+			Message: combinedMessage,
+		})
+		return true, time.Duration(0)
 	}
 
 	return false, minDuration(nextCheckTimes)

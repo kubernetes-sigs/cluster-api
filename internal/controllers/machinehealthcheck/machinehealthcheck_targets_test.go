@@ -390,7 +390,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node:        testNodeUnknown400,
 		nodeMissing: false,
 	}
-	nodeUnknown400Condition := newFailedHealthCheckV1Beta1Condition(clusterv1.UnhealthyNodeConditionV1Beta1Reason, "Condition Ready on node is reporting status Unknown for more than %s", (time.Duration(timeoutForUnhealthyNodeConditions) * time.Second).String())
+	nodeUnknown400Condition := newFailedHealthCheckV1Beta1Condition(clusterv1.UnhealthyNodeConditionV1Beta1Reason, "Condition Ready on Node is reporting status Unknown for more than %s", (time.Duration(timeoutForUnhealthyNodeConditions) * time.Second).String())
 	nodeUnknown400V1Beta2Condition := newFailedHealthCheckCondition(clusterv1.MachineHealthCheckUnhealthyNodeReason, "Health check failed: Condition Ready on Node is reporting status Unknown for more than %s", (time.Duration(timeoutForUnhealthyNodeConditions) * time.Second).String())
 
 	// Target for when a node is healthy
@@ -425,7 +425,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	}
 	machineUnhealthy400Condition := newFailedHealthCheckV1Beta1Condition(
 		clusterv1.UnhealthyMachineConditionV1Beta1Reason,
-		"Condition EtcdPodHealthy on machine is reporting status False for more than %s",
+		"Condition EtcdPodHealthy on Machine is reporting status False for more than %s",
 		(time.Duration(timeoutForUnhealthyMachineConditions) * time.Second).String(),
 	)
 	machineUnhealthy400V1Beta2Condition := newFailedHealthCheckCondition(

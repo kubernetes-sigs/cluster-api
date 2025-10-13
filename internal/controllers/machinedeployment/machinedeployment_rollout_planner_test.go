@@ -58,8 +58,10 @@ func TestComputeDesiredNewMS(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// annotations that we are intentionally not setting in this func are not there
-		g.Expect(actualNewMS.Annotations).Should(HaveKeyWithValue(clusterv1.RevisionAnnotation, "1"))
-		g.Expect(actualNewMS.Annotations).ShouldNot(HaveKey("machinedeployment.clusters.x-k8s.io/revision-history"))
+		g.Expect(actualNewMS.Annotations).To(Equal(map[string]string{
+			clusterv1.RevisionAnnotation:             "1",
+			clusterv1.DisableMachineCreateAnnotation: "false",
+		}))
 	})
 	t.Run("should update Revision annotations for newMS when required", func(t *testing.T) {
 		g := NewWithT(t)
@@ -94,8 +96,11 @@ func TestComputeDesiredNewMS(t *testing.T) {
 
 		// annotations that we are intentionally not setting in this func are not there
 		// Note: there is a dedicated test for ComputeRevisionAnnotations, so it is ok to have a minimal coverage here about revision management.
-		g.Expect(actualNewMS.Annotations).Should(HaveKeyWithValue(clusterv1.RevisionAnnotation, "3"))
-		g.Expect(actualNewMS.Annotations).Should(HaveKeyWithValue("machinedeployment.clusters.x-k8s.io/revision-history", "1"))
+		g.Expect(actualNewMS.Annotations).To(Equal(map[string]string{
+			clusterv1.RevisionAnnotation:                           "3",
+			"machinedeployment.clusters.x-k8s.io/revision-history": "1",
+			clusterv1.DisableMachineCreateAnnotation:               "false",
+		}))
 	})
 	t.Run("should preserve Revision annotations for newMS when already up to date", func(t *testing.T) {
 		g := NewWithT(t)
@@ -131,8 +136,11 @@ func TestComputeDesiredNewMS(t *testing.T) {
 
 		// annotations that we are intentionally not setting in this func are not there
 		// Note: there is a dedicated test for ComputeRevisionAnnotations, so it is ok to have a minimal coverage here about revision management.
-		g.Expect(actualNewMS.Annotations).Should(HaveKeyWithValue(clusterv1.RevisionAnnotation, "3"))
-		g.Expect(actualNewMS.Annotations).Should(HaveKeyWithValue("machinedeployment.clusters.x-k8s.io/revision-history", "1"))
+		g.Expect(actualNewMS.Annotations).To(Equal(map[string]string{
+			clusterv1.RevisionAnnotation:                           "3",
+			"machinedeployment.clusters.x-k8s.io/revision-history": "1",
+			clusterv1.DisableMachineCreateAnnotation:               "false",
+		}))
 	})
 }
 
@@ -156,16 +164,56 @@ func TestComputeDesiredOldMS(t *testing.T) {
 			md: deployment,
 			// Add a dummy computeDesiredMS, that simply pass through the currentNewMS.
 			// Note: there is dedicate test to validate the actual computeDesiredMS func, it is ok to simplify the unit test here.
-			computeDesiredMS: func(_ context.Context, _ *clusterv1.MachineDeployment, currentNewMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
-				return currentNewMS, nil
+			computeDesiredMS: func(_ context.Context, _ *clusterv1.MachineDeployment, currentOldMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
+				return currentOldMS, nil
 			},
 		}
-		actualNewMS, err := p.computeDesiredOldMS(ctx, currentMS)
+		actualOldMS, err := p.computeDesiredOldMS(ctx, currentMS)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// annotations that we are intentionally not setting in this func are not there
-		g.Expect(actualNewMS.Annotations).Should(HaveKeyWithValue(clusterv1.RevisionAnnotation, revision))
-		g.Expect(actualNewMS.Annotations).Should(HaveKeyWithValue("machinedeployment.clusters.x-k8s.io/revision-history", revisionHistory))
+		g.Expect(actualOldMS.Annotations).To(Equal(map[string]string{
+			clusterv1.RevisionAnnotation:                           revision,
+			"machinedeployment.clusters.x-k8s.io/revision-history": revisionHistory,
+			clusterv1.DisableMachineCreateAnnotation:               "false",
+		}))
+	})
+	t.Run("should disable creation of machines on oldMS when rollout strategy is OnDelete", func(t *testing.T) {
+		g := NewWithT(t)
+		const revision = "4"
+		const revisionHistory = "1,3"
+
+		deployment := &clusterv1.MachineDeployment{
+			Spec: clusterv1.MachineDeploymentSpec{
+				Rollout: clusterv1.MachineDeploymentRolloutSpec{Strategy: clusterv1.MachineDeploymentRolloutStrategy{Type: clusterv1.OnDeleteMachineDeploymentStrategyType}},
+			},
+		}
+		currentMS := &clusterv1.MachineSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation:                           revision,
+					"machinedeployment.clusters.x-k8s.io/revision-history": revisionHistory,
+				},
+			},
+		}
+
+		p := rolloutPlanner{
+			md: deployment,
+			// Add a dummy computeDesiredMS, that simply pass through the currentNewMS.
+			// Note: there is dedicate test to validate the actual computeDesiredMS func, it is ok to simplify the unit test here.
+			computeDesiredMS: func(_ context.Context, _ *clusterv1.MachineDeployment, currentOldMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
+				return currentOldMS, nil
+			},
+		}
+		actualOldMS, err := p.computeDesiredOldMS(ctx, currentMS)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// annotations that we are intentionally not setting in this func are not there
+		g.Expect(actualOldMS.Annotations).To(Equal(map[string]string{
+			clusterv1.RevisionAnnotation:                           revision,
+			"machinedeployment.clusters.x-k8s.io/revision-history": revisionHistory,
+			clusterv1.DisableMachineCreateAnnotation:               "true",
+		}))
 	})
 }
 
@@ -451,7 +499,7 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 	// if too few machines, create missing machine.
 	// new machines are created with a predictable name, so it is easier to write test case and validate rollout sequences.
 	// e.g. if the cluster is initialized with m1, m2, m3, new machines will be m4, m5, m6
-	if _, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; !ok {
+	if value, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; !ok || value != "true" {
 		machinesToAdd := ptr.Deref(ms.Spec.Replicas, 0) - ptr.Deref(ms.Status.Replicas, 0)
 		if machinesToAdd > 0 {
 			machinesAdded := []string{}

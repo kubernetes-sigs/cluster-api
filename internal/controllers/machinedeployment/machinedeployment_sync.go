@@ -44,7 +44,7 @@ func (r *Reconciler) sync(ctx context.Context, md *clusterv1.MachineDeployment, 
 	// - computing desired state for newMS and OldMS, including managing rollout related annotations and
 	//   in-place propagation of labels, annotations and other fields.
 	planner := newRolloutPlanner()
-	if err := planner.init(ctx, md, msList, nil, true, templateExists); err != nil {
+	if err := planner.init(ctx, md, msList, nil, false, templateExists); err != nil {
 		return err
 	}
 

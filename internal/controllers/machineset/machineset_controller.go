@@ -673,7 +673,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 		diff *= -1
 		log.Info(fmt.Sprintf("MachineSet is scaling up to %d replicas by creating %d machines", *(ms.Spec.Replicas), diff), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines))
 		if ms.Annotations != nil {
-			if _, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok {
+			if value, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok && value == "true" {
 				log.Info("Automatic creation of new machines disabled for machine set")
 				return ctrl.Result{}, nil
 			}

@@ -82,16 +82,6 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 		return
 	}
 
-	// Make sure old MS cannot create replicas to compensate replicas deleted manually.
-	// NOTE: cleanup of this annotation will happen automatically as soon as the rollout planner stops to set it/stops to run the following loop,
-	// because this annotation is not part of the output of computeDesiredMS.
-	for _, oldMS := range p.oldMSs {
-		if oldMS.Annotations == nil {
-			oldMS.Annotations = map[string]string{}
-		}
-		oldMS.Annotations[clusterv1.DisableMachineCreateAnnotation] = "true"
-	}
-
 	// Determine if there are more Machines than MD.spec.replicas, e.g. due to a scale down in MD.
 	newMSReplicas := ptr.Deref(p.newMS.Spec.Replicas, 0)
 	if v, ok := p.scaleIntents[p.newMS.Name]; ok {

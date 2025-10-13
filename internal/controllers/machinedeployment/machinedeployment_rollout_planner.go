@@ -82,7 +82,7 @@ func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployme
 	p.md = md
 	p.machines = machines
 
-	// Store original MS, for usage later when generating patches.
+	// Store original MS, for usage later with SSA patches / SSA caching.
 	p.originalMS = make(map[string]*clusterv1.MachineSet)
 	for _, ms := range msList {
 		p.originalMS[ms.Name] = ms.DeepCopy()
@@ -147,10 +147,13 @@ func (p *rolloutPlanner) computeDesiredNewMS(ctx context.Context, currentNewMS *
 		return nil, err
 	}
 	annotations.AddAnnotations(desiredNewMS, revisionAnnotations)
+
+	// Always allow creation of machines on newMS.
+	desiredNewMS.Annotations[clusterv1.DisableMachineCreateAnnotation] = "false"
 	return desiredNewMS, nil
 }
 
-// computeDesiredNewMS with mandatory labels, in place propagated fields and the annotations derived from the MachineDeployment.
+// computeDesiredOldMS with mandatory labels, in place propagated fields and the annotations derived from the MachineDeployment.
 // Additionally, this procedure ensure the annotations tracking revisions numbers are carried over.
 // Note: because we are using Server-Side-Apply we always have to calculate the full object.
 func (p *rolloutPlanner) computeDesiredOldMS(ctx context.Context, currentOldMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
@@ -162,6 +165,16 @@ func (p *rolloutPlanner) computeDesiredOldMS(ctx context.Context, currentOldMS *
 	// For oldMS, carry over the revision annotations (those annotations should not be updated for oldMSs).
 	revisionAnnotations := mdutil.GetRevisionAnnotations(ctx, currentOldMS)
 	annotations.AddAnnotations(desiredOldMS, revisionAnnotations)
+
+	// Disable creation of machines on oldMS when rollout strategy is on delete.
+	if desiredOldMS.Annotations == nil {
+		desiredOldMS.Annotations = map[string]string{}
+	}
+	if p.md.Spec.Rollout.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
+		desiredOldMS.Annotations[clusterv1.DisableMachineCreateAnnotation] = "true"
+	} else {
+		desiredOldMS.Annotations[clusterv1.DisableMachineCreateAnnotation] = "false"
+	}
 	return desiredOldMS, nil
 }
 
@@ -210,6 +223,7 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 
 		name = currentMS.Name
 		uid = currentMS.UID
+		// Preserve all existing finalizers (including foregroundDeletion finalizer).
 		finalizers = currentMS.Finalizers
 		replicas = *currentMS.Spec.Replicas
 		machineTemplateSpec = *currentMS.Spec.Template.Spec.DeepCopy()
@@ -272,12 +286,10 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 	// Note: Additional annotations might be added by the rollout planner later in the same reconcile.
 	// Note: Intentionally, we are not setting the following labels:
 	// - clusterv1.RevisionAnnotation + the deprecated revisionHistoryAnnotation
-	//   - for newMS, we should add keep those annotations upToDate
+	//   - for newMS, we should always keep those annotations upToDate
 	//   - for oldMS, we should carry over those annotations from previous reconcile
 	// - clusterv1.DisableMachineCreateAnnotation
-	//	 - it should be added only on oldMS and if strategy is on delete.
-	//   - cleanup of this annotation will happen automatically as soon as the above conditions are not true anymore
-	//     (SSA patch will remove this annotation because this annotation is not part of the output of computeDesiredMS / not set by the rollout planner).
+	//	 - it should be set to true only on oldMS and if strategy is on delete, otherwise set to false.
 	desiredMS.Annotations = mdutil.MachineSetAnnotationsFromMachineDeployment(ctx, deployment)
 	desiredMS.Spec.Template.Annotations = cloneStringMap(deployment.Spec.Template.Annotations)
 

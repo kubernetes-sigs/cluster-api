@@ -329,10 +329,6 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 
 			planner.reconcileOldMachineSetsOnDelete(ctx)
 			g.Expect(planner.scaleIntents).To(Equal(tt.expectScaleIntent), "unexpected scaleIntents")
-			g.Expect(planner.newMS.Annotations).ToNot(HaveKey(clusterv1.DisableMachineCreateAnnotation))
-			for _, oldMS := range planner.oldMSs {
-				g.Expect(oldMS.Annotations).To(HaveKeyWithValue(clusterv1.DisableMachineCreateAnnotation, "true"))
-			}
 		})
 	}
 }

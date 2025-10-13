@@ -995,26 +995,21 @@ func TestMachineSetAnnotationsFromMachineDeployment(t *testing.T) {
 		},
 	}
 
-	t.Run("Set replicas annotations", func(t *testing.T) {
+	t.Run("Drops well-known annotations, keeps other, adds replica annotations", func(t *testing.T) {
 		g := NewWithT(t)
 
 		annotations := MachineSetAnnotationsFromMachineDeployment(ctx, &tDeployment)
 
-		g.Expect(annotations).To(HaveKeyWithValue(clusterv1.DesiredReplicasAnnotation, "3"))
-		g.Expect(annotations).To(HaveKeyWithValue(clusterv1.MaxReplicasAnnotation, "4"))
-	})
+		g.Expect(annotations).To(Equal(map[string]string{
+			// Drops well-known annotations
 
-	t.Run("Drops well-known annotations, keeps other", func(t *testing.T) {
-		g := NewWithT(t)
+			// Keeps other
+			"bar": "bar",
 
-		annotations := MachineSetAnnotationsFromMachineDeployment(ctx, &tDeployment)
-
-		g.Expect(annotations).ToNot(HaveKey(corev1.LastAppliedConfigAnnotation))
-		g.Expect(annotations).ToNot(HaveKey(clusterv1.RevisionAnnotation))
-		g.Expect(annotations).ToNot(HaveKey(revisionHistoryAnnotation))
-		g.Expect(annotations).ToNot(HaveKey(conversion.DataAnnotation))
-
-		g.Expect(annotations).To(HaveKey("bar"))
+			// Adds replica annotations
+			clusterv1.DesiredReplicasAnnotation: "3",
+			clusterv1.MaxReplicasAnnotation:     "4",
+		}))
 	})
 }
 

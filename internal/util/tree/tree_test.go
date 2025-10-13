@@ -19,7 +19,6 @@ package tree
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 

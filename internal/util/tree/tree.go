@@ -73,7 +73,9 @@ func createObjectTree(w io.Writer) *tablewriter.Table {
 			Padding:    tw.CellPadding{Global: tw.Padding{Left: "", Right: "  "}},
 		},
 		Header: tw.CellConfig{
-			Alignment: tw.CellAlignment{Global: tw.AlignLeft},
+			Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
+			Alignment:  tw.CellAlignment{Global: tw.AlignLeft},
+			Padding:    tw.CellPadding{Global: tw.Padding{Left: "", Right: " "}},
 		},
 		Behavior: tw.Behavior{TrimSpace: tw.Off},
 	}
@@ -99,7 +101,9 @@ func createObjectTreeV1Beta1(w io.Writer) *tablewriter.Table {
 			Padding:    tw.CellPadding{Global: tw.Padding{Left: "", Right: " "}},
 		},
 		Header: tw.CellConfig{
-			Alignment: tw.CellAlignment{Global: tw.AlignLeft},
+			Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
+			Alignment:  tw.CellAlignment{Global: tw.AlignLeft},
+			Padding:    tw.CellPadding{Global: tw.Padding{Left: "", Right: " "}},
 		},
 		Behavior: tw.Behavior{TrimSpace: tw.Off},
 	}

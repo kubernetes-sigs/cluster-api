@@ -20,15 +20,15 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/textlogger"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -390,8 +390,7 @@ type onDeleteSequenceTestCase struct {
 
 func Test_OnDeleteSequences(t *testing.T) {
 	ctx := context.Background()
-	ctx = ctrl.LoggerInto(ctx, klog.Background())
-	klog.SetOutput(ginkgo.GinkgoWriter)
+	ctx = ctrl.LoggerInto(ctx, textlogger.NewLogger(textlogger.NewConfig(textlogger.Verbosity(5), textlogger.Output(os.Stdout))))
 
 	tests := []onDeleteSequenceTestCase{
 		{ // delete 1

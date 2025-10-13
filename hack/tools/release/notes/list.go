@@ -30,7 +30,7 @@ import (
 
 // githubFromToPRLister lists PRs from GitHub contained between two refs.
 type githubFromToPRLister struct {
-	client         *githubClient
+	client         githubClientInterface
 	fromRef, toRef ref
 	// branch is optional. It helps optimize the PR query by restricting
 	// the results to PRs merged in the selected branch and in main

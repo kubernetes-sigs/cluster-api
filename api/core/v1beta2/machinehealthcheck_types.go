@@ -237,7 +237,7 @@ type UnhealthyNodeCondition struct {
 
 	// timeoutSeconds is the duration that a node must be in a given status for,
 	// after which the node is considered unhealthy.
-	// For example, with a value of "1h", the node must match the status
+	// For example, with a value of "3600", the node must match the status
 	// for at least 1 hour before being considered unhealthy.
 	// +required
 	// +kubebuilder:validation:Minimum=0
@@ -249,7 +249,7 @@ type UnhealthyNodeCondition struct {
 // status for at least the timeout value, a machine is considered unhealthy.
 type UnhealthyMachineCondition struct {
 	// type of Machine condition
-	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=316
 	// +required
@@ -262,7 +262,7 @@ type UnhealthyMachineCondition struct {
 
 	// timeoutSeconds is the duration that a machine must be in a given status for,
 	// after which the machine is considered unhealthy.
-	// For example, with a value of "1h", the machine must match the status
+	// For example, with a value of "3600", the machine must match the status
 	// for at least 1 hour before being considered unhealthy.
 	// +required
 	// +kubebuilder:validation:Minimum=0

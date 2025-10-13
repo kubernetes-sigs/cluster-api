@@ -79,10 +79,6 @@ type KCPRemediationSpecInput struct {
 	//     - type: e2e.remediation.condition
 	//       status: "False"
 	// 	     timeout: 10s
-	//     unhealthyMachineConditions:
-	//     - type: "Ready"
-	//       status: "False"
-	//       timeoutSeconds: 10
 	// If not specified, "kcp-remediation" is used.
 	Flavor *string
 

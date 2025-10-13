@@ -808,6 +808,7 @@ func TestClusterClassValidation(t *testing.T) {
 										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
+								// nodeStartupTimeout is too short here.
 								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 									{
 										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,

@@ -196,7 +196,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		timeoutSecondsDuration := time.Duration(ptr.Deref(c.TimeoutSeconds, 0)) * time.Second
 
 		if nodeCondition.LastTransitionTime.Add(timeoutSecondsDuration).Before(now) {
-			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyNodeConditionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Condition %s on node is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String())
+			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyNodeConditionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Condition %s on Node is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String())
 			logger.V(3).Info("Target is unhealthy: condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", timeoutSecondsDuration.String())
 
 			conditions.Set(t.Machine, metav1.Condition{
@@ -230,7 +230,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		timeoutSecondsDuration := time.Duration(ptr.Deref(c.TimeoutSeconds, 0)) * time.Second
 
 		if machineCondition.LastTransitionTime.Add(timeoutSecondsDuration).Before(now) {
-			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyMachineConditionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Condition %s on machine is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String())
+			v1beta1conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyMachineConditionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Condition %s on Machine is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String())
 			logger.V(3).Info("Target is unhealthy: condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", timeoutSecondsDuration.String())
 
 			conditions.Set(t.Machine, metav1.Condition{

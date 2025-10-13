@@ -6708,7 +6708,7 @@ func schema_cluster_api_api_core_v1beta2_UnhealthyMachineCondition(ref common.Re
 					},
 					"timeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "timeoutSeconds is the duration that a machine must be in a given status for, after which the machine is considered unhealthy. For example, with a value of \"1h\", the machine must match the status for at least 1 hour before being considered unhealthy.",
+							Description: "timeoutSeconds is the duration that a machine must be in a given status for, after which the machine is considered unhealthy. For example, with a value of \"3600\", the machine must match the status for at least 1 hour before being considered unhealthy.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -6743,7 +6743,7 @@ func schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref common.Refer
 					},
 					"timeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "timeoutSeconds is the duration that a node must be in a given status for, after which the node is considered unhealthy. For example, with a value of \"1h\", the node must match the status for at least 1 hour before being considered unhealthy.",
+							Description: "timeoutSeconds is the duration that a node must be in a given status for, after which the node is considered unhealthy. For example, with a value of \"3600\", the node must match the status for at least 1 hour before being considered unhealthy.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

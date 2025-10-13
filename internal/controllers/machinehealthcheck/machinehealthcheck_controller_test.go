@@ -1394,6 +1394,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			{
 				Type:               controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 				Status:             metav1.ConditionFalse,
+				Reason:             "EtcdPodUnhealthy",
 				LastTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
 			},
 		}
@@ -2880,7 +2881,7 @@ func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHeal
 				},
 				UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 					{
-						Type:           clusterv1.MachineOwnerRemediatedCondition,
+						Type:           clusterv1.MachineReadyCondition,
 						Status:         metav1.ConditionUnknown,
 						TimeoutSeconds: ptr.To(int32(5 * 60)),
 					},

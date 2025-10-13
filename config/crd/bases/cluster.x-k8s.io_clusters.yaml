@@ -2554,7 +2554,7 @@ spec:
                                       description: |-
                                         timeoutSeconds is the duration that a machine must be in a given status for,
                                         after which the machine is considered unhealthy.
-                                        For example, with a value of "1h", the machine must match the status
+                                        For example, with a value of "3600", the machine must match the status
                                         for at least 1 hour before being considered unhealthy.
                                       format: int32
                                       minimum: 0
@@ -2563,6 +2563,7 @@ spec:
                                       description: type of Machine condition
                                       maxLength: 316
                                       minLength: 1
+                                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                                       type: string
                                   required:
                                   - status
@@ -2593,7 +2594,7 @@ spec:
                                       description: |-
                                         timeoutSeconds is the duration that a node must be in a given status for,
                                         after which the node is considered unhealthy.
-                                        For example, with a value of "1h", the node must match the status
+                                        For example, with a value of "3600", the node must match the status
                                         for at least 1 hour before being considered unhealthy.
                                       format: int32
                                       minimum: 0
@@ -2997,7 +2998,7 @@ spec:
                                             description: |-
                                               timeoutSeconds is the duration that a machine must be in a given status for,
                                               after which the machine is considered unhealthy.
-                                              For example, with a value of "1h", the machine must match the status
+                                              For example, with a value of "3600", the machine must match the status
                                               for at least 1 hour before being considered unhealthy.
                                             format: int32
                                             minimum: 0
@@ -3006,6 +3007,7 @@ spec:
                                             description: type of Machine condition
                                             maxLength: 316
                                             minLength: 1
+                                            pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                                             type: string
                                         required:
                                         - status
@@ -3036,7 +3038,7 @@ spec:
                                             description: |-
                                               timeoutSeconds is the duration that a node must be in a given status for,
                                               after which the node is considered unhealthy.
-                                              For example, with a value of "1h", the node must match the status
+                                              For example, with a value of "3600", the node must match the status
                                               for at least 1 hour before being considered unhealthy.
                                             format: int32
                                             minimum: 0

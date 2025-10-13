@@ -25,9 +25,9 @@ spec:
             status: "False"
             timeoutSeconds: 20
         unhealthyMachineConditions:
-          - type: "Ready"
+          - type: e2e.clusterclass.condition
             status: "False"
-            timeoutSeconds: 20
+            timeoutSeconds: 300
   infrastructure:
     templateRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2

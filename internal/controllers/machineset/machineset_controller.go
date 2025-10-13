@@ -630,9 +630,6 @@ func newMachineUpToDateCondition(s *scope) *metav1.Condition {
 	if !s.owningMachineDeployment.Spec.Rollout.After.IsZero() {
 		if s.owningMachineDeployment.Spec.Rollout.After.Time.Before(s.reconciliationTime) && !s.machineSet.CreationTimestamp.After(s.owningMachineDeployment.Spec.Rollout.After.Time) {
 			upToDate = false
-			if notUpToDateResult == nil {
-				notUpToDateResult = &mdutil.NotUpToDateResult{}
-			}
 			notUpToDateResult.ConditionMessages = append(notUpToDateResult.ConditionMessages, "MachineDeployment spec.rolloutAfter expired")
 		}
 	}

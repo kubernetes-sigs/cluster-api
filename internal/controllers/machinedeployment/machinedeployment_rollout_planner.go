@@ -41,8 +41,8 @@ type rolloutPlanner struct {
 	newMS        *clusterv1.MachineSet
 	createReason string
 
-	oldMSs                  []*clusterv1.MachineSet
-	oldMSNotUpToDateResults map[string]mdutil.NotUpToDateResult
+	oldMSs          []*clusterv1.MachineSet
+	upToDateResults map[string]mdutil.UpToDateResult
 
 	scaleIntents     map[string]int32
 	computeDesiredMS func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error)
@@ -91,8 +91,8 @@ func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployme
 	// Try to find a MachineSet which matches the MachineDeployments intent, the newMS; consider all the other MachineSets as oldMs.
 	// NOTE: Fields propagated in-place from the MD are not considered by the comparison, they are not relevant for the rollout decision.
 	// NOTE: Expiration of MD rolloutAfter is relevant for the rollout decision, and thus it is considered in FindNewAndOldMachineSets.
-	currentNewMS, oldMSs, oldMSNotUpToDateResults, createReason := mdutil.FindNewAndOldMachineSets(md, msList, metav1.Now())
-	p.oldMSNotUpToDateResults = oldMSNotUpToDateResults
+	currentNewMS, oldMSs, upToDateResults, createReason := mdutil.FindNewAndOldMachineSets(md, msList, metav1.Now())
+	p.upToDateResults = upToDateResults
 
 	// Compute desired state for the old MS, with mandatory labels, fields in-place propagated from the MachineDeployment etc.
 	for _, currentOldMS := range oldMSs {

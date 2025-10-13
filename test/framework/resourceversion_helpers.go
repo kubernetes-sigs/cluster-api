@@ -49,7 +49,7 @@ func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, name
 		}()
 		// This is intentionally failing on the first run.
 		g.Expect(objectsWithResourceVersion).To(BeComparableTo(previousResourceVersions))
-	}, 1*time.Minute, 15*time.Second).Should(Succeed(), "resourceVersions never became stable")
+	}, 2*time.Minute, 15*time.Second).MustPassRepeatedly(4).Should(Succeed(), "resourceVersions never became stable")
 
 	// Verify resourceVersions are stable for a while.
 	byf("Check resourceVersions remain stable")
@@ -57,7 +57,7 @@ func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, name
 		objectsWithResourceVersion, objects, err := getObjectsWithResourceVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(previousResourceVersions).To(BeComparableTo(objectsWithResourceVersion), printObjectDiff(previousObjects, objects))
-	}, 2*time.Minute, 15*time.Second).Should(Succeed(), "resourceVersions didn't stay stable")
+	}, 2*time.Minute, 5*time.Second).Should(Succeed(), "resourceVersions didn't stay stable")
 }
 
 func printObjectDiff(previousObjects, newObjects map[string]client.Object) func() string {

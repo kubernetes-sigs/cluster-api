@@ -285,8 +285,7 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 			err := addObjectRowV1Beta1("", tbl, tt.objectTree, tt.objectTree.GetRoot())
 			g.Expect(err).ToNot(HaveOccurred(), "Failed to add object rows")
 			if err := tbl.Render(); err != nil {
-				fmt.Printf("Error rendering table: %v", err)
-				os.Exit(1)
+				t.Fatalf("Error rendering table: %v", err)
 			}
 			// Compare the output with the expected prefix.
 			// We only check whether the output starts with the expected prefix,
@@ -517,8 +516,7 @@ func Test_TreePrefix(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred(), "Failed to add object rows")
 
 			if err := tbl.Render(); err != nil {
-				fmt.Printf("Error rendering table: %v", err)
-				os.Exit(1)
+				t.Fatalf("Error rendering table: %v", err)
 			}
 			// Remove empty lines from the output. We need this because v1beta2 adds lines at the beginning and end.
 			outputString := strings.TrimSpace(output.String())

@@ -50,6 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -149,6 +150,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 			EtcdDialTimeout:     r.EtcdDialTimeout,
 			EtcdCallTimeout:     r.EtcdCallTimeout,
 			EtcdLogger:          r.EtcdLogger,
+			ClientCertCache:     cache.New[internal.ClientCertEntry](24 * time.Hour),
 		}
 	}
 

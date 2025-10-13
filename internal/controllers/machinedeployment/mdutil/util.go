@@ -351,7 +351,7 @@ func getMachineSetFraction(ms clusterv1.MachineSet, md clusterv1.MachineDeployme
 
 // NotUpToDateResult is the result of calling the MachineTemplateUpToDate func for a MachineTemplateSpec.
 type NotUpToDateResult struct {
-	logMessages              []string
+	LogMessages              []string
 	ConditionMessages        []string
 	EligibleForInPlaceUpdate bool
 }
@@ -367,7 +367,7 @@ func MachineTemplateUpToDate(current, desired *clusterv1.MachineTemplateSpec) (b
 	desiredCopy := MachineTemplateDeepCopyRolloutFields(desired)
 
 	if currentCopy.Spec.Version != desiredCopy.Spec.Version {
-		res.logMessages = append(res.logMessages, fmt.Sprintf("spec.version %s, %s required", currentCopy.Spec.Version, desiredCopy.Spec.Version))
+		res.LogMessages = append(res.LogMessages, fmt.Sprintf("spec.version %s, %s required", currentCopy.Spec.Version, desiredCopy.Spec.Version))
 		// Note: the code computing the message for MachineDeployment's RolloutOut condition is making assumptions on the format/content of this message.
 		res.ConditionMessages = append(res.ConditionMessages, fmt.Sprintf("Version %s, %s required", currentCopy.Spec.Version, desiredCopy.Spec.Version))
 	}
@@ -378,29 +378,29 @@ func MachineTemplateUpToDate(current, desired *clusterv1.MachineTemplateSpec) (b
 	// common operation so it is acceptable to handle it in this way).
 	if currentCopy.Spec.Bootstrap.ConfigRef.IsDefined() {
 		if !reflect.DeepEqual(currentCopy.Spec.Bootstrap, desiredCopy.Spec.Bootstrap) {
-			res.logMessages = append(res.logMessages, fmt.Sprintf("spec.bootstrap.configRef %s %s, %s %s required", currentCopy.Spec.Bootstrap.ConfigRef.Kind, currentCopy.Spec.Bootstrap.ConfigRef.Name, desiredCopy.Spec.Bootstrap.ConfigRef.Kind, desiredCopy.Spec.Bootstrap.ConfigRef.Name))
+			res.LogMessages = append(res.LogMessages, fmt.Sprintf("spec.bootstrap.configRef %s %s, %s %s required", currentCopy.Spec.Bootstrap.ConfigRef.Kind, currentCopy.Spec.Bootstrap.ConfigRef.Name, desiredCopy.Spec.Bootstrap.ConfigRef.Kind, desiredCopy.Spec.Bootstrap.ConfigRef.Name))
 			// Note: dropping "Template" suffix because conditions message will surface on machine.
 			res.ConditionMessages = append(res.ConditionMessages, fmt.Sprintf("%s is not up-to-date", strings.TrimSuffix(currentCopy.Spec.Bootstrap.ConfigRef.Kind, clusterv1.TemplateSuffix)))
 		}
 	} else {
 		if !reflect.DeepEqual(currentCopy.Spec.Bootstrap, desiredCopy.Spec.Bootstrap) {
-			res.logMessages = append(res.logMessages, fmt.Sprintf("spec.bootstrap.dataSecretName %s, %s required", ptr.Deref(currentCopy.Spec.Bootstrap.DataSecretName, "nil"), ptr.Deref(desiredCopy.Spec.Bootstrap.DataSecretName, "nil")))
+			res.LogMessages = append(res.LogMessages, fmt.Sprintf("spec.bootstrap.dataSecretName %s, %s required", ptr.Deref(currentCopy.Spec.Bootstrap.DataSecretName, "nil"), ptr.Deref(desiredCopy.Spec.Bootstrap.DataSecretName, "nil")))
 			res.ConditionMessages = append(res.ConditionMessages, fmt.Sprintf("spec.bootstrap.dataSecretName %s, %s required", ptr.Deref(currentCopy.Spec.Bootstrap.DataSecretName, "nil"), ptr.Deref(desiredCopy.Spec.Bootstrap.DataSecretName, "nil")))
 		}
 	}
 
 	if !reflect.DeepEqual(currentCopy.Spec.InfrastructureRef, desiredCopy.Spec.InfrastructureRef) {
-		res.logMessages = append(res.logMessages, fmt.Sprintf("spec.infrastructureRef %s %s, %s %s required", currentCopy.Spec.InfrastructureRef.Kind, currentCopy.Spec.InfrastructureRef.Name, desiredCopy.Spec.InfrastructureRef.Kind, desiredCopy.Spec.InfrastructureRef.Name))
+		res.LogMessages = append(res.LogMessages, fmt.Sprintf("spec.infrastructureRef %s %s, %s %s required", currentCopy.Spec.InfrastructureRef.Kind, currentCopy.Spec.InfrastructureRef.Name, desiredCopy.Spec.InfrastructureRef.Kind, desiredCopy.Spec.InfrastructureRef.Name))
 		// Note: dropping "Template" suffix because conditions message will surface on machine.
 		res.ConditionMessages = append(res.ConditionMessages, fmt.Sprintf("%s is not up-to-date", strings.TrimSuffix(currentCopy.Spec.InfrastructureRef.Kind, clusterv1.TemplateSuffix)))
 	}
 
 	if currentCopy.Spec.FailureDomain != desiredCopy.Spec.FailureDomain {
-		res.logMessages = append(res.logMessages, fmt.Sprintf("spec.failureDomain %s, %s required", currentCopy.Spec.FailureDomain, desiredCopy.Spec.FailureDomain))
+		res.LogMessages = append(res.LogMessages, fmt.Sprintf("spec.failureDomain %s, %s required", currentCopy.Spec.FailureDomain, desiredCopy.Spec.FailureDomain))
 		res.ConditionMessages = append(res.ConditionMessages, fmt.Sprintf("Failure domain %s, %s required", currentCopy.Spec.FailureDomain, desiredCopy.Spec.FailureDomain))
 	}
 
-	if len(res.logMessages) > 0 || len(res.ConditionMessages) > 0 {
+	if len(res.LogMessages) > 0 || len(res.ConditionMessages) > 0 {
 		return false, res
 	}
 
@@ -463,11 +463,11 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 			// Override the EligibleForInPlaceUpdate decision if rollout after is expired.
 			if !deployment.Spec.Rollout.After.IsZero() && deployment.Spec.Rollout.After.Before(&reconciliationTime) && !ms.CreationTimestamp.After(deployment.Spec.Rollout.After.Time) {
 				notUpToDateResult.EligibleForInPlaceUpdate = false
-				notUpToDateResult.logMessages = append(notUpToDateResult.logMessages, "MachineDeployment spec.rolloutAfter expired")
+				notUpToDateResult.LogMessages = append(notUpToDateResult.LogMessages, "MachineDeployment spec.rolloutAfter expired")
 				// No need to set an additional condition message, it is not used anywhere.
 			}
 			oldMSNotUpToDateResults[ms.Name] = *notUpToDateResult
-			diffs = append(diffs, fmt.Sprintf("MachineSet %s: diff: %s", ms.Name, strings.Join(notUpToDateResult.logMessages, ", ")))
+			diffs = append(diffs, fmt.Sprintf("MachineSet %s: diff: %s", ms.Name, strings.Join(notUpToDateResult.LogMessages, ", ")))
 		}
 	}
 

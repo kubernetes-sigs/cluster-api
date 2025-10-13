@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -369,7 +368,7 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 					g.Expect(notUpToDateResult).To(BeNil())
 				} else {
 					g.Expect(notUpToDateResult).ToNot(BeNil())
-					g.Expect(notUpToDateResult.logMessages).To(Equal(expectedLogMessages))
+					g.Expect(notUpToDateResult.LogMessages).To(Equal(expectedLogMessages))
 					g.Expect(notUpToDateResult.ConditionMessages).To(Equal(expectedConditionMessages))
 				}
 				g.Expect(t1.Labels).NotTo(BeNil())
@@ -451,7 +450,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 			expectedOldMSs: []*clusterv1.MachineSet{&oldMS},
 			expectedOldMSNotUpToDateResults: map[string]NotUpToDateResult{
 				oldMS.Name: {
-					logMessages:              []string{"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required"},
+					LogMessages:              []string{"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required"},
 					ConditionMessages:        []string{"InfrastructureMachine is not up-to-date"},
 					EligibleForInPlaceUpdate: true,
 				},
@@ -466,7 +465,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 			expectedOldMSs: []*clusterv1.MachineSet{&oldMS},
 			expectedOldMSNotUpToDateResults: map[string]NotUpToDateResult{
 				oldMS.Name: {
-					logMessages:              []string{"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required"},
+					LogMessages:              []string{"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required"},
 					ConditionMessages:        []string{"InfrastructureMachine is not up-to-date"},
 					EligibleForInPlaceUpdate: true,
 				},
@@ -488,7 +487,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 			expectedOldMSs: []*clusterv1.MachineSet{&oldMS, &matchingMS},
 			expectedOldMSNotUpToDateResults: map[string]NotUpToDateResult{
 				oldMS.Name: {
-					logMessages:              []string{"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required"},
+					LogMessages:              []string{"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required"},
 					ConditionMessages:        []string{"InfrastructureMachine is not up-to-date"},
 					EligibleForInPlaceUpdate: true,
 				},
@@ -505,7 +504,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 			expectedOldMSs: []*clusterv1.MachineSet{&oldMS},
 			expectedOldMSNotUpToDateResults: map[string]NotUpToDateResult{
 				oldMS.Name: {
-					logMessages:              []string{"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required"},
+					LogMessages:              []string{"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required"},
 					ConditionMessages:        []string{"InfrastructureMachine is not up-to-date"},
 					EligibleForInPlaceUpdate: true,
 				},
@@ -519,7 +518,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 			expectedOldMSs: []*clusterv1.MachineSet{&oldMS},
 			expectedOldMSNotUpToDateResults: map[string]NotUpToDateResult{
 				oldMS.Name: {
-					logMessages:              []string{"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required"},
+					LogMessages:              []string{"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required"},
 					ConditionMessages:        []string{"InfrastructureMachine is not up-to-date"},
 					EligibleForInPlaceUpdate: true,
 				},
@@ -536,7 +535,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 			expectedOldMSNotUpToDateResults: map[string]NotUpToDateResult{
 				oldMS.Name: {
 					ConditionMessages: []string{"InfrastructureMachine is not up-to-date"},
-					logMessages: []string{
+					LogMessages: []string{
 						// An additional message must be added to old machine sets when reconciliationTime is > rolloutAfter.
 						"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required",
 						"MachineDeployment spec.rolloutAfter expired",
@@ -576,7 +575,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 				},
 				oldMS.Name: {
 					ConditionMessages: []string{"InfrastructureMachine is not up-to-date"},
-					logMessages: []string{
+					LogMessages: []string{
 						"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required",
 						// An additional message must be added to old machine sets when reconciliationTime is > rolloutAfter.
 						"MachineDeployment spec.rolloutAfter expired",
@@ -636,7 +635,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 			newMS, oldMSs, oldMSNotUpToDateResults, createReason := FindNewAndOldMachineSets(&test.deployment, test.msList, test.reconciliationTime)
 			g.Expect(newMS).To(BeComparableTo(test.expectedNewMS))
 			g.Expect(oldMSs).To(BeComparableTo(test.expectedOldMSs))
-			g.Expect(oldMSNotUpToDateResults).To(BeComparableTo(test.expectedOldMSNotUpToDateResults, cmp.AllowUnexported(NotUpToDateResult{})))
+			g.Expect(oldMSNotUpToDateResults).To(BeComparableTo(test.expectedOldMSNotUpToDateResults))
 			g.Expect(createReason).To(BeComparableTo(test.expectedCreateReason))
 		})
 	}

@@ -82,6 +82,7 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 		name    string
 		lister  *githubFromToPRLister
 		args    ref
+		want    []pr
 		wantErr bool
 	}{
 		{
@@ -95,6 +96,14 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 			args: ref{
 				reType: "tags",
 				value:  "v0.26.0",
+			},
+			want: []pr{
+				{
+					number: 1234,
+					title:  "Test PR",
+					labels: []string{"area/testing"},
+					user:   "testuser",
+				},
 			},
 			wantErr: false,
 		},
@@ -110,6 +119,14 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 				reType: "tags",
 				value:  "",
 			},
+			want: []pr{
+				{
+					number: 1234,
+					title:  "Test PR",
+					labels: []string{"area/testing"},
+					user:   "testuser",
+				},
+			},
 			wantErr: false,
 		},
 		{
@@ -123,6 +140,14 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 			args: ref{
 				reType: "tags",
 				value:  "v0.26.0",
+			},
+			want: []pr{
+				{
+					number: 1234,
+					title:  "Test PR",
+					labels: []string{"area/testing"},
+					user:   "testuser",
+				},
 			},
 			wantErr: false,
 		},
@@ -138,6 +163,7 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 				reType: "tags",
 				value:  "invalid",
 			},
+			want:    nil,
 			wantErr: true,
 		},
 		{
@@ -152,16 +178,19 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 				reType: "tags",
 				value:  "",
 			},
+			want:    nil,
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := tt.lister.listPRs(tt.args)
+			g := NewWithT(t)
+			got, err := tt.lister.listPRs(tt.args)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("githubFromToPRLister.listPRs() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

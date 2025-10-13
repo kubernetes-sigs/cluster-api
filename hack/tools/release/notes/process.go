@@ -48,7 +48,7 @@ var (
 		"api":                               "API",
 		"machinepool":                       "MachinePool",
 		"clustercachetracker":               "ClusterCacheTracker",
-		"clustercache":                      "ClusterCacheTracker",
+		"clustercache":                      "ClusterCache",
 		"clusterclass":                      "ClusterClass",
 		"testing":                           "Testing",
 		"release":                           "Release",

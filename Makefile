@@ -73,6 +73,14 @@ OBSERVABILITY_DIR := hack/observability
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
+# DBG=1 for building binaries which includes DWARF and symbol table for delve
+# debugging. When DBG is unspecified it defaults to "-s -w" which strips debug
+# information.
+export DBG ?= 0
+
+# Set build time variables including version details
+LDFLAGS := $(shell hack/version.sh)
+
 #
 # Ginkgo configuration.
 #
@@ -257,9 +265,6 @@ SELINUX_ENABLED := $(shell cat /sys/fs/selinux/enforce 2> /dev/null || echo 0)
 ifeq ($(SELINUX_ENABLED),1)
   DOCKER_VOL_OPTS?=:z
 endif
-
-# Set build time variables including version details
-LDFLAGS := $(shell hack/version.sh)
 
 all: test managers clusterctl
 

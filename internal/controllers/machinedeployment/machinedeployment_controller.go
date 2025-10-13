@@ -380,6 +380,15 @@ func (r *Reconciler) createOrUpdateMachineSets(ctx context.Context, p *rolloutPl
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled Up MachineSet %v: %d -> %d", ms.Name, originalReplicas, newReplicas)
 		}
 	}
+
+	// Surface the revision annotation on the MD level
+	if p.md.Annotations == nil {
+		p.md.Annotations = make(map[string]string)
+	}
+	if p.md.Annotations[clusterv1.RevisionAnnotation] != p.revision {
+		p.md.Annotations[clusterv1.RevisionAnnotation] = p.revision
+	}
+
 	return nil
 }
 

@@ -197,7 +197,7 @@ func MachineSetAnnotationsFromMachineDeployment(_ context.Context, deployment *c
 }
 
 // ComputeRevisionAnnotations returns revision annotations to be set on a newMS.
-func ComputeRevisionAnnotations(ctx context.Context, newMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet) (map[string]string, error) {
+func ComputeRevisionAnnotations(ctx context.Context, newMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet) (map[string]string, string, error) {
 	// Copy annotations from Deployment annotations while filtering out some annotations
 	// that we don't want to propagate.
 	annotations := map[string]string{}
@@ -213,7 +213,7 @@ func ComputeRevisionAnnotations(ctx context.Context, newMS *clusterv1.MachineSet
 		if currentRevisionExists {
 			currentRevisionInt, err := strconv.ParseInt(currentRevision, 10, 64)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to parse current revision on MachineSet %s", klog.KObj(newMS))
+				return nil, newRevision, errors.Wrapf(err, "failed to parse current revision on MachineSet %s", klog.KObj(newMS))
 			}
 			if newRevisionInt < currentRevisionInt {
 				newRevision = currentRevision
@@ -239,7 +239,7 @@ func ComputeRevisionAnnotations(ctx context.Context, newMS *clusterv1.MachineSet
 	}
 
 	annotations[clusterv1.RevisionAnnotation] = newRevision
-	return annotations, nil
+	return annotations, newRevision, nil
 }
 
 // GetRevisionAnnotations returns revision annotations to be preserved on oldMSs.

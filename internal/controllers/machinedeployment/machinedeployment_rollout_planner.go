@@ -33,7 +33,8 @@ import (
 )
 
 type rolloutPlanner struct {
-	md *clusterv1.MachineDeployment
+	md       *clusterv1.MachineDeployment
+	revision string
 
 	originalMS map[string]*clusterv1.MachineSet
 	machines   []*clusterv1.Machine
@@ -142,11 +143,12 @@ func (p *rolloutPlanner) computeDesiredNewMS(ctx context.Context, currentNewMS *
 	}
 
 	// For newMS, make sure the revision annotation has the highest revision number across all MS + update the revision history annotation accordingly.
-	revisionAnnotations, err := mdutil.ComputeRevisionAnnotations(ctx, currentNewMS, p.oldMSs)
+	revisionAnnotations, revision, err := mdutil.ComputeRevisionAnnotations(ctx, currentNewMS, p.oldMSs)
 	if err != nil {
 		return nil, err
 	}
 	annotations.AddAnnotations(desiredNewMS, revisionAnnotations)
+	p.revision = revision
 
 	// Always allow creation of machines on newMS.
 	desiredNewMS.Annotations[clusterv1.DisableMachineCreateAnnotation] = "false"

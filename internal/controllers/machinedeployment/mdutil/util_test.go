@@ -1049,11 +1049,12 @@ func TestIsSaturated(t *testing.T) {
 
 func TestComputeRevisionAnnotations(t *testing.T) {
 	tests := []struct {
-		name    string
-		oldMSs  []*clusterv1.MachineSet
-		ms      *clusterv1.MachineSet
-		want    map[string]string
-		wantErr bool
+		name         string
+		oldMSs       []*clusterv1.MachineSet
+		ms           *clusterv1.MachineSet
+		want         map[string]string
+		wantRevision string
+		wantErr      bool
 	}{
 		{
 			name:   "Calculating annotations for a new newMS - oldMSs do not exist",
@@ -1062,7 +1063,8 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 			want: map[string]string{
 				clusterv1.RevisionAnnotation: "1",
 			},
-			wantErr: false,
+			wantRevision: "1",
+			wantErr:      false,
 		},
 		{
 			name:   "Calculating annotations for a new newMS - old MSs exist",
@@ -1071,7 +1073,8 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 			want: map[string]string{
 				clusterv1.RevisionAnnotation: "2",
 			},
-			wantErr: false,
+			wantRevision: "2",
+			wantErr:      false,
 		},
 		{
 			name:   "Calculating annotations for a existing newMS - oldMSs do not exist",
@@ -1080,7 +1083,8 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 			want: map[string]string{
 				clusterv1.RevisionAnnotation: "1",
 			},
-			wantErr: false,
+			wantRevision: "1",
+			wantErr:      false,
 		},
 		{
 			name: "Calculating annotations for a existing newMS - old MSs exist - update required",
@@ -1093,7 +1097,8 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 				clusterv1.RevisionAnnotation: "3",
 				revisionHistoryAnnotation:    "1",
 			},
-			wantErr: false,
+			wantRevision: "3",
+			wantErr:      false,
 		},
 		{
 			name: "Calculating annotations for a existing newMS - old MSs exist - no update required",
@@ -1105,7 +1110,8 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 			want: map[string]string{
 				clusterv1.RevisionAnnotation: "4",
 			},
-			wantErr: false,
+			wantRevision: "4",
+			wantErr:      false,
 		},
 		{
 			name: "Calculating annotations for a existing newMS with revision history - old MSs exist - update required",
@@ -1118,19 +1124,21 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 				clusterv1.RevisionAnnotation: "5",
 				revisionHistoryAnnotation:    "1,2",
 			},
-			wantErr: false,
+			wantRevision: "5",
+			wantErr:      false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got, err := ComputeRevisionAnnotations(ctx, tt.ms, tt.oldMSs)
+			got, gotRevision, err := ComputeRevisionAnnotations(ctx, tt.ms, tt.oldMSs)
 			if tt.wantErr {
 				g.Expect(err).ShouldNot(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(got).Should(Equal(tt.want))
+				g.Expect(gotRevision).Should(Equal(tt.wantRevision))
 			}
 		})
 	}

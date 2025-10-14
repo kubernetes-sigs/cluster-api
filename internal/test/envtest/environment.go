@@ -298,7 +298,7 @@ func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string
 
 	// if ARTIFACTS is setup, configure apiserver audit logs to log to ARTIFACTS dir
 	if os.Getenv("ARTIFACTS") != "" {
-		_, packageFileName, _, _ := goruntime.Caller(2) //nolint:dogsled
+		_, packageFileName, _, _ := goruntime.Caller(2)
 		relativePathPackageCallerFile, err := filepath.Rel(root, packageFileName)
 		if err != nil {
 			klog.Fatalf("unable to get relative path of calling package %+v", err)
@@ -448,7 +448,7 @@ rules:
       - resources: ["*"]
 `)
 
-	if err := os.WriteFile(policyFile, policyYAML, 0644); err != nil {
+	if err := os.WriteFile(policyFile, policyYAML, 0600); err != nil {
 		return "", err
 	}
 	return policyFile, nil

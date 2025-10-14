@@ -792,8 +792,7 @@ func TestPreflightChecks(t *testing.T) {
 				KCP:      tt.kcp,
 				Machines: collections.FromMachines(tt.machines...),
 			}
-			result, err := r.preflightChecks(context.TODO(), controlPlane)
-			g.Expect(err).ToNot(HaveOccurred())
+			result := r.preflightChecks(context.TODO(), controlPlane)
 			g.Expect(result).To(BeComparableTo(tt.expectResult))
 			g.Expect(controlPlane.PreflightCheckResults).To(Equal(tt.expectPreflight))
 		})

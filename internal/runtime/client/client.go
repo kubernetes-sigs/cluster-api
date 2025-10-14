@@ -172,6 +172,39 @@ func (c *client) Unregister(extensionConfig *runtimev1.ExtensionConfig) error {
 	return nil
 }
 
+func (c *client) GetAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object) ([]string, error) {
+	hookName := runtimecatalog.HookName(hook)
+	log := ctrl.LoggerFrom(ctx).WithValues("hook", hookName)
+	ctx = ctrl.LoggerInto(ctx, log)
+	gvh, err := c.catalog.GroupVersionHook(hook)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get extension handlers for hook %q: failed to compute GroupVersionHook", hookName)
+	}
+
+	registrations, err := c.registry.List(gvh.GroupHook())
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get extension handlers for hook %q", gvh.GroupHook())
+	}
+
+	log.V(4).Info(fmt.Sprintf("Getting all extensions of hook %q", hookName))
+	matchingRegistrations := []string{}
+	for _, registration := range registrations {
+		// Compute whether the object the get is being made for matches the namespaceSelector
+		namespaceMatches, err := c.matchNamespace(ctx, registration.NamespaceSelector, forObject.GetNamespace())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get extension handlers for hook %q: failed to get extension handler %q", gvh.GroupHook(), registration.Name)
+		}
+		// If the object namespace isn't matched by the registration NamespaceSelector don't return it.
+		if !namespaceMatches {
+			log.V(5).Info(fmt.Sprintf("skipping extension handler %q as object '%s/%s' does not match selector %q of ExtensionConfig", registration.Name, forObject.GetNamespace(), forObject.GetName(), registration.NamespaceSelector))
+			continue
+		}
+		matchingRegistrations = append(matchingRegistrations, registration.Name)
+	}
+
+	return matchingRegistrations, nil
+}
+
 // CallAllExtensions calls all the ExtensionHandlers registered for the hook.
 // The ExtensionHandlers are called sequentially. The function exits immediately after any of the ExtensionHandlers return an error.
 // This ensures we don't end up waiting for timeout from multiple unreachable Extensions.

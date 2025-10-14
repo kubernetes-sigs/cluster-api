@@ -90,6 +90,11 @@ type Patch struct {
 	Patch []byte `json:"patch,omitempty"`
 }
 
+// IsDefined returns true if one of the fields of Patch is set.
+func (p *Patch) IsDefined() bool {
+	return p.PatchType != "" || len(p.Patch) > 0
+}
+
 // CanUpdateMachine is the hook that will be called to determine if an extension
 // can handle specific machine changes for in-place updates.
 func CanUpdateMachine(*CanUpdateMachineRequest, *CanUpdateMachineResponse) {}

@@ -421,6 +421,10 @@ type injectRuntimeClient struct {
 	runtimeExtension TopologyMutationHook
 }
 
+func (i *injectRuntimeClient) GetAllExtensions(_ context.Context, _ runtimecatalog.Hook, _ metav1.Object) ([]string, error) {
+	panic("implement me")
+}
+
 func (i injectRuntimeClient) CallExtension(ctx context.Context, hook runtimecatalog.Hook, _ metav1.Object, _ string, req runtimehooksv1.RequestObject, resp runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
 	// Note: We have to copy the requests. Otherwise we could get side effect by Runtime Extensions
 	// modifying the request instead of properly returning a response. Also after Unmarshal,

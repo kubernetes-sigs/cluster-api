@@ -53,7 +53,7 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 	}
 
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
-		Info("Machine created (scale up)",
+		Info("Machine created (init)",
 			"Machine", klog.KObj(newMachine),
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
@@ -70,8 +70,8 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 	log := ctrl.LoggerFrom(ctx)
 
 	// Run preflight checks to ensure that the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
-	if result, err := r.preflightChecks(ctx, controlPlane); err != nil || !result.IsZero() {
-		return result, err
+	if result := r.preflightChecks(ctx, controlPlane); !result.IsZero() {
+		return result, nil
 	}
 
 	fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
@@ -109,8 +109,8 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 
 	// Run preflight checks ensuring the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
 	// Given that we're scaling down, we can exclude the machineToDelete from the preflight checks.
-	if result, err := r.preflightChecks(ctx, controlPlane, machineToDelete); err != nil || !result.IsZero() {
-		return result, err
+	if result := r.preflightChecks(ctx, controlPlane, machineToDelete); !result.IsZero() {
+		return result, nil
 	}
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
@@ -158,13 +158,17 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 // If the control plane is not passing preflight checks, it requeue.
 //
 // NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneAndMachinesConditions before this.
-func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) (ctrl.Result, error) { //nolint:unparam
+func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) ctrl.Result {
+	if r.overridePreflightChecksFunc != nil {
+		return r.overridePreflightChecksFunc(ctx, controlPlane, excludeFor...)
+	}
+
 	log := ctrl.LoggerFrom(ctx)
 
 	// If there is no KCP-owned control-plane machines, then control-plane has not been initialized yet,
 	// so it is considered ok to proceed.
 	if controlPlane.Machines.Len() == 0 {
-		return ctrl.Result{}, nil
+		return ctrl.Result{}
 	}
 
 	if feature.Gates.Enabled(feature.ClusterTopology) {
@@ -182,7 +186,7 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 			}
 			log.Info(fmt.Sprintf("Waiting for a version upgrade to %s to be propagated", v))
 			controlPlane.PreflightCheckResults.TopologyVersionMismatch = true
-			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
+			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}
 		}
 	}
 
@@ -190,7 +194,7 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 	if controlPlane.HasDeletingMachine() {
 		controlPlane.PreflightCheckResults.HasDeletingMachine = true
 		log.Info("Waiting for machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
-		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}
 	}
 
 	// Check machine health conditions; if there are conditions with False or Unknown, then wait.
@@ -247,10 +251,10 @@ loopmachines:
 			"Waiting for control plane to pass preflight checks to continue reconciliation: %v", aggregatedError)
 		log.Info("Waiting for control plane to pass preflight checks", "failures", aggregatedError.Error())
 
-		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
+		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}
 }
 
 func preflightCheckCondition(kind string, obj *clusterv1.Machine, conditionType string) error {

@@ -86,6 +86,9 @@ type Client interface {
 	// Unregister unregisters the ExtensionConfig.
 	Unregister(extensionConfig *runtimev1.ExtensionConfig) error
 
+	// GetAllExtensions gets all the ExtensionHandlers registered for the hook.
+	GetAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object) ([]string, error)
+
 	// CallAllExtensions calls all the ExtensionHandler registered for the hook.
 	CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error
 

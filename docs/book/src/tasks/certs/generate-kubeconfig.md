@@ -1,5 +1,8 @@
 ## Generating a Kubeconfig with your own CA
 
+This guide applies when you are [using custom certificates](using-custom-certificates.md) for a
+Cluster API workload cluster, rather than relying on automatically generated certificates.
+
 1. Create a new Certificate Signing Request (CSR) for the `admin` user with the `system:masters` Kubernetes role, or specify any other role under O.
 
    ```bash

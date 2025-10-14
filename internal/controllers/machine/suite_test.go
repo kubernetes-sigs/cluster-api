@@ -129,9 +129,8 @@ func TestMain(m *testing.M) {
 			&corev1.ConfigMap{},
 			&corev1.Secret{},
 		},
-		SetupEnv:          func(e *envtest.Environment) { env = e },
-		SetupIndexes:      setupIndexes,
-		SetupReconcilers:  setupReconcilers,
-		AuditLogsFileName: "audit-logs-machine",
+		SetupEnv:         func(e *envtest.Environment) { env = e },
+		SetupIndexes:     setupIndexes,
+		SetupReconcilers: setupReconcilers,
 	}))
 }

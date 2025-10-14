@@ -131,7 +131,6 @@ type RunInput struct {
 	MinK8sVersion               string
 	AdditionalSchemeBuilder     runtime.SchemeBuilder
 	AdditionalCRDDirectoryPaths []string
-	AuditLogsFileName           string
 }
 
 // Run executes the tests of the given testing.M in a test environment.
@@ -165,7 +164,7 @@ func Run(ctx context.Context, input RunInput) int {
 	}
 
 	// Bootstrapping test environment
-	env := newEnvironment(scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.AuditLogsFileName, input.ManagerUncachedObjs...)
+	env := newEnvironment(scheme, input.AdditionalCRDDirectoryPaths, input.ManagerCacheOptions, input.ManagerUncachedObjs...)
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	env.cancelManager = cancel
@@ -250,7 +249,7 @@ type Environment struct {
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, auditLogsFileName string, uncachedObjs ...client.Object) *Environment {
+func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string, managerCacheOptions cache.Options, uncachedObjs ...client.Object) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")
@@ -297,9 +296,26 @@ func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string
 		WebhookInstallOptions: initWebhookInstallOptions(),
 	}
 
-	if auditLogsFileName != "" && os.Getenv("ARTIFACTS") != "" {
-		auditPolicyPath := writeAuditPolicy()
-		auditLogsFilePath := filepath.Join(os.Getenv("ARTIFACTS"), auditLogsFileName)
+	// if ARTIFACTS is setup, configure apiserver audit logs to log to ARTIFACTS dir
+	if os.Getenv("ARTIFACTS") != "" {
+		_, packageFileName, _, _ := goruntime.Caller(2) //nolint:dogsled
+		relativePathPackageCallerFile, err := filepath.Rel(root, packageFileName)
+		if err != nil {
+			klog.Fatalf("unable to get relative path of calling package %+v", err)
+		}
+
+		relativePathPackageCallerDir := filepath.Dir(relativePathPackageCallerFile)
+		auditLogsDir := filepath.Join(os.Getenv("ARTIFACTS"), relativePathPackageCallerDir)
+		auditLogsFilePath := filepath.Join(auditLogsDir, "apiserver-audit-logs")
+
+		if err = os.MkdirAll(auditLogsDir, 0750); err != nil {
+			klog.Fatalf("failed to create audit logs dir: %+v", err)
+		}
+
+		auditPolicyPath, err := writeAuditPolicy(auditLogsDir)
+		if err != nil {
+			klog.Fatalf("failed to write audit logs policy file: %+v", err)
+		}
 
 		env.ControlPlane = envtest.ControlPlane{}
 		env.ControlPlane.APIServer = &envtest.APIServer{}
@@ -420,8 +436,8 @@ func newEnvironment(scheme *runtime.Scheme, additionalCRDDirectoryPaths []string
 	}
 }
 
-func writeAuditPolicy() string {
-	policyFile := filepath.Join(os.Getenv("ARTIFACTS"), "audit-policy.yaml")
+func writeAuditPolicy(dir string) (string, error) {
+	policyFile := filepath.Join(dir, "audit-policy.yaml")
 
 	policyYAML := []byte(`
 apiVersion: audit.k8s.io/v1
@@ -433,9 +449,9 @@ rules:
 `)
 
 	if err := os.WriteFile(policyFile, policyYAML, 0644); err != nil {
-		klog.Fatalf("failed to write audit policy: %v", err)
+		return "", err
 	}
-	return policyFile
+	return policyFile, nil
 }
 
 // start starts the manager.

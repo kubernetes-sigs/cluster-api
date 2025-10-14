@@ -399,6 +399,7 @@ func autoConvert_v1beta2_ClusterConfiguration_To_upstreamv1beta3_ClusterConfigur
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
 	// WARNING: in.CertificateValidityPeriodDays requires manual conversion: does not exist in peer-type
 	// WARNING: in.CACertificateValidityPeriodDays requires manual conversion: does not exist in peer-type
+	// WARNING: in.EncryptionAlgorithm requires manual conversion: does not exist in peer-type
 	return nil
 }
 

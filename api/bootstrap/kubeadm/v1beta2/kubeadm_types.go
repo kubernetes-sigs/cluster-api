@@ -72,6 +72,23 @@ const (
 	KubeadmConfigDataSecretNotAvailableReason = clusterv1.NotAvailableReason
 )
 
+// EncryptionAlgorithmType can define an asymmetric encryption algorithm type.
+// +kubebuilder:validation:Enum=ECDSA-P256;ECDSA-P384;RSA-2048;RSA-3072;RSA-4096
+type EncryptionAlgorithmType string
+
+const (
+	// EncryptionAlgorithmECDSAP256 defines the ECDSA encryption algorithm type with curve P256.
+	EncryptionAlgorithmECDSAP256 EncryptionAlgorithmType = "ECDSA-P256"
+	// EncryptionAlgorithmECDSAP384 defines the ECDSA encryption algorithm type with curve P384.
+	EncryptionAlgorithmECDSAP384 EncryptionAlgorithmType = "ECDSA-P384"
+	// EncryptionAlgorithmRSA2048 defines the RSA encryption algorithm type with key size 2048 bits.
+	EncryptionAlgorithmRSA2048 EncryptionAlgorithmType = "RSA-2048"
+	// EncryptionAlgorithmRSA3072 defines the RSA encryption algorithm type with key size 3072 bits.
+	EncryptionAlgorithmRSA3072 EncryptionAlgorithmType = "RSA-3072"
+	// EncryptionAlgorithmRSA4096 defines the RSA encryption algorithm type with key size 4096 bits.
+	EncryptionAlgorithmRSA4096 EncryptionAlgorithmType = "RSA-4096"
+)
+
 // InitConfiguration contains a list of elements that is specific "kubeadm init"-only runtime
 // information.
 // +kubebuilder:validation:MinProperties=1
@@ -199,6 +216,13 @@ type ClusterConfiguration struct {
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=36500
 	CACertificateValidityPeriodDays int32 `json:"caCertificateValidityPeriodDays,omitempty"`
+
+	// EncryptionAlgorithm holds the type of asymmetric encryption algorithm used for keys and certificates.
+	// Can be one of "RSA-2048", "RSA-3072", "RSA-4096", "ECDSA-P256" or "ECDSA-P384".
+	// If not specified, Cluster API will use RSA-2048 as default.
+	// This field is only supported with Kubernetes v1.34 or above.
+	// +optional
+	EncryptionAlgorithm EncryptionAlgorithmType `json:"encryptionAlgorithm,omitempty"`
 }
 
 // IsDefined returns true if the ClusterConfiguration is defined.

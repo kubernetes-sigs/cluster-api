@@ -100,6 +100,7 @@ func RestoreKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored *boot
 	dst.ClusterConfiguration.Scheduler.ExtraEnvs = restored.ClusterConfiguration.Scheduler.ExtraEnvs
 	dst.ClusterConfiguration.CertificateValidityPeriodDays = restored.ClusterConfiguration.CertificateValidityPeriodDays
 	dst.ClusterConfiguration.CACertificateValidityPeriodDays = restored.ClusterConfiguration.CACertificateValidityPeriodDays
+	dst.ClusterConfiguration.EncryptionAlgorithm = restored.ClusterConfiguration.EncryptionAlgorithm
 	dst.ClusterConfiguration.Etcd.Local.ExtraEnvs = restored.ClusterConfiguration.Etcd.Local.ExtraEnvs
 
 	dst.InitConfiguration.Timeouts = restored.InitConfiguration.Timeouts

@@ -359,6 +359,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 					},
 					CertificateValidityPeriodDays:   100,
 					CACertificateValidityPeriodDays: 365,
+					EncryptionAlgorithm:             bootstrapv1.EncryptionAlgorithmRSA2048,
 				},
 				JoinConfiguration: bootstrapv1.JoinConfiguration{
 					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
@@ -755,6 +756,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		CACertificateValidityPeriodDays: 730,
 	}
 
+	validEncryptionAlgorithm := before.DeepCopy()
+	validEncryptionAlgorithm.Spec.KubeadmConfigSpec.ClusterConfiguration.EncryptionAlgorithm = bootstrapv1.EncryptionAlgorithmRSA3072
+
 	tests := []struct {
 		name                  string
 		enableIgnitionFeature bool
@@ -1117,6 +1121,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: true,
 			before:    before,
 			kcp:       invalidUpdateCACertificateValidityPeriodDays,
+		},
+		{
+			name:   "should allow to update encryptionAlgorithm",
+			before: before,
+			kcp:    validEncryptionAlgorithm,
 		},
 	}
 

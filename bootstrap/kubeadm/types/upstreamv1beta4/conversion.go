@@ -67,12 +67,12 @@ func (dst *JoinConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 func Convert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in CABPK v1beta1 version:
 	// - Proxy (Not supported yet)
-	// - EncryptionAlgorithm (Not supported yet)
 	if err := autoConvert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s); err != nil {
 		return err
 	}
 	out.CertificateValidityPeriodDays = convertToDays(in.CertificateValidityPeriod)
 	out.CACertificateValidityPeriodDays = convertToDays(in.CACertificateValidityPeriod)
+	out.EncryptionAlgorithm = bootstrapv1.EncryptionAlgorithmType(in.EncryptionAlgorithm)
 	return nil
 }
 
@@ -83,6 +83,7 @@ func Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfiguratio
 	}
 	out.CertificateValidityPeriod = convertFromDays(in.CertificateValidityPeriodDays)
 	out.CACertificateValidityPeriod = convertFromDays(in.CACertificateValidityPeriodDays)
+	out.EncryptionAlgorithm = EncryptionAlgorithmType(in.EncryptionAlgorithm)
 	return nil
 }
 

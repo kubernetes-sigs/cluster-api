@@ -41,7 +41,7 @@ func (r *Reconciler) rolloutRollingUpdate(ctx context.Context, md *clusterv1.Mac
 		return err
 	}
 
-	if err := r.createOrUpdateMachineSets(ctx, planner); err != nil {
+	if err := r.createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(ctx, planner); err != nil {
 		return err
 	}
 

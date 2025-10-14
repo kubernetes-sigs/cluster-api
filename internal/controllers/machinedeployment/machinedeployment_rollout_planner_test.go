@@ -362,7 +362,14 @@ func TestComputeDesiredMS(t *testing.T) {
 						Annotations: map[string]string{"foo": "machine-value1"},
 					},
 					Spec: clusterv1.MachineSpec{
-						Version: "foo",
+						Version:         "foo",
+						MinReadySeconds: ptr.To[int32](5),
+						ReadinessGates:  []clusterv1.MachineReadinessGate{{ConditionType: "bar"}},
+						Deletion: clusterv1.MachineDeletionSpec{
+							NodeDrainTimeoutSeconds:        nil,
+							NodeVolumeDetachTimeoutSeconds: nil,
+							NodeDeletionTimeoutSeconds:     nil,
+						},
 					},
 				},
 			},

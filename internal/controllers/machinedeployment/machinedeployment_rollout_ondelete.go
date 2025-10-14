@@ -40,7 +40,7 @@ func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineD
 		return err
 	}
 
-	if err := r.createOrUpdateMachineSets(ctx, planner); err != nil {
+	if err := r.createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(ctx, planner); err != nil {
 		return err
 	}
 

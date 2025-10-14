@@ -51,12 +51,12 @@ type ControlPlane struct {
 	machinesPatchHelpers map[string]*patch.Helper
 
 	// MachinesNotUpToDate is the source of truth for Machines that are not up-to-date.
-	// It should be used to check if a Machine is up-to-date (not machinesNotUpToDateResults).
+	// It should be used to check if a Machine is up-to-date (not machinesUpToDateResults).
 	MachinesNotUpToDate collections.Machines
-	// machinesNotUpToDateResults is used to store the result of the UpToDate call for all Machines
+	// machinesUpToDateResults is used to store the result of the UpToDate call for all Machines
 	// (even for Machines that are up-to-date).
 	// MachinesNotUpToDate should always be used instead to check if a Machine is up-to-date.
-	machinesNotUpToDateResults map[string]NotUpToDateResult
+	machinesUpToDateResults map[string]UpToDateResult
 
 	// reconciliationTime is the time of the current reconciliation, and should be used for all "now" calculations
 	reconciliationTime metav1.Time
@@ -122,9 +122,9 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, c
 	// Select machines that should be rolled out because of an outdated configuration or because rolloutAfter/Before expired.
 	reconciliationTime := metav1.Now()
 	machinesNotUptoDate := make(collections.Machines, len(ownedMachines))
-	machinesNotUpToDateResults := map[string]NotUpToDateResult{}
+	machinesUpToDateResults := map[string]UpToDateResult{}
 	for _, m := range ownedMachines {
-		upToDate, notUpToDateResult, err := UpToDate(ctx, client, cluster, m, kcp, &reconciliationTime, infraMachines, kubeadmConfigs)
+		upToDate, upToDateResult, err := UpToDate(ctx, client, cluster, m, kcp, &reconciliationTime, infraMachines, kubeadmConfigs)
 		if err != nil {
 			return nil, err
 		}
@@ -133,20 +133,20 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, c
 		}
 		// Set this even if machine is UpToDate. This is needed to complete triggering in-place updates
 		// MachinesNotUpToDate should always be used instead to check if a Machine is up-to-date.
-		machinesNotUpToDateResults[m.Name] = *notUpToDateResult
+		machinesUpToDateResults[m.Name] = *upToDateResult
 	}
 
 	return &ControlPlane{
-		KCP:                        kcp,
-		Cluster:                    cluster,
-		Machines:                   ownedMachines,
-		machinesPatchHelpers:       patchHelpers,
-		MachinesNotUpToDate:        machinesNotUptoDate,
-		machinesNotUpToDateResults: machinesNotUpToDateResults,
-		KubeadmConfigs:             kubeadmConfigs,
-		InfraResources:             infraMachines,
-		reconciliationTime:         reconciliationTime,
-		managementCluster:          managementCluster,
+		KCP:                     kcp,
+		Cluster:                 cluster,
+		Machines:                ownedMachines,
+		machinesPatchHelpers:    patchHelpers,
+		MachinesNotUpToDate:     machinesNotUptoDate,
+		machinesUpToDateResults: machinesUpToDateResults,
+		KubeadmConfigs:          kubeadmConfigs,
+		InfraResources:          infraMachines,
+		reconciliationTime:      reconciliationTime,
+		managementCluster:       managementCluster,
 	}, nil
 }
 
@@ -240,15 +240,15 @@ func (c *ControlPlane) GetKubeadmConfig(machineName string) (*bootstrapv1.Kubead
 }
 
 // MachinesNeedingRollout return a list of machines that need to be rolled out.
-func (c *ControlPlane) MachinesNeedingRollout() (collections.Machines, map[string]NotUpToDateResult) {
+func (c *ControlPlane) MachinesNeedingRollout() (collections.Machines, map[string]UpToDateResult) {
 	// Note: Machines already deleted are dropped because they will be replaced by new machines after deletion completes.
-	return c.MachinesNotUpToDate.Filter(collections.Not(collections.HasDeletionTimestamp)), c.machinesNotUpToDateResults
+	return c.MachinesNotUpToDate.Filter(collections.Not(collections.HasDeletionTimestamp)), c.machinesUpToDateResults
 }
 
 // NotUpToDateMachines return a list of machines that are not up to date with the control
 // plane's configuration.
-func (c *ControlPlane) NotUpToDateMachines() (collections.Machines, map[string]NotUpToDateResult) {
-	return c.MachinesNotUpToDate, c.machinesNotUpToDateResults
+func (c *ControlPlane) NotUpToDateMachines() (collections.Machines, map[string]UpToDateResult) {
+	return c.MachinesNotUpToDate, c.machinesUpToDateResults
 }
 
 // UpToDateMachines returns the machines that are up to date with the control

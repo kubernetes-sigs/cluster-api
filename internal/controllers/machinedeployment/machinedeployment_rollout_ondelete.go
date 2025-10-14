@@ -27,46 +27,26 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
-	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // rolloutOnDelete reconcile machine sets controlled by a MachineDeployment that is using the OnDelete strategy.
 func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, templateExists bool) error {
-	// TODO(in-place): move create newMS into rolloutPlanner
-	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, md, msList, true, templateExists)
-	if err != nil {
+	planner := newRolloutPlanner()
+	if err := planner.init(ctx, md, msList, nil, true, templateExists); err != nil {
 		return err
 	}
-
-	planner := newRolloutPlanner()
-	planner.md = md
-	planner.newMS = newMS
-	planner.oldMSs = oldMSs
 
 	if err := planner.planOnDelete(ctx); err != nil {
 		return err
 	}
 
+	if err := r.createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(ctx, planner); err != nil {
+		return err
+	}
+
+	newMS := planner.newMS
+	oldMSs := planner.oldMSs
 	allMSs := append(oldMSs, newMS)
-
-	// TODO(in-place): also apply/remove labels to MS should go into rolloutPlanner
-	if err := r.cleanupDisableMachineCreateAnnotation(ctx, newMS); err != nil {
-		return err
-	}
-	if err := r.addDisableMachineCreateAnnotation(ctx, oldMSs); err != nil {
-		return err
-	}
-
-	// TODO(in-place): this should be changed as soon as rolloutPlanner support MS creation and adding/removing labels from MS
-	for _, ms := range allMSs {
-		scaleIntent := ptr.Deref(ms.Spec.Replicas, 0)
-		if v, ok := planner.scaleIntents[ms.Name]; ok {
-			scaleIntent = v
-		}
-		if err := r.scaleMachineSet(ctx, ms, scaleIntent, md); err != nil {
-			return err
-		}
-	}
 
 	if err := r.syncDeploymentStatus(allMSs, newMS, md); err != nil {
 		return err
@@ -163,27 +143,4 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 			totalScaleDownCount -= scaleDownCount
 		}
 	}
-}
-
-// addDisableMachineCreateAnnotation will add the disable machine create annotation to old MachineSets.
-func (r *Reconciler) addDisableMachineCreateAnnotation(ctx context.Context, oldMSs []*clusterv1.MachineSet) error {
-	for _, oldMS := range oldMSs {
-		log := ctrl.LoggerFrom(ctx, "MachineSet", klog.KObj(oldMS))
-		if _, ok := oldMS.Annotations[clusterv1.DisableMachineCreateAnnotation]; !ok {
-			log.V(4).Info("adding annotation on old MachineSet to disable machine creation")
-			patchHelper, err := patch.NewHelper(oldMS, r.Client)
-			if err != nil {
-				return err
-			}
-			if oldMS.Annotations == nil {
-				oldMS.Annotations = map[string]string{}
-			}
-			oldMS.Annotations[clusterv1.DisableMachineCreateAnnotation] = "true"
-			err = patchHelper.Patch(ctx, oldMS)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }

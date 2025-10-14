@@ -20,15 +20,15 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/textlogger"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -390,8 +390,7 @@ type onDeleteSequenceTestCase struct {
 
 func Test_OnDeleteSequences(t *testing.T) {
 	ctx := context.Background()
-	ctx = ctrl.LoggerInto(ctx, klog.Background())
-	klog.SetOutput(ginkgo.GinkgoWriter)
+	ctx = ctrl.LoggerInto(ctx, textlogger.NewLogger(textlogger.NewConfig(textlogger.Verbosity(5), textlogger.Output(os.Stdout))))
 
 	tests := []onDeleteSequenceTestCase{
 		{ // delete 1
@@ -581,22 +580,25 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 
 				// Running a small subset of MD reconcile (the rollout logic and a bit of setReplicas)
 				p := newRolloutPlanner()
-				p.md = current.machineDeployment
-				p.newMS = current.newMS()
-				p.oldMSs = current.oldMSs()
+				p.computeDesiredMS = func(_ context.Context, deployment *clusterv1.MachineDeployment, currentNewMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
+					desiredNewMS := currentNewMS
+					if currentNewMS == nil {
+						// uses a predictable MS name when creating newMS, also add the newMS to current.machineSets
+						totMS := len(current.machineSets)
+						desiredNewMS = createMS(fmt.Sprintf("ms%d", totMS+1), deployment.Spec.Template.Spec.FailureDomain, 0)
+						current.machineSets = append(current.machineSets, desiredNewMS)
+					}
+					return desiredNewMS, nil
+				}
 
-				err := p.planOnDelete(ctx)
+				// init the rollout planner and plan next step for a rollout.
+				err := p.init(ctx, current.machineDeployment, current.machineSets, current.machines(), true, true)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				err = p.planOnDelete(ctx)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				// Apply changes.
-				delete(p.newMS.Annotations, clusterv1.DisableMachineCreateAnnotation)
-				for _, oldMS := range current.oldMSs() {
-					if oldMS.Annotations == nil {
-						oldMS.Annotations = map[string]string{}
-					}
-					oldMS.Annotations[clusterv1.DisableMachineCreateAnnotation] = "true"
-				}
-
 				for _, ms := range current.machineSets {
 					if scaleIntent, ok := p.scaleIntents[ms.Name]; ok {
 						ms.Spec.Replicas = ptr.To(scaleIntent)

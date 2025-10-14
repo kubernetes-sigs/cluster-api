@@ -335,20 +335,27 @@ func assertClusterObjects(ctx context.Context, clusterProxy framework.ClusterPro
 		clusterClassObjects := getClusterClassObjects(ctx, g, clusterProxy, clusterClass)
 
 		// InfrastructureCluster
+		By("Checking InfrastructureCluster object has the right labels, annotations and selectors")
 		assertInfrastructureCluster(g, clusterClassObjects, clusterObjects, cluster, clusterClass)
 
 		// ControlPlane
 		controlPlaneContractVersion, err := contract.GetContractVersionForVersion(ctx, clusterProxy.GetClient(), clusterObjects.ControlPlane.GroupVersionKind().GroupKind(), clusterObjects.ControlPlane.GroupVersionKind().Version)
 		g.Expect(err).ToNot(HaveOccurred())
+		By("Checking ControlPlane object has the right labels, annotations and selectors")
 		assertControlPlane(g, clusterClassObjects, clusterObjects, cluster, clusterClass)
+		By("Checking ControlPlane machines objects have the right labels, annotations and selectors")
 		assertControlPlaneMachines(g, clusterObjects, cluster, controlPlaneContractVersion, filterMetadataBeforeValidation)
 
 		// MachineDeployments
+		By("Checking MachineDeployments objects have the right labels, annotations and selectors")
 		assertMachineDeployments(g, clusterClassObjects, clusterObjects, cluster, clusterClass)
+		By("Checking MachineSets objects have the right labels, annotations and selectors")
 		assertMachineSets(g, clusterObjects, cluster)
+		By("Checking MachineSets machines objects have the right labels, annotations and selectors")
 		assertMachineSetsMachines(g, clusterObjects, cluster, filterMetadataBeforeValidation)
 
 		// MachinePools
+		By("Checking MachinePools objects have the right labels, annotations and selectors")
 		assertMachinePools(g, clusterClassObjects, clusterObjects, cluster, clusterClass)
 
 		By("All cluster objects have the right labels, annotations and selectors")
@@ -809,7 +816,11 @@ func assertMachineSets(g Gomega, clusterObjects clusterObjects, cluster *cluster
 					machineSet.Annotations,
 				).without(g, clusterv1.DesiredReplicasAnnotation, clusterv1.MaxReplicasAnnotation, clusterv1.RevisionAnnotation),
 				union(
-					machineDeployment.Annotations,
+					union(machineDeployment.Annotations,
+						map[string]string{
+							clusterv1.DisableMachineCreateAnnotation: "false",
+						},
+					),
 				).without(g, clusterv1.RevisionAnnotation),
 			)
 			// MachineDeployment MachineSet.spec.selector

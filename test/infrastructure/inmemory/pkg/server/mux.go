@@ -18,7 +18,7 @@ package server
 
 import (
 	"context"
-	"crypto/rsa"
+	"crypto"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -387,7 +387,7 @@ func (m *WorkloadClustersMux) WorkloadClusterByResourceGroup(resouceGroup string
 // AddAPIServer mimics adding an API server instance behind the WorkloadClusterListener.
 // When the first API server instance is added the serving certificates and the admin certificate
 // for tests are generated, and the listener is started.
-func (m *WorkloadClustersMux) AddAPIServer(wclName, podName string, caCert *x509.Certificate, caKey *rsa.PrivateKey) error {
+func (m *WorkloadClustersMux) AddAPIServer(wclName, podName string, caCert *x509.Certificate, caKey crypto.Signer) error {
 	// Start server
 	// Note: It is important that we unlock once the server is started. Because otherwise the server
 	// doesn't work yet as GetCertificate (which is required for the tls handshake) also requires the lock.
@@ -420,7 +420,12 @@ func (m *WorkloadClustersMux) AddAPIServer(wclName, podName string, caCert *x509
 				return errors.Wrapf(err, "failed to create serving certificate for API server %s", podName)
 			}
 
-			certificate, err := tls.X509KeyPair(certs.EncodeCertPEM(cert), certs.EncodePrivateKeyPEM(key))
+			encodedKey, err := certs.EncodePrivateKeyPEM(key)
+			if err != nil {
+				return errors.Wrapf(err, "failed to encode private key for API server %s", podName)
+			}
+
+			certificate, err := tls.X509KeyPair(certs.EncodeCertPEM(cert), encodedKey)
 			if err != nil {
 				return errors.Wrapf(err, "failed to create X509KeyPair for API server %s", podName)
 			}
@@ -533,7 +538,7 @@ func (m *WorkloadClustersMux) HasAPIServer(wclName, podName string) bool {
 // AddEtcdMember mimics adding an etcd Member behind the WorkloadClusterListener;
 // every etcd member gets a dedicated serving certificate, so it will be possible to serve port forward requests
 // to a specific etcd pod/member.
-func (m *WorkloadClustersMux) AddEtcdMember(wclName, podName string, caCert *x509.Certificate, caKey *rsa.PrivateKey) error {
+func (m *WorkloadClustersMux) AddEtcdMember(wclName, podName string, caCert *x509.Certificate, caKey crypto.Signer) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -552,7 +557,12 @@ func (m *WorkloadClustersMux) AddEtcdMember(wclName, podName string, caCert *x50
 			return errors.Wrapf(err, "failed to create serving certificate for etcd member %s", podName)
 		}
 
-		certificate, err := tls.X509KeyPair(certs.EncodeCertPEM(cert), certs.EncodePrivateKeyPEM(key))
+		encodedKey, err := certs.EncodePrivateKeyPEM(key)
+		if err != nil {
+			return err
+		}
+
+		certificate, err := tls.X509KeyPair(certs.EncodeCertPEM(cert), encodedKey)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create X509KeyPair for etcd member %s", podName)
 		}

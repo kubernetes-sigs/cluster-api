@@ -18,8 +18,8 @@ package internal
 
 import (
 	"context"
+	"crypto"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
@@ -90,10 +90,15 @@ func TestGetWorkloadCluster(t *testing.T) {
 	}()
 
 	// Create an etcd secret with valid certs
-	key, err := certs.NewPrivateKey()
+	key, err := certs.NewPrivateKey("")
 	g.Expect(err).ToNot(HaveOccurred())
+
 	cert, err := getTestCACert(key)
 	g.Expect(err).ToNot(HaveOccurred())
+
+	encodedKey, err := certs.EncodePrivateKeyPEM(key)
+	g.Expect(err).ToNot(HaveOccurred())
+
 	etcdSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-cluster-etcd",
@@ -104,7 +109,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 		},
 		Data: map[string][]byte{
 			secret.TLSCrtDataName: certs.EncodeCertPEM(cert),
-			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(key),
+			secret.TLSKeyDataName: encodedKey,
 		},
 	}
 	emptyCrtEtcdSecret := etcdSecret.DeepCopy()
@@ -249,7 +254,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 			})
 			g.Expect(err).ToNot(HaveOccurred())
 
-			workloadCluster, err := m.GetWorkloadCluster(ctx, tt.clusterKey)
+			workloadCluster, err := m.GetWorkloadCluster(ctx, tt.clusterKey, "")
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(workloadCluster).To(BeNil())
@@ -261,7 +266,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 	}
 }
 
-func getTestCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
+func getTestCACert(key crypto.Signer) (*x509.Certificate, error) {
 	cfg := certs.Config{
 		CommonName: "kubernetes",
 	}

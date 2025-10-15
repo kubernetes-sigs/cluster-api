@@ -18,8 +18,8 @@ package controllers
 
 import (
 	"context"
+	"crypto"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
@@ -813,9 +813,14 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 	cluster.Spec.ControlPlaneEndpoint.Port = 6443
 	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	kcp.Spec.Version = "v1.21.0"
-	key, err := certs.NewPrivateKey()
+
+	key, err := certs.NewPrivateKey("")
 	g.Expect(err).ToNot(HaveOccurred())
+
 	crt, err := getTestCACert(key)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	encodedKey, err := certs.EncodePrivateKeyPEM(key)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	clusterSecret := &corev1.Secret{
@@ -831,7 +836,7 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 		},
 		Data: map[string][]byte{
 			secret.TLSCrtDataName: certs.EncodeCertPEM(crt),
-			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(key),
+			secret.TLSKeyDataName: encodedKey,
 		},
 	}
 
@@ -4108,7 +4113,7 @@ func newCluster(namespacedName *types.NamespacedName) *clusterv1.Cluster {
 	}
 }
 
-func getTestCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
+func getTestCACert(key crypto.Signer) (*x509.Certificate, error) {
 	cfg := certs.Config{
 		CommonName: "kubernetes",
 	}

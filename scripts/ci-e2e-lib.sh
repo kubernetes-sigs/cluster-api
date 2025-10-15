@@ -238,15 +238,17 @@ k8s::setBuildVersion() {
 
   local major
   local minor
+  local commit
   major=$(echo "${version#v}" | awk '{split($0,a,"."); print a[1]}')
   minor=$(echo "${version#v}" | awk '{split($0,a,"."); print a[2]}')
+  commit=$(git rev-parse HEAD)
 
   cat > build-version << EOL
 export KUBE_GIT_MAJOR=$major
 export KUBE_GIT_MINOR=$minor
 export KUBE_GIT_VERSION=$version
 export KUBE_GIT_TREE_STATE=clean
-export KUBE_GIT_COMMIT=d34db33f
+export KUBE_GIT_COMMIT=${commit}
 EOL
 
   export KUBE_GIT_VERSION_FILE=$PWD/build-version

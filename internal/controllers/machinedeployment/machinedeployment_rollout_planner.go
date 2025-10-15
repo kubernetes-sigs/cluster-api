@@ -24,6 +24,8 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -45,14 +47,14 @@ type rolloutPlanner struct {
 	oldMSs          []*clusterv1.MachineSet
 	upToDateResults map[string]mdutil.UpToDateResult
 
-	scaleIntents     map[string]int32
-	computeDesiredMS func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error)
+	scaleIntents                       map[string]int32
+	overrideComputeDesiredMS           func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error)
+	overrideCanUpdateMachineSetInPlace func(oldMS *clusterv1.MachineSet) bool
 }
 
 func newRolloutPlanner() *rolloutPlanner {
 	return &rolloutPlanner{
-		scaleIntents:     make(map[string]int32),
-		computeDesiredMS: computeDesiredMS,
+		scaleIntents: make(map[string]int32),
 	}
 }
 
@@ -137,7 +139,11 @@ func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployme
 // Additionally, this procedure ensure the annotations tracking revisions numbers on the newMS is upToDate.
 // Note: because we are using Server-Side-Apply we always have to calculate the full object.
 func (p *rolloutPlanner) computeDesiredNewMS(ctx context.Context, currentNewMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
-	desiredNewMS, err := p.computeDesiredMS(ctx, p.md, currentNewMS)
+	computeFunc := computeDesiredMS
+	if p.overrideComputeDesiredMS != nil {
+		computeFunc = p.overrideComputeDesiredMS
+	}
+	desiredNewMS, err := computeFunc(ctx, p.md, currentNewMS)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +165,11 @@ func (p *rolloutPlanner) computeDesiredNewMS(ctx context.Context, currentNewMS *
 // Additionally, this procedure ensure the annotations tracking revisions numbers are carried over.
 // Note: because we are using Server-Side-Apply we always have to calculate the full object.
 func (p *rolloutPlanner) computeDesiredOldMS(ctx context.Context, currentOldMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
-	desiredOldMS, err := p.computeDesiredMS(ctx, p.md, currentOldMS)
+	computeFunc := computeDesiredMS
+	if p.overrideComputeDesiredMS != nil {
+		computeFunc = p.overrideComputeDesiredMS
+	}
+	desiredOldMS, err := computeFunc(ctx, p.md, currentOldMS)
 	if err != nil {
 		return nil, err
 	}
@@ -183,6 +193,7 @@ func (p *rolloutPlanner) computeDesiredOldMS(ctx context.Context, currentOldMS *
 // computeDesiredMS computes the desired MachineSet, which could be either a newly created newMS, or the new desired version of an existing newMS/OldMS.
 // Note: because we are using Server-Side-Apply we always have to calculate the full object.
 func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployment, currentMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
+	log := ctrl.LoggerFrom(ctx)
 	var name string
 	var uid types.UID
 	var finalizers []string
@@ -212,6 +223,7 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 		replicas = 0
 		machineTemplateSpec = *deployment.Spec.Template.Spec.DeepCopy()
 		creationTimestamp = metav1.NewTime(time.Now())
+		log.V(5).Info(fmt.Sprintf("Computing new MachineSet %s with %d replicas", name, replicas), "MachineSet", klog.KRef(deployment.Namespace, name))
 	} else {
 		// For updating an existing MachineSet use name, uid, finalizers, replicas, uniqueIdentifier and machine template spec from existingMS.
 		// Note: We use the uid, to ensure that the Server-Side-Apply only updates the existingMS.

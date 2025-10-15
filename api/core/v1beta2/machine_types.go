@@ -87,6 +87,16 @@ const (
 
 	// ManagedNodeAnnotationDomain is one of the CAPI managed Node annotation domains.
 	ManagedNodeAnnotationDomain = "node.cluster.x-k8s.io"
+
+	// MachinePendingAcknowledgeMoveAnnotationName is an internal annotation added by the MS controller to a machine when being
+	// moved from the oldMS to the newMS. The annotation is removed as soon as the MS controller get the acknowledgment about the
+	// replica being accounted from the corresponding MD.
+	// Note: the annotation is added when reconciling the oldMS, and it is removed when reconciling the newMS.
+	MachinePendingAcknowledgeMoveAnnotationName = "in-place-updates.internal.cluster.x-k8s.io/pending-acknowledge-move"
+
+	// MachineUpdatingInPlaceAnnotationName is an internal annotation added to machines by the controller owning the Machine when in-place update
+	// is started, e.g. by the MachineSet controller; the annotation will be removed by the Machine controller when in-place update is completed.
+	MachineUpdatingInPlaceAnnotationName = "in-place-updates.internal.cluster.x-k8s.io/update-in-progress"
 )
 
 // Machine's Available condition and corresponding reasons.

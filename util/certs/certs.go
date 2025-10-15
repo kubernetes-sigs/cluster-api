@@ -19,18 +19,33 @@ package certs
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 )
 
-// NewPrivateKey creates an RSA private key.
-func NewPrivateKey() (*rsa.PrivateKey, error) {
-	pk, err := rsa.GenerateKey(rand.Reader, DefaultRSAKeySize)
+// NewPrivateKey creates a private key based on the provided keyAlgorithm.
+func NewPrivateKey(keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) (crypto.Signer, error) {
+	switch keyEncryptionAlgorithm {
+	case bootstrapv1.EncryptionAlgorithmECDSAP256:
+		return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	case bootstrapv1.EncryptionAlgorithmECDSAP384:
+		return ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	}
+	rsaKeySize := rsaKeySizeFromAlgorithmType(keyEncryptionAlgorithm)
+	if rsaKeySize == 0 {
+		return nil, errors.Errorf("cannot obtain key size from unknown RSA algorithm: %q", keyEncryptionAlgorithm)
+	}
+	pk, err := rsa.GenerateKey(rand.Reader, rsaKeySize)
 	return pk, errors.WithStack(err)
 }
 
@@ -44,18 +59,23 @@ func EncodeCertPEM(cert *x509.Certificate) []byte {
 }
 
 // EncodePrivateKeyPEM returns PEM-encoded private key data.
-func EncodePrivateKeyPEM(key *rsa.PrivateKey) []byte {
-	block := pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
+func EncodePrivateKeyPEM(key crypto.Signer) ([]byte, error) {
+	privateBytes, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		return nil, fmt.Errorf("unable to marshal private key: %v", err)
 	}
 
-	return pem.EncodeToMemory(&block)
+	block := pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: privateBytes,
+	}
+
+	return pem.EncodeToMemory(&block), nil
 }
 
 // EncodePublicKeyPEM returns PEM-encoded public key data.
-func EncodePublicKeyPEM(key *rsa.PublicKey) ([]byte, error) {
-	der, err := x509.MarshalPKIXPublicKey(key)
+func EncodePublicKeyPEM(key crypto.Signer) ([]byte, error) {
+	der, err := x509.MarshalPKIXPublicKey(key.Public())
 	if err != nil {
 		return []byte{}, errors.WithStack(err)
 	}
@@ -112,4 +132,20 @@ func DecodePrivateKeyPEM(encoded []byte) (crypto.Signer, error) {
 	errs = append(errs, ecErr)
 
 	return nil, kerrors.NewAggregate(errs)
+}
+
+// rsaKeySizeFromAlgorithmType takes a known RSA algorithm defined in the kubeadm API
+// and returns its key size. For unknown types it returns 0. For an empty type it returns
+// the default size of 2048.
+func rsaKeySizeFromAlgorithmType(keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) int {
+	switch keyEncryptionAlgorithm {
+	case bootstrapv1.EncryptionAlgorithmRSA2048, "":
+		return 2048
+	case bootstrapv1.EncryptionAlgorithmRSA3072:
+		return 3072
+	case bootstrapv1.EncryptionAlgorithmRSA4096:
+		return 4096
+	default:
+		return 0
+	}
 }

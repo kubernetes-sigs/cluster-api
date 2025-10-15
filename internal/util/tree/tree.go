@@ -28,6 +28,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/gobuffalo/flect"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -61,69 +63,102 @@ var (
 	cyan   = color.New(color.FgCyan)
 )
 
+// createObjectTree creates a new tablewriter.Table for the object tree.
+// Returns a new tablewriter.Table for the object tree.
+func createObjectTree(w io.Writer) *tablewriter.Table {
+	cfg := tablewriter.Config{
+		Row: tw.CellConfig{
+			Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
+			Alignment:  tw.CellAlignment{Global: tw.AlignLeft},
+			Padding:    tw.CellPadding{Global: tw.Padding{Left: "", Right: "  "}},
+		},
+		Header: tw.CellConfig{
+			Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
+			Alignment:  tw.CellAlignment{Global: tw.AlignLeft},
+			Padding:    tw.CellPadding{Global: tw.Padding{Left: "", Right: " "}},
+		},
+		Behavior: tw.Behavior{TrimSpace: tw.Off},
+	}
+
+	// Creates the output table
+	tbl := tablewriter.NewTable(w, tablewriter.WithConfig(cfg), tablewriter.WithRendition(tw.Rendition{
+		Settings: tw.Settings{
+			Separators: tw.SeparatorsNone, Lines: tw.LinesNone,
+		},
+		Borders: tw.BorderNone,
+	}))
+
+	return tbl
+}
+
+// createObjectTreeV1Beta1 creates a new tablewriter.Table for the object tree.
+// Returns a new tablewriter.Table for the object tree.
+func createObjectTreeV1Beta1(w io.Writer) *tablewriter.Table {
+	cfg := tablewriter.Config{
+		Row: tw.CellConfig{
+			Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
+			Alignment:  tw.CellAlignment{Global: tw.AlignLeft},
+			Padding:    tw.CellPadding{Global: tw.Padding{Left: "", Right: " "}},
+		},
+		Header: tw.CellConfig{
+			Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
+			Alignment:  tw.CellAlignment{Global: tw.AlignLeft},
+			Padding:    tw.CellPadding{Global: tw.Padding{Left: "", Right: " "}},
+		},
+		Behavior: tw.Behavior{TrimSpace: tw.Off},
+	}
+	// Creates the output table
+	tbl := tablewriter.NewTable(w, tablewriter.WithConfig(cfg), tablewriter.WithRendition(tw.Rendition{
+		Settings: tw.Settings{
+			Separators: tw.SeparatorsNone, Lines: tw.LinesNone,
+		},
+		Borders: tw.BorderNone,
+	}))
+
+	return tbl
+}
+
 // PrintObjectTree prints the cluster status to stdout.
 // Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
-func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) {
-	// Creates the output table
-	tbl := tablewriter.NewWriter(w)
-	tbl.SetHeader([]string{"NAME", "REPLICAS", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
+func PrintObjectTree(tree *tree.ObjectTree, w io.Writer) error {
+	tbl := createObjectTree(w)
 
-	formatTableTree(tbl)
-	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
-	addObjectRow("", tbl, tree, tree.GetRoot())
+	tbl.Header([]string{"NAME", "REPLICAS", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
+
+	if err := addObjectRow("", tbl, tree, tree.GetRoot()); err != nil {
+		return errors.Wrap(err, "failed to add object rows")
+	}
 
 	// Prints the output table
-	tbl.Render()
+	if err := tbl.Render(); err != nil {
+		return errors.Wrap(err, "failed to render table")
+	}
+
+	return nil
 }
 
 // PrintObjectTreeV1Beta1 prints the cluster status to stdout.
 // Note: this function is exposed only for usage in clusterctl and Cluster API E2E tests.
-func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) {
-	// Creates the output table
-	tbl := tablewriter.NewWriter(os.Stdout)
-	tbl.SetHeader([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
+func PrintObjectTreeV1Beta1(tree *tree.ObjectTree) error {
+	tbl := createObjectTreeV1Beta1(os.Stdin)
+	tbl.Header([]string{"NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE"})
 
-	formatTableTreeV1Beta1(tbl)
 	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
-	addObjectRowV1Beta1("", tbl, tree, tree.GetRoot())
+	if err := addObjectRowV1Beta1("", tbl, tree, tree.GetRoot()); err != nil {
+		return errors.Wrap(err, "failed to add object rows")
+	}
 
 	// Prints the output table
-	tbl.Render()
-}
+	if err := tbl.Render(); err != nil {
+		return errors.Wrap(err, "failed to render table")
+	}
 
-// formats the table with required attributes.
-func formatTableTree(tbl *tablewriter.Table) {
-	tbl.SetAutoWrapText(false)
-	tbl.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	tbl.SetAlignment(tablewriter.ALIGN_LEFT)
-
-	tbl.SetCenterSeparator("")
-	tbl.SetRowSeparator("")
-
-	tbl.SetHeaderLine(false)
-	tbl.SetTablePadding("  ")
-	tbl.SetNoWhiteSpace(true)
-}
-
-// formats the table with required attributes.
-func formatTableTreeV1Beta1(tbl *tablewriter.Table) {
-	tbl.SetAutoWrapText(false)
-	tbl.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	tbl.SetAlignment(tablewriter.ALIGN_LEFT)
-
-	tbl.SetCenterSeparator("")
-	tbl.SetColumnSeparator("")
-	tbl.SetRowSeparator("")
-
-	tbl.SetHeaderLine(false)
-	tbl.SetBorder(false)
-	tbl.SetTablePadding("  ")
-	tbl.SetNoWhiteSpace(true)
+	return nil
 }
 
 // addObjectRow add a row for a given object, and recursively for all the object's children.
 // NOTE: each row name gets a prefix, that generates a tree view like representation.
-func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
+func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) error {
 	// Get a row descriptor for a given object.
 	// With v1beta2, the return value of this func adapt to the object represented in the line.
 	rowDescriptor := newRowDescriptor(obj)
@@ -161,7 +196,7 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 	if len(msg) >= 1 {
 		msg0 = msg[0]
 	}
-	tbl.Append([]string{
+	if err := tbl.Append([]string{
 		fmt.Sprintf("%s%s", gray.Sprint(prefix), name),
 		rowDescriptor.replicas,
 		rowDescriptor.availableCounters,
@@ -170,11 +205,13 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 		rowDescriptor.status,
 		rowDescriptor.reason,
 		rowDescriptor.age,
-		msg0})
+		msg0}); err != nil {
+		return errors.Wrap(err, "failed to append main row")
+	}
 
 	multilinePrefix := getRootMultiLineObjectPrefix(obj, objectTree)
 	for _, m := range msg[1:] {
-		tbl.Append([]string{
+		if err := tbl.Append([]string{
 			gray.Sprint(multilinePrefix),
 			"",
 			"",
@@ -183,12 +220,16 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 			"",
 			"",
 			"",
-			m})
+			m}); err != nil {
+			return errors.Wrap(err, "failed to append multiline row")
+		}
 	}
 
 	// If it is required to show all the conditions for the object, add a row for each object's conditions.
 	if tree.IsShowConditionsObject(obj) {
-		addOtherConditions(prefix, tbl, objectTree, obj)
+		if err := addOtherConditions(prefix, tbl, objectTree, obj); err != nil {
+			return errors.Wrap(err, "failed to add other conditions")
+		}
 	}
 
 	// Add a row for each object's children, taking care of updating the tree view prefix.
@@ -196,8 +237,12 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 	childrenObj = orderChildrenObjects(childrenObj)
 
 	for i, child := range childrenObj {
-		addObjectRow(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child)
+		if err := addObjectRow(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child); err != nil {
+			return errors.Wrap(err, "failed to add child object row")
+		}
 	}
+
+	return nil
 }
 
 func orderChildrenObjects(childrenObj []ctrlclient.Object) []ctrlclient.Object {
@@ -217,7 +262,7 @@ func orderChildrenObjects(childrenObj []ctrlclient.Object) []ctrlclient.Object {
 
 // addObjectRowV1Beta1 add a row for a given object, and recursively for all the object's children.
 // NOTE: each row name gets a prefix, that generates a tree view like representation.
-func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
+func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) error {
 	// Gets the descriptor for the object's ready condition, if any.
 	readyDescriptor := v1beta1ConditionDescriptor{readyColor: gray}
 	if ready := tree.GetV1Beta1ReadyCondition(obj); ready != nil {
@@ -241,17 +286,21 @@ func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree
 	// Add the row representing the object that includes
 	// - The row name with the tree view prefix.
 	// - The object's ready condition.
-	tbl.Append([]string{
+	if err := tbl.Append([]string{
 		fmt.Sprintf("%s%s", gray.Sprint(prefix), name),
 		readyDescriptor.readyColor.Sprint(readyDescriptor.status),
 		readyDescriptor.readyColor.Sprint(readyDescriptor.severity),
 		readyDescriptor.readyColor.Sprint(readyDescriptor.reason),
 		readyDescriptor.age,
-		readyDescriptor.message})
+		readyDescriptor.message}); err != nil {
+		return errors.Wrap(err, "failed to append main row")
+	}
 
 	// If it is required to show all the conditions for the object, add a row for each object's conditions.
 	if tree.IsShowConditionsObject(obj) {
-		addOtherConditionsV1Beta1(prefix, tbl, objectTree, obj)
+		if err := addOtherConditionsV1Beta1(prefix, tbl, objectTree, obj); err != nil {
+			return errors.Wrap(err, "failed to add other conditions")
+		}
 	}
 
 	// Add a row for each object's children, taking care of updating the tree view prefix.
@@ -270,12 +319,16 @@ func addObjectRowV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree
 	sort.Slice(childrenObj, printBefore)
 
 	for i, child := range childrenObj {
-		addObjectRowV1Beta1(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child)
+		if err := addObjectRowV1Beta1(getChildPrefix(prefix, i, len(childrenObj)), tbl, objectTree, child); err != nil {
+			return errors.Wrap(err, "failed to add child object row")
+		}
 	}
+
+	return nil
 }
 
 // addOtherConditions adds a row for each object condition.
-func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
+func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) error {
 	// Add a row for each other condition, taking care of updating the tree view prefix.
 	// In this case the tree prefix get a filler, to indent conditions from objects, and eventually a
 	// and additional pipe if the object has children that should be presented after the conditions.
@@ -312,7 +365,7 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 		if len(msg) >= 1 {
 			msg0 = msg[0]
 		}
-		tbl.Append([]string{
+		if err := tbl.Append([]string{
 			fmt.Sprintf("%s%s", gray.Sprint(childPrefix), cyan.Sprint(condition.Type)),
 			"",
 			"",
@@ -321,10 +374,12 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 			c.Sprint(status),
 			reason,
 			age,
-			msg0})
+			msg0}); err != nil {
+			return errors.Wrap(err, "failed to append condition row")
+		}
 
 		for _, m := range msg[1:] {
-			tbl.Append([]string{
+			if err := tbl.Append([]string{
 				gray.Sprint(getMultilineConditionPrefix(childPrefix)),
 				"",
 				"",
@@ -333,14 +388,18 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 				"",
 				"",
 				"",
-				m})
+				m}); err != nil {
+				return errors.Wrap(err, "failed to append multiline condition row")
+			}
 		}
 	}
+
+	return nil
 }
 
 // addOtherConditionsV1Beta1 adds a row for each object condition except the ready condition,
 // which is already represented on the object's main row.
-func addOtherConditionsV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
+func addOtherConditionsV1Beta1(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) error {
 	// Add a row for each other condition, taking care of updating the tree view prefix.
 	// In this case the tree prefix get a filler, to indent conditions from objects, and eventually a
 	// and additional pipe if the object has children that should be presented after the conditions.
@@ -355,14 +414,18 @@ func addOtherConditionsV1Beta1(prefix string, tbl *tablewriter.Table, objectTree
 		otherCondition := otherConditions[i]
 		otherDescriptor := newV1Beta1ConditionDescriptor(otherCondition)
 		otherConditionPrefix := getChildPrefix(prefix+childrenPipe+filler, i, len(otherConditions))
-		tbl.Append([]string{
+		if err := tbl.Append([]string{
 			fmt.Sprintf("%s%s", gray.Sprint(otherConditionPrefix), cyan.Sprint(otherCondition.Type)),
 			otherDescriptor.readyColor.Sprint(otherDescriptor.status),
 			otherDescriptor.readyColor.Sprint(otherDescriptor.severity),
 			otherDescriptor.readyColor.Sprint(otherDescriptor.reason),
 			otherDescriptor.age,
-			otherDescriptor.message})
+			otherDescriptor.message}); err != nil {
+			return errors.Wrap(err, "failed to append other condition row")
+		}
 	}
+
+	return nil
 }
 
 // getChildPrefix return the tree view prefix for a row representing a child object.

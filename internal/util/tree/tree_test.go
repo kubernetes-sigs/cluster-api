@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	"github.com/fatih/color"
-	"github.com/olekukonko/tablewriter"
 	. "github.com/onsi/gomega"
 	gtype "github.com/onsi/gomega/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -279,16 +278,14 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			var output bytes.Buffer
-
-			// Creates the output table
-			tbl := tablewriter.NewWriter(&output)
-
-			formatTableTreeV1Beta1(tbl)
+			tbl := createObjectTreeV1Beta1(&output)
 
 			// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
-			addObjectRowV1Beta1("", tbl, tt.objectTree, tt.objectTree.GetRoot())
-			tbl.Render()
-
+			err := addObjectRowV1Beta1("", tbl, tt.objectTree, tt.objectTree.GetRoot())
+			g.Expect(err).ToNot(HaveOccurred(), "Failed to add object rows")
+			if err := tbl.Render(); err != nil {
+				t.Fatalf("Error rendering table: %v", err)
+			}
 			// Compare the output with the expected prefix.
 			// We only check whether the output starts with the expected prefix,
 			// meaning expectPrefix does not contain the full expected output.
@@ -511,15 +508,15 @@ func Test_TreePrefix(t *testing.T) {
 			g := NewWithT(t)
 			var output bytes.Buffer
 
-			// Creates the output table
-			tbl := tablewriter.NewWriter(&output)
-
-			formatTableTree(tbl)
+			tbl := createObjectTree(&output)
 
 			// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
-			addObjectRow("", tbl, tt.objectTree, tt.objectTree.GetRoot())
-			tbl.Render()
+			err := addObjectRow("", tbl, tt.objectTree, tt.objectTree.GetRoot())
+			g.Expect(err).ToNot(HaveOccurred(), "Failed to add object rows")
 
+			if err := tbl.Render(); err != nil {
+				t.Fatalf("Error rendering table: %v", err)
+			}
 			// Remove empty lines from the output. We need this because v1beta2 adds lines at the beginning and end.
 			outputString := strings.TrimSpace(output.String())
 

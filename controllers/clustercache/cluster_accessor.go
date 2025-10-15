@@ -18,7 +18,7 @@ package clustercache
 
 import (
 	"context"
-	"crypto/rsa"
+	"crypto"
 	"fmt"
 	"sync"
 	"time"
@@ -165,7 +165,7 @@ type clusterAccessorLockedState struct {
 	// cert to communicate with etcd.
 	// This private key is stored and cached in the ClusterCache because it's expensive to generate a new
 	// private key in every single Reconcile.
-	clientCertificatePrivateKey *rsa.PrivateKey
+	clientCertificatePrivateKey crypto.Signer
 
 	// healthChecking holds the health checking state (e.g. lastProbeSuccessTime, consecutiveFailures)
 	// of the clusterAccessor.
@@ -286,7 +286,7 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 	// private key generation fails because we check Connected above.
 	if ca.lockedState.clientCertificatePrivateKey == nil {
 		log.V(6).Info("Generating client certificate private key")
-		clientCertificatePrivateKey, err := certs.NewPrivateKey()
+		clientCertificatePrivateKey, err := certs.NewPrivateKey("")
 		if err != nil {
 			return errors.Wrapf(err, "error creating client certificate private key")
 		}
@@ -435,7 +435,7 @@ func (ca *clusterAccessor) GetRESTConfig(ctx context.Context) (*rest.Config, err
 	return ca.lockedState.connection.restConfig, nil
 }
 
-func (ca *clusterAccessor) GetClientCertificatePrivateKey(ctx context.Context) *rsa.PrivateKey {
+func (ca *clusterAccessor) GetClientCertificatePrivateKey(ctx context.Context) crypto.Signer {
 	ca.rLock(ctx)
 	defer ca.rUnlock(ctx)
 

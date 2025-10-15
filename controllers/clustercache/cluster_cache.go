@@ -18,7 +18,7 @@ package clustercache
 
 import (
 	"context"
-	"crypto/rsa"
+	"crypto"
 	"fmt"
 	"os"
 	"strings"
@@ -150,7 +150,7 @@ type ClusterCache interface {
 	//
 	// Deprecated: This method is deprecated and will be removed in a future release as caching a rsa.PrivateKey
 	// is outside the scope of the ClusterCache.
-	GetClientCertificatePrivateKey(ctx context.Context, cluster client.ObjectKey) (*rsa.PrivateKey, error)
+	GetClientCertificatePrivateKey(ctx context.Context, cluster client.ObjectKey) (crypto.Signer, error)
 
 	// Watch watches a workload cluster for events.
 	// Each unique watch (by input.Name) is only added once after a Connect (otherwise we return early).
@@ -417,7 +417,7 @@ func (cc *clusterCache) GetRESTConfig(ctx context.Context, cluster client.Object
 	return accessor.GetRESTConfig(ctx)
 }
 
-func (cc *clusterCache) GetClientCertificatePrivateKey(ctx context.Context, cluster client.ObjectKey) (*rsa.PrivateKey, error) {
+func (cc *clusterCache) GetClientCertificatePrivateKey(ctx context.Context, cluster client.ObjectKey) (crypto.Signer, error) {
 	accessor := cc.getClusterAccessor(cluster)
 	if accessor == nil {
 		return nil, errors.New("error getting client certificate private key: private key was not generated yet")

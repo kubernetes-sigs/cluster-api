@@ -52,7 +52,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 	if endpoint.IsZero() {
 		return ctrl.Result{}, nil
 	}
-
 	controllerOwnerRef := *metav1.NewControllerRef(controlPlane.KCP, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	clusterName := util.ObjectKey(controlPlane.Cluster)
 	configSecret, err := secret.GetFromNamespacedName(ctx, r.SecretCachingClient, clusterName, secret.Kubeconfig)
@@ -64,6 +63,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 			clusterName,
 			endpoint.String(),
 			controllerOwnerRef,
+			controlPlane.GetKeyEncryptionAlgorithm(),
 		)
 		if errors.Is(createErr, kubeconfig.ErrDependentCertificateNotFound) {
 			return ctrl.Result{RequeueAfter: dependentCertRequeueAfter}, nil
@@ -90,7 +90,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 
 	if needsRotation {
 		log.Info("Rotating kubeconfig secret")
-		if err := kubeconfig.RegenerateSecret(ctx, r.Client, configSecret); err != nil {
+		if err := kubeconfig.RegenerateSecret(ctx, r.Client, configSecret, controlPlane.GetKeyEncryptionAlgorithm()); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to regenerate kubeconfig")
 		}
 	}

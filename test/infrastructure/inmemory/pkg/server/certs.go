@@ -17,7 +17,7 @@ limitations under the License.
 package server
 
 import (
-	"crypto/rsa"
+	"crypto"
 	"crypto/x509"
 	"net"
 
@@ -26,19 +26,19 @@ import (
 	"sigs.k8s.io/cluster-api/util/certs"
 )
 
-var key *rsa.PrivateKey
+var key crypto.Signer
 
 func init() {
 	// Create a private key only once, since this is a slow operation and it is ok
 	// to reuse it for all the certificates in a test provider.
 	var err error
-	key, err = certs.NewPrivateKey()
+	key, err = certs.NewPrivateKey("")
 	if err != nil {
 		panic(errors.Wrap(err, "unable to create private key").Error())
 	}
 }
 
-func newCertAndKey(caCert *x509.Certificate, caKey *rsa.PrivateKey, config *certs.Config) (*x509.Certificate, *rsa.PrivateKey, error) {
+func newCertAndKey(caCert *x509.Certificate, caKey crypto.Signer, config *certs.Config) (*x509.Certificate, crypto.Signer, error) {
 	cert, err := config.NewSignedCert(key, caCert, caKey)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "unable to create certificate")

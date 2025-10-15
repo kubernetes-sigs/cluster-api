@@ -18,8 +18,8 @@ package server
 
 import (
 	"context"
+	"crypto"
 	cryptorand "crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -351,7 +351,10 @@ func TestAPI_PortForward(t *testing.T) {
 	cert, key, err := newCertAndKey(etcdCert, etcdKey, config)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	clientCert, err := tls.X509KeyPair(certs.EncodeCertPEM(cert), certs.EncodePrivateKeyPEM(key))
+	encodedKey, err := certs.EncodePrivateKeyPEM(key)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	clientCert, err := tls.X509KeyPair(certs.EncodeCertPEM(cert), encodedKey)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	p2 := inmemoryproxy.Proxy{
@@ -533,8 +536,8 @@ func setupWorkloadClusterListener(g Gomega, ports CustomPorts) (*WorkloadCluster
 }
 
 // newCertificateAuthority creates new certificate and private key for the certificate authority.
-func newCertificateAuthority() (*x509.Certificate, *rsa.PrivateKey, error) {
-	key, err := certs.NewPrivateKey()
+func newCertificateAuthority() (*x509.Certificate, crypto.Signer, error) {
+	key, err := certs.NewPrivateKey("")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -548,7 +551,7 @@ func newCertificateAuthority() (*x509.Certificate, *rsa.PrivateKey, error) {
 }
 
 // newSelfSignedCACert creates a CA certificate.
-func newSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
+func newSelfSignedCACert(key crypto.Signer) (*x509.Certificate, error) {
 	cfg := certs.Config{
 		CommonName: "kubernetes",
 	}

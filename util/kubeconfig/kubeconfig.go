@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -54,14 +55,14 @@ func FromSecret(ctx context.Context, c client.Reader, cluster client.ObjectKey) 
 }
 
 // New creates a new Kubeconfig using the cluster name and specified endpoint.
-func New(clusterName, endpoint string, caCert *x509.Certificate, caKey crypto.Signer) (*api.Config, error) {
+func New(clusterName, endpoint string, caCert *x509.Certificate, caKey crypto.Signer, keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) (*api.Config, error) {
 	cfg := &certs.Config{
 		CommonName:   "kubernetes-admin",
 		Organization: []string{"system:masters"},
 		Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}
 
-	clientKey, err := certs.NewPrivateKey()
+	clientKey, err := certs.NewPrivateKey(keyEncryptionAlgorithm)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create private key")
 	}
@@ -73,6 +74,11 @@ func New(clusterName, endpoint string, caCert *x509.Certificate, caKey crypto.Si
 
 	userName := fmt.Sprintf("%s-admin", clusterName)
 	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
+
+	encodedClientKey, err := certs.EncodePrivateKeyPEM(clientKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to encode private key")
+	}
 
 	return &api.Config{
 		Clusters: map[string]*api.Cluster{
@@ -89,7 +95,7 @@ func New(clusterName, endpoint string, caCert *x509.Certificate, caKey crypto.Si
 		},
 		AuthInfos: map[string]*api.AuthInfo{
 			userName: {
-				ClientKeyData:         certs.EncodePrivateKeyPEM(clientKey),
+				ClientKeyData:         encodedClientKey,
 				ClientCertificateData: certs.EncodeCertPEM(clientCert),
 			},
 		},
@@ -98,23 +104,23 @@ func New(clusterName, endpoint string, caCert *x509.Certificate, caKey crypto.Si
 }
 
 // CreateSecret creates the Kubeconfig secret for the given cluster.
-func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) error {
+func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) error {
 	name := util.ObjectKey(cluster)
 	return CreateSecretWithOwner(ctx, c, name, cluster.Spec.ControlPlaneEndpoint.String(), metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Cluster",
 		Name:       cluster.Name,
 		UID:        cluster.UID,
-	})
+	}, keyEncryptionAlgorithm)
 }
 
 // CreateSecretWithOwner creates the Kubeconfig secret for the given cluster name, namespace, endpoint, and owner reference.
-func CreateSecretWithOwner(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string, owner metav1.OwnerReference) error {
+func CreateSecretWithOwner(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string, owner metav1.OwnerReference, keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) error {
 	server, err := url.JoinPath("https://", endpoint)
 	if err != nil {
 		return err
 	}
-	out, err := generateKubeconfig(ctx, c, clusterName, server)
+	out, err := generateKubeconfig(ctx, c, clusterName, server, keyEncryptionAlgorithm)
 	if err != nil {
 		return err
 	}
@@ -181,7 +187,7 @@ func NeedsClientCertRotation(configSecret *corev1.Secret, threshold time.Duratio
 }
 
 // RegenerateSecret creates and stores a new Kubeconfig in the given secret.
-func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1.Secret) error {
+func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1.Secret, keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) error {
 	clusterName, _, err := secret.ParseSecretName(configSecret.Name)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse secret name")
@@ -197,7 +203,7 @@ func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1
 	}
 	endpoint := config.Clusters[clusterName].Server
 	key := client.ObjectKey{Name: clusterName, Namespace: configSecret.Namespace}
-	out, err := generateKubeconfig(ctx, c, key, endpoint)
+	out, err := generateKubeconfig(ctx, c, key, endpoint, keyEncryptionAlgorithm)
 	if err != nil {
 		return err
 	}
@@ -205,7 +211,7 @@ func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1
 	return c.Update(ctx, configSecret)
 }
 
-func generateKubeconfig(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string) ([]byte, error) {
+func generateKubeconfig(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string, keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) ([]byte, error) {
 	clusterCA, err := secret.GetFromNamespacedName(ctx, c, clusterName, secret.ClusterCA)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -228,7 +234,7 @@ func generateKubeconfig(ctx context.Context, c client.Client, clusterName client
 		return nil, errors.New("CA private key not found")
 	}
 
-	cfg, err := New(clusterName.Name, endpoint, cert, key)
+	cfg, err := New(clusterName.Name, endpoint, cert, key, keyEncryptionAlgorithm)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to generate a kubeconfig")
 	}

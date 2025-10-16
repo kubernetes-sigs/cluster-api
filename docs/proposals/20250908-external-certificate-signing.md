@@ -160,7 +160,7 @@ Since CAPI does not manage CA rotation automatically, the externalCA feature mus
 - [x] 08/05/2025: Proposed idea in an issue
 - [x] 09/03/2025: First round of feedback from community
 - [x] 09/08/2025: Open proposal PR
-- [ ] MM/DD/YYYY: Present proposal at a [community meeting]
+- [x] 24/09/2025: Present proposal at a [community meeting]
 
 <!-- Links -->
 

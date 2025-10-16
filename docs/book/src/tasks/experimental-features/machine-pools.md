@@ -31,10 +31,10 @@ Although MachinePools provide a similar feature to MachineDeployments, MachinePo
 
 The following Cluster API infrastructure providers have implemented support for MachinePools:
 
-| Provider | Implementations | Status | Documentation |
-| --- | --- | --- | --- |
-| AWS | `AWSManagedMachinePool`<br> `AWSMachinePool` | Implemented, MachinePoolMachines supported | https://cluster-api-aws.sigs.k8s.io/topics/machinepools.html|
-| Azure | `AzureASOManagedMachinePool`<br> `AzureManagedMachinePool`<br> `AzureMachinePool` | Implemented, MachinePoolMachines supported | https://capz.sigs.k8s.io/self-managed/machinepools |
-| GCP | `GCPMachinePool` | In Progress | https://github.com/kubernetes-sigs/cluster-api-provider-gcp/pull/1506 |
-| OCI | `OCIManagedMachinePool`<br> `OCIMachinePool` | Implemented, MachinePoolMachines supported | https://oracle.github.io/cluster-api-provider-oci/managed/managedcluster.html |
-| Scaleway | `ScalewayManagedMachinePool` | Implemented | https://github.com/scaleway/cluster-api-provider-scaleway/blob/main/docs/scalewaymanagedmachinepool.md |
+| Provider | Implementations | Status |
+| --- | --- | --- |
+| [AWS](https://cluster-api-aws.sigs.k8s.io/topics/machinepools.html) | `AWSManagedMachinePool`<br> `AWSMachinePool`<br>`ROSAMachinePool` | Implemented, MachinePoolMachines supported |
+| [Azure](https://capz.sigs.k8s.io/self-managed/machinepools) | `AzureASOManagedMachinePool`<br> `AzureManagedMachinePool`<br> `AzureMachinePool` | Implemented, MachinePoolMachines supported |
+| [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/pull/1506) | `GCPMachinePool` | In Progress |
+| [OCI](https://oracle.github.io/cluster-api-provider-oci/managed/managedcluster.html) | `OCIManagedMachinePool`<br> `OCIMachinePool` | Implemented, MachinePoolMachines supported |
+| [Scaleway](https://github.com/scaleway/cluster-api-provider-scaleway/blob/main/docs/scalewaymanagedmachinepool.md) | `ScalewayManagedMachinePool` | Implemented |

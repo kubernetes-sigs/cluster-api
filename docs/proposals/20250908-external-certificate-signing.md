@@ -123,7 +123,7 @@ As a Cluster API user in an enterprise environment, I want to delegate certifica
 
 #### Flexible Bootstrap Provider Support
 
-As a Cluster API user I want that cluster-api provide all necessary configuration to bootstrap providers to be compatible with external signing, so that I can maintain secure certificate flows regardless of the underlying bootstrap mechanism.
+As a Cluster API user I want that it provides all necessary configuration to bootstrap providers to be compatible with external signing, so that I can maintain secure certificate flows regardless of the underlying bootstrap mechanism.
 
 ### Security Model
 

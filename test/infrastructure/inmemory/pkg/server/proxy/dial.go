@@ -35,11 +35,9 @@ const defaultTimeout = 10 * time.Second
 
 // Dialer creates connections using Kubernetes API Server port-forwarding.
 type Dialer struct {
-	proxy          Proxy
-	clientset      *kubernetes.Clientset
-	proxyTransport http.RoundTripper
-	upgrader       spdy.Upgrader
-	timeout        time.Duration
+	proxy     Proxy
+	clientset *kubernetes.Clientset
+	timeout   time.Duration
 }
 
 // NewDialer creates a new dialer for a given API server scope.
@@ -67,12 +65,6 @@ func NewDialer(p Proxy, options ...func(*Dialer) error) (*Dialer, error) {
 	if err != nil {
 		return nil, err
 	}
-	proxyTransport, upgrader, err := spdy.RoundTripperFor(p.KubeConfig)
-	if err != nil {
-		return nil, err
-	}
-	dialer.proxyTransport = proxyTransport
-	dialer.upgrader = upgrader
 	dialer.clientset = clientset
 	return dialer, nil
 }
@@ -85,6 +77,12 @@ func (d *Dialer) DialContextWithAddr(ctx context.Context, addr string) (net.Conn
 // DialContext creates proxied port-forwarded connections.
 // ctx is currently unused, but fulfils the type signature used by GRPC.
 func (d *Dialer) DialContext(_ context.Context, _ string, addr string) (net.Conn, error) {
+	proxyTransport, upgrader, err := spdy.RoundTripperFor(d.proxy.KubeConfig)
+	if err != nil {
+		return nil, err
+	}
+	httpClient := &http.Client{Transport: proxyTransport}
+
 	req := d.clientset.CoreV1().RESTClient().
 		Post().
 		Resource(d.proxy.Kind).
@@ -92,7 +90,7 @@ func (d *Dialer) DialContext(_ context.Context, _ string, addr string) (net.Conn
 		Name(addr).
 		SubResource("portforward")
 
-	dialer := spdy.NewDialer(d.upgrader, &http.Client{Transport: d.proxyTransport}, "POST", req.URL())
+	dialer := spdy.NewDialer(upgrader, httpClient, "POST", req.URL())
 
 	// Create a new connection from the dialer.
 	//

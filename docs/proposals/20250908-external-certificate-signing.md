@@ -85,18 +85,35 @@ This proposal addresses a critical security gap, providing users with a mechanis
 
 ## Proposal
 
-To support external certificate signing and fully external CAs in CAPI, this proposal introduces a spec-level flag in the Cluster resource, e.g., externalCA, externalCAKey, or externalCertSigning. This flag will indicate that the cluster should operate in "external CA mode."
+To support external certificate signing and fully external CAs in CAPI, this proposal introduces a spec-level field `externalCA` in the Cluster resource. This field indicates that the cluster should operate in "external CA mode" and is gated by a feature flag to track its progression from Alpha → Beta → GA.
+
+```
+// externalCA enables external CA mode for the cluster.
+// When enabled, CA keys are not stored or validated in the management cluster's secrets.
+ExternalCA *bool `json:"externalCA,omitempty"`
+```
 
 Key aspects of the proposal:
 
 ### External CA mode
 
-When the flag is enabled, CA keys are no longer required in the CAPI management cluster and must not be stored or validated in secrets.
-CAPI will not generate or manage CA private keys. The CA certificates needs to be provided by the user in Kubernetes secrets with the current format:
+When the flag is explicitly enabled, CA keys are no longer required in the CAPI management cluster and must not be stored or validated in secrets. By default, this feature remains disabled to avoid impacting users who do not rely on external CAs.
+CAPI will not generate or manage CA private keys. The CA certificates needs to be provided by the user in Kubernetes secrets with the following naming convention:
 
 - <cluster-name>-etcd
 - <cluster-name>-ca
 - <cluster-name>-proxy
+
+Each Secret should follow this Kubernetes format:
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: <cluster-name>-<etcd|ca|proxy>
+type: Opaque
+data:
+  ca.crt: <base64-encoded-CA-certificate>
+```
   CAPI should wait for the CA certificates if they are not already provided. CAPI must not adopt these Secrets, as they are the responsibility of the user.”
 
 ### Certificates necessary to Cluster API
@@ -134,7 +151,7 @@ The External CA / External Certificate Signing feature is designed to minimize e
 
 ## Upgrade Strategy
 
-No special upgrade plan is required for this feature. Enabling external CA and external certificate signing does not break existing Cluster API behavior. Clusters that use the default internal CA workflow will remain fully functional.
+Since CAPI does not manage CA rotation automatically, the externalCA feature must be treated as immutable. Enabling it on an existing cluster is not supported.
 
 ## Additional Details
 

@@ -14,8 +14,8 @@ User-> PKI : Generate and submit CSR for etcd-client certificate
 PKI -> User : Sign etcd-client certificate
 PKI -> User : Sign admin certificate
 
-User -> CAPI : Provider admin certificate for kubeconfig
-User -> CAPI : Provider etcd-client certificate for etcd healthcheck and others actions.
+User -> CAPI : Provides admin certificate for kubeconfig
+User -> CAPI : Provides etcd-client certificate for etcd healthcheck and others actions.
 
 CAPI -> CP : Provides ClusterConfiguration / InitConfiguration
 CP -> BP : Provides ClusterConfiguration / InitConfiguration

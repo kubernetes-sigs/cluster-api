@@ -130,7 +130,7 @@ Cluster API user experience MUST be the same when using default, immutable updat
 
 If external update extensions can not cover the totality of the desired changes, CAPI will defer to Cluster API’s default, immutable rollouts. This is important for a couple of reasons:
 
-* It allows to implement custom rollout strategies incrementally, without the need to cover all use cases up-front.
+* It allows to implement in-place update capabilities incrementally, without the need to cover all use cases up-front.
 * There are cases when replacing the machine will always be necessary:
     * When it is not possible to recover the machine, e.g. hardware failure.
     * When the user determines that recovering the machine is too complex/costly vs replacing it. 
@@ -168,11 +168,11 @@ With the introduction of this experimental feature, users may want to apply the 
 
 #### Story 1
 
-As a cluster operator, I want to perform in-place updates on my Kubernetes clusters without replacing the underlying machines. I expect the update process to be flexible, allowing me to customize the strategy based on my specific requirements, such as air-gapped environments or special node configurations.
+As a cluster operator, I want to perform in-place updates on my Kubernetes clusters without replacing the underlying machines. I expect the update process to be flexible and customizable based on specific requirements, such as air-gapped environments or special node configurations.
 
 #### Story 2
 
-As a cluster operator, I want to seamlessly transition between rolling and in-place updates while maintaining a consistent user interface. I appreciate the option to choose or implement my own update strategy,  ensuring that the update process aligns with my organization's unique needs.
+As a cluster operator, I want to seamlessly transition between rolling and in-place updates while maintaining a consistent user interface. I appreciate the option to extend the rollout process with in-place upgrade capabilities, ensuring that the update process aligns with my organization's unique needs.
 
 #### Story 3
 As a cluster operator for resource constrained environments, I want to utilize CAPI pluggable external update mechanism to implement in-place updates without requiring additional compute capacity in a single node cluster.
@@ -265,7 +265,7 @@ Both `KCP` and `MachineDeployment` controllers follow a similar pattern around u
 
 With `InPlaceUpdates` feature gate enabled, CAPI controllers will compute the set of desired changes and iterate over the registered external updaters, requesting through the Runtime Hook the set of changes each updater can handle. The changes supported by an updater can be the complete set of desired changes, a subset of them or an empty set, signaling it cannot handle any of the desired changes.
 
-If any combination of the updaters can handle the desired changes then CAPI will determine that the update can be performed using the external strategy. 
+If any combination of the updaters can handle the desired changes then CAPI will determine that the update can be performed in-place. 
 
 If any of the desired changes cannot be covered by the updaters capabilities, CAPI will determine the desired state cannot be reached through external updaters. In this case, it will fallback to the rolling update strategy, replacing machines as needed. 
 
@@ -472,8 +472,6 @@ metadata:
   name: kcp-1
 spec:
   replicas: 3
-  rolloutStrategy:
-    type: InPlace
 - version: v1.30.0
 + version: v1.31.0
 ```
@@ -724,8 +722,6 @@ kind: MachineDeployment
 metadata:
   name: m-cluster-vsphere-gaslor-md-0
 spec:
-  strategy:
-    type: InPlace
   template:
     spec:
       infrastructureRef:
@@ -858,10 +854,6 @@ kind: MachineDeployment
 metadata:
   name: m-cluster-vsphere-gaslor-md-0
 spec:
-  strategy:
-    type: InPlace
-    fallbackRollingUpdate:
-      maxUnavailable: 1
   template:
     spec:
       infrastructureRef:

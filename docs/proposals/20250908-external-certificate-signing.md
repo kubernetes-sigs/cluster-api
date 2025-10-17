@@ -114,7 +114,7 @@ type: Opaque
 data:
   ca.crt: <base64-encoded-CA-certificate>
 ```
-  CAPI should wait for the CA certificates if they are not already provided. CAPI must not adopt these Secrets, as they are the responsibility of the user.”
+  CAPI should wait for the CA certificates if they are not already provided. CAPI must not adopt these Secrets, as they are the responsibility of the user.
 
 ### Certificates necessary to Cluster API
 

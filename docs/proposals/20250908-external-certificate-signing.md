@@ -55,7 +55,7 @@ With this approach, the CAPI user is responsible for setting up a system to prov
 
 Currently, CAPI generates and manages CA keys within the management cluster. These keys are also distributed to control plane nodes via cloud-init userdata during bootstrap. This design exposes several security risks:
 
-- Key exposure in the management cluster: Anyone with access to the management cluster potentially has access to the CA keys.
+- Key exposure in the management cluster: Anyone with access to the management cluster's Secrets has access to the CA keys.
 - Key transit over cloud-init: The CA private keys travel over cloud-init user data during control plane provisioning, which could be intercepted or leaked.
 - Privilege escalation risk: With access to CA keys, an attacker can sign admin or superadmin certificates, gaining full control over clusters and workloads.
 

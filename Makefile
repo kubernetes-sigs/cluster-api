@@ -73,6 +73,11 @@ OBSERVABILITY_DIR := hack/observability
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
+# DBG=1 for building binaries which includes DWARF and symbol table for delve
+# degubbing. When DBG is unspecified it defaults to "-s -w" which strips debug
+# information.
+export DBG ?= 0
+
 #
 # Ginkgo configuration.
 #

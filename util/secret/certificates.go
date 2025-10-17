@@ -486,7 +486,7 @@ func generateCACert(validityPeriodDays int32, keyAlgorithmType bootstrapv1.Encry
 	if err != nil {
 		return nil, err
 	}
-	encodedKey, err := certs.EncodePrivateKeyPEM(privateKey)
+	encodedKey, err := certs.EncodePrivateKeyPEMFromSigner(privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -497,15 +497,15 @@ func generateCACert(validityPeriodDays int32, keyAlgorithmType bootstrapv1.Encry
 }
 
 func generateServiceAccountKeys(_ int32, keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) (*certs.KeyPair, error) {
-	saCreds, err := certs.NewPrivateKey(keyEncryptionAlgorithm)
+	saCreds, err := certs.NewSigner(keyEncryptionAlgorithm)
 	if err != nil {
 		return nil, err
 	}
-	saPub, err := certs.EncodePublicKeyPEM(saCreds)
+	saPub, err := certs.EncodePublicKeyPEMFromSigner(saCreds)
 	if err != nil {
 		return nil, err
 	}
-	saKey, err := certs.EncodePrivateKeyPEM(saCreds)
+	saKey, err := certs.EncodePrivateKeyPEMFromSigner(saCreds)
 	if err != nil {
 		return nil, err
 	}
@@ -518,7 +518,7 @@ func generateServiceAccountKeys(_ int32, keyEncryptionAlgorithm bootstrapv1.Encr
 
 // newCertificateAuthority creates new certificate and private key for the certificate authority.
 func newCertificateAuthority(validityPeriodDays int32, keyAlgorithmType bootstrapv1.EncryptionAlgorithmType) (*x509.Certificate, crypto.Signer, error) {
-	key, err := certs.NewPrivateKey(keyAlgorithmType)
+	key, err := certs.NewSigner(keyAlgorithmType)
 	if err != nil {
 		return nil, nil, err
 	}

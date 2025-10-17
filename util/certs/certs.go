@@ -33,19 +33,9 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 )
 
-// NewPrivateKey creates a private key based on the provided keyAlgorithm.
-func NewPrivateKey(keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) (crypto.Signer, error) {
-	switch keyEncryptionAlgorithm {
-	case bootstrapv1.EncryptionAlgorithmECDSAP256:
-		return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	case bootstrapv1.EncryptionAlgorithmECDSAP384:
-		return ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	}
-	rsaKeySize := rsaKeySizeFromAlgorithmType(keyEncryptionAlgorithm)
-	if rsaKeySize == 0 {
-		return nil, errors.Errorf("cannot obtain key size from unknown RSA algorithm: %q", keyEncryptionAlgorithm)
-	}
-	pk, err := rsa.GenerateKey(rand.Reader, rsaKeySize)
+// NewPrivateKey creates an RSA private key.
+func NewPrivateKey() (*rsa.PrivateKey, error) {
+	pk, err := rsa.GenerateKey(rand.Reader, DefaultRSAKeySize)
 	return pk, errors.WithStack(err)
 }
 
@@ -59,23 +49,18 @@ func EncodeCertPEM(cert *x509.Certificate) []byte {
 }
 
 // EncodePrivateKeyPEM returns PEM-encoded private key data.
-func EncodePrivateKeyPEM(key crypto.Signer) ([]byte, error) {
-	privateBytes, err := x509.MarshalPKCS8PrivateKey(key)
-	if err != nil {
-		return nil, fmt.Errorf("unable to marshal private key: %v", err)
-	}
-
+func EncodePrivateKeyPEM(key *rsa.PrivateKey) []byte {
 	block := pem.Block{
 		Type:  "RSA PRIVATE KEY",
-		Bytes: privateBytes,
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	}
 
-	return pem.EncodeToMemory(&block), nil
+	return pem.EncodeToMemory(&block)
 }
 
 // EncodePublicKeyPEM returns PEM-encoded public key data.
-func EncodePublicKeyPEM(key crypto.Signer) ([]byte, error) {
-	der, err := x509.MarshalPKIXPublicKey(key.Public())
+func EncodePublicKeyPEM(key *rsa.PublicKey) ([]byte, error) {
+	der, err := x509.MarshalPKIXPublicKey(key)
 	if err != nil {
 		return []byte{}, errors.WithStack(err)
 	}
@@ -132,6 +117,50 @@ func DecodePrivateKeyPEM(encoded []byte) (crypto.Signer, error) {
 	errs = append(errs, ecErr)
 
 	return nil, kerrors.NewAggregate(errs)
+}
+
+// NewSigner creates a private key based on the provided encryption key algorithm.
+func NewSigner(keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) (crypto.Signer, error) {
+	switch keyEncryptionAlgorithm {
+	case bootstrapv1.EncryptionAlgorithmECDSAP256:
+		return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	case bootstrapv1.EncryptionAlgorithmECDSAP384:
+		return ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	}
+	rsaKeySize := rsaKeySizeFromAlgorithmType(keyEncryptionAlgorithm)
+	if rsaKeySize == 0 {
+		return nil, errors.Errorf("cannot obtain key size from unknown RSA algorithm: %q", keyEncryptionAlgorithm)
+	}
+	pk, err := rsa.GenerateKey(rand.Reader, rsaKeySize)
+	return pk, errors.WithStack(err)
+}
+
+// EncodePrivateKeyPEMFromSigner returns PEM-encoded private key data.
+func EncodePrivateKeyPEMFromSigner(key crypto.Signer) ([]byte, error) {
+	privateBytes, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		return nil, fmt.Errorf("unable to marshal private key: %v", err)
+	}
+
+	block := pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: privateBytes,
+	}
+
+	return pem.EncodeToMemory(&block), nil
+}
+
+// EncodePublicKeyPEMFromSigner returns PEM-encoded public key data.
+func EncodePublicKeyPEMFromSigner(key crypto.Signer) ([]byte, error) {
+	der, err := x509.MarshalPKIXPublicKey(key.Public())
+	if err != nil {
+		return []byte{}, errors.WithStack(err)
+	}
+	block := pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: der,
+	}
+	return pem.EncodeToMemory(&block), nil
 }
 
 // rsaKeySizeFromAlgorithmType takes a known RSA algorithm defined in the kubeadm API

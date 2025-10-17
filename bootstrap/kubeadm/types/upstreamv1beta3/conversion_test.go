@@ -276,6 +276,7 @@ func hubClusterConfigurationFuzzer(obj *bootstrapv1.ClusterConfiguration, c rand
 
 	obj.CertificateValidityPeriodDays = 0
 	obj.CACertificateValidityPeriodDays = 0
+	obj.EncryptionAlgorithm = ""
 
 	for i, arg := range obj.APIServer.ExtraArgs {
 		if arg.Value == nil {

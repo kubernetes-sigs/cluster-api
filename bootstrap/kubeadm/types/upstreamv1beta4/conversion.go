@@ -67,7 +67,6 @@ func (dst *JoinConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 func Convert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in CABPK v1beta1 version:
 	// - Proxy (Not supported yet)
-	// - EncryptionAlgorithm (Not supported yet)
 	if err := autoConvert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguration(in, out, s); err != nil {
 		return err
 	}

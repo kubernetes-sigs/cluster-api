@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -88,6 +87,7 @@ type WorkloadCluster interface {
 	UpdateControllerManagerInKubeadmConfigMap(controllerManager bootstrapv1.ControllerManager) func(*bootstrapv1.ClusterConfiguration)
 	UpdateSchedulerInKubeadmConfigMap(scheduler bootstrapv1.Scheduler) func(*bootstrapv1.ClusterConfiguration)
 	UpdateCertificateValidityPeriodDays(certificateValidityPeriodDays int32) func(*bootstrapv1.ClusterConfiguration)
+	UpdateEncryptionAlgorithm(encryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) func(*bootstrapv1.ClusterConfiguration)
 	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
@@ -192,6 +192,13 @@ func (w *Workload) UpdateSchedulerInKubeadmConfigMap(scheduler bootstrapv1.Sched
 func (w *Workload) UpdateCertificateValidityPeriodDays(certificateValidityPeriodDays int32) func(*bootstrapv1.ClusterConfiguration) {
 	return func(c *bootstrapv1.ClusterConfiguration) {
 		c.CertificateValidityPeriodDays = certificateValidityPeriodDays
+	}
+}
+
+// UpdateEncryptionAlgorithm updates EncryptionAlgorithmType in kubeadm config map.
+func (w *Workload) UpdateEncryptionAlgorithm(encryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) func(*bootstrapv1.ClusterConfiguration) {
+	return func(c *bootstrapv1.ClusterConfiguration) {
+		c.EncryptionAlgorithm = encryptionAlgorithm
 	}
 }
 
@@ -347,7 +354,7 @@ func calculateAPIServerPort(config *bootstrapv1.KubeadmConfig) int32 {
 	return 6443
 }
 
-func generateClientCert(caCertEncoded, caKeyEncoded []byte) (tls.Certificate, error) {
+func generateClientCert(caCertEncoded, caKeyEncoded []byte, keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) (tls.Certificate, error) {
 	caCert, err := certs.DecodeCertPEM(caCertEncoded)
 	if err != nil {
 		return tls.Certificate{}, err
@@ -356,18 +363,39 @@ func generateClientCert(caCertEncoded, caKeyEncoded []byte) (tls.Certificate, er
 	if err != nil {
 		return tls.Certificate{}, err
 	}
-	clientKey, err := certs.NewPrivateKey()
-	if err != nil {
-		return tls.Certificate{}, err
+
+	var x509Cert *x509.Certificate
+	var encodedClientKey []byte
+
+	if keyEncryptionAlgorithm != "" {
+		clientKey, err := certs.NewSigner(keyEncryptionAlgorithm)
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+		x509Cert, err = newClientCert(caCert, clientKey, caKey)
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+		encodedClientKey, err = certs.EncodePrivateKeyPEMFromSigner(clientKey)
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+	} else {
+		clientKey, err := certs.NewPrivateKey()
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+		x509Cert, err = newClientCert(caCert, clientKey, caKey)
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+		encodedClientKey = certs.EncodePrivateKeyPEM(clientKey)
 	}
-	x509Cert, err := newClientCert(caCert, clientKey, caKey)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-	return tls.X509KeyPair(certs.EncodeCertPEM(x509Cert), certs.EncodePrivateKeyPEM(clientKey))
+
+	return tls.X509KeyPair(certs.EncodeCertPEM(x509Cert), encodedClientKey)
 }
 
-func newClientCert(caCert *x509.Certificate, key *rsa.PrivateKey, caKey crypto.Signer) (*x509.Certificate, error) {
+func newClientCert(caCert *x509.Certificate, key crypto.Signer, caKey crypto.Signer) (*x509.Certificate, error) {
 	cfg := certs.Config{
 		CommonName: "cluster-api.x-k8s.io",
 	}

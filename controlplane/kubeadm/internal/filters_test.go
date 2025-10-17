@@ -324,7 +324,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 +     CertificatesDir: "foo",
       ImageRepository: "",
       FeatureGates:    nil,
-      ... // 2 identical fields
+      ... // 3 identical fields
     },
     InitConfiguration: {NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
     JoinConfiguration: {NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
@@ -1659,7 +1659,7 @@ func TestUpToDate(t *testing.T) {
 +     CertificatesDir: "bar",
       ImageRepository: "",
       FeatureGates:    nil,
-      ... // 2 identical fields
+      ... // 3 identical fields
     },
     InitConfiguration: {NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
     JoinConfiguration: {NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},

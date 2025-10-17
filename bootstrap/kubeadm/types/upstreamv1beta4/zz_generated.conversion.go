@@ -430,7 +430,7 @@ func autoConvert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfigur
 	out.ImageRepository = in.ImageRepository
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
 	// WARNING: in.ClusterName requires manual conversion: does not exist in peer-type
-	// WARNING: in.EncryptionAlgorithm requires manual conversion: does not exist in peer-type
+	out.EncryptionAlgorithm = v1beta2.EncryptionAlgorithmType(in.EncryptionAlgorithm)
 	// WARNING: in.CertificateValidityPeriod requires manual conversion: does not exist in peer-type
 	// WARNING: in.CACertificateValidityPeriod requires manual conversion: does not exist in peer-type
 	return nil
@@ -458,6 +458,7 @@ func autoConvert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfigur
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
 	// WARNING: in.CertificateValidityPeriodDays requires manual conversion: does not exist in peer-type
 	// WARNING: in.CACertificateValidityPeriodDays requires manual conversion: does not exist in peer-type
+	out.EncryptionAlgorithm = EncryptionAlgorithmType(in.EncryptionAlgorithm)
 	return nil
 }
 

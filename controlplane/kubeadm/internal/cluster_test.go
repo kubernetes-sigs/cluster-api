@@ -249,7 +249,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 			})
 			g.Expect(err).ToNot(HaveOccurred())
 
-			workloadCluster, err := m.GetWorkloadCluster(ctx, tt.clusterKey)
+			workloadCluster, err := m.GetWorkloadCluster(ctx, tt.clusterKey, "")
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(workloadCluster).To(BeNil())

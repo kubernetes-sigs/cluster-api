@@ -60,12 +60,21 @@ type Options struct {
 	// will never be created.
 	WatchFilterValue string
 
+	// ClusterFilter is a function that can be used to filter which clusters should be handled
+	// by the ClusterCache. If nil, all clusters will be handled. If set, only clusters for which
+	// the filter returns true will be handled.
+	ClusterFilter ClusterFilter
+
 	// Cache are the cache options for the caches that are created per cluster.
 	Cache CacheOptions
 
 	// Client are the client options for the clients that are created per cluster.
 	Client ClientOptions
 }
+
+// ClusterFilter is a function that filters which clusters should be handled by the ClusterCache.
+// It returns true if the cluster should be handled, false otherwise.
+type ClusterFilter func(cluster *clusterv1.Cluster) bool
 
 // CacheOptions are the cache options for the caches that are created per cluster.
 type CacheOptions struct {
@@ -364,6 +373,11 @@ type clusterCache struct {
 
 	// cacheCtxCancel is used during Shutdown to stop caches.
 	cacheCtxCancel context.CancelCauseFunc
+
+	// ClusterFilter is a function that can be used to filter which clusters should be handled
+	// by the ClusterCache. If nil, all clusters will be handled. If set, only clusters for which
+	// the filter returns true will be handled.
+	clusterFilter ClusterFilter
 }
 
 // clusterSource stores the necessary information so we can enqueue reconcile.Requests for reconcilers that
@@ -466,6 +480,15 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 		// Requeue, error getting the object.
 		log.Error(err, fmt.Sprintf("Requeuing after %s (error getting Cluster object)", defaultRequeueAfter))
 		return ctrl.Result{RequeueAfter: defaultRequeueAfter}, nil
+	}
+
+	// Apply cluster filter if set
+	if cc.clusterFilter != nil && !cc.clusterFilter(cluster) {
+		log.V(6).Info("Cluster filtered out by ClusterFilter, not connecting")
+		accessor.Disconnect(ctx)
+		cc.deleteClusterAccessor(clusterKey)
+		cc.cleanupClusterSourcesForCluster(clusterKey)
+		return ctrl.Result{}, nil
 	}
 
 	// Return if infrastructure is not ready yet to avoid trying to open a connection when it cannot succeed.

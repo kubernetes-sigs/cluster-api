@@ -1332,6 +1332,15 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 
+		// Add UnhealthyMachineConditions to test machine condition evaluation
+		mhc.Spec.Checks.UnhealthyMachineConditions = []clusterv1.UnhealthyMachineCondition{
+			{
+				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:         metav1.ConditionFalse,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
+			},
+		}
+
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
 			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
@@ -2876,13 +2885,6 @@ func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHeal
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionUnknown,
-						TimeoutSeconds: ptr.To(int32(5 * 60)),
-					},
-				},
-				UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
-					{
-						Type:           clusterv1.MachineReadyCondition,
-						Status:         metav1.ConditionUnknown,
 						TimeoutSeconds: ptr.To(int32(5 * 60)),
 					},
 				},

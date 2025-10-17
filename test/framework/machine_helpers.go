@@ -229,8 +229,8 @@ type PatchNodeConditionInput struct {
 	Machine       clusterv1.Machine
 }
 
-// PatchNodeCondition patches a node condition to any one of the machines with a node ref.
-func PatchNodeCondition(ctx context.Context, input PatchNodeConditionInput) {
+// PatchNodeCondition patches a node condition to any one of the machines with a node ref. The node name is returned.
+func PatchNodeCondition(ctx context.Context, input PatchNodeConditionInput) string {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for PatchNodeConditions")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling PatchNodeConditions")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling PatchNodeConditions")
@@ -249,6 +249,7 @@ func PatchNodeCondition(ctx context.Context, input PatchNodeConditionInput) {
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, node)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch node %s", input.Machine.Status.NodeRef.Name)
+	return node.Name
 }
 
 // MachineStatusCheck is a type that operates a status check on a Machine.

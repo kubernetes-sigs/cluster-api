@@ -19,6 +19,7 @@ package v1beta2
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
@@ -97,6 +98,29 @@ type MachinePoolSpec struct {
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=256
 	FailureDomains []string `json:"failureDomains,omitempty"`
+
+	// remediation controls how unhealthy Machines are remediated (through a MachineHealthCheck).
+	// This only applies to infrastructure providers supporting and enabling the
+	// "MachinePool Machines" feature. For other setups, no remediation is done.
+	// +optional
+	Remediation MachinePoolRemediationSpec `json:"remediation,omitempty,omitzero"`
+}
+
+// MachinePoolRemediationSpec controls how unhealthy Machines are remediated (through a MachineHealthCheck).
+// This only applies to infrastructure providers supporting and enabling the
+// "MachinePool Machines" feature. For other setups, no remediation is done.
+// +kubebuilder:validation:MinProperties=1
+type MachinePoolRemediationSpec struct {
+	// maxInFlight determines how many in flight remediations should happen at the same time.
+	//
+	// MaxInFlight can be set to a fixed number or a percentage.
+	// Example: when this is set to 20%, the MachinePool controller deletes at most 20% of
+	// the desired replicas.
+	//
+	// If not set, remediation is limited to all machines under the active MachinePool's management.
+	//
+	// +optional
+	MaxInFlight *intstr.IntOrString `json:"maxInFlight,omitempty"`
 }
 
 // MachinePoolStatus defines the observed state of MachinePool.

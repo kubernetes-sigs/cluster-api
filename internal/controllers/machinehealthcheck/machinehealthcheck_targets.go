@@ -45,8 +45,8 @@ const (
 
 	// EventMachineMarkedUnhealthy is emitted when machine was successfully marked as unhealthy.
 	EventMachineMarkedUnhealthy string = "MachineMarkedUnhealthy"
-	// EventDetectedUnhealthy is emitted in case a node associated with a
-	// machine was detected unhealthy.
+	// EventDetectedUnhealthy is emitted in case a machine or its associated
+	// node was detected unhealthy.
 	EventDetectedUnhealthy string = "DetectedUnhealthy"
 )
 
@@ -448,7 +448,7 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 				t.Machine,
 				corev1.EventTypeNormal,
 				EventDetectedUnhealthy,
-				"Machine %s has unhealthy Node %s",
+				"Machine %s (Node %s) is failing machine health check rules and it is likely to go unhealthy",
 				klog.KObj(t.Machine),
 				t.nodeName(),
 			)

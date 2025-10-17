@@ -18,8 +18,8 @@ package inmemory
 
 import (
 	"context"
-	"crypto"
 	cryptorand "crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
@@ -763,9 +763,6 @@ func createCASecret(t *testing.T, cluster *clusterv1.Cluster, purpose secretutil
 	cert, key, err := newCertificateAuthority()
 	g.Expect(err).ToNot(HaveOccurred())
 
-	encodedKey, err := certs.EncodePrivateKeyPEM(key)
-	g.Expect(err).ToNot(HaveOccurred())
-
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
@@ -775,7 +772,7 @@ func createCASecret(t *testing.T, cluster *clusterv1.Cluster, purpose secretutil
 			},
 		},
 		Data: map[string][]byte{
-			secretutil.TLSKeyDataName: encodedKey,
+			secretutil.TLSKeyDataName: certs.EncodePrivateKeyPEM(key),
 			secretutil.TLSCrtDataName: certs.EncodeCertPEM(cert),
 		},
 		Type: clusterv1.ClusterSecretType,
@@ -785,8 +782,8 @@ func createCASecret(t *testing.T, cluster *clusterv1.Cluster, purpose secretutil
 // TODO: make this public functions in server/certs.go or in a new util package.
 
 // newCertificateAuthority creates new certificate and private key for the certificate authority.
-func newCertificateAuthority() (*x509.Certificate, crypto.Signer, error) {
-	key, err := certs.NewPrivateKey("")
+func newCertificateAuthority() (*x509.Certificate, *rsa.PrivateKey, error) {
+	key, err := certs.NewPrivateKey()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -800,7 +797,7 @@ func newCertificateAuthority() (*x509.Certificate, crypto.Signer, error) {
 }
 
 // newSelfSignedCACert creates a CA certificate.
-func newSelfSignedCACert(key crypto.Signer) (*x509.Certificate, error) {
+func newSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 	cfg := certs.Config{
 		CommonName: "kubernetes",
 	}

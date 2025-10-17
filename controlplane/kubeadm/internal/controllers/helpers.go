@@ -63,7 +63,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 			clusterName,
 			endpoint.String(),
 			controllerOwnerRef,
-			controlPlane.GetKeyEncryptionAlgorithm(),
+			kubeconfig.KeyEncryptionAlgorithm(controlPlane.GetKeyEncryptionAlgorithm()),
 		)
 		if errors.Is(createErr, kubeconfig.ErrDependentCertificateNotFound) {
 			return ctrl.Result{RequeueAfter: dependentCertRequeueAfter}, nil
@@ -90,7 +90,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 
 	if needsRotation {
 		log.Info("Rotating kubeconfig secret")
-		if err := kubeconfig.RegenerateSecret(ctx, r.Client, configSecret, controlPlane.GetKeyEncryptionAlgorithm()); err != nil {
+		if err := kubeconfig.RegenerateSecret(ctx, r.Client, configSecret, kubeconfig.KeyEncryptionAlgorithm(controlPlane.GetKeyEncryptionAlgorithm())); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to regenerate kubeconfig")
 		}
 	}

@@ -363,18 +363,35 @@ func generateClientCert(caCertEncoded, caKeyEncoded []byte, keyEncryptionAlgorit
 	if err != nil {
 		return tls.Certificate{}, err
 	}
-	clientKey, err := certs.NewPrivateKey(keyEncryptionAlgorithm)
-	if err != nil {
-		return tls.Certificate{}, err
+
+	var x509Cert *x509.Certificate
+	var encodedClientKey []byte
+
+	if keyEncryptionAlgorithm != "" {
+		clientKey, err := certs.NewSigner(keyEncryptionAlgorithm)
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+		x509Cert, err = newClientCert(caCert, clientKey, caKey)
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+		encodedClientKey, err = certs.EncodePrivateKeyPEMFromSigner(clientKey)
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+	} else {
+		clientKey, err := certs.NewPrivateKey()
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+		x509Cert, err = newClientCert(caCert, clientKey, caKey)
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+		encodedClientKey = certs.EncodePrivateKeyPEM(clientKey)
 	}
-	x509Cert, err := newClientCert(caCert, clientKey, caKey)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-	encodedClientKey, err := certs.EncodePrivateKeyPEM(clientKey)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
+
 	return tls.X509KeyPair(certs.EncodeCertPEM(x509Cert), encodedClientKey)
 }
 

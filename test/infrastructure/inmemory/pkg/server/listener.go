@@ -17,7 +17,7 @@ limitations under the License.
 package server
 
 import (
-	"crypto"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -45,11 +45,11 @@ type WorkloadClusterListener struct {
 
 	apiServers                  sets.Set[string]
 	apiServerCaCertificate      *x509.Certificate
-	apiServerCaKey              crypto.Signer
+	apiServerCaKey              *rsa.PrivateKey
 	apiServerServingCertificate *tls.Certificate
 
 	adminCertificate *x509.Certificate
-	adminKey         crypto.Signer
+	adminKey         *rsa.PrivateKey
 
 	etcdMembers             sets.Set[string]
 	etcdServingCertificates map[string]*tls.Certificate
@@ -84,11 +84,6 @@ func (s *WorkloadClusterListener) HostPort() string {
 
 // RESTConfig returns the rest config for a WorkloadClusterListener.
 func (s *WorkloadClusterListener) RESTConfig() (*rest.Config, error) {
-	encodedKey, err := certs.EncodePrivateKeyPEM(s.adminKey)
-	if err != nil {
-		return nil, err
-	}
-
 	kubeConfig := clientcmdapi.Config{
 		Clusters: map[string]*clientcmdapi.Cluster{
 			"in-memory": {
@@ -100,7 +95,7 @@ func (s *WorkloadClusterListener) RESTConfig() (*rest.Config, error) {
 			"in-memory": {
 				Username:              "in-memory",
 				ClientCertificateData: certs.EncodeCertPEM(s.adminCertificate), // TODO: convert to PEM
-				ClientKeyData:         encodedKey,                              // TODO: convert to PEM
+				ClientKeyData:         certs.EncodePrivateKeyPEM(s.adminKey),   // TODO: convert to PEM
 			},
 		},
 		Contexts: map[string]*clientcmdapi.Context{

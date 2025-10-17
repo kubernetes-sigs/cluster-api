@@ -72,7 +72,6 @@ func Convert_upstreamv1beta4_ClusterConfiguration_To_v1beta2_ClusterConfiguratio
 	}
 	out.CertificateValidityPeriodDays = convertToDays(in.CertificateValidityPeriod)
 	out.CACertificateValidityPeriodDays = convertToDays(in.CACertificateValidityPeriod)
-	out.EncryptionAlgorithm = bootstrapv1.EncryptionAlgorithmType(in.EncryptionAlgorithm)
 	return nil
 }
 
@@ -83,7 +82,6 @@ func Convert_v1beta2_ClusterConfiguration_To_upstreamv1beta4_ClusterConfiguratio
 	}
 	out.CertificateValidityPeriod = convertFromDays(in.CertificateValidityPeriodDays)
 	out.CACertificateValidityPeriod = convertFromDays(in.CACertificateValidityPeriodDays)
-	out.EncryptionAlgorithm = EncryptionAlgorithmType(in.EncryptionAlgorithm)
 	return nil
 }
 

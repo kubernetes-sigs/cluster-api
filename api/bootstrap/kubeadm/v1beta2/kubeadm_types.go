@@ -217,10 +217,10 @@ type ClusterConfiguration struct {
 	// +kubebuilder:validation:Maximum=36500
 	CACertificateValidityPeriodDays int32 `json:"caCertificateValidityPeriodDays,omitempty"`
 
-	// EncryptionAlgorithm holds the type of asymmetric encryption algorithm used for keys and certificates.
+	// encryptionAlgorithm holds the type of asymmetric encryption algorithm used for keys and certificates.
 	// Can be one of "RSA-2048", "RSA-3072", "RSA-4096", "ECDSA-P256" or "ECDSA-P384".
 	// If not specified, Cluster API will use RSA-2048 as default.
-	// This field is only supported with Kubernetes v1.34 or above.
+	// This field is only supported with Kubernetes v1.31 or above.
 	// +optional
 	EncryptionAlgorithm EncryptionAlgorithmType `json:"encryptionAlgorithm,omitempty"`
 }

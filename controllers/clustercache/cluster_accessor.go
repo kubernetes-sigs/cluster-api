@@ -286,7 +286,7 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 	// private key generation fails because we check Connected above.
 	if ca.lockedState.clientCertificatePrivateKey == nil {
 		log.V(6).Info("Generating client certificate private key")
-		clientCertificatePrivateKey, err := certs.NewPrivateKey("")
+		clientCertificatePrivateKey, err := certs.NewPrivateKey()
 		if err != nil {
 			return errors.Wrapf(err, "error creating client certificate private key")
 		}

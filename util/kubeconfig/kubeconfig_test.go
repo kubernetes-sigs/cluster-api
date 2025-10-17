@@ -17,8 +17,8 @@ limitations under the License.
 package kubeconfig
 
 import (
-	"crypto"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"math/big"
@@ -93,7 +93,7 @@ func TestGetKubeConfigSecret(t *testing.T) {
 	g.Expect(found).To(Equal(validSecret.Data[secret.KubeconfigDataName]))
 }
 
-func getTestCACert(key crypto.Signer) (*x509.Certificate, error) {
+func getTestCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 	cfg := certs.Config{
 		CommonName: "kubernetes",
 	}
@@ -155,13 +155,13 @@ func TestNew(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		caKey, err := certs.NewPrivateKey("")
+		caKey, err := certs.NewPrivateKey()
 		g.Expect(err).ToNot(HaveOccurred())
 
 		caCert, err := getTestCACert(caKey)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		actualConfig, actualError := New(tc.cluster, tc.endpoint, caCert, caKey, "")
+		actualConfig, actualError := New(tc.cluster, tc.endpoint, caCert, caKey)
 		if tc.expectError {
 			g.Expect(actualError).To(HaveOccurred())
 			continue
@@ -232,13 +232,10 @@ func TestGenerateSecret(t *testing.T) {
 func TestCreateSecretWithOwner(t *testing.T) {
 	g := NewWithT(t)
 
-	caKey, err := certs.NewPrivateKey("")
+	caKey, err := certs.NewPrivateKey()
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caCert, err := getTestCACert(caKey)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	encodedKey, err := certs.EncodePrivateKeyPEM(caKey)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caSecret := &corev1.Secret{
@@ -247,7 +244,7 @@ func TestCreateSecretWithOwner(t *testing.T) {
 			Namespace: "test",
 		},
 		Data: map[string][]byte{
-			secret.TLSKeyDataName: encodedKey,
+			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(caKey),
 			secret.TLSCrtDataName: certs.EncodeCertPEM(caCert),
 		},
 	}
@@ -269,7 +266,6 @@ func TestCreateSecretWithOwner(t *testing.T) {
 		},
 		"localhost:6443",
 		owner,
-		"",
 	)
 
 	g.Expect(err).ToNot(HaveOccurred())
@@ -291,13 +287,10 @@ func TestCreateSecretWithOwner(t *testing.T) {
 func TestCreateSecretWithOwnerHasEndpointPrefixIsSlush(t *testing.T) {
 	g := NewWithT(t)
 
-	caKey, err := certs.NewPrivateKey("")
+	caKey, err := certs.NewPrivateKey()
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caCert, err := getTestCACert(caKey)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	encodedKey, err := certs.EncodePrivateKeyPEM(caKey)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caSecret := &corev1.Secret{
@@ -306,7 +299,7 @@ func TestCreateSecretWithOwnerHasEndpointPrefixIsSlush(t *testing.T) {
 			Namespace: "test",
 		},
 		Data: map[string][]byte{
-			secret.TLSKeyDataName: encodedKey,
+			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(caKey),
 			secret.TLSCrtDataName: certs.EncodeCertPEM(caCert),
 		},
 	}
@@ -328,7 +321,6 @@ func TestCreateSecretWithOwnerHasEndpointPrefixIsSlush(t *testing.T) {
 		},
 		"/localhost:6443",
 		owner,
-		"",
 	)
 
 	g.Expect(err).ToNot(HaveOccurred())
@@ -350,13 +342,10 @@ func TestCreateSecretWithOwnerHasEndpointPrefixIsSlush(t *testing.T) {
 func TestCreateSecret(t *testing.T) {
 	g := NewWithT(t)
 
-	caKey, err := certs.NewPrivateKey("")
+	caKey, err := certs.NewPrivateKey()
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caCert, err := getTestCACert(caKey)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	encodedKey, err := certs.EncodePrivateKeyPEM(caKey)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caSecret := &corev1.Secret{
@@ -365,7 +354,7 @@ func TestCreateSecret(t *testing.T) {
 			Namespace: "test",
 		},
 		Data: map[string][]byte{
-			secret.TLSKeyDataName: encodedKey,
+			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(caKey),
 			secret.TLSCrtDataName: certs.EncodeCertPEM(caCert),
 		},
 	}
@@ -389,7 +378,6 @@ func TestCreateSecret(t *testing.T) {
 		ctx,
 		c,
 		cluster,
-		"",
 	)
 
 	g.Expect(err).ToNot(HaveOccurred())
@@ -416,13 +404,13 @@ func TestCreateSecret(t *testing.T) {
 
 func TestNeedsClientCertRotation(t *testing.T) {
 	g := NewWithT(t)
-	caKey, err := certs.NewPrivateKey("")
+	caKey, err := certs.NewPrivateKey()
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caCert, err := getTestCACert(caKey)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	config, err := New("foo", "https://127:0.0.1:4003", caCert, caKey, "")
+	config, err := New("foo", "https://127:0.0.1:4003", caCert, caKey)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	out, err := clientcmd.Write(*config)
@@ -449,13 +437,10 @@ func TestNeedsClientCertRotation(t *testing.T) {
 
 func TestRegenerateClientCerts(t *testing.T) {
 	g := NewWithT(t)
-	caKey, err := certs.NewPrivateKey("")
+	caKey, err := certs.NewPrivateKey()
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caCert, err := getTestCACert(caKey)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	encodedKey, err := certs.EncodePrivateKeyPEM(caKey)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caSecret := &corev1.Secret{
@@ -464,7 +449,7 @@ func TestRegenerateClientCerts(t *testing.T) {
 			Namespace: "test",
 		},
 		Data: map[string][]byte{
-			secret.TLSKeyDataName: encodedKey,
+			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(caKey),
 			secret.TLSCrtDataName: certs.EncodeCertPEM(caCert),
 		},
 	}
@@ -476,7 +461,7 @@ func TestRegenerateClientCerts(t *testing.T) {
 	oldCert, err := certs.DecodeCertPEM(oldConfig.AuthInfos["test1-admin"].ClientCertificateData)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	g.Expect(RegenerateSecret(ctx, c, validSecret, "")).To(Succeed())
+	g.Expect(RegenerateSecret(ctx, c, validSecret)).To(Succeed())
 
 	newSecret := &corev1.Secret{}
 	g.Expect(c.Get(ctx, util.ObjectKey(validSecret), newSecret)).To(Succeed())

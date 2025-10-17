@@ -4158,10 +4158,10 @@ spec:
                                 type: object
                               encryptionAlgorithm:
                                 description: |-
-                                  EncryptionAlgorithm holds the type of asymmetric encryption algorithm used for keys and certificates.
+                                  encryptionAlgorithm holds the type of asymmetric encryption algorithm used for keys and certificates.
                                   Can be one of "RSA-2048", "RSA-3072", "RSA-4096", "ECDSA-P256" or "ECDSA-P384".
-                                  If not specified, kubeadm will use RSA-2048 default.
-                                  This field is only supported with Kubernetes v1.34 or above.
+                                  If not specified, Cluster API will use RSA-2048 as default.
+                                  This field is only supported with Kubernetes v1.31 or above.
                                 enum:
                                 - ECDSA-P256
                                 - ECDSA-P384

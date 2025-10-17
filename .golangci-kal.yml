@@ -55,6 +55,8 @@ linters:
                 description: "A field with a default value cannot be required"
             forbiddenmarkers:
               markers:
+                # We don't want to do any defaulting (including OpenAPI) anymore on API fields because we prefer
+                # to have a clear signal on user intent. This also allows us to easily change the default behavior if necessary.
                 - identifier: "kubebuilder:default"
                 - identifier: "default"
             conditions:
@@ -163,7 +165,6 @@ linters:
         - kubeapilinter
 
     # Excludes for existing default markers 
-    # We don't want to use OpenAPI defaulting anymore.
     - path: "api/core/v1beta2/clusterclass_types.go"
       text: 'forbiddenmarkers: field Reason has forbidden marker "kubebuilder:default=FieldValueInvalid"'
       linters:

@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/external"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/inline"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
+	patchutil "sigs.k8s.io/cluster-api/internal/util/patch"
 )
 
 // Engine is a patch engine which applies patches defined in a ClusterBlueprint to a ClusterState.
@@ -504,7 +505,7 @@ func applyPatchToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatche
 
 	// Overwrite the spec of template.Template with the spec of the patchedTemplate,
 	// to ensure that we only pick up changes to the spec.
-	if err := patchTemplateSpec(&requestItem.Object, patchedTemplate); err != nil {
+	if err := patchutil.PatchSpec(&requestItem.Object, patchedTemplate); err != nil {
 		log.Error(err, fmt.Sprintf("Failed to apply patch to template with uid %q", requestItem.UID))
 		return errors.Wrap(err, "failed to apply patch to template")
 	}

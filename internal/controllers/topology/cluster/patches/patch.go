@@ -21,16 +21,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api/internal/contract"
+	patchutil "sigs.k8s.io/cluster-api/internal/util/patch"
 )
 
 // PatchOption represents an option for the patchObject and patchTemplate funcs.
@@ -88,12 +87,12 @@ func patchUnstructured(ctx context.Context, original, modified *unstructured.Uns
 	patched := original.DeepCopy()
 
 	// copySpec overwrites patched.destSpecPath with modified.srcSpecPath.
-	if err := copySpec(copySpecInput{
-		src:              modified,
-		dest:             patched,
-		srcSpecPath:      srcSpecPath,
-		destSpecPath:     destSpecPath,
-		fieldsToPreserve: patchOptions.preserveFields,
+	if err := patchutil.CopySpec(patchutil.CopySpecInput{
+		Src:              modified,
+		Dest:             patched,
+		SrcSpecPath:      srcSpecPath,
+		DestSpecPath:     destSpecPath,
+		FieldsToPreserve: patchOptions.preserveFields,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to apply patch to %s %s", original.GetKind(), klog.KObj(original))
 	}
@@ -134,83 +133,4 @@ func calculateDiff(original, patched *unstructured.Unstructured) ([]byte, error)
 		return nil, errors.Errorf("failed to diff objects")
 	}
 	return diff, nil
-}
-
-// patchTemplateSpec overwrites spec in templateJSON with spec of patchedTemplateBytes.
-func patchTemplateSpec(templateJSON *runtime.RawExtension, patchedTemplateBytes []byte) error {
-	// Convert templates to Unstructured.
-	template, err := bytesToUnstructured(templateJSON.Raw)
-	if err != nil {
-		return errors.Wrap(err, "failed to convert template to Unstructured")
-	}
-	patchedTemplate, err := bytesToUnstructured(patchedTemplateBytes)
-	if err != nil {
-		return errors.Wrap(err, "failed to convert patched template to Unstructured")
-	}
-
-	// Copy spec from patchedTemplate to template.
-	if err := copySpec(copySpecInput{
-		src:          patchedTemplate,
-		dest:         template,
-		srcSpecPath:  "spec",
-		destSpecPath: "spec",
-	}); err != nil {
-		return errors.Wrap(err, "failed to apply patch to template")
-	}
-
-	// Marshal template and store it in templateJSON.
-	templateBytes, err := template.MarshalJSON()
-	if err != nil {
-		return errors.Wrapf(err, "failed to marshal patched template")
-	}
-	templateJSON.Object = template
-	templateJSON.Raw = templateBytes
-	return nil
-}
-
-type copySpecInput struct {
-	src              *unstructured.Unstructured
-	dest             *unstructured.Unstructured
-	srcSpecPath      string
-	destSpecPath     string
-	fieldsToPreserve []contract.Path
-}
-
-// copySpec copies a field from a srcSpecPath in src to a destSpecPath in dest,
-// while preserving fieldsToPreserve.
-func copySpec(in copySpecInput) error {
-	// Backup fields that should be preserved from dest.
-	preservedFields := map[string]interface{}{}
-	for _, field := range in.fieldsToPreserve {
-		value, found, err := unstructured.NestedFieldNoCopy(in.dest.Object, field...)
-		if !found {
-			// Continue if the field does not exist in src. fieldsToPreserve don't have to exist.
-			continue
-		} else if err != nil {
-			return errors.Wrapf(err, "failed to get field %q from %s %s", strings.Join(field, "."), in.dest.GetKind(), klog.KObj(in.dest))
-		}
-		preservedFields[strings.Join(field, ".")] = value
-	}
-
-	// Get spec from src.
-	srcSpec, found, err := unstructured.NestedFieldNoCopy(in.src.Object, strings.Split(in.srcSpecPath, ".")...)
-	if !found {
-		// Return if srcSpecPath does not exist in src, nothing to do.
-		return nil
-	} else if err != nil {
-		return errors.Wrapf(err, "failed to get field %q from %s %s", in.srcSpecPath, in.src.GetKind(), klog.KObj(in.src))
-	}
-
-	// Set spec in dest.
-	if err := unstructured.SetNestedField(in.dest.Object, srcSpec, strings.Split(in.destSpecPath, ".")...); err != nil {
-		return errors.Wrapf(err, "failed to set field %q on %s %s", in.destSpecPath, in.dest.GetKind(), klog.KObj(in.dest))
-	}
-
-	// Restore preserved fields.
-	for path, value := range preservedFields {
-		if err := unstructured.SetNestedField(in.dest.Object, value, strings.Split(path, ".")...); err != nil {
-			return errors.Wrapf(err, "failed to set field %q on %s %s", path, in.dest.GetKind(), klog.KObj(in.dest))
-		}
-	}
-	return nil
 }

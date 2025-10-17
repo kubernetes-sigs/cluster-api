@@ -1027,6 +1027,150 @@ func TestPrepareRequest(t *testing.T) {
 	})
 }
 
+func TestClient_GetAllExtensions(t *testing.T) {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+			Labels: map[string]string{
+				"kubernetes.io/metadata.name": "foo",
+			},
+		},
+	}
+	nsDifferent := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "different",
+			Labels: map[string]string{
+				"kubernetes.io/metadata.name": "different",
+			},
+		},
+	}
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster",
+			Namespace: "foo",
+		},
+	}
+	clusterDifferentNamespace := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster",
+			Namespace: "different",
+		},
+	}
+
+	extensionConfig := runtimev1.ExtensionConfig{
+		Spec: runtimev1.ExtensionConfigSpec{
+			ClientConfig: runtimev1.ClientConfig{
+				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
+				URL:      "https://127.0.0.1/",
+				CABundle: testcerts.CACert,
+			},
+			// The extensions in this ExtensionConfig will be only registered for the foo namespace.
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchExpressions: []metav1.LabelSelectorRequirement{
+					{
+						Key:      "kubernetes.io/metadata.name",
+						Operator: metav1.LabelSelectorOpIn,
+						Values:   []string{ns.Name},
+					},
+				},
+			},
+		},
+		Status: runtimev1.ExtensionConfigStatus{
+			Handlers: []runtimev1.ExtensionHandler{
+				{
+					Name: "first-extension",
+					RequestHook: runtimev1.GroupVersionHook{
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+						Hook:       "FakeHook",
+					},
+					TimeoutSeconds: 1,
+					FailurePolicy:  runtimev1.FailurePolicyFail,
+				},
+				{
+					Name: "second-extension",
+					RequestHook: runtimev1.GroupVersionHook{
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+						Hook:       "FakeHook",
+					},
+					TimeoutSeconds: 1,
+					FailurePolicy:  runtimev1.FailurePolicyFail,
+				},
+				{
+					Name: "third-extension",
+					RequestHook: runtimev1.GroupVersionHook{
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+						Hook:       "FakeHook",
+					},
+					TimeoutSeconds: 1,
+					FailurePolicy:  runtimev1.FailurePolicyFail,
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name                       string
+		registeredExtensionConfigs []runtimev1.ExtensionConfig
+		hook                       runtimecatalog.Hook
+		cluster                    *clusterv1.Cluster
+		wantExtensions             []string
+		wantErr                    bool
+	}{
+		{
+			name:                       "should return extensions if ExtensionHandlers are registered for the hook",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{extensionConfig},
+			hook:                       fakev1alpha1.FakeHook,
+			cluster:                    cluster,
+			wantExtensions:             []string{"first-extension", "second-extension", "third-extension"},
+		},
+		{
+			name:                       "should return no extensions if ExtensionHandlers are registered for the hook in a different namespace",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{extensionConfig},
+			hook:                       fakev1alpha1.FakeHook,
+			cluster:                    clusterDifferentNamespace,
+			wantExtensions:             []string{},
+		},
+		{
+			name:                       "should return no extensions if no ExtensionHandlers are registered for the hook",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{},
+			hook:                       fakev1alpha1.SecondFakeHook,
+			cluster:                    cluster,
+			wantExtensions:             []string{},
+		},
+		{
+			name:                       "should return error if hook is not registered in the catalog",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{},
+			hook:                       "UnknownHook",
+			wantErr:                    true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cat := runtimecatalog.New()
+			_ = fakev1alpha1.AddToCatalog(cat)
+			_ = fakev1alpha2.AddToCatalog(cat)
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(ns, nsDifferent).
+				Build()
+			c := New(Options{
+				Catalog:  cat,
+				Registry: registry(tt.registeredExtensionConfigs),
+				Client:   fakeClient,
+			})
+
+			gotExtensions, err := c.GetAllExtensions(context.Background(), tt.hook, tt.cluster)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(gotExtensions).To(ConsistOf(tt.wantExtensions))
+		})
+	}
+}
+
 func TestClient_CallAllExtensions(t *testing.T) {
 	ns := &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{

@@ -124,6 +124,10 @@ func (f *fakeRuntimeClient) Unregister(_ *runtimev1.ExtensionConfig) error {
 	panic("implement me")
 }
 
+func (f *fakeRuntimeClient) GetAllExtensions(_ context.Context, _ runtimecatalog.Hook, _ metav1.Object) ([]string, error) {
+	panic("implement me")
+}
+
 func (f *fakeRuntimeClient) CallAllExtensions(_ context.Context, _ runtimecatalog.Hook, _ metav1.Object, _ runtimehooksv1.RequestObject, _ runtimehooksv1.ResponseObject) error {
 	panic("implement me")
 }

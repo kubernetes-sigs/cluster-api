@@ -58,6 +58,13 @@ spec:
   - type: Ready
     status: "False"
     timeout: 300s
+  unhealthyMachineConditions:
+  - type: "Ready"
+    status: Unknown
+    timeout: 300s
+  - type: "Ready"
+    status: "False"
+    timeout: 300s
 ```
 
 Use this example as the basis for defining a MachineHealthCheck for control plane nodes managed via

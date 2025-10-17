@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
 	"sigs.k8s.io/cluster-api/feature"
@@ -700,6 +701,13 @@ func TestClusterClassValidation(t *testing.T) {
 								TimeoutSeconds: ptr.To(int32(5 * 60)),
 							},
 						},
+						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+							{
+								Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+								Status:         metav1.ConditionUnknown,
+								TimeoutSeconds: ptr.To(int32(5 * 60)),
+							},
+						},
 						NodeStartupTimeoutSeconds: ptr.To(int32(60)),
 					},
 				}).
@@ -764,6 +772,13 @@ func TestClusterClassValidation(t *testing.T) {
 										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
+								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+									{
+										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+										Status:         metav1.ConditionUnknown,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
+									},
+								},
 								NodeStartupTimeoutSeconds: ptr.To(int32(60)),
 							},
 						}).
@@ -794,6 +809,13 @@ func TestClusterClassValidation(t *testing.T) {
 									},
 								},
 								// nodeStartupTimeout is too short here.
+								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+									{
+										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+										Status:         metav1.ConditionUnknown,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
+									},
+								},
 								NodeStartupTimeoutSeconds: ptr.To(int32(10)),
 							},
 						}).
@@ -2213,6 +2235,13 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 								TimeoutSeconds: ptr.To(int32(5 * 60)),
 							},
 						},
+						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+							{
+								Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+								Status:         metav1.ConditionUnknown,
+								TimeoutSeconds: ptr.To(int32(5 * 60)),
+							},
+						},
 					},
 				}).
 				Build(),
@@ -2249,6 +2278,13 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 								TimeoutSeconds: ptr.To(int32(5 * 60)),
 							},
 						},
+						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+							{
+								Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+								Status:         metav1.ConditionUnknown,
+								TimeoutSeconds: ptr.To(int32(5 * 60)),
+							},
+						},
 					},
 				}).
 				Build(),
@@ -2277,6 +2313,13 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
+								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+									{
+										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+										Status:         metav1.ConditionUnknown,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
+									},
+								},
 							},
 						}).
 						Build()).
@@ -2294,6 +2337,13 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
+								TimeoutSeconds: ptr.To(int32(5 * 60)),
+							},
+						},
+						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+							{
+								Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+								Status:         metav1.ConditionUnknown,
 								TimeoutSeconds: ptr.To(int32(5 * 60)),
 							},
 						},
@@ -2342,6 +2392,13 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
+									},
+								},
+								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+									{
+										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+										Status:         metav1.ConditionUnknown,
 										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
@@ -2400,6 +2457,13 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},
+								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+									{
+										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+										Status:         metav1.ConditionUnknown,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
+									},
+								},
 							},
 						}).
 						Build(),
@@ -2440,6 +2504,13 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 											TimeoutSeconds: ptr.To(int32(5 * 60)),
 										},
 									},
+									UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+										{
+											Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+											Status:         metav1.ConditionUnknown,
+											TimeoutSeconds: ptr.To(int32(5 * 60)),
+										},
+									},
 								},
 							}).
 							Build()).
@@ -2464,6 +2535,13 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
+										TimeoutSeconds: ptr.To(int32(5 * 60)),
+									},
+								},
+								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+									{
+										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+										Status:         metav1.ConditionUnknown,
 										TimeoutSeconds: ptr.To(int32(5 * 60)),
 									},
 								},

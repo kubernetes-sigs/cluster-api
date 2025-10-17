@@ -31,10 +31,12 @@ Although MachinePools provide a similar feature to MachineDeployments, MachinePo
 
 The following Cluster API infrastructure providers have implemented support for MachinePools:
 
-| Provider | Implementations | Status |
-| --- | --- | --- |
-| [AWS](https://cluster-api-aws.sigs.k8s.io/topics/machinepools.html) | `AWSManagedMachinePool`<br> `AWSMachinePool`<br>`ROSAMachinePool` | Implemented, MachinePoolMachines supported |
-| [Azure](https://capz.sigs.k8s.io/self-managed/machinepools) | `AzureASOManagedMachinePool`<br> `AzureManagedMachinePool`<br> `AzureMachinePool` | Implemented, MachinePoolMachines supported |
-| [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/pull/1506) | `GCPMachinePool` | In Progress |
-| [OCI](https://oracle.github.io/cluster-api-provider-oci/managed/managedcluster.html) | `OCIManagedMachinePool`<br> `OCIMachinePool` | Implemented, MachinePoolMachines supported |
-| [Scaleway](https://github.com/scaleway/cluster-api-provider-scaleway/blob/main/docs/scalewaymanagedmachinepool.md) | `ScalewayManagedMachinePool` | Implemented |
+| Provider | Implementations | Status | MachinePool Machines support |
+| --- | --- | --- | --- |
+| [AWS](https://cluster-api-aws.sigs.k8s.io/topics/machinepools.html) | `AWSManagedMachinePool`<br> `AWSMachinePool`<br>`ROSAMachinePool` | Implemented | Yes; has support for deletion of single machine |
+| [Azure](https://capz.sigs.k8s.io/self-managed/machinepools) | `AzureASOManagedMachinePool`<br> `AzureManagedMachinePool`<br> `AzureMachinePool` | Implemented | Yes; unknown support for deletion of single machine |
+| [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/pull/1506) | `GCPMachinePool` | In Progress | Unknown |
+| [OCI](https://oracle.github.io/cluster-api-provider-oci/managed/managedcluster.html) | `OCIManagedMachinePool`<br> `OCIMachinePool` | Implemented | Yes; unknown support for deletion of single machine |
+| [Scaleway](https://github.com/scaleway/cluster-api-provider-scaleway/blob/main/docs/scalewaymanagedmachinepool.md) | `ScalewayManagedMachinePool` | Implemented | No |
+
+Providers may support the deletion of single machine pool `Machine` objects. That allows, for example, using `MachineHealthCheck` to remediate machines that became unhealthy.

@@ -27,12 +27,13 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
+	"sigs.k8s.io/cluster-api/util/collections"
 )
 
 // rolloutOnDelete reconcile machine sets controlled by a MachineDeployment that is using the OnDelete strategy.
-func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, templateExists bool) error {
+func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines collections.Machines, templateExists bool) error {
 	planner := newRolloutPlanner()
-	if err := planner.init(ctx, md, msList, nil, true, templateExists); err != nil {
+	if err := planner.init(ctx, md, msList, machines.UnsortedList(), true, templateExists); err != nil {
 		return err
 	}
 

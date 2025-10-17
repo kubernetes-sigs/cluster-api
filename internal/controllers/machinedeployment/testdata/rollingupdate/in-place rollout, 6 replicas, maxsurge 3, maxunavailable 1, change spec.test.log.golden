@@ -1,0 +1,295 @@
+## In-place rollout, 6 Replicas, maxSurge 3, MaxUnavailable 1, change spec
+
+[Test] Initial state
+  md, 6/6 replicas
+  - ms1, 3/3 replicas (m4,m5,m6)
+  - ms2, 3/3 replicas (m1,m2,m3)
+[Test] Rollout 6 replicas, MaxSurge=3, MaxUnavailable=1
+[MD controller] Iteration 1, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 3/3 replicas (m4,m5,m6)
+  - ms2, 3/3 replicas (m1,m2,m3)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 3/2 replicas (m4,m5,m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 0/0 replicas ( <= ms1,ms2)
+[MS controller] Iteration 1, Reconcile ms1, 3/2 replicas (m4,m5,m6 => ms3)
+[MS controller] - ms1 scale down to 2/2 replicas (m4 moved to ms3)
+[MS controller] Iteration 1, Reconcile ms2, 3/3 replicas (m1,m2,m3 => ms3)
+[MS controller] Iteration 1, Reconcile ms3, 0/0 replicas (m4🟠🟡 <= ms1,ms2)
+[MS controller] - Replicas m4 moved from an old MachineSet still pending acknowledge from machine deployment md
+[MD controller] Iteration 2, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 2/2 replicas (m5,m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 1/0 replicas (m4🟠🟡 <= ms1,ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 2/2 replicas (m5,m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 1/1 replicas (m4🟡 <= ms1,ms2)
+[MS controller] Iteration 2, Reconcile ms1, 2/2 replicas (m5,m6 => ms3)
+[MS controller] Iteration 2, Reconcile ms2, 3/3 replicas (m1,m2,m3 => ms3)
+[MS controller] Iteration 2, Reconcile ms3, 1/1 replicas (m4🟡 <= ms1,ms2)
+[MD controller] Iteration 3, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 2/2 replicas (m5,m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 1/1 replicas (m4🟡 <= ms1,ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 2/2 replicas (m5,m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 1/1 replicas (m4🟡 <= ms1,ms2)
+[MS controller] Iteration 3, Reconcile ms1, 2/2 replicas (m5,m6 => ms3)
+[MS controller] Iteration 3, Reconcile ms2, 3/3 replicas (m1,m2,m3 => ms3)
+[MS controller] Iteration 3, Reconcile ms3, 1/1 replicas (m4🟡 <= ms1,ms2)
+[MS controller] - Replicas m4 completed in place update
+[MD controller] Iteration 4, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 2/2 replicas (m5,m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 1/1 replicas (m4 <= ms1,ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 2/1 replicas (m5,m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 1/1 replicas (m4 <= ms1,ms2)
+[MS controller] Iteration 4, Reconcile ms1, 2/1 replicas (m5,m6 => ms3)
+[MS controller] - ms1 scale down to 1/1 replicas (m5 moved to ms3)
+[MS controller] Iteration 4, Reconcile ms2, 3/3 replicas (m1,m2,m3 => ms3)
+[MS controller] Iteration 4, Reconcile ms3, 1/1 replicas (m4,m5🟠🟡 <= ms1,ms2)
+[MS controller] - Replicas m5 moved from an old MachineSet still pending acknowledge from machine deployment md
+[MD controller] Iteration 5, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 1/1 replicas (m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 2/1 replicas (m4,m5🟠🟡 <= ms1,ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 1/1 replicas (m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 2/2 replicas (m4,m5🟡 <= ms1,ms2)
+[MS controller] Iteration 5, Reconcile ms1, 1/1 replicas (m6 => ms3)
+[MS controller] Iteration 5, Reconcile ms2, 3/3 replicas (m1,m2,m3 => ms3)
+[MS controller] Iteration 5, Reconcile ms3, 2/2 replicas (m4,m5🟡 <= ms1,ms2)
+[MD controller] Iteration 6, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 1/1 replicas (m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 2/2 replicas (m4,m5🟡 <= ms1,ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 1/1 replicas (m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 2/2 replicas (m4,m5🟡 <= ms1,ms2)
+[MS controller] Iteration 6, Reconcile ms1, 1/1 replicas (m6 => ms3)
+[MS controller] Iteration 6, Reconcile ms2, 3/3 replicas (m1,m2,m3 => ms3)
+[MS controller] Iteration 6, Reconcile ms3, 2/2 replicas (m4,m5🟡 <= ms1,ms2)
+[MS controller] - Replicas m5 completed in place update
+[MD controller] Iteration 7, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 1/1 replicas (m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 2/2 replicas (m4,m5 <= ms1,ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 1/0 replicas (m6 => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 2/2 replicas (m4,m5 <= ms1,ms2)
+[MS controller] Iteration 7, Reconcile ms1, 1/0 replicas (m6 => ms3)
+[MS controller] - ms1 scale down to 0/0 replicas (m6 moved to ms3)
+[MS controller] Iteration 7, Reconcile ms2, 3/3 replicas (m1,m2,m3 => ms3)
+[MS controller] Iteration 7, Reconcile ms3, 2/2 replicas (m4,m5,m6🟠🟡 <= ms1,ms2)
+[MS controller] - Replicas m6 moved from an old MachineSet still pending acknowledge from machine deployment md
+[MD controller] Iteration 8, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 3/2 replicas (m4,m5,m6🟠🟡 <= ms1,ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 3/3 replicas (m4,m5,m6🟡 <= ms2)
+[MS controller] Iteration 8, Reconcile ms1, 0/0 replicas ( => ms3)
+[MS controller] Iteration 8, Reconcile ms2, 3/3 replicas (m1,m2,m3 => ms3)
+[MS controller] Iteration 8, Reconcile ms3, 3/3 replicas (m4,m5,m6🟡 <= ms2)
+[MD controller] Iteration 9, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 3/3 replicas (m4,m5,m6🟡 <= ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 3/3 replicas (m4,m5,m6🟡 <= ms2)
+[MS controller] Iteration 9, Reconcile ms1, 0/0 replicas ( => ms3)
+[MS controller] Iteration 9, Reconcile ms2, 3/3 replicas (m1,m2,m3 => ms3)
+[MS controller] Iteration 9, Reconcile ms3, 3/3 replicas (m4,m5,m6🟡 <= ms2)
+[MS controller] - Replicas m6 completed in place update
+[MD controller] Iteration 10, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 3/3 replicas (m1,m2,m3 => ms3)
+  - ms3, 3/3 replicas (m4,m5,m6 <= ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 3/2 replicas (m1,m2,m3 => ms3)
+  - ms3, 3/3 replicas (m4,m5,m6 <= ms2)
+[MS controller] Iteration 10, Reconcile ms1, 0/0 replicas ( => ms3)
+[MS controller] Iteration 10, Reconcile ms2, 3/2 replicas (m1,m2,m3 => ms3)
+[MS controller] - ms2 scale down to 2/2 replicas (m1 moved to ms3)
+[MS controller] Iteration 10, Reconcile ms3, 3/3 replicas (m1🟠🟡,m4,m5,m6 <= ms2)
+[MS controller] - Replicas m1 moved from an old MachineSet still pending acknowledge from machine deployment md
+[MD controller] Iteration 11, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 2/2 replicas (m2,m3 => ms3)
+  - ms3, 4/3 replicas (m1🟠🟡,m4,m5,m6 <= ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 2/2 replicas (m2,m3 => ms3)
+  - ms3, 4/4 replicas (m1🟡,m4,m5,m6 <= ms2)
+[MS controller] Iteration 11, Reconcile ms1, 0/0 replicas ( => ms3)
+[MS controller] Iteration 11, Reconcile ms2, 2/2 replicas (m2,m3 => ms3)
+[MS controller] Iteration 11, Reconcile ms3, 4/4 replicas (m1🟡,m4,m5,m6 <= ms2)
+[MD controller] Iteration 12, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 2/2 replicas (m2,m3 => ms3)
+  - ms3, 4/4 replicas (m1🟡,m4,m5,m6 <= ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 2/2 replicas (m2,m3 => ms3)
+  - ms3, 4/4 replicas (m1🟡,m4,m5,m6 <= ms2)
+[MS controller] Iteration 12, Reconcile ms1, 0/0 replicas ( => ms3)
+[MS controller] Iteration 12, Reconcile ms2, 2/2 replicas (m2,m3 => ms3)
+[MS controller] Iteration 12, Reconcile ms3, 4/4 replicas (m1🟡,m4,m5,m6 <= ms2)
+[MS controller] - Replicas m1 completed in place update
+[MD controller] Iteration 13, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 2/2 replicas (m2,m3 => ms3)
+  - ms3, 4/4 replicas (m1,m4,m5,m6 <= ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 2/1 replicas (m2,m3 => ms3)
+  - ms3, 4/4 replicas (m1,m4,m5,m6 <= ms2)
+[MS controller] Iteration 13, Reconcile ms1, 0/0 replicas ( => ms3)
+[MS controller] Iteration 13, Reconcile ms2, 2/1 replicas (m2,m3 => ms3)
+[MS controller] - ms2 scale down to 1/1 replicas (m2 moved to ms3)
+[MS controller] Iteration 13, Reconcile ms3, 4/4 replicas (m1,m2🟠🟡,m4,m5,m6 <= ms2)
+[MS controller] - Replicas m2 moved from an old MachineSet still pending acknowledge from machine deployment md
+[MD controller] Iteration 14, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 1/1 replicas (m3 => ms3)
+  - ms3, 5/4 replicas (m1,m2🟠🟡,m4,m5,m6 <= ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 1/1 replicas (m3 => ms3)
+  - ms3, 5/5 replicas (m1,m2🟡,m4,m5,m6 <= ms2)
+[MS controller] Iteration 14, Reconcile ms1, 0/0 replicas ( => ms3)
+[MS controller] Iteration 14, Reconcile ms2, 1/1 replicas (m3 => ms3)
+[MS controller] Iteration 14, Reconcile ms3, 5/5 replicas (m1,m2🟡,m4,m5,m6 <= ms2)
+[MD controller] Iteration 15, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 1/1 replicas (m3 => ms3)
+  - ms3, 5/5 replicas (m1,m2🟡,m4,m5,m6 <= ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 1/1 replicas (m3 => ms3)
+  - ms3, 5/5 replicas (m1,m2🟡,m4,m5,m6 <= ms2)
+[MS controller] Iteration 15, Reconcile ms1, 0/0 replicas ( => ms3)
+[MS controller] Iteration 15, Reconcile ms2, 1/1 replicas (m3 => ms3)
+[MS controller] Iteration 15, Reconcile ms3, 5/5 replicas (m1,m2🟡,m4,m5,m6 <= ms2)
+[MS controller] - Replicas m2 completed in place update
+[MD controller] Iteration 16, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 1/1 replicas (m3 => ms3)
+  - ms3, 5/5 replicas (m1,m2,m4,m5,m6 <= ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 1/0 replicas (m3 => ms3)
+  - ms3, 5/5 replicas (m1,m2,m4,m5,m6 <= ms2)
+[MS controller] Iteration 16, Reconcile ms1, 0/0 replicas ( => ms3)
+[MS controller] Iteration 16, Reconcile ms2, 1/0 replicas (m3 => ms3)
+[MS controller] - ms2 scale down to 0/0 replicas (m3 moved to ms3)
+[MS controller] Iteration 16, Reconcile ms3, 5/5 replicas (m1,m2,m3🟠🟡,m4,m5,m6 <= ms2)
+[MS controller] - Replicas m3 moved from an old MachineSet still pending acknowledge from machine deployment md
+[MD controller] Iteration 17, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 0/0 replicas ( => ms3)
+  - ms3, 6/5 replicas (m1,m2,m3🟠🟡,m4,m5,m6 <= ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 0/0 replicas ( => ms3)
+  - ms3, 6/6 replicas (m1,m2,m3🟡,m4,m5,m6 <= ms2)
+[MS controller] Iteration 17, Reconcile ms1, 0/0 replicas ( => ms3)
+[MS controller] Iteration 17, Reconcile ms2, 0/0 replicas ( => ms3)
+[MS controller] Iteration 17, Reconcile ms3, 6/6 replicas (m1,m2,m3🟡,m4,m5,m6 <= ms2)
+[MD controller] Iteration 18, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 0/0 replicas ( => ms3)
+  - ms3, 6/6 replicas (m1,m2,m3🟡,m4,m5,m6 <= ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 0/0 replicas ( => ms3)
+  - ms3, 6/6 replicas (m1,m2,m3🟡,m4,m5,m6 <= ms2)
+[MS controller] Iteration 18, Reconcile ms1, 0/0 replicas ( => ms3)
+[MS controller] Iteration 18, Reconcile ms2, 0/0 replicas ( => ms3)
+[MS controller] Iteration 18, Reconcile ms3, 6/6 replicas (m1,m2,m3🟡,m4,m5,m6 <= ms2)
+[MS controller] - Replicas m3 completed in place update
+[MD controller] Iteration 19, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 0/0 replicas ( => ms3)
+  - ms3, 6/6 replicas (m1,m2,m3,m4,m5,m6 <= ms2)
+[MD controller] - Result of rollout planner
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 0/0 replicas ( => ms3)
+  - ms3, 6/6 replicas (m1,m2,m3,m4,m5,m6 <= ms2)
+[MS controller] Iteration 19, Reconcile ms1, 0/0 replicas ( => ms3)
+[MS controller] Iteration 19, Reconcile ms2, 0/0 replicas ( => ms3)
+[MS controller] Iteration 19, Reconcile ms3, 6/6 replicas (m1,m2,m3,m4,m5,m6 <= ms2)
+[Test] Final state
+  md, 6/6 replicas
+  - ms1, 0/0 replicas ( => ms3)
+  - ms2, 0/0 replicas ( => ms3)
+  - ms3, 6/6 replicas (m1,m2,m3,m4,m5,m6 <= ms2)

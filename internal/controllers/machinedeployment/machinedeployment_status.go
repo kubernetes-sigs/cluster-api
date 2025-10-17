@@ -29,7 +29,6 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
@@ -40,20 +39,14 @@ import (
 
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (retErr error) {
 	// Get all Machines controlled by this MachineDeployment.
-	var machines, machinesToBeRemediated, unhealthyMachines collections.Machines
+	var machinesToBeRemediated, unhealthyMachines collections.Machines
 	var getMachinesSucceeded bool
-	if selectorMap, err := metav1.LabelSelectorAsMap(&s.machineDeployment.Spec.Selector); err == nil {
-		machineList := &clusterv1.MachineList{}
-		if err := r.Client.List(ctx, machineList, client.InNamespace(s.machineDeployment.Namespace), client.MatchingLabels(selectorMap)); err != nil {
-			retErr = errors.Wrap(err, "failed to list machines")
-		} else {
-			getMachinesSucceeded = true
-			machines = collections.FromMachineList(machineList)
-			machinesToBeRemediated = machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
-			unhealthyMachines = machines.Filter(collections.IsUnhealthy)
-		}
+	if s.machines != nil {
+		getMachinesSucceeded = true
+		machinesToBeRemediated = s.machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
+		unhealthyMachines = s.machines.Filter(collections.IsUnhealthy)
 	} else {
-		retErr = errors.Wrap(err, "failed to convert label selector to a map")
+		retErr = errors.Errorf("failed to convert label selector to a map")
 	}
 
 	// Copy label selector to its status counterpart in string format.
@@ -72,16 +65,16 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (retErr error) 
 
 	setAvailableCondition(ctx, s.machineDeployment, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 
-	setRollingOutCondition(ctx, s.machineDeployment, machines, getMachinesSucceeded)
+	setRollingOutCondition(ctx, s.machineDeployment, s.machines, getMachinesSucceeded)
 	setScalingUpCondition(ctx, s.machineDeployment, s.machineSets, s.bootstrapTemplateNotFound, s.infrastructureTemplateNotFound, s.getAndAdoptMachineSetsForDeploymentSucceeded)
-	setScalingDownCondition(ctx, s.machineDeployment, s.machineSets, machines, s.getAndAdoptMachineSetsForDeploymentSucceeded, getMachinesSucceeded)
+	setScalingDownCondition(ctx, s.machineDeployment, s.machineSets, s.machines, s.getAndAdoptMachineSetsForDeploymentSucceeded, getMachinesSucceeded)
 
-	setMachinesReadyCondition(ctx, s.machineDeployment, machines, getMachinesSucceeded)
-	setMachinesUpToDateCondition(ctx, s.machineDeployment, machines, getMachinesSucceeded)
+	setMachinesReadyCondition(ctx, s.machineDeployment, s.machines, getMachinesSucceeded)
+	setMachinesUpToDateCondition(ctx, s.machineDeployment, s.machines, getMachinesSucceeded)
 
 	setRemediatingCondition(ctx, s.machineDeployment, machinesToBeRemediated, unhealthyMachines, getMachinesSucceeded)
 
-	setDeletingCondition(ctx, s.machineDeployment, s.machineSets, machines, s.getAndAdoptMachineSetsForDeploymentSucceeded, getMachinesSucceeded)
+	setDeletingCondition(ctx, s.machineDeployment, s.machineSets, s.machines, s.getAndAdoptMachineSetsForDeploymentSucceeded, getMachinesSucceeded)
 
 	return retErr
 }

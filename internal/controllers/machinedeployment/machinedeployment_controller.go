@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
@@ -163,6 +164,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		cluster:           cluster,
 	}
 
+	if selectorMap, err := metav1.LabelSelectorAsMap(&s.machineDeployment.Spec.Selector); err == nil {
+		machineList := &clusterv1.MachineList{}
+		if err := r.Client.List(ctx, machineList, client.InNamespace(s.machineDeployment.Namespace), client.MatchingLabels(selectorMap)); err == nil {
+			s.machines = collections.FromMachineList(machineList)
+		}
+	}
+
 	defer func() {
 		if err := r.updateStatus(ctx, s); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
@@ -195,6 +203,7 @@ type scope struct {
 	machineDeployment                            *clusterv1.MachineDeployment
 	cluster                                      *clusterv1.Cluster
 	machineSets                                  []*clusterv1.MachineSet
+	machines                                     collections.Machines
 	bootstrapTemplateNotFound                    bool
 	bootstrapTemplateExists                      bool
 	infrastructureTemplateNotFound               bool
@@ -291,15 +300,15 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 	templateExists := s.infrastructureTemplateExists && (!md.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() || s.bootstrapTemplateExists)
 
 	if ptr.Deref(md.Spec.Paused, false) {
-		return r.sync(ctx, md, s.machineSets, templateExists)
+		return r.sync(ctx, md, s.machineSets, s.machines, templateExists)
 	}
 
 	if md.Spec.Rollout.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
-		return r.rolloutRollingUpdate(ctx, md, s.machineSets, templateExists)
+		return r.rolloutRollingUpdate(ctx, md, s.machineSets, s.machines, templateExists)
 	}
 
 	if md.Spec.Rollout.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
-		return r.rolloutOnDelete(ctx, md, s.machineSets, templateExists)
+		return r.rolloutOnDelete(ctx, md, s.machineSets, s.machines, templateExists)
 	}
 
 	return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Rollout.Strategy.Type)
@@ -320,7 +329,6 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 		log = log.WithValues("MachineSet", klog.KObj(ms))
 		ctx = ctrl.LoggerInto(ctx, log)
 
-		originalReplicas := ptr.Deref(ms.Spec.Replicas, 0)
 		if scaleIntent, ok := p.scaleIntents[ms.Name]; ok {
 			ms.Spec.Replicas = &scaleIntent
 		}
@@ -363,6 +371,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 		if !ok {
 			return errors.Errorf("failed to update MachineSet %s, original MS is missing", klog.KObj(ms))
 		}
+		originalReplicas := ptr.Deref(originalMS.Spec.Replicas, 0)
 
 		err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, ms, ssa.WithCachingProxy{Cache: r.ssaCache, Original: originalMS})
 		if err != nil {

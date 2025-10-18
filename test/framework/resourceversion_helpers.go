@@ -87,6 +87,12 @@ func printObjectDiff(previousObjects, newObjects map[string]client.Object) func(
 
 		if len(preservedObjects) > 0 {
 			output.WriteString("\nDetected objects with changed resourceVersion\n")
+
+			newresourceYAML, _ := yaml.Marshal(newObjects)
+			output.WriteString(fmt.Sprintf("\nComplete New object:\n%s\n", newresourceYAML))
+			preresourceYAML, _ := yaml.Marshal(previousObjects)
+			output.WriteString(fmt.Sprintf("\nComplete previous object:\n%s\n", preresourceYAML))
+
 			for objID := range preservedObjects {
 				previousObj := previousObjects[objID]
 				newObj := newObjects[objID]

@@ -96,6 +96,16 @@ func Test_canUpdateMachine(t *testing.T) {
 			wantCanUpdateMachine:            false,
 		},
 		{
+			name:                            "Return error if more than one CanUpdateMachine extensions registered",
+			enableInPlaceUpdatesFeatureGate: true,
+			machineUpToDateResult:           nonEmptyMachineUpToDateResult,
+			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
+				canUpdateMachineGVH: {"test-update-extension-1", "test-update-extension-2"},
+			},
+			wantError:        true,
+			wantErrorMessage: "found multiple CanUpdateMachine hooks (test-update-extension-1,test-update-extension-2) (more than one is not supported yet)",
+		},
+		{
 			name:                            "Return false if canExtensionsUpdateMachine returns false",
 			enableInPlaceUpdatesFeatureGate: true,
 			machineUpToDateResult:           nonEmptyMachineUpToDateResult,

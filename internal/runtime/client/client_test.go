@@ -1148,10 +1148,15 @@ func TestClient_GetAllExtensions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+
 			cat := runtimecatalog.New()
 			_ = fakev1alpha1.AddToCatalog(cat)
 			_ = fakev1alpha2.AddToCatalog(cat)
 			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
 				WithObjects(ns, nsDifferent).
 				Build()
 			c := New(Options{
@@ -1346,10 +1351,15 @@ func TestClient_CallAllExtensions(t *testing.T) {
 				}
 			}
 
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+
 			cat := runtimecatalog.New()
 			_ = fakev1alpha1.AddToCatalog(cat)
 			_ = fakev1alpha2.AddToCatalog(cat)
 			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
 				WithObjects(ns).
 				Build()
 			c := New(Options{

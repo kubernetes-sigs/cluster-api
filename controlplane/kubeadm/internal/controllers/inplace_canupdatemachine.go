@@ -74,13 +74,16 @@ func (r *KubeadmControlPlaneReconciler) canUpdateMachine(ctx context.Context, ma
 	if len(extensionHandlers) == 0 {
 		return false, nil
 	}
+	if len(extensionHandlers) > 1 {
+		return false, errors.Errorf("found multiple CanUpdateMachine hooks (%s) (more than one is not supported yet)", strings.Join(extensionHandlers, ","))
+	}
 
 	canUpdateMachine, reasons, err := r.canExtensionsUpdateMachine(ctx, machine, machineUpToDateResult, extensionHandlers)
 	if err != nil {
 		return false, err
 	}
 	if !canUpdateMachine {
-		log.Info(fmt.Sprintf("Machine cannot be updated in-place: %s", strings.Join(reasons, ",")), "Machine", klog.KObj(machine))
+		log.Info(fmt.Sprintf("Machine cannot be updated in-place by extensions: %s", strings.Join(reasons, ",")), "Machine", klog.KObj(machine))
 		return false, nil
 	}
 	return true, nil

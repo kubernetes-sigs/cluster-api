@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -118,7 +118,7 @@ type RuntimeClient struct {
 }
 
 // GetAllExtensions implements Client.
-func (fc *RuntimeClient) GetAllExtensions(_ context.Context, hook runtimecatalog.Hook, _ metav1.Object) ([]string, error) {
+func (fc *RuntimeClient) GetAllExtensions(_ context.Context, hook runtimecatalog.Hook, _ client.Object) ([]string, error) {
 	gvh, err := fc.catalog.GroupVersionHook(hook)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compute GVH")
@@ -127,7 +127,7 @@ func (fc *RuntimeClient) GetAllExtensions(_ context.Context, hook runtimecatalog
 }
 
 // CallAllExtensions implements Client.
-func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, _ metav1.Object, req runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error {
+func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, _ client.Object, req runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error {
 	defer func() {
 		fc.callAllTracker[runtimecatalog.HookName(hook)]++
 	}()
@@ -161,7 +161,7 @@ func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecata
 }
 
 // CallExtension implements Client.
-func (fc *RuntimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hook, _ metav1.Object, name string, req runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
+func (fc *RuntimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hook, _ client.Object, name string, req runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
 	if fc.callValidations != nil {
 		if err := fc.callValidations(name, req); err != nil {
 			return err

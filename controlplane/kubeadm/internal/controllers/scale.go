@@ -163,6 +163,10 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 		return r.overridePreflightChecksFunc(ctx, controlPlane, excludeFor...)
 	}
 
+	// Reset PreflightCheckResults in case this function is called multiple times (e.g. for in-place update code paths)
+	// Note: The PreflightCheckResults field is only written by this func, so this is safe.
+	controlPlane.PreflightCheckResults = internal.PreflightCheckResults{}
+
 	log := ctrl.LoggerFrom(ctx)
 
 	// If there is no KCP-owned control-plane machines, then control-plane has not been initialized yet,

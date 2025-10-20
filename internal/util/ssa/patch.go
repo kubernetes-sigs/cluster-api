@@ -130,7 +130,8 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 	// Recover gvk e.g. for logging.
 	modified.GetObjectKind().SetGroupVersionKind(gvk)
 
-	if options.WithCachingProxy {
+	// Add the request to the cache only if dry-run was not used.
+	if options.WithCachingProxy && !options.WithDryRun {
 		// If the SSA call did not update the object, add the request to the cache.
 		if options.Original.GetResourceVersion() == modifiedUnstructured.GetResourceVersion() {
 			options.Cache.Add(requestIdentifier)

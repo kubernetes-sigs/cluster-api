@@ -571,8 +571,10 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 
 			// Call all the registered extension for the hook.
 			hookRequest := &runtimehooksv1.AfterControlPlaneUpgradeRequest{
-				Cluster:           *cleanupCluster(v1beta1Cluster),
-				KubernetesVersion: *currentVersion,
+				Cluster:              *cleanupCluster(v1beta1Cluster),
+				KubernetesVersion:    *currentVersion,
+				ControlPlaneUpgrades: toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
+				WorkersUpgrades:      toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
 			}
 			hookResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{}
 			if err := g.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
@@ -676,6 +678,8 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 				Cluster:               *cleanupCluster(v1beta1Cluster),
 				FromKubernetesVersion: *currentVersion,
 				ToKubernetesVersion:   topologyVersion,
+				ControlPlaneUpgrades:  toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
+				WorkersUpgrades:       toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
 			}
 			hookResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{}
 			if err := g.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
@@ -1655,4 +1659,19 @@ func cleanupCluster(cluster *clusterv1beta1.Cluster) *clusterv1beta1.Cluster {
 	}
 	cluster.Status = clusterv1beta1.ClusterStatus{}
 	return cluster
+}
+
+// toUpgradeStep converts a list of version to a list of upgrade steps.
+// Note. when called for workers, the function will receive in input two plans one for the MachineDeployments if any, the other for MachinePools if any.
+// Considering that both plans, if defined, have to be equal, the function picks the first one not empty.
+func toUpgradeStep(plans ...[]string) []runtimehooksv1.UpgradeStep {
+	var steps []runtimehooksv1.UpgradeStep
+	for _, plan := range plans {
+		if len(plan) != 0 {
+			for _, step := range plan {
+				steps = append(steps, runtimehooksv1.UpgradeStep{Version: step})
+			}
+		}
+	}
+	return steps
 }

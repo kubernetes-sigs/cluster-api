@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -1611,6 +1612,7 @@ func TestComputeControlPlaneVersion_callAfterControlPlaneUpgrade(t *testing.T) {
 		hookResponse       *runtimehooksv1.AfterControlPlaneUpgradeResponse
 		wantIntentToCall   bool
 		wantHookToBeCalled bool
+		wantRequest        runtimehooksv1.AfterControlPlaneUpgradeRequest
 		wantHookToBlock    bool
 		wantErr            bool
 	}{
@@ -1734,8 +1736,11 @@ func TestComputeControlPlaneVersion_callAfterControlPlaneUpgrade(t *testing.T) {
 			hookResponse:       nonBlockingResponse,
 			wantIntentToCall:   false, // remove the intent to call the hook (hook called, we are at target state)
 			wantHookToBeCalled: true,
-			wantHookToBlock:    false,
-			wantErr:            false,
+			wantRequest: runtimehooksv1.AfterControlPlaneUpgradeRequest{
+				KubernetesVersion: topologyVersion,
+			},
+			wantHookToBlock: false,
+			wantErr:         false,
 		},
 		{
 			name: "should call hook if the control plane is at desired version - blocking response should leave the hook in pending hooks list and block MD upgrades",
@@ -1767,8 +1772,11 @@ func TestComputeControlPlaneVersion_callAfterControlPlaneUpgrade(t *testing.T) {
 			hookResponse:       blockingResponse,
 			wantIntentToCall:   true, // preserve existing value (set)
 			wantHookToBeCalled: true,
-			wantHookToBlock:    true,
-			wantErr:            false,
+			wantRequest: runtimehooksv1.AfterControlPlaneUpgradeRequest{
+				KubernetesVersion: topologyVersion,
+			},
+			wantHookToBlock: true,
+			wantErr:         false,
 		},
 		{
 			name: "should call hook if the control plane is at desired version - failure response should leave the hook in pending hooks list",
@@ -1797,8 +1805,11 @@ func TestComputeControlPlaneVersion_callAfterControlPlaneUpgrade(t *testing.T) {
 				UpgradeTracker:      scope.NewUpgradeTracker(), // already at topology version, upgrade plan is empty.
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
-			hookResponse:       failureResponse,
-			wantIntentToCall:   true, // preserve existing value (set)
+			hookResponse:     failureResponse,
+			wantIntentToCall: true, // preserve existing value (set)
+			wantRequest: runtimehooksv1.AfterControlPlaneUpgradeRequest{
+				KubernetesVersion: topologyVersion,
+			},
 			wantHookToBeCalled: true,
 			wantErr:            true,
 		},
@@ -1843,7 +1854,11 @@ func TestComputeControlPlaneVersion_callAfterControlPlaneUpgrade(t *testing.T) {
 			hookResponse:       nonBlockingResponse,
 			wantIntentToCall:   true, // new intent to call the hook for the next minor
 			wantHookToBeCalled: true, // the hook has been called for the current minor
-			wantHookToBlock:    false,
+			wantRequest: runtimehooksv1.AfterControlPlaneUpgradeRequest{
+				KubernetesVersion:    "v1.3.2",
+				ControlPlaneUpgrades: toUpgradeStep([]string{"v1.4.2", "v1.5.3"}),
+			},
+			wantHookToBlock: false,
 
 			wantErr: false,
 		},
@@ -1888,9 +1903,11 @@ func TestComputeControlPlaneVersion_callAfterControlPlaneUpgrade(t *testing.T) {
 			hookResponse:       nonBlockingResponse,
 			wantIntentToCall:   false, // remove the intent to call the hook (hook called, we are at target state)
 			wantHookToBeCalled: true,  // the hook has been called for the current minor
-			wantHookToBlock:    false,
-
-			wantErr: false,
+			wantRequest: runtimehooksv1.AfterControlPlaneUpgradeRequest{
+				KubernetesVersion: "v1.5.3",
+			},
+			wantHookToBlock: false,
+			wantErr:         false,
 		},
 	}
 
@@ -1914,11 +1931,27 @@ func TestComputeControlPlaneVersion_callAfterControlPlaneUpgrade(t *testing.T) {
 			tt.s.Current.Cluster.Annotations[corev1.LastAppliedConfigAnnotation] = "should be cleaned up"
 			tt.s.Current.Cluster.Annotations[conversion.DataAnnotation] = "should be cleaned up"
 
+			validateHookRequest := func(req runtimehooksv1.RequestObject) error {
+				if req, ok := req.(*runtimehooksv1.AfterControlPlaneUpgradeRequest); ok {
+					if tt.wantRequest.KubernetesVersion != req.KubernetesVersion {
+						return fmt.Errorf("unexpected Kubernetes version %s, want %s", req.KubernetesVersion, tt.wantRequest.KubernetesVersion)
+					}
+					if !reflect.DeepEqual(tt.wantRequest.ControlPlaneUpgrades, req.ControlPlaneUpgrades) {
+						return fmt.Errorf("unexpected ControlPlaneUpgrades %s, want %s", req.ControlPlaneUpgrades, tt.wantRequest.ControlPlaneUpgrades)
+					}
+					if !reflect.DeepEqual(tt.wantRequest.WorkersUpgrades, req.WorkersUpgrades) {
+						return fmt.Errorf("unexpected ControlPlaneUpgrades %s, want %s", req.WorkersUpgrades, tt.wantRequest.WorkersUpgrades)
+					}
+				}
+
+				return validateClusterParameter(tt.s.Current.Cluster)(req)
+			}
+
 			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					afterControlPlaneUpgradeGVH: tt.hookResponse,
 					beforeClusterUpgradeGVH:     beforeClusterUpgradeNonBlockingResponse,
-				}).WithCallAllExtensionValidations(validateClusterParameter(tt.s.Current.Cluster)).
+				}).WithCallAllExtensionValidations(validateHookRequest).
 				WithCatalog(catalog).
 				Build()
 
@@ -1984,6 +2017,26 @@ func TestComputeControlPlaneVersion_callBeforeClusterUpgrade_trackIntentOfCallin
 		},
 	}
 
+	validateHookRequest := func(cluster *clusterv1.Cluster, wantRequest runtimehooksv1.BeforeClusterUpgradeRequest) func(req runtimehooksv1.RequestObject) error {
+		return func(req runtimehooksv1.RequestObject) error {
+			if req, ok := req.(*runtimehooksv1.BeforeClusterUpgradeRequest); ok {
+				if wantRequest.FromKubernetesVersion != req.FromKubernetesVersion {
+					return fmt.Errorf("unexpected FromKubernetesVersion %s, want %s", req.FromKubernetesVersion, wantRequest.FromKubernetesVersion)
+				}
+				if wantRequest.ToKubernetesVersion != req.ToKubernetesVersion {
+					return fmt.Errorf("unexpected ToKubernetesVersion %s, want %s", req.ToKubernetesVersion, wantRequest.ToKubernetesVersion)
+				}
+				if !reflect.DeepEqual(wantRequest.ControlPlaneUpgrades, req.ControlPlaneUpgrades) {
+					return fmt.Errorf("unexpected ControlPlaneUpgrades %s, want %s", req.ControlPlaneUpgrades, wantRequest.ControlPlaneUpgrades)
+				}
+				if !reflect.DeepEqual(wantRequest.WorkersUpgrades, req.WorkersUpgrades) {
+					return fmt.Errorf("unexpected ControlPlaneUpgrades %s, want %s", req.WorkersUpgrades, wantRequest.WorkersUpgrades)
+				}
+			}
+			return validateClusterParameter(cluster)(req)
+		}
+	}
+
 	t.Run("Call BeforeClusterUpgrade hook when doing simple upgrades", func(t *testing.T) {
 		controlPlaneStable := builder.ControlPlane("test-ns", "cp1").
 			WithSpecFields(map[string]interface{}{
@@ -2022,11 +2075,19 @@ func TestComputeControlPlaneVersion_callBeforeClusterUpgrade_trackIntentOfCallin
 
 		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
 
+		wantRequest := runtimehooksv1.BeforeClusterUpgradeRequest{
+			FromKubernetesVersion: "v1.2.2",
+			ToKubernetesVersion:   "v1.2.3",
+			ControlPlaneUpgrades:  toUpgradeStep([]string{"v1.2.3"}),
+			WorkersUpgrades:       nil,
+		}
+
 		runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 			WithCatalog(catalog).
 			WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 				beforeClusterUpgradeGVH: nonBlockingResponse,
 			}).
+			WithCallAllExtensionValidations(validateHookRequest(s.Current.Cluster, wantRequest)).
 			Build()
 
 		r := &generator{
@@ -2085,11 +2146,19 @@ func TestComputeControlPlaneVersion_callBeforeClusterUpgrade_trackIntentOfCallin
 
 		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
 
+		wantRequest := runtimehooksv1.BeforeClusterUpgradeRequest{
+			FromKubernetesVersion: "v1.2.2",
+			ToKubernetesVersion:   "v1.2.3",
+			ControlPlaneUpgrades:  toUpgradeStep([]string{"v1.2.3"}),
+			WorkersUpgrades:       nil,
+		}
+
 		runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 			WithCatalog(catalog).
 			WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 				beforeClusterUpgradeGVH: failureResponse,
 			}).
+			WithCallAllExtensionValidations(validateHookRequest(s.Current.Cluster, wantRequest)).
 			Build()
 
 		r := &generator{
@@ -2148,11 +2217,19 @@ func TestComputeControlPlaneVersion_callBeforeClusterUpgrade_trackIntentOfCallin
 
 		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
 
+		wantRequest := runtimehooksv1.BeforeClusterUpgradeRequest{
+			FromKubernetesVersion: "v1.2.2",
+			ToKubernetesVersion:   "v1.2.3",
+			ControlPlaneUpgrades:  toUpgradeStep([]string{"v1.2.3"}),
+			WorkersUpgrades:       nil,
+		}
+
 		runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 			WithCatalog(catalog).
 			WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 				beforeClusterUpgradeGVH: blockingResponse,
 			}).
+			WithCallAllExtensionValidations(validateHookRequest(s.Current.Cluster, wantRequest)).
 			Build()
 
 		r := &generator{
@@ -2211,11 +2288,19 @@ func TestComputeControlPlaneVersion_callBeforeClusterUpgrade_trackIntentOfCallin
 
 		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
 
+		wantRequest := runtimehooksv1.BeforeClusterUpgradeRequest{
+			FromKubernetesVersion: "v1.2.2",
+			ToKubernetesVersion:   "v1.5.3",
+			ControlPlaneUpgrades:  toUpgradeStep([]string{"v1.3.2", "v1.4.2", "v1.5.3"}),
+			WorkersUpgrades:       nil,
+		}
+
 		runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 			WithCatalog(catalog).
 			WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 				beforeClusterUpgradeGVH: nonBlockingResponse,
 			}).
+			WithCallAllExtensionValidations(validateHookRequest(s.Current.Cluster, wantRequest)).
 			Build()
 
 		r := &generator{
@@ -2275,6 +2360,13 @@ func TestComputeControlPlaneVersion_callBeforeClusterUpgrade_trackIntentOfCallin
 		}
 		s.UpgradeTracker.ControlPlane.UpgradePlan = []string{"v1.4.2", "v1.5.3"}
 
+		wantRequest := runtimehooksv1.BeforeClusterUpgradeRequest{
+			FromKubernetesVersion: "v1.2.2",
+			ToKubernetesVersion:   "v1.5.3",
+			ControlPlaneUpgrades:  toUpgradeStep([]string{"v1.4.2", "v1.5.3"}),
+			WorkersUpgrades:       nil,
+		}
+
 		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
 
 		runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
@@ -2282,6 +2374,7 @@ func TestComputeControlPlaneVersion_callBeforeClusterUpgrade_trackIntentOfCallin
 			WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 				beforeClusterUpgradeGVH: nonBlockingResponse,
 			}).
+			WithCallAllExtensionValidations(validateHookRequest(s.Current.Cluster, wantRequest)).
 			Build()
 
 		r := &generator{
@@ -2343,11 +2436,19 @@ func TestComputeControlPlaneVersion_callBeforeClusterUpgrade_trackIntentOfCallin
 
 		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
 
+		wantRequest := runtimehooksv1.BeforeClusterUpgradeRequest{
+			FromKubernetesVersion: "v1.2.2",
+			ToKubernetesVersion:   "v1.5.3",
+			ControlPlaneUpgrades:  toUpgradeStep([]string{"v1.5.3"}),
+			WorkersUpgrades:       nil,
+		}
+
 		runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 			WithCatalog(catalog).
 			WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 				beforeClusterUpgradeGVH: nonBlockingResponse,
 			}).
+			WithCallAllExtensionValidations(validateHookRequest(s.Current.Cluster, wantRequest)).
 			Build()
 
 		r := &generator{

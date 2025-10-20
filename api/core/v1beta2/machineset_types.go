@@ -34,26 +34,28 @@ const (
 	// ensure ordered cleanup of corresponding Machines when a Machineset is being deleted.
 	MachineSetFinalizer = "cluster.x-k8s.io/machineset"
 
-	// MachineSetMoveMachinesToAnnotationName is an internal annotation added by the MD controller to the oldMS
+	// MachineSetMoveMachinesToMachineSetAnnotation is an internal annotation added by the MD controller to the oldMS
 	// when it should scale down by moving machines that can be updated in-place to the newMS instead of deleting them.
-	// Note: This annotation is used to perform a two-ways check before moving a machine from oldMS to newMS:
+	// The annotation value is the newMS name.
+	// Note: This annotation is used in pair with MachineSetReceiveMachinesFromMachineSetsAnnotation to perform a two-ways check before moving a machine from oldMS to newMS:
 	//
 	//	"oldMS must have: move to newMS" and "newMS must have: receive replicas from oldMS"
-	MachineSetMoveMachinesToAnnotationName = "in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset"
+	MachineSetMoveMachinesToMachineSetAnnotation = "in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset"
 
-	// MachineSetReceiveMachinesFromAnnotationName is an internal annotation added by the MD controller to the newMS
-	// when it should receive replicas from an oldMS as a first step of an in-place upgrade operation.
-	// Note: This annotation is used to perform a two-ways check before moving a machine from oldMS to newMS:
+	// MachineSetReceiveMachinesFromMachineSetsAnnotation is an internal annotation added by the MD controller to the newMS
+	// when it should receive replicas from oldMSs as a first step of an in-place upgrade operation
+	// The annotation value is a comma separated list of oldMSs.
+	// Note: This annotation is used in pair with MachineSetMoveMachinesToMachineSetAnnotation to perform a two-ways check before moving a machine from oldMS to newMS:
 	//
 	//	"oldMS must have: move to newMS" and "newMS must have: receive replicas from oldMS"
-	MachineSetReceiveMachinesFromAnnotationName = "in-place-updates.internal.cluster.x-k8s.io/receive-machines-from-machinesets"
+	MachineSetReceiveMachinesFromMachineSetsAnnotation = "in-place-updates.internal.cluster.x-k8s.io/receive-machines-from-machinesets"
 
-	// MachineSetAcknowledgeMoveAnnotationName is an internal annotation with a list of machines added by the MD controller
-	// to a MachineSet when it acknowledges a machine pending acknowled after being moved from an oldMS.
-	// A machine is dropped from this annotation as soon as pending-acknowledge-move is removed from the machine;
-	// the annotation is dropped when empty.
-	// Note: this annotation is used in pair with replicasMachineDeploymentAcknowledgeAnnotation and replicaPendingMachineDeploymentAcknowledgeAnnotation.
-	MachineSetAcknowledgeMoveAnnotationName = "in-place-updates.internal.cluster.x-k8s.io/acknowledge-move"
+	// AcknowledgedMoveAnnotation is an internal annotation with a list of machines added by the MD controller
+	// to a MachineSet when it acknowledges a machine pending acknowledge after being moved from an oldMS.
+	// The annotation value is a comma separated list of Machines already acknowledged; a machine is dropped
+	// from this annotation as soon as pending-acknowledge-move is removed from the machine; the annotation is dropped when empty.
+	// Note: This annotation is used in pair with PendingAcknowledgeMoveAnnotation on Machines.
+	AcknowledgedMoveAnnotation = "in-place-updates.internal.cluster.x-k8s.io/acknowledged-move"
 )
 
 // MachineSetSpec defines the desired state of MachineSet.

@@ -82,7 +82,7 @@ func (p *rolloutPlanner) planRollingUpdate(ctx context.Context) error {
 		return err
 	}
 
-	// Ensures CAPI rollouts changes by performing in-place updates whenever possible.
+	// Ensures CAPI rolls out changes by performing in-place updates whenever possible.
 	if err := p.reconcileInPlaceUpdateIntent(ctx); err != nil {
 		return err
 	}
@@ -115,12 +115,12 @@ func (p *rolloutPlanner) reconcileReplicasPendingAcknowledgeMove(ctx context.Con
 	}
 
 	// Acknowledge replicas after a move operation.
-	// NOTE: pendingMoveAcknowledgeMove annotation from machine (managed by the MS controller) and acknowledgeMove annotation on the newMS (managed by the rollout planner)
+	// NOTE: PendingAcknowledgeMoveAnnotation from machine (managed by the MS controller) and AcknowledgedMoveAnnotation on the newMS (managed by the rollout planner)
 	// are used in combination to ensure moved replicas are counted only once by the rollout planner.
 	oldAcknowledgeMoveReplicas := sets.Set[string]{}
 	if originalMS, ok := p.originalMS[p.newMS.Name]; ok {
-		if replicaNames, ok := originalMS.Annotations[clusterv1.MachineSetAcknowledgeMoveAnnotationName]; ok && replicaNames != "" {
-			oldAcknowledgeMoveReplicas.Insert(strings.Split(replicaNames, ",")...)
+		if machineNames, ok := originalMS.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok && machineNames != "" {
+			oldAcknowledgeMoveReplicas.Insert(strings.Split(machineNames, ",")...)
 		}
 	}
 	newAcknowledgeMoveReplicas := sets.Set[string]{}
@@ -129,7 +129,7 @@ func (p *rolloutPlanner) reconcileReplicasPendingAcknowledgeMove(ctx context.Con
 		if !util.IsControlledBy(m, p.newMS, clusterv1.GroupVersion.WithKind("MachineSet").GroupKind()) {
 			continue
 		}
-		if _, ok := m.Annotations[clusterv1.MachinePendingAcknowledgeMoveAnnotationName]; !ok {
+		if _, ok := m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; !ok {
 			continue
 		}
 		if !oldAcknowledgeMoveReplicas.Has(m.Name) {
@@ -145,15 +145,15 @@ func (p *rolloutPlanner) reconcileReplicasPendingAcknowledgeMove(ctx context.Con
 	}
 
 	// Track the list or replicas for which acknowledgeMove is not yet completed;
-	// The MachineSetController will use this info to cleanup the pendingMoveAcknowledgeMove annotation on machines.
-	// NOTE: cleanup of the acknowledgeMove annotation will happen automatically as soon as the rollout planner stops
+	// The MachineSetController will use this info to cleanup the PendingAcknowledgeMoveAnnotation on machines.
+	// NOTE: cleanup of the AcknowledgedMoveAnnotation will happen automatically as soon as the rollout planner stops
 	// to set it, because this annotation is not part of the output of computeDesiredMS
 	// (same applies to oldMS, so annotation will always be removed from oldMS).
 	if p.newMS.Annotations == nil {
 		p.newMS.Annotations = map[string]string{}
 	}
 	if newAcknowledgeMoveReplicas.Len() > 0 {
-		p.newMS.Annotations[clusterv1.MachineSetAcknowledgeMoveAnnotationName] = sortAndJoin(newAcknowledgeMoveReplicas.UnsortedList())
+		p.newMS.Annotations[clusterv1.AcknowledgedMoveAnnotation] = sortAndJoin(newAcknowledgeMoveReplicas.UnsortedList())
 	}
 }
 
@@ -357,7 +357,7 @@ func (p *rolloutPlanner) scaleDownOldMSs(ctx context.Context, totalScaleDownCoun
 	return totalScaleDownCount, totalAvailableReplicas
 }
 
-// reconcileInPlaceUpdateIntent ensures CAPI rollouts changes by performing in-place updates whenever possible.
+// reconcileInPlaceUpdateIntent ensures CAPI rolls out changes by performing in-place updates whenever possible.
 //
 // When calling this func, new and old MS already have their scale intent, which was computed under the assumption that
 // rollout is going to happen by delete/re-create, and thus it will impact availability.
@@ -378,8 +378,6 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 	if !feature.Gates.Enabled(feature.InPlaceUpdates) {
 		return nil
 	}
-
-	allMSs := append(p.oldMSs, p.newMS)
 
 	// If new MS already has all desired replicas, it does not make sense to perform more in-place updates.
 	if ptr.Deref(p.newMS.Spec.Replicas, 0) >= ptr.Deref(p.md.Spec.Replicas, 0) {
@@ -415,13 +413,13 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 
 		// Set the annotation informing the oldMS that it must move machines to the newMS instead of deleting them.
 		// Note: After a machine is moved from oldMS to newMS, the newMS will take care of the in-place upgrade process.
-		// Note: Cleanup of the MachineSetMoveMachinesToAnnotationName annotation will happen automatically as soon as the rollout planner stops
+		// Note: Cleanup of the MachineSetMoveMachinesToMachineSetAnnotation will happen automatically as soon as the rollout planner stops
 		// to set it, because this annotation is not part of the output of computeDesiredMS
 		// (same applies to newMS, so annotation will always be removed from newMS).
 		if oldMS.Annotations == nil {
 			oldMS.Annotations = map[string]string{}
 		}
-		oldMS.Annotations[clusterv1.MachineSetMoveMachinesToAnnotationName] = p.newMS.Name
+		oldMS.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] = p.newMS.Name
 		inPlaceUpdateCandidates.Insert(oldMS.Name)
 	}
 
@@ -433,67 +431,52 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 	// Set the annotation informing the newMS that it will receive replicas moved from oldMS selected as in-place candidates.
 	// Note: there is a two-ways check before the move operation:
 	// 	"oldMS must have: move to newMS" and "newMS must have: accept replicas from oldMS"
-	// Note: Cleanup of the MachineSetReceiveMachinesFromAnnotationName annotation will happen automatically as soon as the rollout planner stops
+	// Note: Cleanup of the MachineSetReceiveMachinesFromMachineSetsAnnotation will happen automatically as soon as the rollout planner stops
 	// to set it, because this annotation is not part of the output of computeDesiredMS
 	// (same applies to oldMS, so annotation will always be removed from oldMS).
 	if p.newMS.Annotations == nil {
 		p.newMS.Annotations = map[string]string{}
 	}
-	p.newMS.Annotations[clusterv1.MachineSetReceiveMachinesFromAnnotationName] = sortAndJoin(inPlaceUpdateCandidates.UnsortedList())
+	p.newMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] = sortAndJoin(inPlaceUpdateCandidates.UnsortedList())
+
+	// At this point, rollout planner know that scale down of at least one machine set is going to happen using move, and this in-place updates.
+	//
+	// Everything below this point is about checking if rollout planner is using maxSurge,
+	// and if possible, drop the usage of maxSurge / minimize unnecessary Machine creations because rollout planner
+	// must give priority to in-place when possible.
 
 	// If the newMS is not scaling up, nothing left to do.
-	if scaleIntent, ok := p.scaleIntents[p.newMS.Name]; !ok || scaleIntent < ptr.Deref(p.newMS.Spec.Replicas, 0) {
+	if scaleIntent, ok := p.scaleIntents[p.newMS.Name]; !ok || scaleIntent <= ptr.Deref(p.newMS.Spec.Replicas, 0) {
 		return nil
 	}
 
-	// If the newMS is scaling up while there are still in place updates to be performed,
-	// check if the current scale up intent is using maxSurge.
+	// Check if the current scale up intent is using maxSurge.
 	scaleUpCount := p.scaleIntents[p.newMS.Name] - ptr.Deref(p.newMS.Spec.Replicas, 0)
-	scaleUpCountWithoutMaxSurge := max(ptr.Deref(p.md.Spec.Replicas, 0)-mdutil.TotalMachineSetsReplicaSum(allMSs), 0)
-	if scaleUpCount <= scaleUpCountWithoutMaxSurge {
+	scaleUpCountWithoutMaxSurge := max(scaleUpCount-mdutil.MaxSurge(*p.md), 0)
+	maxSurgeUsed := scaleUpCount - scaleUpCountWithoutMaxSurge
+	if maxSurgeUsed <= 0 {
 		// current scale up intent for the newMS is not using maxSurge, no need to revisit it.
 		return nil
 	}
 
-	// Otherwise, current scale up intent for the newMS is using maxSurge.
-	// In this case, rollout planner must give priority to in place vs creation of machines, so is required to revisit the scale up
-	// intent for the newMS deferring creation of new machines due to maxSurge.
+	// Otherwise, the current scale up intent for the newMS is using maxSurge.
+	// In this case, rollout planner must prioritize in-place updates over creation of new Machines.
+	// So it is required to revisit the scale up intent for the newMS and defer creation of new
+	// Machines due to maxSurge if possible.
 	newScaleUpCount := scaleUpCountWithoutMaxSurge
 
-	// If the revisited scale up count for the newMS is zero and there newMS is not already scaling up from a previous reconcile (no scale up at all),
+	// If the revisited scale up count for the newMS is 0 and the newMS is not already scaling up from a previous reconcile (no scale up at all),
 	// check if the rollout planner is required to use one slot from MaxSurge e.g. to start a rollout.
 	// Note: Rollout planner will use one slot from MaxSurge - one and not more - only if:
 	// - The rollout is not progressing in other ways (on top of newMS not scaling from a previous reconcile, there are also no oldMS scaling down)
 	// - There are no in-place updates in progress (the rollout planner must wait for in-place updates to complete or fail/go
 	//   through remediation before creating additional machines)
-	if newScaleUpCount == 0 && ptr.Deref(p.newMS.Spec.Replicas, 0) == ptr.Deref(p.newMS.Status.Replicas, 0) {
-		oldMSsAreScalingDown := false
-		for _, oldMS := range p.oldMSs {
-			if ptr.Deref(oldMS.Spec.Replicas, 0) < ptr.Deref(oldMS.Status.Replicas, 0) {
-				oldMSsAreScalingDown = true
-				break
-			}
-			if scaleIntent, ok := p.scaleIntents[oldMS.Name]; ok && scaleIntent < ptr.Deref(oldMS.Spec.Replicas, 0) {
-				oldMSsAreScalingDown = true
-				break
-			}
-		}
-
-		replicasAreUpdatingInPlace := false
-		for _, m := range p.machines {
-			if _, ok := m.Annotations[clusterv1.MachineUpdatingInPlaceAnnotationName]; ok {
-				replicasAreUpdatingInPlace = true
-				break
-			}
-		}
-
-		if !oldMSsAreScalingDown && !replicasAreUpdatingInPlace {
-			newScaleUpCount = 1
-		}
+	if newScaleUpCount == 0 && !p.scalingOrInPlaceUpdateInProgress(ctx) {
+		newScaleUpCount = 1
 	}
 
 	newScaleIntent := ptr.Deref(p.newMS.Spec.Replicas, 0) + newScaleUpCount
-	log.V(5).Info(fmt.Sprintf("Revisit scale up intent for MachineSet %s to %d replicas (+%d) to prevent creation of new machines while there are still in place updates to be performed", p.newMS.Name, newScaleIntent, newScaleUpCount), "MachineSet", klog.KObj(p.newMS))
+	log.V(5).Info(fmt.Sprintf("Revisited scale up intent for MachineSet %s to %d replicas (+%d) to prevent creation of new machines while there are still in place updates to be performed", p.newMS.Name, newScaleIntent, newScaleUpCount), "MachineSet", klog.KObj(p.newMS))
 	if newScaleUpCount == 0 {
 		delete(p.scaleIntents, p.newMS.Name)
 	} else {
@@ -501,6 +484,34 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 	}
 
 	return nil
+}
+
+func (p *rolloutPlanner) scalingOrInPlaceUpdateInProgress(_ context.Context) bool {
+	if ptr.Deref(p.newMS.Spec.Replicas, 0) != ptr.Deref(p.newMS.Status.Replicas, 0) {
+		return true
+	}
+
+	oldMSsAreScalingDown := false
+	for _, oldMS := range p.oldMSs {
+		if ptr.Deref(oldMS.Spec.Replicas, 0) < ptr.Deref(oldMS.Status.Replicas, 0) {
+			oldMSsAreScalingDown = true
+			break
+		}
+		if scaleIntent, ok := p.scaleIntents[oldMS.Name]; ok && scaleIntent < ptr.Deref(oldMS.Spec.Replicas, 0) {
+			oldMSsAreScalingDown = true
+			break
+		}
+	}
+
+	replicasAreUpdatingInPlace := false
+	for _, m := range p.machines {
+		if _, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+			replicasAreUpdatingInPlace = true
+			break
+		}
+	}
+
+	return oldMSsAreScalingDown || replicasAreUpdatingInPlace
 }
 
 // This funcs tries to detect and address the case when a rollout is not making progress because both scaling down and scaling up are blocked.

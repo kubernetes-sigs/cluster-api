@@ -77,7 +77,7 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 			newMS: createMS("ms1", "v1", 1),
 			machines: []*clusterv1.Machine{
 				createM("m1", "ms1", "v1"),
-				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.MachinePendingAcknowledgeMoveAnnotationName, "")),
+				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
 			},
 			expectedReplicas:                  2, // up by one
 			expectedAcknowledgeMoveAnnotation: ptr.To("m2"),
@@ -85,11 +85,11 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 		{
 			name:          "Should scale up when there are machines recently moved to newMS and not yet acknowledged and there are other machines already acknowledged",
 			md:            createMD("v1", 3),
-			originalNewMS: createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.MachineSetAcknowledgeMoveAnnotationName, "m1")), // another machine already acknowledged
+			originalNewMS: createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m1")), // another machine already acknowledged
 			newMS:         createMS("ms1", "v1", 1),
 			machines: []*clusterv1.Machine{
-				createM("m1", "ms1", "v1", withMAnnotation(clusterv1.MachinePendingAcknowledgeMoveAnnotationName, "")),
-				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.MachinePendingAcknowledgeMoveAnnotationName, "")),
+				createM("m1", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
+				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
 			},
 			expectedReplicas:                  2, // up by one
 			expectedAcknowledgeMoveAnnotation: ptr.To("m1,m2"),
@@ -97,11 +97,11 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 		{
 			name:          "Should not scale up when there machines with the pendingAcknowledgeMove annotation but they are already acknowledged",
 			md:            createMD("v1", 3),
-			originalNewMS: createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.MachineSetAcknowledgeMoveAnnotationName, "m2")), // moved machine already acknowledged
+			originalNewMS: createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m2")), // moved machine already acknowledged
 			newMS:         createMS("ms1", "v1", 1),
 			machines: []*clusterv1.Machine{
 				createM("m1", "ms1", "v1"),
-				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.MachinePendingAcknowledgeMoveAnnotationName, "")),
+				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
 			},
 			expectedReplicas:                  1,
 			expectedAcknowledgeMoveAnnotation: ptr.To("m2"),
@@ -112,7 +112,7 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 			newMS: createMS("ms1", "v1", 1),
 			machines: []*clusterv1.Machine{
 				createM("m1", "ms1", "v1"),
-				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.MachinePendingAcknowledgeMoveAnnotationName, "")),
+				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
 			},
 			expectedReplicas:                  1, // Not scaling up
 			expectedAcknowledgeMoveAnnotation: ptr.To("m2"),
@@ -120,7 +120,7 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 		{
 			name:          "Should drop machines from acknowledged movr annotation when they not anymore reporting pendingAcknowledge",
 			md:            createMD("v1", 3),
-			originalNewMS: createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.MachineSetAcknowledgeMoveAnnotationName, "m2")), // moved machine already acknowledged
+			originalNewMS: createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m2")), // moved machine already acknowledged
 			newMS:         createMS("ms1", "v1", 1),
 			machines: []*clusterv1.Machine{
 				createM("m1", "ms1", "v1"),
@@ -146,9 +146,9 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 			planner.reconcileReplicasPendingAcknowledgeMove(ctx)
 			g.Expect(tc.expectedReplicas).To(Equal(ptr.Deref(tc.newMS.Spec.Replicas, 0)))
 			if tc.expectedAcknowledgeMoveAnnotation != nil {
-				g.Expect(planner.newMS.Annotations).To(HaveKeyWithValue(clusterv1.MachineSetAcknowledgeMoveAnnotationName, *tc.expectedAcknowledgeMoveAnnotation))
+				g.Expect(planner.newMS.Annotations).To(HaveKeyWithValue(clusterv1.AcknowledgedMoveAnnotation, *tc.expectedAcknowledgeMoveAnnotation))
 			} else {
-				g.Expect(planner.newMS.Annotations).ToNot(HaveKey(clusterv1.MachineSetAcknowledgeMoveAnnotationName))
+				g.Expect(planner.newMS.Annotations).ToNot(HaveKey(clusterv1.AcknowledgedMoveAnnotation))
 			}
 		})
 	}
@@ -1046,7 +1046,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 				createMS("ms1", "v1", 3),
 			},
 			machines: []*clusterv1.Machine{
-				createM("m1", "ms1", "v1", withMAnnotation(clusterv1.MachineUpdatingInPlaceAnnotationName, "")),
+				createM("m1", "ms1", "v1", withMAnnotation(clusterv1.UpdateInProgressAnnotation, "")),
 				createM("m2", "ms1", "v1"),
 				createM("m3", "ms1", "v1"),
 			},
@@ -1127,15 +1127,15 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 
 			moveFromMS := sets.Set[string]{}.Insert(tc.expectMoveFromMS...)
 			if len(moveFromMS) > 0 {
-				g.Expect(planner.newMS.Annotations).To(HaveKeyWithValue(clusterv1.MachineSetReceiveMachinesFromAnnotationName, sortAndJoin(moveFromMS.UnsortedList())), "Unexpected annotation on newMS")
+				g.Expect(planner.newMS.Annotations).To(HaveKeyWithValue(clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation, sortAndJoin(moveFromMS.UnsortedList())), "Unexpected annotation on newMS")
 			} else {
-				g.Expect(planner.newMS.Annotations).ToNot(HaveKey(clusterv1.MachineSetReceiveMachinesFromAnnotationName), "Unexpected annotation on newMS")
+				g.Expect(planner.newMS.Annotations).ToNot(HaveKey(clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation), "Unexpected annotation on newMS")
 			}
 			for _, oldMS := range tc.oldMS {
 				if moveFromMS.Has(oldMS.Name) {
-					g.Expect(oldMS.Annotations).To(HaveKeyWithValue(clusterv1.MachineSetMoveMachinesToAnnotationName, planner.newMS.Name), "Unexpected annotation on oldMS")
+					g.Expect(oldMS.Annotations).To(HaveKeyWithValue(clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, planner.newMS.Name), "Unexpected annotation on oldMS")
 				} else {
-					g.Expect(oldMS.Annotations).ToNot(HaveKey(clusterv1.MachineSetMoveMachinesToAnnotationName), "Unexpected annotation on oldMS")
+					g.Expect(oldMS.Annotations).ToNot(HaveKey(clusterv1.MachineSetMoveMachinesToMachineSetAnnotation), "Unexpected annotation on oldMS")
 				}
 			}
 		})

@@ -501,7 +501,7 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 	// Note: this should not be implemented in production code
 	ms.Status.Replicas = ptr.To(int32(len(scope.machineSetMachines[ms.Name])))
 
-	// TODO(in-place): when implementing in-place changes in the MachineController code make sure to:
+	// TODO(in-place): when implementing in-place changes in the MachineSetController code make sure to:
 	//  - detect if there are replicas still pending AcknowledgeMove first, including also handling cleanup of the pendingAcknowledgeMoveAnnotationName on machines
 	//  - when deleting or moving
 	//  	- first move if possible, then delete
@@ -518,11 +518,11 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 	// TODO(in-place): this should not be implemented in production code for the MachineSet controller nor in the production code for the Machine controller
 	replicasEndingInPlaceUpdate := sets.Set[string]{}
 	for _, m := range scope.machineSetMachines[ms.Name] {
-		if _, ok := m.Annotations[clusterv1.MachinePendingAcknowledgeMoveAnnotationName]; ok {
+		if _, ok := m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; ok {
 			continue
 		}
-		if _, ok := m.Annotations[clusterv1.MachineUpdatingInPlaceAnnotationName]; ok {
-			delete(m.Annotations, clusterv1.MachineUpdatingInPlaceAnnotationName)
+		if _, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+			delete(m.Annotations, clusterv1.UpdateInProgressAnnotation)
 			replicasEndingInPlaceUpdate.Insert(m.Name)
 		}
 	}
@@ -533,19 +533,19 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 	// If the MachineSet is accepting replicas from other MS (this is the newMS controlled by a MD),
 	// detect if there are replicas still pending AcknowledgeMove.
 	acknowledgeMoveReplicas := sets.Set[string]{}
-	if replicaNames, ok := ms.Annotations[clusterv1.MachineSetAcknowledgeMoveAnnotationName]; ok && replicaNames != "" {
+	if replicaNames, ok := ms.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok && replicaNames != "" {
 		acknowledgeMoveReplicas.Insert(strings.Split(replicaNames, ",")...)
 	}
 	notAcknowledgeMoveReplicas := sets.Set[string]{}
-	if sourceMSs, ok := ms.Annotations[clusterv1.MachineSetReceiveMachinesFromAnnotationName]; ok && sourceMSs != "" {
+	if sourceMSs, ok := ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]; ok && sourceMSs != "" {
 		for _, m := range scope.machineSetMachines[ms.Name] {
-			if _, ok := m.Annotations[clusterv1.MachinePendingAcknowledgeMoveAnnotationName]; !ok {
+			if _, ok := m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; !ok {
 				continue
 			}
 
 			// If machine has been acknowledged by the MachineDeployment, cleanup pending AcknowledgeMove annotation from the machine
 			if acknowledgeMoveReplicas.Has(m.Name) {
-				delete(m.Annotations, clusterv1.MachinePendingAcknowledgeMoveAnnotationName)
+				delete(m.Annotations, clusterv1.PendingAcknowledgeMoveAnnotation)
 				continue
 			}
 
@@ -558,7 +558,7 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 		// Note: if there are machines recently moved but not yet accepted, those machines will be managed
 		// as any other machine and either moved to the new MS (after completing the in-place upgrade) or deleted.
 		for _, m := range scope.machineSetMachines[ms.Name] {
-			delete(m.Annotations, clusterv1.MachinePendingAcknowledgeMoveAnnotationName)
+			delete(m.Annotations, clusterv1.PendingAcknowledgeMoveAnnotation)
 		}
 	}
 
@@ -605,7 +605,7 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 	// Without this check, the following logic would try to align the number of replicas to "an incomplete" ms.Spec.Replicas thus wrongly deleting replicas that should be preserved.
 	machinesToDeleteOrMove := max(ptr.Deref(ms.Status.Replicas, 0)-int32(notAcknowledgeMoveReplicas.Len())-ptr.Deref(ms.Spec.Replicas, 0), 0)
 	if machinesToDeleteOrMove > 0 {
-		if targetMSName, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToAnnotationName]; ok && targetMSName != "" {
+		if targetMSName, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok && targetMSName != "" {
 			{
 				var targetMS *clusterv1.MachineSet
 				for _, ms2 := range scope.machineSets {
@@ -626,7 +626,7 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 				}
 				machinesToDeleteOrMove -= machinesToMove
 
-				validSourceMSs := targetMS.Annotations[clusterv1.MachineSetReceiveMachinesFromAnnotationName]
+				validSourceMSs := targetMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]
 				sourcesSet := sets.Set[string]{}
 				sourcesSet.Insert(strings.Split(validSourceMSs, ",")...)
 				if !sourcesSet.Has(ms.Name) {
@@ -660,8 +660,8 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 							Controller: ptr.To(true),
 						},
 					}
-					m.Annotations[clusterv1.MachinePendingAcknowledgeMoveAnnotationName] = ""
-					m.Annotations[clusterv1.MachineUpdatingInPlaceAnnotationName] = ""
+					m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation] = ""
+					m.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
 					scope.machineSetMachines[targetMS.Name] = append(scope.machineSetMachines[targetMS.Name], m)
 					machinesMoved = append(machinesMoved, m.Name)
 				}
@@ -700,7 +700,7 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 	ms.Status.Replicas = ptr.To(int32(len(scope.machineSetMachines[ms.Name])))
 	availableReplicas := int32(0)
 	for _, m := range scope.machineSetMachines[ms.Name] {
-		if _, ok := m.Annotations[clusterv1.MachineUpdatingInPlaceAnnotationName]; ok {
+		if _, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
 			continue
 		}
 		availableReplicas++
@@ -850,24 +850,24 @@ func msLog(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) string {
 	sb := strings.Builder{}
 	machineNames := []string{}
 	acknowledgeMoveMachines := sets.Set[string]{}
-	if replicaNames, ok := ms.Annotations[clusterv1.MachineSetAcknowledgeMoveAnnotationName]; ok && replicaNames != "" {
+	if replicaNames, ok := ms.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok && replicaNames != "" {
 		acknowledgeMoveMachines.Insert(strings.Split(replicaNames, ",")...)
 	}
 	for _, m := range machines {
 		name := m.Name
-		if _, ok := m.Annotations[clusterv1.MachinePendingAcknowledgeMoveAnnotationName]; ok && !acknowledgeMoveMachines.Has(name) {
+		if _, ok := m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; ok && !acknowledgeMoveMachines.Has(name) {
 			name += "🟠"
 		}
-		if _, ok := m.Annotations[clusterv1.MachineUpdatingInPlaceAnnotationName]; ok {
+		if _, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
 			name += "🟡"
 		}
 		machineNames = append(machineNames, name)
 	}
 	sb.WriteString(strings.Join(machineNames, ","))
-	if moveTo, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToAnnotationName]; ok {
+	if moveTo, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok {
 		sb.WriteString(fmt.Sprintf(" => %s", moveTo))
 	}
-	if moveFrom, ok := ms.Annotations[clusterv1.MachineSetReceiveMachinesFromAnnotationName]; ok {
+	if moveFrom, ok := ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]; ok {
 		sb.WriteString(fmt.Sprintf(" <= %s", moveFrom))
 	}
 	msLog := fmt.Sprintf("%d/%d replicas (%s)", ptr.Deref(ms.Status.Replicas, 0), ptr.Deref(ms.Spec.Replicas, 0), sb.String())

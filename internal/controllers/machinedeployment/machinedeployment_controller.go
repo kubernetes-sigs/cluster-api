@@ -166,9 +166,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 
 	if selectorMap, err := metav1.LabelSelectorAsMap(&s.machineDeployment.Spec.Selector); err == nil {
 		machineList := &clusterv1.MachineList{}
-		if err := r.Client.List(ctx, machineList, client.InNamespace(s.machineDeployment.Namespace), client.MatchingLabels(selectorMap)); err == nil {
-			s.machines = collections.FromMachineList(machineList)
+		if err := r.Client.List(ctx, machineList, client.InNamespace(s.machineDeployment.Namespace), client.MatchingLabels(selectorMap)); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to list machines")
 		}
+		s.machines = collections.FromMachineList(machineList)
+	} else {
+		return ctrl.Result{}, errors.Wrap(err, "failed to convert label selector to a map")
 	}
 
 	defer func() {
@@ -379,14 +382,21 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			return errors.Wrapf(err, "failed to update MachineSet %s", klog.KObj(ms))
 		}
 
+		changes := getAnnotationChanges(originalMS, ms)
+
 		newReplicas := ptr.Deref(ms.Spec.Replicas, 0)
 		if newReplicas < originalReplicas {
-			log.Info(fmt.Sprintf("Scaled down MachineSet %s to %d replicas (-%d)", ms.Name, newReplicas, originalReplicas-newReplicas))
+			changes = append(changes, "replicas", newReplicas)
+			log.Info(fmt.Sprintf("Scaled down MachineSet %s to %d replicas (-%d)", ms.Name, newReplicas, originalReplicas-newReplicas), changes...)
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled down MachineSet %v: %d -> %d", ms.Name, originalReplicas, newReplicas)
 		}
 		if newReplicas > originalReplicas {
-			log.Info(fmt.Sprintf("Scaled up MachineSet %s to %d replicas (+%d)", ms.Name, newReplicas, newReplicas-originalReplicas))
+			changes = append(changes, "replicas", newReplicas)
+			log.Info(fmt.Sprintf("Scaled up MachineSet %s to %d replicas (+%d)", ms.Name, newReplicas, newReplicas-originalReplicas), changes...)
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled up MachineSet %v: %d -> %d", ms.Name, originalReplicas, newReplicas)
+		}
+		if newReplicas == originalReplicas && len(changes) > 0 {
+			log.Info(fmt.Sprintf("MachineSet %s updated", ms.Name), changes...)
 		}
 	}
 
@@ -399,6 +409,42 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 	}
 
 	return nil
+}
+
+func getAnnotationChanges(originalMS *clusterv1.MachineSet, ms *clusterv1.MachineSet) []any {
+	changes := []any{}
+	if originalMS.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] != ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] {
+		if value, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok {
+			changes = append(changes, clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, value)
+		} else {
+			changes = append(changes, clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, "(annotation removed)")
+		}
+	}
+
+	if originalMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] != ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] {
+		if value, ok := ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]; ok {
+			changes = append(changes, clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation, value)
+		} else {
+			changes = append(changes, clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation, "(annotation removed)")
+		}
+	}
+
+	if originalMS.Annotations[clusterv1.AcknowledgedMoveAnnotation] != ms.Annotations[clusterv1.AcknowledgedMoveAnnotation] {
+		if value, ok := ms.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok {
+			changes = append(changes, clusterv1.AcknowledgedMoveAnnotation, value)
+		} else {
+			changes = append(changes, clusterv1.AcknowledgedMoveAnnotation, "(annotation removed)")
+		}
+	}
+
+	if originalMS.Annotations[clusterv1.DisableMachineCreateAnnotation] != ms.Annotations[clusterv1.DisableMachineCreateAnnotation] {
+		if value, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok {
+			changes = append(changes, clusterv1.DisableMachineCreateAnnotation, value)
+		} else {
+			changes = append(changes, clusterv1.DisableMachineCreateAnnotation, "(annotation removed)")
+		}
+	}
+	return changes
 }
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {

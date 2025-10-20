@@ -107,17 +107,6 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 			expectedAcknowledgeMoveAnnotation: ptr.To("m2"),
 		},
 		{
-			name:  "Should not scale up above md replicas",
-			md:    createMD("v1", 1),
-			newMS: createMS("ms1", "v1", 1),
-			machines: []*clusterv1.Machine{
-				createM("m1", "ms1", "v1"),
-				createM("m2", "ms1", "v1", withMAnnotation(clusterv1.PendingAcknowledgeMoveAnnotation, "")),
-			},
-			expectedReplicas:                  1, // Not scaling up
-			expectedAcknowledgeMoveAnnotation: ptr.To("m2"),
-		},
-		{
 			name:          "Should drop machines from acknowledged movr annotation when they not anymore reporting pendingAcknowledge",
 			md:            createMD("v1", 3),
 			originalNewMS: createMS("ms1", "v1", 1, withMSAnnotation(clusterv1.AcknowledgedMoveAnnotation, "m2")), // moved machine already acknowledged
@@ -144,7 +133,7 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 			planner.machines = tc.machines
 
 			planner.reconcileReplicasPendingAcknowledgeMove(ctx)
-			g.Expect(tc.expectedReplicas).To(Equal(ptr.Deref(tc.newMS.Spec.Replicas, 0)))
+			g.Expect(ptr.Deref(tc.newMS.Spec.Replicas, 0)).To(Equal(tc.expectedReplicas))
 			if tc.expectedAcknowledgeMoveAnnotation != nil {
 				g.Expect(planner.newMS.Annotations).To(HaveKeyWithValue(clusterv1.AcknowledgedMoveAnnotation, *tc.expectedAcknowledgeMoveAnnotation))
 			} else {
@@ -722,7 +711,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 
 		{
 			name:  "Move replicas from oldMS to newMS",
-			md:    createMD("v1", 3),
+			md:    createMD("v1", 2),
 			newMS: createMS("ms2", "v2", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 1),
@@ -768,7 +757,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "Do not move replicas from oldMS to newMS when oldMS doesn't have replicas anymore",
-			md:    createMD("v1", 3),
+			md:    createMD("v1", 1),
 			newMS: createMS("ms2", "v2", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 0),
@@ -787,7 +776,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "Do not move replicas from oldMS to newMS when the system does not know if oldMS is eligible for in-place update", // Note: this should never happen, defensive programming.
-			md:    createMD("v1", 3),
+			md:    createMD("v1", 2),
 			newMS: createMS("ms2", "v2", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 1),
@@ -805,7 +794,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "Do not move replicas from oldMS to newMS when oldMS is not eligible for in-place update",
-			md:    createMD("v1", 3),
+			md:    createMD("v1", 2),
 			newMS: createMS("ms2", "v2", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 1),
@@ -825,7 +814,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "Do not move replicas from oldMS to newMS when canUpdateDecision for the oldMS is false",
-			md:    createMD("v1", 3),
+			md:    createMD("v1", 2),
 			newMS: createMS("ms2", "v2", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 1),
@@ -849,7 +838,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "Multiple oldMSs, mixed use cases",
-			md:    createMD("v1", 6),
+			md:    createMD("v1", 5),
 			newMS: createMS("ms6", "v6", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 1), // eligible for in-place, canUpdateDecision true
@@ -1096,7 +1085,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			},
 			expectMoveFromMS:   []string{"ms1"},
 			expectScaleIntents: map[string]int32{
-				// "ms2": 6, +3 replicas from maxSurge dropped, newMS is already scaling down
+				// "ms2": 6, +3 replicas from maxSurge dropped, newMS is already scaling up
 			},
 		},
 	}
@@ -1120,7 +1109,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			}
 
 			err := planner.reconcileInPlaceUpdateIntent(ctx)
-			g.Expect(err).ToNot(HaveOccurred(), "Got unexpected error from reconcileInPlaceUpdate")
+			g.Expect(err).ToNot(HaveOccurred(), "Got unexpected error from reconcileInPlaceUpdateIntent")
 
 			g.Expect(planner.scaleIntents).To(Equal(tc.expectScaleIntents), "Unexpected scaleIntents")
 			g.Expect(canUpdateCalls).To(Equal(tc.expectedCanUpdateCalls), "Unexpected canUpdateCalls")
@@ -1457,7 +1446,6 @@ func Test_RollingUpdateSequences(t *testing.T) {
 				machineSets: []*clusterv1.MachineSet{
 					createMS("ms1", "v1", 3),
 					createMS("ms2", "v2", 3),
-					createMS("ms3", "v3", 0),
 				},
 				machineSetMachines: map[string][]*clusterv1.Machine{
 					"ms1": {
@@ -1479,7 +1467,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 
 		// Rollout with In-place updates
 
-		{ // scale out by 1 (maxSurge 0)
+		{ // scale out by 1
 			name:                                   "In-place rollout, 3 Replicas, maxSurge 1, MaxUnavailable 0",
 			maxSurge:                               1,
 			maxUnavailable:                         0,
@@ -1487,7 +1475,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 			desiredMachineNames:                    []string{"m1", "m2", "m4"},
 			overrideCanUpdateMachineSetInPlaceFunc: oldMSCanAlwaysUpdateInPlace,
 		},
-		{ // scale in by 1 (maxUnavailable 0)
+		{ // scale in by 1
 			name:                                   "In-place rollout, 3 Replicas, maxSurge 0, MaxUnavailable 1",
 			maxSurge:                               0,
 			maxUnavailable:                         1,
@@ -1587,7 +1575,7 @@ func Test_RollingUpdateSequences(t *testing.T) {
 						createM("m3", "ms2", "v2"),
 					},
 				},
-				machineUID: 15,
+				machineUID: 12,
 			},
 			desiredMachineNames:                    []string{"m1", "m2", "m3", "m4", "m5", "m6"},
 			maxSurgeBreachToleration:               maxSurgeToleration(),
@@ -1772,7 +1760,8 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 			for _, ms := range current.machineSets {
 				if ms.Name == task {
 					fLogger.Logf("[MS controller] Iteration %d, Reconcile %s, %s", i, ms.Name, msLog(ms, current.machineSetMachines[ms.Name]))
-					machineSetControllerMutator(fLogger, ms, current)
+					err := machineSetControllerMutator(fLogger, ms, current)
+					g.Expect(err).ToNot(HaveOccurred())
 					break
 				}
 			}

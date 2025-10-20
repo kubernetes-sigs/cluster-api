@@ -138,8 +138,11 @@ func (p *rolloutPlanner) reconcileReplicasPendingAcknowledgeMove(ctx context.Con
 		newAcknowledgeMoveReplicas.Insert(m.Name)
 	}
 	if totNewAcknowledgeMoveReplicasToScaleUp > 0 {
-		replicaCount := min(ptr.Deref(p.newMS.Spec.Replicas, 0)+totNewAcknowledgeMoveReplicasToScaleUp, ptr.Deref(p.md.Spec.Replicas, 0))
-		scaleUpCount := replicaCount - ptr.Deref(p.newMS.Spec.Replicas, 0)
+		// Note: After this change the replica count will include all the newly acknowledged replicas.
+		// Please note that, within the same reconcile, the rollout planner might revisit replicas for the newMS
+		// e.g. to account for the Machine deployment being scaled up or down.
+		replicaCount := ptr.Deref(p.newMS.Spec.Replicas, 0) + totNewAcknowledgeMoveReplicasToScaleUp
+		scaleUpCount := totNewAcknowledgeMoveReplicasToScaleUp
 		p.newMS.Spec.Replicas = ptr.To(replicaCount)
 		log.V(5).Info(fmt.Sprintf("Acknowledge replicas %s moved from an old MachineSet. Scale up MachineSet %s to %d (+%d)", sortAndJoin(newAcknowledgeMoveReplicas.UnsortedList()), p.newMS.Name, replicaCount, scaleUpCount), "MachineSet", klog.KObj(p.newMS))
 	}
@@ -490,28 +493,20 @@ func (p *rolloutPlanner) scalingOrInPlaceUpdateInProgress(_ context.Context) boo
 	if ptr.Deref(p.newMS.Spec.Replicas, 0) != ptr.Deref(p.newMS.Status.Replicas, 0) {
 		return true
 	}
-
-	oldMSsAreScalingDown := false
 	for _, oldMS := range p.oldMSs {
 		if ptr.Deref(oldMS.Spec.Replicas, 0) < ptr.Deref(oldMS.Status.Replicas, 0) {
-			oldMSsAreScalingDown = true
-			break
+			return true
 		}
 		if scaleIntent, ok := p.scaleIntents[oldMS.Name]; ok && scaleIntent < ptr.Deref(oldMS.Spec.Replicas, 0) {
-			oldMSsAreScalingDown = true
-			break
+			return true
 		}
 	}
-
-	replicasAreUpdatingInPlace := false
 	for _, m := range p.machines {
 		if _, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
-			replicasAreUpdatingInPlace = true
-			break
+			return true
 		}
 	}
-
-	return oldMSsAreScalingDown || replicasAreUpdatingInPlace
+	return false
 }
 
 // This funcs tries to detect and address the case when a rollout is not making progress because both scaling down and scaling up are blocked.

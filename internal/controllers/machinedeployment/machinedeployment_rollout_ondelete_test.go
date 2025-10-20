@@ -667,7 +667,8 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 			for _, ms := range current.machineSets {
 				if ms.Name == task {
 					fLogger.Logf("[MS controller] Iteration %d, Reconcile %s, %s", i, ms.Name, msLog(ms, current.machineSetMachines[ms.Name]))
-					machineSetControllerMutator(fLogger, ms, current)
+					err := machineSetControllerMutator(fLogger, ms, current)
+					g.Expect(err).ToNot(HaveOccurred())
 					break
 				}
 			}

@@ -27,6 +27,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -496,7 +497,7 @@ func machineControllerMutator(log *fileLogger, m *clusterv1.Machine, scope *roll
 }
 
 // machineSetControllerMutator fakes a small part of the MachineSet controller, just what is required for the rollout to progress.
-func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scope *rolloutScope) {
+func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scope *rolloutScope) error {
 	// Update counters
 	// Note: this should not be implemented in production code
 	ms.Status.Replicas = ptr.To(int32(len(scope.machineSetMachines[ms.Name])))
@@ -531,10 +532,12 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 	}
 
 	// If the MachineSet is accepting replicas from other MS (this is the newMS controlled by a MD),
-	// detect if there are replicas still pending AcknowledgeMove.
-	acknowledgeMoveReplicas := sets.Set[string]{}
+	// detect if there are replicas still pending AcknowledgedMove.
+	// Replicas not yet acknowledged will have a special treatment when scaling up/down the MS, because they are not included in the replica count;
+	// instead, for already acknowledged replicas, cleanup the PendingAcknowledgeMoveAnnotation.
+	acknowledgedMoveReplicas := sets.Set[string]{}
 	if replicaNames, ok := ms.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok && replicaNames != "" {
-		acknowledgeMoveReplicas.Insert(strings.Split(replicaNames, ",")...)
+		acknowledgedMoveReplicas.Insert(strings.Split(replicaNames, ",")...)
 	}
 	notAcknowledgeMoveReplicas := sets.Set[string]{}
 	if sourceMSs, ok := ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]; ok && sourceMSs != "" {
@@ -544,7 +547,7 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 			}
 
 			// If machine has been acknowledged by the MachineDeployment, cleanup pending AcknowledgeMove annotation from the machine
-			if acknowledgeMoveReplicas.Has(m.Name) {
+			if acknowledgedMoveReplicas.Has(m.Name) {
 				delete(m.Annotations, clusterv1.PendingAcknowledgeMoveAnnotation)
 				continue
 			}
@@ -554,14 +557,13 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 		}
 	} else {
 		// Otherwise this MachineSet is not accepting replicas from other MS (this is an oldMS controller by a MD).
-		// Drop pendingAcknowledgeMoveAnnotationName from controlled Machines.
+		// Drop PendingAcknowledgeMoveAnnotation from controlled Machines.
 		// Note: if there are machines recently moved but not yet accepted, those machines will be managed
 		// as any other machine and either moved to the new MS (after completing the in-place upgrade) or deleted.
 		for _, m := range scope.machineSetMachines[ms.Name] {
 			delete(m.Annotations, clusterv1.PendingAcknowledgeMoveAnnotation)
 		}
 	}
-
 	if notAcknowledgeMoveReplicas.Len() > 0 {
 		log.Logf("[MS controller] - Replicas %s moved from an old MachineSet still pending acknowledge from machine deployment %s", sortAndJoin(notAcknowledgeMoveReplicas.UnsortedList()), klog.KObj(scope.machineDeployment))
 	}
@@ -615,11 +617,12 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 					}
 				}
 				if targetMS == nil {
-					log.Logf("[MS controller] - PANIC! %s is set to send replicas to %s, which does not exists", ms.Name, targetMSName)
-					return
+					return errors.Errorf("[MS controller] - PANIC! %s is set to send replicas to %s, which does not exists", ms.Name, targetMSName)
 				}
 
 				// Limit the number of machines to be moved to avoid to exceed the final number of replicas for the target MS.
+				// TODO(in-place): consider using the DesiredReplicasAnnotation which is propagated together with the other decisions of the rollout planner
+				//  another option to consider is to shift this check on the newMS (so we perform move, but we don't start the in-place upgrade).
 				machinesToMove := min(machinesToDeleteOrMove, ptr.Deref(scope.machineDeployment.Spec.Replicas, 0)-ptr.Deref(targetMS.Spec.Replicas, 0))
 				if machinesToMove != machinesToDeleteOrMove {
 					log.Logf("[MS controller] - Move capped to %d replicas to avoid unnecessary in-place upgrades", machinesToMove)
@@ -630,14 +633,13 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 				sourcesSet := sets.Set[string]{}
 				sourcesSet.Insert(strings.Split(validSourceMSs, ",")...)
 				if !sourcesSet.Has(ms.Name) {
-					log.Logf("[MS controller] - PANIC! %s is set to send replicas to %s, but %[2]s only accepts machines from %s", ms.Name, targetMS.Name, validSourceMSs)
-					return
+					return errors.Errorf("[MS controller] - PANIC! %s is set to send replicas to %s, but %[2]s only accepts machines from %s", ms.Name, targetMS.Name, validSourceMSs)
 				}
 
 				machinesMoved := []string{}
 				machinesSetMachines := []*clusterv1.Machine{}
 				for i, m := range scope.machineSetMachines[ms.Name] {
-					// Make sure we are not deleting machines still pending AcknowledgeMove
+					// Make sure we are not moving machines still pending AcknowledgeMove
 					if notAcknowledgeMoveReplicas.Has(m.Name) {
 						machinesSetMachines = append(machinesSetMachines, m)
 						continue
@@ -680,7 +682,9 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 		machinesDeleted := []string{}
 		machinesSetMachines := []*clusterv1.Machine{}
 		for i, m := range scope.machineSetMachines[ms.Name] {
-			// Prevent deletion of machines not yet acknowledged after a move operation
+			// Prevent deletion of machines not yet acknowledged after a move operation.
+			// Note: as soon as an in-place upgrade is started, CAPI Should always try to complete it
+			// before taking further actions on the same machine.
 			if notAcknowledgeMoveReplicas.Has(m.Name) {
 				machinesSetMachines = append(machinesSetMachines, m)
 				continue
@@ -706,6 +710,8 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 		availableReplicas++
 	}
 	ms.Status.AvailableReplicas = ptr.To(availableReplicas)
+
+	return nil
 }
 
 type rolloutScope struct {
@@ -849,13 +855,13 @@ func (r rolloutScope) String() string {
 func msLog(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) string {
 	sb := strings.Builder{}
 	machineNames := []string{}
-	acknowledgeMoveMachines := sets.Set[string]{}
+	acknowledgedMoveMachines := sets.Set[string]{}
 	if replicaNames, ok := ms.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok && replicaNames != "" {
-		acknowledgeMoveMachines.Insert(strings.Split(replicaNames, ",")...)
+		acknowledgedMoveMachines.Insert(strings.Split(replicaNames, ",")...)
 	}
 	for _, m := range machines {
 		name := m.Name
-		if _, ok := m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; ok && !acknowledgeMoveMachines.Has(name) {
+		if _, ok := m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; ok && !acknowledgedMoveMachines.Has(name) {
 			name += "🟠"
 		}
 		if _, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {

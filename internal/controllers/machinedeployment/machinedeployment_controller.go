@@ -164,15 +164,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		cluster:           cluster,
 	}
 
-	if selectorMap, err := metav1.LabelSelectorAsMap(&s.machineDeployment.Spec.Selector); err == nil {
-		machineList := &clusterv1.MachineList{}
-		if err := r.Client.List(ctx, machineList, client.InNamespace(s.machineDeployment.Namespace), client.MatchingLabels(selectorMap)); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to list machines")
-		}
-		s.machines = collections.FromMachineList(machineList)
-	} else {
+	// Get machines.
+	selectorMap, err := metav1.LabelSelectorAsMap(&s.machineDeployment.Spec.Selector)
+	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to convert label selector to a map")
 	}
+	machineList := &clusterv1.MachineList{}
+	if err := r.Client.List(ctx, machineList, client.InNamespace(s.machineDeployment.Namespace), client.MatchingLabels(selectorMap)); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to list Machines")
+	}
+	s.machines = collections.FromMachineList(machineList)
 
 	defer func() {
 		if err := r.updateStatus(ctx, s); err != nil {

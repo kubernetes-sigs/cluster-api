@@ -1965,14 +1965,14 @@ func schema_api_runtime_hooks_v1alpha1_GenerateUpgradePlanRequest(ref common.Ref
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "cluster is the cluster ofject the lifecycle hook correspods to.",
+							Description: "cluster is the cluster object the GenerateUpgradePlan request corresponds to.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"),
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.Cluster"),
 						},
 					},
 					"fromControlPlaneKubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "fromControlPlaneKubernetesVersion is the current Kubernetes version of the control plane.",
+							Description: "fromControlPlaneKubernetesVersion is the min current Kubernetes version of the workers (MachineDeployments and MachinePools).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1996,7 +1996,7 @@ func schema_api_runtime_hooks_v1alpha1_GenerateUpgradePlanRequest(ref common.Ref
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.Cluster"},
 	}
 }
 
@@ -2038,13 +2038,8 @@ func schema_api_runtime_hooks_v1alpha1_GenerateUpgradePlanResponse(ref common.Re
 						},
 					},
 					"controlPlaneUpgrades": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
-							Description: "controlPlaneUpgrades is the list of version upgrade steps for the control plane. Each entry represents an intermediate version that must be applied in sequence.",
+							Description: "controlPlaneUpgrades is the list of version upgrade steps for the control plane. Each entry represents an intermediate version that must be applied in sequence. The following rules apply: - there should be at least one version for every minor between \t\tfromControlPlaneKubernetesVersion (excluded) and ToKubernetesVersion (included). - each version must be:\n  - greater than fromControlPlaneKubernetesVersion (or with a different build \tnumber)\n  - greater than the previous version in the list (or with a different build number)\n  - less or equal to ToKubernetesVersion (or with a different build number)\n  - the last version in the plan must be equal to ToKubernetesVersion",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -2057,13 +2052,8 @@ func schema_api_runtime_hooks_v1alpha1_GenerateUpgradePlanResponse(ref common.Re
 						},
 					},
 					"workersUpgrades": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
-							Description: "workersUpgrades is the list of version upgrade steps for the workers. Each entry represents an intermediate version that must be applied in sequence.",
+							Description: "workersUpgrades is the list of version upgrade steps for the workers. Each entry represents an intermediate version that must be applied in sequence.\n\nIn case the upgrade plan for workers will be left to empty, the system will automatically determine the minimal number of workers upgrade steps, thus minimizing impact on workloads and reducing the overall upgrade time.\n\nIf instead for any reason a custom upgrade path for workers is required, the following rules apply: - each version must be:\n  - equal to FromControlPlaneKubernetesVersion or to one of the versions in the control plane upgrade plan.\n  - greater than FromWorkersKubernetesVersion (or with a different build number)\n  - greater than the previous version in the list (or with a different build number)\n  - less or equal to the ToKubernetesVersion (or with a different build number)\n  - in case of versions with the same major/minor/patch version but different build number, also the order\n    of those versions must be the same for control plane and worker upgrade plan.\n  - the last version in the plan must be equal to ToKubernetesVersion\n  - the upgrade plane must have all the intermediate version which workers must go through to avoid breaking rules\n    defining the max version skew between control plane and workers.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

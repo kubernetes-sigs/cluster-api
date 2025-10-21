@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
@@ -31,11 +31,11 @@ type GenerateUpgradePlanRequest struct {
 	// CommonRequest contains fields common to all request types.
 	CommonRequest `json:",inline"`
 
-	// cluster is the cluster ofject the lifecycle hook correspods to.
+	// cluster is the cluster object the GenerateUpgradePlan request corresponds to.
 	// +required
-	Cluster clusterv1beta1.Cluster `json:"cluster,omitempty,omitzero"`
+	Cluster clusterv1.Cluster `json:"cluster,omitempty,omitzero"`
 
-	// fromControlPlaneKubernetesVersion is the current Kubernetes version of the control plane.
+	// fromControlPlaneKubernetesVersion is the min current Kubernetes version of the workers (MachineDeployments and MachinePools).
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	FromControlPlaneKubernetesVersion string `json:"fromControlPlaneKubernetesVersion,omitempty"`
@@ -63,18 +63,35 @@ type GenerateUpgradePlanResponse struct {
 
 	// controlPlaneUpgrades is the list of version upgrade steps for the control plane.
 	// Each entry represents an intermediate version that must be applied in sequence.
+	// The following rules apply:
+	// - there should be at least one version for every minor between 		fromControlPlaneKubernetesVersion (excluded) and ToKubernetesVersion (included).
+	// - each version must be:
+	//   - greater than fromControlPlaneKubernetesVersion (or with a different build 	number)
+	//   - greater than the previous version in the list (or with a different build number)
+	//   - less or equal to ToKubernetesVersion (or with a different build number)
+	//   - the last version in the plan must be equal to ToKubernetesVersion
 	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=1000
 	ControlPlaneUpgrades []UpgradeStep `json:"controlPlaneUpgrades,omitempty"`
 
 	// workersUpgrades is the list of version upgrade steps for the workers.
 	// Each entry represents an intermediate version that must be applied in sequence.
+	//
+	// In case the upgrade plan for workers will be left to empty, the system will automatically
+	// determine the minimal number of workers upgrade steps, thus minimizing impact on workloads and reducing
+	// the overall upgrade time.
+	//
+	// If instead for any reason a custom upgrade path for workers is required, the following rules apply:
+	// - each version must be:
+	//   - equal to FromControlPlaneKubernetesVersion or to one of the versions in the control plane upgrade plan.
+	//   - greater than FromWorkersKubernetesVersion (or with a different build number)
+	//   - greater than the previous version in the list (or with a different build number)
+	//   - less or equal to the ToKubernetesVersion (or with a different build number)
+	//   - in case of versions with the same major/minor/patch version but different build number, also the order
+	//     of those versions must be the same for control plane and worker upgrade plan.
+	//   - the last version in the plan must be equal to ToKubernetesVersion
+	//   - the upgrade plane must have all the intermediate version which workers must go through to avoid breaking rules
+	//     defining the max version skew between control plane and workers.
 	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=1000
 	WorkersUpgrades []UpgradeStep `json:"workersUpgrades,omitempty"`
 }
 
@@ -105,6 +122,8 @@ func init() {
 			"\n" +
 			"Notes:\n" +
 			"- The response may include separate upgrade paths for control plane and workers\n" +
+			"- The upgrade plan for workers is optional; if missing the system will automatically\n\"" +
+			"  determine the minimal number of workers upgrade steps according to Kubernetes version skew rules.\n" +
 			"- Each upgrade step represents a version that must be applied in sequence",
 	})
 }

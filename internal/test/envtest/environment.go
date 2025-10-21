@@ -445,7 +445,13 @@ kind: Policy
 rules:
   - level: RequestResponse
     resources:
-      - resources: ["*"]
+      - group: ""
+      - group: "cluster.x-k8s.io"
+      - group: "infrastructure.cluster.x-k8s.io"
+      - group: "controlplane.cluster.x-k8s.io"
+      - group: "addons.cluster.x-k8s.io"
+      - group: "bootstrap.cluster.x-k8s.io"
+      - group: "runtime.cluster.x-k8s.io"
 `)
 
 	if err := os.WriteFile(policyFile, policyYAML, 0600); err != nil {

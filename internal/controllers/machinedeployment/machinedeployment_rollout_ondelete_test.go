@@ -28,6 +28,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/textlogger"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -580,13 +581,15 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 
 				// Running a small subset of MD reconcile (the rollout logic and a bit of setReplicas)
 				p := newRolloutPlanner()
-				p.computeDesiredMS = func(_ context.Context, deployment *clusterv1.MachineDeployment, currentNewMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
+				p.overrideComputeDesiredMS = func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentNewMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
+					log := ctrl.LoggerFrom(ctx)
 					desiredNewMS := currentNewMS
 					if currentNewMS == nil {
 						// uses a predictable MS name when creating newMS, also add the newMS to current.machineSets
 						totMS := len(current.machineSets)
 						desiredNewMS = createMS(fmt.Sprintf("ms%d", totMS+1), deployment.Spec.Template.Spec.FailureDomain, 0)
 						current.machineSets = append(current.machineSets, desiredNewMS)
+						log.V(5).Info(fmt.Sprintf("Computing new MachineSet %s with %d replicas", desiredNewMS.Name, ptr.Deref(desiredNewMS.Spec.Replicas, 0)), "MachineSet", klog.KObj(desiredNewMS))
 					}
 					return desiredNewMS, nil
 				}
@@ -664,7 +667,8 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 			for _, ms := range current.machineSets {
 				if ms.Name == task {
 					fLogger.Logf("[MS controller] Iteration %d, Reconcile %s, %s", i, ms.Name, msLog(ms, current.machineSetMachines[ms.Name]))
-					machineSetControllerMutator(fLogger, ms, current)
+					err := machineSetControllerMutator(fLogger, ms, current)
+					g.Expect(err).ToNot(HaveOccurred())
 					break
 				}
 			}

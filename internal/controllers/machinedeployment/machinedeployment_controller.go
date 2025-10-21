@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
@@ -163,6 +164,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		cluster:           cluster,
 	}
 
+	// Get machines.
+	selectorMap, err := metav1.LabelSelectorAsMap(&s.machineDeployment.Spec.Selector)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to convert label selector to a map")
+	}
+	machineList := &clusterv1.MachineList{}
+	if err := r.Client.List(ctx, machineList, client.InNamespace(s.machineDeployment.Namespace), client.MatchingLabels(selectorMap)); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to list Machines")
+	}
+	s.machines = collections.FromMachineList(machineList)
+
 	defer func() {
 		if err := r.updateStatus(ctx, s); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
@@ -195,6 +207,7 @@ type scope struct {
 	machineDeployment                            *clusterv1.MachineDeployment
 	cluster                                      *clusterv1.Cluster
 	machineSets                                  []*clusterv1.MachineSet
+	machines                                     collections.Machines
 	bootstrapTemplateNotFound                    bool
 	bootstrapTemplateExists                      bool
 	infrastructureTemplateNotFound               bool
@@ -291,15 +304,15 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 	templateExists := s.infrastructureTemplateExists && (!md.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() || s.bootstrapTemplateExists)
 
 	if ptr.Deref(md.Spec.Paused, false) {
-		return r.sync(ctx, md, s.machineSets, templateExists)
+		return r.sync(ctx, md, s.machineSets, s.machines, templateExists)
 	}
 
 	if md.Spec.Rollout.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
-		return r.rolloutRollingUpdate(ctx, md, s.machineSets, templateExists)
+		return r.rolloutRollingUpdate(ctx, md, s.machineSets, s.machines, templateExists)
 	}
 
 	if md.Spec.Rollout.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
-		return r.rolloutOnDelete(ctx, md, s.machineSets, templateExists)
+		return r.rolloutOnDelete(ctx, md, s.machineSets, s.machines, templateExists)
 	}
 
 	return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Rollout.Strategy.Type)
@@ -320,7 +333,6 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 		log = log.WithValues("MachineSet", klog.KObj(ms))
 		ctx = ctrl.LoggerInto(ctx, log)
 
-		originalReplicas := ptr.Deref(ms.Spec.Replicas, 0)
 		if scaleIntent, ok := p.scaleIntents[ms.Name]; ok {
 			ms.Spec.Replicas = &scaleIntent
 		}
@@ -363,6 +375,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 		if !ok {
 			return errors.Errorf("failed to update MachineSet %s, original MS is missing", klog.KObj(ms))
 		}
+		originalReplicas := ptr.Deref(originalMS.Spec.Replicas, 0)
 
 		err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, ms, ssa.WithCachingProxy{Cache: r.ssaCache, Original: originalMS})
 		if err != nil {
@@ -370,14 +383,21 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			return errors.Wrapf(err, "failed to update MachineSet %s", klog.KObj(ms))
 		}
 
+		changes := getAnnotationChanges(originalMS, ms)
+
 		newReplicas := ptr.Deref(ms.Spec.Replicas, 0)
 		if newReplicas < originalReplicas {
-			log.Info(fmt.Sprintf("Scaled down MachineSet %s to %d replicas (-%d)", ms.Name, newReplicas, originalReplicas-newReplicas))
+			changes = append(changes, "replicas", newReplicas)
+			log.Info(fmt.Sprintf("Scaled down MachineSet %s to %d replicas (-%d)", ms.Name, newReplicas, originalReplicas-newReplicas), changes...)
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled down MachineSet %v: %d -> %d", ms.Name, originalReplicas, newReplicas)
 		}
 		if newReplicas > originalReplicas {
-			log.Info(fmt.Sprintf("Scaled up MachineSet %s to %d replicas (+%d)", ms.Name, newReplicas, newReplicas-originalReplicas))
+			changes = append(changes, "replicas", newReplicas)
+			log.Info(fmt.Sprintf("Scaled up MachineSet %s to %d replicas (+%d)", ms.Name, newReplicas, newReplicas-originalReplicas), changes...)
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled up MachineSet %v: %d -> %d", ms.Name, originalReplicas, newReplicas)
+		}
+		if newReplicas == originalReplicas && len(changes) > 0 {
+			log.Info(fmt.Sprintf("MachineSet %s updated", ms.Name), changes...)
 		}
 	}
 
@@ -390,6 +410,42 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 	}
 
 	return nil
+}
+
+func getAnnotationChanges(originalMS *clusterv1.MachineSet, ms *clusterv1.MachineSet) []any {
+	changes := []any{}
+	if originalMS.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] != ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] {
+		if value, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok {
+			changes = append(changes, clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, value)
+		} else {
+			changes = append(changes, clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, "(annotation removed)")
+		}
+	}
+
+	if originalMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] != ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] {
+		if value, ok := ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]; ok {
+			changes = append(changes, clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation, value)
+		} else {
+			changes = append(changes, clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation, "(annotation removed)")
+		}
+	}
+
+	if originalMS.Annotations[clusterv1.AcknowledgedMoveAnnotation] != ms.Annotations[clusterv1.AcknowledgedMoveAnnotation] {
+		if value, ok := ms.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok {
+			changes = append(changes, clusterv1.AcknowledgedMoveAnnotation, value)
+		} else {
+			changes = append(changes, clusterv1.AcknowledgedMoveAnnotation, "(annotation removed)")
+		}
+	}
+
+	if originalMS.Annotations[clusterv1.DisableMachineCreateAnnotation] != ms.Annotations[clusterv1.DisableMachineCreateAnnotation] {
+		if value, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok {
+			changes = append(changes, clusterv1.DisableMachineCreateAnnotation, value)
+		} else {
+			changes = append(changes, clusterv1.DisableMachineCreateAnnotation, "(annotation removed)")
+		}
+	}
+	return changes
 }
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {

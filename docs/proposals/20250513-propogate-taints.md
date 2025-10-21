@@ -495,7 +495,7 @@ This ensures that a node ever only gets these taints added once, at the time of 
 
 If a Node re-registers itself, the controllers also would again add the `OnInitialization` as well as the `Always` taints because the tracking annotation does not exist.
 
-**Note:** If a bootstrap provider supports the `node.cluster.x-k8s.io/uninitialized` taint as documented in [Contract rules for BootstrapConfig](https://cluster-api.sigs.k8s.io/developer/providers/contracts/bootstrap-config#taint-nodes-at-creation), this taint ensures that no workload will be scheduled until the node was initialized, unless the workload defines proper tolerations.
+**Note:** If a bootstrap provider supports the `node.cluster.x-k8s.io/uninitialized` taint as documented in [Contract rules for BootstrapConfig](https://cluster-api.sigs.k8s.io/developer/providers/contracts/bootstrap-config#taint-nodes-at-creation), the implementation ensures that all `OnInitialization` taints are applied at the same time as the `node.cluster.x-k8s.io/uninitialized` is getting removed. This prevents that workload without proper tolerations could be scheduled to the node in the time between node creation and Cluster API adding the `OnInitialization` taints.
 
 **Note 2:** A taint added by a bootstrap provider (e.g. CABPK) will be treated as a taint added by any other actor and will not get special handling. Especially for an `Always` taint this means the machine controller would adopt the taint and start tracking it.
 

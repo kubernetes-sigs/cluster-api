@@ -714,29 +714,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 
 			// Create the BootstrapConfig if necessary.
 			if ms.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
-				apiVersion, err := contract.GetAPIVersion(ctx, r.Client, ms.Spec.Template.Spec.Bootstrap.ConfigRef.GroupKind())
-				if err == nil {
-					bootstrapConfig, bootstrapRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
-						Client: r.Client,
-						TemplateRef: &corev1.ObjectReference{
-							APIVersion: apiVersion,
-							Kind:       ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind,
-							Namespace:  ms.Namespace,
-							Name:       ms.Spec.Template.Spec.Bootstrap.ConfigRef.Name,
-						},
-						Namespace:   machine.Namespace,
-						Name:        machine.Name,
-						ClusterName: machine.Spec.ClusterName,
-						Labels:      machine.Labels,
-						Annotations: machine.Annotations,
-						OwnerRef: &metav1.OwnerReference{
-							APIVersion: clusterv1.GroupVersion.String(),
-							Kind:       "MachineSet",
-							Name:       ms.Name,
-							UID:        ms.UID,
-						},
-					})
-				}
+				bootstrapConfig, bootstrapRef, err = r.createBootstrapConfig(ctx, ms, machine)
 				if err != nil {
 					v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.BootstrapTemplateCloningFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 					return ctrl.Result{}, errors.Wrapf(err, "failed to clone bootstrap configuration from %s %s while creating a Machine",
@@ -748,30 +726,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 			}
 
 			// Create the InfraMachine.
-			apiVersion, err := contract.GetAPIVersion(ctx, r.Client, ms.Spec.Template.Spec.InfrastructureRef.GroupKind())
-			if err == nil {
-				infraMachine, infraRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
-					Client: r.Client,
-					TemplateRef: &corev1.ObjectReference{
-						APIVersion: apiVersion,
-						Kind:       ms.Spec.Template.Spec.InfrastructureRef.Kind,
-						Namespace:  ms.Namespace,
-						Name:       ms.Spec.Template.Spec.InfrastructureRef.Name,
-					},
-
-					Namespace:   machine.Namespace,
-					Name:        machine.Name,
-					ClusterName: machine.Spec.ClusterName,
-					Labels:      machine.Labels,
-					Annotations: machine.Annotations,
-					OwnerRef: &metav1.OwnerReference{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "MachineSet",
-						Name:       ms.Name,
-						UID:        ms.UID,
-					},
-				})
-			}
+			infraMachine, infraRef, err = r.createInfraMachine(ctx, ms, machine)
 			if err != nil {
 				var deleteErr error
 				if bootstrapRef.IsDefined() {
@@ -1591,6 +1546,120 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef))
 
 	return false, patchHelper.Patch(ctx, obj)
+}
+
+func (r *Reconciler) createBootstrapConfig(ctx context.Context, ms *clusterv1.MachineSet, machine *clusterv1.Machine) (*unstructured.Unstructured, clusterv1.ContractVersionedObjectReference, error) {
+	bootstrapConfig, err := r.computeDesiredBootstrapConfig(ctx, ms, machine)
+	if err != nil {
+		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create BootstrapConfig")
+	}
+
+	if err := r.Client.Create(ctx, bootstrapConfig); err != nil {
+		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create BootstrapConfig")
+	}
+
+	return bootstrapConfig, clusterv1.ContractVersionedObjectReference{
+		APIGroup: bootstrapConfig.GroupVersionKind().Group,
+		Kind:     bootstrapConfig.GetKind(),
+		Name:     bootstrapConfig.GetName(),
+	}, nil
+}
+
+func (r *Reconciler) computeDesiredBootstrapConfig(ctx context.Context, ms *clusterv1.MachineSet, machine *clusterv1.Machine) (*unstructured.Unstructured, error) {
+	ownerReference := &metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "MachineSet",
+		Name:       ms.Name,
+		UID:        ms.UID,
+	}
+
+	apiVersion, err := contract.GetAPIVersion(ctx, r.Client, ms.Spec.Template.Spec.Bootstrap.ConfigRef.GroupKind())
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to compute desired BootstrapConfig")
+	}
+	templateRef := &corev1.ObjectReference{
+		APIVersion: apiVersion,
+		Kind:       ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind,
+		Namespace:  ms.Namespace,
+		Name:       ms.Spec.Template.Spec.Bootstrap.ConfigRef.Name,
+	}
+
+	template, err := external.Get(ctx, r.Client, templateRef)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to compute desired BootstrapConfig")
+	}
+	generateTemplateInput := &external.GenerateTemplateInput{
+		Template:    template,
+		TemplateRef: templateRef,
+		Namespace:   machine.Namespace,
+		Name:        machine.Name,
+		ClusterName: machine.Spec.ClusterName,
+		OwnerRef:    ownerReference,
+		Labels:      machine.Labels,
+		Annotations: machine.Annotations,
+	}
+	bootstrapConfig, err := external.GenerateTemplate(generateTemplateInput)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to compute desired BootstrapConfig")
+	}
+	return bootstrapConfig, nil
+}
+
+func (r *Reconciler) createInfraMachine(ctx context.Context, ms *clusterv1.MachineSet, machine *clusterv1.Machine) (*unstructured.Unstructured, clusterv1.ContractVersionedObjectReference, error) {
+	infraMachine, err := r.computeDesiredInfraMachine(ctx, ms, machine)
+	if err != nil {
+		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create InfraMachine")
+	}
+
+	if err := r.Client.Create(ctx, infraMachine); err != nil {
+		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create InfraMachine")
+	}
+
+	return infraMachine, clusterv1.ContractVersionedObjectReference{
+		APIGroup: infraMachine.GroupVersionKind().Group,
+		Kind:     infraMachine.GetKind(),
+		Name:     infraMachine.GetName(),
+	}, nil
+}
+
+func (r *Reconciler) computeDesiredInfraMachine(ctx context.Context, ms *clusterv1.MachineSet, machine *clusterv1.Machine) (*unstructured.Unstructured, error) {
+	ownerReference := &metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "MachineSet",
+		Name:       ms.Name,
+		UID:        ms.UID,
+	}
+
+	apiVersion, err := contract.GetAPIVersion(ctx, r.Client, ms.Spec.Template.Spec.InfrastructureRef.GroupKind())
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to compute desired InfraMachine")
+	}
+	templateRef := &corev1.ObjectReference{
+		APIVersion: apiVersion,
+		Kind:       ms.Spec.Template.Spec.InfrastructureRef.Kind,
+		Namespace:  ms.Namespace,
+		Name:       ms.Spec.Template.Spec.InfrastructureRef.Name,
+	}
+
+	template, err := external.Get(ctx, r.Client, templateRef)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to compute desired InfraMachine")
+	}
+	generateTemplateInput := &external.GenerateTemplateInput{
+		Template:    template,
+		TemplateRef: templateRef,
+		Namespace:   machine.Namespace,
+		Name:        machine.Name,
+		ClusterName: machine.Spec.ClusterName,
+		OwnerRef:    ownerReference,
+		Labels:      machine.Labels,
+		Annotations: machine.Annotations,
+	}
+	infraMachine, err := external.GenerateTemplate(generateTemplateInput)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to compute desired InfraMachine")
+	}
+	return infraMachine, nil
 }
 
 // Returns the machines to be remediated in the following order

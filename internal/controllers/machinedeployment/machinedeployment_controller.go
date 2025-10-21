@@ -434,14 +434,11 @@ func (r *Reconciler) getAndAdoptMachineSetsForDeployment(ctx context.Context, s 
 
 	selector, err := metav1.LabelSelectorAsSelector(&md.Spec.Selector)
 	if err != nil {
-		log.Error(err, "Skipping MachineDeployment, failed to get label selector from spec selector")
-		return err
+		return errors.Wrapf(err, "failed to get MachineSets: failed to compute label selector from MachineDeployment.spec.selector")
 	}
 
-	// If a MachineDeployment with a nil or empty selector creeps in, it should match nothing, not everything.
 	if selector.Empty() {
-		log.Info("Skipping MachineDeployment as the selector is empty")
-		return nil
+		return errors.New("failed to get MachineSets: label selector computed from MachineDeployment.spec.selector is empty")
 	}
 
 	filtered := make([]*clusterv1.MachineSet, 0, len(machineSets.Items))

@@ -129,7 +129,7 @@
 [MS controller] Iteration 16, Reconcile ms2, 3/3 replicas (m1,m2,m4 <= ms1)
 [MS controller] Iteration 16, Reconcile ms1, 1/0 replicas (m3 => ms2)
 [MS controller] - Move capped to 0 replicas to avoid unnecessary in-place upgrades
-[MS controller] - ms1 scale down to 0/0 replicas ( moved to ms2)
+[MS controller] - ms1 scale down to 1/0 replicas ( moved to ms2)
 [MS controller] - ms1 scale down to 0/0 replicas (m3 deleted)
 [MD controller] Iteration 16, Reconcile md
 [MD controller] - Input to rollout planner

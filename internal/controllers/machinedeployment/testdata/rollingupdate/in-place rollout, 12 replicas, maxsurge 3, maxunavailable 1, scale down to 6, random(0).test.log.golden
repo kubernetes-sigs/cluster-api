@@ -19,7 +19,7 @@
 [Toleration] tolerate maxSurge breach
 [MS controller] Iteration 2, Reconcile ms1, 9/2 replicas (m4,m5,m6,m7,m8,m9,m10,m11,m12 => ms2)
 [MS controller] - Move capped to 3 replicas to avoid unnecessary in-place upgrades
-[MS controller] - ms1 scale down to 2/2 replicas (m4,m5,m6 moved to ms2)
+[MS controller] - ms1 scale down to 6/2 replicas (m4,m5,m6 moved to ms2)
 [MS controller] - ms1 scale down to 2/2 replicas (m7,m8,m9,m10 deleted)
 [MS controller] Iteration 2, Reconcile ms1, 2/2 replicas (m11,m12 => ms2)
 [MD controller] Iteration 3, Reconcile md
@@ -76,7 +76,7 @@
   - ms2, 6/6 replicas (m1,m2,m3,m4,m5,m6 <= ms1)
 [MS controller] Iteration 8, Reconcile ms1, 2/0 replicas (m11,m12 => ms2)
 [MS controller] - Move capped to 0 replicas to avoid unnecessary in-place upgrades
-[MS controller] - ms1 scale down to 0/0 replicas ( moved to ms2)
+[MS controller] - ms1 scale down to 2/0 replicas ( moved to ms2)
 [MS controller] - ms1 scale down to 0/0 replicas (m11,m12 deleted)
 [MS controller] Iteration 9, Reconcile ms2, 6/6 replicas (m1,m2,m3,m4,m5,m6 <= ms1)
 [MS controller] Iteration 9, Reconcile ms1, 0/0 replicas ( => ms2)

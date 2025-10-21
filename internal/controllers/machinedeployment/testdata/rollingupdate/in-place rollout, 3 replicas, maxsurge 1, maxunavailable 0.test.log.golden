@@ -98,7 +98,7 @@
   - ms2, 3/3 replicas (m1,m2,m4 <= ms1)
 [MS controller] Iteration 8, Reconcile ms1, 1/0 replicas (m3 => ms2)
 [MS controller] - Move capped to 0 replicas to avoid unnecessary in-place upgrades
-[MS controller] - ms1 scale down to 0/0 replicas ( moved to ms2)
+[MS controller] - ms1 scale down to 1/0 replicas ( moved to ms2)
 [MS controller] - ms1 scale down to 0/0 replicas (m3 deleted)
 [MS controller] Iteration 8, Reconcile ms2, 3/3 replicas (m1,m2,m4 <= ms1)
 [MD controller] Iteration 9, Reconcile md

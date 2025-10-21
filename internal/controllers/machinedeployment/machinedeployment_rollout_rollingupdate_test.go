@@ -711,7 +711,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 
 		{
 			name:  "Move replicas from oldMS to newMS",
-			md:    createMD("v1", 2),
+			md:    createMD("v2", 2),
 			newMS: createMS("ms2", "v2", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 1),
@@ -757,7 +757,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "Do not move replicas from oldMS to newMS when oldMS doesn't have replicas anymore",
-			md:    createMD("v1", 1),
+			md:    createMD("v2", 3),
 			newMS: createMS("ms2", "v2", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 0),
@@ -776,7 +776,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "Do not move replicas from oldMS to newMS when the system does not know if oldMS is eligible for in-place update", // Note: this should never happen, defensive programming.
-			md:    createMD("v1", 2),
+			md:    createMD("v2", 2),
 			newMS: createMS("ms2", "v2", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 1),
@@ -794,7 +794,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "Do not move replicas from oldMS to newMS when oldMS is not eligible for in-place update",
-			md:    createMD("v1", 2),
+			md:    createMD("v2", 2),
 			newMS: createMS("ms2", "v2", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 1),
@@ -814,7 +814,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "Do not move replicas from oldMS to newMS when canUpdateDecision for the oldMS is false",
-			md:    createMD("v1", 2),
+			md:    createMD("v2", 2),
 			newMS: createMS("ms2", "v2", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 1),
@@ -838,7 +838,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "Multiple oldMSs, mixed use cases",
-			md:    createMD("v1", 5),
+			md:    createMD("v6", 6),
 			newMS: createMS("ms6", "v6", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 1), // eligible for in-place, canUpdateDecision true
@@ -880,7 +880,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 
 		{
 			name:  "When moving replicas from oldMS to newMS, preserve newMS scale up intent if it does not use maxSurge",
-			md:    createMD("v1", 3, withRollingUpdateStrategy(1, 0)),
+			md:    createMD("v2", 3, withRollingUpdateStrategy(1, 0)),
 			newMS: createMS("ms2", "v2", 1),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 1),
@@ -908,7 +908,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "When moving replicas from oldMS to newMS, preserve one usage of MaxSurge in the newMS scale up intent when required to start the rollout (maxSurge 1, maxUnavailable 0)",
-			md:    createMD("v1", 3, withRollingUpdateStrategy(1, 0)),
+			md:    createMD("v2", 3, withRollingUpdateStrategy(1, 0)),
 			newMS: createMS("ms2", "v2", 0),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3),
@@ -938,7 +938,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "When moving replicas from oldMS to newMS, preserve one usage of MaxSurge in the newMS scale up intent when required to start the rollout (maxSurge 3, maxUnavailable 0)",
-			md:    createMD("v1", 3, withRollingUpdateStrategy(3, 0)),
+			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 0)),
 			newMS: createMS("ms2", "v2", 0),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3),
@@ -968,7 +968,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are oldMS with scale down intent (maxSurge 3, maxUnavailable 1)",
-			md:    createMD("v1", 3, withRollingUpdateStrategy(3, 1)),
+			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 1)),
 			newMS: createMS("ms2", "v2", 0),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3),
@@ -999,7 +999,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are oldMS with scale down from a previous reconcile (maxSurge 3, maxUnavailable 1)",
-			md:    createMD("v1", 3, withRollingUpdateStrategy(3, 1)),
+			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 1)),
 			newMS: createMS("ms2", "v2", 0),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3, withStatusReplicas(4)), // scale down from a previous reconcile
@@ -1029,7 +1029,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there machines in-place updating (maxSurge 3, maxUnavailable 0)",
-			md:    createMD("v1", 3, withRollingUpdateStrategy(3, 0)),
+			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 0)),
 			newMS: createMS("ms2", "v2", 0),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3),
@@ -1058,7 +1058,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there newMS is scaling from a previous reconcile (maxSurge 3, maxUnavailable 1)",
-			md:    createMD("v1", 6, withRollingUpdateStrategy(3, 1)),
+			md:    createMD("v6", 6, withRollingUpdateStrategy(3, 1)),
 			newMS: createMS("ms2", "v2", 3, withStatusReplicas(2)), // scaling from a previous reconcile
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3),

@@ -668,7 +668,7 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 					machinesMoved = append(machinesMoved, m.Name)
 				}
 				scope.machineSetMachines[ms.Name] = machinesSetMachines
-				log.Logf("[MS controller] - %s scale down to %d/%[2]d replicas (%s moved to %s)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesMoved, ","), targetMS.Name)
+				log.Logf("[MS controller] - %s scale down to %d/%d replicas (%s moved to %s)", ms.Name, len(scope.machineSetMachines[ms.Name]), ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesMoved, ","), targetMS.Name)
 
 				// Sort machines of the target MS to ensure consistent reporting during tests.
 				// Note: this is required because a machine can be moved to a target MachineSet that has been already reconciled before the source MachineSet (it won't sort machine by itself until the next reconcile).

@@ -41,9 +41,11 @@ import (
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/transport"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -172,18 +174,59 @@ func (c *client) Unregister(extensionConfig *runtimev1.ExtensionConfig) error {
 	return nil
 }
 
+func (c *client) GetAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject ctrlclient.Object) ([]string, error) {
+	hookName := runtimecatalog.HookName(hook)
+	log := ctrl.LoggerFrom(ctx).WithValues("hook", hookName)
+	ctx = ctrl.LoggerInto(ctx, log)
+	gvh, err := c.catalog.GroupVersionHook(hook)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get extension handlers for hook %q: failed to compute GroupVersionHook", hookName)
+	}
+	forObjectGVK, err := apiutil.GVKForObject(forObject, c.client.Scheme())
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get extension handlers for hook %q: failed to get GroupVersionKind for the object the hook is executed for", hookName)
+	}
+
+	registrations, err := c.registry.List(gvh.GroupHook())
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get extension handlers for hook %q", gvh.GroupHook())
+	}
+
+	log.V(4).Info(fmt.Sprintf("Getting all extensions of hook %q for %s %s", hookName, forObjectGVK.Kind, klog.KObj(forObject)))
+	matchingRegistrations := []string{}
+	for _, registration := range registrations {
+		// Compute whether the object the get is being made for matches the namespaceSelector
+		namespaceMatches, err := c.matchNamespace(ctx, registration.NamespaceSelector, forObject.GetNamespace())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get extension handlers for hook %q: failed to get extension handler %q", gvh.GroupHook(), registration.Name)
+		}
+		// If the object namespace isn't matched by the registration NamespaceSelector don't return it.
+		if !namespaceMatches {
+			log.V(5).Info(fmt.Sprintf("skipping extension handler %q as object '%s/%s' does not match selector %q of ExtensionConfig", registration.Name, forObject.GetNamespace(), forObject.GetName(), registration.NamespaceSelector))
+			continue
+		}
+		matchingRegistrations = append(matchingRegistrations, registration.Name)
+	}
+
+	return matchingRegistrations, nil
+}
+
 // CallAllExtensions calls all the ExtensionHandlers registered for the hook.
 // The ExtensionHandlers are called sequentially. The function exits immediately after any of the ExtensionHandlers return an error.
 // This ensures we don't end up waiting for timeout from multiple unreachable Extensions.
 // See CallExtension for more details on when an ExtensionHandler returns an error.
 // The aggregated result of the ExtensionHandlers is updated into the response object passed to the function.
-func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error {
+func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject ctrlclient.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error {
 	hookName := runtimecatalog.HookName(hook)
 	log := ctrl.LoggerFrom(ctx).WithValues("hook", hookName)
 	ctx = ctrl.LoggerInto(ctx, log)
 	gvh, err := c.catalog.GroupVersionHook(hook)
 	if err != nil {
 		return errors.Wrapf(err, "failed to call extension handlers for hook %q: failed to compute GroupVersionHook", hookName)
+	}
+	forObjectGVK, err := apiutil.GVKForObject(forObject, c.client.Scheme())
+	if err != nil {
+		return errors.Wrapf(err, "failed to call extension handlers for hook %q: failed to get GroupVersionKind for the object the hook is executed for", hookName)
 	}
 	// Make sure the request is compatible with the hook.
 	if err := c.catalog.ValidateRequest(gvh, request); err != nil {
@@ -199,7 +242,7 @@ func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook
 		return errors.Wrapf(err, "failed to call extension handlers for hook %q", gvh.GroupHook())
 	}
 
-	log.V(4).Info(fmt.Sprintf("Calling all extensions of hook %q", hookName))
+	log.V(4).Info(fmt.Sprintf("Calling all extensions of hook %q for %s %s", hookName, forObjectGVK.Kind, klog.KObj(forObject)))
 	responses := []runtimehooksv1.ResponseObject{}
 	for _, registration := range registrations {
 		// Creates a new instance of the response parameter.
@@ -271,7 +314,7 @@ func aggregateSuccessfulResponses(aggregatedResponse runtimehooksv1.ResponseObje
 // Nb. FailurePolicy does not affect the following kinds of errors:
 // - Internal errors. Examples: hooks is incompatible with ExtensionHandler, ExtensionHandler information is missing.
 // - Error when ExtensionHandler returns a response with `Status` set to `Failure`.
-func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...runtimeclient.CallExtensionOption) error {
+func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject ctrlclient.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...runtimeclient.CallExtensionOption) error {
 	// Calculate the options.
 	options := &runtimeclient.CallExtensionOptions{}
 	for _, opt := range opts {

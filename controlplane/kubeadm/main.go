@@ -493,7 +493,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		EtcdCallTimeout:             etcdCallTimeout,
 		EtcdLogger:                  etcdLogger,
 		RemoteConditionsGracePeriod: remoteConditionsGracePeriod,
-		//RuntimeClient:               runtimeClient, // TODO(in-place): enable once we want to use it, also validate in SetupWithManager that RuntimeClient is set if feature gate is enabled.
+		RuntimeClient:               runtimeClient,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 		os.Exit(1)

@@ -200,7 +200,7 @@ func matchesInfraMachine(
 
 	desiredInfraMachine, err := desiredstate.ComputeDesiredInfraMachine(ctx, c, kcp, cluster, machine.Name, currentInfraMachine)
 	if err != nil {
-		return "", nil, nil, false, errors.Wrapf(err, "failed to match InfraMachine")
+		return "", nil, nil, false, errors.Wrapf(err, "failed to match %s", currentInfraMachine.GetKind())
 	}
 
 	// Check if the machine's infrastructure reference has been created from the current KCP infrastructure template.
@@ -290,7 +290,7 @@ func matchesKubeadmConfig(
 }
 
 // PrepareKubeadmConfigsForDiff cleans up all fields that are not relevant for the comparison.
-func PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig *bootstrapv1.KubeadmConfig, convertCurrentInitConfigurationToJoinConfiguration bool) (desired *bootstrapv1.KubeadmConfig, current *bootstrapv1.KubeadmConfig) {
+func PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig *bootstrapv1.KubeadmConfig, convertCurrentInitConfigurationToJoinConfiguration bool) (desired, current *bootstrapv1.KubeadmConfig) {
 	// DeepCopy to ensure the passed in KubeadmConfigs are not modified.
 	// This has to be done because we eventually want to be able to apply the desiredKubeadmConfig
 	// (without the modifications that we make here).

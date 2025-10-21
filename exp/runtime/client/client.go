@@ -20,7 +20,7 @@ package client
 import (
 	"context"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -86,9 +86,12 @@ type Client interface {
 	// Unregister unregisters the ExtensionConfig.
 	Unregister(extensionConfig *runtimev1.ExtensionConfig) error
 
+	// GetAllExtensions gets all the ExtensionHandlers registered for the hook.
+	GetAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject client.Object) ([]string, error)
+
 	// CallAllExtensions calls all the ExtensionHandler registered for the hook.
-	CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error
+	CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject client.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error
 
 	// CallExtension calls the ExtensionHandler with the given name.
-	CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...CallExtensionOption) error
+	CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject client.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...CallExtensionOption) error
 }

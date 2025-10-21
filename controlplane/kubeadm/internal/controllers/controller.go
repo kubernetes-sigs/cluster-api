@@ -46,6 +46,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
@@ -80,6 +81,7 @@ const (
 type KubeadmControlPlaneReconciler struct {
 	Client              client.Client
 	SecretCachingClient client.Client
+	RuntimeClient       runtimeclient.Client
 	controller          controller.Controller
 	recorder            record.EventRecorder
 	ClusterCache        clustercache.ClusterCache
@@ -97,10 +99,13 @@ type KubeadmControlPlaneReconciler struct {
 	managementClusterUncached internal.ManagementCluster
 	ssaCache                  ssa.Cache
 
-	// Only used for testing
-	overrideTryInPlaceUpdateFunc      func(ctx context.Context, controlPlane *internal.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (bool, ctrl.Result, error)
-	overrideScaleUpControlPlaneFunc   func(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error)
-	overrideScaleDownControlPlaneFunc func(ctx context.Context, controlPlane *internal.ControlPlane, machineToDelete *clusterv1.Machine) (ctrl.Result, error)
+	// Only used for testing.
+	overrideTryInPlaceUpdateFunc       func(ctx context.Context, controlPlane *internal.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (bool, ctrl.Result, error)
+	overrideScaleUpControlPlaneFunc    func(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error)
+	overrideScaleDownControlPlaneFunc  func(ctx context.Context, controlPlane *internal.ControlPlane, machineToDelete *clusterv1.Machine) (ctrl.Result, error)
+	overridePreflightChecksFunc        func(ctx context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) ctrl.Result
+	overrideCanUpdateMachineFunc       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (bool, error)
+	overrideCanExtensionsUpdateMachine func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult, extensionHandlers []string) (bool, []string, error)
 }
 
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -114,6 +119,9 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		return errors.New("Client, SecretCachingClient and ClusterCache must not be nil and " +
 			"EtcdDialTimeout and EtcdCallTimeout must not be 0 and " +
 			"RemoteConditionsGracePeriod must not be < 2m")
+	}
+	if feature.Gates.Enabled(feature.InPlaceUpdates) && r.RuntimeClient == nil {
+		return errors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "kubeadmcontrolplane")
@@ -814,7 +822,8 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 		if err != nil {
 			return errors.Wrapf(err, "failed to update Machine: %s", klog.KObj(m))
 		}
-		// Note: Ensure ControlPlane has the latest version of the Machine.
+		// Note: Ensure ControlPlane has the latest version of the Machine. This is required because
+		//       e.g. the in-place update code that is called later has to use the latest version of the Machine.
 		controlPlane.Machines[machineName] = updatedMachine
 		if _, ok := controlPlane.MachinesNotUpToDate[machineName]; ok {
 			controlPlane.MachinesNotUpToDate[machineName] = updatedMachine

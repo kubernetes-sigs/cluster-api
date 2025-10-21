@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -124,11 +124,15 @@ func (f *fakeRuntimeClient) Unregister(_ *runtimev1.ExtensionConfig) error {
 	panic("implement me")
 }
 
-func (f *fakeRuntimeClient) CallAllExtensions(_ context.Context, _ runtimecatalog.Hook, _ metav1.Object, _ runtimehooksv1.RequestObject, _ runtimehooksv1.ResponseObject) error {
+func (f *fakeRuntimeClient) GetAllExtensions(_ context.Context, _ runtimecatalog.Hook, _ client.Object) ([]string, error) {
 	panic("implement me")
 }
 
-func (f *fakeRuntimeClient) CallExtension(_ context.Context, _ runtimecatalog.Hook, _ metav1.Object, _ string, request runtimehooksv1.RequestObject, _ runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
+func (f *fakeRuntimeClient) CallAllExtensions(_ context.Context, _ runtimecatalog.Hook, _ client.Object, _ runtimehooksv1.RequestObject, _ runtimehooksv1.ResponseObject) error {
+	panic("implement me")
+}
+
+func (f *fakeRuntimeClient) CallExtension(_ context.Context, _ runtimecatalog.Hook, _ client.Object, _ string, request runtimehooksv1.RequestObject, _ runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
 	// Keep a copy of the request object.
 	// We keep a copy because the request is modified after the call is made. So we keep a copy to perform assertions.
 	f.callExtensionRequest = request.DeepCopyObject().(runtimehooksv1.RequestObject)

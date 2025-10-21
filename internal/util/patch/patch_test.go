@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package patches
+package patch
 
 import (
 	"testing"
@@ -28,29 +28,29 @@ import (
 func TestCopySpec(t *testing.T) {
 	tests := []struct {
 		name    string
-		input   copySpecInput
+		input   CopySpecInput
 		want    *unstructured.Unstructured
 		wantErr bool
 	}{
 		{
 			name: "Field both in src and dest, no-op when equal",
-			input: copySpecInput{
-				src: &unstructured.Unstructured{
+			input: CopySpecInput{
+				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"A": "A",
 						},
 					},
 				},
-				dest: &unstructured.Unstructured{
+				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"A": "A",
 						},
 					},
 				},
-				srcSpecPath:  "spec",
-				destSpecPath: "spec",
+				SrcSpecPath:  "spec",
+				DestSpecPath: "spec",
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -62,23 +62,23 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Field both in src and dest, overwrite dest when different",
-			input: copySpecInput{
-				src: &unstructured.Unstructured{
+			input: CopySpecInput{
+				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"A": "A",
 						},
 					},
 				},
-				dest: &unstructured.Unstructured{
+				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"A": "A-different",
 						},
 					},
 				},
-				srcSpecPath:  "spec",
-				destSpecPath: "spec",
+				SrcSpecPath:  "spec",
+				DestSpecPath: "spec",
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -90,8 +90,8 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Nested field both in src and dest, no-op when equal",
-			input: copySpecInput{
-				src: &unstructured.Unstructured{
+			input: CopySpecInput{
+				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"template": map[string]interface{}{
@@ -102,7 +102,7 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				dest: &unstructured.Unstructured{
+				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"template": map[string]interface{}{
@@ -113,8 +113,8 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				srcSpecPath:  "spec",
-				destSpecPath: "spec",
+				SrcSpecPath:  "spec",
+				DestSpecPath: "spec",
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -130,8 +130,8 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Nested field both in src and dest, overwrite dest when different",
-			input: copySpecInput{
-				src: &unstructured.Unstructured{
+			input: CopySpecInput{
+				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"template": map[string]interface{}{
@@ -142,7 +142,7 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				dest: &unstructured.Unstructured{
+				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"template": map[string]interface{}{
@@ -153,8 +153,8 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				srcSpecPath:  "spec",
-				destSpecPath: "spec",
+				SrcSpecPath:  "spec",
+				DestSpecPath: "spec",
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -170,19 +170,19 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Field only in src, copy to dest",
-			input: copySpecInput{
-				src: &unstructured.Unstructured{
+			input: CopySpecInput{
+				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"foo": "bar",
 						},
 					},
 				},
-				dest: &unstructured.Unstructured{
+				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{},
 				},
-				srcSpecPath:  "spec",
-				destSpecPath: "spec",
+				SrcSpecPath:  "spec",
+				DestSpecPath: "spec",
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -194,8 +194,8 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Nested field only in src, copy to dest",
-			input: copySpecInput{
-				src: &unstructured.Unstructured{
+			input: CopySpecInput{
+				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"template": map[string]interface{}{
@@ -206,11 +206,11 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				dest: &unstructured.Unstructured{
+				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{},
 				},
-				srcSpecPath:  "spec",
-				destSpecPath: "spec",
+				SrcSpecPath:  "spec",
+				DestSpecPath: "spec",
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -226,8 +226,8 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Copy field from spec.template.spec in src to spec in dest",
-			input: copySpecInput{
-				src: &unstructured.Unstructured{
+			input: CopySpecInput{
+				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"template": map[string]interface{}{
@@ -238,11 +238,11 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				dest: &unstructured.Unstructured{
+				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{},
 				},
-				srcSpecPath:  "spec.template.spec",
-				destSpecPath: "spec",
+				SrcSpecPath:  "spec.template.spec",
+				DestSpecPath: "spec",
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -254,8 +254,8 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Copy field from spec.template.spec in src to spec in dest (overwrite when different)",
-			input: copySpecInput{
-				src: &unstructured.Unstructured{
+			input: CopySpecInput{
+				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"template": map[string]interface{}{
@@ -266,15 +266,15 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				dest: &unstructured.Unstructured{
+				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"A": "A-different",
 						},
 					},
 				},
-				srcSpecPath:  "spec.template.spec",
-				destSpecPath: "spec",
+				SrcSpecPath:  "spec.template.spec",
+				DestSpecPath: "spec",
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -286,8 +286,8 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Field both in src and dest, overwrite when different and preserve fields",
-			input: copySpecInput{
-				src: &unstructured.Unstructured{
+			input: CopySpecInput{
+				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"template": map[string]interface{}{
@@ -308,7 +308,7 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				dest: &unstructured.Unstructured{
+				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"machineTemplate": map[string]interface{}{
@@ -325,9 +325,9 @@ func TestCopySpec(t *testing.T) {
 						},
 					},
 				},
-				srcSpecPath:  "spec.template.spec",
-				destSpecPath: "spec",
-				fieldsToPreserve: []contract.Path{
+				SrcSpecPath:  "spec.template.spec",
+				DestSpecPath: "spec",
+				FieldsToPreserve: []contract.Path{
 					{"spec", "machineTemplate", "infrastructureRef"},
 					{"spec", "replicas"},
 					{"spec", "version"},
@@ -353,23 +353,23 @@ func TestCopySpec(t *testing.T) {
 		},
 		{
 			name: "Field not in src, no-op",
-			input: copySpecInput{
-				src: &unstructured.Unstructured{
+			input: CopySpecInput{
+				Src: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"differentSpec": map[string]interface{}{
 							"B": "B",
 						},
 					},
 				},
-				dest: &unstructured.Unstructured{
+				Dest: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"spec": map[string]interface{}{
 							"A": "A",
 						},
 					},
 				},
-				srcSpecPath:  "spec",
-				destSpecPath: "spec",
+				SrcSpecPath:  "spec",
+				DestSpecPath: "spec",
 			},
 			want: &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -385,14 +385,14 @@ func TestCopySpec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := copySpec(tt.input)
+			err := CopySpec(tt.input)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(tt.input.dest).To(BeComparableTo(tt.want))
+			g.Expect(tt.input.Dest).To(BeComparableTo(tt.want))
 		})
 	}
 }

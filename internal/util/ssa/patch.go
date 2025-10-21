@@ -35,6 +35,14 @@ type Option interface {
 	ApplyToOptions(*Options)
 }
 
+// WithDryRun enables the DryRunAll option.
+type WithDryRun struct{}
+
+// ApplyToOptions applies WithDryRun to the given Options.
+func (w WithDryRun) ApplyToOptions(in *Options) {
+	in.WithDryRun = true
+}
+
 // WithCachingProxy enables caching for the patch request.
 // The original and modified object will be used to generate an
 // identifier for the request.
@@ -53,6 +61,7 @@ func (w WithCachingProxy) ApplyToOptions(in *Options) {
 
 // Options contains the options for the Patch func.
 type Options struct {
+	WithDryRun       bool
 	WithCachingProxy bool
 	Cache            Cache
 	Original         client.Object
@@ -103,6 +112,9 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 		client.ForceOwnership,
 		client.FieldOwner(fieldManager),
 	}
+	if options.WithDryRun {
+		applyOptions = append(applyOptions, client.DryRunAll)
+	}
 	// Note: Intentionally not including the name of the object in the error message
 	// as during create the name might be random generated in every reconcile.
 	// If these errors are written to conditions this would lead to an infinite reconcile.
@@ -118,7 +130,8 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 	// Recover gvk e.g. for logging.
 	modified.GetObjectKind().SetGroupVersionKind(gvk)
 
-	if options.WithCachingProxy {
+	// Add the request to the cache only if dry-run was not used.
+	if options.WithCachingProxy && !options.WithDryRun {
 		// If the SSA call did not update the object, add the request to the cache.
 		if options.Original.GetResourceVersion() == modifiedUnstructured.GetResourceVersion() {
 			options.Cache.Add(requestIdentifier)

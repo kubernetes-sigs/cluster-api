@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -35,6 +36,27 @@ func (r *KubeadmControlPlaneReconciler) tryInPlaceUpdate(
 		return r.overrideTryInPlaceUpdateFunc(ctx, controlPlane, machineToInPlaceUpdate, machineUpToDateResult)
 	}
 
-	// Always fallback to scale down until in-place is implemented.
+	// Run preflight checks to ensure that the control plane is stable before proceeding with in-place update operation.
+	if resultForAllMachines := r.preflightChecks(ctx, controlPlane); !resultForAllMachines.IsZero() {
+		// If the control plane is not stable, check if the issues are only for machineToInPlaceUpdate.
+		if result := r.preflightChecks(ctx, controlPlane, machineToInPlaceUpdate); result.IsZero() {
+			// The issues are only for machineToInPlaceUpdate, fallback to scale down.
+			// Note: The consequence of this is that a Machine with issues is scaled down and not in-place updated.
+			return true, ctrl.Result{}, nil
+		}
+
+		return false, resultForAllMachines, nil
+	}
+
+	canUpdate, err := r.canUpdateMachine(ctx, machineToInPlaceUpdate, machineUpToDateResult)
+	if err != nil {
+		return false, ctrl.Result{}, errors.Wrapf(err, "failed to determine if Machine %s can be updated in-place", machineToInPlaceUpdate.Name)
+	}
+
+	if !canUpdate {
+		return true, ctrl.Result{}, nil
+	}
+
+	// Always fallback to scale down until triggering in-place updates is implemented.
 	return true, ctrl.Result{}, nil
 }

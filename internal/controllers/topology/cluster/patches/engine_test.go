@@ -965,7 +965,7 @@ func TestApply(t *testing.T) {
 					}
 					runtimeClient = fakeruntimeclient.NewRuntimeClientBuilder().
 						WithCallExtensionResponses(tt.externalPatchResponses).
-						WithCallExtensionValidations(func(req runtimehooksv1.RequestObject) error {
+						WithCallExtensionValidations(func(_ string, req runtimehooksv1.RequestObject) error {
 							switch req := req.(type) {
 							case *runtimehooksv1.GeneratePatchesRequest:
 								for _, item := range req.Items {

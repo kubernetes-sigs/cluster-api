@@ -1,5 +1,5 @@
 ---
-title: Propagating taints from Cluster API to `Node`s
+title: Propagating taints from Cluster API Machines to Kubernetes Nodes
 authors:
   - "@nrb"
 reviewers:
@@ -122,7 +122,7 @@ As a user, I would like to use this community-standard mechanism within the fram
 
 #### Story 1
 
-As a user, I wish to use Cluster API to manage a set of Machines that have very specific characteristics for targetting workloads.
+As a user, I wish to use Cluster API to manage a set of Machines that have very specific characteristics for targeting workloads.
 Some examples of this might be:
 
 - Designating Nodes as `edge` Nodes and steering locality-critical workloads only to `edge` Nodes.
@@ -130,7 +130,7 @@ Some examples of this might be:
 
 #### Story 2
 
-As a user, I wish to have autoscaling capabilities using Kubernets and Cluster API resources and conventions.
+As a user, I wish to have autoscaling capabilities using Kubernetes and Cluster API resources and conventions.
 I would like to define taints on a Cluster API resource representing some collection (including but not limited to MachineSets, MachinePools, and MachineDeployments).
 This is especially useful in scale-from-zero scenarios, where that autoscaling technology can reference taints on a collection to make decisions about the cloud resources available.
 
@@ -157,13 +157,13 @@ This would start at a `ClusterClass` or `Cluster` level, and ultimately be writt
 
 Users should be able to remove Taints managed by Cluster API without removing taints that Cluster API does not manage.
 
-**Note:** This only applies to taints defined below as `Always`. It does not apply for `OnInitialization` tains.
+**Note:** This only applies to taints defined below as `Always`. It does not apply for `OnInitialization` taints.
 
 ### Implementation Details/Notes/Constraints
 
 #### The `.spec.taints` field on a `Node`
 
-Cluster API already supports propagating labels and annotations downward in its resource heirarchy.
+Cluster API already supports propagating labels and annotations downward in its resource hierarchy.
 This support is implemented such that when these fields are updated, the underlying compute resources are _not_ replaced.
 
 Taints present a challenge to this, because they are defined as an "atomic" field by Kubernetes. (see [Kubernetes taints API discussions](#kubernetes-taints-api-discussions) for more context).
@@ -188,39 +188,39 @@ A taint for a Node may be defined for different use-cases:
     - `Always` taint removed from machine: reconciliation will remove the taint from the node, if it did add it in the past.
     - `Always` taint not changed: reconciliation takes care that the taint still exists on the node.
 - Taint's supposed to get added once to a Node aka. `OnInitialization`
-  - This taints are supposed to be set **once** by Cluster API on a `Node` object.
+  - These taints are supposed to be set **once** by Cluster API on a `Node` object.
   - Example: Ensure that no workload gets scheduled to a `Node` unless the taint got removed to e.g. install a GPU driver before allowing workload.
   - Cluster API should once set the taint on the Node and not add it again if it got removed.
 
-If a taint exists on a node and was changed from `Always` to `OnInitialization`, Cluster API should drops ownership of the taint, but does not remove it, so the taint behaves as it would have been defined as `OnInitialization` from the beginning.
+If a taint exists on a node and was changed from `Always` to `OnInitialization`, Cluster API should drop ownership of the taint, but does not remove it, so the taint behaves as it would have been defined as `OnInitialization` from the beginning.
 
-If a taint was changed from `OnInitialization` to `Always, Cluster API should ensure the taint is set on the node and track ownership.
+If a taint was changed from `OnInitialization` to `Always`, Cluster API should ensure the taint is set on the node and track ownership.
 
 #### Behavior with Cluster API Bootstrap Provider Kubeadm's taints fields
 
 In CABPK the taint field has special behavior depending on what is set. This comes from how kubeadm handles the relevant field and is as documented in the following table:
 
-| CABPK        | Behavior |
-|--------------|----------|
+| CABPK        | Behavior                       |
+|--------------|--------------------------------|
 | Set          | add only the taints configured |
 | Not set      | add the default taint *[*1]*   |
-| empty / `[]` | not add any taints |
+| empty / `[]` | not add any taints             |
 
 [*1]: Per default kubeadm adds the taint `node-role.kubernetes.io/control-plane:NoSchedule` to control plane nodes.
 
 The proposed changes should not influence the behavior for CABPK.
 The following table shows the resulting behavior, depending on where taints are set or not set.
 
-**Note:** the taints field on machine's will only allow being set or not being set, ther will be no "empty / `[]`" option.
+**Note:** The taints field on machine's will only allow being set or not being set, there will be no "empty / `[]`" option.
 
-| Machine | CABPK        | Result for CABPK |
-|---------|--------------|------------------|
+| Machine | CABPK        | Result for CABPK                                                                                    |
+|---------|--------------|-----------------------------------------------------------------------------------------------------|
 | Set     | Set          | **CABPK** and **Machine** taints, on same key + effect use the value from the Machine defined taint |
-| Set     | Not set      | **CABPK default** and **Machine** taints |
-| Set     | empty / `[]` | **Machine** taints |
-| Not set | Set          | **CABPK** taints |
-| Not set | Not set      | **CABPK default** taint |
-| Not set | empty / `[]` | no taints |
+| Set     | Not set      | **CABPK default** and **Machine** taints                                                            |
+| Set     | empty / `[]` | **Machine** taints                                                                                  |
+| Not set | Set          | **CABPK** taints                                                                                    |
+| Not set | Not set      | **CABPK default** taint                                                                             |
+| Not set | empty / `[]` | no taints                                                                                           |
 
 So the desired behavior of the new taints field does not change the behavior for taints configured via CABPK.
 
@@ -273,7 +273,7 @@ const (
 	// - If an Always taint is added to the Machine, the taint will be added to the node.
 	// - If an Always taint is removed from the Machine, the taint will be removed from the node.
 	// - If an OnInitialization taint is changed to Always, the Machine controller will ensure the taint is set on the node.
-	// - If an Always is removed from the node, it will be re-added during reconciliation.
+	// - If an Always taint is removed from the node, it will be re-added during reconciliation.
 	TaintPropagationAlways MachineTaintPropagation = "Always"
 
 	// TaintPropagationOnInitialization means the taint should be set once during initialization and then
@@ -281,13 +281,13 @@ const (
 	// - If an OnInitialization taint is added to the Machine, the taint will only be added to the node on initialization.
 	// - If an OnInitialization taint is removed from the Machine nothing will be changed on the node.
 	// - If an Always taint is changed to OnInitialization, the taint will only be added to the node on initialization.
-	// - If an OnInitialization is removed from the node, it will not be re-added during reconciliation.
+	// - If an OnInitialization taint is removed from the node, it will not be re-added during reconciliation.
 	TaintPropagationOnInitialization MachineTaintPropagation = "OnInitialization"
 )
 ```
 
 Proper validations on the new field has to ensure that no taint with a key of `node.cluster.x-k8s.io/uninitialized` or `node.cluster.x-k8s.io/outdated-revision` is getting added, because these taints are managed by Cluster API and providers.
-If in future new taints get introduced which also needs validation, ratcheting may be used.
+If in the future we are introducing new taints that users should not be able to set, ratcheting may be used.
 
 **Note:** Other taints normally set by kubeadm should be able to get set by Cluster API too and not be blocked on to allow more flexibility and use-cases.
 
@@ -309,8 +309,8 @@ This implicitly leads to adding the field to the following types:
 
 type MachineSpec struct{
   // taints are the node taints that Cluster API will manage.
-  // This list is not necessarily complete: other Kubernetes components may add or remove other taints.
-  // Only those taints defined in this list will be added or removed by core Cluster API controllers.
+  // This list does not necessarily reflect the full list of taints on a Node: other Kubernetes components may add or remove other taints.
+  // Only the taints defined in this list will be added or removed by core Cluster API controllers.
   //
   // NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
   // As of Kubernetes 1.33, this is different from the implementation on corev1.NodeSpec, but provides a more flexible API for components building on top of Cluster API.
@@ -343,12 +343,12 @@ The following table summarizes the new fields:
 
 The propagation of the fields should follow the prior art and is summarized in the following table and picture:
 
-| ClusterClass | Cluster | Result |
-|--------------|---------|--------------|
+| ClusterClass | Cluster | Result                                                                                                                                             |
+|--------------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------|
 | Set          | Set     | Merge **ClusterClass** and **Cluster** taints (like for labels and annotations), on same key + effect use the value from the Cluster defined taint |
-| Set          | Not set | **ClusterClass** taints |
-| Not set      | Set     | **Cluster** taints |
-| Not set      | Not set | No taints from ClusterClass or Cluster |
+| Set          | Not set | **ClusterClass** taints                                                                                                                            |
+| Not set      | Set     | **Cluster** taints                                                                                                                                 |
+| Not set      | Not set | No taints from ClusterClass or Cluster                                                                                                             |
 
 ![propagation of taints across a topology Cluster](./images/propagate-taints/topology-propagation.excalidraw.png)
 
@@ -357,63 +357,19 @@ Type definitions:
 ```golang
 // ClusterMachineTaint defines a taint equivalent to corev1.Taint, but additionally having a propagation field.
 type ClusterMachineTaint struct {
-	// key is the taint key to be applied to a node.
-	// +required
-	// +kubebuilder:validation:Pattern=`^(([a-zA-Z0-9\-\.]+\/)?([a-zA-Z0-9][a-zA-Z0-9\-\._]*))?$`
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	Key string `json:"key,omitempty"`
-
-	// value is the taint value corresponding to the taint key.
-	// +optional
-	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9][a-zA-Z0-9\-\._]*)?$`
-	// +kubebuilder:validation:MaxLength=63
-	Value *string `json:"value,omitempty"`
-
-	// effect is the effect for the taint. Valid values are NoSchedule, PreferNoSchedule and NoExecute.
-	// +required
-	// +kubebuilder:validation:Enum=NoSchedule;PreferNoSchedule;NoExecute
-	Effect corev1.TaintEffect `json:"effect,omitempty"`
-
-	// propagation defines how this taint should be propagated to nodes.
-	// Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
-	// OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
-	// +required
-	Propagation MachineTaintPropagation `json:"propagation,omitempty"`
+	// All fields are identical to MachineTaint.
 }
 
 // ClusterClassMachineTaint defines a taint equivalent to corev1.Taint, but additionally having a propagation field.
 type ClusterClassMachineTaint struct {
-	// key is the taint key to be applied to a node.
-	// +required
-	// +kubebuilder:validation:Pattern=`^(([a-zA-Z0-9\-\.]+\/)?([a-zA-Z0-9][a-zA-Z0-9\-\._]*))?$`
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=253
-	Key string `json:"key,omitempty"`
-
-	// value is the taint value corresponding to the taint key.
-	// +optional
-	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9][a-zA-Z0-9\-\._]*)?$`
-	// +kubebuilder:validation:MaxLength=63
-	Value *string `json:"value,omitempty"`
-
-	// effect is the effect for the taint. Valid values are NoSchedule, PreferNoSchedule and NoExecute.
-	// +required
-	// +kubebuilder:validation:Enum=NoSchedule;PreferNoSchedule;NoExecute
-	Effect corev1.TaintEffect `json:"effect,omitempty"`
-
-	// propagation defines how this taint should be propagated to nodes.
-	// Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
-	// OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
-	// +required
-	Propagation MachineTaintPropagation `json:"propagation,omitempty"`
+    // All fields are identical to MachineTaint.
 }
 ```
 
 Example type changes for the `Cluster` type:
 
 ```golang
-type ControlPlaneClass struct {
+type ControlPlaneTopology struct {
   // taints are the node taints that Cluster API will manage.
   // ...
   Taints []ClusterMachineTaint `json:"taints,omitempty"`
@@ -421,21 +377,7 @@ type ControlPlaneClass struct {
   // Other fields...
 }
 
-type MachineDeploymentClass struct{
-  // taints are the node taints that Cluster API will manage.
-  // ...
-  Taints []ClusterMachineTaint `json:"taints,omitempty"`
-
-  // Other fields...
-}
-
-type MachinePoolClass struct{
-  // taints are the node taints that Cluster API will manage.
-  // ...
-  Taints []ClusterMachineTaint `json:"taints,omitempty"`
-
-  // Other fields...
-}
+// Same for MachineDeploymentTopology and MachinePoolTopology.
 ```
 
 Example type changes for the `ClusterClass` type:
@@ -449,21 +391,7 @@ type ControlPlaneClass struct {
   // Other fields...
 }
 
-type MachineDeploymentClass struct{
-  // taints are the node taints that Cluster API will manage.
-  // ...
-  Taints []ClusterClassMachineTaint `json:"taints,omitempty"`
-
-  // Other fields...
-}
-
-type MachinePoolClass struct{
-  // taints are the node taints that Cluster API will manage.
-  // ...
-  Taints []ClusterClassMachineTaint `json:"taints,omitempty"`
-
-  // Other fields...
-}
+// Same for MachineDeploymentClass and MachinePoolClass.
 ```
 
 #### Proposed contract changes
@@ -488,25 +416,25 @@ Due to how [the `.spec.taints` field on a `Node`](#the-spectaints-field-on-a-nod
 To keep track of which `Always` taints are owned by the machine controller, the controller adds the annotation `cluster.x-k8s.io/taints-from-machine` to the Node.
 This follows the convention established by `cluster.x-k8s.io/labels-from-machine`.
 
-This allows the machine controller to identify a `Always` taint it:
+This allows the machine controller to identify an `Always` taint it:
 
 - has added in the past which now should be removed
-- has added in the past which now should not be tracked anymore (transition to `OnInitialize`)
+- has added in the past which now should not be tracked anymore (transition to `OnInitialization`)
 - has added in the past which should be kept (does not require the annotation)
-- has not added yet and should be added (does not requre the annotation)
+- has not added yet and should be added (does not require the annotation)
 
 The taints will be concatenated with `,` and the serialization will look like this given the field keys of the `listMap`:
 `cluster.x-k8s.io/taints-from-machine: "<key1>:<effect1>,<key2>:<effect2>"`
 
-As addition the existence of this annotation should be used as signal that the controller has to add the `OnInitialization` taints.
+Additionally, the fact that this annotation does not exist yet should be used as signal that the controller has to add the `OnInitialization` taints.
 This also means if no `Always` taints are configured on the machine, the controller should add the annotation with an empty value.
 This ensures that a node ever only gets these taints added once, at the time of finishing initialization of a Node.
 
-If a Node re-registers itself, the controllers also would again add the `OnInitialization` as well as the `Always` taints because the tracking annotation does not exist.
+If a Node re-registers itself, the controller would add the `OnInitialization` taints again in addition to the `Always` taints because the tracking annotation does not exist.
 
-**Note:** If a bootstrap provider supports the `node.cluster.x-k8s.io/uninitialized` taint as documented in [Contract rules for BootstrapConfig](https://cluster-api.sigs.k8s.io/developer/providers/contracts/bootstrap-config#taint-nodes-at-creation), the implementation ensures that all `OnInitialization` taints are applied at the same time as the `node.cluster.x-k8s.io/uninitialized` is getting removed. This prevents that workload without proper tolerations could be scheduled to the node in the time between node creation and Cluster API adding the `OnInitialization` taints.
+**Note:** If a bootstrap provider supports the `node.cluster.x-k8s.io/uninitialized` taint as documented in [Contract rules for BootstrapConfig](https://cluster-api.sigs.k8s.io/developer/providers/contracts/bootstrap-config#taint-nodes-at-creation), the implementation ensures that all `OnInitialization` taints are applied in the same call through which the `node.cluster.x-k8s.io/uninitialized` taint is getting removed. This prevents that workload without proper tolerations could be scheduled to the node in the time between node creation and Cluster API adding the `OnInitialization` taints.
 
-**Note 2:** A taint added by a bootstrap provider (e.g. CABPK) will be treated as a taint added by any other actor and will not get special handling. Especially for an `Always` taint this means the machine controller would adopt the taint and start tracking it.
+**Note:** A taint added by a bootstrap provider (e.g. CABPK) will be treated as a taint added by any other actor and will not get special handling. Especially for an `Always` taint this means the machine controller would adopt the taint and start tracking it.
 
 ##### Changes to the MachinePool controller
 
@@ -516,13 +444,13 @@ When using MachinePool Machines, no changes are required to the MachinePool cont
 
 For MachinePools that directly manage infrastructure without creating Machine resources, the MachinePool controller will need to implement logic similar to the Machine controller to propagate taints to Nodes. This includes handling both `OnInitialization` and `Always` taints, applying the tracking annotation, and managing taint lifecycle.
 
-It's worth noting that the MachinePool controller as of today does not implement label or annotation propagation, so taint propagation represents a new capability for this controller. Additionally the MachinePool controller should not remove the `node.cluster.x-k8s.io/uninitialized` taint, as this responsibility falls to the Machine controller to ensure consistent initialization semantics across all Machine resources.
+It's worth noting that the MachinePool controller as of today does not implement label or annotation propagation, so taint propagation represents a new capability for this controller. Additionally the MachinePool controller should not remove the `node.cluster.x-k8s.io/uninitialized` taint if the MachinePool uses Machines, as this responsibility then falls to the Machine controller to ensure consistent initialization semantics across all Machine resources.
 
 ##### Changes to the Cluster topology, MachineSet and MachineDeployment controllers
 
-The Cluster's topology controller will properly calculate and in-place propagate the new introduced taint fields down to the ControlPlane object (if it complies with the optional contract part), MachineDeployment and/or MachinePool resources.
+The Cluster's topology controller will properly calculate and in-place propagate the newly introduced taint fields down to the ControlPlane object (if it complies with the optional contract part), MachineDeployment and/or MachinePool resources.
 
-The MachineDeployment and MachineSet controllers will watch their associated `MachineSpec` for updates to the `spec.taints` field and update their owned objects objects (MachineSet or Machine) to reflect the new values.
+The MachineDeployment and MachineSet controllers will watch their associated `MachineSpec` for updates to the `spec.taints` field and update their owned objects (MachineSet or Machine) to reflect the new values.
 
 This should be done similar to how the existing in-place mutable fields like `ReadinessGates`, `NodeDrainTimeout`, etc. for a Machine are handled today.
 
@@ -537,16 +465,16 @@ It should be adjusted to also consider the configured taints.
 Users who can define `Taint`s that get placed on `Node`s will be able to steer workloads, possibly to malicious hosts in order to extract sensitive data.
 However, users who can define Cluster API resources already have this capability - an attacker who receives the permissions to update a `MachineTemplate` could alter the definition in a similar manner.
 
-This proposal therefore does not present any heightened security requirements than Cluster API already has.
+This proposal therefore does not present any heightened security requirements on top of the ones that Cluster API already has.
 
 #### Migration strategy for Bootstrap providers
 
 With the introduction of the new fields, bootstrap providers could start deprecating their equivalent fields.
 
-For CABPK, adding a taint at a KubeadmConfigTemplate at `.spec.template.spec.joinConfiguration.nodeRegistration.taints`. is almost equivalent to adding an `OnInitialization` typed taint via the new API.
+For CABPK, adding a taint at a KubeadmConfigTemplate at `.spec.template.spec.joinConfiguration.nodeRegistration.taints` is almost equivalent to adding an `OnInitialization` typed taint via the new API.
 The only differences are that the taint does get added by the controllers after the Node joined the Cluster and the new field has no special behavior to add the control plane related taint as e.g. CABPK does via kubeadm.
 
-This is considered okay, because workload should not be able to be schedule workload unless the `node.cluster.x-k8s.io/uninitialized` taint was removed and the implementation should take care to have added the `OnInitialization` taints before or at the time removing this taint.
+This is considered okay, because workloads should not be able to be scheduled on a Node unless the `node.cluster.x-k8s.io/uninitialized` taint was removed and the implementation should take care to add the `OnInitialization` taints when removing this taint.
 
 ### Risks and Mitigations
 
@@ -554,13 +482,13 @@ Managing the `Taint`s on `Node`s is considered a highly privileged action in Kub
 The Kubernetes scheduler uses taints rather than `Conditions` to decide when to evict workloads.
 Updating these in place could then evict workloads unintentionally, or disrupt other systems that rely on taints being present.
 
-This risk can be mitigated by ensuring Cluster API only modifies taints that it owns on nodes, as decribed in the above.
+This risk can be mitigated by ensuring Cluster API only modifies taints that it owns on nodes, as described above.
 
 ## Alternatives
 
 ### Continuous reconciliation
 
-Deciding whether or not to reconcile taint changes continuously has been a challenge for the Cluster API.
+Deciding whether to reconcile taint changes continuously has been a challenge for the Cluster API.
 Historically, the v1alpha1 API included a `Machine.Taints` field.
 However, since this field was mostly used in cluster bootstrapping, it was later extracted into bootstrap provider implementations.
 There is no standard API in bootstrap provider's though for taints.
@@ -573,7 +501,7 @@ There is already precedent for leaving infrastructure in-place when Kubernetes-o
 
 ### Type definition of a taint in Cluster API objects
 
-An alternative to define the taints as writtetn above is using slices per type as follows:
+An alternative to define the taints as written above is using slices per type as follows:
 
 ```golang
 type MachineTaints struct{
@@ -610,7 +538,7 @@ This proposal should be unaffected regardless of any upstream change to the hand
 
 The feature should be implemented behind a feature gate `MachineTaintPropagation`.
 
-If deactivated, the corresponding controlers should block setting the fields via webhooks and not run the corresponding logic in the controllers.
+If deactivated, the corresponding controllers should block setting the fields via webhooks and not run the corresponding logic in the controllers.
 
 This allows to gain experience and the ability to do adjustments and graduate the feature over time.
 

@@ -2,10 +2,12 @@
 title: Propagating taints from Cluster API Machines to Kubernetes Nodes
 authors:
   - "@nrb"
+  - "@chrischdi"
 reviewers:
   - "@JoelSpeed"
   - "@fabriziopandini"
   - "@sbueringer"
+  - "@neolit123"
 creation-date: 2025-05-13
 last-updated: 2025-06-06
 status: provisional
@@ -282,13 +284,17 @@ const (
 )
 ```
 
-Proper validations on the new field has to ensure that:
+Proper validation on the new field has to:
 
-* the `key` and `value` fields are validated as done in the upstream node validation
+* ensure the `key` and `value` fields are validated as done in the upstream node validation
   [[3]](https://github.com/kubernetes/kubernetes/blob/51f02aa58a21aca9e3d3b8ac1aaebfbdc1481847/pkg/apis/core/validation/validation.go#L6879)
   [[4]](https://github.com/kubernetes/kubernetes/blob/51f02aa58a21aca9e3d3b8ac1aaebfbdc1481847/pkg/apis/core/validation/validation.go#L6881).
-* no taint with a key of `node.cluster.x-k8s.io/uninitialized` or `node.cluster.x-k8s.io/outdated-revision` is getting added, because these taints are managed by Cluster API and providers.
-* no taint with a prefix of `node.kubernetes.io/` is getting added, because these taints are managed by Kubernetes.
+* block taints with a key of `node.cluster.x-k8s.io/uninitialized` or `node.cluster.x-k8s.io/outdated-revision`.
+  * These taints are managed by Cluster API and providers.
+* block taints with the key prefix `node.kubernetes.io/`, except `node.kubernetes.io/out-of-service`.
+  * With the exception of `node.kubernetes.io/out-of-service`, this taints are managed by the node controller or the kubelet.
+* block taints with the key prefix `node.cloudprovider.kubernetes.io/`
+  * This taints are either managed by the kubelet or by a cloud-controller-manager's node-lifecycle-controller
 
 If in the future we are introducing new taints that users should not be able to set, ratcheting may be used.
 

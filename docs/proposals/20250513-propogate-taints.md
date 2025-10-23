@@ -285,8 +285,8 @@ const (
 Proper validations on the new field has to ensure that:
 
 * the `key` and `value` fields are validated as done in the upstream node validation
-  [3](https://github.com/kubernetes/kubernetes/blob/51f02aa58a21aca9e3d3b8ac1aaebfbdc1481847/pkg/apis/core/validation/validation.go#L6879)
-  [4](https://github.com/kubernetes/kubernetes/blob/51f02aa58a21aca9e3d3b8ac1aaebfbdc1481847/pkg/apis/core/validation/validation.go#L6881).
+  [[3]](https://github.com/kubernetes/kubernetes/blob/51f02aa58a21aca9e3d3b8ac1aaebfbdc1481847/pkg/apis/core/validation/validation.go#L6879)
+  [[4]](https://github.com/kubernetes/kubernetes/blob/51f02aa58a21aca9e3d3b8ac1aaebfbdc1481847/pkg/apis/core/validation/validation.go#L6881).
 * no taint with a key of `node.cluster.x-k8s.io/uninitialized` or `node.cluster.x-k8s.io/outdated-revision` is getting added, because these taints are managed by Cluster API and providers.
 * no taint with a prefix of `node.kubernetes.io/` is getting added, because these taints are managed by Kubernetes.
 

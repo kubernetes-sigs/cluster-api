@@ -113,14 +113,6 @@ type BeforeClusterUpgradeRequest struct {
 	WorkersUpgrades []UpgradeStep `json:"workersUpgrades,omitempty"`
 }
 
-// UpgradeStep represents a single version upgrade step.
-type UpgradeStep struct {
-	// version is the Kubernetes version for this upgrade step.
-	// +required
-	// +kubebuilder:validation:MinLength=1
-	Version string `json:"version,omitempty"`
-}
-
 var _ RetryResponseObject = &BeforeClusterUpgradeResponse{}
 
 // BeforeClusterUpgradeResponse is the response of the BeforeClusterUpgrade hook.

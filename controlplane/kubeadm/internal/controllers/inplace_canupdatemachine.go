@@ -163,7 +163,6 @@ func createRequest(ctx context.Context, c client.Client, currentMachine *cluster
 	// InfraMachine
 	// Note: Both currentInfraMachineForDiff and desiredInfraMachineForDiff need a dry-run to ensure changes
 	//       in defaulting logic and fields added by other controllers don't lead to an unintended diff.
-	// TODO(in-place) change the fieldManager to the one we use later when we trigger the in-place update.
 	if err := ssa.Patch(ctx, c, kcpManagerName, currentInfraMachineForDiff, ssa.WithDryRun{}); err != nil {
 		return nil, errors.Wrap(err, "server side apply dry-run failed for current InfraMachine")
 	}

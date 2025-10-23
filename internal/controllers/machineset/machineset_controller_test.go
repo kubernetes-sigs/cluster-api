@@ -26,6 +26,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	gomegatypes "github.com/onsi/gomega/types"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -208,6 +209,9 @@ func TestMachineSetReconciler(t *testing.T) {
 					"precedence": "GenericBootstrapConfig",
 				},
 			},
+			"spec": map[string]interface{}{
+				"format": "cloud-init",
+			},
 		}
 		bootstrapTmpl := &unstructured.Unstructured{
 			Object: map[string]interface{}{
@@ -293,22 +297,65 @@ func TestMachineSetReconciler(t *testing.T) {
 			}
 			return len(machines.Items)
 		}, timeout).Should(BeEquivalentTo(replicas))
+		machinesMap := map[string]*clusterv1.Machine{}
+		for _, m := range machines.Items {
+			machinesMap[m.Name] = &m
+		}
 
-		t.Log("Creating a InfrastructureMachine for each Machine")
+		t.Log("Verify InfrastructureMachine for each Machine")
 		infraMachines := &unstructured.UnstructuredList{}
 		infraMachines.SetAPIVersion(clusterv1.GroupVersionInfrastructure.String())
 		infraMachines.SetKind("GenericInfrastructureMachine")
-		g.Eventually(func() int {
-			if err := env.List(ctx, infraMachines, client.InNamespace(namespace.Name)); err != nil {
-				return -1
+		g.Eventually(func(g Gomega) {
+			g.Expect(env.List(ctx, infraMachines, client.InNamespace(namespace.Name))).To(Succeed())
+			g.Expect(infraMachines.Items).To(HaveLen(int(replicas)))
+			for _, im := range infraMachines.Items {
+				g.Expect(machinesMap).To(HaveKey(im.GetName()))
+				g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
+				g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the infrastructure template ones")
+				g.Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
+				g.Expect(cleanupTime(im.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+					// capi-machineset-metadata owns labels and annotations.
+					APIVersion: im.GetAPIVersion(),
+					Manager:    machineSetMetadataManagerName,
+					Operation:  metav1.ManagedFieldsOperationApply,
+					FieldsV1: `{					
+"f:metadata":{
+	"f:annotations":{
+		"f:annotation-1":{},
+		"f:precedence":{}
+	},
+	"f:labels":{
+		"f:cluster.x-k8s.io/cluster-name":{},
+		"f:cluster.x-k8s.io/deployment-name":{},
+		"f:cluster.x-k8s.io/set-name":{},
+		"f:label-1":{}
+	}
+}}`,
+				}, {
+					// capi-machineset owns spec.
+					APIVersion: im.GetAPIVersion(),
+					Manager:    machineSetManagerName,
+					Operation:  metav1.ManagedFieldsOperationApply,
+					FieldsV1: `{
+"f:spec":{
+	"f:size":{}
+}}`,
+				}, {
+					// Machine manager owns ownerReference.
+					APIVersion: im.GetAPIVersion(),
+					Manager:    "manager",
+					Operation:  metav1.ManagedFieldsOperationUpdate,
+					FieldsV1: fmt.Sprintf(`{
+"f:metadata":{
+	"f:ownerReferences":{
+		"k:{\"uid\":\"%s\"}":{}
+	}
+}}`, machinesMap[im.GetName()].UID),
+				}})))
 			}
-			return len(machines.Items)
-		}, timeout).Should(BeEquivalentTo(replicas))
-		for _, im := range infraMachines.Items {
-			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
-			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the infrastructure template ones")
-			g.Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
-		}
+		}, timeout).Should(Succeed())
+
 		g.Eventually(func() bool {
 			g.Expect(env.List(ctx, infraMachines, client.InNamespace(namespace.Name))).To(Succeed())
 			// The Machine reconciler should remove the ownerReference to the MachineSet on the InfrastructureMachine.
@@ -327,21 +374,58 @@ func TestMachineSetReconciler(t *testing.T) {
 			return !hasMSOwnerRef && hasMachineOwnerRef
 		}, timeout).Should(BeTrue(), "infraMachine should not have ownerRef to MachineSet")
 
-		t.Log("Creating a BootstrapConfig for each Machine")
+		t.Log("Verify BootstrapConfig for each Machine")
 		bootstrapConfigs := &unstructured.UnstructuredList{}
 		bootstrapConfigs.SetAPIVersion(clusterv1.GroupVersionBootstrap.String())
 		bootstrapConfigs.SetKind("GenericBootstrapConfig")
-		g.Eventually(func() int {
-			if err := env.List(ctx, bootstrapConfigs, client.InNamespace(namespace.Name)); err != nil {
-				return -1
+		g.Eventually(func(g Gomega) {
+			g.Expect(env.List(ctx, bootstrapConfigs, client.InNamespace(namespace.Name))).To(Succeed())
+			g.Expect(bootstrapConfigs.Items).To(HaveLen(int(replicas)))
+			for _, im := range bootstrapConfigs.Items {
+				g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
+				g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the bootstrap config template ones")
+				g.Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
+				g.Expect(cleanupTime(im.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+					// capi-machineset-metadata owns labels and annotations.
+					APIVersion: im.GetAPIVersion(),
+					Manager:    machineSetMetadataManagerName,
+					Operation:  metav1.ManagedFieldsOperationApply,
+					FieldsV1: `{					
+"f:metadata":{
+	"f:annotations":{
+		"f:annotation-1":{},
+		"f:precedence":{}
+	},
+	"f:labels":{
+		"f:cluster.x-k8s.io/cluster-name":{},
+		"f:cluster.x-k8s.io/deployment-name":{},
+		"f:cluster.x-k8s.io/set-name":{},
+		"f:label-1":{}
+	}
+}}`,
+				}, {
+					// capi-machineset owns spec.
+					APIVersion: im.GetAPIVersion(),
+					Manager:    machineSetManagerName,
+					Operation:  metav1.ManagedFieldsOperationApply,
+					FieldsV1: `{
+"f:spec":{
+	"f:format":{}
+}}`,
+				}, {
+					// Machine manager owns ownerReference.
+					APIVersion: im.GetAPIVersion(),
+					Manager:    "manager",
+					Operation:  metav1.ManagedFieldsOperationUpdate,
+					FieldsV1: fmt.Sprintf(`{
+"f:metadata":{
+	"f:ownerReferences":{
+		"k:{\"uid\":\"%s\"}":{}
+	}
+}}`, machinesMap[im.GetName()].UID),
+				}})))
 			}
-			return len(machines.Items)
-		}, timeout).Should(BeEquivalentTo(replicas))
-		for _, im := range bootstrapConfigs.Items {
-			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
-			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the bootstrap config template ones")
-			g.Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
-		}
+		}, timeout).Should(Succeed())
 		g.Eventually(func() bool {
 			g.Expect(env.List(ctx, bootstrapConfigs, client.InNamespace(namespace.Name))).To(Succeed())
 			// The Machine reconciler should remove the ownerReference to the MachineSet on the Bootstrap object.
@@ -1130,14 +1214,11 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	namespace, testCluster := setup(t, g)
 	defer teardown(t, g, namespace, testCluster)
 
-	classicManager := "manager"
 	replicas := int32(2)
 	version := "v1.25.3"
 	duration10s := ptr.To(int32(10))
-	duration11s := ptr.To(int32(11))
 	ms := &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
-			UID:       "abc-123-ms-uid",
 			Name:      "ms-1",
 			Namespace: namespace.Name,
 			Labels: map[string]string{
@@ -1196,12 +1277,12 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			"metadata": map[string]interface{}{
 				"name":      "infra-machine-1",
 				"namespace": namespace.Name,
-				"labels": map[string]string{
+				"labels": map[string]interface{}{
 					"preserved-label": "preserved-value",
 					"dropped-label":   "dropped-value",
 					"modified-label":  "modified-value",
 				},
-				"annotations": map[string]string{
+				"annotations": map[string]interface{}{
 					"preserved-annotation": "preserved-value",
 					"dropped-annotation":   "dropped-value",
 					"modified-annotation":  "modified-value",
@@ -1210,7 +1291,6 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			"spec": infraMachineSpec,
 		},
 	}
-	g.Expect(env.Create(ctx, infraMachine, client.FieldOwner(classicManager))).To(Succeed())
 
 	bootstrapConfigSpec := map[string]interface{}{
 		"bootstrap-field": "bootstrap-value",
@@ -1222,12 +1302,12 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			"metadata": map[string]interface{}{
 				"name":      "bootstrap-config-1",
 				"namespace": namespace.Name,
-				"labels": map[string]string{
+				"labels": map[string]interface{}{
 					"preserved-label": "preserved-value",
 					"dropped-label":   "dropped-value",
 					"modified-label":  "modified-value",
 				},
-				"annotations": map[string]string{
+				"annotations": map[string]interface{}{
 					"preserved-annotation": "preserved-value",
 					"dropped-annotation":   "dropped-value",
 					"modified-annotation":  "modified-value",
@@ -1236,7 +1316,6 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			"spec": bootstrapConfigSpec,
 		},
 	}
-	g.Expect(env.Create(ctx, bootstrapConfig, client.FieldOwner(classicManager))).To(Succeed())
 
 	inPlaceMutatingMachine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
@@ -1273,7 +1352,6 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			},
 		},
 	}
-	g.Expect(env.PatchAndWait(ctx, inPlaceMutatingMachine, client.FieldOwner(machineSetManagerName))).To(Succeed())
 
 	deletingMachine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
@@ -1299,7 +1377,25 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			},
 		},
 	}
-	g.Expect(env.PatchAndWait(ctx, deletingMachine, client.FieldOwner(machineSetManagerName))).To(Succeed())
+
+	//
+	// Create objects
+	//
+
+	// Create MachineSet
+	g.Expect(env.CreateAndWait(ctx, ms)).To(Succeed())
+
+	// Create InfraMachine (same as in createInfraMachine)
+	g.Expect(ssa.Patch(ctx, env.Client, machineSetManagerName, infraMachine)).To(Succeed())
+	g.Expect(ssa.RemoveManagedFieldsForLabelsAndAnnotations(ctx, env.Client, env.GetAPIReader(), infraMachine, machineSetManagerName)).To(Succeed())
+
+	// Create BootstrapConfig (same as in createBootstrapConfig)
+	g.Expect(ssa.Patch(ctx, env.Client, machineSetManagerName, bootstrapConfig)).To(Succeed())
+	g.Expect(ssa.RemoveManagedFieldsForLabelsAndAnnotations(ctx, env.Client, env.GetAPIReader(), bootstrapConfig, machineSetManagerName)).To(Succeed())
+
+	// Create Machines (same as in syncReplicas)
+	g.Expect(ssa.Patch(ctx, env.Client, machineSetManagerName, inPlaceMutatingMachine)).To(Succeed())
+	g.Expect(ssa.Patch(ctx, env.Client, machineSetManagerName, deletingMachine)).To(Succeed())
 	// Delete the machine to put it in the deleting state
 	g.Expect(env.Delete(ctx, deletingMachine)).To(Succeed())
 	// Wait till the machine is marked for deletion
@@ -1319,7 +1415,9 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// Run syncMachines to clean up managed fields and have proper field ownership
 	// for Machines, InfrastructureMachines and BootstrapConfigs.
 	reconciler := &Reconciler{
-		Client:   env,
+		// Note: Ensure the fieldManager defaults to manager like in prod.
+		//       Otherwise it defaults to the binary name which is not manager in tests.
+		Client:   client.WithFieldOwner(env.Client, "manager"),
 		ssaCache: ssa.NewCache("test-controller"),
 	}
 	s := &scope{
@@ -1330,58 +1428,87 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	_, err := reconciler.syncMachines(ctx, s)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	// The inPlaceMutatingMachine should have cleaned up managed fields.
 	updatedInPlaceMutatingMachine := inPlaceMutatingMachine.DeepCopy()
-	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
-	// Verify ManagedFields
-	g.Expect(updatedInPlaceMutatingMachine.ManagedFields).Should(
-		ContainElement(ssa.MatchManagedFieldsEntry(machineSetManagerName, metav1.ManagedFieldsOperationApply)),
-		"in-place mutable machine should contain an entry for SSA manager",
-	)
-	g.Expect(updatedInPlaceMutatingMachine.ManagedFields).ShouldNot(
-		ContainElement(ssa.MatchManagedFieldsEntry(classicManager, metav1.ManagedFieldsOperationUpdate)),
-		"in-place mutable machine should not contain an entry for old manager",
-	)
+	g.Eventually(func(g Gomega) {
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
+		statusManagedFields := managedFieldsMatching(updatedInPlaceMutatingMachine.ManagedFields, "manager", metav1.ManagedFieldsOperationUpdate, "status")
+		g.Expect(statusManagedFields).To(HaveLen(1))
+		g.Expect(cleanupTime(updatedInPlaceMutatingMachine.ManagedFields)).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+			// capi-machineset owns almost everything.
+			Manager:    machineSetManagerName,
+			Operation:  metav1.ManagedFieldsOperationApply,
+			APIVersion: clusterv1.GroupVersion.String(),
+			FieldsV1:   fmt.Sprintf("{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:preserved-annotation\":{}},\"f:finalizers\":{\"v:\\\"machine.cluster.x-k8s.io\\\"\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/deployment-name\":{},\"f:cluster.x-k8s.io/set-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}},\"f:ownerReferences\":{\"k:{\\\"uid\\\":\\\"%s\\\"}\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:configRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}},\"f:clusterName\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}},\"f:version\":{}}}", ms.UID),
+		}, {
+			// manager owns the finalizer.
+			Manager:    "manager",
+			Operation:  metav1.ManagedFieldsOperationUpdate,
+			APIVersion: clusterv1.GroupVersion.String(),
+			FieldsV1:   "{\"f:metadata\":{\"f:finalizers\":{\".\":{},\"v:\\\"machine.cluster.x-k8s.io\\\"\":{}}}}",
+		}, {
+			// manager owns status.
+			Manager:    "manager",
+			Operation:  metav1.ManagedFieldsOperationUpdate,
+			APIVersion: clusterv1.GroupVersion.String(),
+			// No need to verify details (a bit non-deterministic, as it depends on Machine controller reconciles).
+			FieldsV1:    string(statusManagedFields[0].FieldsV1.Raw),
+			Subresource: "status",
+		}})))
+	}, timeout).Should(Succeed())
 
-	// The InfrastructureMachine should have ownership of "labels" and "annotations" transferred to
-	// "capi-machineset" manager.
 	updatedInfraMachine := infraMachine.DeepCopy()
-	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
+	g.Eventually(func(g Gomega) {
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
+		g.Expect(cleanupTime(updatedInfraMachine.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+			// capi-machineset-metadata owns labels and annotations.
+			Manager:    machineSetMetadataManagerName,
+			Operation:  metav1.ManagedFieldsOperationApply,
+			APIVersion: updatedInfraMachine.GetAPIVersion(),
+			FieldsV1:   "{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:preserved-annotation\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/deployment-name\":{},\"f:cluster.x-k8s.io/set-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}}}}",
+		}, {
+			// capi-machineset owns spec.
+			Manager:    machineSetManagerName,
+			Operation:  metav1.ManagedFieldsOperationApply,
+			APIVersion: updatedInfraMachine.GetAPIVersion(),
+			FieldsV1:   "{\"f:spec\":{\"f:infra-field\":{}}}",
+		}, {
+			// manager owns ClusterName label and ownerReferences.
+			Manager:    "manager",
+			Operation:  metav1.ManagedFieldsOperationUpdate,
+			APIVersion: updatedInfraMachine.GetAPIVersion(),
+			FieldsV1:   fmt.Sprintf("{\"f:metadata\":{\"f:labels\":{\"f:cluster.x-k8s.io/cluster-name\":{}},\"f:ownerReferences\":{\".\":{},\"k:{\\\"uid\\\":\\\"%s\\\"}\":{}}}}", inPlaceMutatingMachine.UID),
+		}})))
+	}, timeout).Should(Succeed())
 
-	// Verify ManagedFields
-	g.Expect(updatedInfraMachine.GetManagedFields()).Should(
-		ssa.MatchFieldOwnership(machineSetManagerName, metav1.ManagedFieldsOperationApply, contract.Path{"f:metadata", "f:labels"}))
-	g.Expect(updatedInfraMachine.GetManagedFields()).Should(
-		ssa.MatchFieldOwnership(machineSetManagerName, metav1.ManagedFieldsOperationApply, contract.Path{"f:metadata", "f:annotations"}))
-	g.Expect(updatedInfraMachine.GetManagedFields()).ShouldNot(
-		ssa.MatchFieldOwnership(classicManager, metav1.ManagedFieldsOperationUpdate, contract.Path{"f:metadata", "f:labels"}))
-	g.Expect(updatedInfraMachine.GetManagedFields()).ShouldNot(
-		ssa.MatchFieldOwnership(classicManager, metav1.ManagedFieldsOperationUpdate, contract.Path{"f:metadata", "f:annotations"}))
-	g.Expect(updatedInfraMachine.GetManagedFields()).Should(
-		ssa.MatchFieldOwnership(classicManager, metav1.ManagedFieldsOperationUpdate, contract.Path{"f:spec"}))
-
-	// The BootstrapConfig should have ownership of "labels" and "annotations" transferred to
-	// "capi-machineset" manager.
 	updatedBootstrapConfig := bootstrapConfig.DeepCopy()
-	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedBootstrapConfig), updatedBootstrapConfig)).To(Succeed())
-
-	// Verify ManagedFields
-	g.Expect(updatedBootstrapConfig.GetManagedFields()).Should(
-		ssa.MatchFieldOwnership(machineSetManagerName, metav1.ManagedFieldsOperationApply, contract.Path{"f:metadata", "f:labels"}))
-	g.Expect(updatedBootstrapConfig.GetManagedFields()).Should(
-		ssa.MatchFieldOwnership(machineSetManagerName, metav1.ManagedFieldsOperationApply, contract.Path{"f:metadata", "f:annotations"}))
-	g.Expect(updatedBootstrapConfig.GetManagedFields()).ShouldNot(
-		ssa.MatchFieldOwnership(classicManager, metav1.ManagedFieldsOperationUpdate, contract.Path{"f:metadata", "f:labels"}))
-	g.Expect(updatedBootstrapConfig.GetManagedFields()).ShouldNot(
-		ssa.MatchFieldOwnership(classicManager, metav1.ManagedFieldsOperationUpdate, contract.Path{"f:metadata", "f:annotations"}))
-	g.Expect(updatedBootstrapConfig.GetManagedFields()).Should(
-		ssa.MatchFieldOwnership(classicManager, metav1.ManagedFieldsOperationUpdate, contract.Path{"f:spec"}))
+	g.Eventually(func(g Gomega) {
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedBootstrapConfig), updatedBootstrapConfig)).To(Succeed())
+		g.Expect(cleanupTime(updatedBootstrapConfig.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+			// capi-machineset-metadata owns labels and annotations.
+			Manager:    machineSetMetadataManagerName,
+			Operation:  metav1.ManagedFieldsOperationApply,
+			APIVersion: updatedBootstrapConfig.GetAPIVersion(),
+			FieldsV1:   "{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:preserved-annotation\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/deployment-name\":{},\"f:cluster.x-k8s.io/set-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}}}}",
+		}, {
+			// capi-machineset owns spec.
+			Manager:    machineSetManagerName,
+			Operation:  metav1.ManagedFieldsOperationApply,
+			APIVersion: updatedBootstrapConfig.GetAPIVersion(),
+			FieldsV1:   "{\"f:spec\":{\"f:bootstrap-field\":{}}}",
+		}, {
+			// manager owns ClusterName label and ownerReferences.
+			Manager:    "manager",
+			Operation:  metav1.ManagedFieldsOperationUpdate,
+			APIVersion: updatedBootstrapConfig.GetAPIVersion(),
+			FieldsV1:   fmt.Sprintf("{\"f:metadata\":{\"f:labels\":{\"f:cluster.x-k8s.io/cluster-name\":{}},\"f:ownerReferences\":{\".\":{},\"k:{\\\"uid\\\":\\\"%s\\\"}\":{}}}}", inPlaceMutatingMachine.UID),
+		}})))
+	}, timeout).Should(Succeed())
 
 	//
 	// Verify In-place mutating fields
 	//
 
-	// Update the MachineSet and verify the in-mutating fields are propagated.
+	// Update the MachineSet and verify the in-place mutating fields are propagated.
 	ms.Spec.Template.Labels = map[string]string{
 		"preserved-label": "preserved-value",  // Keep the label and value as is
 		"modified-label":  "modified-value-2", // Modify the value of the label
@@ -1415,115 +1542,77 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 
 	// Verify in-place mutable fields are updated on the Machine.
 	updatedInPlaceMutatingMachine = inPlaceMutatingMachine.DeepCopy()
-	g.Eventually(func(g Gomega) {
-		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
-		// Verify Labels
-		g.Expect(updatedInPlaceMutatingMachine.Labels).Should(Equal(expectedLabels))
-		// Verify Annotations
-		g.Expect(updatedInPlaceMutatingMachine.Annotations).Should(Equal(ms.Spec.Template.Annotations))
-		// Verify Node timeout values
-		g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(And(
-			Not(BeNil()),
-			HaveValue(Equal(*ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds)),
-		))
-		g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(And(
-			Not(BeNil()),
-			HaveValue(Equal(*ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds)),
-		))
-		g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(And(
-			Not(BeNil()),
-			HaveValue(Equal(*ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)),
-		))
-		g.Expect(updatedInPlaceMutatingMachine.Spec.MinReadySeconds).Should(And(
-			Not(BeNil()),
-			HaveValue(Equal(*ms.Spec.Template.Spec.MinReadySeconds)),
-		))
-		// Verify readiness gates.
-		g.Expect(updatedInPlaceMutatingMachine.Spec.ReadinessGates).Should(Equal(readinessGates))
-	}, timeout).Should(Succeed())
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
+	g.Expect(updatedInPlaceMutatingMachine.Labels).Should(Equal(expectedLabels))
+	g.Expect(updatedInPlaceMutatingMachine.Annotations).Should(Equal(ms.Spec.Template.Annotations))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.MinReadySeconds).Should(Equal(ms.Spec.Template.Spec.MinReadySeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.ReadinessGates).Should(Equal(readinessGates))
 
 	// Verify in-place mutable fields are updated on InfrastructureMachine
 	updatedInfraMachine = infraMachine.DeepCopy()
-	g.Eventually(func(g Gomega) {
-		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
-		// Verify Labels
-		g.Expect(updatedInfraMachine.GetLabels()).Should(Equal(expectedLabels))
-		// Verify Annotations
-		g.Expect(updatedInfraMachine.GetAnnotations()).Should(Equal(ms.Spec.Template.Annotations))
-		// Verify spec remains the same
-		g.Expect(updatedInfraMachine.Object).Should(HaveKeyWithValue("spec", infraMachineSpec))
-	}, timeout).Should(Succeed())
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
+	g.Expect(updatedInfraMachine.GetLabels()).Should(Equal(expectedLabels))
+	g.Expect(updatedInfraMachine.GetAnnotations()).Should(Equal(ms.Spec.Template.Annotations))
+	// Verify spec remains the same
+	g.Expect(updatedInfraMachine.Object).Should(HaveKeyWithValue("spec", infraMachineSpec))
 
 	// Verify in-place mutable fields are updated on the BootstrapConfig.
 	updatedBootstrapConfig = bootstrapConfig.DeepCopy()
-	g.Eventually(func(g Gomega) {
-		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedBootstrapConfig), updatedBootstrapConfig)).To(Succeed())
-		// Verify Labels
-		g.Expect(updatedBootstrapConfig.GetLabels()).Should(Equal(expectedLabels))
-		// Verify Annotations
-		g.Expect(updatedBootstrapConfig.GetAnnotations()).Should(Equal(ms.Spec.Template.Annotations))
-		// Verify spec remains the same
-		g.Expect(updatedBootstrapConfig.Object).Should(HaveKeyWithValue("spec", bootstrapConfigSpec))
-	}, timeout).Should(Succeed())
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedBootstrapConfig), updatedBootstrapConfig)).To(Succeed())
+	g.Expect(updatedBootstrapConfig.GetLabels()).Should(Equal(expectedLabels))
+	g.Expect(updatedBootstrapConfig.GetAnnotations()).Should(Equal(ms.Spec.Template.Annotations))
+	// Verify spec remains the same
+	g.Expect(updatedBootstrapConfig.Object).Should(HaveKeyWithValue("spec", bootstrapConfigSpec))
 
-	// Wait to ensure Machine is not updated.
-	// Verify that the machine stays the same consistently.
-	g.Consistently(func(g Gomega) {
-		// The deleting machine should not change.
+	// Verify ManagedFields
+	g.Eventually(func(g Gomega) {
 		updatedDeletingMachine := deletingMachine.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
+		statusManagedFields := managedFieldsMatching(updatedInPlaceMutatingMachine.ManagedFields, "manager", metav1.ManagedFieldsOperationUpdate, "status")
+		g.Expect(statusManagedFields).To(HaveLen(1))
+		g.Expect(cleanupTime(updatedDeletingMachine.ManagedFields)).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+			// capi-machineset owns almost everything.
+			Manager:    machineSetManagerName,
+			Operation:  metav1.ManagedFieldsOperationApply,
+			APIVersion: clusterv1.GroupVersion.String(),
+			FieldsV1:   "{\"f:metadata\":{\"f:finalizers\":{\"v:\\\"testing-finalizer\\\"\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:dataSecretName\":{}},\"f:clusterName\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}}}",
+		}, {
+			// manager owns the fields that are propagated in-place for deleting Machines in syncMachines via patchHelper.
+			Manager:    "manager",
+			Operation:  metav1.ManagedFieldsOperationUpdate,
+			APIVersion: clusterv1.GroupVersion.String(),
+			FieldsV1:   fmt.Sprintf("{\"f:metadata\":{\"f:ownerReferences\":{\".\":{},\"k:{\\\"uid\\\":\\\"%s\\\"}\":{}}},\"f:spec\":{\"f:deletion\":{\"f:nodeDrainTimeoutSeconds\":{},\"f:nodeVolumeDetachTimeoutSeconds\":{}},\"f:minReadySeconds\":{},\"f:readinessGates\":{\".\":{},\"k:{\\\"conditionType\\\":\\\"foo\\\"}\":{\".\":{},\"f:conditionType\":{}}}}}", testCluster.UID),
+		}, {
+			// manager owns status.
+			Manager:    "manager",
+			Operation:  metav1.ManagedFieldsOperationUpdate,
+			APIVersion: clusterv1.GroupVersion.String(),
+			// No need to verify details (a bit non-deterministic, as it depends on Machine controller reconciles).
+			FieldsV1:    string(statusManagedFields[0].FieldsV1.Raw),
+			Subresource: "status",
+		}})))
+	}, timeout).Should(Succeed())
 
-		// Verify ManagedFields
-		g.Expect(updatedDeletingMachine.ManagedFields).Should(
-			ContainElement(ssa.MatchManagedFieldsEntry(machineSetManagerName, metav1.ManagedFieldsOperationApply)),
-			"deleting machine should contain an entry for SSA manager",
-		)
-		g.Expect(updatedDeletingMachine.ManagedFields).ShouldNot(
-			ContainElement(ssa.MatchManagedFieldsEntry(classicManager, metav1.ManagedFieldsOperationUpdate)),
-			"deleting machine should not contain an entry for old manager",
-		)
-
-		// Verify in-place mutable fields are still the same.
-		g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))
-		g.Expect(updatedDeletingMachine.Annotations).Should(Equal(deletingMachine.Annotations))
-		g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(deletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds))
-		g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(deletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds))
-		g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(deletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
-		g.Expect(updatedDeletingMachine.Spec.MinReadySeconds).Should(Equal(deletingMachine.Spec.MinReadySeconds))
-	}, 5*time.Second).Should(Succeed())
-
-	// Verify in-place mutable fields are updated on the deleting machine
-	ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = duration11s
-	ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = duration11s
-	ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration11s
-	ms.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](11)
-	s = &scope{
-		machineSet: ms,
-		machines:   []*clusterv1.Machine{updatedInPlaceMutatingMachine, deletingMachine},
-		getAndAdoptMachinesForMachineSetSucceeded: true,
-	}
-	_, err = reconciler.syncMachines(ctx, s)
-	g.Expect(err).ToNot(HaveOccurred())
+	// Verify in-place mutable fields are updated on the deleting Machine.
 	updatedDeletingMachine := deletingMachine.DeepCopy()
-
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
-	// Verify Node timeout values
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(And(
-		Not(BeNil()),
-		HaveValue(Equal(*ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds)),
-	))
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(And(
-		Not(BeNil()),
-		HaveValue(Equal(*ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds)),
-	))
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(And(
-		Not(BeNil()),
-		HaveValue(Equal(*ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)),
-	))
-	g.Expect(updatedDeletingMachine.Spec.MinReadySeconds).Should(And(
-		Not(BeNil()),
-		HaveValue(Equal(*ms.Spec.Template.Spec.MinReadySeconds)),
-	))
+	g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))           // Not propagated to a deleting Machine
+	g.Expect(updatedDeletingMachine.Annotations).Should(Equal(deletingMachine.Annotations)) // Not propagated to a deleting Machine
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.MinReadySeconds).Should(Equal(ms.Spec.Template.Spec.MinReadySeconds))
+	g.Expect(updatedDeletingMachine.Spec.ReadinessGates).Should(Equal(readinessGates))
+	// Verify the machine spec is otherwise unchanged.
+	deletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds = ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
+	deletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
+	deletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
+	deletingMachine.Spec.MinReadySeconds = ms.Spec.Template.Spec.MinReadySeconds
+	deletingMachine.Spec.ReadinessGates = ms.Spec.Template.Spec.ReadinessGates
+	g.Expect(updatedDeletingMachine.Spec).Should(BeComparableTo(deletingMachine.Spec))
 }
 
 func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
@@ -2287,17 +2376,24 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 		g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(builder.GenericBootstrapConfigTemplateCRD, builder.GenericInfrastructureMachineTemplateCRD).WithInterceptorFuncs(interceptor.Funcs{
-			Create: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+			Apply: func(ctx context.Context, c client.WithWatch, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
 				// simulate scenarios where infra object creation fails
-				if obj.GetObjectKind().GroupVersionKind().Kind == "GenericInfrastructureMachine" {
+				clientObject, ok := obj.(client.Object)
+				if !ok {
+					return errors.Errorf("error during object creation: unexpected ApplyConfiguration")
+				}
+				if clientObject.GetObjectKind().GroupVersionKind().Kind == "GenericInfrastructureMachine" {
 					return fmt.Errorf("inject error for create machineInfrastructure")
 				}
-				return client.Create(ctx, obj, opts...)
+				return c.Apply(ctx, obj, opts...)
 			},
 		}).Build()
 
 		r := &Reconciler{
 			Client: fakeClient,
+			// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
+			//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
+			disableRemoveManagedFieldsForLabelsAndAnnotations: true,
 		}
 		testCluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -3163,4 +3259,50 @@ func TestSortMachinesToRemediate(t *testing.T) {
 		})
 		g.Expect(machines).To(Equal(append(unhealthyMachinesWithAnnotations, unhealthyMachines...)))
 	})
+}
+
+func cleanupTime(fields []metav1.ManagedFieldsEntry) []metav1.ManagedFieldsEntry {
+	for i := range fields {
+		fields[i].Time = nil
+	}
+	return fields
+}
+
+type managedFieldEntry struct {
+	Manager     string
+	Operation   metav1.ManagedFieldsOperationType
+	APIVersion  string
+	FieldsV1    string
+	Subresource string
+}
+
+func toManagedFields(managedFields []managedFieldEntry) []metav1.ManagedFieldsEntry {
+	res := []metav1.ManagedFieldsEntry{}
+	for _, f := range managedFields {
+		res = append(res, metav1.ManagedFieldsEntry{
+			Manager:     f.Manager,
+			Operation:   f.Operation,
+			APIVersion:  f.APIVersion,
+			FieldsType:  "FieldsV1",
+			FieldsV1:    &metav1.FieldsV1{Raw: []byte(trimSpaces(f.FieldsV1))},
+			Subresource: f.Subresource,
+		})
+	}
+	return res
+}
+
+func trimSpaces(s string) string {
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\t", "")
+	return s
+}
+
+func managedFieldsMatching(managedFields []metav1.ManagedFieldsEntry, manager string, operation metav1.ManagedFieldsOperationType, subresource string) []metav1.ManagedFieldsEntry {
+	res := []metav1.ManagedFieldsEntry{}
+	for _, f := range managedFields {
+		if f.Manager == manager && f.Operation == operation && f.Subresource == subresource {
+			res = append(res, f)
+		}
+	}
+	return res
 }

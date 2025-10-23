@@ -1972,14 +1972,14 @@ func schema_api_runtime_hooks_v1alpha1_GenerateUpgradePlanRequest(ref common.Ref
 					},
 					"fromControlPlaneKubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "fromControlPlaneKubernetesVersion is the min current Kubernetes version of the workers (MachineDeployments and MachinePools).",
+							Description: "fromControlPlaneKubernetesVersion is the current Kubernetes version of the control plane.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"fromWorkersKubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "fromWorkersKubernetesVersion is the current Kubernetes version of the workers.",
+							Description: "fromWorkersKubernetesVersion is the min current Kubernetes version of the workers.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

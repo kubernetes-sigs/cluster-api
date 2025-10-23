@@ -35,12 +35,12 @@ type GenerateUpgradePlanRequest struct {
 	// +required
 	Cluster clusterv1.Cluster `json:"cluster,omitempty,omitzero"`
 
-	// fromControlPlaneKubernetesVersion is the min current Kubernetes version of the workers (MachineDeployments and MachinePools).
+	// fromControlPlaneKubernetesVersion is the current Kubernetes version of the control plane.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	FromControlPlaneKubernetesVersion string `json:"fromControlPlaneKubernetesVersion,omitempty"`
 
-	// fromWorkersKubernetesVersion is the current Kubernetes version of the workers.
+	// fromWorkersKubernetesVersion is the min current Kubernetes version of the workers.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	FromWorkersKubernetesVersion string `json:"fromWorkersKubernetesVersion,omitempty"`

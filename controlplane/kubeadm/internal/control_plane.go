@@ -469,6 +469,10 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 }
 
 // GetKeyEncryptionAlgorithm returns the control plane EncryptionAlgorithm.
+// If its unset the default encryption algorithm is returned.
 func (c *ControlPlane) GetKeyEncryptionAlgorithm() bootstrapv1.EncryptionAlgorithmType {
+	if c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.EncryptionAlgorithm == "" {
+		return bootstrapv1.EncryptionAlgorithmRSA2048
+	}
 	return c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.EncryptionAlgorithm
 }

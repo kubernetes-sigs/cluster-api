@@ -55,8 +55,6 @@ func FromSecret(ctx context.Context, c client.Reader, cluster client.ObjectKey) 
 
 // New creates a new Kubeconfig using the cluster name and specified endpoint.
 func New(clusterName, endpoint string, caCert *x509.Certificate, caKey crypto.Signer, options ...KubeConfigurationOption) (*api.Config, error) {
-	var clientCert *x509.Certificate
-	var encodedClientKey []byte
 	cfg := &certs.Config{
 		CommonName:   "kubernetes-admin",
 		Organization: []string{"system:masters"},
@@ -69,34 +67,19 @@ func New(clusterName, endpoint string, caCert *x509.Certificate, caKey crypto.Si
 	kubeConfigOptions := &KubeConfigurationOptions{}
 	kubeConfigOptions.ApplyOptions(options)
 
-	// Generate key based on the EncryptionAlgorithm if set.
-	if kubeConfigOptions.keyEncryptionAlgorithm != "" {
-		clientKey, err := certs.NewSigner(kubeConfigOptions.keyEncryptionAlgorithm)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to create private key")
-		}
+	clientKey, err := certs.NewSigner(kubeConfigOptions.keyEncryptionAlgorithm)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create private key")
+	}
 
-		clientCert, err = cfg.NewSignedCert(clientKey, caCert, caKey)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to sign certificate")
-		}
+	clientCert, err := cfg.NewSignedCert(clientKey, caCert, caKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to sign certificate")
+	}
 
-		encodedClientKey, err = certs.EncodePrivateKeyPEMFromSigner(clientKey)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to encode private key")
-		}
-	} else {
-		clientKey, err := certs.NewPrivateKey()
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to create private key")
-		}
-
-		clientCert, err = cfg.NewSignedCert(clientKey, caCert, caKey)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to sign certificate")
-		}
-
-		encodedClientKey = certs.EncodeCertPEM(clientCert)
+	encodedClientKey, err := certs.EncodePrivateKeyPEMFromSigner(clientKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to encode private key")
 	}
 
 	return &api.Config{
@@ -139,7 +122,7 @@ func CreateSecretWithOwner(ctx context.Context, c client.Client, clusterName cli
 	if err != nil {
 		return err
 	}
-	out, err := generateKubeconfig(ctx, c, clusterName, server, options)
+	out, err := generateKubeconfig(ctx, c, clusterName, server, options...)
 	if err != nil {
 		return err
 	}
@@ -222,7 +205,7 @@ func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1
 	}
 	endpoint := config.Clusters[clusterName].Server
 	key := client.ObjectKey{Name: clusterName, Namespace: configSecret.Namespace}
-	out, err := generateKubeconfig(ctx, c, key, endpoint, options)
+	out, err := generateKubeconfig(ctx, c, key, endpoint, options...)
 	if err != nil {
 		return err
 	}
@@ -230,7 +213,7 @@ func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1
 	return c.Update(ctx, configSecret)
 }
 
-func generateKubeconfig(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string, options []KubeConfigurationOption) ([]byte, error) {
+func generateKubeconfig(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string, options ...KubeConfigurationOption) ([]byte, error) {
 	clusterCA, err := secret.GetFromNamespacedName(ctx, c, clusterName, secret.ClusterCA)
 	if err != nil {
 		if apierrors.IsNotFound(err) {

@@ -135,24 +135,34 @@ func NewSigner(keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) (cryp
 	return pk, errors.WithStack(err)
 }
 
-// EncodePrivateKeyPEMFromSigner returns PEM-encoded private key data.
-func EncodePrivateKeyPEMFromSigner(key crypto.Signer) ([]byte, error) {
-	privateBytes, err := x509.MarshalPKCS8PrivateKey(key)
-	if err != nil {
-		return nil, fmt.Errorf("unable to marshal private key: %v", err)
+// EncodePrivateKeyPEMFromSigner converts a known private key type of RSA or ECDSA to
+// a PEM encoded block or returns an error.
+func EncodePrivateKeyPEMFromSigner(key crypto.PrivateKey) ([]byte, error) {
+	switch t := key.(type) {
+	case *ecdsa.PrivateKey:
+		derBytes, err := x509.MarshalECPrivateKey(t)
+		if err != nil {
+			return nil, err
+		}
+		block := &pem.Block{
+			Type:  "EC PRIVATE KEY",
+			Bytes: derBytes,
+		}
+		return pem.EncodeToMemory(block), nil
+	case *rsa.PrivateKey:
+		block := &pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: x509.MarshalPKCS1PrivateKey(t),
+		}
+		return pem.EncodeToMemory(block), nil
+	default:
+		return nil, fmt.Errorf("private key is not a recognized type: %T", key)
 	}
-
-	block := pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: privateBytes,
-	}
-
-	return pem.EncodeToMemory(&block), nil
 }
 
 // EncodePublicKeyPEMFromSigner returns PEM-encoded public key data.
-func EncodePublicKeyPEMFromSigner(key crypto.Signer) ([]byte, error) {
-	der, err := x509.MarshalPKIXPublicKey(key.Public())
+func EncodePublicKeyPEMFromSigner(key crypto.PublicKey) ([]byte, error) {
+	der, err := x509.MarshalPKIXPublicKey(key)
 	if err != nil {
 		return []byte{}, errors.WithStack(err)
 	}

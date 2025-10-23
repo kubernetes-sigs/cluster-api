@@ -435,6 +435,7 @@ func (c *Certificate) Generate() error {
 	}
 	c.KeyPair = kp
 	c.Generated = true
+
 	return nil
 }
 
@@ -501,7 +502,7 @@ func generateServiceAccountKeys(_ int32, keyEncryptionAlgorithm bootstrapv1.Encr
 	if err != nil {
 		return nil, err
 	}
-	saPub, err := certs.EncodePublicKeyPEMFromSigner(saCreds)
+	saPub, err := certs.EncodePublicKeyPEMFromSigner(saCreds.Public())
 	if err != nil {
 		return nil, err
 	}

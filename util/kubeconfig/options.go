@@ -18,20 +18,20 @@ package kubeconfig
 
 import bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 
-// KubeConfigurationOption helps to modify KubeConfigurationOptions.
-type KubeConfigurationOption interface {
+// KubeConfigOption helps to modify KubeConfigOptions.
+type KubeConfigOption interface { //nolint:revive
 	// ApplyKubeConfigurationOption applies this options to the given kube configuration options.
-	ApplyKubeConfigurationOption(*KubeConfigurationOptions)
+	ApplyKubeConfigurationOption(*KubeConfigOptions)
 }
 
-// KubeConfigurationOptions allows to set options for generating kube configuration.
-type KubeConfigurationOptions struct {
+// KubeConfigOptions allows to set options for generating kube configuration.
+type KubeConfigOptions struct { //nolint:revive
 	keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType
 }
 
 // ApplyOptions applies the given list options on these options,
 // and then returns itself (for convenient chaining).
-func (o *KubeConfigurationOptions) ApplyOptions(opts []KubeConfigurationOption) {
+func (o *KubeConfigOptions) ApplyOptions(opts []KubeConfigOption) {
 	for _, opt := range opts {
 		opt.ApplyKubeConfigurationOption(o)
 	}
@@ -41,6 +41,6 @@ func (o *KubeConfigurationOptions) ApplyOptions(opts []KubeConfigurationOption) 
 type KeyEncryptionAlgorithm string
 
 // ApplyKubeConfigurationOption applies this configuration to the given kube configuration options.
-func (t KeyEncryptionAlgorithm) ApplyKubeConfigurationOption(opts *KubeConfigurationOptions) {
+func (t KeyEncryptionAlgorithm) ApplyKubeConfigurationOption(opts *KubeConfigOptions) {
 	opts.keyEncryptionAlgorithm = bootstrapv1.EncryptionAlgorithmType(t)
 }

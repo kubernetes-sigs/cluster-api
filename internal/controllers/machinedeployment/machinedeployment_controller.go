@@ -488,22 +488,20 @@ func (r *Reconciler) getAndAdoptMachineSetsForDeployment(ctx context.Context, s 
 		return err
 	}
 
+	selector, err := metav1.LabelSelectorAsSelector(&md.Spec.Selector)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get MachineSets: failed to compute label selector from MachineDeployment.spec.selector")
+	}
+
+	if selector.Empty() {
+		return errors.New("failed to get MachineSets: label selector computed from MachineDeployment.spec.selector is empty")
+	}
+
 	filtered := make([]*clusterv1.MachineSet, 0, len(machineSets.Items))
 	for idx := range machineSets.Items {
 		ms := &machineSets.Items[idx]
 		log := log.WithValues("MachineSet", klog.KObj(ms))
 		ctx := ctrl.LoggerInto(ctx, log)
-		selector, err := metav1.LabelSelectorAsSelector(&md.Spec.Selector)
-		if err != nil {
-			log.Error(err, "Skipping MachineSet, failed to get label selector from spec selector")
-			continue
-		}
-
-		// If a MachineDeployment with a nil or empty selector creeps in, it should match nothing, not everything.
-		if selector.Empty() {
-			log.Info("Skipping MachineSet as the selector is empty")
-			continue
-		}
 
 		// Skip this MachineSet unless either selector matches or it has a controller ref pointing to this MachineDeployment
 		if !selector.Matches(labels.Set(ms.Labels)) && !metav1.IsControlledBy(ms, md) {

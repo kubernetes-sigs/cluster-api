@@ -249,29 +249,15 @@ func Test_setRollingOutCondition(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                 string
-		machineDeployment    *clusterv1.MachineDeployment
-		machines             []*clusterv1.Machine
-		getMachinesSucceeded bool
-		expectCondition      metav1.Condition
+		name              string
+		machineDeployment *clusterv1.MachineDeployment
+		machines          []*clusterv1.Machine
+		expectCondition   metav1.Condition
 	}{
 		{
-			name:                 "get machines failed",
-			machineDeployment:    &clusterv1.MachineDeployment{},
-			machines:             nil,
-			getMachinesSucceeded: false,
-			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentRollingOutCondition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.MachineDeploymentRollingOutInternalErrorReason,
-				Message: "Please check controller logs for errors",
-			},
-		},
-		{
-			name:                 "no machines",
-			machineDeployment:    &clusterv1.MachineDeployment{},
-			machines:             []*clusterv1.Machine{},
-			getMachinesSucceeded: true,
+			name:              "no machines",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machines:          []*clusterv1.Machine{},
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentRollingOutCondition,
 				Status: metav1.ConditionFalse,
@@ -285,7 +271,6 @@ func Test_setRollingOutCondition(t *testing.T) {
 				fakeMachine("machine-1", withCondition(upToDateCondition)),
 				fakeMachine("machine-2", withCondition(upToDateCondition)),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentRollingOutCondition,
 				Status: metav1.ConditionFalse,
@@ -316,7 +301,6 @@ func Test_setRollingOutCondition(t *testing.T) {
 					Message: "* Version v1.25.0, v1.26.0 required",
 				})),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentRollingOutCondition,
 				Status: metav1.ConditionTrue,
@@ -336,7 +320,7 @@ func Test_setRollingOutCondition(t *testing.T) {
 			if tt.machines != nil {
 				machines = collections.FromMachines(tt.machines...)
 			}
-			setRollingOutCondition(ctx, tt.machineDeployment, machines, tt.getMachinesSucceeded)
+			setRollingOutCondition(ctx, tt.machineDeployment, machines)
 
 			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentRollingOutCondition)
 			g.Expect(condition).ToNot(BeNil())
@@ -789,7 +773,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setScalingDownCondition(ctx, tt.machineDeployment, tt.machineSets, collections.FromMachines(tt.machines...), tt.getAndAdoptMachineSetsForDeploymentSucceeded, true)
+			setScalingDownCondition(ctx, tt.machineDeployment, tt.machineSets, collections.FromMachines(tt.machines...), tt.getAndAdoptMachineSetsForDeploymentSucceeded)
 			setPhase(ctx, tt.machineDeployment, tt.machineSets, tt.getAndAdoptMachineSetsForDeploymentSucceeded)
 
 			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentScalingDownCondition)
@@ -809,29 +793,15 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                 string
-		machineDeployment    *clusterv1.MachineDeployment
-		machines             []*clusterv1.Machine
-		getMachinesSucceeded bool
-		expectCondition      metav1.Condition
+		name              string
+		machineDeployment *clusterv1.MachineDeployment
+		machines          []*clusterv1.Machine
+		expectCondition   metav1.Condition
 	}{
 		{
-			name:                 "get machines failed",
-			machineDeployment:    &clusterv1.MachineDeployment{},
-			machines:             nil,
-			getMachinesSucceeded: false,
-			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentMachinesReadyCondition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.MachineDeploymentMachinesReadyInternalErrorReason,
-				Message: "Please check controller logs for errors",
-			},
-		},
-		{
-			name:                 "no machines",
-			machineDeployment:    &clusterv1.MachineDeployment{},
-			machines:             []*clusterv1.Machine{},
-			getMachinesSucceeded: true,
+			name:              "no machines",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machines:          []*clusterv1.Machine{},
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentMachinesReadyCondition,
 				Status: metav1.ConditionTrue,
@@ -845,7 +815,6 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 				fakeMachine("machine-1", withCondition(readyCondition)),
 				fakeMachine("machine-2", withCondition(readyCondition)),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentMachinesReadyCondition,
 				Status: metav1.ConditionTrue,
@@ -859,7 +828,6 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 				fakeMachine("machine-1", withCondition(readyCondition)),
 				fakeMachine("machine-2"),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesReadyCondition,
 				Status:  metav1.ConditionUnknown,
@@ -891,7 +859,6 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 					Message: "Deleting: Machine deletion in progress, stage: DrainingNode",
 				})),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentMachinesReadyCondition,
 				Status: metav1.ConditionFalse,
@@ -910,7 +877,7 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			if tt.machines != nil {
 				machines = collections.FromMachines(tt.machines...)
 			}
-			setMachinesReadyCondition(ctx, tt.machineDeployment, machines, tt.getMachinesSucceeded)
+			setMachinesReadyCondition(ctx, tt.machineDeployment, machines)
 
 			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentMachinesReadyCondition)
 			g.Expect(condition).ToNot(BeNil())
@@ -921,29 +888,15 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 
 func Test_setMachinesUpToDateCondition(t *testing.T) {
 	tests := []struct {
-		name                 string
-		machineDeployment    *clusterv1.MachineDeployment
-		machines             []*clusterv1.Machine
-		getMachinesSucceeded bool
-		expectCondition      metav1.Condition
+		name              string
+		machineDeployment *clusterv1.MachineDeployment
+		machines          []*clusterv1.Machine
+		expectCondition   metav1.Condition
 	}{
 		{
-			name:                 "get machines failed",
-			machineDeployment:    &clusterv1.MachineDeployment{},
-			machines:             nil,
-			getMachinesSucceeded: false,
-			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentMachinesUpToDateCondition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.MachineDeploymentMachinesUpToDateInternalErrorReason,
-				Message: "Please check controller logs for errors",
-			},
-		},
-		{
-			name:                 "no machines",
-			machineDeployment:    &clusterv1.MachineDeployment{},
-			machines:             []*clusterv1.Machine{},
-			getMachinesSucceeded: true,
+			name:              "no machines",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machines:          []*clusterv1.Machine{},
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateCondition,
 				Status:  metav1.ConditionTrue,
@@ -961,7 +914,6 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 					Reason: "some-reason-1",
 				})),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateCondition,
 				Status:  metav1.ConditionTrue,
@@ -980,7 +932,6 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 					Message: "some unknown message",
 				})),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateCondition,
 				Status:  metav1.ConditionUnknown,
@@ -999,7 +950,6 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 					Message: "some not up-to-date message",
 				})),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateCondition,
 				Status:  metav1.ConditionFalse,
@@ -1014,7 +964,6 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 				fakeMachine("no-condition-machine-1"),
 				fakeMachine("no-condition-machine-2-new", withCreationTimestamp(time.Now().Add(-5*time.Second))), // ignored because it's new
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateCondition,
 				Status:  metav1.ConditionUnknown,
@@ -1051,7 +1000,6 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 				fakeMachine("no-condition-machine-1"),
 				fakeMachine("no-condition-machine-2"),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentMachinesUpToDateCondition,
 				Status: metav1.ConditionFalse,
@@ -1069,7 +1017,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			if tt.machines != nil {
 				machines = collections.FromMachines(tt.machines...)
 			}
-			setMachinesUpToDateCondition(ctx, tt.machineDeployment, machines, tt.getMachinesSucceeded)
+			setMachinesUpToDateCondition(ctx, tt.machineDeployment, machines)
 
 			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentMachinesUpToDateCondition)
 			g.Expect(condition).ToNot(BeNil())
@@ -1084,24 +1032,11 @@ func Test_setRemediatingCondition(t *testing.T) {
 	ownerRemediated := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.MachineSetMachineRemediationMachineDeletingReason, Message: "Machine is deleting"}
 
 	tests := []struct {
-		name                 string
-		machineDeployment    *clusterv1.MachineDeployment
-		machines             []*clusterv1.Machine
-		getMachinesSucceeded bool
-		expectCondition      metav1.Condition
+		name              string
+		machineDeployment *clusterv1.MachineDeployment
+		machines          []*clusterv1.Machine
+		expectCondition   metav1.Condition
 	}{
-		{
-			name:                 "get machines failed",
-			machineDeployment:    &clusterv1.MachineDeployment{},
-			machines:             nil,
-			getMachinesSucceeded: false,
-			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentRemediatingCondition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.MachineDeploymentRemediatingInternalErrorReason,
-				Message: "Please check controller logs for errors",
-			},
-		},
 		{
 			name:              "Without unhealthy machines",
 			machineDeployment: &clusterv1.MachineDeployment{},
@@ -1109,7 +1044,6 @@ func Test_setRemediatingCondition(t *testing.T) {
 				fakeMachine("m1"),
 				fakeMachine("m2"),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentRemediatingCondition,
 				Status: metav1.ConditionFalse,
@@ -1124,7 +1058,6 @@ func Test_setRemediatingCondition(t *testing.T) {
 				fakeMachine("m2", withCondition(healthCheckNotSucceeded)), // Unhealthy machine, not yet marked for remediation
 				fakeMachine("m3", withCondition(healthCheckNotSucceeded), withCondition(ownerRemediated)),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentRemediatingCondition,
 				Status:  metav1.ConditionTrue,
@@ -1140,7 +1073,6 @@ func Test_setRemediatingCondition(t *testing.T) {
 				fakeMachine("m2", withCondition(healthCheckNotSucceeded)), // Unhealthy machine, not yet marked for remediation
 				fakeMachine("m3", withCondition(healthCheckSucceeded)),    // Healthy machine
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentRemediatingCondition,
 				Status:  metav1.ConditionFalse,
@@ -1156,7 +1088,6 @@ func Test_setRemediatingCondition(t *testing.T) {
 				fakeMachine("m2", withCondition(healthCheckNotSucceeded)), // Unhealthy machine, not yet marked for remediation
 				fakeMachine("m3", withCondition(healthCheckSucceeded)),    // Healthy machine
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentRemediatingCondition,
 				Status:  metav1.ConditionFalse,
@@ -1169,13 +1100,10 @@ func Test_setRemediatingCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			var machinesToBeRemediated, unHealthyMachines collections.Machines
-			if tt.getMachinesSucceeded {
-				machines := collections.FromMachines(tt.machines...)
-				machinesToBeRemediated = machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
-				unHealthyMachines = machines.Filter(collections.IsUnhealthy)
-			}
-			setRemediatingCondition(ctx, tt.machineDeployment, machinesToBeRemediated, unHealthyMachines, tt.getMachinesSucceeded)
+			machines := collections.FromMachines(tt.machines...)
+			machinesToBeRemediated := machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
+			unHealthyMachines := machines.Filter(collections.IsUnhealthy)
+			setRemediatingCondition(ctx, tt.machineDeployment, machinesToBeRemediated, unHealthyMachines)
 
 			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentRemediatingCondition)
 			g.Expect(condition).ToNot(BeNil())
@@ -1191,7 +1119,6 @@ func Test_setDeletingCondition(t *testing.T) {
 		machineSets                                  []*clusterv1.MachineSet
 		getAndAdoptMachineSetsForDeploymentSucceeded bool
 		machines                                     []*clusterv1.Machine
-		getMachinesSucceeded                         bool
 		expectCondition                              metav1.Condition
 	}{
 		{
@@ -1199,22 +1126,7 @@ func Test_setDeletingCondition(t *testing.T) {
 			machineDeployment: &clusterv1.MachineDeployment{},
 			machineSets:       nil,
 			getAndAdoptMachineSetsForDeploymentSucceeded: false,
-			machines:             []*clusterv1.Machine{},
-			getMachinesSucceeded: true,
-			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentDeletingCondition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.MachineDeploymentDeletingInternalErrorReason,
-				Message: "Please check controller logs for errors",
-			},
-		},
-		{
-			name:              "get machines failed",
-			machineDeployment: &clusterv1.MachineDeployment{},
-			machineSets:       []*clusterv1.MachineSet{},
-			getAndAdoptMachineSetsForDeploymentSucceeded: true,
-			machines:             nil,
-			getMachinesSucceeded: false,
+			machines: []*clusterv1.Machine{},
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentDeletingCondition,
 				Status:  metav1.ConditionUnknown,
@@ -1227,8 +1139,7 @@ func Test_setDeletingCondition(t *testing.T) {
 			machineDeployment: &clusterv1.MachineDeployment{},
 			machineSets:       []*clusterv1.MachineSet{},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
-			machines:             []*clusterv1.Machine{},
-			getMachinesSucceeded: true,
+			machines: []*clusterv1.Machine{},
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentDeletingCondition,
 				Status: metav1.ConditionFalse,
@@ -1245,7 +1156,6 @@ func Test_setDeletingCondition(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1"),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentDeletingCondition,
 				Status:  metav1.ConditionTrue,
@@ -1263,7 +1173,6 @@ func Test_setDeletingCondition(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withStaleDeletion()),
 			},
-			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentDeletingCondition,
 				Status: metav1.ConditionTrue,
@@ -1279,8 +1188,7 @@ func Test_setDeletingCondition(t *testing.T) {
 				fakeMachineSet("ms1", withStatusReplicas(1)),
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
-			machines:             []*clusterv1.Machine{},
-			getMachinesSucceeded: true,
+			machines: []*clusterv1.Machine{},
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentDeletingCondition,
 				Status:  metav1.ConditionTrue,
@@ -1297,7 +1205,7 @@ func Test_setDeletingCondition(t *testing.T) {
 			if tt.machines != nil {
 				machines = collections.FromMachines(tt.machines...)
 			}
-			setDeletingCondition(ctx, tt.machineDeployment, tt.machineSets, machines, tt.getAndAdoptMachineSetsForDeploymentSucceeded, tt.getMachinesSucceeded)
+			setDeletingCondition(ctx, tt.machineDeployment, tt.machineSets, machines, tt.getAndAdoptMachineSetsForDeploymentSucceeded)
 
 			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentDeletingCondition)
 			g.Expect(condition).ToNot(BeNil())

@@ -213,14 +213,14 @@ The following table shows the resulting behavior, depending on where taints are 
 
 **Note:** The taints field on machine's will only allow being set or not being set, there will be no "empty / `[]`" option.
 
-| Machine | CABPK        | Result for CABPK                                                                                    |
-|---------|--------------|-----------------------------------------------------------------------------------------------------|
-| Set     | Set          | **CABPK** and **Machine** taints, on same key + effect use the value from the Machine defined taint |
-| Set     | Not set      | **CABPK default** and **Machine** taints                                                            |
-| Set     | empty / `[]` | **Machine** taints                                                                                  |
-| Not set | Set          | **CABPK** taints                                                                                    |
-| Not set | Not set      | **CABPK default** taint                                                                             |
-| Not set | empty / `[]` | no taints                                                                                           |
+| Machine | CABPK        | Result for CABPK                                                                                            |
+|---------|--------------|-------------------------------------------------------------------------------------------------------------|
+| Set     | Set          | **CABPK** and **Machine** taints, on same key + effect use the value from the Machine defined taint         |
+| Set     | Not set      | **CABPK default** and **Machine** taints, on same key + effect use the value from the Machine defined taint |
+| Set     | empty / `[]` | **Machine** taints                                                                                          |
+| Not set | Set          | **CABPK** taints                                                                                            |
+| Not set | Not set      | **CABPK default** taint                                                                                     |
+| Not set | empty / `[]` | no taints                                                                                                   |
 
 So the desired behavior of the new taints field does not change the behavior for taints configured via CABPK.
 
@@ -229,8 +229,6 @@ In future CABPK could consider deprecating the related fields and propose using 
 #### Proposed API changes
 
 ##### Type definition of a taint in Cluster API objects
-
-**Note:** To reduce verbosity, this proposal does not include all kinds of validation markers.
 
 The following defines a new struct which should be used to define taints at the corresponding API types.
 It replicates the upstream `corev1.Taint` specification and extends it by a field called `propagation`, which will define the propagation mechanism to use for the taint.
@@ -241,14 +239,12 @@ Using a type definition allows to be extensible and add additional propagation m
 type MachineTaint struct {
 	// key is the taint key to be applied to a node.
 	// +required
-	// +kubebuilder:validation:Pattern=`^(([a-zA-Z0-9\-\.]+\/)?([a-zA-Z0-9][a-zA-Z0-9\-\._]*))?$`
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	Key string `json:"key,omitempty"`
 
 	// value is the taint value corresponding to the taint key.
 	// +optional
-	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9][a-zA-Z0-9\-\._]*)?$`
 	// +kubebuilder:validation:MaxLength=63
 	Value *string `json:"value,omitempty"`
 
@@ -286,14 +282,19 @@ const (
 )
 ```
 
-Proper validations on the new field has to ensure that no taint with a key of `node.cluster.x-k8s.io/uninitialized` or `node.cluster.x-k8s.io/outdated-revision` is getting added, because these taints are managed by Cluster API and providers.
+Proper validations on the new field has to ensure that:
+
+* the `key` and `value` fields are validated as done in the upstream node validation
+  [3](https://github.com/kubernetes/kubernetes/blob/51f02aa58a21aca9e3d3b8ac1aaebfbdc1481847/pkg/apis/core/validation/validation.go#L6879)
+  [4](https://github.com/kubernetes/kubernetes/blob/51f02aa58a21aca9e3d3b8ac1aaebfbdc1481847/pkg/apis/core/validation/validation.go#L6881).
+* no taint with a key of `node.cluster.x-k8s.io/uninitialized` or `node.cluster.x-k8s.io/outdated-revision` is getting added, because these taints are managed by Cluster API and providers.
+* no taint with a prefix of `node.kubernetes.io/` is getting added, because these taints are managed by Kubernetes.
+
 If in the future we are introducing new taints that users should not be able to set, ratcheting may be used.
 
 **Note:** Other taints normally set by kubeadm should be able to get set by Cluster API too and not be blocked on to allow more flexibility and use-cases.
 
 ##### Changes to the Machine, MachineSet, MachineDeployment and MachinePool resources via MachineSpec
-
-**Note:** To reduce verbosity, this proposal does not include all kinds of required validation markers.
 
 This proposes to add a field array to the `MachineSpec` struct.
 This implicitly leads to adding the field to the following types:
@@ -343,12 +344,12 @@ The following table summarizes the new fields:
 
 The propagation of the fields should follow the prior art and is summarized in the following table and picture:
 
-| ClusterClass | Cluster | Result                                                                                                                                             |
-|--------------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Set          | Set     | Merge **ClusterClass** and **Cluster** taints (like for labels and annotations), on same key + effect use the value from the Cluster defined taint |
-| Set          | Not set | **ClusterClass** taints                                                                                                                            |
-| Not set      | Set     | **Cluster** taints                                                                                                                                 |
-| Not set      | Not set | No taints from ClusterClass or Cluster                                                                                                             |
+| ClusterClass | Cluster | Result                                               |
+|--------------|---------|------------------------------------------------------|
+| Set          | Set     | **Cluster** taints (ClusterClass taints are ignored) |
+| Set          | Not set | **ClusterClass** taints                              |
+| Not set      | Set     | **Cluster** taints                                   |
+| Not set      | Not set | No taints from ClusterClass or Cluster               |
 
 ![propagation of taints across a topology Cluster](./images/propagate-taints/topology-propagation.excalidraw.png)
 

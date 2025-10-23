@@ -296,8 +296,8 @@ Proper validation on the new field has to:
 * block taints with the key prefix `node.cloudprovider.kubernetes.io/`
   * This taints are either managed by the kubelet or by a cloud-controller-manager's node-lifecycle-controller
 * block the taints `node-role.kubernetes.io/control-plane` and `node-role.kubernetes.io/master` (deprecated) for MachineDeployments and MachineSets.
-  * This taints are dedicated to be set on cotnrol-plane machines, not for workers.
-  
+  * This taints are dedicated to be set on control-plane machines, not for workers.
+
 If in the future we are introducing new taints that users should not be able to set, ratcheting may be used.
 
 **Note:** Other taints normally set by kubeadm should be able to get set by Cluster API too and not be blocked on to allow more flexibility and use-cases.

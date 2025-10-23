@@ -345,9 +345,36 @@ func setupLifecycleHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookServer 
 	}
 
 	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:        runtimehooksv1.BeforeControlPlaneUpgrade,
+		Name:        "before-control-plane-upgrade",
+		HandlerFunc: lifecycleExtensionHandlers.DoBeforeControlPlaneUpgrade,
+	}); err != nil {
+		setupLog.Error(err, "Error adding handler")
+		os.Exit(1)
+	}
+
+	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
 		Hook:        runtimehooksv1.AfterControlPlaneUpgrade,
 		Name:        "after-control-plane-upgrade",
 		HandlerFunc: lifecycleExtensionHandlers.DoAfterControlPlaneUpgrade,
+	}); err != nil {
+		setupLog.Error(err, "Error adding handler")
+		os.Exit(1)
+	}
+
+	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:        runtimehooksv1.BeforeWorkersUpgrade,
+		Name:        "before-workers-upgrade",
+		HandlerFunc: lifecycleExtensionHandlers.DoBeforeWorkersUpgrade,
+	}); err != nil {
+		setupLog.Error(err, "Error adding handler")
+		os.Exit(1)
+	}
+
+	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:        runtimehooksv1.AfterWorkersUpgrade,
+		Name:        "after-workers-upgrade",
+		HandlerFunc: lifecycleExtensionHandlers.DoAfterWorkersUpgrade,
 	}); err != nil {
 		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)

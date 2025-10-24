@@ -625,7 +625,7 @@ func TestCloneConfigsAndGenerateMachineFailInfraMachineCreation(t *testing.T) {
 	infraMachineList.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   builder.InfrastructureGroupVersion.Group,
 		Version: builder.InfrastructureGroupVersion.Version,
-		Kind:    builder.GenericInfrastructureMachineKind,
+		Kind:    builder.GenericInfrastructureMachineKind + "List",
 	})
 	g.Expect(fakeClient.List(ctx, infraMachineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(infraMachineList.Items).To(BeEmpty())
@@ -711,7 +711,7 @@ func TestCloneConfigsAndGenerateMachineFailKubeadmConfigCreation(t *testing.T) {
 	infraMachineList.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   builder.InfrastructureGroupVersion.Group,
 		Version: builder.InfrastructureGroupVersion.Version,
-		Kind:    builder.GenericInfrastructureMachineKind,
+		Kind:    builder.GenericInfrastructureMachineKind + "List",
 	})
 	g.Expect(fakeClient.List(ctx, infraMachineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(infraMachineList.Items).To(BeEmpty())
@@ -808,7 +808,7 @@ func TestCloneConfigsAndGenerateMachineFailMachineCreation(t *testing.T) {
 	infraMachineList.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   builder.InfrastructureGroupVersion.Group,
 		Version: builder.InfrastructureGroupVersion.Version,
-		Kind:    builder.GenericInfrastructureMachineKind,
+		Kind:    builder.GenericInfrastructureMachineKind + "List",
 	})
 	g.Expect(fakeClient.List(ctx, infraMachineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(infraMachineList.Items).To(BeEmpty())

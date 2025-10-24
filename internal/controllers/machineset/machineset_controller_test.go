@@ -121,7 +121,8 @@ func TestMachineSetReconciler(t *testing.T) {
 		machineTemplateSpec := clusterv1.MachineTemplateSpec{
 			ObjectMeta: clusterv1.ObjectMeta{
 				Labels: map[string]string{
-					"label-1": "true",
+					"label-1":    "true",
+					"precedence": "MachineSet",
 				},
 				Annotations: map[string]string{
 					"annotation-1": "true",
@@ -208,6 +209,9 @@ func TestMachineSetReconciler(t *testing.T) {
 				"annotations": map[string]interface{}{
 					"precedence": "GenericBootstrapConfig",
 				},
+				"labels": map[string]interface{}{
+					"precedence": "GenericBootstrapConfig",
+				},
 			},
 			"spec": map[string]interface{}{
 				"format": "cloud-init",
@@ -232,6 +236,9 @@ func TestMachineSetReconciler(t *testing.T) {
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"metadata": map[string]interface{}{
 				"annotations": map[string]interface{}{
+					"precedence": "GenericInfrastructureMachineTemplate",
+				},
+				"labels": map[string]interface{}{
 					"precedence": "GenericInfrastructureMachineTemplate",
 				},
 			},
@@ -314,6 +321,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
 				g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the infrastructure template ones")
 				g.Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
+				g.Expect(im.GetLabels()).To(HaveKeyWithValue("precedence", "MachineSet"), "the labels from the MachineSpec template to overwrite the infrastructure template ones")
 				g.Expect(cleanupTime(im.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
 					// capi-machineset-metadata owns labels and annotations.
 					APIVersion: im.GetAPIVersion(),
@@ -329,7 +337,8 @@ func TestMachineSetReconciler(t *testing.T) {
 		"f:cluster.x-k8s.io/cluster-name":{},
 		"f:cluster.x-k8s.io/deployment-name":{},
 		"f:cluster.x-k8s.io/set-name":{},
-		"f:label-1":{}
+		"f:label-1":{},
+		"f:precedence":{}
 	}
 }}`,
 				}, {
@@ -385,6 +394,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
 				g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the bootstrap config template ones")
 				g.Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
+				g.Expect(im.GetLabels()).To(HaveKeyWithValue("precedence", "MachineSet"), "the labels from the MachineSpec template to overwrite the bootstrap config template ones")
 				g.Expect(cleanupTime(im.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
 					// capi-machineset-metadata owns labels and annotations.
 					APIVersion: im.GetAPIVersion(),
@@ -400,7 +410,8 @@ func TestMachineSetReconciler(t *testing.T) {
 		"f:cluster.x-k8s.io/cluster-name":{},
 		"f:cluster.x-k8s.io/deployment-name":{},
 		"f:cluster.x-k8s.io/set-name":{},
-		"f:label-1":{}
+		"f:label-1":{},
+		"f:precedence":{}
 	}
 }}`,
 				}, {

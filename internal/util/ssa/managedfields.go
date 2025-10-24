@@ -18,6 +18,7 @@ limitations under the License.
 package ssa
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"time"
@@ -43,6 +44,8 @@ const classicManager = "manager"
 // * First a full object is created with fieldManager.
 // * Then this func is called to drop ownership for labels and annotations
 // * And then in a subsequent syncMachines call a metadataFieldManager can take ownership for labels and annotations.
+// Note: This is done so that this func does not rely on managedFields being stored in the cache, so we can optimize
+// memory usage by dropping managedFields before storing objects in the cache.
 func RemoveManagedFieldsForLabelsAndAnnotations(ctx context.Context, c client.Client, apiReader client.Reader, object client.Object, fieldManager string) error {
 	objectKey := client.ObjectKeyFromObject(object)
 	objectGVK, err := apiutil.GVKForObject(object, c.Scheme())
@@ -78,6 +81,11 @@ func RemoveManagedFieldsForLabelsAndAnnotations(ctx context.Context, c client.Cl
 			if managedField.Manager == fieldManager &&
 				managedField.Operation == metav1.ManagedFieldsOperationApply &&
 				managedField.Subresource == "" {
+				// If fieldManager does not own labels and annotations there's nothing to do.
+				if !bytes.Contains(managedField.FieldsV1.Raw, []byte("f:metadata")) {
+					return nil
+				}
+
 				// Unmarshal the managed fields into a map[string]interface{}
 				fieldsV1 := map[string]interface{}{}
 				if err := json.Unmarshal(managedField.FieldsV1.Raw, &fieldsV1); err != nil {
@@ -125,6 +133,7 @@ func RemoveManagedFieldsForLabelsAndAnnotations(ctx context.Context, c client.Cl
 // MigrateManagedFields migrates managedFields.
 // ManagedFields are only migrated if fieldManager owns labels+annotations
 // The migration deletes all non-status managedField entries for fieldManager:Apply and manager:Update.
+// Additionally it adds a seed entry for metadataFieldManager.
 // Note: We have to call this func for every Machine created with CAPI <= v1.11 once.
 // Given that this was introduced in CAPI v1.12 and our n-3 upgrade policy this can
 // be removed with CAPI v1.15.
@@ -198,6 +207,11 @@ func needsMigration(object client.Object, fieldManager string) (bool, error) {
 		if managedField.Manager == fieldManager &&
 			managedField.Operation == metav1.ManagedFieldsOperationApply &&
 			managedField.Subresource == "" {
+			// If fieldManager does not own the cluster-name label migration is not needed
+			if !bytes.Contains(managedField.FieldsV1.Raw, []byte("f:cluster.x-k8s.io/cluster-name")) {
+				return false, nil
+			}
+
 			// Unmarshal the managed fields into a map[string]interface{}
 			fieldsV1 := map[string]interface{}{}
 			if err := json.Unmarshal(managedField.FieldsV1.Raw, &fieldsV1); err != nil {

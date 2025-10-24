@@ -1335,6 +1335,7 @@ func autoConvert_v1beta2_MachineSpec_To_v1alpha3_MachineSpec(in *v1beta2.Machine
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	return nil
 }
 

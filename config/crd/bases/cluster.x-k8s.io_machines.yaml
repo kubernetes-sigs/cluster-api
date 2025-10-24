@@ -1754,6 +1754,57 @@ spec:
                 x-kubernetes-list-map-keys:
                 - conditionType
                 x-kubernetes-list-type: map
+              taints:
+                description: |-
+                  taints are the node taints that Cluster API will manage.
+                  This list is not necessarily complete: other Kubernetes components may add or remove other taints.
+                  Only those taints defined in this list will be added or removed by core Cluster API controllers.
+
+                  NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+                  As of Kubernetes 1.33, this is different from the implementation on corev1.NodeSpec, but provides a more flexible API for components building on top of Cluster API.
+                items:
+                  description: MachineTaint defines a taint equivalent to corev1.Taint,
+                    but additionally having a propagation field.
+                  properties:
+                    effect:
+                      description: effect is the effect for the taint. Valid values
+                        are NoSchedule, PreferNoSchedule and NoExecute.
+                      enum:
+                      - NoSchedule
+                      - PreferNoSchedule
+                      - NoExecute
+                      type: string
+                    key:
+                      description: key is the taint key to be applied to a node.
+                      maxLength: 253
+                      minLength: 1
+                      type: string
+                    propagation:
+                      description: |-
+                        propagation defines how this taint should be propagated to nodes.
+                        Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
+                        OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
+                      enum:
+                      - Always
+                      - OnInitialization
+                      type: string
+                    value:
+                      description: value is the taint value corresponding to the taint
+                        key.
+                      maxLength: 63
+                      type: string
+                  required:
+                  - effect
+                  - key
+                  - propagation
+                  type: object
+                maxItems: 64
+                minItems: 1
+                type: array
+                x-kubernetes-list-map-keys:
+                - key
+                - effect
+                x-kubernetes-list-type: map
               version:
                 description: |-
                   version defines the desired Kubernetes version.

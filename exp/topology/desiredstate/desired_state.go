@@ -19,11 +19,8 @@ package desiredstate
 
 import (
 	"context"
-	"fmt"
 	"maps"
 	"reflect"
-	"slices"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -33,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -41,7 +37,6 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
@@ -507,7 +502,6 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 // The version is calculated using the state of the current machine deployments, the current control plane
 // and the version defined in the topology.
 func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Scope) (string, error) {
-	log := ctrl.LoggerFrom(ctx)
 	topologyVersion := s.Blueprint.Topology.Version
 	// If we are creating the control plane object (current control plane is nil), use version from topology.
 	if s.Current.ControlPlane == nil || s.Current.ControlPlane.Object == nil {
@@ -560,41 +554,12 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	// if the control plane is not upgrading, before making further considerations about if to pick up another version,
 	// we should call the AfterControlPlaneUpgrade hook if not already done.
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
-		// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
-		if hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
-			v1beta1Cluster := &clusterv1beta1.Cluster{}
-			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
-			if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
-				return "", errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
-			}
-
-			// Call all the registered extension for the hook.
-			hookRequest := &runtimehooksv1.AfterControlPlaneUpgradeRequest{
-				Cluster:           *cleanupCluster(v1beta1Cluster),
-				KubernetesVersion: *currentVersion,
-			}
-			hookResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{}
-			if err := g.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
-				return "", err
-			}
-			// Add the response to the tracker so we can later update condition or requeue when required.
-			s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, hookResponse)
-
-			// If the extension responds to hold off on starting Machine deployments upgrades,
-			// change the UpgradeTracker accordingly, otherwise the hook call is completed and we
-			// can remove this hook from the list of pending-hooks.
-			if hookResponse.RetryAfterSeconds != 0 {
-				v := topologyVersion
-				if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
-					v = s.UpgradeTracker.ControlPlane.UpgradePlan[0]
-				}
-				log.Info(fmt.Sprintf("Upgrade to version %q is blocked by %q hook", v, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)))
-				return *currentVersion, nil
-			}
-			if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
-				return "", err
-			}
+		hookCompleted, err := g.callAfterControlPlaneUpgradeHook(ctx, s, currentVersion, topologyVersion)
+		if err != nil {
+			return "", err
+		}
+		if !hookCompleted {
+			return *currentVersion, nil
 		}
 	}
 
@@ -632,62 +597,12 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	// are not upgrading/are not required to upgrade.
 	// If not already done, call the BeforeClusterUpgrade hook before picking up the desired version.
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		// NOTE: the hook should be called only at the beginning of either a regular upgrade or a multistep upgrade sequence (it should not be called when in the middle of a multistep upgrade sequence);
-		// to detect if we are at the beginning of an upgrade, we check if the intent to call the AfterClusterUpgrade is not yet tracked.
-		if !hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster) {
-			var hookAnnotations []string
-			for key := range s.Current.Cluster.Annotations {
-				if strings.HasPrefix(key, clusterv1.BeforeClusterUpgradeHookAnnotationPrefix) {
-					hookAnnotations = append(hookAnnotations, key)
-				}
-			}
-			if len(hookAnnotations) > 0 {
-				slices.Sort(hookAnnotations)
-				message := fmt.Sprintf("annotations [%s] are set", strings.Join(hookAnnotations, ", "))
-				if len(hookAnnotations) == 1 {
-					message = fmt.Sprintf("annotation [%s] is set", strings.Join(hookAnnotations, ", "))
-				}
-				// Add the hook with a response to the tracker so we can later update the condition.
-				s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-						// RetryAfterSeconds needs to be set because having only hooks without RetryAfterSeconds
-						// would lead to not updating the condition. We can rely on getting an event when the
-						// annotation gets removed so we set twice of the default sync-period to not cause additional reconciles.
-						RetryAfterSeconds: 20 * 60,
-						CommonResponse: runtimehooksv1.CommonResponse{
-							Message: message,
-						},
-					},
-				})
-
-				log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q hook (via annotations)", topologyVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)), "hooks", strings.Join(hookAnnotations, ","))
-				return *currentVersion, nil
-			}
-
-			// At this point the control plane and the machine deployments are stable and we are almost ready to pick
-			// up the topologyVersion. Call the BeforeClusterUpgrade hook before picking up the desired version.
-			v1beta1Cluster := &clusterv1beta1.Cluster{}
-			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
-			if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
-				return "", errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
-			}
-
-			hookRequest := &runtimehooksv1.BeforeClusterUpgradeRequest{
-				Cluster:               *cleanupCluster(v1beta1Cluster),
-				FromKubernetesVersion: *currentVersion,
-				ToKubernetesVersion:   topologyVersion,
-			}
-			hookResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{}
-			if err := g.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
-				return "", err
-			}
-			// Add the response to the tracker so we can later update condition or requeue when required.
-			s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, hookResponse)
-			if hookResponse.RetryAfterSeconds != 0 {
-				// Cannot pickup the new version right now. Need to try again later.
-				log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q hook", topologyVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)))
-				return *currentVersion, nil
-			}
+		hookCompleted, err := g.callBeforeClusterUpgradeHook(ctx, s, currentVersion, topologyVersion)
+		if err != nil {
+			return "", err
+		}
+		if !hookCompleted {
+			return *currentVersion, nil
 		}
 	}
 

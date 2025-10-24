@@ -420,7 +420,9 @@ policies when a Cluster derived from a ClusterClass is managed by the Topology c
 ### ControlPlane: machines
 
 In case you are developing a control plane provider which uses a Cluster API Machine object to represent each
-control plane instance, following fields MUST be implemented in
+control plane instance, the providers MUST set the `cluster.x-k8s.io/control-plane` label with an empty value on the created Machines.
+
+Additionally following the fields MUST be implemented in
 the ControlPlane `spec`.
 
 ```go

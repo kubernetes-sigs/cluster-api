@@ -49,6 +49,8 @@ func TestRemoveManagedFieldsForLabelsAndAnnotations(t *testing.T) {
 			Format: bootstrapv1.CloudConfig,
 		},
 	}
+	kubeadmConfigWithoutFinalizer := kubeadmConfig.DeepCopy()
+	kubeadmConfigWithoutFinalizer.Finalizers = nil
 	kubeadmConfigWithLabelsAndAnnotations := kubeadmConfig.DeepCopy()
 	kubeadmConfigWithLabelsAndAnnotations.Labels = map[string]string{
 		"label-1": "value-1",
@@ -93,6 +95,29 @@ func TestRemoveManagedFieldsForLabelsAndAnnotations(t *testing.T) {
 		"v:\"test.com/finalizer\"":{}
 	}
 },
+"f:spec":{
+	"f:format":{}
+}}`,
+			}},
+		},
+		{
+			name: "no-op if there are no managedFields for labels and annotations (not even metadata)",
+			// Note: This case should never happen, but using it to test the no-op code path.
+			kubeadmConfig: kubeadmConfigWithoutFinalizer.DeepCopy(),
+			// Note: After create testFieldManager should own all fields.
+			expectedManagedFieldsAfterCreate: []managedFieldEntry{{
+				Manager:   testFieldManager,
+				Operation: metav1.ManagedFieldsOperationApply,
+				FieldsV1: `{
+"f:spec":{
+	"f:format":{}
+}}`,
+			}},
+			// Note: Expect no change.
+			expectedManagedFieldsAfterRemoval: []managedFieldEntry{{
+				Manager:   testFieldManager,
+				Operation: metav1.ManagedFieldsOperationApply,
+				FieldsV1: `{
 "f:spec":{
 	"f:format":{}
 }}`,

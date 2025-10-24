@@ -1558,9 +1558,9 @@ func (r *Reconciler) createBootstrapConfig(ctx context.Context, ms *clusterv1.Ma
 		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create BootstrapConfig")
 	}
 
-	// Create the full object with capi-kubeadmcontrolplane.
+	// Create the full object with capi-machineset.
 	// Below ssa.RemoveManagedFieldsForLabelsAndAnnotations will drop ownership for labels and annotations
-	// so that in a subsequent syncMachines call capi-kubeadmcontrolplane-metadata can take ownership for them.
+	// so that in a subsequent syncMachines call capi-machineset-metadata can take ownership for them.
 	// Note: This is done in way that it does not rely on managedFields being stored in the cache, so we can optimize
 	// memory usage by dropping managedFields before storing objects in the cache.
 	if err := ssa.Patch(ctx, r.Client, machineSetManagerName, bootstrapConfig); err != nil {
@@ -1628,9 +1628,9 @@ func (r *Reconciler) createInfraMachine(ctx context.Context, ms *clusterv1.Machi
 		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create InfraMachine")
 	}
 
-	// Create the full object with capi-kubeadmcontrolplane.
+	// Create the full object with capi-machineset.
 	// Below ssa.RemoveManagedFieldsForLabelsAndAnnotations will drop ownership for labels and annotations
-	// so that in a subsequent syncMachines call capi-kubeadmcontrolplane-metadata can take ownership for them.
+	// so that in a subsequent syncMachines call capi-machineset-metadata can take ownership for them.
 	// Note: This is done in way that it does not rely on managedFields being stored in the cache, so we can optimize
 	// memory usage by dropping managedFields before storing objects in the cache.
 	if err := ssa.Patch(ctx, r.Client, machineSetManagerName, infraMachine); err != nil {

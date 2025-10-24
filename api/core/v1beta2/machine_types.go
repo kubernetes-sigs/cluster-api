@@ -488,6 +488,20 @@ type MachineSpec struct {
 	// deletion contains configuration options for Machine deletion.
 	// +optional
 	Deletion MachineDeletionSpec `json:"deletion,omitempty,omitzero"`
+
+	// taints are the node taints that Cluster API will manage.
+	// This list is not necessarily complete: other Kubernetes components may add or remove other taints.
+	// Only those taints defined in this list will be added or removed by core Cluster API controllers.
+	//
+	// NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
+	// As of Kubernetes 1.33, this is different from the implementation on corev1.NodeSpec, but provides a more flexible API for components building on top of Cluster API.
+	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +listMapKey=effect
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=64
+	Taints []MachineTaint `json:"taints,omitempty"`
 }
 
 // MachineDeletionSpec contains configuration options for Machine deletion.

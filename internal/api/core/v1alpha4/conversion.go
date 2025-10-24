@@ -333,6 +333,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Deletion.NodeDeletionTimeoutSeconds
 		dst.Status.CertificatesExpiryDate = restored.Status.CertificatesExpiryDate
 		dst.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
+		dst.Spec.Taints = restored.Spec.Taints
 		dst.Status.Deletion = restored.Status.Deletion
 		dst.Status.Conditions = restored.Status.Conditions
 	}
@@ -422,6 +423,7 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
 	dst.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
+	dst.Spec.Template.Spec.Taints = restored.Spec.Template.Spec.Taints
 	dst.Status.Conditions = restored.Status.Conditions
 	dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
 	dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
@@ -518,6 +520,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Rollout.After = restored.Spec.Rollout.After
 		dst.Spec.Remediation = restored.Spec.Remediation
 		dst.Spec.MachineNaming = restored.Spec.MachineNaming
+		dst.Spec.Template.Spec.Taints = restored.Spec.Template.Spec.Taints
 		dst.Status.Conditions = restored.Status.Conditions
 		dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
 		dst.Status.ReadyReplicas = restored.Status.ReadyReplicas
@@ -686,6 +689,7 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 		dst.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
 		dst.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
+		dst.Spec.Template.Spec.Taints = restored.Spec.Template.Spec.Taints
 		dst.Status.Conditions = restored.Status.Conditions
 		dst.Status.AvailableReplicas = restored.Status.AvailableReplicas
 		dst.Status.ReadyReplicas = restored.Status.ReadyReplicas

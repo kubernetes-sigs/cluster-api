@@ -295,7 +295,7 @@ Proper validation on the new field has to:
   * With the exception of `node.kubernetes.io/out-of-service`, this taints are managed by the node controller or the kubelet.
 * block taints with the key prefix `node.cloudprovider.kubernetes.io/`
   * This taints are either managed by the kubelet or by a cloud-controller-manager's node-lifecycle-controller
-* block the taints `node-role.kubernetes.io/control-plane` and `node-role.kubernetes.io/master` (deprecated) for MachineDeployments and MachineSets.
+* block the taints `node-role.kubernetes.io/control-plane` and `node-role.kubernetes.io/master` (deprecated) for control-plane Machines (identified by existence of the label `cluster.x-k8s.io/control-plane`) and for MachineDeployments and MachineSets.
   * This taints are dedicated to be set on control-plane machines, not for workers.
 
 If in the future we are introducing new taints that users should not be able to set, ratcheting may be used.

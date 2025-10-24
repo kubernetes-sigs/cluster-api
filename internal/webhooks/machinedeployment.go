@@ -254,6 +254,9 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 
 	allErrs = append(allErrs, validateMDMachineNaming(newMD.Spec.MachineNaming, specPath.Child("machineNaming"))...)
 
+	allErrs = append(allErrs, validateMachineTaints(newMD.Spec.Template.Spec.Taints, specPath.Child("template", "spec", "taints"))...)
+	allErrs = append(allErrs, validateMachineTaintsForWorkers(newMD.Spec.Template.Spec.Taints, nil, specPath.Child("template", "spec", "taints"))...)
+
 	// Validate the metadata of the template.
 	allErrs = append(allErrs, newMD.Spec.Template.Validate(specPath.Child("template", "metadata"))...)
 

@@ -189,6 +189,14 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 		}
 	}
 
+	if len(newObj.Spec.Template.Spec.Taints) > 0 {
+		if !feature.Gates.Enabled(feature.MachineTaintPropagation) {
+			allErrs = append(allErrs, field.Forbidden(specPath.Child("taints"), "taints are not allowed to be set when the feature gate MachineTaintPropagation is disabled"))
+		} else {
+			allErrs = append(allErrs, field.Forbidden(specPath.Child("taints"), "taints feature for MachinePools is not yet implemented"))
+		}
+	}
+
 	// Validate the metadata of the MachinePool template.
 	allErrs = append(allErrs, newObj.Spec.Template.Validate(specPath.Child("template", "metadata"))...)
 

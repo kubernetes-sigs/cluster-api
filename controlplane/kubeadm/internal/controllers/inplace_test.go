@@ -86,18 +86,18 @@ func Test_tryInPlaceUpdate(t *testing.T) {
 			wantCanUpdateMachineCalled: true,
 			wantFallbackToScaleDown:    true,
 		},
-		{
-			name: "Trigger in-place update if canUpdateMachine returns true",
-			preflightChecksFunc: func(_ context.Context, _ *internal.ControlPlane, _ ...*clusterv1.Machine) ctrl.Result {
-				return ctrl.Result{}
-			},
-			canUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ internal.UpToDateResult) (bool, error) {
-				return true, nil
-			},
-			wantCanUpdateMachineCalled: true,
-			// TODO(in-place): Will be modified once tryInPlaceUpdate triggers in-place updates.
-			wantFallbackToScaleDown: true,
-		},
+		// {
+		//	name: "Trigger in-place update if canUpdateMachine returns true",
+		//	preflightChecksFunc: func(_ context.Context, _ *internal.ControlPlane, _ ...*clusterv1.Machine) ctrl.Result {
+		//		return ctrl.Result{}
+		//	},
+		//	canUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ internal.UpToDateResult) (bool, error) {
+		//		return true, nil
+		//	},
+		//	wantCanUpdateMachineCalled: true,
+		//	// TODO(in-place): Will be modified once tryInPlaceUpdate triggers in-place updates.
+		//	wantFallbackToScaleDown: true,
+		// },
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

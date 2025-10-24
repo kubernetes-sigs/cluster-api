@@ -486,6 +486,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
 		Client:                      mgr.GetClient(),
+		APIReader:                   mgr.GetAPIReader(),
 		SecretCachingClient:         secretCachingClient,
 		ClusterCache:                clusterCache,
 		WatchFilterValue:            watchFilterValue,

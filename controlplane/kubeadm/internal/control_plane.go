@@ -33,8 +33,10 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/failuredomains"
@@ -183,6 +185,21 @@ func (c *ControlPlane) MachineWithDeleteAnnotation(machines collections.Machines
 	annotatedMachines := machines.Filter(collections.HasAnnotationKey(clusterv1.DeleteMachineAnnotation))
 	// If there are, return list of annotated machines.
 	return annotatedMachines
+}
+
+// MachineToCompleteTriggerInPlaceUpdate returns a machine that has been annotated with the InPlaceUpdateInProgressAnnotation but does not yet have the UpdateMachine hook pending.
+func (c *ControlPlane) MachineToCompleteTriggerInPlaceUpdate(machines collections.Machines) collections.Machines {
+	return machines.Filter(func(machine *clusterv1.Machine) bool {
+		_, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]
+		return ok && !hooks.IsPending(runtimehooksv1.UpdateMachine, machine)
+	})
+}
+
+// MachineWithPendingUpdateMachineHook returns a machine that has a pending UpdateMachine hook.
+func (c *ControlPlane) MachineWithPendingUpdateMachineHook(machines collections.Machines) collections.Machines {
+	return machines.Filter(func(machine *clusterv1.Machine) bool {
+		return hooks.IsPending(runtimehooksv1.UpdateMachine, machine)
+	})
 }
 
 // FailureDomainWithMostMachines returns the fd with most machines in it and at least one eligible machine in it.

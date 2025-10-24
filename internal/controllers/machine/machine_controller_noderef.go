@@ -27,12 +27,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
@@ -334,6 +337,15 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	// Drop the NodeUninitializedTaint taint on the node given that we are reconciling labels.
 	hasTaintChanges := taints.RemoveNodeTaint(newNode, clusterv1.NodeUninitializedTaint)
 
+	// Propagate taints set on the Machine to the Node.
+	var propagateTaintsChanges bool
+	if feature.Gates.Enabled(feature.MachineTaintPropagation) {
+		var err error
+		if propagateTaintsChanges, err = propagateMachineTaintsToNode(newNode, m.Spec.Taints); err != nil {
+			return errors.Wrapf(err, "failed to propagate machine taints to node %s", klog.KRef("", node.Name))
+		}
+	}
+
 	// Set Taint to a node in an old MachineSet and unset Taint from a node in a new MachineSet
 	isOutdated, err := shouldNodeHaveOutdatedTaint(ms, md)
 	if err != nil {
@@ -345,11 +357,106 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 		hasTaintChanges = taints.RemoveNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
 	}
 
-	if !hasAnnotationChanges && !hasLabelChanges && !hasTaintChanges {
+	if !hasAnnotationChanges && !hasLabelChanges && !hasTaintChanges && !propagateTaintsChanges {
 		return nil
 	}
 
-	return remoteClient.Patch(ctx, newNode, client.StrategicMergeFrom(node))
+	var mergeOptions []client.MergeFromOption
+	if feature.Gates.Enabled(feature.MachineTaintPropagation) {
+		mergeOptions = append(mergeOptions, client.MergeFromWithOptimisticLock{})
+	}
+
+	return remoteClient.Patch(ctx, newNode, client.StrategicMergeFrom(node, mergeOptions...))
+}
+
+// propagateMachineTaintsToNode handles propagation of taints defined on a machine to a node.
+// It makes use of the annotation clusterv1.TaintsFromMachineAnnotation to track which taints are owned by the controller.
+// OnInitialization taints are only added to the node if the tracking annotation has not been set yet.
+func propagateMachineTaintsToNode(node *corev1.Node, machineTaints []clusterv1.MachineTaint) (bool, error) {
+	changed := false
+
+	// Get the value of the tracking annotation. If it is not set at all we also have to add the OnInitialization taints.
+	oldTaintsAnnotation, nodeTaintsInitialized := node.Annotations[clusterv1.TaintsFromMachineAnnotation]
+
+	// ownedTaints contains all Always taints that the controller is owning.
+	ownedTaints := unmarshalMachineTaintsAnnotation(oldTaintsAnnotation)
+
+	// newOwnedTaints will contain all Always taints from the current machine's spec.
+	newOwnedTaints := sets.New[string]()
+	onInitializationTaints := sets.New[string]()
+
+	for _, taint := range machineTaints {
+		// Collect Always and OnInitialization taints to identify taints to delete.
+		// Separating Always taints so the tracking annotation can be updated accordingly.
+		switch taint.Propagation {
+		case clusterv1.TaintPropagationAlways:
+			newOwnedTaints.Insert(fmt.Sprintf("%s:%s", taint.Key, taint.Effect))
+		case clusterv1.TaintPropagationOnInitialization:
+			onInitializationTaints.Insert(fmt.Sprintf("%s:%s", taint.Key, taint.Effect))
+		}
+
+		// Only add OnInitialization taints if the tracking annotation has not been set yet.
+		if taint.Propagation == clusterv1.TaintPropagationOnInitialization && nodeTaintsInitialized {
+			continue
+		}
+
+		// Ensure the taint is set on the node and has the correct value.
+		if changedTaints := taints.EnsureNodeTaint(node, convertMachineTaintToCoreV1Taint(taint)); changedTaints {
+			changed = true
+		}
+	}
+
+	// Calculate ownedTaints - newOwnedTaints to identify old taints which need to be deleted from the node.
+	taintsToDelete := ownedTaints.Difference(newOwnedTaints).Difference(onInitializationTaints)
+
+	// Remove all identified taints from the node.
+	for taintToDelete := range taintsToDelete {
+		splitted := strings.Split(taintToDelete, ":")
+		if len(splitted) != 2 {
+			return changed, fmt.Errorf("invalid taint format: %q", taintToDelete)
+		}
+
+		if removedTaint := taints.RemoveNodeTaint(node, corev1.Taint{Key: splitted[0], Effect: corev1.TaintEffect(splitted[1])}); removedTaint {
+			changed = true
+		}
+	}
+
+	// Update the tracking annotation with newOwnedTaints..
+	if newTaintsAnnotation := marshalMachineTaintsAnnotation(newOwnedTaints); !nodeTaintsInitialized || newTaintsAnnotation != oldTaintsAnnotation {
+		if node.Annotations == nil {
+			node.Annotations = map[string]string{}
+		}
+		node.Annotations[clusterv1.TaintsFromMachineAnnotation] = newTaintsAnnotation
+		changed = true
+	}
+
+	return changed, nil
+}
+
+// marshalMachineTaintsAnnotation marshals the tracking annotation value.
+func marshalMachineTaintsAnnotation(ownedTaints sets.Set[string]) string {
+	taints := ownedTaints.UnsortedList()
+	slices.Sort(taints)
+
+	return strings.Join(taints, ",")
+}
+
+// unmarshalMachineTaintsAnnotation unmarshals the tracking annotation value.
+func unmarshalMachineTaintsAnnotation(annotationValue string) sets.Set[string] {
+	if annotationValue == "" {
+		return nil
+	}
+
+	return sets.New(strings.Split(annotationValue, ",")...)
+}
+
+// convertMachineTaintToCoreV1Taint converts a MachineTaint to a corev1.Taint.
+func convertMachineTaintToCoreV1Taint(machineTaint clusterv1.MachineTaint) corev1.Taint {
+	return corev1.Taint{
+		Key:    machineTaint.Key,
+		Value:  ptr.Deref(machineTaint.Value, ""),
+		Effect: machineTaint.Effect,
+	}
 }
 
 // shouldNodeHaveOutdatedTaint tries to compare the revision of the owning MachineSet to the MachineDeployment.

@@ -173,6 +173,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatchMachineDeploymentClass":                 schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachineDeploymentClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelectorMatchMachinePoolClass":                       schema_cluster_api_api_core_v1beta2_PatchSelectorMatchMachinePoolClass(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.Topology":                                                 schema_cluster_api_api_core_v1beta2_Topology(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition":                                schema_cluster_api_api_core_v1beta2_UnhealthyMachineCondition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition":                                   schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ValidationRule":                                           schema_cluster_api_api_core_v1beta2_ValidationRule(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.VariableSchema":                                           schema_cluster_api_api_core_v1beta2_VariableSchema(ref),
@@ -1687,11 +1688,30 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassHealthCheckChecks(ref 
 							},
 						},
 					},
+					"unhealthyMachineConditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyMachineConditions contains a list of the machine conditions that determine whether a machine is considered unhealthy.  The conditions are combined in a logical OR, i.e. if any of the conditions is met, the machine is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -1970,11 +1990,30 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheckChecks(r
 							},
 						},
 					},
+					"unhealthyMachineConditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyMachineConditions contains a list of the machine conditions that determine whether a machine is considered unhealthy.  The conditions are combined in a logical OR, i.e. if any of the conditions is met, the machine is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -2991,11 +3030,30 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassHealthCheckChecks
 							},
 						},
 					},
+					"unhealthyMachineConditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyMachineConditions contains a list of the machine conditions that determine whether a machine is considered unhealthy.  The conditions are combined in a logical OR, i.e. if any of the conditions is met, the machine is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -3771,11 +3829,30 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyHealthCheckChe
 							},
 						},
 					},
+					"unhealthyMachineConditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyMachineConditions contains a list of the machine conditions that determine whether a machine is considered unhealthy.  The conditions are combined in a logical OR, i.e. if any of the conditions is met, the machine is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -4403,11 +4480,30 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckChecks(ref common.Ref
 							},
 						},
 					},
+					"unhealthyMachineConditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyMachineConditions contains a list of the machine conditions that determine whether a machine is considered unhealthy.  The conditions are combined in a logical OR, i.e. if any of the conditions is met, the machine is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -6589,6 +6685,41 @@ func schema_cluster_api_api_core_v1beta2_Topology(ref common.ReferenceCallback) 
 	}
 }
 
+func schema_cluster_api_api_core_v1beta2_UnhealthyMachineCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "UnhealthyMachineCondition represents a Machine condition type and value with a timeout specified as a duration.  When the named condition has been in the given status for at least the timeout value, a machine is considered unhealthy.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type of Machine condition",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status of the condition, one of True, False, Unknown.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"timeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "timeoutSeconds is the duration that a machine must be in a given status for, after which the machine is considered unhealthy. For example, with a value of \"3600\", the machine must match the status for at least 1 hour before being considered unhealthy.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"type", "status", "timeoutSeconds"},
+			},
+		},
+	}
+}
+
 func schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -6612,7 +6743,7 @@ func schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref common.Refer
 					},
 					"timeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "timeoutSeconds is the duration that a node must be in a given status for, after which the node is considered unhealthy. For example, with a value of \"1h\", the node must match the status for at least 1 hour before being considered unhealthy.",
+							Description: "timeoutSeconds is the duration that a node must be in a given status for, after which the node is considered unhealthy. For example, with a value of \"3600\", the node must match the status for at least 1 hour before being considered unhealthy.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

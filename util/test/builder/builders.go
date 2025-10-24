@@ -2097,13 +2097,14 @@ func setStatusFields(obj *unstructured.Unstructured, fields map[string]interface
 
 // MachineHealthCheckBuilder holds fields for creating a MachineHealthCheck.
 type MachineHealthCheckBuilder struct {
-	name                    string
-	namespace               string
-	ownerRefs               []metav1.OwnerReference
-	selector                metav1.LabelSelector
-	clusterName             string
-	unhealthyNodeConditions []clusterv1.UnhealthyNodeCondition
-	maxUnhealthy            *intstr.IntOrString
+	name                       string
+	namespace                  string
+	ownerRefs                  []metav1.OwnerReference
+	selector                   metav1.LabelSelector
+	clusterName                string
+	unhealthyNodeConditions    []clusterv1.UnhealthyNodeCondition
+	unhealthyMachineConditions []clusterv1.UnhealthyMachineCondition
+	maxUnhealthy               *intstr.IntOrString
 }
 
 // MachineHealthCheck returns a MachineHealthCheckBuilder with the given name and namespace.
@@ -2132,6 +2133,12 @@ func (m *MachineHealthCheckBuilder) WithUnhealthyNodeConditions(conditions []clu
 	return m
 }
 
+// WithUnhealthyMachineConditions adds the spec used to build the parameters of the MachineHealthCheck.
+func (m *MachineHealthCheckBuilder) WithUnhealthyMachineConditions(conditions []clusterv1.UnhealthyMachineCondition) *MachineHealthCheckBuilder {
+	m.unhealthyMachineConditions = conditions
+	return m
+}
+
 // WithOwnerReferences adds ownerreferences for the MachineHealthCheck.
 func (m *MachineHealthCheckBuilder) WithOwnerReferences(ownerRefs []metav1.OwnerReference) *MachineHealthCheckBuilder {
 	m.ownerRefs = ownerRefs
@@ -2157,7 +2164,8 @@ func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
 			ClusterName: m.clusterName,
 			Selector:    m.selector,
 			Checks: clusterv1.MachineHealthCheckChecks{
-				UnhealthyNodeConditions: m.unhealthyNodeConditions,
+				UnhealthyNodeConditions:    m.unhealthyNodeConditions,
+				UnhealthyMachineConditions: m.unhealthyMachineConditions,
 			},
 			Remediation: clusterv1.MachineHealthCheckRemediation{
 				TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{

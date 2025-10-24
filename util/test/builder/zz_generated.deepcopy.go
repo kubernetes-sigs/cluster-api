@@ -637,6 +637,13 @@ func (in *MachineHealthCheckBuilder) DeepCopyInto(out *MachineHealthCheckBuilder
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.unhealthyMachineConditions != nil {
+		in, out := &in.unhealthyMachineConditions, &out.unhealthyMachineConditions
+		*out = make([]v1beta2.UnhealthyMachineCondition, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.maxUnhealthy != nil {
 		in, out := &in.maxUnhealthy, &out.maxUnhealthy
 		*out = new(intstr.IntOrString)

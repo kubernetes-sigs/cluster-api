@@ -287,6 +287,10 @@ const (
 	// defined by a MachineHealthCheck object.
 	MachineHealthCheckUnhealthyNodeReason = "UnhealthyNode"
 
+	// MachineHealthCheckUnhealthyMachineReason surfaces when the machine does not pass the health checks
+	// defined by a MachineHealthCheck object.
+	MachineHealthCheckUnhealthyMachineReason = "UnhealthyMachine"
+
 	// MachineHealthCheckNodeStartupTimeoutReason surfaces when the node hosted on the machine does not appear within
 	// the timeout defined by a MachineHealthCheck object.
 	MachineHealthCheckNodeStartupTimeoutReason = "NodeStartupTimeout"

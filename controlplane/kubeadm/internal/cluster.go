@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -43,7 +44,7 @@ type ManagementCluster interface {
 
 	GetMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error)
 	GetMachinePoolsForCluster(ctx context.Context, cluster *clusterv1.Cluster) (*clusterv1.MachinePoolList, error)
-	GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error)
+	GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey, keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) (WorkloadCluster, error)
 }
 
 // Management holds operations on the management cluster.
@@ -59,13 +60,14 @@ type Management struct {
 
 // ClientCertEntry is an Entry for the Cache that stores the client cert.
 type ClientCertEntry struct {
-	Cluster    client.ObjectKey
-	ClientCert *tls.Certificate
+	Cluster             client.ObjectKey
+	ClientCert          *tls.Certificate
+	EncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType
 }
 
 // Key returns the cache key of a ClientCertEntry.
 func (r ClientCertEntry) Key() string {
-	return r.Cluster.String()
+	return fmt.Sprintf("%s/%s", r.Cluster.String(), r.EncryptionAlgorithm)
 }
 
 // RemoteClusterConnectionError represents a failure to connect to a remote cluster.
@@ -77,7 +79,7 @@ type RemoteClusterConnectionError struct {
 // Error satisfies the error interface.
 func (e *RemoteClusterConnectionError) Error() string { return e.Name + ": " + e.Err.Error() }
 
-// Unwrap satisfies the unwrap error inteface.
+// Unwrap satisfies the unwrap error interface.
 func (e *RemoteClusterConnectionError) Unwrap() error { return e.Err }
 
 // Get implements client.Reader.
@@ -111,7 +113,7 @@ func (m *Management) GetMachinePoolsForCluster(ctx context.Context, cluster *clu
 
 // GetWorkloadCluster builds a cluster object.
 // The cluster comes with an etcd client generator to connect to any etcd pod living on a managed machine.
-func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error) {
+func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey, keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) (WorkloadCluster, error) {
 	// TODO(chuckha): Inject this dependency.
 	// TODO(chuckha): memoize this function. The workload client only exists as long as a reconciliation loop.
 	restConfig, err := m.ClusterCache.GetRESTConfig(ctx, clusterKey)
@@ -142,15 +144,15 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 		// Get client cert from cache if possible, otherwise generate it and add it to the cache.
 		// TODO: When we implement ClusterConfiguration.EncryptionAlgorithm we should add it to
 		//       the ClientCertEntries and make it part of the key.
-		if entry, ok := m.ClientCertCache.Has(ClientCertEntry{Cluster: clusterKey}.Key()); ok {
+		if entry, ok := m.ClientCertCache.Has(ClientCertEntry{Cluster: clusterKey, EncryptionAlgorithm: keyEncryptionAlgorithm}.Key()); ok {
 			clientCert = *entry.ClientCert
 		} else {
 			// The client cert expires after 10 years, but that's okay as the cache has a TTL of 1 day.
-			clientCert, err = generateClientCert(crtData, keyData)
+			clientCert, err = generateClientCert(crtData, keyData, keyEncryptionAlgorithm)
 			if err != nil {
 				return nil, err
 			}
-			m.ClientCertCache.Add(ClientCertEntry{Cluster: clusterKey, ClientCert: &clientCert})
+			m.ClientCertCache.Add(ClientCertEntry{Cluster: clusterKey, ClientCert: &clientCert, EncryptionAlgorithm: keyEncryptionAlgorithm})
 		}
 	} else {
 		clientCert, err = m.getAPIServerEtcdClientCert(ctx, clusterKey)

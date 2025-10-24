@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -249,7 +250,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 			})
 			g.Expect(err).ToNot(HaveOccurred())
 
-			workloadCluster, err := m.GetWorkloadCluster(ctx, tt.clusterKey)
+			workloadCluster, err := m.GetWorkloadCluster(ctx, tt.clusterKey, bootstrapv1.EncryptionAlgorithmRSA2048)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(workloadCluster).To(BeNil())

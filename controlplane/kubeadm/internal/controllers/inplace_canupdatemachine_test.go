@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -836,24 +837,31 @@ func Test_createRequest(t *testing.T) {
 			ctx := t.Context()
 			g := NewWithT(t)
 
-			// TODO(in-place) change the fieldManagers to the correct ones later after the SSA refactoring
+			// Create Machine (same as in createMachine)
 			currentMachineForPatch := tt.currentMachine.DeepCopy()
-			currentMachineForPatch.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Machine")) // Has to be set for env.PatchAndWait
-			g.Expect(env.PatchAndWait(ctx, currentMachineForPatch, client.ForceOwnership, client.FieldOwner(kcpManagerName))).To(Succeed())
+			currentMachineForPatch.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Machine")) // Has to be set for ssa.Patch
+			g.Expect(ssa.Patch(ctx, env.Client, kcpManagerName, currentMachineForPatch)).To(Succeed())
 			t.Cleanup(func() {
 				g.Expect(env.CleanupAndWait(context.Background(), tt.currentMachine)).To(Succeed())
 			})
+
+			// Create InfraMachine (same as in createInfraMachine)
 			currentInfraMachineForPatch := tt.currentInfraMachine.DeepCopy()
-			g.Expect(env.PatchAndWait(ctx, currentInfraMachineForPatch, client.ForceOwnership, client.FieldOwner(kcpManagerName))).To(Succeed())
+			g.Expect(ssa.Patch(ctx, env.Client, kcpManagerName, currentInfraMachineForPatch)).To(Succeed())
+			g.Expect(ssa.RemoveManagedFieldsForLabelsAndAnnotations(ctx, env.Client, env.GetAPIReader(), currentInfraMachineForPatch, kcpManagerName)).To(Succeed())
 			t.Cleanup(func() {
 				g.Expect(env.CleanupAndWait(context.Background(), tt.currentInfraMachine)).To(Succeed())
 			})
+
+			// Create KubeadmConfig (same as in createKubeadmConfig)
 			currentKubeadmConfigForPatch := tt.currentKubeadmConfig.DeepCopy()
-			currentKubeadmConfigForPatch.SetGroupVersionKind(bootstrapv1.GroupVersion.WithKind("KubeadmConfig")) // Has to be set for env.PatchAndWait
-			g.Expect(env.PatchAndWait(ctx, currentKubeadmConfigForPatch, client.ForceOwnership, client.FieldOwner(kcpManagerName))).To(Succeed())
+			currentKubeadmConfigForPatch.SetGroupVersionKind(bootstrapv1.GroupVersion.WithKind("KubeadmConfig")) // Has to be set for ssa.Patch
+			g.Expect(ssa.Patch(ctx, env.Client, kcpManagerName, currentKubeadmConfigForPatch)).To(Succeed())
+			g.Expect(ssa.RemoveManagedFieldsForLabelsAndAnnotations(ctx, env.Client, env.GetAPIReader(), currentKubeadmConfigForPatch, kcpManagerName)).To(Succeed())
 			t.Cleanup(func() {
 				g.Expect(env.CleanupAndWait(context.Background(), tt.currentKubeadmConfig)).To(Succeed())
 			})
+
 			if tt.modifyMachineAfterCreate != nil {
 				g.Expect(tt.modifyMachineAfterCreate(ctx, env.Client, currentMachineForPatch)).To(Succeed())
 			}

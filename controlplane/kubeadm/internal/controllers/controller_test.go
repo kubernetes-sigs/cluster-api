@@ -33,8 +33,10 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/clientcmd"
@@ -55,7 +57,6 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
 	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
@@ -67,6 +68,10 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/util/test/builder"
+)
+
+const (
+	timeout = time.Second * 30
 )
 
 func TestClusterToKubeadmControlPlane(t *testing.T) {
@@ -1705,7 +1710,6 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	namespace, testCluster := setup(t, g)
 	defer teardown(t, g, namespace, testCluster)
 
-	classicManager := "manager"
 	duration5s := ptr.To(int32(5))
 	duration10s := ptr.To(int32(10))
 
@@ -1720,12 +1724,12 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 			"metadata": map[string]interface{}{
 				"name":      "existing-inframachine",
 				"namespace": testCluster.Namespace,
-				"labels": map[string]string{
+				"labels": map[string]interface{}{
 					"preserved-label": "preserved-value",
 					"dropped-label":   "dropped-value",
 					"modified-label":  "modified-value",
 				},
-				"annotations": map[string]string{
+				"annotations": map[string]interface{}{
 					"preserved-annotation": "preserved-value",
 					"dropped-annotation":   "dropped-value",
 					"modified-annotation":  "modified-value",
@@ -1739,8 +1743,6 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		Name:     "existing-inframachine",
 		APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 	}
-	// Note: use "manager" as the field owner to mimic the manager used before ClusterAPI v1.4.0.
-	g.Expect(env.Create(ctx, existingInfraMachine, client.FieldOwner("manager"))).To(Succeed())
 
 	// Existing KubeadmConfig
 	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
@@ -1772,15 +1774,13 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		Name:     "existing-kubeadmconfig",
 		APIGroup: bootstrapv1.GroupVersion.Group,
 	}
-	// Note: use "manager" as the field owner to mimic the manager used before ClusterAPI v1.4.0.
-	g.Expect(env.Create(ctx, existingKubeadmConfig, client.FieldOwner("manager"))).To(Succeed())
 
 	// Existing Machine to validate in-place mutation
 	fd := "fd1"
 	inPlaceMutatingMachine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Machine",
 			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "existing-machine",
@@ -1812,7 +1812,6 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 			},
 		},
 	}
-	g.Expect(env.PatchAndWait(ctx, inPlaceMutatingMachine, client.FieldOwner(kcpManagerName))).To(Succeed())
 
 	// Existing machine that is in deleting state
 	deletingMachine := &clusterv1.Machine{
@@ -1835,7 +1834,11 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 				Name:     "inframachine",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: ptr.To("machine-bootstrap-secret"),
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "KubeadmConfig",
+					Name:     "non-existing-kubeadmconfig",
+					APIGroup: bootstrapv1.GroupVersion.Group,
+				},
 			},
 			Deletion: clusterv1.MachineDeletionSpec{
 				NodeDrainTimeoutSeconds:        duration5s,
@@ -1845,16 +1848,6 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 			ReadinessGates: desiredstate.MandatoryMachineReadinessGates,
 		},
 	}
-	g.Expect(env.PatchAndWait(ctx, deletingMachine, client.FieldOwner(kcpManagerName))).To(Succeed())
-	// Delete the machine to put it in the deleting state
-	g.Expect(env.Delete(ctx, deletingMachine)).To(Succeed())
-	// Wait till the machine is marked for deletion
-	g.Eventually(func() bool {
-		if err := env.Get(ctx, client.ObjectKeyFromObject(deletingMachine), deletingMachine); err != nil {
-			return false
-		}
-		return !deletingMachine.DeletionTimestamp.IsZero()
-	}, 30*time.Second).Should(BeTrue())
 
 	// Existing machine that has a InfrastructureRef which does not exist.
 	nilInfraMachineMachine := &clusterv1.Machine{
@@ -1877,12 +1870,14 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 				Name:     "inframachine",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: ptr.To("machine-bootstrap-secret"),
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "KubeadmConfig",
+					Name:     "non-existing-kubeadmconfig",
+					APIGroup: bootstrapv1.GroupVersion.Group,
+				},
 			},
 		},
 	}
-	g.Expect(env.Create(ctx, nilInfraMachineMachine, client.FieldOwner(classicManager))).To(Succeed())
-	// Delete the machine to put it in the deleting state
 
 	kcp := &controlplanev1.KubeadmControlPlane{
 		TypeMeta: metav1.TypeMeta{
@@ -1926,6 +1921,32 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		},
 	}
 
+	//
+	// Create objects
+	//
+
+	// Create InfraMachine (same as in createInfraMachine)
+	g.Expect(ssa.Patch(ctx, env.Client, kcpManagerName, existingInfraMachine)).To(Succeed())
+	g.Expect(ssa.RemoveManagedFieldsForLabelsAndAnnotations(ctx, env.Client, env.GetAPIReader(), existingInfraMachine, kcpManagerName)).To(Succeed())
+
+	// Create KubeadmConfig (same as in createKubeadmConfig)
+	g.Expect(ssa.Patch(ctx, env.Client, kcpManagerName, existingKubeadmConfig)).To(Succeed())
+	g.Expect(ssa.RemoveManagedFieldsForLabelsAndAnnotations(ctx, env.Client, env.GetAPIReader(), existingKubeadmConfig, kcpManagerName)).To(Succeed())
+
+	// Create Machines (same as in createMachine)
+	g.Expect(ssa.Patch(ctx, env.Client, kcpManagerName, inPlaceMutatingMachine)).To(Succeed())
+	g.Expect(ssa.Patch(ctx, env.Client, kcpManagerName, deletingMachine)).To(Succeed())
+	// Delete the machine to put it in the deleting state
+	g.Expect(env.Delete(ctx, deletingMachine)).To(Succeed())
+	// Wait till the machine is marked for deletion
+	g.Eventually(func() bool {
+		if err := env.Get(ctx, client.ObjectKeyFromObject(deletingMachine), deletingMachine); err != nil {
+			return false
+		}
+		return !deletingMachine.DeletionTimestamp.IsZero()
+	}, timeout).Should(BeTrue())
+	g.Expect(ssa.Patch(ctx, env.Client, kcpManagerName, nilInfraMachineMachine)).To(Succeed())
+
 	controlPlane := &internal.ControlPlane{
 		KCP:     kcp,
 		Cluster: testCluster,
@@ -1951,66 +1972,67 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Run syncMachines to clean up managed fields and have proper field ownership
 	// for Machines, InfrastructureMachines and KubeadmConfigs.
 	reconciler := &KubeadmControlPlaneReconciler{
-		Client:              env,
+		// Note: Ensure the fieldManager defaults to manager like in prod.
+		//       Otherwise it defaults to the binary name which is not manager in tests.
+		Client:              client.WithFieldOwner(env.Client, "manager"),
 		SecretCachingClient: secretCachingClient,
 		ssaCache:            ssa.NewCache("test-controller"),
 	}
 	g.Expect(reconciler.syncMachines(ctx, controlPlane)).To(Succeed())
 
-	// The inPlaceMutatingMachine should have cleaned up managed fields.
-	updatedInplaceMutatingMachine := inPlaceMutatingMachine.DeepCopy()
-	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInplaceMutatingMachine), updatedInplaceMutatingMachine)).To(Succeed())
-	// Verify ManagedFields
-	g.Expect(updatedInplaceMutatingMachine.ManagedFields).Should(
-		ContainElement(ssa.MatchManagedFieldsEntry(kcpManagerName, metav1.ManagedFieldsOperationApply)),
-		"in-place mutable machine should contain an entry for SSA manager",
-	)
-	g.Expect(updatedInplaceMutatingMachine.ManagedFields).ShouldNot(
-		ContainElement(ssa.MatchManagedFieldsEntry(classicManager, metav1.ManagedFieldsOperationUpdate)),
-		"in-place mutable machine should not contain an entry for old manager",
-	)
+	updatedInPlaceMutatingMachine := inPlaceMutatingMachine.DeepCopy()
+	g.Eventually(func(g Gomega) {
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
+		g.Expect(cleanupTime(updatedInPlaceMutatingMachine.ManagedFields)).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+			// capi-kubeadmcontrolplane owns almost everything.
+			Manager:    kcpManagerName,
+			Operation:  metav1.ManagedFieldsOperationApply,
+			APIVersion: clusterv1.GroupVersion.String(),
+			FieldsV1:   "{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:pre-terminate.delete.hook.machine.cluster.x-k8s.io/kcp-cleanup\":{},\"f:preserved-annotation\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/cluster-name\":{},\"f:cluster.x-k8s.io/control-plane\":{},\"f:cluster.x-k8s.io/control-plane-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}},\"f:ownerReferences\":{\"k:{\\\"uid\\\":\\\"abc-123-control-plane\\\"}\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:configRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}},\"f:clusterName\":{},\"f:deletion\":{\"f:nodeDeletionTimeoutSeconds\":{},\"f:nodeDrainTimeoutSeconds\":{},\"f:nodeVolumeDetachTimeoutSeconds\":{}},\"f:failureDomain\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}},\"f:readinessGates\":{\"k:{\\\"conditionType\\\":\\\"APIServerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"ControllerManagerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"EtcdMemberHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"EtcdPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"SchedulerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}}},\"f:version\":{}}}",
+		}})))
+	}, timeout).Should(Succeed())
 
-	// The InfrastructureMachine should have ownership of "labels" and "annotations" transferred to
-	// "capi-kubeadmcontrolplane" manager.
 	updatedInfraMachine := existingInfraMachine.DeepCopy()
-	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
+	g.Eventually(func(g Gomega) {
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
+		g.Expect(cleanupTime(updatedInfraMachine.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+			// capi-kubeadmcontrolplane-metadata owns labels and annotations.
+			Manager:    kcpMetadataManagerName,
+			Operation:  metav1.ManagedFieldsOperationApply,
+			APIVersion: updatedInfraMachine.GetAPIVersion(),
+			FieldsV1:   "{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:preserved-annotation\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/cluster-name\":{},\"f:cluster.x-k8s.io/control-plane\":{},\"f:cluster.x-k8s.io/control-plane-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}}}}",
+		}, {
+			// capi-kubeadmcontrolplane owns almost everything.
+			Manager:    kcpManagerName,
+			Operation:  metav1.ManagedFieldsOperationApply,
+			APIVersion: updatedInfraMachine.GetAPIVersion(),
+			FieldsV1:   "{\"f:spec\":{\"f:infra-field\":{}}}",
+		}})))
+	}, timeout).Should(Succeed())
 
-	// Verify ManagedFields
-	g.Expect(updatedInfraMachine.GetManagedFields()).Should(
-		ssa.MatchFieldOwnership(kcpManagerName, metav1.ManagedFieldsOperationApply, contract.Path{"f:metadata", "f:labels"}))
-	g.Expect(updatedInfraMachine.GetManagedFields()).Should(
-		ssa.MatchFieldOwnership(kcpManagerName, metav1.ManagedFieldsOperationApply, contract.Path{"f:metadata", "f:annotations"}))
-	g.Expect(updatedInfraMachine.GetManagedFields()).ShouldNot(
-		ssa.MatchFieldOwnership(classicManager, metav1.ManagedFieldsOperationUpdate, contract.Path{"f:metadata", "f:labels"}))
-	g.Expect(updatedInfraMachine.GetManagedFields()).ShouldNot(
-		ssa.MatchFieldOwnership(classicManager, metav1.ManagedFieldsOperationUpdate, contract.Path{"f:metadata", "f:annotations"}))
-	// Verify ownership of other fields is not changed.
-	g.Expect(updatedInfraMachine.GetManagedFields()).Should(
-		ssa.MatchFieldOwnership(classicManager, metav1.ManagedFieldsOperationUpdate, contract.Path{"f:spec"}))
-
-	// The KubeadmConfig should have ownership of "labels" and "annotations" transferred to
-	// "capi-kubeadmcontrolplane" manager.
 	updatedKubeadmConfig := existingKubeadmConfig.DeepCopy()
-	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedKubeadmConfig), updatedKubeadmConfig)).To(Succeed())
-
-	// Verify ManagedFields
-	g.Expect(updatedKubeadmConfig.GetManagedFields()).Should(
-		ssa.MatchFieldOwnership(kcpManagerName, metav1.ManagedFieldsOperationApply, contract.Path{"f:metadata", "f:labels"}))
-	g.Expect(updatedKubeadmConfig.GetManagedFields()).Should(
-		ssa.MatchFieldOwnership(kcpManagerName, metav1.ManagedFieldsOperationApply, contract.Path{"f:metadata", "f:annotations"}))
-	g.Expect(updatedKubeadmConfig.GetManagedFields()).ShouldNot(
-		ssa.MatchFieldOwnership(classicManager, metav1.ManagedFieldsOperationUpdate, contract.Path{"f:metadata", "f:labels"}))
-	g.Expect(updatedKubeadmConfig.GetManagedFields()).ShouldNot(
-		ssa.MatchFieldOwnership(classicManager, metav1.ManagedFieldsOperationUpdate, contract.Path{"f:metadata", "f:annotations"}))
-	// Verify ownership of other fields is not changed.
-	g.Expect(updatedKubeadmConfig.GetManagedFields()).Should(
-		ssa.MatchFieldOwnership(classicManager, metav1.ManagedFieldsOperationUpdate, contract.Path{"f:spec"}))
+	g.Eventually(func(g Gomega) {
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedKubeadmConfig), updatedKubeadmConfig)).To(Succeed())
+		g.Expect(cleanupTime(updatedKubeadmConfig.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+			// capi-kubeadmcontrolplane-metadata owns labels and annotations.
+			Manager:    kcpMetadataManagerName,
+			Operation:  metav1.ManagedFieldsOperationApply,
+			APIVersion: bootstrapv1.GroupVersion.String(),
+			FieldsV1:   "{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:preserved-annotation\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/cluster-name\":{},\"f:cluster.x-k8s.io/control-plane\":{},\"f:cluster.x-k8s.io/control-plane-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}}}}",
+		}, {
+			// capi-kubeadmcontrolplane owns almost everything.
+			Manager:    kcpManagerName,
+			Operation:  metav1.ManagedFieldsOperationApply,
+			APIVersion: bootstrapv1.GroupVersion.String(),
+			FieldsV1:   "{\"f:spec\":{\"f:users\":{}}}",
+		}})))
+	}, timeout).Should(Succeed())
 
 	//
 	// Verify In-place mutating fields
 	//
 
-	// Update KCP and verify the in-place mutating fields are propagated.
+	// Update the KCP and verify the in-place mutating fields are propagated.
 	kcp.Spec.MachineTemplate.ObjectMeta.Labels = map[string]string{
 		"preserved-label": "preserved-value",  // Keep the label and value as is
 		"modified-label":  "modified-value-2", // Modify the value of the label
@@ -2031,50 +2053,34 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds = duration10s
 	kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds = duration10s
 	kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration10s
-
-	// Use the updated KCP.
 	controlPlane.KCP = kcp
 	g.Expect(reconciler.syncMachines(ctx, controlPlane)).To(Succeed())
 
 	// Verify in-place mutable fields are updated on the Machine.
-	updatedInplaceMutatingMachine = inPlaceMutatingMachine.DeepCopy()
-	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInplaceMutatingMachine), updatedInplaceMutatingMachine)).To(Succeed())
-	// Verify Labels
-	g.Expect(updatedInplaceMutatingMachine.Labels).Should(Equal(expectedLabels))
-	// Verify Annotations
+	updatedInPlaceMutatingMachine = inPlaceMutatingMachine.DeepCopy()
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
+	g.Expect(updatedInPlaceMutatingMachine.Labels).Should(Equal(expectedLabels))
 	expectedAnnotations := map[string]string{}
 	for k, v := range kcp.Spec.MachineTemplate.ObjectMeta.Annotations {
 		expectedAnnotations[k] = v
 	}
 	// The pre-terminate annotation should always be added
 	expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
-	g.Expect(updatedInplaceMutatingMachine.Annotations).Should(Equal(expectedAnnotations))
-	// Verify Node timeout values
-	g.Expect(updatedInplaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(And(
-		Not(BeNil()),
-		HaveValue(BeComparableTo(*kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds)),
-	))
-	g.Expect(updatedInplaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(And(
-		Not(BeNil()),
-		HaveValue(BeComparableTo(*kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds)),
-	))
-	g.Expect(updatedInplaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(And(
-		Not(BeNil()),
-		HaveValue(BeComparableTo(*kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)),
-	))
+	g.Expect(updatedInPlaceMutatingMachine.Annotations).Should(Equal(expectedAnnotations))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
 	// Verify that the non in-place mutating fields remain the same.
-	g.Expect(updatedInplaceMutatingMachine.Spec.FailureDomain).Should(Equal(inPlaceMutatingMachine.Spec.FailureDomain))
-	g.Expect(updatedInplaceMutatingMachine.Spec.ProviderID).Should(Equal(inPlaceMutatingMachine.Spec.ProviderID))
-	g.Expect(updatedInplaceMutatingMachine.Spec.Version).Should(Equal(inPlaceMutatingMachine.Spec.Version))
-	g.Expect(updatedInplaceMutatingMachine.Spec.InfrastructureRef).Should(BeComparableTo(inPlaceMutatingMachine.Spec.InfrastructureRef))
-	g.Expect(updatedInplaceMutatingMachine.Spec.Bootstrap).Should(BeComparableTo(inPlaceMutatingMachine.Spec.Bootstrap))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.FailureDomain).Should(Equal(inPlaceMutatingMachine.Spec.FailureDomain))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.ProviderID).Should(Equal(inPlaceMutatingMachine.Spec.ProviderID))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Version).Should(Equal(inPlaceMutatingMachine.Spec.Version))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.InfrastructureRef).Should(BeComparableTo(inPlaceMutatingMachine.Spec.InfrastructureRef))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Bootstrap).Should(BeComparableTo(inPlaceMutatingMachine.Spec.Bootstrap))
 
 	// Verify in-place mutable fields are updated on InfrastructureMachine
 	updatedInfraMachine = existingInfraMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
-	// Verify Labels
 	g.Expect(updatedInfraMachine.GetLabels()).Should(Equal(expectedLabels))
-	// Verify Annotations
 	g.Expect(updatedInfraMachine.GetAnnotations()).Should(Equal(kcp.Spec.MachineTemplate.ObjectMeta.Annotations))
 	// Verify spec remains the same
 	g.Expect(updatedInfraMachine.Object).Should(HaveKeyWithValue("spec", infraMachineSpec))
@@ -2082,31 +2088,35 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Verify in-place mutable fields are updated on the KubeadmConfig.
 	updatedKubeadmConfig = existingKubeadmConfig.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedKubeadmConfig), updatedKubeadmConfig)).To(Succeed())
-	// Verify Labels
 	g.Expect(updatedKubeadmConfig.GetLabels()).Should(Equal(expectedLabels))
-	// Verify Annotations
 	g.Expect(updatedKubeadmConfig.GetAnnotations()).Should(Equal(kcp.Spec.MachineTemplate.ObjectMeta.Annotations))
 	// Verify spec remains the same
 	g.Expect(updatedKubeadmConfig.Spec).Should(BeComparableTo(existingKubeadmConfig.Spec))
 
-	// The deleting machine should not change.
+	// Verify ManagedFields
+	g.Eventually(func(g Gomega) {
+		updatedDeletingMachine := deletingMachine.DeepCopy()
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
+		g.Expect(cleanupTime(updatedDeletingMachine.ManagedFields)).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+			// capi-kubeadmcontrolplane owns almost everything.
+			Manager:    kcpManagerName,
+			Operation:  metav1.ManagedFieldsOperationApply,
+			APIVersion: clusterv1.GroupVersion.String(),
+			FieldsV1:   "{\"f:metadata\":{\"f:finalizers\":{\"v:\\\"testing-finalizer\\\"\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:configRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}},\"f:clusterName\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}},\"f:readinessGates\":{\"k:{\\\"conditionType\\\":\\\"APIServerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"ControllerManagerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}},\"k:{\\\"conditionType\\\":\\\"SchedulerPodHealthy\\\"}\":{\".\":{},\"f:conditionType\":{}}}}}",
+		}, {
+			// capi-kubeadmcontrolplane owns the fields that are propagated in-place for deleting Machines in syncMachines via patchHelper.
+			Manager:    "manager",
+			Operation:  metav1.ManagedFieldsOperationUpdate,
+			APIVersion: clusterv1.GroupVersion.String(),
+			FieldsV1:   "{\"f:spec\":{\"f:deletion\":{\"f:nodeDeletionTimeoutSeconds\":{},\"f:nodeDrainTimeoutSeconds\":{},\"f:nodeVolumeDetachTimeoutSeconds\":{}}}}",
+		}})))
+	}, timeout).Should(Succeed())
+
+	// Verify in-place mutable fields are updated on the deleting Machine.
 	updatedDeletingMachine := deletingMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
-
-	// Verify ManagedFields
-	g.Expect(updatedDeletingMachine.ManagedFields).Should(
-		ContainElement(ssa.MatchManagedFieldsEntry(kcpManagerName, metav1.ManagedFieldsOperationApply)),
-		"deleting machine should contain an entry for SSA manager",
-	)
-	g.Expect(updatedDeletingMachine.ManagedFields).ShouldNot(
-		ContainElement(ssa.MatchManagedFieldsEntry(classicManager, metav1.ManagedFieldsOperationUpdate)),
-		"deleting machine should not contain an entry for old manager",
-	)
-
-	// Verify the machine labels and annotations are unchanged.
-	g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))
-	g.Expect(updatedDeletingMachine.Annotations).Should(Equal(deletingMachine.Annotations))
-	// Verify Node timeout values
+	g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))           // Not propagated to a deleting Machine
+	g.Expect(updatedDeletingMachine.Annotations).Should(Equal(deletingMachine.Annotations)) // Not propagated to a deleting Machine
 	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds))
 	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds))
 	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
@@ -3923,9 +3933,17 @@ func TestObjectsPendingDelete(t *testing.T) {
 // test utils.
 
 func newFakeClient(initObjs ...client.Object) client.WithWatch {
+	// Use a new scheme to avoid side effects if multiple tests are sharing the same global scheme.
+	scheme := runtime.NewScheme()
+	_ = appsv1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
+	_ = bootstrapv1.AddToScheme(scheme)
+	_ = controlplanev1.AddToScheme(scheme)
 	return &fakeClient{
 		startTime: time.Now(),
-		WithWatch: fake.NewClientBuilder().WithObjects(initObjs...).WithStatusSubresource(&controlplanev1.KubeadmControlPlane{}).Build(),
+		WithWatch: fake.NewClientBuilder().WithScheme(scheme).WithObjects(initObjs...).WithStatusSubresource(&controlplanev1.KubeadmControlPlane{}).Build(),
 	}
 }
 

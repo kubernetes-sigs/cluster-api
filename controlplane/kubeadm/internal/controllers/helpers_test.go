@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -38,6 +39,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -296,7 +299,7 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 	g.Expect(kubeconfigSecret.Labels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, cluster.Name))
 }
 
-func TestCloneConfigsAndGenerateMachine(t *testing.T) {
+func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
 		t.Helper()
 
@@ -383,6 +386,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 	r := &KubeadmControlPlaneReconciler{
 		Client:              env,
 		SecretCachingClient: secretCachingClient,
+		ssaCache:            ssa.NewCache("test-controller"),
 		recorder:            record.NewFakeRecorder(32),
 	}
 
@@ -393,44 +397,158 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 	g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(machineList.Items).To(HaveLen(1))
 
-	for i := range machineList.Items {
-		m := machineList.Items[i]
-		g.Expect(m.Namespace).To(Equal(cluster.Namespace))
-		g.Expect(m.Name).NotTo(BeEmpty())
-		g.Expect(m.Name).To(HavePrefix(kcp.Name + namingTemplateKey))
-		g.Expect(m.Spec.InfrastructureRef.Name).To(Equal(m.Name))
-		g.Expect(m.Spec.InfrastructureRef.APIGroup).To(Equal(genericInfrastructureMachineTemplate.GroupVersionKind().Group))
-		g.Expect(m.Spec.InfrastructureRef.Kind).To(Equal("GenericInfrastructureMachine"))
+	m := machineList.Items[0]
+	g.Expect(m.Namespace).To(Equal(cluster.Namespace))
+	g.Expect(m.Name).NotTo(BeEmpty())
+	g.Expect(m.Name).To(HavePrefix(kcp.Name + namingTemplateKey))
+	g.Expect(m.Spec.InfrastructureRef.Name).To(Equal(m.Name))
+	g.Expect(m.Spec.InfrastructureRef.APIGroup).To(Equal(genericInfrastructureMachineTemplate.GroupVersionKind().Group))
+	g.Expect(m.Spec.InfrastructureRef.Kind).To(Equal("GenericInfrastructureMachine"))
 
-		g.Expect(m.Spec.Bootstrap.ConfigRef.Name).To(Equal(m.Name))
-		g.Expect(m.Spec.Bootstrap.ConfigRef.APIGroup).To(Equal(bootstrapv1.GroupVersion.Group))
-		g.Expect(m.Spec.Bootstrap.ConfigRef.Kind).To(Equal("KubeadmConfig"))
+	g.Expect(m.Spec.Bootstrap.ConfigRef.Name).To(Equal(m.Name))
+	g.Expect(m.Spec.Bootstrap.ConfigRef.APIGroup).To(Equal(bootstrapv1.GroupVersion.Group))
+	g.Expect(m.Spec.Bootstrap.ConfigRef.Kind).To(Equal("KubeadmConfig"))
 
-		infraObj, err := external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), m.Spec.InfrastructureRef, m.Namespace)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(infraObj.GetOwnerReferences()).To(HaveLen(1))
-		g.Expect(infraObj.GetOwnerReferences()).To(ContainElement(metav1.OwnerReference{
-			APIVersion: controlplanev1.GroupVersion.String(),
-			Kind:       "KubeadmControlPlane",
-			Name:       kcp.Name,
-			UID:        kcp.UID,
-		}))
-		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericInfrastructureMachineTemplate.GetName()))
-		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind().String()))
-
-		kubeadmConfig := &bootstrapv1.KubeadmConfig{}
-		err = env.GetAPIReader().Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}, kubeadmConfig)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(kubeadmConfig.OwnerReferences).To(HaveLen(1))
-		g.Expect(kubeadmConfig.OwnerReferences).To(ContainElement(metav1.OwnerReference{
-			Kind:       "KubeadmControlPlane",
-			APIVersion: controlplanev1.GroupVersion.String(),
-			Name:       kcp.Name,
-			UID:        kcp.UID,
-		}))
-		g.Expect(kubeadmConfig.Spec.InitConfiguration).To(BeComparableTo(bootstrapv1.InitConfiguration{}))
-		g.Expect(kubeadmConfig.Spec.JoinConfiguration).To(BeComparableTo(kcp.Spec.KubeadmConfigSpec.JoinConfiguration))
+	infraObj, err := external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), m.Spec.InfrastructureRef, m.Namespace)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(infraObj.GetOwnerReferences()).To(HaveLen(1))
+	g.Expect(infraObj.GetOwnerReferences()).To(ContainElement(metav1.OwnerReference{
+		APIVersion: controlplanev1.GroupVersion.String(),
+		Kind:       "KubeadmControlPlane",
+		Name:       kcp.Name,
+		UID:        kcp.UID,
+	}))
+	g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericInfrastructureMachineTemplate.GetName()))
+	g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind().String()))
+	// Note: capi-kubeadmcontrolplane should own ownerReferences and spec, labels and annotations should be orphaned.
+	// 		 Labels and annotations will be owned by capi-kubeadmcontrolplane-metadata after the next update
+	//		 of labels and annotations.
+	g.Expect(cleanupTime(infraObj.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+		APIVersion: infraObj.GetAPIVersion(),
+		Manager:    kcpManagerName,
+		Operation:  metav1.ManagedFieldsOperationApply,
+		FieldsV1: `{
+"f:metadata":{
+	"f:ownerReferences":{
+		"k:{\"uid\":\"abc-123-kcp-control-plane\"}":{}
 	}
+},
+"f:spec":{
+	"f:hello":{}
+}}`,
+	}})))
+
+	kubeadmConfig := &bootstrapv1.KubeadmConfig{}
+	err = env.GetAPIReader().Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}, kubeadmConfig)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(kubeadmConfig.OwnerReferences).To(HaveLen(1))
+	g.Expect(kubeadmConfig.OwnerReferences).To(ContainElement(metav1.OwnerReference{
+		Kind:       "KubeadmControlPlane",
+		APIVersion: controlplanev1.GroupVersion.String(),
+		Name:       kcp.Name,
+		UID:        kcp.UID,
+	}))
+	g.Expect(kubeadmConfig.Spec.InitConfiguration).To(BeComparableTo(bootstrapv1.InitConfiguration{}))
+	g.Expect(kubeadmConfig.Spec.JoinConfiguration).To(BeComparableTo(kcp.Spec.KubeadmConfigSpec.JoinConfiguration))
+	// Note: capi-kubeadmcontrolplane should own ownerReferences and spec, labels and annotations should be orphaned.
+	// 		 Labels and annotations will be owned by capi-kubeadmcontrolplane-metadata after the next update
+	//		 of labels and annotations.
+	g.Expect(cleanupTime(kubeadmConfig.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+		APIVersion: bootstrapv1.GroupVersion.String(),
+		Manager:    kcpManagerName,
+		Operation:  metav1.ManagedFieldsOperationApply,
+		FieldsV1: `{
+"f:metadata":{
+	"f:ownerReferences":{
+		"k:{\"uid\":\"abc-123-kcp-control-plane\"}":{}
+	}
+},
+"f:spec":{
+	"f:joinConfiguration":{
+		"f:nodeRegistration":{
+			"f:kubeletExtraArgs":{
+				"k:{\"name\":\"v\",\"value\":\"8\"}":{
+					".":{},"f:name":{},"f:value":{}}
+				}
+			}
+		}
+}}`,
+	}})))
+
+	// Sync Machines
+	controlPlane, err := internal.NewControlPlane(ctx, r.managementCluster, r.Client, cluster, kcp, collections.FromMachines(&m))
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(r.syncMachines(ctx, controlPlane)).To(Succeed())
+
+	// Verify managedFields again.
+	infraObj, err = external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), m.Spec.InfrastructureRef, m.Namespace)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(cleanupTime(infraObj.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+		// capi-kubeadmcontrolplane-metadata owns labels and annotations
+		APIVersion: infraObj.GetAPIVersion(),
+		Manager:    kcpMetadataManagerName,
+		Operation:  metav1.ManagedFieldsOperationApply,
+		FieldsV1: `{
+"f:metadata":{
+	"f:annotations":{},
+	"f:labels":{
+		"f:cluster.x-k8s.io/cluster-name":{},
+		"f:cluster.x-k8s.io/control-plane":{},
+		"f:cluster.x-k8s.io/control-plane-name":{}
+	}
+}}`,
+	}, {
+		// capi-kubeadmcontrolplane owns ownerReferences and spec
+		APIVersion: infraObj.GetAPIVersion(),
+		Manager:    kcpManagerName,
+		Operation:  metav1.ManagedFieldsOperationApply,
+		FieldsV1: `{
+"f:metadata":{
+	"f:ownerReferences":{
+		"k:{\"uid\":\"abc-123-kcp-control-plane\"}":{}
+	}
+},
+"f:spec":{
+	"f:hello":{}
+}}`,
+	}})))
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}, kubeadmConfig)).To(Succeed())
+	g.Expect(cleanupTime(kubeadmConfig.GetManagedFields())).To(ConsistOf(toManagedFields([]managedFieldEntry{{
+		// capi-kubeadmcontrolplane-metadata owns labels and annotations
+		APIVersion: bootstrapv1.GroupVersion.String(),
+		Manager:    kcpMetadataManagerName,
+		Operation:  metav1.ManagedFieldsOperationApply,
+		FieldsV1: `{
+"f:metadata":{
+	"f:annotations":{},
+	"f:labels":{
+		"f:cluster.x-k8s.io/cluster-name":{},
+		"f:cluster.x-k8s.io/control-plane":{},
+		"f:cluster.x-k8s.io/control-plane-name":{}
+	}
+}}`,
+	}, {
+		// capi-kubeadmcontrolplane owns ownerReferences and spec
+		APIVersion: bootstrapv1.GroupVersion.String(),
+		Manager:    kcpManagerName,
+		Operation:  metav1.ManagedFieldsOperationApply,
+		FieldsV1: `{
+"f:metadata":{
+	"f:ownerReferences":{
+		"k:{\"uid\":\"abc-123-kcp-control-plane\"}":{}
+	}
+},
+"f:spec":{
+	"f:joinConfiguration":{
+		"f:nodeRegistration":{
+			"f:kubeletExtraArgs":{
+				"k:{\"name\":\"v\",\"value\":\"8\"}":{
+					".":{},"f:name":{},"f:value":{}}
+				}
+			}
+		}
+}}`,
+	}})))
 }
 
 func TestCloneConfigsAndGenerateMachineFailInfraMachineCreation(t *testing.T) {
@@ -507,7 +625,7 @@ func TestCloneConfigsAndGenerateMachineFailInfraMachineCreation(t *testing.T) {
 	infraMachineList.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   builder.InfrastructureGroupVersion.Group,
 		Version: builder.InfrastructureGroupVersion.Version,
-		Kind:    builder.GenericInfrastructureMachineKind,
+		Kind:    builder.GenericInfrastructureMachineKind + "List",
 	})
 	g.Expect(fakeClient.List(ctx, infraMachineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(infraMachineList.Items).To(BeEmpty())
@@ -569,6 +687,9 @@ func TestCloneConfigsAndGenerateMachineFailKubeadmConfigCreation(t *testing.T) {
 		Client:              fakeClient,
 		SecretCachingClient: fakeClient,
 		recorder:            record.NewFakeRecorder(32),
+		// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
+		//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
+		disableRemoveManagedFieldsForLabelsAndAnnotations: true,
 	}
 
 	// Break KubeadmConfig computation
@@ -590,7 +711,7 @@ func TestCloneConfigsAndGenerateMachineFailKubeadmConfigCreation(t *testing.T) {
 	infraMachineList.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   builder.InfrastructureGroupVersion.Group,
 		Version: builder.InfrastructureGroupVersion.Version,
-		Kind:    builder.GenericInfrastructureMachineKind,
+		Kind:    builder.GenericInfrastructureMachineKind + "List",
 	})
 	g.Expect(fakeClient.List(ctx, infraMachineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(infraMachineList.Items).To(BeEmpty())
@@ -665,6 +786,9 @@ func TestCloneConfigsAndGenerateMachineFailMachineCreation(t *testing.T) {
 		Client:              fakeClient,
 		SecretCachingClient: fakeClient,
 		recorder:            record.NewFakeRecorder(32),
+		// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
+		//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
+		disableRemoveManagedFieldsForLabelsAndAnnotations: true,
 	}
 
 	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, true, "")
@@ -684,7 +808,7 @@ func TestCloneConfigsAndGenerateMachineFailMachineCreation(t *testing.T) {
 	infraMachineList.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   builder.InfrastructureGroupVersion.Group,
 		Version: builder.InfrastructureGroupVersion.Version,
-		Kind:    builder.GenericInfrastructureMachineKind,
+		Kind:    builder.GenericInfrastructureMachineKind + "List",
 	})
 	g.Expect(fakeClient.List(ctx, infraMachineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(infraMachineList.Items).To(BeEmpty())
@@ -789,4 +913,40 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 			g.Expect(actualSecret.GetOwnerReferences()).To(ConsistOf(tt.expectedOwnerRef))
 		})
 	}
+}
+
+func cleanupTime(fields []metav1.ManagedFieldsEntry) []metav1.ManagedFieldsEntry {
+	for i := range fields {
+		fields[i].Time = nil
+	}
+	return fields
+}
+
+type managedFieldEntry struct {
+	Manager     string
+	Operation   metav1.ManagedFieldsOperationType
+	APIVersion  string
+	FieldsV1    string
+	Subresource string
+}
+
+func toManagedFields(managedFields []managedFieldEntry) []metav1.ManagedFieldsEntry {
+	res := []metav1.ManagedFieldsEntry{}
+	for _, f := range managedFields {
+		res = append(res, metav1.ManagedFieldsEntry{
+			Manager:     f.Manager,
+			Operation:   f.Operation,
+			APIVersion:  f.APIVersion,
+			FieldsType:  "FieldsV1",
+			FieldsV1:    &metav1.FieldsV1{Raw: []byte(trimSpaces(f.FieldsV1))},
+			Subresource: f.Subresource,
+		})
+	}
+	return res
+}
+
+func trimSpaces(s string) string {
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\t", "")
+	return s
 }

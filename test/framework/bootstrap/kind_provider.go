@@ -142,10 +142,6 @@ func (k *KindClusterProvider) createKindCluster() {
 	}
 
 	cfg := &kindv1.Cluster{
-		TypeMeta: kindv1.TypeMeta{
-			APIVersion: "kind.x-k8s.io/v1alpha4",
-			Kind:       "Cluster",
-		},
 		Nodes: []kindv1.Node{
 			{
 				Role:              kindv1.ControlPlaneRole,

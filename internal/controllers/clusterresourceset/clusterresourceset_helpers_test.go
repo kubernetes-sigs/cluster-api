@@ -227,7 +227,6 @@ func TestEnsureKubernetesServiceCreated(t *testing.T) {
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 
 	kubernetesAPIServerService := &corev1.Service{
-		TypeMeta: metav1.TypeMeta{Kind: "Service", APIVersion: "v1"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kubernetes",
 			Namespace: metav1.NamespaceDefault,

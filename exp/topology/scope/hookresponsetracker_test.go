@@ -21,7 +21,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
@@ -166,7 +165,6 @@ func TestHookResponseTracker_IsBlocking(t *testing.T) {
 	}
 
 	afterClusterUpgradeResponse := &runtimehooksv1.AfterClusterUpgradeResponse{
-		TypeMeta:       metav1.TypeMeta{},
 		CommonResponse: runtimehooksv1.CommonResponse{},
 	}
 

@@ -391,9 +391,6 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 		{
 			name: "Node with uninitialized taint should be patched",
 			machinePool: &clusterv1.MachinePool{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machinepool-1",
 					Namespace: "my-namespace",
@@ -426,9 +423,6 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 		{
 			name: "Node with existing annotations and taints should be patched",
 			machinePool: &clusterv1.MachinePool{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machinepool-2",
 					Namespace: "my-namespace",

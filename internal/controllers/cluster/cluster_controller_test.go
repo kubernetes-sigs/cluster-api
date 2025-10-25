@@ -557,9 +557,6 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 func TestClusterReconcilerNodeRef(t *testing.T) {
 	t.Run("machine to cluster", func(t *testing.T) {
 		cluster := &clusterv1.Cluster{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "Cluster",
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-cluster",
 				Namespace: "test",
@@ -569,9 +566,6 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 		}
 
 		controlPlaneWithNoderef := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "Machine",
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "controlPlaneWithNoderef",
 				Namespace: "test",
@@ -588,9 +582,6 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 			},
 		}
 		controlPlaneWithoutNoderef := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "Machine",
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "controlPlaneWithoutNoderef",
 				Namespace: "test",
@@ -604,9 +595,6 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 			},
 		}
 		nonControlPlaneWithNoderef := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "Machine",
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "nonControlPlaneWitNoderef",
 				Namespace: "test",
@@ -622,9 +610,6 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 			},
 		}
 		nonControlPlaneWithoutNoderef := &clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "Machine",
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "nonControlPlaneWithoutNoderef",
 				Namespace: "test",
@@ -795,10 +780,6 @@ func TestFilterOwnedDescendants(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
 	c := clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "c",
 		},

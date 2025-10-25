@@ -608,10 +608,6 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				},
 			}
 			cfg := &bootstrapv1.KubeadmConfig{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Kind:       "KubeadmConfig",
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      name,
@@ -1749,10 +1745,6 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		Users: []bootstrapv1.User{{Name: "test-user"}},
 	}
 	existingKubeadmConfig := &bootstrapv1.KubeadmConfig{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmConfig",
-			APIVersion: bootstrapv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "existing-kubeadmconfig",
 			Namespace: namespace.Name,
@@ -1778,10 +1770,6 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Existing Machine to validate in-place mutation
 	fd := "fd1"
 	inPlaceMutatingMachine := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "existing-machine",
 			Namespace: namespace.Name,
@@ -1815,10 +1803,6 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 
 	// Existing machine that is in deleting state
 	deletingMachine := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "deleting-machine",
 			Namespace:   namespace.Name,
@@ -1851,10 +1835,6 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 
 	// Existing machine that has a InfrastructureRef which does not exist.
 	nilInfraMachineMachine := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "nil-infra-machine-machine",
 			Namespace:   namespace.Name,
@@ -1880,10 +1860,6 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlane",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			UID:       types.UID("abc-123-control-plane"),
 			Name:      "existing-kcp",
@@ -3982,10 +3958,6 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: controlplanev1.GroupVersion.String(),
-			Kind:       "KubeadmControlPlane",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      kcpName,
 			Namespace: namespace,
@@ -4050,10 +4022,6 @@ func setKCPHealthy(kcp *controlplanev1.KubeadmControlPlane) {
 
 func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ready bool) (*clusterv1.Machine, *corev1.Node) {
 	machine := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Machine",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   cluster.Namespace,
 			Name:        name,
@@ -4115,10 +4083,6 @@ func setMachineHealthy(m *clusterv1.Machine) {
 // newCluster return a CAPI cluster object.
 func newCluster(namespacedName *types.NamespacedName) *clusterv1.Cluster {
 	return &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespacedName.Namespace,
 			Name:      namespacedName.Name,

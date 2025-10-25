@@ -3057,11 +3057,6 @@ type fakeClusterOption interface {
 
 func fakeCluster(name string, options ...fakeClusterOption) *clusterv1.Cluster {
 	c := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			// Note: this is required by ownerRef checks
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},

@@ -622,6 +622,8 @@ func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, opts 
 	if err != nil {
 		return errors.Wrapf(err, "failed to get GVK to set GVK on object")
 	}
+	// Ensure that GVK is explicitly set because e.Patch below uses json.Marshal
+	// to serialize the object and the apiserver would complain if GVK is not sent.
 	obj.GetObjectKind().SetGroupVersionKind(objGVK)
 
 	key := client.ObjectKeyFromObject(obj)

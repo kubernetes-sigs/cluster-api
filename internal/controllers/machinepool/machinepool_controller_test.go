@@ -149,7 +149,6 @@ func TestMachinePoolFinalizer(t *testing.T) {
 func TestMachinePoolOwnerReference(t *testing.T) {
 	bootstrapData := "some valid machinepool bootstrap data"
 	testCluster := &clusterv1.Cluster{
-		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
 	}
 
@@ -238,8 +237,8 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			m: machinePoolValidCluster,
 			expectedOR: []metav1.OwnerReference{
 				{
-					APIVersion: testCluster.APIVersion,
-					Kind:       testCluster.Kind,
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
 					Name:       testCluster.Name,
 					UID:        testCluster.UID,
 				},
@@ -311,7 +310,6 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 	}
 
 	testCluster := clusterv1.Cluster{
-		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
 	}
 

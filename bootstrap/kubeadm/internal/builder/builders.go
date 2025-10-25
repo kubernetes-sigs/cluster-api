@@ -67,16 +67,14 @@ func (k *KubeadmConfigBuilder) Unstructured() *unstructured.Unstructured {
 	if err != nil {
 		panic(err)
 	}
-	return &unstructured.Unstructured{Object: rawMap}
+	u := &unstructured.Unstructured{Object: rawMap}
+	u.SetGroupVersionKind(bootstrapv1.GroupVersion.WithKind("KubeadmConfig"))
+	return u
 }
 
 // Build produces a KubeadmConfig from the variable in the KubeadmConfigBuilder.
 func (k *KubeadmConfigBuilder) Build() *bootstrapv1.KubeadmConfig {
 	config := &bootstrapv1.KubeadmConfig{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmConfig",
-			APIVersion: bootstrapv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: k.namespace,
 			Name:      k.name,

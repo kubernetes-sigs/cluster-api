@@ -947,10 +947,6 @@ func getProviderObj(version *string) func(prefix string, objs []unstructured.Uns
 		}
 
 		provider := &clusterctlv1.Provider{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Provider",
-				APIVersion: clusterctlv1.GroupVersion.String(),
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      manifestLabel,
 				Namespace: namespace,

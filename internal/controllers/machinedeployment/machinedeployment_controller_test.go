@@ -528,9 +528,6 @@ func TestMachineSetToDeployments(t *testing.T) {
 	machineDeplopymentList := []client.Object{machineDeployment}
 
 	ms1 := clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withOwnerRef",
 			Namespace: metav1.NamespaceDefault,
@@ -543,9 +540,6 @@ func TestMachineSetToDeployments(t *testing.T) {
 		},
 	}
 	ms2 := clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "noOwnerRefNoLabels",
 			Namespace: metav1.NamespaceDefault,
@@ -555,9 +549,6 @@ func TestMachineSetToDeployments(t *testing.T) {
 		},
 	}
 	ms3 := clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withMatchingLabels",
 			Namespace: metav1.NamespaceDefault,
@@ -622,18 +613,12 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 	machineDeploymentList := []client.Object{machineDeployment}
 
 	ms1 := clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "NoMatchingLabels",
 			Namespace: metav1.NamespaceDefault,
 		},
 	}
 	ms2 := clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withMatchingLabels",
 			Namespace: metav1.NamespaceDefault,
@@ -717,9 +702,6 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 	}
 
 	ms1 := clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withNoOwnerRefShouldBeAdopted2",
 			Namespace: metav1.NamespaceDefault,
@@ -729,9 +711,6 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		},
 	}
 	ms2 := clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withOwnerRefAndLabels",
 			Namespace: metav1.NamespaceDefault,
@@ -744,9 +723,6 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		},
 	}
 	ms3 := clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withNoOwnerRefShouldBeAdopted1",
 			Namespace: metav1.NamespaceDefault,
@@ -756,9 +732,6 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		},
 	}
 	ms4 := clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withNoOwnerRefNoMatch",
 			Namespace: metav1.NamespaceDefault,
@@ -768,9 +741,6 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		},
 	}
 	ms5 := clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withOwnerRefAndNoMatchLabels",
 			Namespace: metav1.NamespaceDefault,

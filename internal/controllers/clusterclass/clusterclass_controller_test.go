@@ -1219,10 +1219,6 @@ func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "runtime1",
 		},
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ExtensionConfig",
-			APIVersion: runtimev1.GroupVersion.String(),
-		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			NamespaceSelector: &metav1.LabelSelector{},
 		},
@@ -1230,10 +1226,6 @@ func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
 	secondExtConfig := &runtimev1.ExtensionConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "runtime2",
-		},
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ExtensionConfig",
-			APIVersion: runtimev1.GroupVersion.String(),
 		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			NamespaceSelector: &metav1.LabelSelector{},

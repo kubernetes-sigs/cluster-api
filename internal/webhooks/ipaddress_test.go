@@ -32,10 +32,6 @@ import (
 
 func TestIPAddressValidateCreate(t *testing.T) {
 	claim := &ipamv1.IPAddressClaim{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: ipamv1.GroupVersion.String(),
-			Kind:       "IPAddressClaim",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "claim",
 			Namespace: "default",

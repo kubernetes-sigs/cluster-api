@@ -44,10 +44,6 @@ func untypedCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefi
 
 func generateCRD(gvk schema.GroupVersionKind, properties map[string]apiextensionsv1.JSONSchemaProps) *apiextensionsv1.CustomResourceDefinition {
 	return &apiextensionsv1.CustomResourceDefinition{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
-			Kind:       "CustomResourceDefinition",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: contract.CalculateCRDName(gvk.Group, gvk.Kind),
 			Labels: map[string]string{

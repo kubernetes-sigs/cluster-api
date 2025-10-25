@@ -1971,10 +1971,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlane",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      "foo",
@@ -2123,10 +2119,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlane",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      "foo",
@@ -2195,10 +2187,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlane",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      "foo",
@@ -2274,10 +2262,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlane",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      "foo",
@@ -2352,10 +2336,6 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlane",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      "foo",

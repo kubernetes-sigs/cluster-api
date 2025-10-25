@@ -52,6 +52,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -617,6 +618,12 @@ func (e *Environment) DeleteAndWait(ctx context.Context, obj client.Object, opts
 //
 // NOTE: Waiting for the cache to be updated helps in preventing test flakes due to the cache sync delays.
 func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, opts ...client.PatchOption) error {
+	objGVK, err := apiutil.GVKForObject(obj, e.Scheme())
+	if err != nil {
+		return errors.Wrapf(err, "failed to get GVK to set GVK on object")
+	}
+	obj.GetObjectKind().SetGroupVersionKind(objGVK)
+
 	key := client.ObjectKeyFromObject(obj)
 	objCopy := obj.DeepCopyObject().(client.Object)
 	if err := e.GetAPIReader().Get(ctx, key, objCopy); err != nil {

@@ -686,6 +686,8 @@ metadata:
 			},
 		)
 
+		// Set GVK because we directly Marshal resourceConfigMap1 to YAML.
+		resourceConfigMap1.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ConfigMap"))
 		resourceConfigMap1Content, err := yaml.Marshal(resourceConfigMap1)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -705,6 +707,8 @@ metadata:
 			},
 		)
 
+		// Set GVK because we directly Marshal resourceConfigMap2 to YAML.
+		resourceConfigMap2.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ConfigMap"))
 		resourceConfigMap2Content, err := yaml.Marshal(resourceConfigMap2)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -825,6 +829,8 @@ metadata:
 			},
 		)
 
+		// Set GVK because we directly Marshal resourceConfigMap1 to YAML.
+		resourceConfigMap1.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ConfigMap"))
 		resourceConfigMap1Content, err := yaml.Marshal(resourceConfigMap1)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -836,6 +842,8 @@ metadata:
 			},
 		)
 
+		// Set GVK because we directly Marshal resourceConfigMapWithMissingNamespace to YAML.
+		resourceConfigMapWithMissingNamespace.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ConfigMap"))
 		resourceConfigMapMissingNamespaceContent, err := yaml.Marshal(resourceConfigMapWithMissingNamespace)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -946,7 +954,6 @@ metadata:
 		defer teardown(t, g, ns)
 
 		fakeService := &corev1.Service{
-			TypeMeta: metav1.TypeMeta{Kind: "Service", APIVersion: "v1"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "fake",
 				Namespace: metav1.NamespaceDefault,
@@ -1139,10 +1146,6 @@ func configMapHasBeenUpdated(env *envtest.Environment, key client.ObjectKey, new
 
 func configMap(name, namespace string, data map[string]string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "ConfigMap",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,

@@ -332,6 +332,7 @@ func TestHandler_GeneratePatches(t *testing.T) {
 			},
 		}),
 	}
+	// Have to set GVK because we directly Marshal to JSON.
 	kubeadmControlPlaneTemplate := controlplanev1.KubeadmControlPlaneTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KubeadmControlPlaneTemplate",

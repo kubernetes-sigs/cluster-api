@@ -539,6 +539,14 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 			klog.KObj(t.Machine),
 			klog.KObj(t.MHC),
 		)
+		// Record event on MachineHealthCheck to track remediation history
+		r.recorder.Eventf(
+			m,
+			corev1.EventTypeNormal,
+			EventRemediationTriggered,
+			"Triggered remediation for unhealthy Machine %s",
+			klog.KObj(t.Machine),
+		)
 	}
 	return errList
 }

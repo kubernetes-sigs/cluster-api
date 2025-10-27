@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -505,13 +506,13 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 	// TODO(in-place): when implementing in-place changes in the MachineSetController code make sure to:
 	//  - detect if there are replicas still pending AcknowledgeMove first, including also handling cleanup of the pendingAcknowledgeMoveAnnotationName on machines
 	//  - when deleting or moving
-	//  	- first move if possible, then delete
-	// 		- move machines should be capped to avoid unnecessary in-place upgrades (in case of scale down in the middle of rollouts); remaining part should be deleted
-	//      - do not move machines pending a move Acknowledge, with an in-place upgrade in progress, deleted or marked for deletion, unhealthy
+	//  	- move or delete are mutually exclusive
+	//      - do not move machines pending a move Acknowledge, with an in-place upgrade in progress, deleted or marked for deletion (TBD if to be remediated)
+	//      - when deleting, machines updating in place should have higher priority than other machines (first get rid of not at the desired state/try to avoid unnecessary work; also those machines are unavailable).
 
 	// Sort machines to ensure stable results of move/delete operations during tests.
 	// TODO(in-place): this should not be implemented in production code for the MachineSet controller
-	sortMachineSetMachines(scope.machineSetMachines[ms.Name])
+	sortMachineSetMachinesByName(scope.machineSetMachines[ms.Name])
 
 	// Removing updatingInPlaceAnnotation from machines after pendingAcknowledgeMove is gone in a previous reconcile (so inPlaceUpdating lasts one reconcile more)
 	// NOTE: This is a testing workaround to simulate inPlaceUpdating being completed; it is implemented in the fake MachineSet controller
@@ -620,15 +621,6 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 					return errors.Errorf("[MS controller] - PANIC! %s is set to send replicas to %s, which does not exists", ms.Name, targetMSName)
 				}
 
-				// Limit the number of machines to be moved to avoid to exceed the final number of replicas for the target MS.
-				// TODO(in-place): consider using the DesiredReplicasAnnotation which is propagated together with the other decisions of the rollout planner
-				//  another option to consider is to shift this check on the newMS (so we perform move, but we don't start the in-place upgrade).
-				machinesToMove := min(machinesToDeleteOrMove, ptr.Deref(scope.machineDeployment.Spec.Replicas, 0)-ptr.Deref(targetMS.Spec.Replicas, 0))
-				if machinesToMove != machinesToDeleteOrMove {
-					log.Logf("[MS controller] - Move capped to %d replicas to avoid unnecessary in-place upgrades", machinesToMove)
-				}
-				machinesToDeleteOrMove -= machinesToMove
-
 				validSourceMSs := targetMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]
 				sourcesSet := sets.Set[string]{}
 				sourcesSet.Insert(strings.Split(validSourceMSs, ",")...)
@@ -636,11 +628,14 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 					return errors.Errorf("[MS controller] - PANIC! %s is set to send replicas to %s, but %[2]s only accepts machines from %s", ms.Name, targetMS.Name, validSourceMSs)
 				}
 
+				// Always move all the machine that can be moved.
+				// In case the target machine set will end up with more machines than its target replica number, it will take care of this.
+				machinesToMove := machinesToDeleteOrMove
 				machinesMoved := []string{}
 				machinesSetMachines := []*clusterv1.Machine{}
 				for i, m := range scope.machineSetMachines[ms.Name] {
-					// Make sure we are not moving machines still pending AcknowledgeMove
-					if notAcknowledgeMoveReplicas.Has(m.Name) {
+					// Make sure we are not moving machines still updating in place (this includes also machines still pending AcknowledgeMove).
+					if _, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
 						machinesSetMachines = append(machinesSetMachines, m)
 						continue
 					}
@@ -672,31 +667,39 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 
 				// Sort machines of the target MS to ensure consistent reporting during tests.
 				// Note: this is required because a machine can be moved to a target MachineSet that has been already reconciled before the source MachineSet (it won't sort machine by itself until the next reconcile).
-				sortMachineSetMachines(scope.machineSetMachines[targetMS.Name])
+				sortMachineSetMachinesByName(scope.machineSetMachines[targetMS.Name])
 			}
-		}
-	}
+		} else {
+			machinesToDelete := machinesToDeleteOrMove
+			machinesDeleted := []string{}
 
-	if machinesToDeleteOrMove > 0 {
-		machinesToDelete := machinesToDeleteOrMove
-		machinesDeleted := []string{}
-		machinesSetMachines := []*clusterv1.Machine{}
-		for i, m := range scope.machineSetMachines[ms.Name] {
-			// Prevent deletion of machines not yet acknowledged after a move operation.
-			// Note: as soon as an in-place upgrade is started, CAPI Should always try to complete it
-			// before taking further actions on the same machine.
-			if notAcknowledgeMoveReplicas.Has(m.Name) {
-				machinesSetMachines = append(machinesSetMachines, m)
-				continue
+			// Note: in the test code exceeding machines are deleted in predictable order, so it is easier to write test case and validate rollout sequences.
+			// e.g. if a ms has m1,m2,m3 created in this order, m1 will be deleted first, then m2 and finally m3.
+			// note: In case the system has to delete some replicas, and those replicas are still updating in place, they gets deleted first.
+			//
+			// This prevents the system to perform unnecessary in-place updates. e.g.
+			// - In place rollout of MD with 3 Replicas, maxSurge 1, MaxUnavailable 0
+			//   - First create m4 to create a buffer for doing in place
+			//   - Move old machines (m1, m2, m3)
+			// - Resulting new MS at this point has 4 replicas m1, m2, m3 (updating in place) and (m4).
+			// - The system scales down MS, and the system does this getting rid of m3 - the last replica that started in place.
+			machinesSetMachinesSortedByDeletePriority := sortMachineSetMachinesByDeletionPriorityAndName(scope.machineSetMachines[ms.Name])
+			machinesSetMachines := []*clusterv1.Machine{}
+			for i, m := range machinesSetMachinesSortedByDeletePriority {
+				if int32(len(machinesDeleted)) >= machinesToDelete {
+					machinesSetMachines = append(machinesSetMachines, machinesSetMachinesSortedByDeletePriority[i:]...)
+					break
+				}
+				machinesDeleted = append(machinesDeleted, m.Name)
 			}
-			if int32(len(machinesDeleted)) >= machinesToDelete {
-				machinesSetMachines = append(machinesSetMachines, scope.machineSetMachines[ms.Name][i:]...)
-				break
-			}
-			machinesDeleted = append(machinesDeleted, m.Name)
+			scope.machineSetMachines[ms.Name] = machinesSetMachines
+
+			// Sort machines of the target MS to ensure consistent reporting during tests.
+			// Note: this is required specifically by the test code because a machine can be moved to a target MachineSet that has been already
+			// reconciled before the source MachineSet (it won't sort machine by itself until the next reconcile), and test machinery assumes machine are sorted.
+			sortMachineSetMachinesByName(scope.machineSetMachines[ms.Name])
+			log.Logf("[MS controller] - %s scale down to %d/%[2]d replicas (%s deleted)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesDeleted, ","))
 		}
-		scope.machineSetMachines[ms.Name] = machinesSetMachines
-		log.Logf("[MS controller] - %s scale down to %d/%[2]d replicas (%s deleted)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesDeleted, ","))
 	}
 
 	// Update counters
@@ -1041,12 +1044,41 @@ func (l *fileLogger) WriteLogAndCompareWithGoldenFile() (string, string, error) 
 	return current, golden, nil
 }
 
-func sortMachineSetMachines(machines []*clusterv1.Machine) {
+func sortMachineSetMachinesByName(machines []*clusterv1.Machine) {
 	sort.Slice(machines, func(i, j int) bool {
-		iIndex, _ := strconv.Atoi(strings.TrimPrefix(machines[i].Name, "m"))
-		jiIndex, _ := strconv.Atoi(strings.TrimPrefix(machines[j].Name, "m"))
-		return iIndex < jiIndex
+		iNameIndex, _ := strconv.Atoi(strings.TrimPrefix(machines[i].Name, "m"))
+		jNameIndex, _ := strconv.Atoi(strings.TrimPrefix(machines[j].Name, "m"))
+		return iNameIndex < jNameIndex
 	})
+}
+
+func sortMachineSetMachinesByDeletionPriorityAndName(machines []*clusterv1.Machine) []*clusterv1.Machine {
+	machinesSetMachinesSortedByDeletePriority := slices.Clone(machines)
+
+	// Note: machines updating in place must be deleted first.
+	// in case of ties:
+	// - if both machines are updating in place, delete first the machine with the highest machine NameIndex (e.g. between m3 and m4, pick m4, aka the last machine being moved)
+	// - if both machines are not updating in place, delete first the machine with the lowest machine NameIndex (e.g. between m3 and m4, pick m3)
+	sort.Slice(machinesSetMachinesSortedByDeletePriority, func(i, j int) bool {
+		iPriority := 100
+		if _, ok := machinesSetMachinesSortedByDeletePriority[i].Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+			iPriority = 1
+		}
+		jPriority := 100
+		if _, ok := machinesSetMachinesSortedByDeletePriority[j].Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+			jPriority = 1
+		}
+		if iPriority == jPriority {
+			iNameIndex, _ := strconv.Atoi(strings.TrimPrefix(machinesSetMachinesSortedByDeletePriority[i].Name, "m"))
+			jNameIndex, _ := strconv.Atoi(strings.TrimPrefix(machinesSetMachinesSortedByDeletePriority[j].Name, "m"))
+			if iPriority == 1 {
+				return iNameIndex > jNameIndex
+			}
+			return iNameIndex < jNameIndex
+		}
+		return iPriority < jPriority
+	})
+	return machinesSetMachinesSortedByDeletePriority
 }
 
 // default task order ensure the controllers are run in a consistent and predictable way: md, ms1, ms2 and so on.

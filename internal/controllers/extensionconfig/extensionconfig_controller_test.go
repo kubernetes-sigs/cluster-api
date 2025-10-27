@@ -516,6 +516,9 @@ func discoveryHandler(handlerList ...string) func(http.ResponseWriter, *http.Req
 			Kind:       "DiscoveryResponse",
 			APIVersion: runtimehooksv1.GroupVersion.String(),
 		},
+		CommonResponse: runtimehooksv1.CommonResponse{
+			Status: runtimehooksv1.ResponseStatusSuccess,
+		},
 		Handlers: handlers,
 	}
 	respBody, err := json.Marshal(response)

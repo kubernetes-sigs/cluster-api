@@ -227,6 +227,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 	_ = unstructured.SetNestedField(desiredInfraMachine.Object, "in-place updated world", "spec", "hello")
 
 	responseWithEmptyPatches := &runtimehooksv1.CanUpdateMachineResponse{
+		CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 		MachinePatch: runtimehooksv1.Patch{
 			PatchType: runtimehooksv1.JSONPatchType,
 			Patch:     []byte("[]"),
@@ -343,6 +344,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonResponse:             runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 					MachinePatch:               patchToUpdateMachine,
 					InfrastructureMachinePatch: patchToUpdateInfraMachine,
 					BootstrapConfigPatch:       patchToUpdateKubeadmConfig,
@@ -362,12 +364,15 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension-1", "test-update-extension-2", "test-update-extension-3"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension-1": &runtimehooksv1.CanUpdateMachineResponse{
-					MachinePatch: patchToUpdateMachine,
+					CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
+					MachinePatch:   patchToUpdateMachine,
 				},
 				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonResponse:             runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 					InfrastructureMachinePatch: patchToUpdateInfraMachine,
 				},
 				"test-update-extension-3": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonResponse:       runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 					BootstrapConfigPatch: patchToUpdateKubeadmConfig,
 				},
 			},
@@ -403,6 +408,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": &runtimehooksv1.CanUpdateMachineResponse{
+					CommonResponse:             runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 					MachinePatch:               patchToUpdateMachine,
 					InfrastructureMachinePatch: emptyPatch,
 					BootstrapConfigPatch:       emptyPatch,
@@ -954,6 +960,7 @@ func Test_applyPatchesToRequest(t *testing.T) {
 	_ = unstructured.SetNestedField(patchedInfraMachine.Object, "in-place updated world", "spec", "hello")
 
 	responseWithEmptyPatches := &runtimehooksv1.CanUpdateMachineResponse{
+		CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 		MachinePatch: runtimehooksv1.Patch{
 			PatchType: runtimehooksv1.JSONPatchType,
 			Patch:     []byte("[]"),
@@ -1040,6 +1047,7 @@ func Test_applyPatchesToRequest(t *testing.T) {
 				},
 			},
 			resp: &runtimehooksv1.CanUpdateMachineResponse{
+				CommonResponse:             runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 				MachinePatch:               patchToUpdateMachine,
 				InfrastructureMachinePatch: patchToUpdateInfraMachine,
 				BootstrapConfigPatch:       patchToUpdateKubeadmConfig,
@@ -1062,6 +1070,7 @@ func Test_applyPatchesToRequest(t *testing.T) {
 				},
 			},
 			resp: &runtimehooksv1.CanUpdateMachineResponse{
+				CommonResponse:             runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 				MachinePatch:               jsonMergePatchToUpdateMachine,
 				InfrastructureMachinePatch: jsonMergePatchToUpdateInfraMachine,
 				BootstrapConfigPatch:       jsonMergePatchToUpdateKubeadmConfig,
@@ -1084,6 +1093,7 @@ func Test_applyPatchesToRequest(t *testing.T) {
 				},
 			},
 			resp: &runtimehooksv1.CanUpdateMachineResponse{
+				CommonResponse:             runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 				MachinePatch:               patchToUpdateMachineStatus,
 				InfrastructureMachinePatch: patchToUpdateInfraMachineStatus,
 				BootstrapConfigPatch:       patchToUpdateKubeadmConfigStatus,
@@ -1106,6 +1116,7 @@ func Test_applyPatchesToRequest(t *testing.T) {
 				},
 			},
 			resp: &runtimehooksv1.CanUpdateMachineResponse{
+				CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 				MachinePatch: runtimehooksv1.Patch{
 					// PatchType is missing
 					Patch: []byte(`[{"op":"add","path":"/status","value":{"observedGeneration": 10}}]`),
@@ -1124,6 +1135,7 @@ func Test_applyPatchesToRequest(t *testing.T) {
 				},
 			},
 			resp: &runtimehooksv1.CanUpdateMachineResponse{
+				CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess},
 				MachinePatch: runtimehooksv1.Patch{
 					PatchType: "UnknownType",
 					Patch:     []byte(`[{"op":"add","path":"/status","value":{"observedGeneration": 10}}]`),

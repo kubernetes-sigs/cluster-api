@@ -58,7 +58,7 @@ source of inspiration and ideas for others.
 - [KubeVirt](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt)
 - [MAAS](https://github.com/spectrocloud/cluster-api-provider-maas)
 - [Metal3](https://github.com/metal3-io/cluster-api-provider-metal3)
-- [Microvm](https://github.com/weaveworks-liquidmetal/cluster-api-provider-microvm)
+- [Microvm](https://github.com/liquidmetal-dev/cluster-api-provider-microvm)
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix)
 - [Oracle Cloud Infrastructure (OCI)](https://github.com/oracle/cluster-api-provider-oci)

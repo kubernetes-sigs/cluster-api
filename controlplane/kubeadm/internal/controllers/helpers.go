@@ -234,8 +234,21 @@ func (r *KubeadmControlPlaneReconciler) createInfraMachine(ctx context.Context, 
 		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create InfraMachine")
 	}
 
-	if err := r.Client.Create(ctx, infraMachine); err != nil {
+	// Create the full object with capi-kubeadmcontrolplane.
+	// Below ssa.RemoveManagedFieldsForLabelsAndAnnotations will drop ownership for labels and annotations
+	// so that in a subsequent syncMachines call capi-kubeadmcontrolplane-metadata can take ownership for them.
+	// Note: This is done in way that it does not rely on managedFields being stored in the cache, so we can optimize
+	// memory usage by dropping managedFields before storing objects in the cache.
+	if err := ssa.Patch(ctx, r.Client, kcpManagerName, infraMachine); err != nil {
 		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create InfraMachine")
+	}
+
+	// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
+	//       on KubeadmConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
+	if !r.disableRemoveManagedFieldsForLabelsAndAnnotations {
+		if err := ssa.RemoveManagedFieldsForLabelsAndAnnotations(ctx, r.Client, r.APIReader, infraMachine, kcpManagerName); err != nil {
+			return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create InfraMachine")
+		}
 	}
 
 	return infraMachine, clusterv1.ContractVersionedObjectReference{
@@ -251,8 +264,21 @@ func (r *KubeadmControlPlaneReconciler) createKubeadmConfig(ctx context.Context,
 		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create KubeadmConfig")
 	}
 
-	if err := r.Client.Create(ctx, kubeadmConfig); err != nil {
+	// Create the full object with capi-kubeadmcontrolplane.
+	// Below ssa.RemoveManagedFieldsForLabelsAndAnnotations will drop ownership for labels and annotations
+	// so that in a subsequent syncMachines call capi-kubeadmcontrolplane-metadata can take ownership for them.
+	// Note: This is done in way that it does not rely on managedFields being stored in the cache, so we can optimize
+	// memory usage by dropping managedFields before storing objects in the cache.
+	if err := ssa.Patch(ctx, r.Client, kcpManagerName, kubeadmConfig); err != nil {
 		return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create KubeadmConfig")
+	}
+
+	// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
+	//       on KubeadmConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
+	if !r.disableRemoveManagedFieldsForLabelsAndAnnotations {
+		if err := ssa.RemoveManagedFieldsForLabelsAndAnnotations(ctx, r.Client, r.APIReader, kubeadmConfig, kcpManagerName); err != nil {
+			return nil, clusterv1.ContractVersionedObjectReference{}, errors.Wrapf(err, "failed to create KubeadmConfig")
+		}
 	}
 
 	return kubeadmConfig, clusterv1.ContractVersionedObjectReference{
@@ -262,8 +288,8 @@ func (r *KubeadmControlPlaneReconciler) createKubeadmConfig(ctx context.Context,
 	}, nil
 }
 
-// updateExternalObject updates the external object with the labels and annotations from KCP.
-func (r *KubeadmControlPlaneReconciler) updateExternalObject(ctx context.Context, obj client.Object, objGVK schema.GroupVersionKind, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) error {
+// updateLabelsAndAnnotations updates the external object with the labels and annotations from KCP.
+func (r *KubeadmControlPlaneReconciler) updateLabelsAndAnnotations(ctx context.Context, obj client.Object, objGVK schema.GroupVersionKind, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) error {
 	updatedObject := &unstructured.Unstructured{}
 	updatedObject.SetGroupVersionKind(objGVK)
 	updatedObject.SetNamespace(obj.GetNamespace())
@@ -272,12 +298,10 @@ func (r *KubeadmControlPlaneReconciler) updateExternalObject(ctx context.Context
 	// and does not perform an accidental create.
 	updatedObject.SetUID(obj.GetUID())
 
-	// Update labels
 	updatedObject.SetLabels(desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name))
-	// Update annotations
 	updatedObject.SetAnnotations(desiredstate.ControlPlaneMachineAnnotations(kcp))
 
-	return ssa.Patch(ctx, r.Client, kcpManagerName, updatedObject, ssa.WithCachingProxy{Cache: r.ssaCache, Original: obj})
+	return ssa.Patch(ctx, r.Client, kcpMetadataManagerName, updatedObject, ssa.WithCachingProxy{Cache: r.ssaCache, Original: obj})
 }
 
 func (r *KubeadmControlPlaneReconciler) createMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) error {

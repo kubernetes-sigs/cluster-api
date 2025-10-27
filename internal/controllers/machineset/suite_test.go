@@ -96,14 +96,18 @@ func TestMain(m *testing.M) {
 		}()
 
 		if err := (&Reconciler{
-			Client:       mgr.GetClient(),
+			// Note: Ensure the fieldManager defaults to manager like in prod.
+			//       Otherwise it defaults to the binary name which is not manager in tests.
+			Client:       client.WithFieldOwner(mgr.GetClient(), "manager"),
 			APIReader:    mgr.GetAPIReader(),
 			ClusterCache: clusterCache,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MMachineSetReconciler: %v", err))
 		}
 		if err := (&machinecontroller.Reconciler{
-			Client:                      mgr.GetClient(),
+			// Note: Ensure the fieldManager defaults to manager like in prod.
+			//       Otherwise it defaults to the binary name which is not manager in tests.
+			Client:                      client.WithFieldOwner(mgr.GetClient(), "manager"),
 			APIReader:                   mgr.GetAPIReader(),
 			ClusterCache:                clusterCache,
 			RemoteConditionsGracePeriod: 5 * time.Minute,

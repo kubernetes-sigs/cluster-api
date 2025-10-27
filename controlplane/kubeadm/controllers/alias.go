@@ -33,6 +33,7 @@ import (
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object.
 type KubeadmControlPlaneReconciler struct {
 	Client              client.Client
+	APIReader           client.Reader
 	SecretCachingClient client.Client
 	RuntimeClient       runtimeclient.Client
 	ClusterCache        clustercache.ClusterCache
@@ -51,6 +52,7 @@ type KubeadmControlPlaneReconciler struct {
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
 		Client:                      r.Client,
+		APIReader:                   r.APIReader,
 		SecretCachingClient:         r.SecretCachingClient,
 		RuntimeClient:               r.RuntimeClient,
 		ClusterCache:                r.ClusterCache,

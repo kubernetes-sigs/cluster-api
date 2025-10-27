@@ -252,6 +252,7 @@ type UnhealthyMachineCondition struct {
 	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=316
+	// +kubebuilder:validation:XValidation:rule="self != 'Ready' && self != 'Available' && self != 'HealthCheckSucceeded' && self != 'OwnerRemediated' && self != 'ExternallyRemediated'",message="type must not be one of: Ready, Available, HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated"
 	// +required
 	Type string `json:"type,omitempty"`
 

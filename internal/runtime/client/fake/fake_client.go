@@ -154,8 +154,11 @@ func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecata
 		panic("cannot update response")
 	}
 
-	if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-		return errors.Errorf("runtime hook %q failed", gvh)
+	if response.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
+		if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
+			return errors.Errorf("runtime hook %q failed", gvh)
+		}
+		return errors.Errorf("runtime hook %q got unknown response status %q", gvh, response.GetStatus())
 	}
 	return nil
 }
@@ -179,9 +182,12 @@ func (fc *RuntimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hoo
 		panic("cannot update response")
 	}
 
-	// If the received response is a failure then return an error.
-	if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-		return errors.Errorf("ExtensionHandler %s failed with message %s", name, response.GetMessage())
+	// If the received response is not a success then return an error.
+	if response.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
+		if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
+			return errors.Errorf("ExtensionHandler %s failed with message %s", name, response.GetMessage())
+		}
+		return errors.Errorf("ExtensionHandler %s got unknown response status %q", name, response.GetStatus())
 	}
 	return nil
 }

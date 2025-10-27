@@ -437,8 +437,11 @@ func (i injectRuntimeClient) CallExtension(ctx context.Context, hook runtimecata
 			return err
 		}
 		i.runtimeExtension.DiscoverVariables(ctx, reqCopy, resp.(*runtimehooksv1.DiscoverVariablesResponse))
-		if resp.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-			return errors.Errorf("failed to call extension handler: got failure response: %v", resp.GetMessage())
+		if resp.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
+			if resp.GetStatus() == runtimehooksv1.ResponseStatusFailure {
+				return errors.Errorf("failed to call extension handler: got failure response: %v", resp.GetMessage())
+			}
+			return errors.Errorf("failed to call extension handler: got unknown response status %q", resp.GetStatus())
 		}
 		return nil
 	case runtimecatalog.HookName(runtimehooksv1.GeneratePatches):
@@ -447,8 +450,11 @@ func (i injectRuntimeClient) CallExtension(ctx context.Context, hook runtimecata
 			return err
 		}
 		i.runtimeExtension.GeneratePatches(ctx, reqCopy, resp.(*runtimehooksv1.GeneratePatchesResponse))
-		if resp.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-			return errors.Errorf("failed to call extension handler: got failure response: %v", resp.GetMessage())
+		if resp.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
+			if resp.GetStatus() == runtimehooksv1.ResponseStatusFailure {
+				return errors.Errorf("failed to call extension handler: got failure response: %v", resp.GetMessage())
+			}
+			return errors.Errorf("failed to call extension handler: got unknown response status %q", resp.GetStatus())
 		}
 		return nil
 	case runtimecatalog.HookName(runtimehooksv1.ValidateTopology):
@@ -457,8 +463,11 @@ func (i injectRuntimeClient) CallExtension(ctx context.Context, hook runtimecata
 			return err
 		}
 		i.runtimeExtension.ValidateTopology(ctx, reqCopy, resp.(*runtimehooksv1.ValidateTopologyResponse))
-		if resp.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-			return errors.Errorf("failed to call extension handler: got failure response: %v", resp.GetMessage())
+		if resp.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
+			if resp.GetStatus() == runtimehooksv1.ResponseStatusFailure {
+				return errors.Errorf("failed to call extension handler: got failure response: %v", resp.GetMessage())
+			}
+			return errors.Errorf("failed to call extension handler: got unknown response status %q", resp.GetStatus())
 		}
 		return nil
 	}

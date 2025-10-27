@@ -416,6 +416,9 @@ func TestApply(t *testing.T) {
 			},
 			externalPatchResponses: map[string]runtimehooksv1.ResponseObject{
 				"patch-infrastructureCluster": &runtimehooksv1.GeneratePatchesResponse{
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Status: runtimehooksv1.ResponseStatusSuccess,
+					},
 					Items: []runtimehooksv1.GeneratePatchesResponseItem{
 						{
 							UID:       "1",
@@ -453,6 +456,9 @@ func TestApply(t *testing.T) {
 			},
 			externalPatchResponses: map[string]runtimehooksv1.ResponseObject{
 				"patch-infrastructureCluster": &runtimehooksv1.GeneratePatchesResponse{
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Status: runtimehooksv1.ResponseStatusSuccess,
+					},
 					Items: []runtimehooksv1.GeneratePatchesResponseItem{
 						{
 							UID:       "1",
@@ -493,6 +499,9 @@ func TestApply(t *testing.T) {
 
 			externalPatchResponses: map[string]runtimehooksv1.ResponseObject{
 				"patch-infrastructureCluster": &runtimehooksv1.GeneratePatchesResponse{
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Status: runtimehooksv1.ResponseStatusSuccess,
+					},
 					Items: []runtimehooksv1.GeneratePatchesResponseItem{
 						{
 							UID:       "1",
@@ -515,6 +524,9 @@ func TestApply(t *testing.T) {
 					},
 				},
 				"patch-controlPlane": &runtimehooksv1.GeneratePatchesResponse{
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Status: runtimehooksv1.ResponseStatusSuccess,
+					},
 					Items: []runtimehooksv1.GeneratePatchesResponseItem{
 						{
 							UID:       "2",

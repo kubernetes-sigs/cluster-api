@@ -761,6 +761,42 @@ func TestClient_CallExtension(t *testing.T) {
 			wantErr:            true,
 			wantResponseCached: false,
 		},
+		{
+			name:                       "should fail when calling ExtensionHandler with unknown response status and FailurePolicyFail",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{validExtensionHandlerWithFailPolicy},
+			testServer: testServerConfig{
+				start: true,
+				responses: map[string]testServerResponse{
+					"/*": response(runtimehooksv1.ResponseStatus("Unknown")),
+				},
+			},
+			args: args{
+				hook:     fakev1alpha1.FakeHook,
+				name:     "valid-extension",
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
+			},
+			wantErr:            true,
+			wantResponseCached: false,
+		},
+		{
+			name:                       "should fail when calling ExtensionHandler with unknown response status and FailurePolicyIgnore",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{validExtensionHandlerWithIgnorePolicy},
+			testServer: testServerConfig{
+				start: true,
+				responses: map[string]testServerResponse{
+					"/*": response(runtimehooksv1.ResponseStatus("Unknown")),
+				},
+			},
+			args: args{
+				hook:     fakev1alpha1.FakeHook,
+				name:     "valid-extension",
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
+			},
+			wantErr:            true,
+			wantResponseCached: false,
+		},
 	}
 
 	for _, tt := range tests {

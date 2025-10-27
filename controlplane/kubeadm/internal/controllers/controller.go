@@ -107,6 +107,7 @@ type KubeadmControlPlaneReconciler struct {
 	overridePreflightChecksFunc        func(ctx context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) ctrl.Result
 	overrideCanUpdateMachineFunc       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (bool, error)
 	overrideCanExtensionsUpdateMachine func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult, extensionHandlers []string) (bool, []string, error)
+	overrideTriggerInPlaceUpdate       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) error
 	// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
 	//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
 	disableRemoveManagedFieldsForLabelsAndAnnotations bool
@@ -479,10 +480,29 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		return result, err
 	}
 
+	if machines := controlPlane.MachinesToCompleteTriggerInPlaceUpdate(); len(machines) > 0 {
+		_, machinesUpToDateResults := controlPlane.NotUpToDateMachines()
+		for _, m := range machines {
+			if err := r.triggerInPlaceUpdate(ctx, m, machinesUpToDateResults[m.Name]); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil // Note: Changes to Machines trigger another reconcile.
+	}
+
 	// Reconcile unhealthy machines by triggering deletion and requeue if it is considered safe to remediate,
 	// otherwise continue with the other KCP operations.
 	if result, err := r.reconcileUnhealthyMachines(ctx, controlPlane); err != nil || !result.IsZero() {
 		return result, err
+	}
+
+	// Wait for in-place update to complete.
+	// Note: If a Machine becomes unhealthy during in-place update reconcileUnhealthyMachines above remediates it.
+	// Note: We have to wait here even if there are no more Machines that need rollout (in-place update in
+	// progress is not counted as needs rollout).
+	if machines := controlPlane.MachinesToCompleteInPlaceUpdate(); machines.Len() > 0 {
+		log.Info("Waiting for in-place update to complete", "machines", strings.Join(machines.Names(), ", "))
+		return ctrl.Result{}, nil // Note: Changes to Machines trigger another reconcile.
 	}
 
 	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.

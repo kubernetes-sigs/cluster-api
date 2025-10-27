@@ -70,6 +70,11 @@ func UpToDate(
 		res.EligibleForInPlaceUpdate = false
 	}
 
+	// If a Machine is marked for remediation it is not eligible for in-place update.
+	if _, ok := machine.Annotations[clusterv1.RemediateMachineAnnotation]; ok {
+		res.EligibleForInPlaceUpdate = false
+	}
+
 	// Machines whose certificates are about to expire.
 	if collections.ShouldRolloutBefore(reconciliationTime, kcp.Spec.Rollout.Before)(machine) {
 		res.LogMessages = append(res.LogMessages, "certificates will expire soon, rolloutBefore expired")

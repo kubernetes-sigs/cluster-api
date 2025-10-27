@@ -205,11 +205,22 @@
   - ms1, 1/0 replicas (m6 => ms2)
   - ms2, 6/6 replicas (m1,m2,m3,m4,m5,m7 <= ms1)
 [MS controller] Iteration 17, Reconcile ms1, 1/0 replicas (m6 => ms2)
-[MS controller] - Move capped to 0 replicas to avoid unnecessary in-place upgrades
-[MS controller] - ms1 scale down to 1/0 replicas ( moved to ms2)
-[MS controller] - ms1 scale down to 0/0 replicas (m6 deleted)
-[MS controller] Iteration 17, Reconcile ms2, 6/6 replicas (m1,m2,m3,m4,m5,m7 <= ms1)
+[MS controller] - ms1 scale down to 0/0 replicas (m6 moved to ms2)
+[MS controller] Iteration 17, Reconcile ms2, 6/6 replicas (m1,m2,m3,m4,m5,m6🟠🟡,m7 <= ms1)
+[MS controller] - Replicas m6 moved from an old MachineSet still pending acknowledge from machine deployment md
 [MD controller] Iteration 18, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 7/6 replicas
+  - ms1, 0/0 replicas ( => ms2)
+  - ms2, 7/6 replicas (m1,m2,m3,m4,m5,m6🟠🟡,m7 <= ms1)
+[MD controller] - Result of rollout planner
+  md, 7/6 replicas
+  - ms1, 0/0 replicas ( => ms2)
+  - ms2, 7/6 replicas (m1,m2,m3,m4,m5,m6🟡,m7 <= ms1)
+[MS controller] Iteration 18, Reconcile ms1, 0/0 replicas ( => ms2)
+[MS controller] Iteration 18, Reconcile ms2, 7/6 replicas (m1,m2,m3,m4,m5,m6🟡,m7 <= ms1)
+[MS controller] - ms2 scale down to 6/6 replicas (m6 deleted)
+[MD controller] Iteration 19, Reconcile md
 [MD controller] - Input to rollout planner
   md, 7/6 replicas
   - ms1, 0/0 replicas ( => ms2)
@@ -218,8 +229,8 @@
   md, 6/6 replicas
   - ms1, 0/0 replicas ( => ms2)
   - ms2, 6/6 replicas (m1,m2,m3,m4,m5,m7 <= ms1)
-[MS controller] Iteration 18, Reconcile ms1, 0/0 replicas ( => ms2)
-[MS controller] Iteration 18, Reconcile ms2, 6/6 replicas (m1,m2,m3,m4,m5,m7 <= ms1)
+[MS controller] Iteration 19, Reconcile ms1, 0/0 replicas ( => ms2)
+[MS controller] Iteration 19, Reconcile ms2, 6/6 replicas (m1,m2,m3,m4,m5,m7 <= ms1)
 [Test] Final state
   md, 6/6 replicas
   - ms1, 0/0 replicas ( => ms2)

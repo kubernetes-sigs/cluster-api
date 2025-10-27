@@ -128,18 +128,28 @@
 [MS controller] Iteration 16, Reconcile ms2, 3/3 replicas (m1,m2,m4 <= ms1)
 [MS controller] Iteration 16, Reconcile ms2, 3/3 replicas (m1,m2,m4 <= ms1)
 [MS controller] Iteration 16, Reconcile ms1, 1/0 replicas (m3 => ms2)
-[MS controller] - Move capped to 0 replicas to avoid unnecessary in-place upgrades
-[MS controller] - ms1 scale down to 1/0 replicas ( moved to ms2)
-[MS controller] - ms1 scale down to 0/0 replicas (m3 deleted)
+[MS controller] - ms1 scale down to 0/0 replicas (m3 moved to ms2)
 [MD controller] Iteration 16, Reconcile md
 [MD controller] - Input to rollout planner
   md, 4/3 replicas
   - ms1, 0/0 replicas ( => ms2)
-  - ms2, 3/3 replicas (m1,m2,m4 <= ms1)
+  - ms2, 3/3 replicas (m1,m2,m3🟠🟡,m4 <= ms1)
 [MD controller] - Result of rollout planner
   md, 3/3 replicas
   - ms1, 0/0 replicas ( => ms2)
-  - ms2, 3/3 replicas (m1,m2,m4 <= ms1)
+  - ms2, 3/3 replicas (m1,m2,m3🟡,m4 <= ms1)
+[MD controller] Iteration 17, Reconcile md
+[MD controller] - Input to rollout planner
+  md, 3/3 replicas
+  - ms1, 0/0 replicas ( => ms2)
+  - ms2, 3/3 replicas (m1,m2,m3🟡,m4 <= ms1)
+[MD controller] - Result of rollout planner
+  md, 3/3 replicas
+  - ms1, 0/0 replicas ( => ms2)
+  - ms2, 3/3 replicas (m1,m2,m3🟡,m4 <= ms1)
+[MS controller] Iteration 17, Reconcile ms2, 3/3 replicas (m1,m2,m3🟡,m4 <= ms1)
+[MS controller] - ms2 scale down to 3/3 replicas (m3 deleted)
+[MS controller] Iteration 17, Reconcile ms1, 0/0 replicas ( => ms2)
 [Test] Final state
   md, 3/3 replicas
   - ms1, 0/0 replicas ( => ms2)

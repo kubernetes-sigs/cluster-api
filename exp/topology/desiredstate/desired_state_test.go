@@ -1195,7 +1195,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			expectedIsStartingUpgrade:   true,
 		},
 		{
-			name:                         "should return cluster.spec.topology.version if the control plane is upgrading and scaling and none of the MachineDeployments and MachinePools are upgrading - BeforeClusterUpgrade, BeforeControlPlaneUpgrade, BeforeWorkersUpgrade and AfterWorkersUpgrade hooks returns non blocking response",
+			name:                         "should return cluster.spec.topology.version if the control plane is not upgrading or scaling and none of the MachineDeployments and MachinePools are upgrading - BeforeClusterUpgrade, BeforeControlPlaneUpgrade, BeforeWorkersUpgrade and AfterWorkersUpgrade hooks returns non blocking response",
 			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
 			topologyVersion:              "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").

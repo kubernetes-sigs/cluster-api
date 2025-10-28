@@ -86,6 +86,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpdateMachineRequestObjects":                          schema_api_runtime_hooks_v1alpha1_UpdateMachineRequestObjects(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpdateMachineResponse":                                schema_api_runtime_hooks_v1alpha1_UpdateMachineResponse(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep":                                          schema_api_runtime_hooks_v1alpha1_UpgradeStep(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo":                                      schema_api_runtime_hooks_v1alpha1_UpgradeStepInfo(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ValidateTopologyRequest":                              schema_api_runtime_hooks_v1alpha1_ValidateTopologyRequest(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ValidateTopologyRequestItem":                          schema_api_runtime_hooks_v1alpha1_ValidateTopologyRequestItem(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ValidateTopologyResponse":                             schema_api_runtime_hooks_v1alpha1_ValidateTopologyResponse(ref),
@@ -348,11 +349,6 @@ func schema_api_runtime_hooks_v1alpha1_AfterControlPlaneUpgradeRequest(ref commo
 						},
 					},
 					"controlPlaneUpgrades": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
 							Description: "controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.",
 							Type:        []string{"array"},
@@ -360,18 +356,13 @@ func schema_api_runtime_hooks_v1alpha1_AfterControlPlaneUpgradeRequest(ref commo
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
 									},
 								},
 							},
 						},
 					},
 					"workersUpgrades": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
 							Description: "workersUpgrades is the list of the remaining version upgrade steps for workers, if any.",
 							Type:        []string{"array"},
@@ -379,7 +370,7 @@ func schema_api_runtime_hooks_v1alpha1_AfterControlPlaneUpgradeRequest(ref commo
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
 									},
 								},
 							},
@@ -390,7 +381,7 @@ func schema_api_runtime_hooks_v1alpha1_AfterControlPlaneUpgradeRequest(ref commo
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"},
 	}
 }
 
@@ -499,11 +490,6 @@ func schema_api_runtime_hooks_v1alpha1_AfterWorkersUpgradeRequest(ref common.Ref
 						},
 					},
 					"controlPlaneUpgrades": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
 							Description: "controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.",
 							Type:        []string{"array"},
@@ -511,18 +497,13 @@ func schema_api_runtime_hooks_v1alpha1_AfterWorkersUpgradeRequest(ref common.Ref
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
 									},
 								},
 							},
 						},
 					},
 					"workersUpgrades": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
 							Description: "workersUpgrades is the list of the remaining version upgrade steps for workers, if any.",
 							Type:        []string{"array"},
@@ -530,7 +511,7 @@ func schema_api_runtime_hooks_v1alpha1_AfterWorkersUpgradeRequest(ref common.Ref
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
 									},
 								},
 							},
@@ -541,7 +522,7 @@ func schema_api_runtime_hooks_v1alpha1_AfterWorkersUpgradeRequest(ref common.Ref
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"},
 	}
 }
 
@@ -868,11 +849,6 @@ func schema_api_runtime_hooks_v1alpha1_BeforeClusterUpgradeRequest(ref common.Re
 						},
 					},
 					"controlPlaneUpgrades": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
 							Description: "controlPlaneUpgrades is the list of version upgrade steps for the control plane.",
 							Type:        []string{"array"},
@@ -880,18 +856,13 @@ func schema_api_runtime_hooks_v1alpha1_BeforeClusterUpgradeRequest(ref common.Re
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
 									},
 								},
 							},
 						},
 					},
 					"workersUpgrades": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
 							Description: "workersUpgrades is the list of version upgrade steps for the workers.",
 							Type:        []string{"array"},
@@ -899,7 +870,7 @@ func schema_api_runtime_hooks_v1alpha1_BeforeClusterUpgradeRequest(ref common.Re
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
 									},
 								},
 							},
@@ -910,7 +881,7 @@ func schema_api_runtime_hooks_v1alpha1_BeforeClusterUpgradeRequest(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"},
 	}
 }
 
@@ -1027,11 +998,6 @@ func schema_api_runtime_hooks_v1alpha1_BeforeControlPlaneUpgradeRequest(ref comm
 						},
 					},
 					"controlPlaneUpgrades": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
 							Description: "controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.",
 							Type:        []string{"array"},
@@ -1039,18 +1005,13 @@ func schema_api_runtime_hooks_v1alpha1_BeforeControlPlaneUpgradeRequest(ref comm
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
 									},
 								},
 							},
 						},
 					},
 					"workersUpgrades": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
 							Description: "workersUpgrades is the list of the remaining version upgrade steps for workers, if any.",
 							Type:        []string{"array"},
@@ -1058,7 +1019,7 @@ func schema_api_runtime_hooks_v1alpha1_BeforeControlPlaneUpgradeRequest(ref comm
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
 									},
 								},
 							},
@@ -1069,7 +1030,7 @@ func schema_api_runtime_hooks_v1alpha1_BeforeControlPlaneUpgradeRequest(ref comm
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"},
 	}
 }
 
@@ -1186,11 +1147,6 @@ func schema_api_runtime_hooks_v1alpha1_BeforeWorkersUpgradeRequest(ref common.Re
 						},
 					},
 					"controlPlaneUpgrades": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
 							Description: "controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.",
 							Type:        []string{"array"},
@@ -1198,18 +1154,13 @@ func schema_api_runtime_hooks_v1alpha1_BeforeWorkersUpgradeRequest(ref common.Re
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
 									},
 								},
 							},
 						},
 					},
 					"workersUpgrades": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
 						SchemaProps: spec.SchemaProps{
 							Description: "workersUpgrades is the list of the remaining version upgrade steps for workers, if any.",
 							Type:        []string{"array"},
@@ -1217,7 +1168,7 @@ func schema_api_runtime_hooks_v1alpha1_BeforeWorkersUpgradeRequest(ref common.Re
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"),
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
 									},
 								},
 							},
@@ -1228,7 +1179,7 @@ func schema_api_runtime_hooks_v1alpha1_BeforeWorkersUpgradeRequest(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"},
 	}
 }
 
@@ -3079,6 +3030,27 @@ func schema_api_runtime_hooks_v1alpha1_UpgradeStep(ref common.ReferenceCallback)
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "UpgradeStep represents a single version upgrade step.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the Kubernetes version for this upgrade step.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"version"},
+			},
+		},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_UpgradeStepInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "UpgradeStepInfo provide info about a single version upgrade step.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"version": {

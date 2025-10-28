@@ -143,12 +143,12 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 // toUpgradeStep converts a list of version to a list of upgrade steps.
 // Note. when called for workers, the function will receive in input two plans one for the MachineDeployments if any, the other for MachinePools if any.
 // Considering that both plans, if defined, have to be equal, the function picks the first one not empty.
-func toUpgradeStep(plans ...[]string) []runtimehooksv1.UpgradeStep {
-	var steps []runtimehooksv1.UpgradeStep
+func toUpgradeStep(plans ...[]string) []runtimehooksv1.UpgradeStepInfo {
+	var steps []runtimehooksv1.UpgradeStepInfo
 	for _, plan := range plans {
 		if len(plan) != 0 {
 			for _, step := range plan {
-				steps = append(steps, runtimehooksv1.UpgradeStep{Version: step})
+				steps = append(steps, runtimehooksv1.UpgradeStepInfo{Version: step})
 			}
 			break
 		}

@@ -151,7 +151,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 		},
 		{
 			name:            "when an upgrade starts: call the BeforeClusterUpgrade hook, blocking answer",
-			topologyVersion: "v1.2.3", // changed from previews step
+			topologyVersion: "v1.2.3", // changed from previous step
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
 					"spec.version": "v1.2.2",
@@ -194,9 +194,9 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 				WorkersUpgrades:       toUpgradeStep([]string{"v1.2.3"}),
 			},
 			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
-			wantVersion:                  "v1.2.3", // changed from previews step
+			wantVersion:                  "v1.2.3", // changed from previous step
 			wantIsStartingUpgrade:        true,
-			wantPendingHookAnnotation:    "AfterClusterUpgrade,AfterControlPlaneUpgrade", // changed from previews step
+			wantPendingHookAnnotation:    "AfterClusterUpgrade,AfterControlPlaneUpgrade", // changed from previous step
 		},
 		{
 			name:                  "when control plane is upgrading: do not call hooks",
@@ -217,7 +217,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			wantPendingHookAnnotation:     "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 		},
 		{
-			name:                  "after control plane is upgraded: call the AfterControlPlaneUpgradeRequest hook, blocking answer",
+			name:                  "after control plane is upgraded: call the AfterControlPlaneUpgrade hook, blocking answer",
 			topologyVersion:       "v1.2.3",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
@@ -241,7 +241,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			wantPendingHookAnnotation:        "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 		},
 		{
-			name:                  "after control plane is upgraded: AfterControlPlaneUpgradeRequest hook unblocks",
+			name:                  "after control plane is upgraded: AfterControlPlaneUpgrade hook unblocks",
 			topologyVersion:       "v1.2.3",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
@@ -300,7 +300,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			wantVersion:                   "v1.2.3",
 			wantPendingHookAnnotation:     "AfterClusterUpgrade",
 		},
-		// AfterClusterUpgrade is called from reconcile_state.go
+		// Note: After MP upgrade completes, the AfterClusterUpgrade is called from reconcile_state.go
 
 		// Upgrade cluster with CP, MD (upgrade by two minors, workers skip the first one)
 
@@ -319,7 +319,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 		},
 		{
 			name:            "when an upgrade to the first minor starts: call the BeforeClusterUpgrade hook, blocking answer",
-			topologyVersion: "v1.4.4", // changed from previews step
+			topologyVersion: "v1.4.4", // changed from previous step
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
 					"spec.version": "v1.2.2",
@@ -362,9 +362,9 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 				WorkersUpgrades:       toUpgradeStep([]string{"v1.4.4"}),
 			},
 			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
-			wantVersion:                  "v1.3.3", // changed from previews step
+			wantVersion:                  "v1.3.3", // changed from previous step
 			wantIsStartingUpgrade:        true,
-			wantPendingHookAnnotation:    "AfterClusterUpgrade,AfterControlPlaneUpgrade", // changed from previews step
+			wantPendingHookAnnotation:    "AfterClusterUpgrade,AfterControlPlaneUpgrade", // changed from previous step
 		},
 		{
 			name:                  "when control plane is upgrading to the first minor: do not call hooks",
@@ -397,7 +397,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 					"status.version": "v1.3.3", // changed from previous step
 				}).
 				Build(),
-			controlPlaneUpgradePlan:       []string{"v1.4.4"}, // changed from previous step
+			controlPlaneUpgradePlan:       []string{"v1.4.4"},
 			machineDeploymentsUpgradePlan: []string{"v1.4.4"},
 			machinePoolsUpgradePlan:       []string{},
 			wantAfterControlPlaneUpgradeRequest: &runtimehooksv1.AfterControlPlaneUpgradeRequest{
@@ -431,9 +431,9 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 				WorkersUpgrades:      toUpgradeStep([]string{"v1.4.4"}),
 			},
 			afterControlPlaneUpgradeResponse: nonBlockingAfterControlPlaneUpgradeResponse,
-			wantVersion:                      "v1.4.4", // changed from previews step
+			wantVersion:                      "v1.4.4", // changed from previous step
 			wantIsStartingUpgrade:            true,
-			wantPendingHookAnnotation:        "AfterClusterUpgrade,AfterControlPlaneUpgrade", // changed from previews step
+			wantPendingHookAnnotation:        "AfterClusterUpgrade,AfterControlPlaneUpgrade", // changed from previous step
 		},
 		{
 			name:                  "when control plane is upgrading to the second minor: do not call hooks",
@@ -495,7 +495,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			wantVersion:                   "v1.4.4",
 			wantPendingHookAnnotation:     "AfterClusterUpgrade",
 		},
-		// AfterClusterUpgrade is called from reconcile_state.go
+		// Note: After MD upgrade completes, the AfterClusterUpgrade is called from reconcile_state.go
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

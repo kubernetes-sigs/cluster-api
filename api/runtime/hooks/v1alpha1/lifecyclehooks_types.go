@@ -100,17 +100,19 @@ type BeforeClusterUpgradeRequest struct {
 
 	// controlPlaneUpgrades is the list of version upgrade steps for the control plane.
 	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=1000
-	ControlPlaneUpgrades []UpgradeStep `json:"controlPlaneUpgrades,omitempty"`
+	ControlPlaneUpgrades []UpgradeStepInfo `json:"controlPlaneUpgrades,omitempty"`
 
 	// workersUpgrades is the list of version upgrade steps for the workers.
 	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=1000
-	WorkersUpgrades []UpgradeStep `json:"workersUpgrades,omitempty"`
+	WorkersUpgrades []UpgradeStepInfo `json:"workersUpgrades,omitempty"`
+}
+
+// UpgradeStepInfo provide info about a single version upgrade step.
+type UpgradeStepInfo struct {
+	// version is the Kubernetes version for this upgrade step.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	Version string `json:"version,omitempty"`
 }
 
 var _ RetryResponseObject = &BeforeClusterUpgradeResponse{}
@@ -150,17 +152,11 @@ type BeforeControlPlaneUpgradeRequest struct {
 
 	// controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.
 	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=1000
-	ControlPlaneUpgrades []UpgradeStep `json:"controlPlaneUpgrades,omitempty"`
+	ControlPlaneUpgrades []UpgradeStepInfo `json:"controlPlaneUpgrades,omitempty"`
 
 	// workersUpgrades is the list of the remaining version upgrade steps for workers, if any.
 	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=1000
-	WorkersUpgrades []UpgradeStep `json:"workersUpgrades,omitempty"`
+	WorkersUpgrades []UpgradeStepInfo `json:"workersUpgrades,omitempty"`
 }
 
 var _ RetryResponseObject = &BeforeControlPlaneUpgradeResponse{}
@@ -196,17 +192,11 @@ type AfterControlPlaneUpgradeRequest struct {
 
 	// controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.
 	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=1000
-	ControlPlaneUpgrades []UpgradeStep `json:"controlPlaneUpgrades,omitempty"`
+	ControlPlaneUpgrades []UpgradeStepInfo `json:"controlPlaneUpgrades,omitempty"`
 
 	// workersUpgrades is the list of the remaining version upgrade steps for workers, if any.
 	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=1000
-	WorkersUpgrades []UpgradeStep `json:"workersUpgrades,omitempty"`
+	WorkersUpgrades []UpgradeStepInfo `json:"workersUpgrades,omitempty"`
 }
 
 var _ RetryResponseObject = &AfterControlPlaneUpgradeResponse{}
@@ -246,17 +236,11 @@ type BeforeWorkersUpgradeRequest struct {
 
 	// controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.
 	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=1000
-	ControlPlaneUpgrades []UpgradeStep `json:"controlPlaneUpgrades,omitempty"`
+	ControlPlaneUpgrades []UpgradeStepInfo `json:"controlPlaneUpgrades,omitempty"`
 
 	// workersUpgrades is the list of the remaining version upgrade steps for workers, if any.
 	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=1000
-	WorkersUpgrades []UpgradeStep `json:"workersUpgrades,omitempty"`
+	WorkersUpgrades []UpgradeStepInfo `json:"workersUpgrades,omitempty"`
 }
 
 var _ RetryResponseObject = &BeforeWorkersUpgradeResponse{}
@@ -292,17 +276,11 @@ type AfterWorkersUpgradeRequest struct {
 
 	// controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.
 	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=1000
-	ControlPlaneUpgrades []UpgradeStep `json:"controlPlaneUpgrades,omitempty"`
+	ControlPlaneUpgrades []UpgradeStepInfo `json:"controlPlaneUpgrades,omitempty"`
 
 	// workersUpgrades is the list of the remaining version upgrade steps for workers, if any.
 	// +optional
-	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=1000
-	WorkersUpgrades []UpgradeStep `json:"workersUpgrades,omitempty"`
+	WorkersUpgrades []UpgradeStepInfo `json:"workersUpgrades,omitempty"`
 }
 
 var _ RetryResponseObject = &AfterWorkersUpgradeResponse{}
@@ -423,6 +401,7 @@ func init() {
 		Description: "This hook is called before a new version is propagated to the control plane object.\n" +
 			"\n" +
 			"Notes:\n" +
+			"- This hook will be called only for Clusters with a managed topology\n" +
 			"- When an upgrade is starting, BeforeControlPlaneUpgrade will be called after BeforeClusterUpgrade is completed\n" +
 			"- When an upgrade is in progress BeforeControlPlaneUpgrade will be called for each intermediate version that will be applied " +
 			"to the control plane (instead BeforeClusterUpgrade will be called only once at the beginning of the upgrade)" +
@@ -450,6 +429,7 @@ func init() {
 		Description: "This hook is called before a new version is propagated to workers.\n" +
 			"\n" +
 			"Notes:\n" +
+			"- This hook will be called only for Clusters with a managed topology\n" +
 			"- This hook will be called only if workers upgrade must be performed for an intermediate version of " +
 			"a chained upgrade or when upgrading to the target spec.topology.version.\n" +
 			"- This is a blocking hook; Runtime Extension implementers can use this hook to execute " +

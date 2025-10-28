@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
@@ -107,6 +108,16 @@ func (d *Dialer) DialContext(ctx context.Context, _ string, addr string) (net.Co
 	}
 
 	dialer := spdy.NewDialer(d.upgrader, httpClient, "POST", req.URL())
+
+	// Configure websocket dialer and keep spdy as fallback
+	// Note: websockets are enabled per default starting with kubernetes 1.31.
+	tunnelingDialer, err := portforward.NewSPDYOverWebsocketDialer(req.URL(), d.proxy.KubeConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating websocket tunneling dialer")
+	}
+	dialer = portforward.NewFallbackDialer(tunnelingDialer, dialer, func(err error) bool {
+		return httpstream.IsUpgradeFailure(err) || httpstream.IsHTTPSProxyError(err)
+	})
 
 	// Create a new connection from the dialer.
 	//

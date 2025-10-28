@@ -33,8 +33,10 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/failuredomains"
@@ -183,6 +185,26 @@ func (c *ControlPlane) MachineWithDeleteAnnotation(machines collections.Machines
 	annotatedMachines := machines.Filter(collections.HasAnnotationKey(clusterv1.DeleteMachineAnnotation))
 	// If there are, return list of annotated machines.
 	return annotatedMachines
+}
+
+// MachinesToCompleteTriggerInPlaceUpdate returns Machines for which we have to complete triggering
+// the in-place update. This can become necessary if triggering the in-place update fails after
+// we added UpdateInProgressAnnotation and before we marked the UpdateMachine hook as pending.
+func (c *ControlPlane) MachinesToCompleteTriggerInPlaceUpdate() collections.Machines {
+	return c.Machines.Filter(func(machine *clusterv1.Machine) bool {
+		_, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]
+		return ok && !hooks.IsPending(runtimehooksv1.UpdateMachine, machine)
+	})
+}
+
+// MachinesToCompleteInPlaceUpdate returns Machines that still have to complete their in-place update.
+func (c *ControlPlane) MachinesToCompleteInPlaceUpdate() collections.Machines {
+	return c.Machines.Filter(func(machine *clusterv1.Machine) bool {
+		// Note: Checking both annotations here to make this slightly more robust.
+		//       Theoretically only checking for IsPending would have been enough.
+		_, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]
+		return ok || hooks.IsPending(runtimehooksv1.UpdateMachine, machine)
+	})
 }
 
 // FailureDomainWithMostMachines returns the fd with most machines in it and at least one eligible machine in it.

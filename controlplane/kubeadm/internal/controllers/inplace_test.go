@@ -37,14 +37,15 @@ func Test_tryInPlaceUpdate(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                       string
-		preflightChecksFunc        func(ctx context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) ctrl.Result
-		canUpdateMachineFunc       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (bool, error)
-		wantCanUpdateMachineCalled bool
-		wantFallbackToScaleDown    bool
-		wantError                  bool
-		wantErrorMessage           string
-		wantRes                    ctrl.Result
+		name                           string
+		preflightChecksFunc            func(ctx context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) ctrl.Result
+		canUpdateMachineFunc           func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (bool, error)
+		wantCanUpdateMachineCalled     bool
+		wantTriggerInPlaceUpdateCalled bool
+		wantFallbackToScaleDown        bool
+		wantError                      bool
+		wantErrorMessage               string
+		wantRes                        ctrl.Result
 	}{
 		{
 			name: "Requeue if preflight checks for all Machines failed",
@@ -94,9 +95,9 @@ func Test_tryInPlaceUpdate(t *testing.T) {
 			canUpdateMachineFunc: func(_ context.Context, _ *clusterv1.Machine, _ internal.UpToDateResult) (bool, error) {
 				return true, nil
 			},
-			wantCanUpdateMachineCalled: true,
-			// TODO(in-place): Will be modified once tryInPlaceUpdate triggers in-place updates.
-			wantFallbackToScaleDown: true,
+			wantCanUpdateMachineCalled:     true,
+			wantTriggerInPlaceUpdateCalled: true,
+			wantFallbackToScaleDown:        false,
 		},
 	}
 	for _, tt := range tests {
@@ -104,6 +105,7 @@ func Test_tryInPlaceUpdate(t *testing.T) {
 			g := NewWithT(t)
 
 			var canUpdateMachineCalled bool
+			var triggerInPlaceUpdateCalled bool
 			r := &KubeadmControlPlaneReconciler{
 				overridePreflightChecksFunc: func(ctx context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) ctrl.Result {
 					return tt.preflightChecksFunc(ctx, controlPlane, excludeFor...)
@@ -111,6 +113,10 @@ func Test_tryInPlaceUpdate(t *testing.T) {
 				overrideCanUpdateMachineFunc: func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult internal.UpToDateResult) (bool, error) {
 					canUpdateMachineCalled = true
 					return tt.canUpdateMachineFunc(ctx, machine, machineUpToDateResult)
+				},
+				overrideTriggerInPlaceUpdate: func(_ context.Context, _ *clusterv1.Machine, _ internal.UpToDateResult) error {
+					triggerInPlaceUpdateCalled = true
+					return nil
 				},
 			}
 
@@ -125,6 +131,7 @@ func Test_tryInPlaceUpdate(t *testing.T) {
 			g.Expect(fallbackToScaleDown).To(Equal(tt.wantFallbackToScaleDown))
 
 			g.Expect(canUpdateMachineCalled).To(Equal(tt.wantCanUpdateMachineCalled), "canUpdateMachineCalled: actual: %t expected: %t", canUpdateMachineCalled, tt.wantCanUpdateMachineCalled)
+			g.Expect(triggerInPlaceUpdateCalled).To(Equal(tt.wantTriggerInPlaceUpdateCalled), "triggerInPlaceUpdateCalled: actual: %t expected: %t", triggerInPlaceUpdateCalled, tt.wantTriggerInPlaceUpdateCalled)
 		})
 	}
 }

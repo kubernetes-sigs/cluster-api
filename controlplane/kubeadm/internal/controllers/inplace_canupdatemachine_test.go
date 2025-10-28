@@ -785,7 +785,7 @@ func Test_createRequest(t *testing.T) {
 			},
 		},
 		{
-			name:                 "Should prepare all objects for diff: desiredInfraMachine picks up changes from currentMachine via SSA dry-run",
+			name:                 "Should prepare all objects for diff: desiredInfraMachine picks up changes from currentInfraMachine via SSA dry-run",
 			currentMachine:       currentMachine,
 			currentInfraMachine:  currentInfraMachine,
 			currentKubeadmConfig: currentKubeadmConfig,
@@ -815,7 +815,7 @@ func Test_createRequest(t *testing.T) {
 			},
 		},
 		{
-			name:                 "Should prepare all objects for diff: currentKubeadmConfig & currentKubeadmConfig are prepared for diff",
+			name:                 "Should prepare all objects for diff: currentKubeadmConfig & desiredKubeadmConfig are prepared for diff",
 			currentMachine:       currentMachine,
 			currentInfraMachine:  currentInfraMachine,
 			currentKubeadmConfig: currentKubeadmConfigWithInitConfiguration,
@@ -845,7 +845,6 @@ func Test_createRequest(t *testing.T) {
 
 			// Create Machine (same as in createMachine)
 			currentMachineForPatch := tt.currentMachine.DeepCopy()
-			currentMachineForPatch.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Machine")) // Has to be set for ssa.Patch
 			g.Expect(ssa.Patch(ctx, env.Client, kcpManagerName, currentMachineForPatch)).To(Succeed())
 			t.Cleanup(func() {
 				g.Expect(env.CleanupAndWait(context.Background(), tt.currentMachine)).To(Succeed())
@@ -861,7 +860,6 @@ func Test_createRequest(t *testing.T) {
 
 			// Create KubeadmConfig (same as in createKubeadmConfig)
 			currentKubeadmConfigForPatch := tt.currentKubeadmConfig.DeepCopy()
-			currentKubeadmConfigForPatch.SetGroupVersionKind(bootstrapv1.GroupVersion.WithKind("KubeadmConfig")) // Has to be set for ssa.Patch
 			g.Expect(ssa.Patch(ctx, env.Client, kcpManagerName, currentKubeadmConfigForPatch)).To(Succeed())
 			g.Expect(ssa.RemoveManagedFieldsForLabelsAndAnnotations(ctx, env.Client, env.GetAPIReader(), currentKubeadmConfigForPatch, kcpManagerName)).To(Succeed())
 			t.Cleanup(func() {

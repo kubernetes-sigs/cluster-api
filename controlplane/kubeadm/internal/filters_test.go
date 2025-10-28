@@ -1639,6 +1639,28 @@ func TestUpToDate(t *testing.T) {
 			expectConditionMessages:        []string{"Version v1.30.0, v1.30.2 required"},
 		},
 		{
+			name: "kubernetes version does not match + remediate annotation",
+			kcp: func() *controlplanev1.KubeadmControlPlane {
+				kcp := defaultKcp.DeepCopy()
+				kcp.Spec.Version = "v1.30.2"
+				return kcp
+			}(),
+			machine: func() *clusterv1.Machine {
+				machine := defaultMachine.DeepCopy()
+				machine.Spec.Version = "v1.30.0"
+				machine.Annotations = map[string]string{
+					clusterv1.RemediateMachineAnnotation: "",
+				}
+				return machine
+			}(),
+			infraConfigs:                   defaultInfraConfigs,
+			machineConfigs:                 defaultMachineConfigs,
+			expectUptoDate:                 false,
+			expectEligibleForInPlaceUpdate: false, // Not eligible for in-place update because of remediate annotation.
+			expectLogMessages:              []string{"Machine version \"v1.30.0\" is not equal to KCP version \"v1.30.2\""},
+			expectConditionMessages:        []string{"Version v1.30.0, v1.30.2 required"},
+		},
+		{
 			name: "KubeadmConfig is not up-to-date",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()

@@ -25,7 +25,11 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -403,5 +407,45 @@ func GetUpgradePlanFromClusterClassVersions(clusterClassVersions []string) func(
 			currentMinor = semV.Minor
 		}
 		return simplifiedUpgradePlan, nil, nil
+	}
+}
+
+// GetUpgradePlanFromExtension returns an upgrade plan by calling the GenerateUpgradePlan runtime extension.
+func GetUpgradePlanFromExtension(runtimeClient runtimeclient.Client, cluster *clusterv1.Cluster, extensionName string) func(ctx context.Context, desiredVersion, currentControlPlaneVersion, currentMinWorkersVersion string) ([]string, []string, error) {
+	return func(ctx context.Context, desiredVersion, currentControlPlaneVersion, currentMinWorkersVersion string) ([]string, []string, error) {
+		if !feature.Gates.Enabled(feature.RuntimeSDK) {
+			return nil, nil, errors.Errorf("can not use GenerateUpgradePlan extension %q if RuntimeSDK feature flag is disabled", extensionName)
+		}
+
+		// Prepare the request.
+		req := &runtimehooksv1.GenerateUpgradePlanRequest{
+			Cluster:                           *cluster,
+			FromControlPlaneKubernetesVersion: currentControlPlaneVersion,
+			FromWorkersKubernetesVersion:      currentMinWorkersVersion,
+			ToKubernetesVersion:               desiredVersion,
+		}
+
+		// Call the extension.
+		resp := &runtimehooksv1.GenerateUpgradePlanResponse{}
+		if err := runtimeClient.CallExtension(ctx, runtimehooksv1.GenerateUpgradePlan, cluster, extensionName, req, resp); err != nil {
+			return nil, nil, errors.Wrapf(err, "failed to call GenerateUpgradePlan extension %q", extensionName)
+		}
+
+		if resp.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
+			return nil, nil, errors.Errorf("GenerateUpgradePlan extension %q returned failure: %s", extensionName, resp.GetMessage())
+		}
+
+		// Convert UpgradeStep to string slice.
+		controlPlaneUpgradePlan := make([]string, len(resp.ControlPlaneUpgrades))
+		for i, step := range resp.ControlPlaneUpgrades {
+			controlPlaneUpgradePlan[i] = step.Version
+		}
+
+		workersUpgradePlan := make([]string, len(resp.WorkersUpgrades))
+		for i, step := range resp.WorkersUpgrades {
+			workersUpgradePlan[i] = step.Version
+		}
+
+		return controlPlaneUpgradePlan, workersUpgradePlan, nil
 	}
 }

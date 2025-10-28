@@ -229,10 +229,6 @@ func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook
 	if err != nil {
 		return errors.Wrapf(err, "failed to call extension handlers for hook %q: failed to compute GroupVersionHook", hookName)
 	}
-	forObjectGVK, err := apiutil.GVKForObject(forObject, c.client.Scheme())
-	if err != nil {
-		return errors.Wrapf(err, "failed to call extension handlers for hook %q: failed to get GroupVersionKind for the object the hook is executed for", hookName)
-	}
 	// Make sure the request is compatible with the hook.
 	if err := c.catalog.ValidateRequest(gvh, request); err != nil {
 		return errors.Wrapf(err, "failed to call extension handlers for hook %q: request object is invalid for hook", gvh.GroupHook())
@@ -242,33 +238,22 @@ func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook
 		return errors.Wrapf(err, "failed to call extension handlers for hook %q: response object is invalid for hook", gvh.GroupHook())
 	}
 
-	registrations, err := c.registry.List(gvh.GroupHook())
+	// Get all matching extension handlers for this hook and object.
+	matchingHandlers, err := c.GetAllExtensions(ctx, hook, forObject)
 	if err != nil {
 		return errors.Wrapf(err, "failed to call extension handlers for hook %q", gvh.GroupHook())
 	}
 
-	log.V(4).Info(fmt.Sprintf("Calling all extensions of hook %q for %s %s", hookName, forObjectGVK.Kind, klog.KObj(forObject)))
 	responses := []runtimehooksv1.ResponseObject{}
-	for _, registration := range registrations {
+	for _, handlerName := range matchingHandlers {
 		// Creates a new instance of the response parameter.
 		responseObject, err := c.catalog.NewResponse(gvh)
 		if err != nil {
-			return errors.Wrapf(err, "failed to call extension handlers for hook %q: failed to call extension handler %q", gvh.GroupHook(), registration.Name)
+			return errors.Wrapf(err, "failed to call extension handlers for hook %q: failed to call extension handler %q", gvh.GroupHook(), handlerName)
 		}
 		tmpResponse := responseObject.(runtimehooksv1.ResponseObject)
 
-		// Compute whether the object the call is being made for matches the namespaceSelector
-		namespaceMatches, err := c.matchNamespace(ctx, registration.NamespaceSelector, forObject.GetNamespace())
-		if err != nil {
-			return errors.Wrapf(err, "failed to call extension handlers for hook %q: failed to call extension handler %q", gvh.GroupHook(), registration.Name)
-		}
-		// If the object namespace isn't matched by the registration NamespaceSelector skip the call.
-		if !namespaceMatches {
-			log.V(5).Info(fmt.Sprintf("skipping extension handler %q as object '%s/%s' does not match selector %q of ExtensionConfig", registration.Name, forObject.GetNamespace(), forObject.GetName(), registration.NamespaceSelector))
-			continue
-		}
-
-		err = c.CallExtension(ctx, hook, forObject, registration.Name, request, tmpResponse)
+		err = c.CallExtension(ctx, hook, forObject, handlerName, request, tmpResponse)
 		// If one of the extension handlers fails lets short-circuit here and return early.
 		if err != nil {
 			log.Error(err, "failed to call extension handlers")

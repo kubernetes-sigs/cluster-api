@@ -51,10 +51,6 @@ func TestReconcileKubeconfigEmptyAPIEndpoints(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: metav1.NamespaceDefault,
@@ -65,10 +61,6 @@ func TestReconcileKubeconfigEmptyAPIEndpoints(t *testing.T) {
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlane",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: metav1.NamespaceDefault,
@@ -107,10 +99,6 @@ func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: metav1.NamespaceDefault,
@@ -121,10 +109,6 @@ func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlane",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: metav1.NamespaceDefault,
@@ -162,10 +146,6 @@ func TestReconcileKubeconfigSecretDoesNotAdoptsUserSecrets(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: metav1.NamespaceDefault,
@@ -176,10 +156,6 @@ func TestReconcileKubeconfigSecretDoesNotAdoptsUserSecrets(t *testing.T) {
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlane",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: metav1.NamespaceDefault,
@@ -237,10 +213,6 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: metav1.NamespaceDefault,
@@ -251,10 +223,6 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlane",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: metav1.NamespaceDefault,
@@ -851,10 +819,6 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 	userProvidedKubeadmConfigSecretOtherOwner.OwnerReferences = []metav1.OwnerReference{otherOwner}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlane",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testControlPlane",
 			Namespace: metav1.NamespaceDefault,
@@ -871,8 +835,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 			expectedOwnerRef: metav1.OwnerReference{
 				Name:               kcp.Name,
 				UID:                kcp.UID,
-				Kind:               kcp.Kind,
-				APIVersion:         kcp.APIVersion,
+				Kind:               "KubeadmControlPlane",
+				APIVersion:         controlplanev1.GroupVersion.String(),
 				Controller:         ptr.To(true),
 				BlockOwnerDeletion: ptr.To(true),
 			},
@@ -883,8 +847,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 			expectedOwnerRef: metav1.OwnerReference{
 				Name:               kcp.Name,
 				UID:                kcp.UID,
-				Kind:               kcp.Kind,
-				APIVersion:         kcp.APIVersion,
+				Kind:               "KubeadmControlPlane",
+				APIVersion:         controlplanev1.GroupVersion.String(),
 				Controller:         ptr.To(true),
 				BlockOwnerDeletion: ptr.To(true),
 			},

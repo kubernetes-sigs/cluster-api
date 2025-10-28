@@ -597,7 +597,6 @@ func TestMachineSetReconciler(t *testing.T) {
 
 func TestMachineSetOwnerReference(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
-		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: testClusterName},
 	}
 
@@ -640,8 +639,8 @@ func TestMachineSetOwnerReference(t *testing.T) {
 			ms: ms1,
 			expectedOR: []metav1.OwnerReference{
 				{
-					APIVersion: testCluster.APIVersion,
-					Kind:       testCluster.Kind,
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
 					Name:       testCluster.Name,
 					UID:        testCluster.UID,
 				},
@@ -1329,10 +1328,6 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	}
 
 	inPlaceMutatingMachine := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "in-place-mutating-machine",
 			Namespace: namespace.Name,
@@ -1365,10 +1360,6 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	}
 
 	deletingMachine := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "deleting-machine",
 			Namespace:   namespace.Name,

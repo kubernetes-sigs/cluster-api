@@ -220,7 +220,7 @@ func (r *Reconciler) patchNodes(ctx context.Context, c client.Client, references
 		desired := map[string]string{
 			clusterv1.ClusterNameAnnotation:      mp.Spec.ClusterName,
 			clusterv1.ClusterNamespaceAnnotation: mp.GetNamespace(),
-			clusterv1.OwnerKindAnnotation:        mp.Kind,
+			clusterv1.OwnerKindAnnotation:        "MachinePool",
 			clusterv1.OwnerNameAnnotation:        mp.Name,
 		}
 		// Add annotations and drop NodeUninitializedTaint.

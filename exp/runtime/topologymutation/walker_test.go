@@ -60,6 +60,7 @@ func Test_WalkTemplates(t *testing.T) {
 		}
 		return nil
 	}
+	// TypeMeta is required here because we convert these objects directly to JSON.
 	kubeadmControlPlaneTemplate := controlplanev1.KubeadmControlPlaneTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KubeadmControlPlaneTemplate",

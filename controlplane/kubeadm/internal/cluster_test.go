@@ -303,7 +303,6 @@ func machineListForTestGetMachinesForCluster() *clusterv1.MachineList {
 	}
 	machine := func(name string) clusterv1.Machine {
 		return clusterv1.Machine{
-			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: metav1.NamespaceDefault,

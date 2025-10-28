@@ -40,27 +40,19 @@ func Test_AddObjectHierarchy(t *testing.T) {
 	scheme := runtime.NewScheme()
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
-	md := &clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineDeployment",
-		},
+	md := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: metav1.NamespaceDefault,
 			Name:      "development-3961-md-0-l4zn6",
 		},
 	}
 	mdOwnerRef := metav1.OwnerReference{
-		APIVersion: md.APIVersion,
-		Kind:       md.Kind,
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "MachineDeployment",
 		Name:       md.Name,
 	}
 
 	ms := &clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineSet",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       metav1.NamespaceDefault,
 			Name:            "development-3961-md-0-l4zn6-758c9b7677",
@@ -68,8 +60,8 @@ func Test_AddObjectHierarchy(t *testing.T) {
 		},
 	}
 	msOwnerRef := metav1.OwnerReference{
-		APIVersion: ms.APIVersion,
-		Kind:       ms.Kind,
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "MachineSet",
 		Name:       ms.Name,
 	}
 

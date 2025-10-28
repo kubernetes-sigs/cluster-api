@@ -1120,10 +1120,6 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 	// Note: we depend on TypeMeta being set to calculate HolderReferences correctly.
 	// We also set TypeMeta explicitly in the topology/cluster/cluster_controller.go.
 	cluster := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "cluster1",
 			Namespace:   metav1.NamespaceDefault,

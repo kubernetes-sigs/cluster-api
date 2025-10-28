@@ -512,10 +512,6 @@ func discoveryHandler(handlerList ...string) func(http.ResponseWriter, *http.Req
 		})
 	}
 	response := &runtimehooksv1.DiscoveryResponse{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "DiscoveryResponse",
-			APIVersion: runtimehooksv1.GroupVersion.String(),
-		},
 		CommonResponse: runtimehooksv1.CommonResponse{
 			Status: runtimehooksv1.ResponseStatusSuccess,
 		},
@@ -534,10 +530,6 @@ func discoveryHandler(handlerList ...string) func(http.ResponseWriter, *http.Req
 
 func fakeExtensionConfigForURL(namespace, name, url string) *runtimev1.ExtensionConfig {
 	return &runtimev1.ExtensionConfig{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ExtensionConfig",
-			APIVersion: runtimehooksv1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Namespace:   namespace,

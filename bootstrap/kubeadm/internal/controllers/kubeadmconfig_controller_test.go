@@ -188,7 +188,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 
 		controllerOwner := metav1.GetControllerOf(actual)
 		g.Expect(controllerOwner).To(Not(BeNil()))
-		g.Expect(controllerOwner.Kind).To(Equal(config.Kind))
+		g.Expect(controllerOwner.Kind).To(Equal("KubeadmConfig"))
 		g.Expect(controllerOwner.Name).To(Equal(config.Name))
 	})
 
@@ -200,7 +200,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 
 		controllerOwner := metav1.GetControllerOf(actual)
 		g.Expect(controllerOwner).To(Not(BeNil()))
-		g.Expect(controllerOwner.Kind).To(Equal(config.Kind))
+		g.Expect(controllerOwner.Kind).To(Equal("KubeadmConfig"))
 		g.Expect(controllerOwner.Name).To(Equal(config.Name))
 	})
 	t.Run("non-KubeadmConfig controller OwnerReference is replaced", func(*testing.T) {
@@ -224,7 +224,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 
 		controllerOwner := metav1.GetControllerOf(actual)
 		g.Expect(controllerOwner).To(Not(BeNil()))
-		g.Expect(controllerOwner.Kind).To(Equal(config.Kind))
+		g.Expect(controllerOwner.Kind).To(Equal("KubeadmConfig"))
 		g.Expect(controllerOwner.Name).To(Equal(config.Name))
 	})
 }

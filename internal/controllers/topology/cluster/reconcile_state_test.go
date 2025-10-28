@@ -2035,10 +2035,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 					g.Expect(env.PatchAndWait(ctx, tt.current.InfrastructureMachineTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				}
 				if tt.current.MachineHealthCheck != nil {
-					// Note: Have to set GVK on typed objects when using SSA.
-					mhc := tt.current.MachineHealthCheck.DeepCopy()
-					mhc.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineHealthCheck"))
-					g.Expect(env.PatchAndWait(ctx, mhc, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+					g.Expect(env.PatchAndWait(ctx, tt.current.MachineHealthCheck, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				}
 			}
 
@@ -2322,10 +2319,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			for _, s := range tt.current {
 				g.Expect(env.PatchAndWait(ctx, s.InfrastructureMachineTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				g.Expect(env.PatchAndWait(ctx, s.BootstrapTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				// Note: Have to set GVK on typed objects when using SSA.
-				md := s.Object.DeepCopy()
-				md.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineDeployment"))
-				g.Expect(env.PatchAndWait(ctx, md, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, s.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 			}
 
 			currentMachineDeploymentStates := toMachineDeploymentTopologyStateMap(tt.current)
@@ -2339,10 +2333,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 
 				g.Expect(env.PatchAndWait(ctx, mdState.InfrastructureMachineTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				g.Expect(env.PatchAndWait(ctx, mdState.BootstrapTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				// Note: Have to set GVK on typed objects when using SSA.
-				md := mdState.Object.DeepCopy()
-				md.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineDeployment"))
-				g.Expect(env.PatchAndWait(ctx, md, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mdState.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 			}
 
 			s.Desired = &scope.ClusterState{MachineDeployments: toMachineDeploymentTopologyStateMap(tt.desired)}
@@ -2735,10 +2726,7 @@ func TestReconcileMachinePools(t *testing.T) {
 			for _, s := range tt.current {
 				g.Expect(env.PatchAndWait(ctx, s.InfrastructureMachinePoolObject, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				g.Expect(env.PatchAndWait(ctx, s.BootstrapObject, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				// Note: Have to set GVK on typed objects when using SSA.
-				mp := s.Object.DeepCopy()
-				mp.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachinePool"))
-				g.Expect(env.PatchAndWait(ctx, mp, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, s.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 			}
 
 			currentMachinePoolStates := toMachinePoolTopologyStateMap(tt.current)
@@ -2752,10 +2740,7 @@ func TestReconcileMachinePools(t *testing.T) {
 
 				g.Expect(env.PatchAndWait(ctx, mpState.InfrastructureMachinePoolObject, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				g.Expect(env.PatchAndWait(ctx, mpState.BootstrapObject, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
-				// Note: Have to set GVK on typed objects when using SSA.
-				mp := mpState.Object.DeepCopy()
-				mp.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachinePool"))
-				g.Expect(env.PatchAndWait(ctx, mp, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mpState.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 			}
 
 			s.Desired = &scope.ClusterState{MachinePools: toMachinePoolTopologyStateMap(tt.desired)}
@@ -3543,10 +3528,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			uidsByName := map[string]types.UID{}
 
 			for _, mdts := range tt.current {
-				// Note: Have to set GVK on typed objects when using SSA.
-				mdtsMD := mdts.Object.DeepCopy()
-				mdtsMD.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineDeployment"))
-				g.Expect(env.PatchAndWait(ctx, mdtsMD, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mdts.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				g.Expect(env.PatchAndWait(ctx, mdts.InfrastructureMachineTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				g.Expect(env.PatchAndWait(ctx, mdts.BootstrapTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 
@@ -3557,10 +3539,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 						ref.UID = mdts.Object.GetUID()
 						mdts.MachineHealthCheck.OwnerReferences[i] = ref
 					}
-					// Note: Have to set GVK on typed objects when using SSA.
-					mdtsMHC := mdts.MachineHealthCheck.DeepCopy()
-					mdtsMHC.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineHealthCheck"))
-					g.Expect(env.PatchAndWait(ctx, mdtsMHC, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+					g.Expect(env.PatchAndWait(ctx, mdts.MachineHealthCheck, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				}
 			}
 

@@ -23,6 +23,7 @@ type UpgradeTracker struct {
 	ControlPlane       ControlPlaneUpgradeTracker
 	MachineDeployments WorkerUpgradeTracker
 	MachinePools       WorkerUpgradeTracker
+	MinWorkersVersion  string
 }
 
 // ControlPlaneUpgradeTracker holds the current upgrade status of the Control Plane.

@@ -115,28 +115,8 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
 	}
 	if desiredKubeadmConfig.Spec.InitConfiguration.IsDefined() {
-		// Remove initConfiguration with Patch if necessary.
-		// This is only necessary if ssa.Patch above cannot remove the initConfiguration field because
-		// capi-kubeadmcontrolplane does not own it.
-		// Note: desiredKubeadmConfig here will always contain a joinConfiguration instead of an initConfiguration.
-		//
-		// This happens only on KubeadmConfigs (for kubeadm init) created with CAPI <= v1.11, because the initConfiguration
-		// field is not owned by anyone there (i.e. orphaned) after we called ssa.MigrateManagedFields in syncMachines.
-		//
-		// In KubeadmConfigs created with CAPI >= v1.12 capi-kubeadmcontrolplane owns the initConfiguration field
-		// and accordingly the ssa.Patch above is able to remove it.
-		//
-		// There are two ways this can be resolved:
-		// - Machine goes through an in-place rollout and this code removes the initConfiguration.
-		// - Machine is rolled out (re-created) which will use the new managedField structure.
-		//
-		// As CAPI v1.11 supported up to Kubernetes v1.34. We assume the Machine has to be either rolled out
-		// or in-place updated before CAPI drops support for Kubernetes v1.34. So this code can be removed
-		// once CAPI doesn't support Kubernetes v1.34 anymore.
-		origKubeadmConfig := desiredKubeadmConfig.DeepCopy()
-		desiredKubeadmConfig.Spec.InitConfiguration = bootstrapv1.InitConfiguration{}
-		if err := r.Client.Patch(ctx, desiredKubeadmConfig, client.MergeFrom(origKubeadmConfig)); err != nil {
-			return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s: failed to patch KubeadmConfig: failed to remove initConfiguration", klog.KObj(machine))
+		if err := r.removeInitConfiguration(ctx, desiredKubeadmConfig); err != nil {
+			return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
 		}
 	}
 
@@ -146,9 +126,9 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 	}
 
 	// Note: Once we write PendingHooksAnnotation the Machine controller will start with the in-place update.
-	// Note: Intentionally using client.Patch instead of SSA. Otherwise we would have to ensure we preserve
-	//       PendingHooksAnnotation on existing Machines in KCP and that would lead to race conditions when
-	//       the Machine controller tries to remove the annotation and KCP adds it back.
+	// Note: Intentionally using client.Patch (via hooks.MarkAsPending + patchHelper) instead of SSA. Otherwise we would
+	//       have to ensure we preserve PendingHooksAnnotation on existing Machines in KCP and that would lead to race
+	//       conditions when the Machine controller tries to remove the annotation and KCP adds it back.
 	if err := hooks.MarkAsPending(ctx, r.Client, desiredMachine, runtimehooksv1.UpdateMachine); err != nil {
 		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
 	}
@@ -163,6 +143,33 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 		return errors.Wrapf(err, "failed waiting for Machine %s to be updated in the cache after marking the UpdateMachine hook as pending", klog.KObj(machine))
 	}
 
+	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) removeInitConfiguration(ctx context.Context, desiredKubeadmConfig *bootstrapv1.KubeadmConfig) error {
+	// Remove initConfiguration with Patch if necessary.
+	// This is only necessary if ssa.Patch above cannot remove the initConfiguration field because
+	// capi-kubeadmcontrolplane does not own it.
+	// Note: desiredKubeadmConfig here will always contain a joinConfiguration instead of an initConfiguration.
+	//
+	// This happens only on KubeadmConfigs (for kubeadm init) created with CAPI <= v1.11, because the initConfiguration
+	// field is not owned by anyone there (i.e. orphaned) after we called ssa.MigrateManagedFields in syncMachines.
+	//
+	// In KubeadmConfigs created with CAPI >= v1.12 capi-kubeadmcontrolplane owns the initConfiguration field
+	// and accordingly the ssa.Patch above is able to remove it.
+	//
+	// There are two ways this can be resolved:
+	// - Machine goes through an in-place rollout and this code removes the initConfiguration.
+	// - Machine is rolled out (re-created) which will use the new managedField structure.
+	//
+	// As CAPI v1.11 supported up to Kubernetes v1.34. We assume the Machine has to be either rolled out
+	// or in-place updated before CAPI drops support for Kubernetes v1.34. So this code can be removed
+	// once CAPI doesn't support Kubernetes v1.34 anymore.
+	origKubeadmConfig := desiredKubeadmConfig.DeepCopy()
+	desiredKubeadmConfig.Spec.InitConfiguration = bootstrapv1.InitConfiguration{}
+	if err := r.Client.Patch(ctx, desiredKubeadmConfig, client.MergeFrom(origKubeadmConfig)); err != nil {
+		return errors.Wrap(err, "failed to patch KubeadmConfig: failed to remove initConfiguration")
+	}
 	return nil
 }
 

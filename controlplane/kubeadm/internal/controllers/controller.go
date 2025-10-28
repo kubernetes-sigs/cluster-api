@@ -480,6 +480,8 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		return result, err
 	}
 
+	// Complete triggering in-place update if necessary, for reentrancy if triggerInPlaceUpdate failed
+	// when triggering the in-place update initially.
 	if machines := controlPlane.MachinesToCompleteTriggerInPlaceUpdate(); len(machines) > 0 {
 		_, machinesUpToDateResults := controlPlane.NotUpToDateMachines()
 		for _, m := range machines {

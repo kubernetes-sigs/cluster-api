@@ -200,6 +200,8 @@ func (c *ControlPlane) MachinesToCompleteTriggerInPlaceUpdate() collections.Mach
 // MachinesToCompleteInPlaceUpdate returns Machines that still have to complete their in-place update.
 func (c *ControlPlane) MachinesToCompleteInPlaceUpdate() collections.Machines {
 	return c.Machines.Filter(func(machine *clusterv1.Machine) bool {
+		// Note: Checking both annotations here to make this slightly more robust.
+		//       Theoretically only checking for IsPending would have been enough.
 		_, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]
 		return ok || hooks.IsPending(runtimehooksv1.UpdateMachine, machine)
 	})

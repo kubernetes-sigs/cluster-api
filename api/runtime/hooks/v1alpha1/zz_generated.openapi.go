@@ -34,12 +34,18 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.AfterControlPlaneInitializedResponse":                 schema_api_runtime_hooks_v1alpha1_AfterControlPlaneInitializedResponse(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.AfterControlPlaneUpgradeRequest":                      schema_api_runtime_hooks_v1alpha1_AfterControlPlaneUpgradeRequest(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.AfterControlPlaneUpgradeResponse":                     schema_api_runtime_hooks_v1alpha1_AfterControlPlaneUpgradeResponse(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.AfterWorkersUpgradeRequest":                           schema_api_runtime_hooks_v1alpha1_AfterWorkersUpgradeRequest(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.AfterWorkersUpgradeResponse":                          schema_api_runtime_hooks_v1alpha1_AfterWorkersUpgradeResponse(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.BeforeClusterCreateRequest":                           schema_api_runtime_hooks_v1alpha1_BeforeClusterCreateRequest(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.BeforeClusterCreateResponse":                          schema_api_runtime_hooks_v1alpha1_BeforeClusterCreateResponse(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.BeforeClusterDeleteRequest":                           schema_api_runtime_hooks_v1alpha1_BeforeClusterDeleteRequest(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.BeforeClusterDeleteResponse":                          schema_api_runtime_hooks_v1alpha1_BeforeClusterDeleteResponse(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.BeforeClusterUpgradeRequest":                          schema_api_runtime_hooks_v1alpha1_BeforeClusterUpgradeRequest(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.BeforeClusterUpgradeResponse":                         schema_api_runtime_hooks_v1alpha1_BeforeClusterUpgradeResponse(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.BeforeControlPlaneUpgradeRequest":                     schema_api_runtime_hooks_v1alpha1_BeforeControlPlaneUpgradeRequest(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.BeforeControlPlaneUpgradeResponse":                    schema_api_runtime_hooks_v1alpha1_BeforeControlPlaneUpgradeResponse(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.BeforeWorkersUpgradeRequest":                          schema_api_runtime_hooks_v1alpha1_BeforeWorkersUpgradeRequest(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.BeforeWorkersUpgradeResponse":                         schema_api_runtime_hooks_v1alpha1_BeforeWorkersUpgradeResponse(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Builtins":                                             schema_api_runtime_hooks_v1alpha1_Builtins(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineRequest":                              schema_api_runtime_hooks_v1alpha1_CanUpdateMachineRequest(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.CanUpdateMachineRequestObjects":                       schema_api_runtime_hooks_v1alpha1_CanUpdateMachineRequestObjects(ref),
@@ -80,6 +86,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpdateMachineRequestObjects":                          schema_api_runtime_hooks_v1alpha1_UpdateMachineRequestObjects(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpdateMachineResponse":                                schema_api_runtime_hooks_v1alpha1_UpdateMachineResponse(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStep":                                          schema_api_runtime_hooks_v1alpha1_UpgradeStep(ref),
+		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo":                                      schema_api_runtime_hooks_v1alpha1_UpgradeStepInfo(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ValidateTopologyRequest":                              schema_api_runtime_hooks_v1alpha1_ValidateTopologyRequest(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ValidateTopologyRequestItem":                          schema_api_runtime_hooks_v1alpha1_ValidateTopologyRequestItem(ref),
 		"sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.ValidateTopologyResponse":                             schema_api_runtime_hooks_v1alpha1_ValidateTopologyResponse(ref),
@@ -335,10 +342,38 @@ func schema_api_runtime_hooks_v1alpha1_AfterControlPlaneUpgradeRequest(ref commo
 					},
 					"kubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "kubernetesVersion is the Kubernetes version of the Control Plane after the upgrade.",
+							Description: "kubernetesVersion is the Kubernetes version of the control plane after an upgrade step.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
+						},
+					},
+					"controlPlaneUpgrades": {
+						SchemaProps: spec.SchemaProps{
+							Description: "controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
+									},
+								},
+							},
+						},
+					},
+					"workersUpgrades": {
+						SchemaProps: spec.SchemaProps{
+							Description: "workersUpgrades is the list of the remaining version upgrade steps for workers, if any.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
+									},
+								},
+							},
 						},
 					},
 				},
@@ -346,7 +381,7 @@ func schema_api_runtime_hooks_v1alpha1_AfterControlPlaneUpgradeRequest(ref commo
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"},
 	}
 }
 
@@ -355,6 +390,147 @@ func schema_api_runtime_hooks_v1alpha1_AfterControlPlaneUpgradeResponse(ref comm
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "AfterControlPlaneUpgradeResponse is the response of the AfterControlPlaneUpgrade hook.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"Failure", "Success"},
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "message is a human-readable description of the status of the call.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"retryAfterSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "retryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"status", "retryAfterSeconds"},
+			},
+		},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_AfterWorkersUpgradeRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AfterWorkersUpgradeRequest is the request of the AfterWorkersUpgrade hook.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"settings": {
+						SchemaProps: spec.SchemaProps{
+							Description: "settings defines key value pairs to be passed to the call.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"cluster": {
+						SchemaProps: spec.SchemaProps{
+							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"),
+						},
+					},
+					"kubernetesVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "kubernetesVersion is the Kubernetes version of the workers after an upgrade step.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"controlPlaneUpgrades": {
+						SchemaProps: spec.SchemaProps{
+							Description: "controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
+									},
+								},
+							},
+						},
+					},
+					"workersUpgrades": {
+						SchemaProps: spec.SchemaProps{
+							Description: "workersUpgrades is the list of the remaining version upgrade steps for workers, if any.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"cluster", "kubernetesVersion"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_AfterWorkersUpgradeResponse(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AfterWorkersUpgradeResponse is the response of the AfterWorkersUpgrade hook.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -672,12 +848,40 @@ func schema_api_runtime_hooks_v1alpha1_BeforeClusterUpgradeRequest(ref common.Re
 							Format:      "",
 						},
 					},
+					"controlPlaneUpgrades": {
+						SchemaProps: spec.SchemaProps{
+							Description: "controlPlaneUpgrades is the list of version upgrade steps for the control plane.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
+									},
+								},
+							},
+						},
+					},
+					"workersUpgrades": {
+						SchemaProps: spec.SchemaProps{
+							Description: "workersUpgrades is the list of version upgrade steps for the workers.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
+									},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"cluster", "fromKubernetesVersion", "toKubernetesVersion"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"},
 	}
 }
 
@@ -686,6 +890,304 @@ func schema_api_runtime_hooks_v1alpha1_BeforeClusterUpgradeResponse(ref common.R
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "BeforeClusterUpgradeResponse is the response of the BeforeClusterUpgrade hook.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"Failure", "Success"},
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "message is a human-readable description of the status of the call.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"retryAfterSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "retryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"status", "retryAfterSeconds"},
+			},
+		},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_BeforeControlPlaneUpgradeRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BeforeControlPlaneUpgradeRequest is the request of the BeforeControlPlane hook.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"settings": {
+						SchemaProps: spec.SchemaProps{
+							Description: "settings defines key value pairs to be passed to the call.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"cluster": {
+						SchemaProps: spec.SchemaProps{
+							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"),
+						},
+					},
+					"fromKubernetesVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "fromKubernetesVersion is the current Kubernetes version of the control plane for the next upgrade step.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"toKubernetesVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "toKubernetesVersion is the target Kubernetes version of the control plane for the next upgrade step.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"controlPlaneUpgrades": {
+						SchemaProps: spec.SchemaProps{
+							Description: "controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
+									},
+								},
+							},
+						},
+					},
+					"workersUpgrades": {
+						SchemaProps: spec.SchemaProps{
+							Description: "workersUpgrades is the list of the remaining version upgrade steps for workers, if any.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"cluster", "fromKubernetesVersion", "toKubernetesVersion"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_BeforeControlPlaneUpgradeResponse(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BeforeControlPlaneUpgradeResponse is the response of the BeforeControlPlaneUpgrade hook.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"Failure", "Success"},
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "message is a human-readable description of the status of the call.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"retryAfterSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "retryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"status", "retryAfterSeconds"},
+			},
+		},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_BeforeWorkersUpgradeRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BeforeWorkersUpgradeRequest is the request of the BeforeWorkersUpgrade hook.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"settings": {
+						SchemaProps: spec.SchemaProps{
+							Description: "settings defines key value pairs to be passed to the call.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"cluster": {
+						SchemaProps: spec.SchemaProps{
+							Description: "cluster is the cluster object the lifecycle hook corresponds to.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster"),
+						},
+					},
+					"fromKubernetesVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "fromKubernetesVersion is the current Kubernetes version of the workers for the next upgrade step.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"toKubernetesVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "toKubernetesVersion is the target Kubernetes version of the workers for the next upgrade step.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"controlPlaneUpgrades": {
+						SchemaProps: spec.SchemaProps{
+							Description: "controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
+									},
+								},
+							},
+						},
+					},
+					"workersUpgrades": {
+						SchemaProps: spec.SchemaProps{
+							Description: "workersUpgrades is the list of the remaining version upgrade steps for workers, if any.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"cluster", "fromKubernetesVersion", "toKubernetesVersion"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/core/v1beta1.Cluster", "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.UpgradeStepInfo"},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_BeforeWorkersUpgradeResponse(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BeforeWorkersUpgradeResponse is the response of the BeforeWorkersUpgrade hook.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -2528,6 +3030,27 @@ func schema_api_runtime_hooks_v1alpha1_UpgradeStep(ref common.ReferenceCallback)
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "UpgradeStep represents a single version upgrade step.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the Kubernetes version for this upgrade step.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"version"},
+			},
+		},
+	}
+}
+
+func schema_api_runtime_hooks_v1alpha1_UpgradeStepInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "UpgradeStepInfo provide info about a single version upgrade step.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"version": {

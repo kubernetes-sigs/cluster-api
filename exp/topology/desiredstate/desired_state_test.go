@@ -19,17 +19,14 @@ package desiredstate
 import (
 	"encoding/json"
 	"fmt"
-	"maps"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -51,7 +48,6 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
@@ -1061,498 +1057,31 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 	}
 	clusterv1beta1.SetAPIVersionGetter(apiVersionGetter)
 
-	t.Run("Compute control plane version under various circumstances", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
-
-		nonBlockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-			CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
-			},
-		}
-
-		blockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-			CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
-				RetryAfterSeconds: int32(10),
-			},
-		}
-
-		failureBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-			CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusFailure,
-				},
-			},
-		}
-
-		catalog := runtimecatalog.New()
-		_ = runtimehooksv1.AddToCatalog(catalog)
-
-		beforeClusterUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.BeforeClusterUpgrade)
-		if err != nil {
-			panic("unable to compute GVH")
-		}
-
-		tests := []struct {
-			name                               string
-			hookResponse                       *runtimehooksv1.BeforeClusterUpgradeResponse
-			topologyVersion                    string
-			clusterModifier                    func(c *clusterv1.Cluster)
-			controlPlaneObj                    *unstructured.Unstructured
-			controlPlaneUpgradePlan            []string
-			machineDeploymentsUpgradePlan      []string
-			machinePoolsUpgradePlan            []string
-			upgradingMachineDeployments        []string
-			upgradingMachinePools              []string
-			expectedVersion                    string
-			expectedIsPendingUpgrade           bool
-			expectedIsStartingUpgrade          bool
-			expectedIsWaitingForWorkersUpgrade bool
-			wantErr                            bool
-		}{
-			{
-				name:                      "should return cluster.spec.topology.version if creating a new control plane",
-				topologyVersion:           "v1.2.3",
-				controlPlaneObj:           nil,
-				expectedVersion:           "v1.2.3",
-				expectedIsPendingUpgrade:  false,
-				expectedIsStartingUpgrade: false,
-			},
-			{
-				// Control plane is not upgrading implies that controlplane.spec.version is equal to controlplane.status.version.
-				// Control plane is not scaling implies that controlplane.spec.replicas is equal to controlplane.status.replicas,
-				// Controlplane.status.updatedReplicas and controlplane.status.readyReplicas.
-				name:            "should return cluster.spec.topology.version if the control plane is not upgrading and not scaling",
-				hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
-				topologyVersion: "v1.2.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version":  "v1.2.2",
-						"spec.replicas": int64(2),
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version":             "v1.2.2",
-						"status.replicas":            int64(2),
-						"status.updatedReplicas":     int64(2),
-						"status.readyReplicas":       int64(2),
-						"status.unavailableReplicas": int64(0),
-					}).
-					Build(),
-				controlPlaneUpgradePlan:   []string{"v1.2.3"},
-				expectedVersion:           "v1.2.3",
-				expectedIsPendingUpgrade:  false,
-				expectedIsStartingUpgrade: true,
-			},
-			{
-				name:            "should return cluster.spec.topology.version if the control plane is already at the target version",
-				topologyVersion: "v1.2.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version": "v1.2.3",
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version": "v1.2.3",
-					}).
-					Build(),
-				controlPlaneUpgradePlan:   nil,
-				expectedVersion:           "v1.2.3",
-				expectedIsPendingUpgrade:  false,
-				expectedIsStartingUpgrade: false,
-			},
-			{
-				// Control plane is considered upgrading if controlplane.spec.version is not equal to controlplane.status.version.
-				name:            "should return controlplane.spec.version if the control plane is upgrading",
-				topologyVersion: "v1.2.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version": "v1.2.2",
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version": "v1.2.1",
-					}).
-					Build(),
-				controlPlaneUpgradePlan:   []string{"v1.2.3"},
-				expectedVersion:           "v1.2.2",
-				expectedIsPendingUpgrade:  true,
-				expectedIsStartingUpgrade: false,
-			},
-			{
-				name:            "should return cluster.spec.topology.version if the control plane is scaling",
-				hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
-				topologyVersion: "v1.2.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version":  "v1.2.2",
-						"spec.replicas": int64(2),
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version":             "v1.2.2",
-						"status.replicas":            int64(1),
-						"status.updatedReplicas":     int64(1),
-						"status.readyReplicas":       int64(1),
-						"status.unavailableReplicas": int64(0),
-					}).
-					Build(),
-				controlPlaneUpgradePlan:   []string{"v1.2.3"},
-				expectedVersion:           "v1.2.3",
-				expectedIsPendingUpgrade:  false,
-				expectedIsStartingUpgrade: true,
-			},
-			{
-				name:            "should return controlplane.spec.version if control plane is not upgrading and not scaling and one of the MachineDeployments and one of the MachinePools is upgrading",
-				topologyVersion: "v1.2.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version":  "v1.2.2",
-						"spec.replicas": int64(2),
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version":             "v1.2.2",
-						"status.replicas":            int64(2),
-						"status.updatedReplicas":     int64(2),
-						"status.readyReplicas":       int64(2),
-						"status.unavailableReplicas": int64(0),
-					}).
-					Build(),
-				controlPlaneUpgradePlan:     []string{"v1.2.3"},
-				upgradingMachineDeployments: []string{"md1"},
-				upgradingMachinePools:       []string{"mp1"},
-				expectedVersion:             "v1.2.2",
-				expectedIsPendingUpgrade:    true,
-				expectedIsStartingUpgrade:   false,
-			},
-			{
-				name:            "should return cluster.spec.topology.version if control plane is not upgrading and not scaling and none of the MachineDeployments and MachinePools are upgrading - hook returns non blocking response",
-				hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
-				topologyVersion: "v1.2.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version":  "v1.2.2",
-						"spec.replicas": int64(2),
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version":             "v1.2.2",
-						"status.replicas":            int64(2),
-						"status.updatedReplicas":     int64(2),
-						"status.readyReplicas":       int64(2),
-						"status.unavailableReplicas": int64(0),
-					}).
-					Build(),
-				controlPlaneUpgradePlan:     []string{"v1.2.3"},
-				upgradingMachineDeployments: []string{},
-				upgradingMachinePools:       []string{},
-				expectedVersion:             "v1.2.3",
-				expectedIsPendingUpgrade:    false,
-				expectedIsStartingUpgrade:   true,
-			},
-			{
-				name:            "should return an intermediate version when upgrading by more than 1 minor and control plane should perform the first step of the upgrade sequence",
-				hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
-				topologyVersion: "v1.5.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version":  "v1.2.2",
-						"spec.replicas": int64(2),
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version":             "v1.2.2",
-						"status.replicas":            int64(2),
-						"status.updatedReplicas":     int64(2),
-						"status.readyReplicas":       int64(2),
-						"status.unavailableReplicas": int64(0),
-					}).
-					Build(),
-				controlPlaneUpgradePlan:     []string{"v1.3.2", "v1.4.2", "v1.5.3"},
-				upgradingMachineDeployments: []string{},
-				upgradingMachinePools:       []string{},
-				expectedVersion:             "v1.3.2", // first step of the upgrade plan
-				expectedIsPendingUpgrade:    false,    // there are still upgrade in the queue, but we are starting one (so not pending)
-				expectedIsStartingUpgrade:   true,
-			},
-			{
-				name:            "should return cluster.spec.topology.version when performing a multi step upgrade and control plane is at the second last minor in the upgrade sequence",
-				hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
-				topologyVersion: "v1.5.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version":  "v1.4.2",
-						"spec.replicas": int64(2),
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version":             "v1.4.2",
-						"status.replicas":            int64(2),
-						"status.updatedReplicas":     int64(2),
-						"status.readyReplicas":       int64(2),
-						"status.unavailableReplicas": int64(0),
-					}).
-					Build(),
-				controlPlaneUpgradePlan:     []string{"v1.5.3"},
-				upgradingMachineDeployments: []string{},
-				upgradingMachinePools:       []string{},
-				expectedVersion:             "v1.5.3", // last step of the upgrade plan
-				expectedIsPendingUpgrade:    false,
-				expectedIsStartingUpgrade:   true,
-			},
-			{
-				name:            "should remain on the current version when upgrading by more than 1 minor and MachineDeployments have to upgrade",
-				hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
-				topologyVersion: "v1.5.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version":  "v1.2.2",
-						"spec.replicas": int64(2),
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version":             "v1.2.2",
-						"status.replicas":            int64(2),
-						"status.updatedReplicas":     int64(2),
-						"status.readyReplicas":       int64(2),
-						"status.unavailableReplicas": int64(0),
-					}).
-					Build(),
-				controlPlaneUpgradePlan:            []string{"v1.3.2", "v1.4.2", "v1.5.3"},
-				machineDeploymentsUpgradePlan:      []string{"v1.2.2"},
-				upgradingMachineDeployments:        []string{},
-				upgradingMachinePools:              []string{},
-				expectedVersion:                    "v1.2.2",
-				expectedIsPendingUpgrade:           true,
-				expectedIsWaitingForWorkersUpgrade: true,
-				expectedIsStartingUpgrade:          false,
-			},
-			{
-				name:            "should remain on the current version when upgrading by more than 1 minor and MachinePools have to upgrade",
-				hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
-				topologyVersion: "v1.5.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version":  "v1.2.2",
-						"spec.replicas": int64(2),
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version":             "v1.2.2",
-						"status.replicas":            int64(2),
-						"status.updatedReplicas":     int64(2),
-						"status.readyReplicas":       int64(2),
-						"status.unavailableReplicas": int64(0),
-					}).
-					Build(),
-				controlPlaneUpgradePlan:            []string{"v1.3.2", "v1.4.2", "v1.5.3"},
-				machinePoolsUpgradePlan:            []string{"v1.2.2"},
-				upgradingMachineDeployments:        []string{},
-				upgradingMachinePools:              []string{},
-				expectedVersion:                    "v1.2.2",
-				expectedIsPendingUpgrade:           true,
-				expectedIsWaitingForWorkersUpgrade: true,
-				expectedIsStartingUpgrade:          false,
-			},
-			{
-				name:            "should return the controlplane.spec.version if a BeforeClusterUpgradeHook returns a blocking response",
-				hookResponse:    blockingBeforeClusterUpgradeResponse,
-				topologyVersion: "v1.2.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version":  "v1.2.2",
-						"spec.replicas": int64(2),
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version":             "v1.2.2",
-						"status.replicas":            int64(2),
-						"status.updatedReplicas":     int64(2),
-						"status.readyReplicas":       int64(2),
-						"status.unavailableReplicas": int64(0),
-					}).
-					Build(),
-				controlPlaneUpgradePlan:   []string{"v1.2.3"},
-				expectedVersion:           "v1.2.2",
-				expectedIsPendingUpgrade:  true,
-				expectedIsStartingUpgrade: false,
-			},
-			{
-				name:            "should fail if the BeforeClusterUpgrade hooks returns a failure response",
-				hookResponse:    failureBeforeClusterUpgradeResponse,
-				topologyVersion: "v1.2.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version":  "v1.2.2",
-						"spec.replicas": int64(2),
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version":             "v1.2.2",
-						"status.replicas":            int64(2),
-						"status.updatedReplicas":     int64(2),
-						"status.readyReplicas":       int64(2),
-						"status.unavailableReplicas": int64(0),
-					}).
-					Build(),
-				controlPlaneUpgradePlan: []string{"v1.2.3"},
-				wantErr:                 true,
-			},
-			{
-				name:            "should return the controlplane.spec.version if a BeforeClusterUpgradeHook annotation is set",
-				hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
-				topologyVersion: "v1.2.3",
-				controlPlaneObj: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
-						"spec.version":  "v1.2.2",
-						"spec.replicas": int64(2),
-					}).
-					WithStatusFields(map[string]interface{}{
-						"status.version":             "v1.2.2",
-						"status.replicas":            int64(2),
-						"status.updatedReplicas":     int64(2),
-						"status.readyReplicas":       int64(2),
-						"status.unavailableReplicas": int64(0),
-					}).
-					Build(),
-				clusterModifier: func(c *clusterv1.Cluster) {
-					c.Annotations = map[string]string{
-						clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test": "true",
-					}
-				},
-				controlPlaneUpgradePlan:   []string{"v1.2.3"},
-				expectedVersion:           "v1.2.2",
-				expectedIsPendingUpgrade:  true,
-				expectedIsStartingUpgrade: false,
-				wantErr:                   false,
-			},
-		}
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				g := NewWithT(t)
-
-				s := &scope.Scope{
-					Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
-						Version: tt.topologyVersion,
-						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: ptr.To[int32](2),
-						},
-					}},
-					Current: &scope.ClusterState{
-						Cluster: &clusterv1.Cluster{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-cluster",
-								Namespace: "test-ns",
-								// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
-								ManagedFields: []metav1.ManagedFieldsEntry{
-									{
-										APIVersion: builder.InfrastructureGroupVersion.String(),
-										Manager:    "manager",
-										Operation:  "Apply",
-										Time:       ptr.To(metav1.Now()),
-										FieldsType: "FieldsV1",
-									},
-								},
-								Annotations: map[string]string{
-									"fizz":                             "buzz",
-									corev1.LastAppliedConfigAnnotation: "should be cleaned up",
-									conversion.DataAnnotation:          "should be cleaned up",
-								},
-							},
-							// Add some more fields to check that conversion implemented when calling RuntimeExtension are properly handled.
-							Spec: clusterv1.ClusterSpec{
-								InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-									APIGroup: "refAPIGroup1",
-									Kind:     "refKind1",
-									Name:     "refName1",
-								}},
-						},
-						ControlPlane: &scope.ControlPlaneState{Object: tt.controlPlaneObj},
-					},
-					UpgradeTracker:      scope.NewUpgradeTracker(),
-					HookResponseTracker: scope.NewHookResponseTracker(),
-				}
-				if tt.clusterModifier != nil {
-					tt.clusterModifier(s.Current.Cluster)
-				}
-				if len(tt.controlPlaneUpgradePlan) > 0 {
-					s.UpgradeTracker.ControlPlane.UpgradePlan = tt.controlPlaneUpgradePlan
-				}
-				if len(tt.machineDeploymentsUpgradePlan) > 0 {
-					s.UpgradeTracker.MachineDeployments.UpgradePlan = tt.machineDeploymentsUpgradePlan
-				}
-				if len(tt.machinePoolsUpgradePlan) > 0 {
-					s.UpgradeTracker.MachinePools.UpgradePlan = tt.machinePoolsUpgradePlan
-				}
-				if len(tt.upgradingMachineDeployments) > 0 {
-					s.UpgradeTracker.MachineDeployments.MarkUpgrading(tt.upgradingMachineDeployments...)
-				}
-				if len(tt.upgradingMachinePools) > 0 {
-					s.UpgradeTracker.MachinePools.MarkUpgrading(tt.upgradingMachinePools...)
-				}
-
-				runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-					WithCatalog(catalog).
-					WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-						beforeClusterUpgradeGVH: tt.hookResponse,
-					}).
-					WithCallAllExtensionValidations(validateClusterParameter(s.Current.Cluster)).
-					Build()
-
-				fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
-
-				r := &generator{
-					Client:        fakeClient,
-					RuntimeClient: runtimeClient,
-				}
-				version, err := r.computeControlPlaneVersion(ctx, s)
-				if tt.wantErr {
-					g.Expect(err).To(HaveOccurred())
-					return
-				}
-				g.Expect(err).ToNot(HaveOccurred())
-
-				g.Expect(version).To(Equal(tt.expectedVersion))
-				g.Expect(s.UpgradeTracker.ControlPlane.IsPendingUpgrade).To(Equal(tt.expectedIsPendingUpgrade))
-				g.Expect(s.UpgradeTracker.ControlPlane.IsStartingUpgrade).To(Equal(tt.expectedIsStartingUpgrade))
-				g.Expect(s.UpgradeTracker.ControlPlane.IsWaitingForWorkersUpgrade).To(Equal(tt.expectedIsWaitingForWorkersUpgrade))
-			})
-		}
-	})
-}
-
-func TestComputeControlPlaneVersion_callAfterControlPlaneUpgrade(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)
 
-	afterControlPlaneUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.AfterControlPlaneUpgrade)
-	if err != nil {
-		panic(err)
-	}
 	beforeClusterUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.BeforeClusterUpgrade)
 	if err != nil {
 		panic("unable to compute GVH")
 	}
-	beforeClusterUpgradeNonBlockingResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
+	nonBlockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
 		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 			CommonResponse: runtimehooksv1.CommonResponse{
 				Status: runtimehooksv1.ResponseStatusSuccess,
 			},
 		},
 	}
-
-	blockingResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{
+	blockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
 		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
 			RetryAfterSeconds: int32(10),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
 		},
 	}
-	nonBlockingResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(0),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
-	}
-	failureResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{
+	failureBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
 		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 			CommonResponse: runtimehooksv1.CommonResponse{
 				Status: runtimehooksv1.ResponseStatusFailure,
@@ -1560,813 +1089,400 @@ func TestComputeControlPlaneVersion_callAfterControlPlaneUpgrade(t *testing.T) {
 		},
 	}
 
-	topologyVersion := "v1.2.3"
-	lowerVersion := "v1.2.2"
-
-	controlPlaneStable := builder.ControlPlane("test-ns", "cp1").
-		WithSpecFields(map[string]interface{}{
-			"spec.version":  topologyVersion,
-			"spec.replicas": int64(2),
-		}).
-		WithStatusFields(map[string]interface{}{
-			"status.version":         topologyVersion,
-			"status.replicas":        int64(2),
-			"status.updatedReplicas": int64(2),
-			"status.readyReplicas":   int64(2),
-		}).
-		Build()
-
-	controlPlaneUpgrading := builder.ControlPlane("test-ns", "cp1").
-		WithSpecFields(map[string]interface{}{
-			"spec.version":  topologyVersion,
-			"spec.replicas": int64(2),
-		}).
-		WithStatusFields(map[string]interface{}{
-			"status.version":         lowerVersion,
-			"status.replicas":        int64(2),
-			"status.updatedReplicas": int64(2),
-			"status.readyReplicas":   int64(2),
-		}).
-		Build()
-
-	controlPlaneProvisioning := builder.ControlPlane("test-ns", "cp1").
-		WithSpecFields(map[string]interface{}{
-			"spec.version":  lowerVersion,
-			"spec.replicas": int64(2),
-		}).
-		WithStatusFields(map[string]interface{}{
-			"status.version": "",
-		}).
-		Build()
-
-	newUpgradeTrackerWithUpgradePlan := func(upgradePlan []string) *scope.UpgradeTracker {
-		ut := scope.NewUpgradeTracker()
-		ut.ControlPlane.UpgradePlan = upgradePlan
-		return ut
-	}
-
 	tests := []struct {
-		name               string
-		s                  *scope.Scope
-		hookResponse       *runtimehooksv1.AfterControlPlaneUpgradeResponse
-		wantIntentToCall   bool
-		wantHookToBeCalled bool
-		wantHookToBlock    bool
-		wantErr            bool
+		name                               string
+		beforeClusterUpgradeResponse       *runtimehooksv1.BeforeClusterUpgradeResponse
+		topologyVersion                    string
+		clusterModifier                    func(c *clusterv1.Cluster)
+		controlPlaneObj                    *unstructured.Unstructured
+		controlPlaneUpgradePlan            []string
+		machineDeploymentsUpgradePlan      []string
+		machinePoolsUpgradePlan            []string
+		upgradingMachineDeployments        []string
+		upgradingMachinePools              []string
+		expectedVersion                    string
+		expectedIsPendingUpgrade           bool
+		expectedIsStartingUpgrade          bool
+		expectedIsWaitingForWorkersUpgrade bool
+		wantErr                            bool
 	}{
 		{
-			name: "should not call hook if it is not marked",
-			s: &scope.Scope{
-				Blueprint: &scope.ClusterBlueprint{
-					Topology: clusterv1.Topology{
-						Version:      topologyVersion,
-						ControlPlane: clusterv1.ControlPlaneTopology{},
-					},
-				},
-				Current: &scope.ClusterState{
-					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-						},
-						Spec: clusterv1.ClusterSpec{},
-					},
-					ControlPlane: &scope.ControlPlaneState{
-						Object: controlPlaneStable,
-					},
-				},
-				UpgradeTracker:      scope.NewUpgradeTracker(), // already at topology version, upgrade plan is empty.
-				HookResponseTracker: scope.NewHookResponseTracker(),
-			},
-			wantIntentToCall:   false, // preserve existing value (not set)
-			wantHookToBeCalled: false,
-			wantErr:            false,
+			name:                      "should return cluster.spec.topology.version if creating a new control plane",
+			topologyVersion:           "v1.2.3",
+			controlPlaneObj:           nil,
+			expectedVersion:           "v1.2.3",
+			expectedIsPendingUpgrade:  false,
+			expectedIsStartingUpgrade: false,
 		},
 		{
-			name: "should not call hook if the control plane is provisioning - there is intent to call hook",
-			s: &scope.Scope{
-				Blueprint: &scope.ClusterBlueprint{
-					Topology: clusterv1.Topology{
-						Version:      topologyVersion,
-						ControlPlane: clusterv1.ControlPlaneTopology{},
-					},
-				},
-				Current: &scope.ClusterState{
-					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
-							},
-						},
-						Spec: clusterv1.ClusterSpec{},
-					},
-					ControlPlane: &scope.ControlPlaneState{
-						Object: controlPlaneProvisioning,
-					},
-				},
-				UpgradeTracker:      newUpgradeTrackerWithUpgradePlan([]string{topologyVersion}),
-				HookResponseTracker: scope.NewHookResponseTracker(),
-			},
-			wantIntentToCall:   true, // preserve existing value (set)
-			wantHookToBeCalled: false,
-			wantErr:            false,
+			name:            "should return cluster.spec.topology.version if the control plane is already at the target version",
+			topologyVersion: "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.2.3",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.2.3",
+				}).
+				Build(),
+			controlPlaneUpgradePlan:   nil,
+			expectedVersion:           "v1.2.3",
+			expectedIsPendingUpgrade:  false,
+			expectedIsStartingUpgrade: false,
 		},
 		{
-			name: "should not call hook if the control plane is upgrading - there is intent to call hook",
-			s: &scope.Scope{
-				Blueprint: &scope.ClusterBlueprint{
-					Topology: clusterv1.Topology{
-						Version:      topologyVersion,
-						ControlPlane: clusterv1.ControlPlaneTopology{},
-					},
-				},
-				Current: &scope.ClusterState{
-					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
-							},
-						},
-						Spec: clusterv1.ClusterSpec{},
-					},
-					ControlPlane: &scope.ControlPlaneState{
-						Object: controlPlaneUpgrading,
-					},
-				},
-				UpgradeTracker:      scope.NewUpgradeTracker(), // already at topology version, upgrade plan is empty.
-				HookResponseTracker: scope.NewHookResponseTracker(),
-			},
-			wantIntentToCall:   true, // preserve existing value (set)
-			wantHookToBeCalled: false,
-			wantErr:            false,
+			// Control plane is considered upgrading if controlplane.spec.version is not equal to controlplane.status.version.
+			name:            "should return controlplane.spec.version if the control plane is upgrading",
+			topologyVersion: "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.2.2",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.2.1",
+				}).
+				Build(),
+			controlPlaneUpgradePlan:   []string{"v1.2.3"},
+			expectedVersion:           "v1.2.2",
+			expectedIsPendingUpgrade:  true,
+			expectedIsStartingUpgrade: false,
 		},
 		{
-			name: "should call hook if the control plane is at desired version - non blocking response should remove hook from pending hooks list and allow MD upgrades",
-			s: &scope.Scope{
-				Blueprint: &scope.ClusterBlueprint{
-					Topology: clusterv1.Topology{
-						Version:      topologyVersion,
-						ControlPlane: clusterv1.ControlPlaneTopology{},
-					},
-				},
-				Current: &scope.ClusterState{
-					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
-							},
-						},
-						Spec: clusterv1.ClusterSpec{},
-					},
-					ControlPlane: &scope.ControlPlaneState{
-						Object: controlPlaneStable,
-					},
-				},
-				UpgradeTracker:      scope.NewUpgradeTracker(), // already at topology version, upgrade plan is empty.
-				HookResponseTracker: scope.NewHookResponseTracker(),
-			},
-			hookResponse:       nonBlockingResponse,
-			wantIntentToCall:   false, // remove the intent to call the hook (hook called, we are at target state)
-			wantHookToBeCalled: true,
-			wantHookToBlock:    false,
-			wantErr:            false,
+			name:            "should return controlplane.spec.version if control plane is not upgrading and not scaling and one of the MachineDeployments and one of the MachinePools is upgrading",
+			topologyVersion: "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			controlPlaneUpgradePlan:     []string{"v1.2.3"},
+			upgradingMachineDeployments: []string{"md1"},
+			upgradingMachinePools:       []string{"mp1"},
+			expectedVersion:             "v1.2.2",
+			expectedIsPendingUpgrade:    true,
+			expectedIsStartingUpgrade:   false,
 		},
 		{
-			name: "should call hook if the control plane is at desired version - blocking response should leave the hook in pending hooks list and block MD upgrades",
-			s: &scope.Scope{
-				Blueprint: &scope.ClusterBlueprint{
-					Topology: clusterv1.Topology{
-						Version:      topologyVersion,
-						ControlPlane: clusterv1.ControlPlaneTopology{},
-					},
-				},
-				Current: &scope.ClusterState{
-					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
-							},
-						},
-						Spec: clusterv1.ClusterSpec{},
-					},
-					ControlPlane: &scope.ControlPlaneState{
-						Object: controlPlaneStable,
-					},
-				},
-				UpgradeTracker:      scope.NewUpgradeTracker(), // already at topology version, upgrade plan is empty.
-				HookResponseTracker: scope.NewHookResponseTracker(),
-			},
-			hookResponse:       blockingResponse,
-			wantIntentToCall:   true, // preserve existing value (set)
-			wantHookToBeCalled: true,
-			wantHookToBlock:    true,
-			wantErr:            false,
+			name:                         "should return cluster.spec.topology.version if control plane is not upgrading and not scaling and none of the MachineDeployments and MachinePools are upgrading - BeforeClusterUpgrade hook returns non blocking response",
+			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
+			topologyVersion:              "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			controlPlaneUpgradePlan:     []string{"v1.2.3"},
+			upgradingMachineDeployments: []string{},
+			upgradingMachinePools:       []string{},
+			expectedVersion:             "v1.2.3",
+			expectedIsPendingUpgrade:    false,
+			expectedIsStartingUpgrade:   true,
 		},
 		{
-			name: "should call hook if the control plane is at desired version - failure response should leave the hook in pending hooks list",
-			s: &scope.Scope{
-				Blueprint: &scope.ClusterBlueprint{
-					Topology: clusterv1.Topology{
-						Version:      topologyVersion,
-						ControlPlane: clusterv1.ControlPlaneTopology{},
-					},
-				},
-				Current: &scope.ClusterState{
-					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
-							},
-						},
-						Spec: clusterv1.ClusterSpec{},
-					},
-					ControlPlane: &scope.ControlPlaneState{
-						Object: controlPlaneStable,
-					},
-				},
-				UpgradeTracker:      scope.NewUpgradeTracker(), // already at topology version, upgrade plan is empty.
-				HookResponseTracker: scope.NewHookResponseTracker(),
+			name:                         "should return cluster.spec.topology.version if the control plane is not upgrading or scaling and none of the MachineDeployments and MachinePools are upgrading - BeforeClusterUpgrade, BeforeControlPlaneUpgrade, BeforeWorkersUpgrade and AfterWorkersUpgrade hooks returns non blocking response",
+			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
+			topologyVersion:              "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(1),
+					"status.updatedReplicas":     int64(1),
+					"status.readyReplicas":       int64(1),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			clusterModifier: func(c *clusterv1.Cluster) {
+				c.Annotations = map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterWorkersUpgrade",
+				}
 			},
-			hookResponse:       failureResponse,
-			wantIntentToCall:   true, // preserve existing value (set)
-			wantHookToBeCalled: true,
-			wantErr:            true,
+			controlPlaneUpgradePlan:   []string{"v1.2.3"},
+			expectedVersion:           "v1.2.3",
+			expectedIsPendingUpgrade:  false,
+			expectedIsStartingUpgrade: true,
 		},
 		{
-			name: "should call hook if the control plane is at the first step of a multistep upgrade - intent to call for next minor should be tracked",
-			s: &scope.Scope{
-				Blueprint: &scope.ClusterBlueprint{
-					Topology: clusterv1.Topology{
-						Version:      "v1.5.3",
-						ControlPlane: clusterv1.ControlPlaneTopology{},
-					},
-				},
-				Current: &scope.ClusterState{
-					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
-							},
-						},
-						Spec: clusterv1.ClusterSpec{},
-					},
-					ControlPlane: &scope.ControlPlaneState{
-						Object: builder.ControlPlane("test-ns", "cp1").
-							WithSpecFields(map[string]interface{}{
-								"spec.version":  "v1.3.2",
-								"spec.replicas": int64(2),
-							}).
-							WithStatusFields(map[string]interface{}{
-								"status.version":         "v1.3.2",
-								"status.replicas":        int64(2),
-								"status.updatedReplicas": int64(2),
-								"status.readyReplicas":   int64(2),
-							}).
-							Build(),
-					},
-				},
-				UpgradeTracker:      newUpgradeTrackerWithUpgradePlan([]string{"v1.4.2", "v1.5.3"}),
-				HookResponseTracker: scope.NewHookResponseTracker(),
-			},
-			hookResponse:       nonBlockingResponse,
-			wantIntentToCall:   true, // new intent to call the hook for the next minor
-			wantHookToBeCalled: true, // the hook has been called for the current minor
-			wantHookToBlock:    false,
-
-			wantErr: false,
+			name:                         "should return an intermediate version when upgrading by more than 1 minor and control plane should perform the first step of the upgrade sequence",
+			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
+			topologyVersion:              "v1.5.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			controlPlaneUpgradePlan:     []string{"v1.3.2", "v1.4.2", "v1.5.3"},
+			upgradingMachineDeployments: []string{},
+			upgradingMachinePools:       []string{},
+			expectedVersion:             "v1.3.2", // first step of the upgrade plan
+			expectedIsPendingUpgrade:    false,    // there are still upgrade in the queue, but we are starting one (so not pending)
+			expectedIsStartingUpgrade:   true,
 		},
 		{
-			name: "should call hook if the control plane is at the last step of a multistep upgrade",
-			s: &scope.Scope{
-				Blueprint: &scope.ClusterBlueprint{
-					Topology: clusterv1.Topology{
-						Version:      "v1.5.3",
-						ControlPlane: clusterv1.ControlPlaneTopology{},
-					},
-				},
-				Current: &scope.ClusterState{
-					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
-							},
-						},
-						Spec: clusterv1.ClusterSpec{},
-					},
-					ControlPlane: &scope.ControlPlaneState{
-						Object: builder.ControlPlane("test-ns", "cp1").
-							WithSpecFields(map[string]interface{}{
-								"spec.version":  "v1.5.3",
-								"spec.replicas": int64(2),
-							}).
-							WithStatusFields(map[string]interface{}{
-								"status.version":         "v1.5.3",
-								"status.replicas":        int64(2),
-								"status.updatedReplicas": int64(2),
-								"status.readyReplicas":   int64(2),
-							}).
-							Build(),
-					},
-				},
-				UpgradeTracker:      scope.NewUpgradeTracker(), // already at topology version, upgrade plan is empty.
-				HookResponseTracker: scope.NewHookResponseTracker(),
+			name:                         "should return cluster.spec.topology.version when performing a multi step upgrade and control plane is at the second last minor in the upgrade sequence",
+			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
+			topologyVersion:              "v1.5.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.4.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.4.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			controlPlaneUpgradePlan:     []string{"v1.5.3"},
+			upgradingMachineDeployments: []string{},
+			upgradingMachinePools:       []string{},
+			expectedVersion:             "v1.5.3", // last step of the upgrade plan
+			expectedIsPendingUpgrade:    false,
+			expectedIsStartingUpgrade:   true,
+		},
+		{
+			name:                         "should remain on the current version when upgrading by more than 1 minor and MachineDeployments have to upgrade",
+			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
+			topologyVersion:              "v1.5.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			controlPlaneUpgradePlan:            []string{"v1.3.2", "v1.4.2", "v1.5.3"},
+			machineDeploymentsUpgradePlan:      []string{"v1.2.2"},
+			upgradingMachineDeployments:        []string{},
+			upgradingMachinePools:              []string{},
+			expectedVersion:                    "v1.2.2",
+			expectedIsPendingUpgrade:           true,
+			expectedIsWaitingForWorkersUpgrade: true,
+			expectedIsStartingUpgrade:          false,
+		},
+		{
+			name:                         "should remain on the current version when upgrading by more than 1 minor and MachinePools have to upgrade",
+			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
+			topologyVersion:              "v1.5.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			controlPlaneUpgradePlan:            []string{"v1.3.2", "v1.4.2", "v1.5.3"},
+			machinePoolsUpgradePlan:            []string{"v1.2.2"},
+			upgradingMachineDeployments:        []string{},
+			upgradingMachinePools:              []string{},
+			expectedVersion:                    "v1.2.2",
+			expectedIsPendingUpgrade:           true,
+			expectedIsWaitingForWorkersUpgrade: true,
+			expectedIsStartingUpgrade:          false,
+		},
+		{
+			name:                         "should return the controlplane.spec.version if a BeforeClusterUpgradeHook returns a blocking response",
+			beforeClusterUpgradeResponse: blockingBeforeClusterUpgradeResponse,
+			topologyVersion:              "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			controlPlaneUpgradePlan:   []string{"v1.2.3"},
+			expectedVersion:           "v1.2.2",
+			expectedIsPendingUpgrade:  true,
+			expectedIsStartingUpgrade: false,
+		},
+		{
+			name:                         "should fail if the BeforeClusterUpgrade hooks returns a failure response",
+			beforeClusterUpgradeResponse: failureBeforeClusterUpgradeResponse,
+			topologyVersion:              "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			controlPlaneUpgradePlan: []string{"v1.2.3"},
+			wantErr:                 true,
+		},
+		{
+			name:                         "should return the controlplane.spec.version if a BeforeClusterUpgradeHook annotation is set",
+			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
+			topologyVersion:              "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			clusterModifier: func(c *clusterv1.Cluster) {
+				c.Annotations = map[string]string{
+					clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test": "true",
+				}
 			},
-			hookResponse:       nonBlockingResponse,
-			wantIntentToCall:   false, // remove the intent to call the hook (hook called, we are at target state)
-			wantHookToBeCalled: true,  // the hook has been called for the current minor
-			wantHookToBlock:    false,
-
-			wantErr: false,
+			controlPlaneUpgradePlan:   []string{"v1.2.3"},
+			expectedVersion:           "v1.2.2",
+			expectedIsPendingUpgrade:  true,
+			expectedIsStartingUpgrade: false,
+			wantErr:                   false,
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
-			tt.s.Current.Cluster.SetManagedFields([]metav1.ManagedFieldsEntry{
-				{
-					APIVersion: builder.InfrastructureGroupVersion.String(),
-					Manager:    "manager",
-					Operation:  "Apply",
-					Time:       ptr.To(metav1.Now()),
-					FieldsType: "FieldsV1",
+			s := &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
+					Version: tt.topologyVersion,
+					ControlPlane: clusterv1.ControlPlaneTopology{
+						Replicas: ptr.To[int32](2),
+					},
+				}},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-cluster",
+							Namespace: "test-ns",
+							// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
+							ManagedFields: []metav1.ManagedFieldsEntry{
+								{
+									APIVersion: builder.InfrastructureGroupVersion.String(),
+									Manager:    "manager",
+									Operation:  "Apply",
+									Time:       ptr.To(metav1.Now()),
+									FieldsType: "FieldsV1",
+								},
+							},
+							Annotations: map[string]string{
+								"fizz":                             "buzz",
+								corev1.LastAppliedConfigAnnotation: "should be cleaned up",
+								conversion.DataAnnotation:          "should be cleaned up",
+							},
+						},
+						// Add some more fields to check that conversion implemented when calling RuntimeExtension are properly handled.
+						Spec: clusterv1.ClusterSpec{
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								APIGroup: "refAPIGroup1",
+								Kind:     "refKind1",
+								Name:     "refName1",
+							}},
+					},
+					ControlPlane: &scope.ControlPlaneState{Object: tt.controlPlaneObj},
 				},
-			})
-			if tt.s.Current.Cluster.Annotations == nil {
-				tt.s.Current.Cluster.Annotations = map[string]string{}
+				UpgradeTracker:      scope.NewUpgradeTracker(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
 			}
-			tt.s.Current.Cluster.Annotations[corev1.LastAppliedConfigAnnotation] = "should be cleaned up"
-			tt.s.Current.Cluster.Annotations[conversion.DataAnnotation] = "should be cleaned up"
+			if tt.clusterModifier != nil {
+				tt.clusterModifier(s.Current.Cluster)
+			}
+			if len(tt.controlPlaneUpgradePlan) > 0 {
+				s.UpgradeTracker.ControlPlane.UpgradePlan = tt.controlPlaneUpgradePlan
+			}
+			if len(tt.machineDeploymentsUpgradePlan) > 0 {
+				s.UpgradeTracker.MachineDeployments.UpgradePlan = tt.machineDeploymentsUpgradePlan
+			}
+			if len(tt.machinePoolsUpgradePlan) > 0 {
+				s.UpgradeTracker.MachinePools.UpgradePlan = tt.machinePoolsUpgradePlan
+			}
+			if len(tt.upgradingMachineDeployments) > 0 {
+				s.UpgradeTracker.MachineDeployments.MarkUpgrading(tt.upgradingMachineDeployments...)
+			}
+			if len(tt.upgradingMachinePools) > 0 {
+				s.UpgradeTracker.MachinePools.MarkUpgrading(tt.upgradingMachinePools...)
+			}
 
-			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-					afterControlPlaneUpgradeGVH: tt.hookResponse,
-					beforeClusterUpgradeGVH:     beforeClusterUpgradeNonBlockingResponse,
-				}).WithCallAllExtensionValidations(validateClusterParameter(tt.s.Current.Cluster)).
+			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCatalog(catalog).
+				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+					beforeClusterUpgradeGVH: tt.beforeClusterUpgradeResponse,
+				}).
+				WithCallAllExtensionValidations(validateClusterParameter(s.Current.Cluster)).
 				Build()
 
-			fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(tt.s.Current.Cluster).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
 
 			r := &generator{
 				Client:        fakeClient,
-				RuntimeClient: fakeRuntimeClient,
+				RuntimeClient: runtimeClient,
 			}
-
-			_, err := r.computeControlPlaneVersion(ctx, tt.s)
+			version, err := r.computeControlPlaneVersion(ctx, s)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
-			} else {
-				g.Expect(err).ToNot(HaveOccurred())
+				return
 			}
+			g.Expect(err).ToNot(HaveOccurred())
 
-			if tt.wantHookToBeCalled {
-				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneUpgrade)).To(Equal(1), "Expected hook to be called once")
-			} else {
-				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneUpgrade)).To(Equal(0), "Did not expect hook to be called")
-			}
-
-			g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, tt.s.Current.Cluster)).To(Equal(tt.wantIntentToCall))
-
-			if tt.wantHookToBeCalled && !tt.wantErr {
-				g.Expect(tt.s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade)).To(Equal(tt.wantHookToBlock))
-			}
+			g.Expect(version).To(Equal(tt.expectedVersion))
+			g.Expect(s.UpgradeTracker.ControlPlane.IsPendingUpgrade).To(Equal(tt.expectedIsPendingUpgrade))
+			g.Expect(s.UpgradeTracker.ControlPlane.IsStartingUpgrade).To(Equal(tt.expectedIsStartingUpgrade))
+			g.Expect(s.UpgradeTracker.ControlPlane.IsWaitingForWorkersUpgrade).To(Equal(tt.expectedIsWaitingForWorkersUpgrade))
 		})
 	}
-}
-
-func TestComputeControlPlaneVersion_callBeforeClusterUpgrade_trackIntentOfCallingAfterClusterUpgrade(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
-
-	catalog := runtimecatalog.New()
-	_ = runtimehooksv1.AddToCatalog(catalog)
-	beforeClusterUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.BeforeClusterUpgrade)
-	if err != nil {
-		panic("unable to compute GVH")
-	}
-	blockingResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(10),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
-	}
-	nonBlockingResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(0),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
-	}
-	failureResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusFailure,
-			},
-		},
-	}
-
-	t.Run("Call BeforeClusterUpgrade hook when doing simple upgrades", func(t *testing.T) {
-		controlPlaneStable := builder.ControlPlane("test-ns", "cp1").
-			WithSpecFields(map[string]interface{}{
-				"spec.version":  "v1.2.2",
-				"spec.replicas": int64(2),
-			}).
-			WithStatusFields(map[string]interface{}{
-				"status.version":             "v1.2.2",
-				"status.replicas":            int64(2),
-				"status.updatedReplicas":     int64(2),
-				"status.readyReplicas":       int64(2),
-				"status.unavailableReplicas": int64(0),
-			}).
-			Build()
-
-		s := &scope.Scope{
-			Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
-				Version: "v1.2.3",
-				ControlPlane: clusterv1.ControlPlaneTopology{
-					Replicas: ptr.To[int32](2),
-				},
-			}},
-			Current: &scope.ClusterState{
-				Cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-cluster",
-						Namespace: "test-ns",
-					},
-				},
-				ControlPlane: &scope.ControlPlaneState{Object: controlPlaneStable},
-			},
-			UpgradeTracker:      scope.NewUpgradeTracker(),
-			HookResponseTracker: scope.NewHookResponseTracker(),
-		}
-		s.UpgradeTracker.ControlPlane.UpgradePlan = []string{"v1.2.3"}
-
-		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
-
-		runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-			WithCatalog(catalog).
-			WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-				beforeClusterUpgradeGVH: nonBlockingResponse,
-			}).
-			Build()
-
-		r := &generator{
-			Client:        fakeClient,
-			RuntimeClient: runtimeClient,
-		}
-
-		desiredVersion, err := r.computeControlPlaneVersion(ctx, s)
-		g := NewWithT(t)
-		g.Expect(err).ToNot(HaveOccurred())
-
-		// Before Cluster upgrade hook must have been be called.
-		g.Expect(runtimeClient.CallAllCount(runtimehooksv1.BeforeClusterUpgrade)).To(Equal(1))
-
-		// When successfully picking up the new version the intent to call AfterControlPlaneUpgrade and AfterClusterUpgrade hooks should be registered.
-		g.Expect(desiredVersion).To(Equal("v1.2.3"))
-		g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster)).To(BeTrue())
-		g.Expect(hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)).To(BeTrue())
-	})
-
-	t.Run("Call BeforeClusterUpgrade hook when doing simple upgrades - failure response should block picking up a new version", func(t *testing.T) {
-		controlPlaneStable := builder.ControlPlane("test-ns", "cp1").
-			WithSpecFields(map[string]interface{}{
-				"spec.version":  "v1.2.2",
-				"spec.replicas": int64(2),
-			}).
-			WithStatusFields(map[string]interface{}{
-				"status.version":             "v1.2.2",
-				"status.replicas":            int64(2),
-				"status.updatedReplicas":     int64(2),
-				"status.readyReplicas":       int64(2),
-				"status.unavailableReplicas": int64(0),
-			}).
-			Build()
-
-		s := &scope.Scope{
-			Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
-				Version: "v1.2.3",
-				ControlPlane: clusterv1.ControlPlaneTopology{
-					Replicas: ptr.To[int32](2),
-				},
-			}},
-			Current: &scope.ClusterState{
-				Cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-cluster",
-						Namespace: "test-ns",
-					},
-				},
-				ControlPlane: &scope.ControlPlaneState{Object: controlPlaneStable},
-			},
-			UpgradeTracker:      scope.NewUpgradeTracker(),
-			HookResponseTracker: scope.NewHookResponseTracker(),
-		}
-		s.UpgradeTracker.ControlPlane.UpgradePlan = []string{"v1.2.3"}
-
-		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
-
-		runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-			WithCatalog(catalog).
-			WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-				beforeClusterUpgradeGVH: failureResponse,
-			}).
-			Build()
-
-		r := &generator{
-			Client:        fakeClient,
-			RuntimeClient: runtimeClient,
-		}
-
-		desiredVersion, err := r.computeControlPlaneVersion(ctx, s)
-		g := NewWithT(t)
-		g.Expect(desiredVersion).To(Equal(""))
-		g.Expect(err).To(HaveOccurred())
-
-		// Before Cluster upgrade hook must have been be called.
-		g.Expect(runtimeClient.CallAllCount(runtimehooksv1.BeforeClusterUpgrade)).To(Equal(1))
-
-		// After a failure, intent to call AfterControlPlaneUpgrade and AfterClusterUpgrade hooks should not be registered.
-		g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster)).To(BeFalse())
-		g.Expect(hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)).To(BeFalse())
-	})
-
-	t.Run("Call BeforeClusterUpgrade hook when doing simple upgrades - blocking response should block picking up a new version", func(t *testing.T) {
-		controlPlaneStable := builder.ControlPlane("test-ns", "cp1").
-			WithSpecFields(map[string]interface{}{
-				"spec.version":  "v1.2.2",
-				"spec.replicas": int64(2),
-			}).
-			WithStatusFields(map[string]interface{}{
-				"status.version":             "v1.2.2",
-				"status.replicas":            int64(2),
-				"status.updatedReplicas":     int64(2),
-				"status.readyReplicas":       int64(2),
-				"status.unavailableReplicas": int64(0),
-			}).
-			Build()
-
-		s := &scope.Scope{
-			Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
-				Version: "v1.2.3",
-				ControlPlane: clusterv1.ControlPlaneTopology{
-					Replicas: ptr.To[int32](2),
-				},
-			}},
-			Current: &scope.ClusterState{
-				Cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-cluster",
-						Namespace: "test-ns",
-					},
-				},
-				ControlPlane: &scope.ControlPlaneState{Object: controlPlaneStable},
-			},
-			UpgradeTracker:      scope.NewUpgradeTracker(),
-			HookResponseTracker: scope.NewHookResponseTracker(),
-		}
-		s.UpgradeTracker.ControlPlane.UpgradePlan = []string{"v1.2.3"}
-
-		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
-
-		runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-			WithCatalog(catalog).
-			WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-				beforeClusterUpgradeGVH: blockingResponse,
-			}).
-			Build()
-
-		r := &generator{
-			Client:        fakeClient,
-			RuntimeClient: runtimeClient,
-		}
-
-		desiredVersion, err := r.computeControlPlaneVersion(ctx, s)
-		g := NewWithT(t)
-		g.Expect(err).ToNot(HaveOccurred())
-
-		// Before Cluster upgrade hook must have been be called.
-		g.Expect(runtimeClient.CallAllCount(runtimehooksv1.BeforeClusterUpgrade)).To(Equal(1))
-
-		// After a blocking response, current version should not be picked up, intent to call AfterControlPlaneUpgrade and AfterClusterUpgrade hooks should not be registered.
-		g.Expect(desiredVersion).To(Equal("v1.2.2"))
-		g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster)).To(BeFalse())
-		g.Expect(hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)).To(BeFalse())
-	})
-
-	t.Run("Call BeforeClusterUpgrade hook when doing the first step of a multistep cluster upgrade", func(t *testing.T) {
-		controlPlaneStable := builder.ControlPlane("test-ns", "cp1").
-			WithSpecFields(map[string]interface{}{
-				"spec.version":  "v1.2.2",
-				"spec.replicas": int64(2),
-			}).
-			WithStatusFields(map[string]interface{}{
-				"status.version":             "v1.2.2",
-				"status.replicas":            int64(2),
-				"status.updatedReplicas":     int64(2),
-				"status.readyReplicas":       int64(2),
-				"status.unavailableReplicas": int64(0),
-			}).
-			Build()
-
-		s := &scope.Scope{
-			Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
-				Version: "v1.5.3", // more than one minor after current
-				ControlPlane: clusterv1.ControlPlaneTopology{
-					Replicas: ptr.To[int32](2),
-				},
-			}},
-			Current: &scope.ClusterState{
-				Cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-cluster",
-						Namespace: "test-ns",
-					},
-				},
-				ControlPlane: &scope.ControlPlaneState{Object: controlPlaneStable},
-			},
-			UpgradeTracker:      scope.NewUpgradeTracker(),
-			HookResponseTracker: scope.NewHookResponseTracker(),
-		}
-		s.UpgradeTracker.ControlPlane.UpgradePlan = []string{"v1.3.2", "v1.4.2", "v1.5.3"}
-
-		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
-
-		runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-			WithCatalog(catalog).
-			WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-				beforeClusterUpgradeGVH: nonBlockingResponse,
-			}).
-			Build()
-
-		r := &generator{
-			Client:        fakeClient,
-			RuntimeClient: runtimeClient,
-		}
-
-		desiredVersion, err := r.computeControlPlaneVersion(ctx, s)
-		g := NewWithT(t)
-		g.Expect(err).ToNot(HaveOccurred())
-
-		// Before Cluster upgrade hook must have been be called.
-		g.Expect(runtimeClient.CallAllCount(runtimehooksv1.BeforeClusterUpgrade)).To(Equal(1))
-
-		// When successfully picking up the new version the intent to call AfterControlPlaneUpgrade and AfterClusterUpgrade hooks should be registered.
-		g.Expect(desiredVersion).To(Equal("v1.3.2"))
-		g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster)).To(BeTrue())
-		g.Expect(hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)).To(BeTrue())
-	})
-
-	t.Run("Don't call BeforeClusterUpgrade hook after the first step of a multistep upgrade", func(t *testing.T) {
-		controlPlaneStable := builder.ControlPlane("test-ns", "cp1").
-			WithSpecFields(map[string]interface{}{
-				"spec.version":  "v1.3.2",
-				"spec.replicas": int64(2),
-			}).
-			WithStatusFields(map[string]interface{}{
-				"status.version":             "v1.3.2",
-				"status.replicas":            int64(2),
-				"status.updatedReplicas":     int64(2),
-				"status.readyReplicas":       int64(2),
-				"status.unavailableReplicas": int64(0),
-			}).
-			Build()
-
-		s := &scope.Scope{
-			Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
-				Version: "v1.5.3", // more than one minor after current
-				ControlPlane: clusterv1.ControlPlaneTopology{
-					Replicas: ptr.To[int32](2),
-				},
-			}},
-			Current: &scope.ClusterState{
-				Cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-cluster",
-						Namespace: "test-ns",
-						Annotations: map[string]string{
-							runtimev1.PendingHooksAnnotation: runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade), // This signal that the upgrade is already in progress.
-						},
-					},
-				},
-				ControlPlane: &scope.ControlPlaneState{Object: controlPlaneStable},
-			},
-			UpgradeTracker:      scope.NewUpgradeTracker(),
-			HookResponseTracker: scope.NewHookResponseTracker(),
-		}
-		s.UpgradeTracker.ControlPlane.UpgradePlan = []string{"v1.4.2", "v1.5.3"}
-
-		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
-
-		runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-			WithCatalog(catalog).
-			WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-				beforeClusterUpgradeGVH: nonBlockingResponse,
-			}).
-			Build()
-
-		r := &generator{
-			Client:        fakeClient,
-			RuntimeClient: runtimeClient,
-		}
-
-		desiredVersion, err := r.computeControlPlaneVersion(ctx, s)
-		g := NewWithT(t)
-		g.Expect(err).ToNot(HaveOccurred())
-
-		// Before Cluster upgrade hook must not have been be called.
-		g.Expect(runtimeClient.CallAllCount(runtimehooksv1.BeforeClusterUpgrade)).To(Equal(0))
-
-		// When successfully picking up the new version the intent to call AfterControlPlaneUpgrade and AfterClusterUpgrade hooks should be registered.
-		g.Expect(desiredVersion).To(Equal("v1.4.2"))
-		g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster)).To(BeTrue())
-		g.Expect(hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)).To(BeTrue())
-	})
-
-	t.Run("Don't call BeforeClusterUpgrade hook when at the last step of a multi cluster upgrade", func(t *testing.T) {
-		controlPlaneStable := builder.ControlPlane("test-ns", "cp1").
-			WithSpecFields(map[string]interface{}{
-				"spec.version":  "v1.4.2",
-				"spec.replicas": int64(2),
-			}).
-			WithStatusFields(map[string]interface{}{
-				"status.version":             "v1.4.2",
-				"status.replicas":            int64(2),
-				"status.updatedReplicas":     int64(2),
-				"status.readyReplicas":       int64(2),
-				"status.unavailableReplicas": int64(0),
-			}).
-			Build()
-
-		s := &scope.Scope{
-			Blueprint: &scope.ClusterBlueprint{Topology: clusterv1.Topology{
-				Version: "v1.5.3", // one minor after current
-				ControlPlane: clusterv1.ControlPlaneTopology{
-					Replicas: ptr.To[int32](2),
-				},
-			}},
-			Current: &scope.ClusterState{
-				Cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-cluster",
-						Namespace: "test-ns",
-						Annotations: map[string]string{
-							runtimev1.PendingHooksAnnotation: runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade), // This signal that the upgrade is already in progress.
-						},
-					},
-				},
-				ControlPlane: &scope.ControlPlaneState{Object: controlPlaneStable},
-			},
-			UpgradeTracker:      scope.NewUpgradeTracker(),
-			HookResponseTracker: scope.NewHookResponseTracker(),
-		}
-		s.UpgradeTracker.ControlPlane.UpgradePlan = []string{"v1.5.3"}
-
-		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
-
-		runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-			WithCatalog(catalog).
-			WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-				beforeClusterUpgradeGVH: nonBlockingResponse,
-			}).
-			Build()
-
-		r := &generator{
-			Client:        fakeClient,
-			RuntimeClient: runtimeClient,
-		}
-
-		desiredVersion, err := r.computeControlPlaneVersion(ctx, s)
-		g := NewWithT(t)
-		g.Expect(err).ToNot(HaveOccurred())
-
-		// Before Cluster upgrade hook must not have been be called.
-		g.Expect(runtimeClient.CallAllCount(runtimehooksv1.BeforeClusterUpgrade)).To(Equal(0))
-
-		// When successfully picking up the new version the intent to call AfterControlPlaneUpgrade and AfterClusterUpgrade hooks should be registered.
-		g.Expect(desiredVersion).To(Equal("v1.5.3"))
-		g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster)).To(BeTrue())
-		g.Expect(hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)).To(BeTrue())
-	})
 }
 
 func TestComputeCluster(t *testing.T) {
@@ -4545,55 +3661,4 @@ func TestGenerate(t *testing.T) {
 		// Verify MP is marked as upgrading
 		g.Expect(s.UpgradeTracker.MachinePools.UpgradingNames()).To(ConsistOf(mp.Name))
 	})
-}
-
-func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runtimehooksv1.RequestObject) error {
-	// return a func that allows to check if expected transformations are applied to the Cluster parameter which is
-	// included in the payload for lifecycle hooks calls.
-	return func(req runtimehooksv1.RequestObject) error {
-		var cluster clusterv1beta1.Cluster
-		switch req := req.(type) {
-		case *runtimehooksv1.BeforeClusterUpgradeRequest:
-			cluster = req.Cluster
-		case *runtimehooksv1.AfterControlPlaneUpgradeRequest:
-			cluster = req.Cluster
-		default:
-			return fmt.Errorf("unhandled request type %T", req)
-		}
-
-		// check if managed fields and well know annotations have been removed from the Cluster parameter included in the payload lifecycle hooks calls.
-		if cluster.GetManagedFields() != nil {
-			return errors.New("managedFields should have been cleaned up")
-		}
-		if _, ok := cluster.Annotations[corev1.LastAppliedConfigAnnotation]; ok {
-			return errors.New("last-applied-configuration annotation should have been cleaned up")
-		}
-		if _, ok := cluster.Annotations[conversion.DataAnnotation]; ok {
-			return errors.New("conversion annotation should have been cleaned up")
-		}
-
-		// check the Cluster parameter included in the payload lifecycle hooks calls has been properly converted from v1beta2 to v1beta1.
-		// Note: to perform this check we convert the parameter back to v1beta2 and compare with the original cluster +/- expected transformations.
-		v1beta2Cluster := &clusterv1.Cluster{}
-		if err := cluster.ConvertTo(v1beta2Cluster); err != nil {
-			return err
-		}
-
-		originalClusterCopy := originalCluster.DeepCopy()
-		originalClusterCopy.SetManagedFields(nil)
-		if originalClusterCopy.Annotations != nil {
-			annotations := maps.Clone(cluster.Annotations)
-			delete(annotations, corev1.LastAppliedConfigAnnotation)
-			delete(annotations, conversion.DataAnnotation)
-			originalClusterCopy.Annotations = annotations
-		}
-
-		// drop conditions, it is not possible to round trip without the data annotation.
-		originalClusterCopy.Status.Conditions = nil
-
-		if !apiequality.Semantic.DeepEqual(originalClusterCopy, v1beta2Cluster) {
-			return errors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, v1beta2Cluster))
-		}
-		return nil
-	}
 }

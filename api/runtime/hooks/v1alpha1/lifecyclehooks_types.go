@@ -97,6 +97,22 @@ type BeforeClusterUpgradeRequest struct {
 	// toKubernetesVersion is the target Kubernetes version of the upgrade.
 	// +required
 	ToKubernetesVersion string `json:"toKubernetesVersion"`
+
+	// controlPlaneUpgrades is the list of version upgrade steps for the control plane.
+	// +optional
+	ControlPlaneUpgrades []UpgradeStepInfo `json:"controlPlaneUpgrades,omitempty"`
+
+	// workersUpgrades is the list of version upgrade steps for the workers.
+	// +optional
+	WorkersUpgrades []UpgradeStepInfo `json:"workersUpgrades,omitempty"`
+}
+
+// UpgradeStepInfo provide info about a single version upgrade step.
+type UpgradeStepInfo struct {
+	// version is the Kubernetes version for this upgrade step.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	Version string `json:"version,omitempty"`
 }
 
 var _ RetryResponseObject = &BeforeClusterUpgradeResponse{}
@@ -114,6 +130,50 @@ type BeforeClusterUpgradeResponse struct {
 // before the updated version is propagated to the underlying objects.
 func BeforeClusterUpgrade(*BeforeClusterUpgradeRequest, *BeforeClusterUpgradeResponse) {}
 
+// BeforeControlPlaneUpgradeRequest is the request of the BeforeControlPlane hook.
+// +kubebuilder:object:root=true
+type BeforeControlPlaneUpgradeRequest struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// CommonRequest contains fields common to all request types.
+	CommonRequest `json:",inline"`
+
+	// cluster is the cluster object the lifecycle hook corresponds to.
+	// +required
+	Cluster clusterv1beta1.Cluster `json:"cluster"`
+
+	// fromKubernetesVersion is the current Kubernetes version of the control plane for the next upgrade step.
+	// +required
+	FromKubernetesVersion string `json:"fromKubernetesVersion"`
+
+	// toKubernetesVersion is the target Kubernetes version of the control plane for the next upgrade step.
+	// +required
+	ToKubernetesVersion string `json:"toKubernetesVersion"`
+
+	// controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.
+	// +optional
+	ControlPlaneUpgrades []UpgradeStepInfo `json:"controlPlaneUpgrades,omitempty"`
+
+	// workersUpgrades is the list of the remaining version upgrade steps for workers, if any.
+	// +optional
+	WorkersUpgrades []UpgradeStepInfo `json:"workersUpgrades,omitempty"`
+}
+
+var _ RetryResponseObject = &BeforeControlPlaneUpgradeResponse{}
+
+// BeforeControlPlaneUpgradeResponse is the response of the BeforeControlPlaneUpgrade hook.
+// +kubebuilder:object:root=true
+type BeforeControlPlaneUpgradeResponse struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
+	CommonRetryResponse `json:",inline"`
+}
+
+// BeforeControlPlaneUpgrade is the hook that will be called before a new version is propagated to the control plane object.
+func BeforeControlPlaneUpgrade(*BeforeControlPlaneUpgradeRequest, *BeforeControlPlaneUpgradeResponse) {
+}
+
 // AfterControlPlaneUpgradeRequest is the request of the AfterControlPlaneUpgrade hook.
 // +kubebuilder:object:root=true
 type AfterControlPlaneUpgradeRequest struct {
@@ -126,9 +186,17 @@ type AfterControlPlaneUpgradeRequest struct {
 	// +required
 	Cluster clusterv1beta1.Cluster `json:"cluster"`
 
-	// kubernetesVersion is the Kubernetes version of the Control Plane after the upgrade.
+	// kubernetesVersion is the Kubernetes version of the control plane after an upgrade step.
 	// +required
 	KubernetesVersion string `json:"kubernetesVersion"`
+
+	// controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.
+	// +optional
+	ControlPlaneUpgrades []UpgradeStepInfo `json:"controlPlaneUpgrades,omitempty"`
+
+	// workersUpgrades is the list of the remaining version upgrade steps for workers, if any.
+	// +optional
+	WorkersUpgrades []UpgradeStepInfo `json:"workersUpgrades,omitempty"`
 }
 
 var _ RetryResponseObject = &AfterControlPlaneUpgradeResponse{}
@@ -145,6 +213,90 @@ type AfterControlPlaneUpgradeResponse struct {
 // AfterControlPlaneUpgrade is the hook called after the control plane is successfully upgraded to the target
 // Kubernetes version and before the target version is propagated to the workload machines.
 func AfterControlPlaneUpgrade(*AfterControlPlaneUpgradeRequest, *AfterControlPlaneUpgradeResponse) {}
+
+// BeforeWorkersUpgradeRequest is the request of the BeforeWorkersUpgrade hook.
+// +kubebuilder:object:root=true
+type BeforeWorkersUpgradeRequest struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// CommonRequest contains fields common to all request types.
+	CommonRequest `json:",inline"`
+
+	// cluster is the cluster object the lifecycle hook corresponds to.
+	// +required
+	Cluster clusterv1beta1.Cluster `json:"cluster"`
+
+	// fromKubernetesVersion is the current Kubernetes version of the workers for the next upgrade step.
+	// +required
+	FromKubernetesVersion string `json:"fromKubernetesVersion"`
+
+	// toKubernetesVersion is the target Kubernetes version of the workers for the next upgrade step.
+	// +required
+	ToKubernetesVersion string `json:"toKubernetesVersion"`
+
+	// controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.
+	// +optional
+	ControlPlaneUpgrades []UpgradeStepInfo `json:"controlPlaneUpgrades,omitempty"`
+
+	// workersUpgrades is the list of the remaining version upgrade steps for workers, if any.
+	// +optional
+	WorkersUpgrades []UpgradeStepInfo `json:"workersUpgrades,omitempty"`
+}
+
+var _ RetryResponseObject = &BeforeWorkersUpgradeResponse{}
+
+// BeforeWorkersUpgradeResponse is the response of the BeforeWorkersUpgrade hook.
+// +kubebuilder:object:root=true
+type BeforeWorkersUpgradeResponse struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
+	CommonRetryResponse `json:",inline"`
+}
+
+// BeforeWorkersUpgrade is the hook that will be called before a new version is propagated to workers.
+func BeforeWorkersUpgrade(*BeforeWorkersUpgradeRequest, *BeforeWorkersUpgradeResponse) {
+}
+
+// AfterWorkersUpgradeRequest is the request of the AfterWorkersUpgrade hook.
+// +kubebuilder:object:root=true
+type AfterWorkersUpgradeRequest struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// CommonRequest contains fields common to all request types.
+	CommonRequest `json:",inline"`
+
+	// cluster is the cluster object the lifecycle hook corresponds to.
+	// +required
+	Cluster clusterv1beta1.Cluster `json:"cluster"`
+
+	// kubernetesVersion is the Kubernetes version of the workers after an upgrade step.
+	// +required
+	KubernetesVersion string `json:"kubernetesVersion"`
+
+	// controlPlaneUpgrades is the list of the remaining version upgrade steps for the control plane, if any.
+	// +optional
+	ControlPlaneUpgrades []UpgradeStepInfo `json:"controlPlaneUpgrades,omitempty"`
+
+	// workersUpgrades is the list of the remaining version upgrade steps for workers, if any.
+	// +optional
+	WorkersUpgrades []UpgradeStepInfo `json:"workersUpgrades,omitempty"`
+}
+
+var _ RetryResponseObject = &AfterWorkersUpgradeResponse{}
+
+// AfterWorkersUpgradeResponse is the response of the AfterWorkersUpgrade hook.
+// +kubebuilder:object:root=true
+type AfterWorkersUpgradeResponse struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
+	CommonRetryResponse `json:",inline"`
+}
+
+// AfterWorkersUpgrade is the hook called after the control plane is successfully upgraded to the target
+// Kubernetes version and before the target version is propagated to the workload machines.
+func AfterWorkersUpgrade(*AfterWorkersUpgradeRequest, *AfterWorkersUpgradeResponse) {}
 
 // AfterClusterUpgradeRequest is the request of the AfterClusterUpgrade hook.
 // +kubebuilder:object:root=true
@@ -243,18 +395,58 @@ func init() {
 			"tasks before the new version is propagated to the control plane",
 	})
 
+	catalogBuilder.RegisterHook(BeforeControlPlaneUpgrade, &runtimecatalog.HookMeta{
+		Tags:    []string{"Lifecycle Hooks"},
+		Summary: "Cluster API Runtime will call this hook before the control plane is upgraded",
+		Description: "This hook is called before a new version is propagated to the control plane object.\n" +
+			"\n" +
+			"Notes:\n" +
+			"- This hook will be called only for Clusters with a managed topology\n" +
+			"- When an upgrade is starting, BeforeControlPlaneUpgrade will be called after BeforeClusterUpgrade is completed\n" +
+			"- When an upgrade is in progress BeforeControlPlaneUpgrade will be called for each intermediate version that will be applied " +
+			"to the control plane (instead BeforeClusterUpgrade will be called only once at the beginning of the upgrade)" +
+			"- This is a blocking hook; Runtime Extension implementers can use this hook to execute " +
+			"tasks before the new version is propagated to the control plane",
+	})
+
 	catalogBuilder.RegisterHook(AfterControlPlaneUpgrade, &runtimecatalog.HookMeta{
 		Tags:    []string{"Lifecycle Hooks"},
 		Summary: "Cluster API Runtime will call this hook after the control plane is upgraded",
 		Description: "Cluster API Runtime will call this hook after the a cluster's control plane has been upgraded to the version specified " +
-			"in spec.topology.version, and immediately before the new version is going to be propagated to the MachineDeployments. " +
+			"in spec.topology.version or to an intermediate version in the upgrade plan." +
 			"A control plane upgrade is completed when all the machines in the control plane have been upgraded.\n" +
 			"\n" +
 			"Notes:\n" +
 			"- This hook will be called only for Clusters with a managed topology\n" +
 			"- The call's request contains the Cluster object and the Kubernetes version we upgraded to\n" +
 			"- This is a blocking hook; Runtime Extension implementers can use this hook to execute " +
-			"tasks before the new version is propagated to the MachineDeployments",
+			"tasks before the new version is propagated to the MachineDeployments and Machine Pools",
+	})
+
+	catalogBuilder.RegisterHook(BeforeWorkersUpgrade, &runtimecatalog.HookMeta{
+		Tags:    []string{"Lifecycle Hooks"},
+		Summary: "Cluster API Runtime will call this hook before the workers are upgraded",
+		Description: "This hook is called before a new version is propagated to workers.\n" +
+			"\n" +
+			"Notes:\n" +
+			"- This hook will be called only for Clusters with a managed topology\n" +
+			"- This hook will be called only if workers upgrade must be performed for an intermediate version of " +
+			"a chained upgrade or when upgrading to the target spec.topology.version.\n" +
+			"- This is a blocking hook; Runtime Extension implementers can use this hook to execute " +
+			"tasks before the new version is propagated to the MachineDeployments and Machine Pools",
+	})
+
+	catalogBuilder.RegisterHook(AfterWorkersUpgrade, &runtimecatalog.HookMeta{
+		Tags:    []string{"Lifecycle Hooks"},
+		Summary: "Cluster API Runtime will call this hook after workers are upgraded",
+		Description: "This hook is called after all the workers have been upgraded to the version specified in spec.topology.version " +
+			"or to an intermediate version in the upgrade plan.\n" +
+			"\n" +
+			"Notes:\n" +
+			"- This hook will be called only for Clusters with a managed topology\n" +
+			"- The call's request contains the Cluster object, the current Kubernetes version and the Kubernetes version we are upgrading to\n" +
+			"- This is a blocking hook; Runtime Extension implementers can use this hook to execute " +
+			"tasks before the upgrade plan continues, or when already at the target spec.topology.version, before AfterClusterUpgrade is called.\n",
 	})
 
 	catalogBuilder.RegisterHook(AfterClusterUpgrade, &runtimecatalog.HookMeta{

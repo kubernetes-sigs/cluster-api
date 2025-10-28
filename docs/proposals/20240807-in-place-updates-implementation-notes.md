@@ -37,7 +37,7 @@ sequenceDiagram
     participant RX
     participant MS1 (OldMS)
     participant MS2 (NewMS)
-    MD Controller-->>+RX: Can you update in-place from MS1 (OldMS) to MD2 (NewMS)?
+    MD Controller-->>+RX: Can you update in-place from MS1 (OldMS) to MS2 (NewMS)?
     RX-->>-MD Controller: Yes!
     MD Controller->>MS1 (OldMS): Apply annotation ".../move-machines-to-machineset": "MS2"
     MD Controller->>MS2 (NewMS): Apply annotation ".../receive-machines-from-machinesets": "MS1"
@@ -51,7 +51,7 @@ sequenceDiagram
     participant MS Controller as MS Controller<br/>when reconciling<br/>MS1 (OldMS)
     participant MS1 (OldMS)
     participant MS2 (NewMS)
-    participant M1 as M1<br/>controlled by<br/>MS1 (OldMS),<br/>selected to be moved to MS2
+    participant M1 as M1<br/>controlled by<br/>MS1 (OldMS),<br/>selected to be moved to MS2 (NewMS)
     MS Controller-->>MS1 (OldMS): Are you scaling down?
     MS1 (OldMS)-->>MS Controller: Yes!
     MS Controller-->>MS1 (OldMS): Do you have the ".../move-machines-to-machineset" annotation?

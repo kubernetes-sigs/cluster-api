@@ -87,7 +87,7 @@ func TestPatch(t *testing.T) {
 		// Compute request identifier before the update, so we can later verify that the update call was not cached with this identifier.
 		modifiedUnstructured, err := prepareModified(env.Scheme(), modifiedObject)
 		g.Expect(err).ToNot(HaveOccurred())
-		oldRequestIdentifier, err := ComputeRequestIdentifier(env.GetScheme(), originalObject, modifiedUnstructured)
+		oldRequestIdentifier, err := ComputeRequestIdentifier(env.GetScheme(), originalObject.GetResourceVersion(), modifiedUnstructured)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Save a copy of modifiedUnstructured before apply to compute the new identifier later
 		modifiedUnstructuredBeforeApply := modifiedUnstructured.DeepCopy()
@@ -101,7 +101,7 @@ func TestPatch(t *testing.T) {
 		objectAfterApply := initialObject.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(objectAfterApply), objectAfterApply)).To(Succeed())
 		// Compute the new request identifier (after apply)
-		newRequestIdentifier, err := ComputeRequestIdentifier(env.GetScheme(), objectAfterApply, modifiedUnstructuredBeforeApply)
+		newRequestIdentifier, err := ComputeRequestIdentifier(env.GetScheme(), objectAfterApply.GetResourceVersion(), modifiedUnstructuredBeforeApply)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Verify that request was cached with the new identifier (after apply)
 		g.Expect(ssaCache.Has(newRequestIdentifier, initialObject.GetKind())).To(BeTrue())
@@ -116,7 +116,7 @@ func TestPatch(t *testing.T) {
 		// Compute request identifier, so we can later verify that the update call was cached.
 		modifiedUnstructured, err = prepareModified(env.Scheme(), modifiedObject)
 		g.Expect(err).ToNot(HaveOccurred())
-		requestIdentifierNoOp, err := ComputeRequestIdentifier(env.GetScheme(), originalObject, modifiedUnstructured)
+		requestIdentifierNoOp, err := ComputeRequestIdentifier(env.GetScheme(), originalObject.GetResourceVersion(), modifiedUnstructured)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Update the object
 		applyCallCount = 0
@@ -189,7 +189,7 @@ func TestPatch(t *testing.T) {
 		// Compute request identifier before the update, so we can later verify that the update call was not cached with this identifier.
 		modifiedUnstructured, err := prepareModified(env.Scheme(), modifiedObject)
 		g.Expect(err).ToNot(HaveOccurred())
-		oldRequestIdentifier, err := ComputeRequestIdentifier(env.GetScheme(), originalObject, modifiedUnstructured)
+		oldRequestIdentifier, err := ComputeRequestIdentifier(env.GetScheme(), originalObject.GetResourceVersion(), modifiedUnstructured)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Save a copy of modifiedUnstructured before apply to compute the new identifier later
 		modifiedUnstructuredBeforeApply := modifiedUnstructured.DeepCopy()
@@ -204,12 +204,8 @@ func TestPatch(t *testing.T) {
 		// Get the actual object from server after apply to compute the new request identifier
 		objectAfterApply := initialObject.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(objectAfterApply), objectAfterApply)).To(Succeed())
-		// Convert to unstructured WITHOUT filtering to preserve server fields (like resourceVersion)
-		objectAfterApplyUnstructured := &unstructured.Unstructured{}
-		err = env.GetScheme().Convert(objectAfterApply, objectAfterApplyUnstructured, nil)
-		g.Expect(err).ToNot(HaveOccurred())
 		// Compute the new request identifier (after apply)
-		newRequestIdentifier, err := ComputeRequestIdentifier(env.GetScheme(), objectAfterApplyUnstructured, modifiedUnstructuredBeforeApply)
+		newRequestIdentifier, err := ComputeRequestIdentifier(env.GetScheme(), objectAfterApply.GetResourceVersion(), modifiedUnstructuredBeforeApply)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Verify that request was cached with the new identifier (after apply)
 		g.Expect(ssaCache.Has(newRequestIdentifier, initialObject.GetObjectKind().GroupVersionKind().Kind)).To(BeTrue())
@@ -232,7 +228,7 @@ func TestPatch(t *testing.T) {
 		// Compute request identifier, so we can later verify that the update call was cached.
 		modifiedUnstructured, err = prepareModified(env.Scheme(), modifiedObject)
 		g.Expect(err).ToNot(HaveOccurred())
-		requestIdentifierNoOp, err := ComputeRequestIdentifier(env.GetScheme(), originalObject, modifiedUnstructured)
+		requestIdentifierNoOp, err := ComputeRequestIdentifier(env.GetScheme(), originalObject.GetResourceVersion(), modifiedUnstructured)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Update the object
 		applyCallCount = 0

@@ -94,7 +94,7 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 	var requestIdentifier string
 	if options.WithCachingProxy {
 		// Check if the request is cached.
-		requestIdentifier, err = ComputeRequestIdentifier(c.Scheme(), options.Original, modifiedUnstructured)
+		requestIdentifier, err = ComputeRequestIdentifier(c.Scheme(), options.Original.GetResourceVersion(), modifiedUnstructured)
 		if err != nil {
 			return errors.Wrapf(err, "failed to apply object")
 		}
@@ -135,9 +135,9 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 	if options.WithCachingProxy && !options.WithDryRun {
 		// If the object changed, we need to recompute the request identifier before caching.
 		if options.Original.GetResourceVersion() != modifiedUnstructured.GetResourceVersion() {
-			// NOTE: This takes the resourceVersion from modifiedUnstructured, and the hash from
-			// modifiedUnstructuredBeforeApply, which is what we want.
-			requestIdentifier, err = ComputeRequestIdentifier(c.Scheme(), modifiedUnstructured, modifiedUnstructuredBeforeApply)
+			// NOTE: This uses the resourceVersion from modifiedUnstructured (after apply), and the hash from
+			// modifiedUnstructuredBeforeApply (what we wanted to apply), which is what we want.
+			requestIdentifier, err = ComputeRequestIdentifier(c.Scheme(), modifiedUnstructured.GetResourceVersion(), modifiedUnstructuredBeforeApply)
 			if err != nil {
 				return errors.Wrapf(err, "failed to compute request identifier after apply")
 			}

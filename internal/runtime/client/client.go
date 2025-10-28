@@ -32,6 +32,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -123,15 +124,8 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 	}
 
 	// Check to see if the response is not a success and handle the failure accordingly.
-	if response.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
-		if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-			log.Info(fmt.Sprintf("Failed to discover extension %q: got failure response with message %v", extensionConfig.Name, response.GetMessage()))
-			// Don't add the message to the error as it is may be unique causing too many reconciliations. Ref: https://github.com/kubernetes-sigs/cluster-api/issues/6921
-			return nil, errors.Errorf("failed to discover extension %q: got failure response, please check controller logs for errors", extensionConfig.Name)
-		}
-		// Handle unknown status.
-		log.Info(fmt.Sprintf("Failed to discover extension %q: got unknown response status %q with message %v", extensionConfig.Name, response.GetStatus(), response.GetMessage()))
-		return nil, errors.Errorf("failed to discover extension %q: got unknown response status %q, please check controller logs for errors", extensionConfig.Name, response.GetStatus())
+	if err := validateResponseStatus(log, response, "discover extension", extensionConfig.Name); err != nil {
+		return nil, err
 	}
 
 	// Check to see if the response is valid.
@@ -396,15 +390,8 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	}
 
 	// If the received response is not a success then return an error.
-	if response.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
-		if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-			log.Info(fmt.Sprintf("Failed to call extension handler %q: got failure response with message %v", name, response.GetMessage()))
-			// Don't add the message to the error as it is may be unique causing too many reconciliations. Ref: https://github.com/kubernetes-sigs/cluster-api/issues/6921
-			return errors.Errorf("failed to call extension handler %q: got failure response, please check controller logs for errors", name)
-		}
-		// Handle unknown status.
-		log.Info(fmt.Sprintf("Failed to call extension handler %q: got unknown response status %q with message %v", name, response.GetStatus(), response.GetMessage()))
-		return errors.Errorf("failed to call extension handler %q: got unknown response status %q, please check controller logs for errors", name, response.GetStatus())
+	if err := validateResponseStatus(log, response, "call extension handler", name); err != nil {
+		return err
 	}
 
 	if retryResponse, ok := response.(runtimehooksv1.RetryResponseObject); ok && retryResponse.GetRetryAfterSeconds() != 0 {
@@ -732,4 +719,20 @@ func ExtensionNameFromHandlerName(registeredHandlerName string) (string, error) 
 		return "", errors.Errorf("registered handler name %s was not in the expected format (`HANDLER_NAME.EXTENSION_NAME)", registeredHandlerName)
 	}
 	return parts[1], nil
+}
+
+// validateResponseStatus checks if the response status is successful and returns an error otherwise.
+// It logs appropriate messages for failure and unknown statuses.
+func validateResponseStatus(log logr.Logger, response runtimehooksv1.ResponseObject, operationName, targetName string) error {
+	if response.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
+		if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
+			log.Info(fmt.Sprintf("Failed to %s %q: got failure response with message %v", operationName, targetName, response.GetMessage()))
+			// Don't add the message to the error as it is may be unique causing too many reconciliations. Ref: https://github.com/kubernetes-sigs/cluster-api/issues/6921
+			return errors.Errorf("failed to %s %q: got failure response, please check controller logs for errors", operationName, targetName)
+		}
+		// Handle unknown status.
+		log.Info(fmt.Sprintf("Failed to %s %q: got unknown response status %q with message %v", operationName, targetName, response.GetStatus(), response.GetMessage()))
+		return errors.Errorf("failed to %s %q: got unknown response status %q, please check controller logs for errors", operationName, targetName, response.GetStatus())
+	}
+	return nil
 }

@@ -503,6 +503,8 @@ func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.Checks.UnhealthyMachineConditions = restored.Spec.Checks.UnhealthyMachineConditions
+
 	clusterv1.Convert_int32_To_Pointer_int32(src.Status.ExpectedMachines, ok, restored.Status.ExpectedMachines, &dst.Status.ExpectedMachines)
 	clusterv1.Convert_int32_To_Pointer_int32(src.Status.CurrentHealthy, ok, restored.Status.CurrentHealthy, &dst.Status.CurrentHealthy)
 	clusterv1.Convert_int32_To_Pointer_int32(src.Status.RemediationsAllowed, ok, restored.Status.RemediationsAllowed, &dst.Status.RemediationsAllowed)

@@ -22,6 +22,13 @@ spec:
           - type: Ready
             status: "False"
             timeoutSeconds: 300
+        unhealthyMachineConditions:
+          - type: "NodeReady"
+            status: Unknown
+            timeoutSeconds: 300
+          - type: "NodeReady"
+            status: "False"
+            timeoutSeconds: 300
   infrastructure:
     templateRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -47,6 +54,13 @@ spec:
               status: Unknown
               timeoutSeconds: 300
             - type: Ready
+              status: "False"
+              timeoutSeconds: 300
+          unhealthyMachineConditions:
+            - type: "NodeReady"
+              status: Unknown
+              timeoutSeconds: 300
+            - type: "NodeReady"
               status: "False"
               timeoutSeconds: 300
     machinePools:

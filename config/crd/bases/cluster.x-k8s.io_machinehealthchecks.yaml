@@ -1065,6 +1065,53 @@ spec:
                     format: int32
                     minimum: 0
                     type: integer
+                  unhealthyMachineConditions:
+                    description: |-
+                      unhealthyMachineConditions contains a list of the machine conditions that determine
+                      whether a machine is considered unhealthy.  The conditions are combined in a
+                      logical OR, i.e. if any of the conditions is met, the machine is unhealthy.
+                    items:
+                      description: |-
+                        UnhealthyMachineCondition represents a Machine condition type and value with a timeout
+                        specified as a duration.  When the named condition has been in the given
+                        status for at least the timeout value, a machine is considered unhealthy.
+                      properties:
+                        status:
+                          description: status of the condition, one of True, False,
+                            Unknown.
+                          enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                          type: string
+                        timeoutSeconds:
+                          description: |-
+                            timeoutSeconds is the duration that a machine must be in a given status for,
+                            after which the machine is considered unhealthy.
+                            For example, with a value of "3600", the machine must match the status
+                            for at least 1 hour before being considered unhealthy.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        type:
+                          description: type of Machine condition
+                          maxLength: 316
+                          minLength: 1
+                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                          type: string
+                          x-kubernetes-validations:
+                          - message: 'type must not be one of: Ready, Available, HealthCheckSucceeded,
+                              OwnerRemediated, ExternallyRemediated'
+                            rule: '!(self in [''Ready'',''Available'',''HealthCheckSucceeded'',''OwnerRemediated'',''ExternallyRemediated''])'
+                      required:
+                      - status
+                      - timeoutSeconds
+                      - type
+                      type: object
+                    maxItems: 100
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-type: atomic
                   unhealthyNodeConditions:
                     description: |-
                       unhealthyNodeConditions contains a list of conditions that determine
@@ -1085,7 +1132,7 @@ spec:
                           description: |-
                             timeoutSeconds is the duration that a node must be in a given status for,
                             after which the node is considered unhealthy.
-                            For example, with a value of "1h", the node must match the status
+                            For example, with a value of "3600", the node must match the status
                             for at least 1 hour before being considered unhealthy.
                           format: int32
                           minimum: 0

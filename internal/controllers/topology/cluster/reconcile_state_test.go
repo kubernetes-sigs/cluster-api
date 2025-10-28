@@ -43,6 +43,7 @@ import (
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -1906,6 +1907,13 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 					TimeoutSeconds: ptr.To(int32(5 * 60)),
 				},
 			},
+			UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+				{
+					Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+					Status:         metav1.ConditionUnknown,
+					TimeoutSeconds: ptr.To(int32(5 * 60)),
+				},
+			},
 		},
 	}
 	maxUnhealthy := intstr.Parse("45%")
@@ -1926,6 +1934,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "cp1").
 		WithSelector(*selectors.ForControlPlaneMHC()).
 		WithUnhealthyNodeConditions(mhcClass.Checks.UnhealthyNodeConditions).
+		WithUnhealthyMachineConditions(mhcClass.Checks.UnhealthyMachineConditions).
 		WithClusterName("cluster1")
 
 	tests := []struct {
@@ -3421,6 +3430,13 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 				TimeoutSeconds: ptr.To(int32(5 * 60)),
 			},
 		}).
+		WithUnhealthyMachineConditions([]clusterv1.UnhealthyMachineCondition{
+			{
+				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:         metav1.ConditionUnknown,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
+			},
+		}).
 		WithClusterName("cluster1")
 
 	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-1").Build()
@@ -3865,6 +3881,13 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 				TimeoutSeconds: ptr.To(int32(5 * 60)),
 			},
 		}).
+		WithUnhealthyMachineConditions([]clusterv1.UnhealthyMachineCondition{
+			{
+				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+				Status:         metav1.ConditionUnknown,
+				TimeoutSeconds: ptr.To(int32(5 * 60)),
+			},
+		}).
 		WithClusterName("cluster1")
 	tests := []struct {
 		name    string
@@ -3889,11 +3912,23 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 					Status:         corev1.ConditionUnknown,
 					TimeoutSeconds: ptr.To(int32(1000 * 60)),
 				},
+			}).WithUnhealthyMachineConditions([]clusterv1.UnhealthyMachineCondition{
+				{
+					Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+					Status:         metav1.ConditionUnknown,
+					TimeoutSeconds: ptr.To(int32(1000 * 60)),
+				},
 			}).Build(),
 			want: mhcBuilder.DeepCopy().WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 				{
 					Type:           corev1.NodeReady,
 					Status:         corev1.ConditionUnknown,
+					TimeoutSeconds: ptr.To(int32(1000 * 60)),
+				},
+			}).WithUnhealthyMachineConditions([]clusterv1.UnhealthyMachineCondition{
+				{
+					Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+					Status:         metav1.ConditionUnknown,
 					TimeoutSeconds: ptr.To(int32(1000 * 60)),
 				},
 			}).Build(),

@@ -127,10 +127,10 @@ spec:
             status: "False"
             timeoutSeconds: 300
         unhealthyMachineConditions:
-          - type: "Ready"
+          - type: "NodeReady"
             status: Unknown
             timeoutSeconds: 300
-          - type: "Ready"
+          - type: "NodeReady"
             status: "False"
             timeoutSeconds: 300
   infrastructure:
@@ -161,9 +161,9 @@ spec:
                 status: "False"
                 timeoutSeconds: 300
             unhealthyMachineConditions:
-              - type: "Ready"
+              - type: "NodeReady"
                 status: Unknown
                 timeoutSeconds: 300
-              - type: "Ready"
+              - type: "NodeReady"
                 status: "False"
                 timeoutSeconds: 300

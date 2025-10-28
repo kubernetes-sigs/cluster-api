@@ -45,9 +45,6 @@ const (
 
 	// EventMachineMarkedUnhealthy is emitted when machine was successfully marked as unhealthy.
 	EventMachineMarkedUnhealthy string = "MachineMarkedUnhealthy"
-	// EventDetectedUnhealthy is emitted in case a machine or its associated
-	// node was detected unhealthy.
-	EventDetectedUnhealthy string = "DetectedUnhealthy"
 )
 
 var (

@@ -2569,9 +2569,7 @@ spec:
                                       - message: 'type must not be one of: Ready,
                                           Available, HealthCheckSucceeded, OwnerRemediated,
                                           ExternallyRemediated'
-                                        rule: self != 'Ready' && self != 'Available'
-                                          && self != 'HealthCheckSucceeded' && self
-                                          != 'OwnerRemediated' && self != 'ExternallyRemediated'
+                                        rule: '!(self in [''Ready'',''Available'',''HealthCheckSucceeded'',''OwnerRemediated'',''ExternallyRemediated''])'
                                   required:
                                   - status
                                   - timeoutSeconds
@@ -3020,10 +3018,7 @@ spec:
                                             - message: 'type must not be one of: Ready,
                                                 Available, HealthCheckSucceeded, OwnerRemediated,
                                                 ExternallyRemediated'
-                                              rule: self != 'Ready' && self != 'Available'
-                                                && self != 'HealthCheckSucceeded'
-                                                && self != 'OwnerRemediated' && self
-                                                != 'ExternallyRemediated'
+                                              rule: '!(self in [''Ready'',''Available'',''HealthCheckSucceeded'',''OwnerRemediated'',''ExternallyRemediated''])'
                                         required:
                                         - status
                                         - timeoutSeconds

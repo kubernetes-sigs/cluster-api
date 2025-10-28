@@ -709,10 +709,6 @@ func newTestUnhealthyMachine(name, namespace, clusterName, nodeName string, labe
 
 	bootstrap := "bootstrap"
 	return &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,

@@ -36,7 +36,7 @@ while make test-junit; do
   sleep 10
 
   ((i++))
-; done
+done
 
 
 #echo -e "\n*** Testing test/infrastructure folder ***\n"

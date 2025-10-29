@@ -22,9 +22,15 @@ import (
 
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
+	"sigs.k8s.io/cluster-api/feature"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -1128,6 +1134,113 @@ func TestGetUpgradePlanFromClusterClassVersions(t *testing.T) {
 			}
 			g.Expect(controlPlaneUpgradePlan).To(Equal(tt.wantControlPlaneUpgradePlan))
 			g.Expect(workersUpgradePlan).To(Equal(tt.wantWorkersUpgradePlan))
+		})
+	}
+}
+
+func TestGetUpgradePlanFromExtension(t *testing.T) {
+	g := NewWithT(t)
+	ctx := t.Context()
+
+	// Enable RuntimeSDK feature flag
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+
+	// Create a test cluster
+	cluster := builder.Cluster("test-namespace", "test-cluster").Build()
+
+	// Create catalog and register runtime hooks
+	catalog := runtimecatalog.New()
+	_ = runtimehooksv1.AddToCatalog(catalog)
+
+	// Create fake runtime client
+	extensionResponse := &runtimehooksv1.GenerateUpgradePlanResponse{
+		CommonResponse: runtimehooksv1.CommonResponse{
+			Status: runtimehooksv1.ResponseStatusSuccess,
+		},
+		ControlPlaneUpgrades: []runtimehooksv1.UpgradeStep{
+			{Version: "v1.32.0"},
+			{Version: "v1.33.0"},
+		},
+		WorkersUpgrades: []runtimehooksv1.UpgradeStep{
+			{Version: "v1.33.0"},
+		},
+	}
+	fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+		WithCatalog(catalog).
+		WithCallExtensionResponses(map[string]runtimehooksv1.ResponseObject{
+			"test-extension": extensionResponse,
+		}).
+		Build()
+
+	// Call GetUpgradePlanFromExtension
+	f := GetUpgradePlanFromExtension(fakeRuntimeClient, cluster, "test-extension")
+	controlPlaneUpgradePlan, workersUpgradePlan, err := f(ctx, "v1.33.0", "v1.31.0", "v1.31.0")
+
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(controlPlaneUpgradePlan).To(Equal([]string{"v1.32.0", "v1.33.0"}))
+	g.Expect(workersUpgradePlan).To(Equal([]string{"v1.33.0"}))
+}
+
+func TestGetUpgradePlanFromExtension_Errors(t *testing.T) {
+	tests := []struct {
+		name                       string
+		enableRuntimeSDK           bool
+		extensionError             error
+		desiredVersion             string
+		currentControlPlaneVersion string
+		currentMinWorkersVersion   string
+		wantErrMessage             string
+	}{
+		{
+			name:                       "fails when RuntimeSDK feature flag is disabled",
+			enableRuntimeSDK:           false,
+			desiredVersion:             "v1.33.0",
+			currentControlPlaneVersion: "v1.31.0",
+			currentMinWorkersVersion:   "v1.31.0",
+			wantErrMessage:             "can not use GenerateUpgradePlan extension \"test-extension\" if RuntimeSDK feature flag is disabled",
+		},
+		{
+			name:                       "fails when extension call returns error",
+			enableRuntimeSDK:           true,
+			desiredVersion:             "v1.33.0",
+			currentControlPlaneVersion: "v1.31.0",
+			currentMinWorkersVersion:   "v1.31.0",
+			extensionError:             errors.New("extension call error"),
+			wantErrMessage:             "failed to call GenerateUpgradePlan extension \"test-extension\": extension call error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := t.Context()
+
+			// Enable/disable RuntimeSDK feature flag
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.enableRuntimeSDK)
+
+			// Create a test cluster
+			cluster := builder.Cluster("test-namespace", "test-cluster").Build()
+
+			// Create catalog and register runtime hooks
+			catalog := runtimecatalog.New()
+			_ = runtimehooksv1.AddToCatalog(catalog)
+
+			// Create fake runtime client
+			fakeRuntimeClientBuilder := fakeruntimeclient.NewRuntimeClientBuilder().
+				WithCatalog(catalog)
+			if tt.extensionError != nil {
+				fakeRuntimeClientBuilder.WithCallExtensionValidations(func(name string, object runtimehooksv1.RequestObject) error {
+					return tt.extensionError
+				})
+			}
+			fakeRuntimeClient := fakeRuntimeClientBuilder.Build()
+
+			// Call GetUpgradePlanFromExtension
+			f := GetUpgradePlanFromExtension(fakeRuntimeClient, cluster, "test-extension")
+			_, _, err := f(ctx, tt.desiredVersion, tt.currentControlPlaneVersion, tt.currentMinWorkersVersion)
+
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(err.Error()).To(Equal(tt.wantErrMessage))
 		})
 	}
 }

@@ -27,7 +27,7 @@ source "${REPO_ROOT}/hack/ensure-go.sh"
 echo "*** Testing Cluster API ***"
 # temp run on loop to try to catch flake
 
-CAPI_TEST_ENV_LOG_LEVEL=10
+export CAPI_TEST_ENV_LOG_LEVEL=10
 while make test-junit; do :; done
 
 

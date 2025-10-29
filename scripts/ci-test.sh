@@ -28,7 +28,15 @@ echo "*** Testing Cluster API ***"
 # temp run on loop to try to catch flake
 
 export CAPI_TEST_ENV_LOG_LEVEL=10
-while make test-junit; do :; done
+i=1
+while make test-junit; do
+  echo "=============================="
+  echo "🧪  Passed test run #$i"
+  echo "=============================="
+  sleep 10
+
+  ((i++))
+; done
 
 
 #echo -e "\n*** Testing test/infrastructure folder ***\n"

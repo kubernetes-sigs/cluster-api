@@ -43,6 +43,7 @@ import (
 // Additionally, this func should ensure that the conditions managed by this controller are always set in order to
 // comply with the recommendation in the Kubernetes API guidelines.
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
+	log := ctrl.LoggerFrom(ctx)
 	// Update status from the Bootstrap Config external resource.
 	// Note: some of the status fields derived from the Bootstrap Config are managed in reconcileBootstrap, e.g. status.BootstrapReady, etc.
 	// here we are taking care only of the delta (condition).
@@ -51,12 +52,15 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	// Update status from the InfraMachine external resource.
 	// Note: some of the status fields derived from the InfraMachine are managed in reconcileInfrastructure, e.g. status.InfrastructureReady, etc.
 	// here we are taking care only of the delta (condition).
+	log.V(6).Info("setting infrastructureReadyCondition")
 	setInfrastructureReadyCondition(ctx, s.machine, s.infraMachine, s.infraMachineIsNotFound)
 
 	// Update status from the Node external resource.
 	// Note: some of the status fields are managed in reconcileNode, e.g. status.NodeRef, etc.
 	// here we are taking care only of the delta (condition).
+	log.V(6).Info("getting clustercache healthcheckstate")
 	healthCheckingState := r.ClusterCache.GetHealthCheckingState(ctx, client.ObjectKeyFromObject(s.cluster))
+	log.V(6).Info("setting nodeHealthAndReadyConditions")
 	setNodeHealthyAndReadyConditions(ctx, s.cluster, s.machine, s.node, s.nodeGetError, healthCheckingState, r.RemoteConditionsGracePeriod)
 
 	// Updates Machine status not observed from Bootstrap Config, InfraMachine or Node (update Machine's own status).

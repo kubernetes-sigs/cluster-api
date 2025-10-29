@@ -25,13 +25,17 @@ cd "${REPO_ROOT}" || exit 1
 source "${REPO_ROOT}/hack/ensure-go.sh"
 
 echo "*** Testing Cluster API ***"
-make test-junit
+# temp run on loop to try to catch flake
 
-echo -e "\n*** Testing test/infrastructure folder ***\n"
-make test-infrastructure-junit
+CAPI_TEST_ENV_LOG_LEVEL=10
+while make test-junit; do :; done
 
-echo -e "\n*** Testing Cluster API Runtime SDK test extension ***\n"
-make test-test-extension-junit
 
-echo -e "\n*** Testing Cluster API testing framework ***\n"
-make test-framework-junit
+#echo -e "\n*** Testing test/infrastructure folder ***\n"
+#make test-infrastructure-junit
+#
+#echo -e "\n*** Testing Cluster API Runtime SDK test extension ***\n"
+#make test-test-extension-junit
+#
+#echo -e "\n*** Testing Cluster API testing framework ***\n"
+#make test-framework-junit

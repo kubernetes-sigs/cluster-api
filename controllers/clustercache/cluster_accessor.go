@@ -82,6 +82,10 @@ type clusterAccessorConfig struct {
 	// connection after creating a connection failed.
 	ConnectionCreationRetryInterval time.Duration
 
+	// DisableClientCertificatePrivateKey is the flag to disable the creation of the client
+	// certificate private key.
+	DisableClientCertificatePrivateKey bool
+
 	// Cache is the config used for the cache that the clusterAccessor creates.
 	Cache *clusterAccessorCacheConfig
 
@@ -284,7 +288,7 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 	// Only generate the clientCertificatePrivateKey once as there is no need to regenerate it after disconnect/connect.
 	// Note: This has to be done before setting connection, because otherwise this code wouldn't be re-entrant if the
 	// private key generation fails because we check Connected above.
-	if ca.lockedState.clientCertificatePrivateKey == nil {
+	if ca.lockedState.clientCertificatePrivateKey == nil && !ca.config.DisableClientCertificatePrivateKey {
 		log.V(6).Info("Generating client certificate private key")
 		clientCertificatePrivateKey, err := certs.NewPrivateKey()
 		if err != nil {

@@ -698,6 +698,12 @@ func (cc *clusterCache) SetConnectionCreationRetryInterval(interval time.Duratio
 	cc.clusterAccessorConfig.ConnectionCreationRetryInterval = interval
 }
 
+// DisablePrivateKeyGeneration can be used to disable the creation of cluster cert private key on clusteraccessor.
+// This method should only be used for tests and is not part of the public ClusterCache interface.
+func (cc *clusterCache) DisablePrivateKeyGeneration() {
+	cc.clusterAccessorConfig.DisableClientCertificatePrivateKey = true
+}
+
 // Shutdown can be used to shut down the ClusterCache in unit tests.
 // This method should only be used for tests because it hasn't been designed for production usage
 // in a manager (race conditions with manager shutdown etc.).

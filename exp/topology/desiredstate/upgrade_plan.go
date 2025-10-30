@@ -419,7 +419,7 @@ func GetUpgradePlanFromExtension(runtimeClient runtimeclient.Client, cluster *cl
 
 		// Prepare the request.
 		req := &runtimehooksv1.GenerateUpgradePlanRequest{
-			Cluster:                           *cluster,
+			Cluster:                           *cleanupCluster(cluster.DeepCopy()),
 			FromControlPlaneKubernetesVersion: currentControlPlaneVersion,
 			FromWorkersKubernetesVersion:      currentMinWorkersVersion,
 			ToKubernetesVersion:               desiredVersion,
@@ -428,11 +428,7 @@ func GetUpgradePlanFromExtension(runtimeClient runtimeclient.Client, cluster *cl
 		// Call the extension.
 		resp := &runtimehooksv1.GenerateUpgradePlanResponse{}
 		if err := runtimeClient.CallExtension(ctx, runtimehooksv1.GenerateUpgradePlan, cluster, extensionName, req, resp); err != nil {
-			return nil, nil, errors.Wrapf(err, "failed to call GenerateUpgradePlan extension %q", extensionName)
-		}
-
-		if resp.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
-			return nil, nil, errors.Errorf("GenerateUpgradePlan extension %q returned failure: %s", extensionName, resp.GetMessage())
+			return nil, nil, errors.Wrap(err, "failed to get upgrade plan from extension")
 		}
 
 		// Convert UpgradeStep to string slice.

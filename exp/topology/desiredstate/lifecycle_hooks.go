@@ -79,7 +79,7 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 		}
 
 		hookRequest := &runtimehooksv1.BeforeClusterUpgradeRequest{
-			Cluster:               *cleanupCluster(v1beta1Cluster),
+			Cluster:               *cleanupV1Beta1Cluster(v1beta1Cluster),
 			FromKubernetesVersion: *currentVersion,
 			ToKubernetesVersion:   topologyVersion,
 			ControlPlaneUpgrades:  toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
@@ -119,7 +119,7 @@ func (g *generator) callBeforeControlPlaneUpgradeHook(ctx context.Context, s *sc
 	}
 
 	hookRequest := &runtimehooksv1.BeforeControlPlaneUpgradeRequest{
-		Cluster:               *cleanupCluster(v1beta1Cluster),
+		Cluster:               *cleanupV1Beta1Cluster(v1beta1Cluster),
 		FromKubernetesVersion: *currentVersion,
 		ToKubernetesVersion:   nextVersion,
 		ControlPlaneUpgrades:  toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
@@ -161,7 +161,7 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 
 		// Call all the registered extension for the hook.
 		hookRequest := &runtimehooksv1.AfterControlPlaneUpgradeRequest{
-			Cluster:              *cleanupCluster(v1beta1Cluster),
+			Cluster:              *cleanupV1Beta1Cluster(v1beta1Cluster),
 			KubernetesVersion:    *currentVersion,
 			ControlPlaneUpgrades: toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
 			WorkersUpgrades:      toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
@@ -204,7 +204,7 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 		}
 
 		hookRequest := &runtimehooksv1.BeforeWorkersUpgradeRequest{
-			Cluster:               *cleanupCluster(v1beta1Cluster),
+			Cluster:               *cleanupV1Beta1Cluster(v1beta1Cluster),
 			FromKubernetesVersion: *currentVersion,
 			ToKubernetesVersion:   nextVersion,
 			ControlPlaneUpgrades:  toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
@@ -251,7 +251,7 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 
 		// Call all the registered extension for the hook.
 		hookRequest := &runtimehooksv1.AfterWorkersUpgradeRequest{
-			Cluster:              *cleanupCluster(v1beta1Cluster),
+			Cluster:              *cleanupV1Beta1Cluster(v1beta1Cluster),
 			KubernetesVersion:    *currentVersion,
 			ControlPlaneUpgrades: toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
 			WorkersUpgrades:      toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),

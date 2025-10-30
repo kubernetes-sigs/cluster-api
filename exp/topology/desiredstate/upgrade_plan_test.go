@@ -1206,7 +1206,7 @@ func TestGetUpgradePlanFromExtension_Errors(t *testing.T) {
 			currentControlPlaneVersion: "v1.31.0",
 			currentMinWorkersVersion:   "v1.31.0",
 			extensionError:             errors.New("extension call error"),
-			wantErrMessage:             "failed to call GenerateUpgradePlan extension \"test-extension\": extension call error",
+			wantErrMessage:             "failed to get upgrade plan from extension: extension call error",
 		},
 	}
 

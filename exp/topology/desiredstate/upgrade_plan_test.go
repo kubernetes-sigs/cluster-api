@@ -1229,7 +1229,7 @@ func TestGetUpgradePlanFromExtension_Errors(t *testing.T) {
 			fakeRuntimeClientBuilder := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCatalog(catalog)
 			if tt.extensionError != nil {
-				fakeRuntimeClientBuilder.WithCallExtensionValidations(func(name string, object runtimehooksv1.RequestObject) error {
+				fakeRuntimeClientBuilder.WithCallExtensionValidations(func(_ string, _ runtimehooksv1.RequestObject) error {
 					return tt.extensionError
 				})
 			}

@@ -290,16 +290,20 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 		if err != nil {
 			return errors.Wrapf(err, "error creating client certificate private key")
 		}
+		log.V(6).Info("Generated client certificate private key")
 		ca.lockedState.clientCertificatePrivateKey = clientCertificatePrivateKey
 	}
 
+	log.V(6).Info("Getting current time")
 	now := time.Now()
+	log.V(6).Info("Setting health checking state")
 	ca.lockedState.healthChecking = clusterAccessorLockedHealthCheckingState{
 		// A client was just created successfully, so let's set the last probe times.
 		lastProbeTime:        now,
 		lastProbeSuccessTime: now,
 		consecutiveFailures:  0,
 	}
+	log.V(6).Info("Setting connection")
 	ca.lockedState.connection = &clusterAccessorLockedConnectionState{
 		restConfig:     connection.RESTConfig,
 		restClient:     connection.RESTClient,
@@ -309,6 +313,7 @@ func (ca *clusterAccessor) Connect(ctx context.Context) (retErr error) {
 		watches:        sets.Set[string]{},
 	}
 
+	log.V(6).Info("Returning")
 	return nil
 }
 

@@ -1287,11 +1287,9 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			expectedIsStartingUpgrade:   true,
 		},
 		{
-			name:                              "should return cluster.spec.topology.version if the control plane is not upgrading or scaling and none of the MachineDeployments and MachinePools are upgrading - BeforeClusterUpgrade, BeforeControlPlaneUpgrade, BeforeWorkersUpgrade and AfterWorkersUpgrade hooks returns non blocking response",
+			name:                              "should return cluster.spec.topology.version if the control plane is not upgrading or scaling and none of the MachineDeployments and MachinePools are upgrading - BeforeClusterUpgrade, BeforeControlPlaneUpgrade hooks returns non blocking response",
 			beforeClusterUpgradeResponse:      nonBlockingBeforeClusterUpgradeResponse,
 			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
-			beforeWorkersUpgradeResponse:      nonBlockingBeforeWorkersUpgradeResponse,
-			afterWorkersUpgradeResponse:       nonBlockingAfterWorkersUpgradeResponse,
 			topologyVersion:                   "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
@@ -1306,11 +1304,6 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"status.unavailableReplicas": int64(0),
 				}).
 				Build(),
-			clusterModifier: func(c *clusterv1.Cluster) {
-				c.Annotations = map[string]string{
-					runtimev1.PendingHooksAnnotation: "AfterWorkersUpgrade",
-				}
-			},
 			controlPlaneUpgradePlan:   []string{"v1.2.3"},
 			expectedVersion:           "v1.2.3",
 			expectedIsPendingUpgrade:  false,
@@ -3124,7 +3117,7 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			expectPendingUpgrade:                 true,
 		},
 		{
-			name:                             "should return MachinePool's spec.template.spec.version if control plane is stable, other MachinePools are upgrading, concurrency limit not reached but BeforeWorkers hook is blocking",
+			name:                             "should return MachinePool's spec.template.spec.version if control plane is stable, other MachinePools are upgrading, concurrency limit not reached but BeforeWorkersUpgrade hook is blocking",
 			currentMachinePoolState:          currentMachinePoolState,
 			upgradingMachinePools:            []string{"upgrading-mp1"},
 			upgradeConcurrency:               2,

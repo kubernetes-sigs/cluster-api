@@ -556,7 +556,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	// we should call the AfterControlPlaneUpgrade and the BeforeWorkersUpgrade hooks if not already done.
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
 		// Note: calling the AfterControlPlaneUpgrade is the final step of a control plane upgrade.
-		hookCompleted, err := g.callAfterControlPlaneUpgradeHook(ctx, s, currentVersion, topologyVersion)
+		hookCompleted, err := g.callAfterControlPlaneUpgradeHook(ctx, s, currentVersion)
 		if err != nil {
 			return "", err
 		}
@@ -564,7 +564,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 			return *currentVersion, nil
 		}
 
-		// Note: calling the BeforeWorkersUpgrade is the first step of a worker upgrade step from the upgrade plan.
+		// Note: calling the BeforeWorkersUpgrade is the first part of the execution of a worker upgrade step from the upgrade plan.
 		// The call to this hook is implemented in this function in order to ensure the hook is called
 		// after AfterControlPlaneUpgrade unblocks, and also to ensure that BeforeWorkersUpgrade
 		// can block the control plane upgrade to proceed in the upgrade plan.
@@ -610,7 +610,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 		// The call to this hook is implemented in this function in order to ensure that AfterWorkersUpgrade
 		// can block the control plane upgrade to proceed in the upgrade plan.
 		// Note: this operation is a no-op if workers are not required to upgrade to the current control plane version.
-		hookCompleted, err := g.callAfterWorkersUpgradeHook(ctx, s, currentVersion, topologyVersion)
+		hookCompleted, err := g.callAfterWorkersUpgradeHook(ctx, s, currentVersion)
 		if err != nil {
 			return "", err
 		}

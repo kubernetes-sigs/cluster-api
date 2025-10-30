@@ -341,7 +341,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 					input.ExtensionConfigName,
 					fromVersion,              // Cluster fromVersion
 					toVersion,                // Cluster toVersion
-					firstControlPlaneVersion, // firstControlPlaneVersion in the upgrade plane, used to check the BeforeControlPlaneUpgrade is not called before its time.
+					firstControlPlaneVersion, // firstControlPlaneVersion in the upgrade plan, used to check the BeforeControlPlaneUpgrade is not called before its time.
 				)
 
 				// Then check the upgrade is progressing step by step according to the upgrade plan
@@ -374,8 +374,8 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 						input.ExtensionConfigName,
 						controlPlaneVersion,     // Current controlPlaneVersion for this upgrade step.
 						workersVersion,          // Current workersVersion, used to check workers do not upgrade before its time.
-						nextControlPlaneVersion, // nextControlPlaneVersion in the upgrade plane, used to check the BeforeControlPlaneUpgrade is not called before its time (in case workers do no perform this upgrade step).
-						toVersion,               // toVersion of the upgrade, used to check the AfterClusterUpgrade is not called before its time (in case workers do no perform this upgrade step).
+						nextControlPlaneVersion, // nextControlPlaneVersion in the upgrade plan, used to check the BeforeControlPlaneUpgrade is not called before its time (in case workers do not perform this upgrade step).
+						toVersion,               // toVersion of the upgrade, used to check the AfterClusterUpgrade is not called before its time (in case workers do not perform this upgrade step).
 					)
 
 					// If worker should not upgrade at this step, continue
@@ -396,15 +396,15 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 					workersVersion = version
 					waitWorkersVersions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, workersVersion, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
 
-					// make sure afterControlPlaneUpgrade still blocks, then unblock the upgrade.
+					// make sure afterWorkersUpgradeTestHandler still blocks, then unblock the upgrade.
 					afterWorkersUpgradeTestHandler(ctx,
 						input.BootstrapClusterProxy.GetClient(),
 						clusterResources.Cluster,
 						input.ExtensionConfigName,
 						controlPlaneVersion,     // Current controlPlaneVersion for this upgrade step.
 						workersVersion,          // Current workersVersion for this upgrade step.
-						nextControlPlaneVersion, // nextControlPlaneVersion in the upgrade plane, used to check the BeforeControlPlaneUpgrade is not called before its time (in case workers do no perform this upgrade step).
-						toVersion,               // toVersion of the upgrade, used to check the AfterClusterUpgrade is not called before its time (in case workers do no perform this upgrade step).
+						nextControlPlaneVersion, // nextControlPlaneVersion in the upgrade plan, used to check the BeforeControlPlaneUpgrade is not called before its time (in case workers do not perform this upgrade step).
+						toVersion,               // toVersion of the upgrade, used to check the AfterClusterUpgrade is not called before its time (in case workers do not perform this upgrade step).
 					)
 				}
 			},
@@ -762,7 +762,8 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, clust
 			}
 		}
 
-		// BeforeClusterUpgrade is followed by BeforeControlPlaneUpgrade.
+		// Check if the BeforeControlPlaneUpgrade hook has been called (this should not happen when BeforeClusterUpgrade is blocking).
+		// Note: BeforeClusterUpgrade hook is followed by BeforeControlPlaneUpgrade hook.
 		if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, "BeforeControlPlaneUpgrade", []string{fromVersion, firstControlPlaneVersion}); err == nil {
 			return false
 		}
@@ -874,12 +875,14 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, c
 			}
 		}
 
-		// AfterControlPlaneUpgrade can be followed by BeforeWorkersUpgrade in case also workers are performing this upgrade step.
+		// Check if the BeforeWorkersUpgrade hook has been called (this should not happen when AfterControlPlaneUpgrade is blocking).
+		// Note: AfterControlPlaneUpgrade hook can be followed by BeforeWorkersUpgrade hook in case also workers are performing this upgrade step.
 		if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, "BeforeWorkersUpgrade", []string{workersVersion, controlPlaneVersion}); err == nil {
 			return false
 		}
 
-		// AfterControlPlaneUpgrade can be followed by BeforeControlPlaneUpgrade in case there are still upgrade steps to perform and workers are skipping this minor.
+		// Check if the BeforeControlPlaneUpgrade hook has been called (this should not happen when AfterControlPlaneUpgrade is blocking).
+		// Note: AfterControlPlaneUpgrade hook can be followed by BeforeControlPlaneUpgrade hook in case there are still upgrade steps to perform and workers are skipping this minor.
 		// Note: nextControlPlaneVersion != "" when there are still upgrade steps to perform.
 		if nextControlPlaneVersion != "" {
 			if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, "BeforeControlPlaneUpgrade", []string{controlPlaneVersion, nextControlPlaneVersion}); err == nil {
@@ -887,7 +890,8 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, c
 			}
 		}
 
-		// AfterControlPlaneUpgrade can be followed by AfterClusterUpgrade in case the upgrade is completed.
+		// Check if the AfterClusterUpgrade hook has been called (this should not happen when AfterControlPlaneUpgrade is blocking).
+		// Note: AfterControlPlaneUpgrade hook can be followed by AfterClusterUpgrade hook in case the upgrade is completed.
 		// Note: nextControlPlaneVersion == "" in case the upgrade is completed.
 		if nextControlPlaneVersion == "" {
 			if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, "AfterClusterUpgrade", []string{topologyVersion}); err == nil {
@@ -1003,7 +1007,8 @@ func afterWorkersUpgradeTestHandler(ctx context.Context, c client.Client, cluste
 			}
 		}
 
-		// AfterWorkersUpgrade can be followed by BeforeControlPlaneUpgrade in case there are still upgrade steps to perform.
+		// Check if the BeforeControlPlaneUpgrade hook has been called (this should not happen when AfterWorkersUpgrade is blocking).
+		// Note: AfterWorkersUpgrade hook can be followed by BeforeControlPlaneUpgrade hook in case there are still upgrade steps to perform.
 		// Note: nextControlPlaneVersion != "" when there are still upgrade steps to perform.
 		if nextControlPlaneVersion != "" {
 			if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, "BeforeControlPlaneUpgrade", []string{controlPlaneVersion, nextControlPlaneVersion}); err == nil {
@@ -1011,7 +1016,8 @@ func afterWorkersUpgradeTestHandler(ctx context.Context, c client.Client, cluste
 			}
 		}
 
-		// AfterWorkersUpgrade can be followed by AfterClusterUpgrade in case the upgrade is completed.
+		// Check if the AfterClusterUpgrade hook has been called (this should not happen when AfterWorkersUpgrade is blocking).
+		// Note: AfterWorkersUpgrade hook can be followed by AfterClusterUpgrade hook in case the upgrade is completed.
 		// Note: nextControlPlaneVersion == "" in case the upgrade is completed.
 		if nextControlPlaneVersion == "" {
 			if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, "AfterClusterUpgrade", []string{topologyVersion}); err == nil {

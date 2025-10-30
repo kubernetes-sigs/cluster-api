@@ -65,7 +65,10 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 				},
 			})
 
-			log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q hook (via annotations)", topologyVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)), "hooks", strings.Join(hookAnnotations, ","))
+			log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s is blocked by %s hook (via annotations)", *currentVersion, topologyVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)), "hooks", strings.Join(hookAnnotations, ","),
+				"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
+				"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+			)
 			return false, nil
 		}
 
@@ -88,9 +91,13 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 		}
 		// Add the response to the tracker so we can later update condition or requeue when required.
 		s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, hookResponse)
+
 		if hookResponse.RetryAfterSeconds != 0 {
 			// Cannot pickup the new version right now. Need to try again later.
-			log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q hook", topologyVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)))
+			log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s is blocked by %s hook", *currentVersion, topologyVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)),
+				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
+				"WorkersUpgrades", hookRequest.WorkersUpgrades,
+			)
 			return false, nil
 		}
 	}
@@ -124,9 +131,13 @@ func (g *generator) callBeforeControlPlaneUpgradeHook(ctx context.Context, s *sc
 	}
 	// Add the response to the tracker so we can later update condition or requeue when required.
 	s.HookResponseTracker.Add(runtimehooksv1.BeforeControlPlaneUpgrade, hookResponse)
+
 	if hookResponse.RetryAfterSeconds != 0 {
 		// Cannot pickup the new version right now. Need to try again later.
-		log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q hook", nextVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade)))
+		log.Info(fmt.Sprintf("Control plane upgrade form version %s to version %s is blocked by %s hook", *currentVersion, nextVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade)),
+			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
+			"WorkersUpgrades", hookRequest.WorkersUpgrades,
+		)
 		return false, nil
 	}
 
@@ -136,7 +147,7 @@ func (g *generator) callBeforeControlPlaneUpgradeHook(ctx context.Context, s *sc
 // callAfterControlPlaneUpgradeHook calls the AfterControlPlaneUpgrade after the control plane upgrade is completed,
 // no matter if this is an intermediate versions of an upgrade plan or the target version of an upgrade plan.
 // NOTE: computeControlPlaneVersion records intent to call this hook when picking up a new control plane version.
-func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *scope.Scope, currentVersion *string, topologyVersion string) (bool, error) {
+func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *scope.Scope, currentVersion *string) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
@@ -162,15 +173,11 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 		// Add the response to the tracker so we can later update condition or requeue when required.
 		s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, hookResponse)
 
-		// If the extension responds to hold off on starting Machine deployments upgrades,
-		// change the UpgradeTracker accordingly, otherwise the hook call is completed and we
-		// can remove this hook from the list of pending-hooks.
 		if hookResponse.RetryAfterSeconds != 0 {
-			v := topologyVersion
-			if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
-				v = s.UpgradeTracker.ControlPlane.UpgradePlan[0]
-			}
-			log.Info(fmt.Sprintf("Upgrade to version %q is blocked by %q hook", v, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)))
+			log.Info(fmt.Sprintf("Cluster Upgrade is blocked after control plane upgrade to version %s by %s hook", *currentVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)),
+				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
+				"WorkersUpgrades", hookRequest.WorkersUpgrades,
+			)
 			return false, nil
 		}
 		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
@@ -187,16 +194,15 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.Scope, currentVersion *string, nextVersion string) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// NOTE: the hook should always be called before piking up a new version.
-	v1beta1Cluster := &clusterv1beta1.Cluster{}
-	// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
-	if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
-		return false, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
-	}
-
 	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
 	// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
 	if hooks.IsPending(runtimehooksv1.BeforeWorkersUpgrade, s.Current.Cluster) {
+		v1beta1Cluster := &clusterv1beta1.Cluster{}
+		// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
+		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
+			return false, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
+		}
+
 		hookRequest := &runtimehooksv1.BeforeWorkersUpgradeRequest{
 			Cluster:               *cleanupCluster(v1beta1Cluster),
 			FromKubernetesVersion: *currentVersion,
@@ -210,9 +216,13 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 		}
 		// Add the response to the tracker so we can later update condition or requeue when required.
 		s.HookResponseTracker.Add(runtimehooksv1.BeforeWorkersUpgrade, hookResponse)
+
 		if hookResponse.RetryAfterSeconds != 0 {
 			// Cannot pickup the new version right now. Need to try again later.
-			log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q hook", nextVersion, runtimecatalog.HookName(runtimehooksv1.BeforeWorkersUpgrade)))
+			log.Info(fmt.Sprintf("Workers upgrade from version %s to version %s is blocked by %s hook", *currentVersion, nextVersion, runtimecatalog.HookName(runtimehooksv1.BeforeWorkersUpgrade)),
+				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
+				"WorkersUpgrades", hookRequest.WorkersUpgrades,
+			)
 			return false, nil
 		}
 		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.BeforeWorkersUpgrade); err != nil {
@@ -223,11 +233,11 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 	return true, nil
 }
 
-// callAfterWorkersUpgradeHook calls the BeforeWorkersUpgrade after the worker upgrade is completed,
+// callAfterWorkersUpgradeHook calls the AfterWorkersUpgrade after the worker upgrade is completed,
 // no matter if this is an intermediate versions of an upgrade plan or the target version of an upgrade plan.
 // NOTE: computeControlPlaneVersion records intent to call this hook when picking up a new control plane version
 // that exists also in the workers upgrade plan.
-func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Scope, currentVersion *string, topologyVersion string) (bool, error) {
+func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Scope, currentVersion *string) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
@@ -253,15 +263,11 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 		// Add the response to the tracker so we can later update condition or requeue when required.
 		s.HookResponseTracker.Add(runtimehooksv1.AfterWorkersUpgrade, hookResponse)
 
-		// If the extension responds to hold off on starting Machine deployments upgrades,
-		// change the UpgradeTracker accordingly, otherwise the hook call is completed and we
-		// can remove this hook from the list of pending-hooks.
 		if hookResponse.RetryAfterSeconds != 0 {
-			v := topologyVersion
-			if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
-				v = s.UpgradeTracker.ControlPlane.UpgradePlan[0]
-			}
-			log.Info(fmt.Sprintf("Upgrade to version %q is blocked by %q hook", v, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)))
+			log.Info(fmt.Sprintf("Cluster Upgrade is blocked after workers upgrade to version %s by %s hook", *currentVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)),
+				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
+				"WorkersUpgrades", hookRequest.WorkersUpgrades,
+			)
 			return false, nil
 		}
 		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterWorkersUpgrade); err != nil {

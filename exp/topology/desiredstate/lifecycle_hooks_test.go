@@ -299,7 +299,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
 			wantVersion:                       "v1.2.3", // changed from previous step
 			wantIsStartingUpgrade:             true,
-			wantPendingHookAnnotation:         "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade", // changed from previews step
+			wantPendingHookAnnotation:         "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade", // changed from previous step
 		},
 		{
 			name:                  "when control plane is upgrading: do not call hooks",
@@ -478,7 +478,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 					"spec.version": "v1.2.3",
 				}).
 				WithStatusFields(map[string]interface{}{
-					"status.version": "v1.2.3", // changed from previous step
+					"status.version": "v1.2.3",
 				}).
 				Build(),
 			minWorkersVersion:             "v1.2.3",
@@ -873,6 +873,257 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			afterWorkersUpgradeResponse: nonBlockingAfterWorkersUpgradeResponse,
 			wantVersion:                 "v1.4.4",
 			wantPendingHookAnnotation:   "AfterClusterUpgrade", // changed from previous step
+		},
+		// Note: After MD upgrade completes, the AfterClusterUpgrade is called from reconcile_state.go
+
+		// Upgrade cluster with CP, no workers (upgrade by two minors)
+
+		{
+			name:            "no hook called before starting the upgrade",
+			topologyVersion: "v1.2.2",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.2.2",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.2.2",
+				}).
+				Build(),
+			wantVersion: "v1.2.2",
+		},
+		{
+			name:            "when an upgrade to the first minor starts: call the BeforeClusterUpgrade hook, blocking answer",
+			topologyVersion: "v1.4.4", // changed from previous step
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.2.2",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.2.2",
+				}).
+				Build(),
+			minWorkersVersion:             "v1.2.2",
+			controlPlaneUpgradePlan:       []string{"v1.3.3", "v1.4.4"},
+			machineDeploymentsUpgradePlan: []string{},
+			machinePoolsUpgradePlan:       []string{},
+			wantBeforeClusterUpgradeRequest: &runtimehooksv1.BeforeClusterUpgradeRequest{
+				FromKubernetesVersion: "v1.2.2",
+				ToKubernetesVersion:   "v1.4.4",
+				ControlPlaneUpgrades:  toUpgradeStep([]string{"v1.3.3", "v1.4.4"}),
+				WorkersUpgrades:       toUpgradeStep([]string{}),
+			},
+			beforeClusterUpgradeResponse: blockingBeforeClusterUpgradeResponse,
+			wantVersion:                  "v1.2.2",
+			wantIsPendingUpgrade:         true,
+		},
+		{
+			name:            "when an upgrade to the first minor starts: call the BeforeControlPlaneUpgrade hook when BeforeClusterUpgrade hook unblocks, blocking answer",
+			topologyVersion: "v1.4.4",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.2.2",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.2.2",
+				}).
+				Build(),
+			minWorkersVersion:             "v1.2.2",
+			controlPlaneUpgradePlan:       []string{"v1.3.3", "v1.4.4"},
+			machineDeploymentsUpgradePlan: []string{},
+			machinePoolsUpgradePlan:       []string{},
+			wantBeforeClusterUpgradeRequest: &runtimehooksv1.BeforeClusterUpgradeRequest{
+				FromKubernetesVersion: "v1.2.2",
+				ToKubernetesVersion:   "v1.4.4",
+				ControlPlaneUpgrades:  toUpgradeStep([]string{"v1.3.3", "v1.4.4"}),
+				WorkersUpgrades:       toUpgradeStep([]string{}),
+			},
+			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
+			wantBeforeControlPlaneUpgradeRequest: &runtimehooksv1.BeforeControlPlaneUpgradeRequest{
+				FromKubernetesVersion: "v1.2.2",
+				ToKubernetesVersion:   "v1.3.3", // CP picking up the first version in the plan
+				ControlPlaneUpgrades:  toUpgradeStep([]string{"v1.3.3", "v1.4.4"}),
+				WorkersUpgrades:       toUpgradeStep([]string{}),
+			},
+			beforeControlPlaneUpgradeResponse: blockingBeforeControlPlaneUpgradeResponse,
+			wantVersion:                       "v1.2.2",
+			wantIsPendingUpgrade:              true,
+			wantPendingHookAnnotation:         "AfterClusterUpgrade", // changed from previous step
+		},
+		{
+			name:                  "when an upgrade to the first minor starts: pick up a new version when BeforeControlPlaneUpgrade hook unblocks (does not call the BeforeClusterUpgrade hook when already done)",
+			topologyVersion:       "v1.4.4",
+			pendingHookAnnotation: "AfterClusterUpgrade",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.2.2",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.2.2",
+				}).
+				Build(),
+			minWorkersVersion:             "v1.2.2",
+			controlPlaneUpgradePlan:       []string{"v1.3.3", "v1.4.4"},
+			machineDeploymentsUpgradePlan: []string{},
+			machinePoolsUpgradePlan:       []string{},
+			wantBeforeControlPlaneUpgradeRequest: &runtimehooksv1.BeforeControlPlaneUpgradeRequest{
+				FromKubernetesVersion: "v1.2.2",
+				ToKubernetesVersion:   "v1.3.3", // CP picking up the first version in the plan
+				ControlPlaneUpgrades:  toUpgradeStep([]string{"v1.3.3", "v1.4.4"}),
+				WorkersUpgrades:       toUpgradeStep([]string{}),
+			},
+			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
+			wantVersion:                       "v1.3.3", // changed from previous step
+			wantIsStartingUpgrade:             true,
+			wantPendingHookAnnotation:         "AfterClusterUpgrade,AfterControlPlaneUpgrade", // changed from previous step
+		},
+		{
+			name:                  "when control plane is upgrading to the first minor: do not call hooks",
+			topologyVersion:       "v1.4.4",
+			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.3.3",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.2.2",
+				}).
+				Build(),
+			minWorkersVersion:             "v1.2.2",
+			controlPlaneUpgradePlan:       []string{"v1.4.4"}, // changed from previous step
+			machineDeploymentsUpgradePlan: []string{},
+			machinePoolsUpgradePlan:       []string{},
+			wantVersion:                   "v1.3.3",
+			wantIsPendingUpgrade:          true,
+			wantPendingHookAnnotation:     "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+		},
+		{
+			name:                  "after control plane is upgraded to the first minor: call the AfterControlPlaneUpgrade hook, blocking answer",
+			topologyVersion:       "v1.4.4",
+			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.3.3",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.3.3", // changed from previous step
+				}).
+				Build(),
+			controlPlaneUpgradePlan:       []string{"v1.4.4"},
+			machineDeploymentsUpgradePlan: []string{},
+			machinePoolsUpgradePlan:       []string{},
+			wantAfterControlPlaneUpgradeRequest: &runtimehooksv1.AfterControlPlaneUpgradeRequest{
+				KubernetesVersion:    "v1.3.3",
+				ControlPlaneUpgrades: toUpgradeStep([]string{"v1.4.4"}),
+				WorkersUpgrades:      toUpgradeStep([]string{}),
+			},
+			afterControlPlaneUpgradeResponse: blockingAfterControlPlaneUpgradeResponse,
+			wantVersion:                      "v1.3.3",
+			wantIsPendingUpgrade:             true,
+			wantPendingHookAnnotation:        "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+		},
+		{
+			name:                  "when an upgrade to the second minor starts: call the BeforeControlPlaneUpgrade after AfterControlPlaneUpgrade hook unblocks, blocking answer",
+			topologyVersion:       "v1.4.4",
+			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.3.3",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.3.3",
+				}).
+				Build(),
+			minWorkersVersion:             "v1.2.2",
+			controlPlaneUpgradePlan:       []string{"v1.4.4"},
+			machineDeploymentsUpgradePlan: []string{},
+			machinePoolsUpgradePlan:       []string{},
+			wantAfterControlPlaneUpgradeRequest: &runtimehooksv1.AfterControlPlaneUpgradeRequest{
+				KubernetesVersion:    "v1.3.3",
+				ControlPlaneUpgrades: toUpgradeStep([]string{"v1.4.4"}),
+				WorkersUpgrades:      toUpgradeStep([]string{}),
+			},
+			afterControlPlaneUpgradeResponse: nonBlockingAfterControlPlaneUpgradeResponse,
+			wantBeforeControlPlaneUpgradeRequest: &runtimehooksv1.BeforeControlPlaneUpgradeRequest{
+				FromKubernetesVersion: "v1.3.3",
+				ToKubernetesVersion:   "v1.4.4", // CP picking up the first version in the plan
+				ControlPlaneUpgrades:  toUpgradeStep([]string{"v1.4.4"}),
+				WorkersUpgrades:       toUpgradeStep([]string{}),
+			},
+			beforeControlPlaneUpgradeResponse: blockingBeforeControlPlaneUpgradeResponse,
+			wantVersion:                       "v1.3.3",
+			wantIsPendingUpgrade:              true,
+			wantPendingHookAnnotation:         "AfterClusterUpgrade", // changed from previous step
+		},
+		{
+			name:                  "when an upgrade to the second minor starts: pick up a new version when BeforeControlPlaneUpgrade hook unblocks (does not call the BeforeClusterUpgrade hook when already done)",
+			topologyVersion:       "v1.4.4",
+			pendingHookAnnotation: "AfterClusterUpgrade",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.3.3",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.3.3",
+				}).
+				Build(),
+			minWorkersVersion:             "v1.2.2",
+			controlPlaneUpgradePlan:       []string{"v1.4.4"},
+			machineDeploymentsUpgradePlan: []string{},
+			machinePoolsUpgradePlan:       []string{},
+			wantBeforeControlPlaneUpgradeRequest: &runtimehooksv1.BeforeControlPlaneUpgradeRequest{
+				FromKubernetesVersion: "v1.3.3",
+				ToKubernetesVersion:   "v1.4.4", // CP picking up the first version in the plan
+				ControlPlaneUpgrades:  toUpgradeStep([]string{"v1.4.4"}),
+				WorkersUpgrades:       toUpgradeStep([]string{}),
+			},
+			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
+			wantVersion:                       "v1.4.4", // changed from previous step
+			wantIsStartingUpgrade:             true,
+			wantPendingHookAnnotation:         "AfterClusterUpgrade,AfterControlPlaneUpgrade", // changed from previous step
+		},
+		{
+			name:                  "when control plane is upgrading to the second minor: do not call hooks",
+			topologyVersion:       "v1.4.4",
+			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.4.4",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.3.3",
+				}).
+				Build(),
+			minWorkersVersion:             "v1.2.2",
+			controlPlaneUpgradePlan:       []string{}, // changed from previous step
+			machineDeploymentsUpgradePlan: []string{},
+			machinePoolsUpgradePlan:       []string{},
+			wantVersion:                   "v1.4.4",
+			wantPendingHookAnnotation:     "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+		},
+		{
+			name:                  "after control plane is upgraded to the second minor: call the AfterControlPlaneUpgrade hook, blocking answer",
+			topologyVersion:       "v1.4.4",
+			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.4.4",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.4.4", // changed from previous step
+				}).
+				Build(),
+			minWorkersVersion:             "v1.2.2",
+			controlPlaneUpgradePlan:       []string{},
+			machineDeploymentsUpgradePlan: []string{},
+			machinePoolsUpgradePlan:       []string{},
+			wantAfterControlPlaneUpgradeRequest: &runtimehooksv1.AfterControlPlaneUpgradeRequest{
+				KubernetesVersion:    "v1.4.4",
+				ControlPlaneUpgrades: toUpgradeStep([]string{}),
+				WorkersUpgrades:      toUpgradeStep([]string{}),
+			},
+			afterControlPlaneUpgradeResponse: blockingAfterControlPlaneUpgradeResponse,
+			wantVersion:                      "v1.4.4",
+			wantPendingHookAnnotation:        "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 		},
 		// Note: After MD upgrade completes, the AfterClusterUpgrade is called from reconcile_state.go
 	}

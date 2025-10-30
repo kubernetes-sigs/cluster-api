@@ -1618,6 +1618,11 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 }
 
 func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
+	// Use a separate scheme for fake client to avoid race conditions with the global scheme.
+	scheme := runtime.NewScheme()
+	_ = apiextensionsv1.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
+
 	t.Run("should delete unhealthy machines if preflight checks pass", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -1687,7 +1692,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 
 		machines := []*clusterv1.Machine{unhealthyMachine, healthyMachine}
 
-		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneStable, unhealthyMachine, healthyMachine).WithStatusSubresource(&clusterv1.Machine{}).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(controlPlaneStable, unhealthyMachine, healthyMachine).WithStatusSubresource(&clusterv1.Machine{}).Build()
 		r := &Reconciler{
 			Client: fakeClient,
 		}
@@ -1791,7 +1796,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		}
 
 		machines := []*clusterv1.Machine{unhealthyMachine, healthyMachine}
-		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, builder.GenericControlPlaneCRD, unhealthyMachine, healthyMachine).WithStatusSubresource(&clusterv1.Machine{}).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(controlPlaneUpgrading, builder.GenericControlPlaneCRD, unhealthyMachine, healthyMachine).WithStatusSubresource(&clusterv1.Machine{}).Build()
 		r := &Reconciler{
 			Client:          fakeClient,
 			PreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(clusterv1.MachineSetPreflightCheckAll),
@@ -1934,7 +1939,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		}
 
 		machines := []*clusterv1.Machine{unhealthyMachine, healthyMachine}
-		fakeClient := fake.NewClientBuilder().WithObjects(
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 			machineDeployment,
 			machineSetOld,
 			machineSetCurrent,
@@ -2116,7 +2121,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			},
 		}
 
-		fakeClient := fake.NewClientBuilder().WithObjects(cluster, machineDeployment, healthyMachine).
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cluster, machineDeployment, healthyMachine).
 			WithStatusSubresource(&clusterv1.Machine{}, &clusterv1.MachineSet{}, &clusterv1.MachineDeployment{})
 		// Create the unhealthy machines.
 		for _, machine := range unhealthyMachines {

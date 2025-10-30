@@ -2,33 +2,54 @@
 @startuml machinehealthcheck-controller
 
 start;
-:Machine Health Check controller;
+:MachineHealthCheck controller;
 repeat
-  repeat
-    :MachineHealthCheck controller enqueues a Reconcile call;
-    if (Nodes being watched in remote cluster) then (no)
+  :MachineHealthCheck controller enqueues a Reconcile call;
+
+    if (Nodes being watched in remote cluster?) then (no)
       :Watch nodes in remote cluster;
     else (yes)
     endif
-    :Find targets: Machines matched by selector plus respective Nodes;
-    :Health check targets: Determine which Machines require remediation;
-  repeat while (Remediations are allowed (current unhealthy <= max unhealthy)) is (no)
-  -> yes;
-  repeat
-    if (Target requires remediation) then (yes)
-      if (Machine is owned by a MachineSet) then (yes)
-        if (Machine is a Control Plane Machine) then (no)
-          #LightBlue:Delete Machine;
-        else (yes)
+
+  :Find targets: Machines matched by selector;
+  :Update ExpectedMachines and Targets in status;
+
+  #LightBlue:Health check targets: Determine healthy/unhealthy machines;
+  :Update CurrentHealthy in status;
+
+  if (Remediation allowed?\n(conditions in spec.triggerIf met)) then (no)
+    :Set RemediationsAllowed = 0;
+    #LightBlue:Mark RemediationAllowedCondition as False;
+    :Emit RemediationRestricted event;
+  else (yes)
+    :Calculate RemediationsAllowed count;
+    #LightBlue:Mark RemediationAllowedCondition as True;
+
+    repeat
+      if (Target is unhealthy?) then (yes)
+        if (ExternalRemediationTemplate defined?) then (yes)
+          if (External remediation request exists?) then (no)
+            #LightBlue:Create external remediation request;
+            #LightBlue:Set MachineExternallyRemediatedCondition;
+          else (yes)
+          endif
+        else (no)
+          if (Machine not in deletion AND\n(OwnerRemediated missing OR completed)?) then (yes)
+            #LightBlue:Set MachineOwnerRemediatedCondition to False;
+          else (no)
+          endif
         endif
+        :Emit MachineMarkedUnhealthy event;
       else (no)
+        if (ExternalRemediationTemplate defined\nAND request exists?) then (yes)
+          #LightBlue:Delete external remediation request;
+        else (no)
+        endif
       endif
-      else (no)
-    endif
-  repeat while (more Targets) is (yes)
-  -> no;
-repeat while (Targets likely to go unhealthy) is (yes: requeue with minimum
-  time before timeout as delay)
+    repeat while (More targets?) is (yes)
+    -> no;
+  endif
+repeat while (Any target likely to go unhealthy soon?) is (yes: requeue with\nminimum timeout delay)
 -> no;
 stop;
 

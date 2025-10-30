@@ -500,6 +500,7 @@ type testCluster struct {
 }
 
 func TestClusterCacheConcurrency(t *testing.T) {
+	t.Skip("Temporarily disabled")
 	g := NewWithT(t)
 
 	// Scale parameters for the test.

@@ -902,7 +902,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 					"status.version": "v1.2.2",
 				}).
 				Build(),
-			minWorkersVersion:             "v1.2.2",
 			controlPlaneUpgradePlan:       []string{"v1.3.3", "v1.4.4"},
 			machineDeploymentsUpgradePlan: []string{},
 			machinePoolsUpgradePlan:       []string{},
@@ -927,7 +926,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 					"status.version": "v1.2.2",
 				}).
 				Build(),
-			minWorkersVersion:             "v1.2.2",
 			controlPlaneUpgradePlan:       []string{"v1.3.3", "v1.4.4"},
 			machineDeploymentsUpgradePlan: []string{},
 			machinePoolsUpgradePlan:       []string{},
@@ -961,7 +959,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 					"status.version": "v1.2.2",
 				}).
 				Build(),
-			minWorkersVersion:             "v1.2.2",
 			controlPlaneUpgradePlan:       []string{"v1.3.3", "v1.4.4"},
 			machineDeploymentsUpgradePlan: []string{},
 			machinePoolsUpgradePlan:       []string{},
@@ -988,7 +985,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 					"status.version": "v1.2.2",
 				}).
 				Build(),
-			minWorkersVersion:             "v1.2.2",
 			controlPlaneUpgradePlan:       []string{"v1.4.4"}, // changed from previous step
 			machineDeploymentsUpgradePlan: []string{},
 			machinePoolsUpgradePlan:       []string{},
@@ -1033,7 +1029,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 					"status.version": "v1.3.3",
 				}).
 				Build(),
-			minWorkersVersion:             "v1.2.2",
 			controlPlaneUpgradePlan:       []string{"v1.4.4"},
 			machineDeploymentsUpgradePlan: []string{},
 			machinePoolsUpgradePlan:       []string{},
@@ -1066,7 +1061,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 					"status.version": "v1.3.3",
 				}).
 				Build(),
-			minWorkersVersion:             "v1.2.2",
 			controlPlaneUpgradePlan:       []string{"v1.4.4"},
 			machineDeploymentsUpgradePlan: []string{},
 			machinePoolsUpgradePlan:       []string{},
@@ -1093,7 +1087,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 					"status.version": "v1.3.3",
 				}).
 				Build(),
-			minWorkersVersion:             "v1.2.2",
 			controlPlaneUpgradePlan:       []string{}, // changed from previous step
 			machineDeploymentsUpgradePlan: []string{},
 			machinePoolsUpgradePlan:       []string{},
@@ -1112,7 +1105,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 					"status.version": "v1.4.4", // changed from previous step
 				}).
 				Build(),
-			minWorkersVersion:             "v1.2.2",
 			controlPlaneUpgradePlan:       []string{},
 			machineDeploymentsUpgradePlan: []string{},
 			machinePoolsUpgradePlan:       []string{},
@@ -1124,6 +1116,30 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			afterControlPlaneUpgradeResponse: blockingAfterControlPlaneUpgradeResponse,
 			wantVersion:                      "v1.4.4",
 			wantPendingHookAnnotation:        "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+		},
+		{
+			name:                  "after control plane is upgraded to the second minor: call the AfterControlPlaneUpgrade hook, non blocking answer",
+			topologyVersion:       "v1.4.4",
+			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.4.4",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.4.4", // changed from previous step
+				}).
+				Build(),
+			controlPlaneUpgradePlan:       []string{},
+			machineDeploymentsUpgradePlan: []string{},
+			machinePoolsUpgradePlan:       []string{},
+			wantAfterControlPlaneUpgradeRequest: &runtimehooksv1.AfterControlPlaneUpgradeRequest{
+				KubernetesVersion:    "v1.4.4",
+				ControlPlaneUpgrades: toUpgradeStep([]string{}),
+				WorkersUpgrades:      toUpgradeStep([]string{}),
+			},
+			afterControlPlaneUpgradeResponse: nonBlockingAfterControlPlaneUpgradeResponse,
+			wantVersion:                      "v1.4.4",
+			wantPendingHookAnnotation:        "AfterClusterUpgrade", // changed from previous step
 		},
 		// Note: After MD upgrade completes, the AfterClusterUpgrade is called from reconcile_state.go
 	}

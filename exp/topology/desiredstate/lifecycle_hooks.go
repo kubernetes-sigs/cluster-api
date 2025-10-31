@@ -134,7 +134,7 @@ func (g *generator) callBeforeControlPlaneUpgradeHook(ctx context.Context, s *sc
 
 	if hookResponse.RetryAfterSeconds != 0 {
 		// Cannot pickup the new version right now. Need to try again later.
-		log.Info(fmt.Sprintf("Control plane upgrade form version %s to version %s is blocked by %s hook", *currentVersion, nextVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade)),
+		log.Info(fmt.Sprintf("Control plane upgrade from version %s to version %s is blocked by %s hook", *currentVersion, nextVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade)),
 			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 			"WorkersUpgrades", hookRequest.WorkersUpgrades,
 		)
@@ -264,7 +264,7 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 		s.HookResponseTracker.Add(runtimehooksv1.AfterWorkersUpgrade, hookResponse)
 
 		if hookResponse.RetryAfterSeconds != 0 {
-			log.Info(fmt.Sprintf("Cluster Upgrade is blocked after workers upgrade to version %s by %s hook", *currentVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)),
+			log.Info(fmt.Sprintf("Cluster upgrade is blocked after workers upgrade to version %s by %s hook", *currentVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 				"WorkersUpgrades", hookRequest.WorkersUpgrades,
 			)

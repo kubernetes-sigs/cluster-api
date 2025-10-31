@@ -65,6 +65,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	// Note: also other controllers adds conditions to the machine object (machine's owner controller sets the UpToDate condition,
 	// MHC controller sets HealthCheckSucceeded and OwnerRemediated conditions, KCP sets conditions about etcd and control plane pods).
 	setDeletingCondition(ctx, s.machine, s.reconcileDeleteExecuted, s.deletingReason, s.deletingMessage)
+	setUpdatingCondition(ctx, s.machine, s.updatingReason, s.updatingMessage)
 	setReadyCondition(ctx, s.machine)
 	setAvailableCondition(ctx, s.machine)
 
@@ -630,6 +631,24 @@ func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, reconci
 		Status:  metav1.ConditionTrue,
 		Reason:  deletingReason,
 		Message: deletingMessage,
+	})
+}
+
+func setUpdatingCondition(_ context.Context, machine *clusterv1.Machine, updatingReason, updatingMessage string) {
+	if updatingReason == "" {
+		conditions.Set(machine, metav1.Condition{
+			Type:   clusterv1.MachineUpdatingCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachineNotUpdatingReason,
+		})
+		return
+	}
+
+	conditions.Set(machine, metav1.Condition{
+		Type:    clusterv1.MachineUpdatingCondition,
+		Status:  metav1.ConditionTrue,
+		Reason:  updatingReason,
+		Message: updatingMessage,
 	})
 }
 

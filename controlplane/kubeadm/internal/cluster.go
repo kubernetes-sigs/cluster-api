@@ -142,8 +142,6 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	var clientCert tls.Certificate
 	if keyData != nil {
 		// Get client cert from cache if possible, otherwise generate it and add it to the cache.
-		// TODO: When we implement ClusterConfiguration.EncryptionAlgorithm we should add it to
-		//       the ClientCertEntries and make it part of the key.
 		if entry, ok := m.ClientCertCache.Has(ClientCertEntry{Cluster: clusterKey, EncryptionAlgorithm: keyEncryptionAlgorithm}.Key()); ok {
 			clientCert = *entry.ClientCert
 		} else {

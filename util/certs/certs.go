@@ -131,8 +131,7 @@ func NewSigner(keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) (cryp
 	if rsaKeySize == 0 {
 		return nil, errors.Errorf("cannot obtain key size from unknown RSA algorithm: %q", keyEncryptionAlgorithm)
 	}
-	pk, err := rsa.GenerateKey(rand.Reader, rsaKeySize)
-	return pk, errors.WithStack(err)
+	return rsa.GenerateKey(rand.Reader, rsaKeySize)
 }
 
 // EncodePrivateKeyPEMFromSigner converts a known private key type of RSA or ECDSA to
@@ -164,7 +163,7 @@ func EncodePrivateKeyPEMFromSigner(key crypto.PrivateKey) ([]byte, error) {
 func EncodePublicKeyPEMFromSigner(key crypto.PublicKey) ([]byte, error) {
 	der, err := x509.MarshalPKIXPublicKey(key)
 	if err != nil {
-		return []byte{}, errors.WithStack(err)
+		return []byte{}, err
 	}
 	block := pem.Block{
 		Type:  "PUBLIC KEY",
@@ -173,9 +172,9 @@ func EncodePublicKeyPEMFromSigner(key crypto.PublicKey) ([]byte, error) {
 	return pem.EncodeToMemory(&block), nil
 }
 
-// rsaKeySizeFromAlgorithmType takes a known RSA algorithm defined in the kubeadm API
-// and returns its key size. For unknown types it returns 0. For an empty type it returns
-// the default size of 2048.
+// rsaKeySizeFromAlgorithmType takes a known RSA algorithm defined in the kubeadm API and returns its key size.
+// For unknown types it returns 0.
+// For an empty type ("") which is the default (zero value) on the API field it returns the default size of 2048.
 func rsaKeySizeFromAlgorithmType(keyEncryptionAlgorithm bootstrapv1.EncryptionAlgorithmType) int {
 	switch keyEncryptionAlgorithm {
 	case bootstrapv1.EncryptionAlgorithmRSA2048, "":

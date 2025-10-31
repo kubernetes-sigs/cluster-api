@@ -219,7 +219,10 @@ type ClusterConfiguration struct {
 
 	// encryptionAlgorithm holds the type of asymmetric encryption algorithm used for keys and certificates.
 	// Can be one of "RSA-2048", "RSA-3072", "RSA-4096", "ECDSA-P256" or "ECDSA-P384".
+	// For Kubernetes 1.34 or above, "ECDSA-P384" is supported.
 	// If not specified, Cluster API will use RSA-2048 as default.
+	// When this field is modified every certificate generated afterward will use the new
+	// encryptionAlgorithm. Existing CA certificates and service account keys are not rotated.
 	// This field is only supported with Kubernetes v1.31 or above.
 	// +optional
 	EncryptionAlgorithm EncryptionAlgorithmType `json:"encryptionAlgorithm,omitempty"`

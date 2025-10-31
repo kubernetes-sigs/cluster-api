@@ -1140,9 +1140,28 @@ func fakeMachine(name string, options ...fakeMachinesOption) *clusterv1.Machine 
 	return p
 }
 
+func withOwnerMachineSet(msName string) fakeMachinesOption {
+	return func(m *clusterv1.Machine) {
+		m.OwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "MachineSet",
+				Name:       msName,
+				Controller: ptr.To(true),
+			},
+		}
+	}
+}
+
 func withCreationTimestamp(t time.Time) fakeMachinesOption {
 	return func(m *clusterv1.Machine) {
 		m.CreationTimestamp = metav1.Time{Time: t}
+	}
+}
+
+func withMachineFinalizer() fakeMachinesOption {
+	return func(m *clusterv1.Machine) {
+		m.Finalizers = []string{clusterv1.MachineFinalizer}
 	}
 }
 
@@ -1158,6 +1177,18 @@ func withStaleDeletionTimestamp() fakeMachinesOption {
 	}
 }
 
+func withMachineLabels(labels map[string]string) fakeMachinesOption {
+	return func(m *clusterv1.Machine) {
+		m.Labels = labels
+	}
+}
+
+func withMachineAnnotations(annotations map[string]string) fakeMachinesOption {
+	return func(m *clusterv1.Machine) {
+		m.Annotations = annotations
+	}
+}
+
 func withStaleDrain() fakeMachinesOption {
 	return func(m *clusterv1.Machine) {
 		if m.Status.Deletion == nil {
@@ -1170,5 +1201,19 @@ func withStaleDrain() fakeMachinesOption {
 func withCondition(c metav1.Condition) fakeMachinesOption {
 	return func(m *clusterv1.Machine) {
 		conditions.Set(m, c)
+	}
+}
+
+func withHealthyStatus() fakeMachinesOption {
+	return func(m *clusterv1.Machine) {
+		m.Status = clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{Name: "some-node"},
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: metav1.ConditionUnknown,
+				},
+			},
+		}
 	}
 }

@@ -61,6 +61,10 @@ A MachineDeployment provides declarative updates for Machines and MachineSets.
 
 A MachineDeployment works similarly to a core Kubernetes [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/). A MachineDeployment reconciles changes to a Machine spec by rolling out changes to 2 MachineSets, the old and the newly updated.
 
+### MachinePool
+
+A MachinePool is a declarative spec for a group of Machines. It is similar to a MachineDeployment, but is specific to a particular Infrastructure Provider. For more information, please check out [MachinePool](../tasks/experimental-features/machine-pools.md).
+
 ### MachineSet
 
 A MachineSet's purpose is to maintain a stable set of Machines running at any given time.

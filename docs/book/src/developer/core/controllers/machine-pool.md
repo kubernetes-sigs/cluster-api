@@ -2,6 +2,8 @@
 
 ![](../../../images/cluster-admission-machinepool-controller.png)
 
+📖 **For conceptual information about MachinePools, when to use them, and how they compare to MachineDeployments**, see the [MachinePool Guide](../../../tasks/experimental-features/machine-pools.md).
+
 The MachinePool controller's main responsibilities are:
 
 * Setting an OwnerReference on each MachinePool object to:

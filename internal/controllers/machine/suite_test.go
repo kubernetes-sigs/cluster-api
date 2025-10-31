@@ -96,6 +96,8 @@ func TestMain(m *testing.M) {
 		clusterCache.(interface{ SetConnectionCreationRetryInterval(time.Duration) }).
 			SetConnectionCreationRetryInterval(2 * time.Second)
 
+		clusterCache.(interface{ DisablePrivateKeyGeneration() }).DisablePrivateKeyGeneration()
+
 		if err := (&Reconciler{
 			Client:                           mgr.GetClient(),
 			APIReader:                        mgr.GetAPIReader(),

@@ -1090,9 +1090,93 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 		},
 	}
 
+	beforeControlPlaneUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.BeforeControlPlaneUpgrade)
+	if err != nil {
+		panic("unable to compute GVH")
+	}
+	nonBlockingBeforeControlPlaneUpgradeResponse := &runtimehooksv1.BeforeControlPlaneUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
+		},
+	}
+	blockingBeforeControlPlaneUpgradeResponse := &runtimehooksv1.BeforeControlPlaneUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
+			RetryAfterSeconds: int32(10),
+		},
+	}
+	failureBeforeControlPlaneUpgradeResponse := &runtimehooksv1.BeforeControlPlaneUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusFailure,
+			},
+		},
+	}
+
+	beforeWorkersUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.BeforeWorkersUpgrade)
+	if err != nil {
+		panic("unable to compute GVH")
+	}
+	nonBlockingBeforeWorkersUpgradeResponse := &runtimehooksv1.BeforeWorkersUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
+		},
+	}
+	blockingBeforeWorkersUpgradeResponse := &runtimehooksv1.BeforeWorkersUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
+			RetryAfterSeconds: int32(10),
+		},
+	}
+	failureBeforeWorkersUpgradeResponse := &runtimehooksv1.BeforeWorkersUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusFailure,
+			},
+		},
+	}
+
+	afterWorkersUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.AfterWorkersUpgrade)
+	if err != nil {
+		panic("unable to compute GVH")
+	}
+	nonBlockingAfterWorkersUpgradeResponse := &runtimehooksv1.AfterWorkersUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
+		},
+	}
+	blockingAfterWorkersUpgradeResponse := &runtimehooksv1.AfterWorkersUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
+			RetryAfterSeconds: int32(10),
+		},
+	}
+	failureAfterWorkersUpgradeResponse := &runtimehooksv1.AfterWorkersUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusFailure,
+			},
+		},
+	}
+
 	tests := []struct {
 		name                               string
 		beforeClusterUpgradeResponse       *runtimehooksv1.BeforeClusterUpgradeResponse
+		beforeControlPlaneUpgradeResponse  *runtimehooksv1.BeforeControlPlaneUpgradeResponse
+		beforeWorkersUpgradeResponse       *runtimehooksv1.BeforeWorkersUpgradeResponse
+		afterWorkersUpgradeResponse        *runtimehooksv1.AfterWorkersUpgradeResponse
 		topologyVersion                    string
 		clusterModifier                    func(c *clusterv1.Cluster)
 		controlPlaneObj                    *unstructured.Unstructured
@@ -1172,9 +1256,12 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			expectedIsStartingUpgrade:   false,
 		},
 		{
-			name:                         "should return cluster.spec.topology.version if control plane is not upgrading and not scaling and none of the MachineDeployments and MachinePools are upgrading - BeforeClusterUpgrade hook returns non blocking response",
-			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
-			topologyVersion:              "v1.2.3",
+			name:                              "should return cluster.spec.topology.version if control plane is not upgrading and not scaling and none of the MachineDeployments and MachinePools are upgrading - BeforeClusterUpgrade, BeforeControlPlaneUpgrade, BeforeWorkersUpgrade and AfterWorkersUpgrade hooks returns non blocking response",
+			beforeClusterUpgradeResponse:      nonBlockingBeforeClusterUpgradeResponse,
+			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
+			beforeWorkersUpgradeResponse:      nonBlockingBeforeWorkersUpgradeResponse,
+			afterWorkersUpgradeResponse:       nonBlockingAfterWorkersUpgradeResponse,
+			topologyVersion:                   "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
 					"spec.version":  "v1.2.2",
@@ -1188,6 +1275,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"status.unavailableReplicas": int64(0),
 				}).
 				Build(),
+			clusterModifier: func(c *clusterv1.Cluster) {
+				c.Annotations = map[string]string{
+					runtimev1.PendingHooksAnnotation: "BeforeWorkersUpgrade,AfterWorkersUpgrade",
+				}
+			},
 			controlPlaneUpgradePlan:     []string{"v1.2.3"},
 			upgradingMachineDeployments: []string{},
 			upgradingMachinePools:       []string{},
@@ -1196,9 +1288,10 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			expectedIsStartingUpgrade:   true,
 		},
 		{
-			name:                         "should return cluster.spec.topology.version if the control plane is not upgrading or scaling and none of the MachineDeployments and MachinePools are upgrading - BeforeClusterUpgrade, BeforeControlPlaneUpgrade, BeforeWorkersUpgrade and AfterWorkersUpgrade hooks returns non blocking response",
-			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
-			topologyVersion:              "v1.2.3",
+			name:                              "should return cluster.spec.topology.version if the control plane is not upgrading or scaling and none of the MachineDeployments and MachinePools are upgrading - BeforeClusterUpgrade, BeforeControlPlaneUpgrade hooks returns non blocking response",
+			beforeClusterUpgradeResponse:      nonBlockingBeforeClusterUpgradeResponse,
+			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
+			topologyVersion:                   "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
 					"spec.version":  "v1.2.2",
@@ -1212,20 +1305,16 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					"status.unavailableReplicas": int64(0),
 				}).
 				Build(),
-			clusterModifier: func(c *clusterv1.Cluster) {
-				c.Annotations = map[string]string{
-					runtimev1.PendingHooksAnnotation: "AfterWorkersUpgrade",
-				}
-			},
 			controlPlaneUpgradePlan:   []string{"v1.2.3"},
 			expectedVersion:           "v1.2.3",
 			expectedIsPendingUpgrade:  false,
 			expectedIsStartingUpgrade: true,
 		},
 		{
-			name:                         "should return an intermediate version when upgrading by more than 1 minor and control plane should perform the first step of the upgrade sequence",
-			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
-			topologyVersion:              "v1.5.3",
+			name:                              "should return an intermediate version when upgrading by more than 1 minor and control plane should perform the first step of the upgrade sequence",
+			beforeClusterUpgradeResponse:      nonBlockingBeforeClusterUpgradeResponse,
+			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
+			topologyVersion:                   "v1.5.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
 					"spec.version":  "v1.2.2",
@@ -1247,9 +1336,10 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			expectedIsStartingUpgrade:   true,
 		},
 		{
-			name:                         "should return cluster.spec.topology.version when performing a multi step upgrade and control plane is at the second last minor in the upgrade sequence",
-			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
-			topologyVersion:              "v1.5.3",
+			name:                              "should return cluster.spec.topology.version when performing a multi step upgrade and control plane is at the second last minor in the upgrade sequence",
+			beforeClusterUpgradeResponse:      nonBlockingBeforeClusterUpgradeResponse,
+			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
+			topologyVersion:                   "v1.5.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
 					"spec.version":  "v1.4.2",
@@ -1392,6 +1482,162 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			expectedIsStartingUpgrade: false,
 			wantErr:                   false,
 		},
+		{
+			name:                              "should return the controlplane.spec.version if a BeforeControlPlaneUpgrade returns a blocking response",
+			beforeClusterUpgradeResponse:      nonBlockingBeforeClusterUpgradeResponse,
+			beforeControlPlaneUpgradeResponse: blockingBeforeControlPlaneUpgradeResponse,
+			topologyVersion:                   "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			controlPlaneUpgradePlan:   []string{"v1.2.3"},
+			expectedVersion:           "v1.2.2",
+			expectedIsPendingUpgrade:  true,
+			expectedIsStartingUpgrade: false,
+		},
+		{
+			name:                              "should fail if the BeforeControlPlaneUpgrade hooks returns a failure response",
+			beforeClusterUpgradeResponse:      nonBlockingBeforeClusterUpgradeResponse,
+			beforeControlPlaneUpgradeResponse: failureBeforeControlPlaneUpgradeResponse,
+			topologyVersion:                   "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			controlPlaneUpgradePlan: []string{"v1.2.3"},
+			wantErr:                 true,
+		},
+		{
+			name:                              "should return the controlplane.spec.version if a AfterWorkersUpgrade returns a blocking response",
+			beforeClusterUpgradeResponse:      nonBlockingBeforeClusterUpgradeResponse,
+			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
+			afterWorkersUpgradeResponse:       blockingAfterWorkersUpgradeResponse,
+			topologyVersion:                   "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			clusterModifier: func(c *clusterv1.Cluster) {
+				c.Annotations = map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterWorkersUpgrade",
+				}
+			},
+			controlPlaneUpgradePlan:   []string{"v1.2.3"},
+			expectedVersion:           "v1.2.2",
+			expectedIsPendingUpgrade:  true,
+			expectedIsStartingUpgrade: false,
+		},
+		{
+			name:                              "should fail if the AfterWorkersUpgrade hooks returns a failure response",
+			beforeClusterUpgradeResponse:      nonBlockingBeforeClusterUpgradeResponse,
+			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
+			afterWorkersUpgradeResponse:       failureAfterWorkersUpgradeResponse,
+			topologyVersion:                   "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			clusterModifier: func(c *clusterv1.Cluster) {
+				c.Annotations = map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterWorkersUpgrade",
+				}
+			},
+			controlPlaneUpgradePlan: []string{"v1.2.3"},
+			wantErr:                 true,
+		},
+		{
+			name:                              "should return the controlplane.spec.version if a BeforeWorkersUpgrade returns a blocking response",
+			beforeClusterUpgradeResponse:      nonBlockingBeforeClusterUpgradeResponse,
+			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
+			beforeWorkersUpgradeResponse:      blockingBeforeWorkersUpgradeResponse,
+			topologyVersion:                   "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			clusterModifier: func(c *clusterv1.Cluster) {
+				c.Annotations = map[string]string{
+					runtimev1.PendingHooksAnnotation: "BeforeWorkersUpgrade",
+				}
+			},
+			controlPlaneUpgradePlan:   []string{"v1.2.3"},
+			expectedVersion:           "v1.2.2",
+			expectedIsPendingUpgrade:  true,
+			expectedIsStartingUpgrade: false,
+		},
+		{
+			name:                              "should fail if the BeforeWorkersUpgrade hooks returns a failure response",
+			beforeClusterUpgradeResponse:      nonBlockingBeforeClusterUpgradeResponse,
+			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
+			beforeWorkersUpgradeResponse:      failureBeforeWorkersUpgradeResponse,
+			topologyVersion:                   "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":             "v1.2.2",
+					"status.replicas":            int64(2),
+					"status.updatedReplicas":     int64(2),
+					"status.readyReplicas":       int64(2),
+					"status.unavailableReplicas": int64(0),
+				}).
+				Build(),
+			clusterModifier: func(c *clusterv1.Cluster) {
+				c.Annotations = map[string]string{
+					runtimev1.PendingHooksAnnotation: "BeforeWorkersUpgrade",
+				}
+			},
+			controlPlaneUpgradePlan: []string{"v1.2.3"},
+			wantErr:                 true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1460,7 +1706,10 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCatalog(catalog).
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
-					beforeClusterUpgradeGVH: tt.beforeClusterUpgradeResponse,
+					beforeClusterUpgradeGVH:      tt.beforeClusterUpgradeResponse,
+					beforeControlPlaneUpgradeGVH: tt.beforeControlPlaneUpgradeResponse,
+					beforeWorkersUpgradeGVH:      tt.beforeWorkersUpgradeResponse,
+					afterWorkersUpgradeGVH:       tt.afterWorkersUpgradeResponse,
 				}).
 				WithCallAllExtensionValidations(validateClusterParameter(s.Current.Cluster)).
 				Build()
@@ -2517,6 +2766,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 		controlPlaneUpgrading                bool
 		controlPlaneProvisioning             bool
 		afterControlPlaneUpgradeHookBlocking bool
+		beforeWorkersUpgradeHookBlocking     bool
 		topologyVersion                      string
 		upgradePlan                          []string
 		expectedVersion                      string
@@ -2643,6 +2893,17 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			expectPendingUpgrade:                 true,
 		},
 		{
+			name:                             "should return machine deployment's spec.template.spec.version if control plane is stable, other machine deployments are upgrading, concurrency limit not reached but BeforeWorkersUpgrade hook is blocking",
+			currentMachineDeploymentState:    currentMachineDeploymentState,
+			upgradingMachineDeployments:      []string{"upgrading-md1"},
+			upgradeConcurrency:               2,
+			beforeWorkersUpgradeHookBlocking: true,
+			topologyVersion:                  "v1.2.3",
+			upgradePlan:                      []string{"v1.2.3"},
+			expectedVersion:                  "v1.2.2",
+			expectPendingUpgrade:             true,
+		},
+		{
 			name:                          "should return cluster.spec.topology.version if control plane is stable, other machine deployments are upgrading, concurrency limit not reached",
 			currentMachineDeploymentState: currentMachineDeploymentState,
 			upgradingMachineDeployments:   []string{"upgrading-md1"},
@@ -2687,6 +2948,13 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			}
 			if tt.afterControlPlaneUpgradeHookBlocking {
 				s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, &runtimehooksv1.AfterControlPlaneUpgradeResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+						RetryAfterSeconds: 10,
+					},
+				})
+			}
+			if tt.beforeWorkersUpgradeHookBlocking {
+				s.HookResponseTracker.Add(runtimehooksv1.BeforeWorkersUpgrade, &runtimehooksv1.BeforeWorkersUpgradeResponse{
 					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 						RetryAfterSeconds: 10,
 					},
@@ -2743,6 +3011,7 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 		controlPlaneUpgrading                bool
 		controlPlaneProvisioning             bool
 		afterControlPlaneUpgradeHookBlocking bool
+		beforeWorkersUpgradeHookBlocking     bool
 		topologyVersion                      string
 		upgradePlan                          []string
 		expectedVersion                      string
@@ -2869,6 +3138,17 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			expectPendingUpgrade:                 true,
 		},
 		{
+			name:                             "should return MachinePool's spec.template.spec.version if control plane is stable, other MachinePools are upgrading, concurrency limit not reached but BeforeWorkersUpgrade hook is blocking",
+			currentMachinePoolState:          currentMachinePoolState,
+			upgradingMachinePools:            []string{"upgrading-mp1"},
+			upgradeConcurrency:               2,
+			beforeWorkersUpgradeHookBlocking: true,
+			topologyVersion:                  "v1.2.3",
+			upgradePlan:                      []string{"v1.2.3"},
+			expectedVersion:                  "v1.2.2",
+			expectPendingUpgrade:             true,
+		},
+		{
 			name:                    "should return cluster.spec.topology.version if control plane is stable, other MachinePools are upgrading, concurrency limit not reached",
 			currentMachinePoolState: currentMachinePoolState,
 			upgradingMachinePools:   []string{"upgrading-mp1"},
@@ -2910,6 +3190,13 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			}
 			if tt.afterControlPlaneUpgradeHookBlocking {
 				s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, &runtimehooksv1.AfterControlPlaneUpgradeResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+						RetryAfterSeconds: 10,
+					},
+				})
+			}
+			if tt.beforeWorkersUpgradeHookBlocking {
+				s.HookResponseTracker.Add(runtimehooksv1.BeforeWorkersUpgrade, &runtimehooksv1.BeforeWorkersUpgradeResponse{
 					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 						RetryAfterSeconds: 10,
 					},

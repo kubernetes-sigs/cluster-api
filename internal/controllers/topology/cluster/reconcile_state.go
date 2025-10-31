@@ -234,7 +234,8 @@ func isControlPlaneInitialized(cluster *clusterv1.Cluster) bool {
 func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope) error {
 	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
 	// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
-	if hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster) {
+	// Note: also check that the AfterControlPlaneUpgrade hooks and the AfterWorkersUpgrade hooks already have been called.
+	if hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster) && !hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) && !hooks.IsPending(runtimehooksv1.AfterWorkersUpgrade, s.Current.Cluster) {
 		// Call the registered extensions for the hook after the cluster is fully upgraded.
 		// A clusters is considered fully upgraded if:
 		// - Control plane is stable (not upgrading, not scaling, not about to upgrade)

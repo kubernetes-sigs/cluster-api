@@ -37,6 +37,7 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
@@ -552,23 +553,29 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	}
 
 	// if the control plane is not upgrading, before making further considerations about if to pick up another version,
-	// we should call the AfterControlPlaneUpgrade hook if not already done.
+	// we should call the AfterControlPlaneUpgrade and the BeforeWorkersUpgrade hooks if not already done.
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		hookCompleted, err := g.callAfterControlPlaneUpgradeHook(ctx, s, currentVersion, topologyVersion)
+		// Note: calling the AfterControlPlaneUpgrade is the final step of a control plane upgrade.
+		hookCompleted, err := g.callAfterControlPlaneUpgradeHook(ctx, s, currentVersion)
 		if err != nil {
 			return "", err
 		}
 		if !hookCompleted {
 			return *currentVersion, nil
 		}
-	}
 
-	// At this stage, we can assume the previous control plane upgrade is fully complete (including calling the AfterControlPlaneUpgrade).
-	// It is now possible to start making considerations if to pick up another version.
-
-	// If the control plane is not pending upgrade, then it is already at the desired version and there is no other version to pick up.
-	if !s.UpgradeTracker.ControlPlane.IsPendingUpgrade {
-		return *currentVersion, nil
+		// Note: calling the BeforeWorkersUpgrade is the first part of the execution of a worker upgrade step from the upgrade plan.
+		// The call to this hook is implemented in this function in order to ensure the hook is called
+		// after AfterControlPlaneUpgrade unblocks, and also to ensure that BeforeWorkersUpgrade
+		// can block the control plane upgrade to proceed in the upgrade plan.
+		// Note: this operation is a no-op if workers are not required to upgrade to the current control plane version.
+		hookCompleted, err = g.callBeforeWorkersUpgradeHook(ctx, s, &s.UpgradeTracker.MinWorkersVersion, *currentVersion)
+		if err != nil {
+			return "", err
+		}
+		if !hookCompleted {
+			return *currentVersion, nil
+		}
 	}
 
 	// Before considering picking up the next control plane version, check if workers are required
@@ -595,9 +602,15 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 
 	// At this point we can assume the control plane is stable and also MachineDeployments/MachinePools
 	// are not upgrading/are not required to upgrade.
-	// If not already done, call the BeforeClusterUpgrade hook before picking up the desired version.
+
+	// If not already done, call the AfterWorkersUpgrade hook before picking up the desired version.
+	// (this is the last step of the previous upgrade).
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		hookCompleted, err := g.callBeforeClusterUpgradeHook(ctx, s, currentVersion, topologyVersion)
+		// Note: calling the AfterWorkersUpgrade is the last step of workers upgrade.
+		// The call to this hook is implemented in this function in order to ensure that AfterWorkersUpgrade
+		// can block the control plane upgrade to proceed in the upgrade plan.
+		// Note: this operation is a no-op if workers are not required to upgrade to the current control plane version.
+		hookCompleted, err := g.callAfterWorkersUpgradeHook(ctx, s, currentVersion)
 		if err != nil {
 			return "", err
 		}
@@ -606,19 +619,69 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 		}
 	}
 
-	// Control plane and machine deployments are stable. All the required hooks are called.
-	// Ready to pick up the next version in the upgrade plan.
+	// At this stage, we can assume the previous control plane upgrade is fully complete (including calling the AfterControlPlaneUpgrade).
+	// It is now possible to start making considerations if to pick up another version.
 
-	// Track the intent of calling the AfterControlPlaneUpgrade and the AfterClusterUpgrade hooks once we are done with the upgrade.
-	if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade, runtimehooksv1.AfterClusterUpgrade); err != nil {
-		return "", err
+	// If the control plane is not pending upgrade, then it is already at the desired version and there is no other version to pick up.
+	if !s.UpgradeTracker.ControlPlane.IsPendingUpgrade {
+		return *currentVersion, nil
 	}
 
-	// Pick up the new version
+	// If not already done, call the BeforeClusterUpgrade hook before picking up the desired version.
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		// Note: calling the BeforeClusterUpgrade is the first step of an upgrade plan;
+		// this operation is a no-op for intermediate steps of an upgrade plan.
+		hookCompleted, err := g.callBeforeClusterUpgradeHook(ctx, s, currentVersion, topologyVersion)
+		if err != nil {
+			return "", err
+		}
+		if !hookCompleted {
+			return *currentVersion, nil
+		}
+
+		// After BeforeClusterUpgrade unblocked the upgrade, consider the upgrade started.
+		// As a consequence, the system start tracking the intent of calling AfterClusterUpgrade once the upgrade is complete.
+		// Note: this also prevent the BeforeClusterUpgrade to be called again (until after the upgrade is completed).
+		if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterClusterUpgrade); err != nil {
+			return "", err
+		}
+	}
+
+	// Control plane and machine deployments are stable. The BeforeClusterUpgrade hook have been called.
+	// Ready to pick up the next version in the upgrade plan.
+
+	// Select the next version for the control plane
 	if len(s.UpgradeTracker.ControlPlane.UpgradePlan) == 0 {
 		return "", errors.New("cannot compute the control plane version if the control plane is pending upgrade and the upgrade plan is not set")
 	}
 	nextVersion := s.UpgradeTracker.ControlPlane.UpgradePlan[0]
+
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		// Note: calling the BeforeControlPlaneUpgrade is the first step of a control plan upgrade step from the upgrade plan.
+		hookCompleted, err := g.callBeforeControlPlaneUpgradeHook(ctx, s, currentVersion, nextVersion)
+		if err != nil {
+			return "", err
+		}
+		if !hookCompleted {
+			return *currentVersion, nil
+		}
+
+		// After BeforeControlPlaneUpgrade unblocked the upgrade step, consider the upgrade step start started,
+		// As a consequence, the system start tracking the intent of calling other hooks for this upgrade step:
+		// - AfterControlPlaneUpgrade hook to be called after the control plane completes the upgrade step.
+		// - If workers are required to upgrade to the current control plane version:
+		//   - BeforeWorkersUpgrade hook to be called before workers start the upgrade step.
+		//   - AfterWorkersUpgrade hook to be called after workers completes the upgrade step.
+		hooksToBeCalled := []runtimecatalog.Hook{runtimehooksv1.AfterControlPlaneUpgrade}
+		machineDeploymentPendingUpgrade := len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 && s.UpgradeTracker.MachineDeployments.UpgradePlan[0] == nextVersion
+		machinePoolPendingUpgrade := len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0 && s.UpgradeTracker.MachinePools.UpgradePlan[0] == nextVersion
+		if machineDeploymentPendingUpgrade || machinePoolPendingUpgrade {
+			hooksToBeCalled = append(hooksToBeCalled, runtimehooksv1.BeforeWorkersUpgrade, runtimehooksv1.AfterWorkersUpgrade)
+		}
+		if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, hooksToBeCalled...); err != nil {
+			return "", err
+		}
+	}
 
 	// The upgrade is now starting in this reconcile and not pending anymore.
 	// Note: it is important to unset IsPendingUpgrade, otherwise reconcileState will assume that we are still waiting for another upgrade (and thus defer the one we are starting).
@@ -979,7 +1042,7 @@ func (g *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeplo
 	// Example: join could fail if the load balancers are slow in detecting when CP machines are
 	// being deleted.
 	if currentMDState == nil || currentMDState.Object == nil {
-		if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
+		if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) || s.HookResponseTracker.IsBlocking(runtimehooksv1.BeforeWorkersUpgrade) {
 			s.UpgradeTracker.MachineDeployments.MarkPendingCreate(machineDeploymentTopology.Name)
 		}
 		return topologyVersion, nil
@@ -1003,6 +1066,12 @@ func (g *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeplo
 
 	// Return early if the AfterControlPlaneUpgrade hook returns a blocking response.
 	if s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Return early if the BeforeWorkersUpgrade hook returns a blocking response.
+	if s.HookResponseTracker.IsBlocking(runtimehooksv1.BeforeWorkersUpgrade) {
 		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
 		return currentVersion, nil
 	}
@@ -1293,7 +1362,7 @@ func (g *generator) computeMachinePoolVersion(s *scope.Scope, machinePoolTopolog
 	// Example: join could fail if the load balancers are slow in detecting when CP machines are
 	// being deleted.
 	if currentMPState == nil || currentMPState.Object == nil {
-		if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
+		if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) || s.HookResponseTracker.IsBlocking(runtimehooksv1.BeforeWorkersUpgrade) {
 			s.UpgradeTracker.MachinePools.MarkPendingCreate(machinePoolTopology.Name)
 		}
 		return topologyVersion, nil
@@ -1317,6 +1386,12 @@ func (g *generator) computeMachinePoolVersion(s *scope.Scope, machinePoolTopolog
 
 	// Return early if the AfterControlPlaneUpgrade hook returns a blocking response.
 	if s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Return early if the BeforeWorkersUpgrade hook returns a blocking response.
+	if s.HookResponseTracker.IsBlocking(runtimehooksv1.BeforeWorkersUpgrade) {
 		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
 		return currentVersion, nil
 	}

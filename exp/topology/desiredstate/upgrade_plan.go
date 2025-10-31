@@ -93,6 +93,7 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 	if minWorkersSemVer != nil {
 		minWorkersVersion = fmt.Sprintf("v%s", minWorkersSemVer.String())
 	}
+	s.UpgradeTracker.MinWorkersVersion = minWorkersVersion
 
 	// If both control plane and workers are already at the desired version, there is no need to compute the upgrade plan.
 	if controlPlaneSemVer.String() == desiredSemVer.String() && (minWorkersSemVer == nil || minWorkersSemVer.String() == desiredSemVer.String()) {

@@ -249,8 +249,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 				beforeClusterCreateTestHandler(ctx,
 					input.BootstrapClusterProxy.GetClient(),
 					cluster,
-					input.ExtensionConfigName,
-					input.E2EConfig.GetIntervals(specName, "wait-cluster"))
+					input.ExtensionConfigName)
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -287,7 +286,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		log.Logf("Control Plane upgrade plan: %s", controlPlaneUpgradePlan)
 		log.Logf("Workers upgrade plan: %s", workersUpgradePlan)
 
-		// Perform the upgrade and check every is going as expected.
+		// Perform the upgrade and check everything is working as expected.
 		// More specifically:
 		// - After control plane upgrade steps
 		// 	 - Check control plane machines are on the desired version, nodes are healthy
@@ -333,16 +332,30 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 				// the control plane upgrade step by step using hooks to block/unblock every phase.
 
 				// Check for the beforeClusterUpgrade being called, then unblock
+				Expect(controlPlaneUpgradePlan).ToNot(BeEmpty())
+				firstControlPlaneVersion := controlPlaneUpgradePlan[0]
+
 				beforeClusterUpgradeTestHandler(ctx,
 					input.BootstrapClusterProxy.GetClient(),
 					clusterResources.Cluster,
 					input.ExtensionConfigName,
-					fromVersion,
-					toVersion,
-					input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
+					fromVersion,              // Cluster fromVersion
+					toVersion,                // Cluster toVersion
+					firstControlPlaneVersion, // firstControlPlaneVersion in the upgrade plan, used to check the BeforeControlPlaneUpgrade is not called before its time.
+				)
 
 				// Then check the upgrade is progressing step by step according to the upgrade plan
-				for _, version := range controlPlaneUpgradePlan {
+				for i, version := range controlPlaneUpgradePlan {
+					// make sure beforeControlPlaneUpgrade still blocks, then unblock the upgrade.
+					beforeControlPlaneUpgradeTestHandler(ctx,
+						input.BootstrapClusterProxy.GetClient(),
+						clusterResources.Cluster,
+						input.ExtensionConfigName,
+						controlPlaneVersion, // Control plane fromVersion for this upgrade step.
+						version,             // Control plane toVersion for this upgrade step.
+						workersVersion,      // Current workersVersion, used to check workers do not upgrade before its time.
+					)
+
 					// Wait CP to update to version
 					controlPlaneVersion = version
 					waitControlPlaneVersion(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, controlPlaneVersion, input.E2EConfig.GetIntervals(specName, "wait-control-plane-upgrade"))
@@ -351,27 +364,58 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 					checkWorkersVersions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, workersVersion)
 
 					// make sure afterControlPlaneUpgrade still blocks, then unblock the upgrade.
+					nextControlPlaneVersion := ""
+					if i < len(controlPlaneUpgradePlan)-1 {
+						nextControlPlaneVersion = controlPlaneUpgradePlan[i+1]
+					}
 					afterControlPlaneUpgradeTestHandler(ctx,
 						input.BootstrapClusterProxy.GetClient(),
 						clusterResources.Cluster,
 						input.ExtensionConfigName,
-						controlPlaneVersion,
-						workersVersion,
-						input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
+						controlPlaneVersion,     // Current controlPlaneVersion for this upgrade step.
+						workersVersion,          // Current workersVersion, used to check workers do not upgrade before its time.
+						nextControlPlaneVersion, // nextControlPlaneVersion in the upgrade plan, used to check the BeforeControlPlaneUpgrade is not called before its time (in case workers do not perform this upgrade step).
+						toVersion,               // toVersion of the upgrade, used to check the AfterClusterUpgrade is not called before its time (in case workers do not perform this upgrade step).
+					)
 
 					// If worker should not upgrade at this step, continue
 					if !sets.New[string](workersUpgradePlan...).Has(version) {
 						continue
 					}
 
+					// make sure beforeWorkersUpgrade still blocks, then unblock the upgrade.
+					beforeWorkersUpgradeTestHandler(ctx,
+						input.BootstrapClusterProxy.GetClient(),
+						clusterResources.Cluster,
+						input.ExtensionConfigName,
+						workersVersion, // Current workersVersion for this upgrade step.
+						version,        // Workers toVersion for this upgrade step.
+					)
+
 					// Wait for workers to update to version
 					workersVersion = version
 					waitWorkersVersions(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, workersVersion, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
 
-					// TODO(chained-upgrade): FP, we can't check next CP upgrade doesn't start, it starts immediately
+					// make sure afterWorkersUpgradeTestHandler still blocks, then unblock the upgrade.
+					afterWorkersUpgradeTestHandler(ctx,
+						input.BootstrapClusterProxy.GetClient(),
+						clusterResources.Cluster,
+						input.ExtensionConfigName,
+						controlPlaneVersion,     // Current controlPlaneVersion for this upgrade step.
+						workersVersion,          // Current workersVersion for this upgrade step.
+						nextControlPlaneVersion, // nextControlPlaneVersion in the upgrade plan, used to check the BeforeControlPlaneUpgrade is not called before its time (in case workers do not perform this upgrade step).
+						toVersion,               // toVersion of the upgrade, used to check the AfterClusterUpgrade is not called before its time (in case workers do not perform this upgrade step).
+					)
 				}
 			},
 		})
+
+		// Check if the AfterClusterUpgrade hook is actually called.
+		hookName := computeHookName("AfterClusterUpgrade", []string{toVersion})
+		Byf("Waiting for %s hook to be called", hookName)
+		Eventually(func(_ Gomega) error {
+			return checkLifecycleHooksCalledAtLeastOnce(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, input.ExtensionConfigName, "AfterClusterUpgrade", []string{toVersion})
+		}, 30*time.Second, 2*time.Second).Should(Succeed(), "%s has not been called", hookName)
 
 		By("Waiting until nodes are ready")
 		workloadProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterResources.Cluster.Name)
@@ -405,20 +449,28 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		By("Dumping resources and deleting the workload cluster; deletion waits for BeforeClusterDeleteHook to gate the operation")
 		dumpAndDeleteCluster(ctx, input.BootstrapClusterProxy, input.ClusterctlConfigPath, namespace.Name, clusterName, input.ArtifactFolder)
 
-		beforeClusterDeleteHandler(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, input.ExtensionConfigName, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster"))
+		beforeClusterDeleteHandler(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, input.ExtensionConfigName)
 
 		By("Checking all lifecycle hooks have been called")
 		// Assert that each hook has been called and returned "Success" during the test.
 		expectedHooks := map[string]string{
-			computeHookName("BeforeClusterCreate", nil):                      "Status: Success, RetryAfterSeconds: 0",
-			computeHookName("BeforeClusterUpgrade", nil):                     "Status: Success, RetryAfterSeconds: 0",
-			computeHookName("BeforeClusterDelete", nil):                      "Status: Success, RetryAfterSeconds: 0",
-			computeHookName("AfterControlPlaneUpgrade", []string{toVersion}): "Status: Success, RetryAfterSeconds: 0",
-			computeHookName("AfterControlPlaneInitialized", nil):             "Success",
-			computeHookName("AfterClusterUpgrade", nil):                      "Success",
+			computeHookName("BeforeClusterCreate", nil):                               "Status: Success, RetryAfterSeconds: 0",
+			computeHookName("AfterControlPlaneInitialized", nil):                      "Success",
+			computeHookName("BeforeClusterUpgrade", []string{fromVersion, toVersion}): "Status: Success, RetryAfterSeconds: 0",
+			computeHookName("AfterClusterUpgrade", []string{toVersion}):               "Success",
+			computeHookName("BeforeClusterDelete", nil):                               "Status: Success, RetryAfterSeconds: 0",
 		}
+		fromv := fromVersion
 		for _, v := range controlPlaneUpgradePlan {
+			expectedHooks[computeHookName("BeforeControlPlaneUpgrade", []string{fromv, v})] = "Status: Success, RetryAfterSeconds: 0"
 			expectedHooks[computeHookName("AfterControlPlaneUpgrade", []string{v})] = "Status: Success, RetryAfterSeconds: 0"
+			fromv = v
+		}
+		fromv = fromVersion
+		for _, v := range workersUpgradePlan {
+			expectedHooks[computeHookName("BeforeWorkersUpgrade", []string{fromv, v})] = "Status: Success, RetryAfterSeconds: 0"
+			expectedHooks[computeHookName("AfterWorkersUpgrade", []string{v})] = "Status: Success, RetryAfterSeconds: 0"
+			fromv = v
 		}
 
 		checkLifecycleHookResponses(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, input.ExtensionConfigName, expectedHooks)
@@ -646,12 +698,12 @@ func getLifecycleHookResponsesFromConfigMap(ctx context.Context, c client.Client
 
 // beforeClusterCreateTestHandler calls runtimeHookTestHandler with a blockedCondition function which returns false if
 // the Cluster has a control plane or an infrastructure reference.
-func beforeClusterCreateTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, intervals []interface{}) {
+func beforeClusterCreateTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string) {
 	hookName := "BeforeClusterCreate"
 
+	// for BeforeClusterCreate, the hook is blocking if Get Cluster keep returning a cluster without infraCluster and controlPlaneRef set.
 	isBlockingCreate := func() bool {
 		blocked := true
-		// This hook should block the Cluster from entering the "Provisioned" state.
 		cluster := framework.GetClusterByName(ctx,
 			framework.GetClusterByNameInput{Name: cluster.Name, Namespace: cluster.Namespace, Getter: c})
 
@@ -660,19 +712,19 @@ func beforeClusterCreateTestHandler(ctx context.Context, c client.Client, cluste
 		}
 		return blocked
 	}
+	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, nil, isBlockingCreate, nil)
 
-	// Test the BeforeClusterCreate the hook.
-	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, nil, isBlockingCreate, nil, intervals)
-
-	Byf("ClusterCreate unblocked")
+	Byf("BeforeClusterCreate unblocked")
 }
 
 // beforeClusterUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if
 // any of the control plane, machine deployments or machine pools has been updated from the initial Kubernetes version.
-func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, fromVersion, toVersion string, intervals []interface{}) {
+func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, fromVersion, toVersion, firstControlPlaneVersion string) {
 	hookName := "BeforeClusterUpgrade"
 	beforeClusterUpgradeAnnotation := clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/upgrade-test"
 
+	// for BeforeClusterUpgrade, the hook is blocking if both controlPlane and workers remain at the expected version (both controlPlane and workers should be at fromVersion)
+	// and the BeforeControlPlaneUpgrade hook is not called yet.
 	isBlockingUpgrade := func() bool {
 		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 		if err != nil {
@@ -686,6 +738,14 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, clust
 			return false
 		}
 
+		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
+			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
+		for _, machine := range controlPlaneMachines {
+			if machine.Spec.Version != fromVersion {
+				return false
+			}
+		}
+
 		mds := framework.GetMachineDeploymentsByCluster(ctx,
 			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
 		for _, md := range mds {
@@ -694,41 +754,57 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, clust
 			}
 		}
 
-		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
-			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
-		for _, machine := range controlPlaneMachines {
-			if machine.Spec.Version == toVersion {
+		mps := framework.GetMachinePoolsByCluster(ctx,
+			framework.GetMachinePoolsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
+		for _, mp := range mps {
+			if mp.Spec.Template.Spec.Version != fromVersion {
 				return false
 			}
 		}
+
+		// Check if the BeforeControlPlaneUpgrade hook has been called (this should not happen when BeforeClusterUpgrade is blocking).
+		// Note: BeforeClusterUpgrade hook is followed by BeforeControlPlaneUpgrade hook.
+		if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, "BeforeControlPlaneUpgrade", []string{fromVersion, firstControlPlaneVersion}); err == nil {
+			return false
+		}
+
 		return true
 	}
 
 	// BeforeClusterUpgrade can be blocked via an annotation hook. Check it works
-	annotationHookTestHandler(ctx, c, cluster, hookName, beforeClusterUpgradeAnnotation, isBlockingUpgrade, intervals)
+	annotationHookTestHandler(ctx, c, cluster, hookName, beforeClusterUpgradeAnnotation, isBlockingUpgrade)
 
-	// Test the BeforeClusterUpgrade the hook.
-	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, nil, isBlockingUpgrade, nil, intervals)
+	// Test the BeforeClusterUpgrade hook.
+	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, []string{fromVersion, toVersion}, isBlockingUpgrade, nil)
 
-	Byf("ClusterUpgrade to %s unblocked", toVersion)
+	Byf("BeforeClusterUpgrade from %s to %s unblocked", fromVersion, toVersion)
 }
 
-// afterControlPlaneUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if any
-// MachineDeployment in the Cluster has upgraded to the target Kubernetes version.
-func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, controlPlaneVersion, workersVersion string, intervals []interface{}) {
-	hookName := "AfterControlPlaneUpgrade"
+// beforeControlPlaneUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if
+// any of the control plane, machine deployments or machine pools has been updated from the initial Kubernetes version.
+func beforeControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, fromVersion, toVersion, workersVersion string) {
+	hookName := "BeforeControlPlaneUpgrade"
 
+	// for BeforeControlPlaneUpgrade, the hook is blocking if both controlPlane and workers remain at the expected version (both controlPlane and workers should be at fromVersion)
 	isBlockingUpgrade := func() bool {
 		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 		if err != nil {
 			return false
 		}
-		v, err := contract.ControlPlane().Version().Get(controlPlane)
+		controlPlaneVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 		if err != nil {
 			return false
 		}
-		if *v != controlPlaneVersion {
+		if *controlPlaneVersion != fromVersion {
 			return false
+		}
+
+		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
+			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
+		for _, machine := range controlPlaneMachines {
+			if machine.Spec.Version != fromVersion {
+				return false
+			}
 		}
 
 		mds := framework.GetMachineDeploymentsByCluster(ctx,
@@ -746,6 +822,83 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, c
 				return false
 			}
 		}
+
+		return true
+	}
+
+	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, []string{fromVersion, toVersion}, isBlockingUpgrade, nil)
+
+	Byf("BeforeControlPlaneUpgrade from %s to %s unblocked", fromVersion, toVersion)
+}
+
+// afterControlPlaneUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if any
+// MachineDeployment in the Cluster has upgraded to the target Kubernetes version.
+func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, controlPlaneVersion, workersVersion, nextControlPlaneVersion, topologyVersion string) {
+	hookName := "AfterControlPlaneUpgrade"
+
+	// for AfterControlPlaneUpgrade, the hook is blocking if both controlPlane and workers remain at the expected version (controlPlaneVersion, workersVersion)
+	// and the BeforeWorkersUpgrade hook or the BeforeControlPlaneUpgrade is not called yet.
+	isBlockingUpgrade := func() bool {
+		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+		if err != nil {
+			return false
+		}
+		v, err := contract.ControlPlane().Version().Get(controlPlane)
+		if err != nil {
+			return false
+		}
+		if *v != controlPlaneVersion {
+			return false
+		}
+
+		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
+			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
+		for _, machine := range controlPlaneMachines {
+			if machine.Spec.Version != controlPlaneVersion {
+				return false
+			}
+		}
+
+		mds := framework.GetMachineDeploymentsByCluster(ctx,
+			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
+		for _, md := range mds {
+			if md.Spec.Template.Spec.Version != workersVersion {
+				return false
+			}
+		}
+
+		mps := framework.GetMachinePoolsByCluster(ctx,
+			framework.GetMachinePoolsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
+		for _, mp := range mps {
+			if mp.Spec.Template.Spec.Version != workersVersion {
+				return false
+			}
+		}
+
+		// Check if the BeforeWorkersUpgrade hook has been called (this should not happen when AfterControlPlaneUpgrade is blocking).
+		// Note: AfterControlPlaneUpgrade hook can be followed by BeforeWorkersUpgrade hook in case also workers are performing this upgrade step.
+		if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, "BeforeWorkersUpgrade", []string{workersVersion, controlPlaneVersion}); err == nil {
+			return false
+		}
+
+		// Check if the BeforeControlPlaneUpgrade hook has been called (this should not happen when AfterControlPlaneUpgrade is blocking).
+		// Note: AfterControlPlaneUpgrade hook can be followed by BeforeControlPlaneUpgrade hook in case there are still upgrade steps to perform and workers are skipping this minor.
+		// Note: nextControlPlaneVersion != "" when there are still upgrade steps to perform.
+		if nextControlPlaneVersion != "" {
+			if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, "BeforeControlPlaneUpgrade", []string{controlPlaneVersion, nextControlPlaneVersion}); err == nil {
+				return false
+			}
+		}
+
+		// Check if the AfterClusterUpgrade hook has been called (this should not happen when AfterControlPlaneUpgrade is blocking).
+		// Note: AfterControlPlaneUpgrade hook can be followed by AfterClusterUpgrade hook in case the upgrade is completed.
+		// Note: nextControlPlaneVersion == "" in case the upgrade is completed.
+		if nextControlPlaneVersion == "" {
+			if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, "AfterClusterUpgrade", []string{topologyVersion}); err == nil {
+				return false
+			}
+		}
+
 		return true
 	}
 
@@ -754,33 +907,155 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, c
 	}
 
 	// Test the AfterControlPlaneUpgrade hook and perform machine set preflight checks before unblocking.
-	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, []string{controlPlaneVersion}, isBlockingUpgrade, beforeUnblockingUpgrade, intervals)
+	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, []string{controlPlaneVersion}, isBlockingUpgrade, beforeUnblockingUpgrade)
+
+	Byf("AfterControlPlaneUpgrade to %s unblocked", controlPlaneVersion)
+}
+
+// beforeWorkersUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if
+// any of the control plane, machine deployments or machine pools has been updated from the initial Kubernetes version.
+func beforeWorkersUpgradeTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, fromVersion, toVersion string) {
+	hookName := "BeforeWorkersUpgrade"
+
+	// for BeforeWorkersUpgrade, the hook is blocking if both controlPlane and workers remain at the expected version (controlPlaneVersion should be already at toVersion, workers should be at fromVersion)
+	isBlockingUpgrade := func() bool {
+		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+		if err != nil {
+			return false
+		}
+		controlPlaneVersion, err := contract.ControlPlane().Version().Get(controlPlane)
+		if err != nil {
+			return false
+		}
+		if *controlPlaneVersion != toVersion {
+			return false
+		}
+
+		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
+			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
+		for _, machine := range controlPlaneMachines {
+			if machine.Spec.Version != toVersion {
+				return false
+			}
+		}
+
+		mds := framework.GetMachineDeploymentsByCluster(ctx,
+			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
+		for _, md := range mds {
+			if md.Spec.Template.Spec.Version != fromVersion {
+				return false
+			}
+		}
+
+		mps := framework.GetMachinePoolsByCluster(ctx,
+			framework.GetMachinePoolsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
+		for _, mp := range mps {
+			if mp.Spec.Template.Spec.Version != fromVersion {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, []string{fromVersion, toVersion}, isBlockingUpgrade, nil)
+
+	Byf("BeforeWorkersUpgrade from %s to %s unblocked", fromVersion, toVersion)
+}
+
+// afterWorkersUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if any
+// MachineDeployment in the Cluster has upgraded to the target Kubernetes version.
+func afterWorkersUpgradeTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, controlPlaneVersion, workersVersion, nextControlPlaneVersion, topologyVersion string) {
+	hookName := "AfterWorkersUpgrade"
+
+	// for AfterWorkersUpgrade, the hook is blocking if both controlPlane and workers remain at the expected version (controlPlaneVersion, workersVersion)
+	// and the BeforeControlPlaneUpgrade hook or the AfterClusterUpgrade are not called yet.
+	isBlockingUpgrade := func() bool {
+		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+		if err != nil {
+			return false
+		}
+		v, err := contract.ControlPlane().Version().Get(controlPlane)
+		if err != nil {
+			return false
+		}
+		if *v != controlPlaneVersion {
+			return false
+		}
+
+		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
+			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
+		for _, machine := range controlPlaneMachines {
+			if machine.Spec.Version != controlPlaneVersion {
+				return false
+			}
+		}
+
+		mds := framework.GetMachineDeploymentsByCluster(ctx,
+			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
+		for _, md := range mds {
+			if md.Spec.Template.Spec.Version != workersVersion {
+				return false
+			}
+		}
+
+		mps := framework.GetMachinePoolsByCluster(ctx,
+			framework.GetMachinePoolsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
+		for _, mp := range mps {
+			if mp.Spec.Template.Spec.Version != workersVersion {
+				return false
+			}
+		}
+
+		// Check if the BeforeControlPlaneUpgrade hook has been called (this should not happen when AfterWorkersUpgrade is blocking).
+		// Note: AfterWorkersUpgrade hook can be followed by BeforeControlPlaneUpgrade hook in case there are still upgrade steps to perform.
+		// Note: nextControlPlaneVersion != "" when there are still upgrade steps to perform.
+		if nextControlPlaneVersion != "" {
+			if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, "BeforeControlPlaneUpgrade", []string{controlPlaneVersion, nextControlPlaneVersion}); err == nil {
+				return false
+			}
+		}
+
+		// Check if the AfterClusterUpgrade hook has been called (this should not happen when AfterWorkersUpgrade is blocking).
+		// Note: AfterWorkersUpgrade hook can be followed by AfterClusterUpgrade hook in case the upgrade is completed.
+		// Note: nextControlPlaneVersion == "" in case the upgrade is completed.
+		if nextControlPlaneVersion == "" {
+			if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, cluster, extensionConfigName, "AfterClusterUpgrade", []string{topologyVersion}); err == nil {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, []string{workersVersion}, isBlockingUpgrade, nil)
+
+	Byf("AfterWorkersUpgrade to %s unblocked", workersVersion)
 }
 
 // beforeClusterDeleteHandler calls runtimeHookTestHandler with a blocking function which returns false if the Cluster
 // cannot be found in the API server.
-func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, intervals []interface{}) {
+func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string) {
 	hookName := "BeforeClusterDelete"
 
+	// for BeforeClusterDelete, the hook is blocking if Get Cluster keep returning something different from IsNotFound error.
 	isBlockingDelete := func() bool {
 		var blocked = true
 
-		// If the Cluster is not found, it has been deleted and the hook is unblocked.
 		if apierrors.IsNotFound(c.Get(ctx, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}, &clusterv1.Cluster{})) {
 			blocked = false
 		}
 		return blocked
 	}
 
-	// Test the BeforeClusterDelete the hook.
-	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, nil, isBlockingDelete, nil, intervals)
+	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, nil, isBlockingDelete, nil)
 }
 
 // annotationHookTestHandler runs a series of tests in sequence to check if the annotation hook can block.
 // 1. Check if the annotation hook is blocking and if the TopologyReconciled condition reports if the annotation hook is blocking.
 // 2. Remove the annotation hook.
 // 3. Check if the TopologyReconciled condition stops reporting the annotation hook is blocking.
-func annotationHookTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, hook, annotation string, blockingCondition func() bool, intervals []interface{}) {
+func annotationHookTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, hook, annotation string, blockingCondition func() bool) {
 	log.Logf("Blocking with the %s annotation hook for 60 seconds", hook)
 
 	expectedBlockingMessage := fmt.Sprintf("hook %q is blocking: annotation [%s] is set", hook, annotation)
@@ -811,9 +1086,9 @@ func annotationHookTestHandler(ctx context.Context, c client.Client, cluster *cl
 			return false
 		}
 		return true
-	}, 30*time.Second).Should(BeTrue(), "%s (via annotation %s) did not block", hook, annotation)
+	}, 20*time.Second, 2*time.Second).Should(BeTrue(), "%s (via annotation %s) did not block", hook, annotation)
 
-	Byf("Validating %s hook (via annotation %s) consistently blocks progress in the reconciliation", hook, annotation)
+	Byf("Validating %s hook (via annotation %s) consistently blocks progress in the upgrade", hook, annotation)
 
 	// Check if the annotation hook keeps blocking.
 	Consistently(func(_ Gomega) bool {
@@ -824,7 +1099,7 @@ func annotationHookTestHandler(ctx context.Context, c client.Client, cluster *cl
 			return false
 		}
 		return true
-	}, 60*time.Second).Should(BeTrue(),
+	}, 30*time.Second, 2*time.Second).Should(BeTrue(),
 		fmt.Sprintf("Cluster Topology reconciliation continued unexpectedly: hook %s (via annotation %s) is not blocking", hook, annotation))
 
 	// Patch the Cluster to remove the LifecycleHook annotation hook and unblock.
@@ -848,7 +1123,7 @@ func annotationHookTestHandler(ctx context.Context, c client.Client, cluster *cl
 			return fmt.Errorf("hook %s (via annotation %s) should not be blocking anymore with message: %s", hook, annotation, expectedBlockingMessage)
 		}
 		return nil
-	}, intervals...).Should(Succeed(),
+	}, 20*time.Second, 2*time.Second).Should(Succeed(),
 		fmt.Sprintf("ClusterTopology reconcile did not proceed as expected when unblocking hook %s (via annotation %s)", hook, annotation))
 }
 
@@ -859,7 +1134,7 @@ func annotationHookTestHandler(ctx context.Context, c client.Client, cluster *cl
 //
 // Note: runtimeHookTestHandler assumes that the hook passed to it is currently returning a blocking response.
 // Updating the response to be non-blocking happens inline in the function.
-func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, hook string, attributes []string, blockingCondition func() bool, beforeUnblocking func(), intervals []interface{}) {
+func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, hook string, attributes []string, blockingCondition func() bool, beforeUnblocking func()) {
 	hookName := computeHookName(hook, attributes)
 	log.Logf("Blocking with the %s hook for 60 seconds", hookName)
 
@@ -887,14 +1162,14 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster *clust
 			return errors.Errorf("Blocking condition for %s not found on Cluster object", hookName)
 		}
 		return nil
-	}, 30*time.Second).Should(Succeed(), "%s has not been called", hookName)
+	}, 30*time.Second, 2*time.Second).Should(Succeed(), "%s has not been called", hookName)
 
-	Byf("Validating %s hook consistently blocks progress in the reconciliation", hookName)
+	Byf("Validating %s hook consistently blocks progress in the upgrade", hookName)
 
 	// Check if the hook keeps blocking.
 	Consistently(func(_ Gomega) bool {
 		return topologyConditionCheck() && blockingCondition()
-	}, 60*time.Second).Should(BeTrue(),
+	}, 30*time.Second, 5*time.Second).Should(BeTrue(),
 		fmt.Sprintf("Cluster Topology reconciliation continued unexpectedly: hook %s not blocking", hookName))
 
 	if beforeUnblocking != nil {
@@ -902,7 +1177,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster *clust
 	}
 
 	// Patch the ConfigMap to set the hook response to "Success".
-	Byf("Setting %s response to Status:Success to unblock the reconciliation", hookName)
+	Byf("Setting %s response to Status:Success to unblock the upgrade", hookName)
 
 	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: hookResponsesConfigMapName(cluster.Name, extensionConfigName), Namespace: cluster.Namespace}}
 	Eventually(func() error {
@@ -912,7 +1187,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster *clust
 		[]byte(fmt.Sprintf(`{"data":{"%s-preloadedResponse":%s}}`, hookName, "\"{\\\"Status\\\": \\\"Success\\\"}\"")))
 	Eventually(func() error {
 		return c.Patch(ctx, configMap, patchData)
-	}).Should(Succeed(), "Failed to set %s response to Status:Success to unblock the reconciliation", hookName)
+	}).Should(Succeed(), "Failed to set %s response to Status:Success to unblock the upgrade", hookName)
 
 	// Check if the hook stops blocking and if the TopologyReconciled condition stops reporting the hook is blocking.
 
@@ -925,7 +1200,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster *clust
 			return blockingCondition()
 		}
 		return topologyConditionCheck() || blockingCondition()
-	}, intervals...).Should(BeFalse(),
+	}, 30*time.Second, 2*time.Second).Should(BeFalse(),
 		fmt.Sprintf("ClusterTopology reconcile did not proceed as expected when calling %s", hookName))
 }
 
@@ -942,10 +1217,7 @@ func clusterConditionShowsHookBlocking(cluster *clusterv1.Cluster, hookName stri
 
 func waitControlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals []interface{}) {
 	Byf("Waiting for control plane to have version %s", version)
-	controlPlaneVersion(ctx, c, cluster, version, intervals...)
-}
 
-func controlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals ...interface{}) {
 	Eventually(func(_ Gomega) bool {
 		controlPlane, err := external.GetObjectFromContractVersionedRef(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 		if err != nil {

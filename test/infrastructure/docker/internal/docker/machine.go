@@ -158,6 +158,15 @@ func (m *Machine) Exists() bool {
 	return m.container != nil
 }
 
+// IsRunning returns true if the container for this machine is running.
+func (m *Machine) IsRunning() bool {
+	if !m.Exists() {
+		return false
+	}
+
+	return m.container.IsRunning()
+}
+
 // Name returns the name of the machine.
 func (m *Machine) Name() string {
 	return m.machine
@@ -540,6 +549,8 @@ func (m *Machine) Delete(ctx context.Context) error {
 		if err := m.container.Delete(ctx); err != nil {
 			return err
 		}
+
+		m.container = nil
 	}
 	return nil
 }

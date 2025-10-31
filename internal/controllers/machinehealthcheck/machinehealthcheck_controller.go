@@ -326,7 +326,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		if len(errList) > 0 {
 			return ctrl.Result{}, kerrors.NewAggregate(errList)
 		}
-		return reconcile.Result{Requeue: true}, nil
+		return reconcile.Result{}, nil
 	}
 
 	if m.Spec.Remediation.TriggerIf.UnhealthyInRange == "" {

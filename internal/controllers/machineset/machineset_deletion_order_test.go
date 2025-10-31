@@ -27,7 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
-func TestMachineToDelete(t *testing.T) {
+func TestMachineRandomDelete(t *testing.T) {
 	now := metav1.Now()
 	nodeRef := clusterv1.MachineNodeReference{Name: "some-node"}
 	healthyMachine := &clusterv1.Machine{Status: clusterv1.MachineStatus{NodeRef: nodeRef}}
@@ -48,6 +48,10 @@ func TestMachineToDelete(t *testing.T) {
 	}
 	deleteMachineWithMachineAnnotation := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""}},
+		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+	}
+	machineWithUpdateInProgressAnnotation := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.UpdateInProgressAnnotation: ""}},
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	deleteMachineWithoutNodeRef := &clusterv1.Machine{}
@@ -208,9 +212,22 @@ func TestMachineToDelete(t *testing.T) {
 				betterDeleteMachine,
 				deleteMachineWithMachineAnnotation,
 				betterDeleteMachine,
+				machineWithUpdateInProgressAnnotation,
 			},
 			expect: []*clusterv1.Machine{
 				deleteMachineWithMachineAnnotation,
+			},
+		},
+		{
+			desc: "func=randomDeletionOrder, DeleteMachineAnnotation, diff=1",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				betterDeleteMachine,
+				machineWithUpdateInProgressAnnotation,
+				betterDeleteMachine,
+			},
+			expect: []*clusterv1.Machine{
+				machineWithUpdateInProgressAnnotation,
 			},
 		},
 		{
@@ -312,6 +329,10 @@ func TestMachineNewestDelete(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
+	machineWithUpdateInProgressAnnotation := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.UpdateInProgressAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
+		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+	}
 	unhealthyMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
 		Status: clusterv1.MachineStatus{
@@ -386,9 +407,17 @@ func TestMachineNewestDelete(t *testing.T) {
 			desc: "func=newestDeletionOrder, diff=1 (DeleteMachineAnnotation)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
-				secondNewest, oldest, secondOldest, newest, deleteMachineWithMachineAnnotation,
+				secondNewest, oldest, secondOldest, newest, deleteMachineWithMachineAnnotation, machineWithUpdateInProgressAnnotation,
 			},
 			expect: []*clusterv1.Machine{deleteMachineWithMachineAnnotation},
+		},
+		{
+			desc: "func=newestDeletionOrder, diff=1 (UpdateInProgressAnnotation)",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				secondNewest, oldest, secondOldest, newest, machineWithUpdateInProgressAnnotation,
+			},
+			expect: []*clusterv1.Machine{machineWithUpdateInProgressAnnotation},
 		},
 		{
 			desc: "func=newestDeletionOrder, diff=1 (deleteMachineWithoutNodeRef)",
@@ -459,6 +488,10 @@ func TestMachineOldestDelete(t *testing.T) {
 	}
 	deleteMachineWithMachineAnnotation := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
+		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+	}
+	machineWithUpdateInProgressAnnotation := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.UpdateInProgressAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	unhealthyMachine := &clusterv1.Machine{
@@ -571,9 +604,17 @@ func TestMachineOldestDelete(t *testing.T) {
 			desc: "func=oldestDeletionOrder, diff=1 (DeleteMachineAnnotation)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
-				empty, secondNewest, oldest, secondOldest, newest, deleteMachineWithMachineAnnotation,
+				empty, secondNewest, oldest, secondOldest, newest, deleteMachineWithMachineAnnotation, machineWithUpdateInProgressAnnotation,
 			},
 			expect: []*clusterv1.Machine{deleteMachineWithMachineAnnotation},
+		},
+		{
+			desc: "func=oldestDeletionOrder, diff=1 (hUpdateInProgressAnnotation)",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				empty, secondNewest, oldest, secondOldest, newest, machineWithUpdateInProgressAnnotation,
+			},
+			expect: []*clusterv1.Machine{machineWithUpdateInProgressAnnotation},
 		},
 		{
 			desc: "func=oldestDeletionOrder, diff=1 (deleteMachineWithoutNodeRef)",

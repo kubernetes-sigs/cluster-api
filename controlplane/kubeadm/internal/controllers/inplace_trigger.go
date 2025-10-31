@@ -100,7 +100,8 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 		// of an in-place update here, e.g. for the case where the InfraMachineTemplate was rotated.
 		clusterv1.TemplateClonedFromNameAnnotation:      desiredInfraMachine.GetAnnotations()[clusterv1.TemplateClonedFromNameAnnotation],
 		clusterv1.TemplateClonedFromGroupKindAnnotation: desiredInfraMachine.GetAnnotations()[clusterv1.TemplateClonedFromGroupKindAnnotation],
-		clusterv1.UpdateInProgressAnnotation:            "",
+		// Machine controller waits for this annotation to exist on machine and relate objects before starting in place.
+		clusterv1.UpdateInProgressAnnotation: "",
 	})
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, desiredInfraMachine); err != nil {
 		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
@@ -109,6 +110,7 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 	// Write KubeadmConfig without the labels & annotations that are written continuously by updateLabelsAndAnnotations.
 	desiredKubeadmConfig.Labels = nil
 	desiredKubeadmConfig.Annotations = map[string]string{
+		// Machine controller waits for this annotation to exist on machine and relate objects before starting in place.
 		clusterv1.UpdateInProgressAnnotation: "",
 	}
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, desiredKubeadmConfig); err != nil {

@@ -45,6 +45,22 @@ func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, hook
 		return errors.Wrapf(err, "failed to mark %q hook(s) as pending", strings.Join(hookNames, ","))
 	}
 
+	MarkObjectAsPending(obj, hooks...)
+	if err := patchHelper.Patch(ctx, obj); err != nil {
+		return errors.Wrapf(err, "failed to mark %q hook(s) as pending", strings.Join(hookNames, ","))
+	}
+
+	return nil
+}
+
+// MarkObjectAsPending adds to the object's PendingHooksAnnotation the intent to execute a hook after an operation completes.
+// Usually this function is called when an operation is starting in order to track the intent to call an After<operation> hook later in the process.
+func MarkObjectAsPending(obj client.Object, hooks ...runtimecatalog.Hook) {
+	hookNames := []string{}
+	for _, hook := range hooks {
+		hookNames = append(hookNames, runtimecatalog.HookName(hook))
+	}
+
 	// Read the annotation of the objects and add the hook to the comma separated list
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
@@ -52,12 +68,6 @@ func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, hook
 	}
 	annotations[runtimev1.PendingHooksAnnotation] = addToCommaSeparatedList(annotations[runtimev1.PendingHooksAnnotation], hookNames...)
 	obj.SetAnnotations(annotations)
-
-	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return errors.Wrapf(err, "failed to mark %q hook(s) as pending", strings.Join(hookNames, ","))
-	}
-
-	return nil
 }
 
 // IsPending returns true if there is an intent to call a hook being tracked in the object's PendingHooksAnnotation.

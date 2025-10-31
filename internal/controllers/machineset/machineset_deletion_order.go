@@ -33,23 +33,34 @@ type (
 )
 
 const (
-	mustDelete    deletePriority = 100.0
-	shouldDelete  deletePriority = 75.0
-	betterDelete  deletePriority = 50.0
-	couldDelete   deletePriority = 20.0
-	mustNotDelete deletePriority = 0.0
+	mustDelete        deletePriority = 100.0
+	shouldDeleteFirst deletePriority = 80.0
+	shouldDelete      deletePriority = 75.0
+	betterDelete      deletePriority = 50.0
+	couldDelete       deletePriority = 20.0
+	mustNotDelete     deletePriority = 0.0
 
 	secondsPerTenDays float64 = 864000
 )
 
 // maps the creation timestamp onto the 0-100 priority range.
 func oldestDeletionOrder(machine *clusterv1.Machine) deletePriority {
+	// Deleting machines must go first, otherwise deletion code will delete more machines while previously deleted machines
+	// are still deleting.
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
+	// If user expressed the intent to delete a machines, respect it by deleting this machine first when scaling down.
 	if _, ok := machine.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
+		return shouldDeleteFirst
+	}
+	// If there is machine still updating in progress and the MS is scaling down, consider this machine next
+	// so the system avoids to complete unnecessary in-place upgrades (drop machines not at the desired state first).
+	if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
 		return shouldDelete
 	}
+	// If there are machines not healthy, get rid of them next, because this will unblock the rollout
+	// while respecting the maxUnhealthy requirement.
 	if !isMachineHealthy(machine) {
 		return betterDelete
 	}
@@ -64,12 +75,22 @@ func oldestDeletionOrder(machine *clusterv1.Machine) deletePriority {
 }
 
 func newestDeletionOrder(machine *clusterv1.Machine) deletePriority {
+	// Deleting machines must go first, otherwise deletion code will delete more machines while previously deleted machines
+	// are still deleting.
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
+	// If user expressed the intent to delete a machines, respect it by deleting this machine first when scaling down.
 	if _, ok := machine.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
+		return shouldDeleteFirst
+	}
+	// If there is machine still updating in progress and the MS is scaling down, consider this machine next
+	// so the system avoids to complete unnecessary in-place upgrades (drop machines not at the desired state first).
+	if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
 		return shouldDelete
 	}
+	// If there are machines not healthy, get rid of them next, because this will unblock the rollout
+	// while respecting the maxUnhealthy requirement.
 	if !isMachineHealthy(machine) {
 		return betterDelete
 	}
@@ -77,12 +98,22 @@ func newestDeletionOrder(machine *clusterv1.Machine) deletePriority {
 }
 
 func randomDeletionOrder(machine *clusterv1.Machine) deletePriority {
+	// Deleting machines must go first, otherwise deletion code will delete more machines while previously deleted machines
+	// are still deleting.
 	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
+	// If user expressed the intent to delete a machines, respect it by deleting this machine first when scaling down.
 	if _, ok := machine.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
+		return shouldDeleteFirst
+	}
+	// If there is machine still updating in progress and the MS is scaling down, consider this machine next
+	// so the system avoids to complete unnecessary in-place upgrades (drop machines not at the desired state first).
+	if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
 		return shouldDelete
 	}
+	// If there are machines not healthy, get rid of them next, because this will unblock the rollout
+	// while respecting the maxUnhealthy requirement.
 	if !isMachineHealthy(machine) {
 		return betterDelete
 	}
@@ -106,10 +137,12 @@ func (m sortableMachines) Less(i, j int) bool {
 	return priorityJ < priorityI // high to low
 }
 
+func getMachinesToMovePrioritized(filteredMachines []*clusterv1.Machine, fun deletePriorityFunc) []*clusterv1.Machine {
+	return getMachinesToDeletePrioritized(filteredMachines, len(filteredMachines), fun)
+}
+
 func getMachinesToDeletePrioritized(filteredMachines []*clusterv1.Machine, diff int, fun deletePriorityFunc) []*clusterv1.Machine {
-	if diff >= len(filteredMachines) {
-		return filteredMachines
-	} else if diff <= 0 {
+	if diff <= 0 {
 		return []*clusterv1.Machine{}
 	}
 
@@ -119,6 +152,9 @@ func getMachinesToDeletePrioritized(filteredMachines []*clusterv1.Machine, diff 
 	}
 	sort.Sort(sortable)
 
+	if diff >= len(filteredMachines) {
+		return sortable.machines
+	}
 	return sortable.machines[:diff]
 }
 

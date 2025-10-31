@@ -7,7 +7,7 @@ by SIG Cluster Lifecycle as well as providers from other open-source repositorie
 
 Each provider is the responsibility of the respective maintainers and we highly recommend
 everyone interested in a specific provider to engage with the corresponding team to show support, share use cases,
-learn more about the other users of the same provider. 
+learn more about the other users of the same provider.
 
 We also recommend to read provider's documentation carefully, test it, and perform a proper
 due diligence before deciding to use a provider in production, like you will do for any other open source project.
@@ -59,6 +59,7 @@ source of inspiration and ideas for others.
 - [KubeVirt](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt)
 - [MAAS](https://github.com/spectrocloud/cluster-api-provider-maas)
 - [Metal3](https://github.com/metal3-io/cluster-api-provider-metal3)
+- [metal-stack](https://github.com/metal-stack/cluster-api-provider-metal-stack)
 - [Microvm](https://github.com/liquidmetal-dev/cluster-api-provider-microvm)
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix)

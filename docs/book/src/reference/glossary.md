@@ -78,6 +78,9 @@ Cluster API Provider Akamai (Linode)
 ### CAPM3
 Cluster API Provider Metal3
 
+### CAPMS
+Cluster API Provider metal-stack
+
 ### CAPN
 Cluster API Provider Nested
 

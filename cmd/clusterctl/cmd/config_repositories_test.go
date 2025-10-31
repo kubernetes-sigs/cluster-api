@@ -137,6 +137,7 @@ kubekey                 InfrastructureProvider     https://github.com/kubesphere
 kubevirt                InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/                 infrastructure-components.yaml
 linode-linode           InfrastructureProvider     https://github.com/linode/cluster-api-provider-linode/releases/latest/                            infrastructure-components.yaml
 maas                    InfrastructureProvider     https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/                        infrastructure-components.yaml
+metal-stack             InfrastructureProvider     https://github.com/metal-stack/cluster-api-provider-metal-stack/releases/latest/                  infrastructure-components.yaml
 metal3                  InfrastructureProvider     https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/                         infrastructure-components.yaml
 my-infra-provider       InfrastructureProvider     /home/.config/cluster-api/overrides/infrastructure-docker/latest/                                 infrastructure-components.yaml
 nested                  InfrastructureProvider     https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/                   infrastructure-components.yaml
@@ -315,6 +316,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: maas
   ProviderType: InfrastructureProvider
   URL: https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/
+- File: infrastructure-components.yaml
+  Name: metal-stack
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/metal-stack/cluster-api-provider-metal-stack/releases/latest/
 - File: infrastructure-components.yaml
   Name: metal3
   ProviderType: InfrastructureProvider

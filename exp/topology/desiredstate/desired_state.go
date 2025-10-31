@@ -113,10 +113,14 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 	}
 
 	// Compute the upgradePlan.
-	// By default CAPI allows to upgrade only by one minor, but if the cluster class defines a list of Kubernetes versions,
-	// the upgrade plan will be inferred from those versions.
+	// By default CAPI allows to upgrade only by one minor, but if the cluster class defines an upgrade plan extension,
+	// the upgrade plan will be computed by calling the extension. Otherwise, if the cluster class defines a list of
+	// Kubernetes versions, the upgrade plan will be inferred from those versions.
+	// Runtime extension takes precedence if defined.
 	getUpgradePlan := GetUpgradePlanOneMinor
-	if len(s.Blueprint.ClusterClass.Spec.KubernetesVersions) > 0 {
+	if s.Blueprint.ClusterClass.Spec.Upgrade.External.GenerateUpgradePlanExtension != "" {
+		getUpgradePlan = GetUpgradePlanFromExtension(g.RuntimeClient, s.Current.Cluster, s.Blueprint.ClusterClass.Spec.Upgrade.External.GenerateUpgradePlanExtension)
+	} else if len(s.Blueprint.ClusterClass.Spec.KubernetesVersions) > 0 {
 		getUpgradePlan = GetUpgradePlanFromClusterClassVersions(s.Blueprint.ClusterClass.Spec.KubernetesVersions)
 	}
 	if err := ComputeUpgradePlan(ctx, s, getUpgradePlan); err != nil {
@@ -1631,7 +1635,7 @@ func getOwnerReferenceFrom(obj, owner client.Object) *metav1.OwnerReference {
 	return nil
 }
 
-func cleanupCluster(cluster *clusterv1beta1.Cluster) *clusterv1beta1.Cluster {
+func cleanupV1Beta1Cluster(cluster *clusterv1beta1.Cluster) *clusterv1beta1.Cluster {
 	// Optimize size of Cluster by not sending status, the managedFields and some specific annotations.
 	cluster.SetManagedFields(nil)
 
@@ -1644,5 +1648,21 @@ func cleanupCluster(cluster *clusterv1beta1.Cluster) *clusterv1beta1.Cluster {
 		cluster.Annotations = annotations
 	}
 	cluster.Status = clusterv1beta1.ClusterStatus{}
+	return cluster
+}
+
+func cleanupCluster(cluster *clusterv1.Cluster) *clusterv1.Cluster {
+	// Optimize size of Cluster by not sending status, the managedFields and some specific annotations.
+	cluster.SetManagedFields(nil)
+
+	// The conversion that we run before calling cleanupCluster does not clone annotations
+	// So we have to do it here to not modify the original Cluster.
+	if cluster.Annotations != nil {
+		annotations := maps.Clone(cluster.Annotations)
+		delete(annotations, corev1.LastAppliedConfigAnnotation)
+		delete(annotations, conversion.DataAnnotation)
+		cluster.Annotations = annotations
+	}
+	cluster.Status = clusterv1.ClusterStatus{}
 	return cluster
 }

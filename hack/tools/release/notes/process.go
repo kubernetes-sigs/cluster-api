@@ -31,10 +31,9 @@ import (
 )
 
 const (
-	missingAreaLabelPrefix   = "MISSING_AREA"
-	areaLabelPrefix          = "area/"
-	multipleAreaLabelsPrefix = "MULTIPLE_AREAS["
-	documentationArea        = "Documentation"
+	missingAreaLabelPrefix = "MISSING_AREA"
+	areaLabelPrefix        = "area/"
+	documentationArea      = "Documentation"
 )
 
 var (
@@ -201,9 +200,25 @@ func (g prEntriesProcessor) generateNoteEntry(p *pr) *notesEntry {
 	}
 
 	entry.prNumber = fmt.Sprintf("%d", p.number)
+	entry.title = updateTitle(entry.title)
 	entry.title = formatPREntry(entry.title, entry.prNumber)
 
 	return entry
+}
+
+// UpdateTitle updates a title by removing the multiple colons(:).
+func updateTitle(input string) string {
+	// Remove the extra colons from the title
+	colonCount := strings.Count(input, ":")
+	if colonCount == 2 {
+		// Find the position of the first colon
+		firstColonIndex := strings.Index(input, ":")
+		// Extract the part after the first colon and remove any leading spaces
+		partAfterColon := strings.TrimSpace(input[firstColonIndex+1:])
+		// Replace the first colon with "/"
+		input = input[:firstColonIndex] + "/" + partAfterColon
+	}
+	return input
 }
 
 // extractArea processes the PR labels to extract the area.
@@ -227,7 +242,7 @@ func (g prEntriesProcessor) extractArea(pr *pr) string {
 	case 1:
 		return areaLabels[0]
 	default:
-		return multipleAreaLabelsPrefix + strings.Join(areaLabels, "/") + "]"
+		return strings.Join(areaLabels, "/")
 	}
 }
 

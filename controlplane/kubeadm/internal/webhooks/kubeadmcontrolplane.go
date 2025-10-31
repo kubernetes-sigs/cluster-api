@@ -157,6 +157,7 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		{spec, kubeadmConfigSpec, clusterConfiguration, scheduler},
 		{spec, kubeadmConfigSpec, clusterConfiguration, scheduler, "*"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "certificateValidityPeriodDays"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "encryptionAlgorithm"},
 		// spec.kubeadmConfigSpec.initConfiguration
 		{spec, kubeadmConfigSpec, initConfiguration, nodeRegistration},
 		{spec, kubeadmConfigSpec, initConfiguration, nodeRegistration, "*"},

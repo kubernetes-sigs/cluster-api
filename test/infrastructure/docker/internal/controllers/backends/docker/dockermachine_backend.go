@@ -193,6 +193,14 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 		role = constants.ControlPlaneNodeRoleValue
 	}
 
+	// If re-entering the reconcile loop and reaching this point, the container is expected to be running. If it is not, delete it so we can try to create it again.
+	if externalMachine.Exists() && !externalMachine.IsRunning() {
+		// This deletes the machine and results in re-creating it below.
+		if err := externalMachine.Delete(ctx); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to delete not running DockerMachine")
+		}
+	}
+
 	// Create the machine if not existing yet
 	if !externalMachine.Exists() {
 		// NOTE: FailureDomains don't mean much in CAPD since it's all local, but we are setting a label on

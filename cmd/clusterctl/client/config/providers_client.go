@@ -73,6 +73,7 @@ const (
 	VultrProviderName          = "vultr-vultr"
 	OpenNebulaProviderName     = "opennebula"
 	ScalewayProviderName       = "scaleway"
+	MetalStackProviderName     = "metal-stack"
 )
 
 // Bootstrap providers.
@@ -340,6 +341,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         ScalewayProviderName,
 			url:          "https://github.com/scaleway/cluster-api-provider-scaleway/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         MetalStackProviderName,
+			url:          "https://github.com/metal-stack/cluster-api-provider-metal-stack/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

@@ -281,7 +281,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,metal-stack,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -706,6 +706,15 @@ clusterctl init --infrastructure kubevirt
 Please visit the [Metal3 project][Metal3 provider].
 
 {{#/tab }}
+{{#tab metal-stack}}
+
+```bash
+clusterctl init --infrastructure metal-stack
+```
+
+Please follow the Cluster API Provider for [metal-stack Getting Started Guide](https://metal-stack.io/docs/references/cluster-api-provider-metal-stack#getting-started)
+
+{{#/tab }}
 {{#tab Nutanix}}
 
 Please follow the Cluster API Provider for [Nutanix Getting Started Guide](https://opendocs.nutanix.com/capx/latest/getting_started/)
@@ -911,7 +920,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenNebula,OpenStack,Outscale,Proxmox,Scaleway,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,GCP,Harvester,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,metal-stack,Nutanix,OpenNebula,OpenStack,Outscale,Proxmox,Scaleway,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1208,7 +1217,7 @@ Please visit the [KubeKey provider] for more information.
 {{#/tab }}
 {{#tab KubeVirt}}
 
-In this example, we'll use the image for Kubernetes v1.32.1: 
+In this example, we'll use the image for Kubernetes v1.32.1:
 ```bash
 export NODE_VM_IMAGE_TEMPLATE="quay.io/capk/ubuntu-2404-container-disk:v1.32.1"
 export CAPK_GUEST_K8S_VERSION="${NODE_VM_IMAGE_TEMPLATE/*:/}"
@@ -1220,8 +1229,8 @@ Please visit the [KubeVirt project][KubeVirt provider] for more information.
 
 <h1>Note</h1>
 
-Find additional images under [quay.io/capk/ubuntu-2404-container-disk](https://quay.io/capk/ubuntu-2404-container-disk), 
-[quay.io/capk/ubuntu-2204-container-disk](https://quay.io/capk/ubuntu-2204-container-disk), 
+Find additional images under [quay.io/capk/ubuntu-2404-container-disk](https://quay.io/capk/ubuntu-2404-container-disk),
+[quay.io/capk/ubuntu-2204-container-disk](https://quay.io/capk/ubuntu-2204-container-disk),
 or [quay.io/capk/ubuntu-2004-container-disk](https://quay.io/capk/ubuntu-2004-container-disk).
 
 Alternatively, create your own image; see [here](https://github.com/kubernetes-sigs/image-builder).
@@ -1256,6 +1265,25 @@ export IRONIC_INSPECTOR_NO_BASIC_AUTH=true
 ```
 
 Please visit the [Metal3 getting started guide] for more details.
+
+{{#/tab }}
+{{#tab metal-stack}}
+
+```bash
+export METAL_PARTITION=<metal-stack-partition>
+export METAL_PROJECT_ID=<metal-stack-project-id>
+export CONTROL_PLANE_IP=<metal-stack-control-plane-ip>
+
+export FIREWALL_MACHINE_IMAGE=<firewall-os-image>
+export FIREWALL_MACHINE_SIZE=<firewall-size>
+
+export CONTROL_PLANE_MACHINE_IMAGE=<machine-os-image>
+export CONTROL_PLANE_MACHINE_SIZE=<machine-size>
+export WORKER_MACHINE_IMAGE=<machine-os-image>
+export WORKER_MACHINE_SIZE=<machine-size>
+```
+
+Please visit the [metal-stack getting started guide](https://metal-stack.io/docs/references/cluster-api-provider-metal-stack#getting-started) for more details.
 
 {{#/tab }}
 {{#tab Nutanix}}
@@ -2018,6 +2046,7 @@ kind delete cluster
 [management cluster]: ../reference/glossary.md#management-cluster
 [Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/docs/getting-started.md
 [Metal3 provider]: https://github.com/metal3-io/cluster-api-provider-metal3/
+[metal-stack provider]: https://github.com/metal-stack/cluster-api-provider-metal-stack/
 [K0smotron provider]: https://github.com/k0sproject/k0smotron
 [KubeKey provider]: https://github.com/kubesphere/kubekey
 [KubeVirt provider]: https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/

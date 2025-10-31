@@ -131,7 +131,7 @@ A provider url should be in the form
 * The components YAML, the metadata YAML and eventually the workload cluster templates are included into the same package version
 
 See the [GitLab docs](https://docs.gitlab.com/ee/user/packages/generic_packages/) for more information
-about how to create a generic package. 
+about how to create a generic package.
 
 If you are hosting a private Gitlab repository, you can use a [personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) or [project access token](https://docs.gitlab.com/user/project/settings/project_access_tokens.html) to access the provider artifacts by adding the `gitlab-access-token` variable to the `clusterctl` configuration in order to authenticate against the GitLab API.
 
@@ -350,6 +350,7 @@ providers.
 | CAPKK         | cluster.x-k8s.io/provider=infrastructure-kubekey      |
 | CAPK          | cluster.x-k8s.io/provider=infrastructure-kubevirt     |
 | CAPM3         | cluster.x-k8s.io/provider=infrastructure-metal3       |
+| CAPMS         | cluster.x-k8s.io/provider=infrastructure-metal-stack  |
 | CAPN          | cluster.x-k8s.io/provider=infrastructure-nested       |
 | CAPONE        | cluster.x-k8s.io/provider=infrastructure-opennebula   |
 | CAPO          | cluster.x-k8s.io/provider=infrastructure-openstack    |

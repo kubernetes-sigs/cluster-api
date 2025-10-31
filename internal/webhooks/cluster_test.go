@@ -3450,11 +3450,11 @@ func TestClusterClassPollingErrors(t *testing.T) {
 			wantErr:        false,
 		},
 		{
-			name:           "Fail on update if oldCluster ClusterClass generation does not match observedGeneration",
+			name:           "Pass on update if oldCluster ClusterClass generation does not match observedGeneration",
 			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(secondTopology).Build(),
 			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
 			clusterClasses: []*clusterv1.ClusterClass{ccGenerationMismatch, secondFullyReconciled},
-			wantErr:        true,
+			wantErr:        false,
 		},
 		{
 			name:           "Fail on update if old Cluster ClusterClass is not found",

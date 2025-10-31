@@ -671,6 +671,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	if err := (&controllers.MachineReconciler{
 		Client:                           mgr.GetClient(),
 		APIReader:                        mgr.GetAPIReader(),
+		RuntimeClient:                    runtimeClient,
 		ClusterCache:                     clusterCache,
 		WatchFilterValue:                 watchFilterValue,
 		RemoteConditionsGracePeriod:      remoteConditionsGracePeriod,

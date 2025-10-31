@@ -50,6 +50,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/exp/runtime/server"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/test/extension/handlers/inplaceupdate"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/lifecycle"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/topologymutation"
 	"sigs.k8s.io/cluster-api/util/flags"
@@ -261,6 +262,7 @@ func main() {
 	// Setup Runtime Extensions.
 	setupTopologyMutationHookHandlers(runtimeExtensionWebhookServer)
 	setupLifecycleHookHandlers(mgr, runtimeExtensionWebhookServer)
+	setupInPlaceUpdateHookHandlers(mgr, runtimeExtensionWebhookServer)
 
 	// Setup checks, indexes, reconcilers and webhooks.
 	setupChecks(mgr)
@@ -395,6 +397,41 @@ func setupLifecycleHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookServer 
 		HandlerFunc: lifecycleExtensionHandlers.DoBeforeClusterDelete,
 	}); err != nil {
 		setupLog.Error(err, "Error adding handler")
+		os.Exit(1)
+	}
+}
+
+// setupInPlaceUpdateHookHandlers sets up In-Place Update Hooks.
+func setupInPlaceUpdateHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookServer *server.Server) {
+	// Create the ExtensionHandlers for the in-place update hooks
+	// NOTE: it is not mandatory to group all the ExtensionHandlers using a struct, what is important
+	// is to have HandlerFunc with the signature defined in sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.
+	inPlaceUpdateExtensionHandlers := inplaceupdate.NewExtensionHandlers(mgr.GetClient())
+
+	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:        runtimehooksv1.CanUpdateMachine,
+		Name:        "can-update-machine",
+		HandlerFunc: inPlaceUpdateExtensionHandlers.DoCanUpdateMachine,
+	}); err != nil {
+		setupLog.Error(err, "Error adding CanUpdateMachine handler")
+		os.Exit(1)
+	}
+
+	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:        runtimehooksv1.CanUpdateMachineSet,
+		Name:        "can-update-machineset",
+		HandlerFunc: inPlaceUpdateExtensionHandlers.DoCanUpdateMachineSet,
+	}); err != nil {
+		setupLog.Error(err, "Error adding CanUpdateMachineSet handler")
+		os.Exit(1)
+	}
+
+	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:        runtimehooksv1.UpdateMachine,
+		Name:        "update-machine",
+		HandlerFunc: inPlaceUpdateExtensionHandlers.DoUpdateMachine,
+	}); err != nil {
+		setupLog.Error(err, "Error adding UpdateMachine handler")
 		os.Exit(1)
 	}
 }

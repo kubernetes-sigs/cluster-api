@@ -65,10 +65,11 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	// Note: also other controllers adds conditions to the machine object (machine's owner controller sets the UpToDate condition,
 	// MHC controller sets HealthCheckSucceeded and OwnerRemediated conditions, KCP sets conditions about etcd and control plane pods).
 	setDeletingCondition(ctx, s.machine, s.reconcileDeleteExecuted, s.deletingReason, s.deletingMessage)
+	setUpdatingCondition(ctx, s.machine, s.updatingReason, s.updatingMessage)
 	setReadyCondition(ctx, s.machine)
 	setAvailableCondition(ctx, s.machine)
 
-	setMachinePhaseAndLastUpdated(ctx, s.machine)
+	setMachinePhaseAndLastUpdated(ctx, s.machine, s.updatingReason)
 }
 
 func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, bootstrapConfig *unstructured.Unstructured, bootstrapConfigIsNotFound bool) {
@@ -633,6 +634,24 @@ func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, reconci
 	})
 }
 
+func setUpdatingCondition(_ context.Context, machine *clusterv1.Machine, updatingReason, updatingMessage string) {
+	if updatingReason == "" {
+		conditions.Set(machine, metav1.Condition{
+			Type:   clusterv1.MachineUpdatingCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachineNotUpdatingReason,
+		})
+		return
+	}
+
+	conditions.Set(machine, metav1.Condition{
+		Type:    clusterv1.MachineUpdatingCondition,
+		Status:  metav1.ConditionTrue,
+		Reason:  updatingReason,
+		Message: updatingMessage,
+	})
+}
+
 func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -795,7 +814,7 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 	})
 }
 
-func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {
+func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine, updatingReason string) {
 	originalPhase := m.Status.Phase
 
 	// Set the phase to "pending" if nil.
@@ -816,6 +835,10 @@ func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {
 	// Set the phase to "running" if there is a NodeRef field and infrastructure is ready.
 	if m.Status.NodeRef.IsDefined() && ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false) {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseRunning)
+	}
+
+	if updatingReason != "" {
+		m.Status.SetTypedPhase(clusterv1.MachinePhaseUpdating)
 	}
 
 	// Set the phase to "deleting" if the deletion timestamp is set.

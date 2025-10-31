@@ -342,6 +342,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-ipv6.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-dualstack-ipv6-primary.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-dualstack-ipv4-primary.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-in-place.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-no-workers.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-runtimesdk-v1beta1.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-kcp-only.yaml"

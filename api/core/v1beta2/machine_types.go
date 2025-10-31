@@ -162,6 +162,39 @@ const (
 
 	// MachineNotUpToDateReason surface when a Machine spec does not match the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
 	MachineNotUpToDateReason = "NotUpToDate"
+
+	// MachineUpToDateUpdatingReason surface when a Machine spec matches the spec of the Machine's owner resource,
+	// but the Machine is still updating.
+	MachineUpToDateUpdatingReason = "Updating"
+)
+
+// Machine's Updating condition and corresponding reasons.
+// Note: Updating condition is set by the Machine controller during in-place updates.
+const (
+	// MachineUpdatingCondition is true while an in-place update is in progress on the Machine.
+	// The condition is owned by the Machine controller and is used to track the progress of in-place updates.
+	// This condition is considered when computing the UpToDate condition.
+	MachineUpdatingCondition = "Updating"
+
+	// MachineNotUpdatingReason surfaces when the Machine is not performing an in-place update.
+	MachineNotUpdatingReason = "NotUpdating"
+
+	// MachineWaitingForInPlaceUpdateAnnotationsReason surfaces when the Machine is waiting for
+	// InfraMachine and BootstrapConfig to be annotated for in-place update.
+	MachineWaitingForInPlaceUpdateAnnotationsReason = "WaitingForInPlaceUpdateAnnotations"
+
+	// MachineWaitingForUpdateMachineHookReason surfaces when the Machine is waiting for the UpdateMachine hook to complete.
+	MachineWaitingForUpdateMachineHookReason = "WaitingForUpdateMachineHook"
+
+	// MachineUpdateFailedReason surfaces when the in-place update has failed.
+	MachineUpdateFailedReason = "UpdateFailed"
+
+	// MachineUpdatingInternalErrorReason surfaces unexpected failures during in-place update.
+	MachineUpdatingInternalErrorReason = InternalErrorReason
+
+	// MachineUpdatingReason surfaces when the Machine is updating.
+	// This reason is used if none of the more specific reasons apply.
+	MachineUpdatingReason = "Updating"
 )
 
 // Machine's BootstrapConfigReady condition and corresponding reasons.
@@ -552,7 +585,7 @@ type MachineStatus struct {
 
 	// phase represents the current phase of machine actuation.
 	// +optional
-	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;Deleting;Deleted;Failed;Unknown
+	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;Updating;Deleting;Deleted;Failed;Unknown
 	Phase string `json:"phase,omitempty"`
 
 	// certificatesExpiryDate is the expiry date of the machine certificates.
@@ -710,6 +743,7 @@ func (m *MachineStatus) GetTypedPhase() MachinePhase {
 		MachinePhaseProvisioning,
 		MachinePhaseProvisioned,
 		MachinePhaseRunning,
+		MachinePhaseUpdating,
 		MachinePhaseDeleting,
 		MachinePhaseDeleted,
 		MachinePhaseFailed:

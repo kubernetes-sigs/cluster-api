@@ -96,6 +96,14 @@ func createDockerContainer(ctx context.Context, name string, cluster *clusterv1.
 		}
 	}
 
+	// If re-entering the reconcile loop and reaching this point, the container is expected to be running. If it is not, delete it so we can try to create it again.
+	if externalMachine.Exists() && !externalMachine.IsRunning() {
+		// This deletes the machine and results in re-creating it below.
+		if err := externalMachine.Delete(ctx); err != nil {
+			return errors.Wrap(err, "Failed to delete not running DockerMachine")
+		}
+	}
+
 	log.Info("Creating container for machinePool", "name", name, "MachinePool", klog.KObj(machinePool))
 	if err := externalMachine.Create(ctx, dockerMachinePool.Spec.Template.CustomImage, constants.WorkerNodeRoleValue, machinePool.Spec.Template.Spec.Version, labels, dockerMachinePool.Spec.Template.ExtraMounts); err != nil {
 		return errors.Wrapf(err, "failed to create docker machine with name %s", name)

@@ -100,9 +100,9 @@ Key aspects of the proposal:
 When the flag is explicitly enabled, CA keys are no longer required in the CAPI management cluster and must not be stored or validated in secrets. By default, this feature remains disabled to avoid impacting users who do not rely on external CAs.
 CAPI will not generate or manage CA private keys. The CA certificates needs to be provided by the user in Kubernetes secrets with the following naming convention:
 
-- <cluster-name>-etcd
-- <cluster-name>-ca
-- <cluster-name>-proxy
+- `<cluster-name>-etcd`
+- `<cluster-name>-ca`
+- `<cluster-name>-proxy`
 
 Each Secret should follow this Kubernetes format:
 ```
@@ -122,6 +122,26 @@ Certificates such as the etcd client certificate and the admin certificate for t
 
 The etcd client certificate should be provided by the user in a secret named <cluster-name>-apiserver-etcd-client
 The kubeconfig admin certificate should be provided by the user in a secret named <cluster-name>-admin
+
+Cluster API controllers will verify the presence and validity of external certificates using **two distinct conditions** on the `Cluster` resource:
+
+#### `ExternalCAsReady`
+
+- **Covers:** CA certificates: etcd CA, cluster CA, and proxy CA.  
+- **Status:** Set to `False` if any required CA Secret is missing or invalid.  
+- **Reasons and Messages:**  
+  - `MissingSecret`, "The following required CA Secrets are missing: `<list-of-missing-secrets>`."  
+  - `InvalidCertificate`, "The following CA certificates are invalid or could not be parsed: `<list-of-invalid-certificates>`."  
+- **Purpose:** Allows users to quickly detect problems with the foundational CAs before provisioning workloads.
+
+#### `ExternalClientCertificatesReady`
+
+- **Covers:** Client certificates: etcd client certificate and kubeconfig admin certificate.  
+- **Status:** Set to `False` if any required client certificate Secret is missing or invalid.  
+- **Reasons and Messages:**  
+  - `MissingSecret`, "The following required client certificate Secrets are missing: `<list-of-missing-secrets>`."  
+  - `InvalidCertificate`, "The following client certificates are invalid or could not be parsed: `<list-of-invalid-certificates>`."  
+- **Purpose:** Provides clear visibility into whether client access to the cluster components is ready.
 
 ### Kubeadm Bootstrap: ClusterConfiguration and InitConfiguration
 
@@ -151,7 +171,32 @@ The External CA / External Certificate Signing feature is designed to minimize e
 
 ## Upgrade Strategy
 
-Since CAPI does not manage CA rotation automatically, the externalCA feature must be treated as immutable. Enabling it on an existing cluster is not supported.
+The `externalCA` feature can be enabled on an existing cluster that was originally created with the default internal CA, but it requires careful manual steps by the user. Cluster API does not automatically rotate or migrate CAs.
+
+### Migrating from internal CA to external CA
+
+To switch an existing cluster from the internal CA workflow to `externalCA` mode, the user must:
+
+1. **Backup the existing internal CAs**: save the current cluster CA, etcd CA, and proxy CA certificates and keys.
+2. **Create client certificate Secrets**: generate and create the required Secrets for the etcd client and kubeconfig admin certificates:
+   - `<cluster-name>-apiserver-etcd-client`
+   - `<cluster-name>-admin`
+3. **Enable the `externalCA` flag**: update the cluster configuration to activate the external CA workflow.
+4. **Remove private keys from the Secrets**: the `.key` entries can be removed from CA Secrets.
+
+After completing these steps, Cluster API will start using the external CA certificates while the existing cluster remains functional. The user can also perform a CA rotation if desired.
+
+### Migrating from external CA to internal CA
+
+To switch a cluster from `externalCA` back to the internal CA workflow, the user must:
+
+1. **Create CA Secrets**: provide the required CA certificates and keys for Cluster API adoption:
+   - `<cluster-name>-ca` (cluster CA)
+   - `<cluster-name>-etcd` (etcd CA)
+   - `<cluster-name>-proxy` (proxy CA)
+2. **Update the cluster configuration**: disable the `externalCA` flag.
+
+Cluster API will then adopt the provided CA certificates and resume internal CA management. Existing client certificates (etcd client, kubeconfig admin) are no longer required and will be ignored.
 
 ## Additional Details
 

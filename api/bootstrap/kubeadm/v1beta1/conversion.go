@@ -81,6 +81,9 @@ func RestoreKubeadmConfigSpec(restored *bootstrapv1.KubeadmConfigSpec, dst *boot
 			dst.ClusterConfiguration.CACertificateValidityPeriodDays = restored.ClusterConfiguration.CACertificateValidityPeriodDays
 		}
 	}
+	if restored.ClusterConfiguration.EncryptionAlgorithm != "" {
+		dst.ClusterConfiguration.EncryptionAlgorithm = restored.ClusterConfiguration.EncryptionAlgorithm
+	}
 }
 
 func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1.KubeadmConfigSpec, hasRestored bool, restored *bootstrapv1.KubeadmConfigSpec) error {

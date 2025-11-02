@@ -394,7 +394,7 @@ func (c *ControlPlane) GetWorkloadCluster(ctx context.Context) (WorkloadCluster,
 		return c.workloadCluster, nil
 	}
 
-	workloadCluster, err := c.managementCluster.GetWorkloadCluster(ctx, client.ObjectKeyFromObject(c.Cluster))
+	workloadCluster, err := c.managementCluster.GetWorkloadCluster(ctx, client.ObjectKeyFromObject(c.Cluster), c.GetKeyEncryptionAlgorithm())
 	if err != nil {
 		return nil, err
 	}
@@ -488,4 +488,13 @@ func (c *ControlPlane) StatusToLogKeyAndValues(newMachine, deletedMachine *clust
 		"machines", strings.Join(machines, ", "),
 		"etcdMembers", strings.Join(etcdMembers, ", "),
 	}
+}
+
+// GetKeyEncryptionAlgorithm returns the control plane EncryptionAlgorithm.
+// If its unset the default encryption algorithm is returned.
+func (c *ControlPlane) GetKeyEncryptionAlgorithm() bootstrapv1.EncryptionAlgorithmType {
+	if c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.EncryptionAlgorithm == "" {
+		return bootstrapv1.EncryptionAlgorithmRSA2048
+	}
+	return c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.EncryptionAlgorithm
 }

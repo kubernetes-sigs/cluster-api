@@ -69,7 +69,8 @@ func (r *KubeadmControlPlaneReconciler) updateControlPlane(
 			workloadCluster.UpdateAPIServerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer),
 			workloadCluster.UpdateControllerManagerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager),
 			workloadCluster.UpdateSchedulerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler),
-			workloadCluster.UpdateCertificateValidityPeriodDays(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays))
+			workloadCluster.UpdateCertificateValidityPeriodDays(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificateValidityPeriodDays),
+			workloadCluster.UpdateEncryptionAlgorithm(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.EncryptionAlgorithm))
 
 		// Etcd local and external are mutually exclusive and they cannot be switched, once set.
 		if controlPlane.IsEtcdManaged() {

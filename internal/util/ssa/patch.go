@@ -84,6 +84,7 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 	if err != nil {
 		return err
 	}
+	modifiedUnstructuredBeforeApply := modifiedUnstructured.DeepCopy()
 
 	gvk, err := apiutil.GVKForObject(modifiedUnstructured, c.Scheme())
 	if err != nil {
@@ -93,7 +94,7 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 	var requestIdentifier string
 	if options.WithCachingProxy {
 		// Check if the request is cached.
-		requestIdentifier, err = ComputeRequestIdentifier(c.Scheme(), options.Original, modifiedUnstructured)
+		requestIdentifier, err = ComputeRequestIdentifier(c.Scheme(), options.Original.GetResourceVersion(), modifiedUnstructured)
 		if err != nil {
 			return errors.Wrapf(err, "failed to apply object")
 		}
@@ -132,10 +133,16 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 
 	// Add the request to the cache only if dry-run was not used.
 	if options.WithCachingProxy && !options.WithDryRun {
-		// If the SSA call did not update the object, add the request to the cache.
-		if options.Original.GetResourceVersion() == modifiedUnstructured.GetResourceVersion() {
-			options.Cache.Add(requestIdentifier)
+		// If the object changed, we need to recompute the request identifier before caching.
+		if options.Original.GetResourceVersion() != modifiedUnstructured.GetResourceVersion() {
+			// NOTE: This uses the resourceVersion from modifiedUnstructured (after apply), and the hash from
+			// modifiedUnstructuredBeforeApply (what we wanted to apply), which is what we want.
+			requestIdentifier, err = ComputeRequestIdentifier(c.Scheme(), modifiedUnstructured.GetResourceVersion(), modifiedUnstructuredBeforeApply)
+			if err != nil {
+				return errors.Wrapf(err, "failed to compute request identifier after apply")
+			}
 		}
+		options.Cache.Add(requestIdentifier)
 	}
 
 	return nil

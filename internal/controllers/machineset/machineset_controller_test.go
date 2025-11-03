@@ -2471,7 +2471,7 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 					g.Expect(tt.expectedMachinesToMove).ToNot(BeNil(), "unexpected call to move machines")
 					g.Expect(tt.expectedTargetMSName).ToNot(BeNil(), "unexpected call to move machines")
 					g.Expect(targetMSName).To(Equal(*tt.expectedTargetMSName), "call to move machines does not have the expected targetMS name")
-					g.Expect(machinesToMove).To(Equal(*tt.expectedMachinesToMove), "call to move machines does not have the expected machinesToAdd number")
+					g.Expect(machinesToMove).To(Equal(*tt.expectedMachinesToMove), "call to move machines does not have the expected machinesToMove number")
 					return ctrl.Result{}, nil
 				},
 				overrideDeleteMachines: func(_ context.Context, _ *scope, machinesToDelete int) (ctrl.Result, error) {
@@ -2647,7 +2647,7 @@ func TestMachineSetReconciler_createMachines(t *testing.T) {
 			interceptorFuncs: func(i *int) interceptor.Funcs {
 				return interceptor.Funcs{
 					Apply: func(ctx context.Context, c client.WithWatch, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
-						// simulate scenarios where we for the first machine BootstrapConfig creation fails,
+						// simulate scenarios where for the first machine BootstrapConfig creation fails,
 						// for the second machine InfrastructureMachine creation fails, for the third machine, Machine creation fails.
 						clientObject, ok := obj.(client.Object)
 						if !ok {
@@ -2771,7 +2771,7 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 			},
 			machinesToDelete: 2,
 			interceptorFuncs: interceptor.Funcs{},
-			wantMachines:     []string{"m1", "m2"}, // m3 and m4 deleted because they are newest and deletion order is NewestMachineSetDeletionOrder}
+			wantMachines:     []string{"m1", "m2"}, // m3 and m4 deleted because they are newest and deletion order is NewestMachineSetDeletionOrder
 			wantErr:          false,
 		},
 		{
@@ -2785,7 +2785,7 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 			},
 			machinesToDelete: 2,
 			interceptorFuncs: interceptor.Funcs{},
-			wantMachines:     []string{"m1", "m3"}, // m1 and m3 already deleted, no additional machines deleted
+			wantMachines:     []string{"m1", "m3"}, // m2 and m4 already deleted, no additional machines deleted
 			wantErr:          false,
 		},
 		{
@@ -2930,7 +2930,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			wantMachinesNotMoved: []string{"m1", "m2"},
 			wantMovedMachines:    nil,
 			wantErr:              true,
-			wantErrorMessage:     "machineSet ms1 is set to send replicas to ms2, but ms2 only accepts machines from ms3,ms4",
+			wantErrorMessage:     "MachineSet ms1 is set to move replicas to ms2, but ms2 only accepts Machines from ms3,ms4",
 		},
 		{
 			name: "should fail when target MS doesn't have a unique label",
@@ -2951,7 +2951,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			wantMachinesNotMoved: []string{"m1", "m2"},
 			wantMovedMachines:    nil,
 			wantErr:              true,
-			wantErrorMessage:     "machineSet ms2 does not have a unique label",
+			wantErrorMessage:     "MachineSet ms2 does not have a unique label",
 		},
 		{
 			name: "should move machines",

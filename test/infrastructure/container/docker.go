@@ -458,7 +458,7 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 	// enable /dev/fuse explicitly for fuse-overlayfs
 	// (Rootless Docker does not automatically mount /dev/fuse with --privileged)
 	if d.mountFuse(info) {
-		hostConfig.Devices = append(hostConfig.Devices, dockercontainer.DeviceMapping{PathOnHost: "/dev/fuse"})
+		hostConfig.Devices = append(hostConfig.Devices, dockercontainer.DeviceMapping{PathOnHost: "/dev/fuse", PathInContainer: "/dev/fuse", CgroupPermissions: "rw"})
 	}
 
 	// Make sure we have the image

@@ -76,6 +76,7 @@ func defaultSortLessFunc(i, j metav1.Condition) bool {
 // | OwnerRemediated                |         |     |    |    |    | x       |
 // | -- Operations --               |         |     |    |    |    |         |
 // | TopologyReconciled             | x       |     |    |    |    |         |
+// | Updating                       |         |     |    |    |    | x       |
 // | RollingOut                     | x       | x   | x  |    | x  |         |
 // | Remediating                    | x       | x   | x  | x  | x  |         |
 // | ScalingDown                    | x       | x   | x  | x  | x  |         |
@@ -117,6 +118,7 @@ var order = []string{
 	clusterv1.MachineHealthCheckSucceededCondition,
 	clusterv1.MachineOwnerRemediatedCondition,
 	clusterv1.ClusterTopologyReconciledCondition,
+	clusterv1.MachineUpdatingCondition,
 	clusterv1.RollingOutCondition,
 	clusterv1.RemediatingCondition,
 	clusterv1.ScalingDownCondition,

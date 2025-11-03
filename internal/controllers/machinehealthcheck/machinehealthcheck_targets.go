@@ -45,8 +45,6 @@ const (
 
 	// EventMachineMarkedUnhealthy is emitted when machine was successfully marked as unhealthy.
 	EventMachineMarkedUnhealthy string = "MachineMarkedUnhealthy"
-	// EventRemediationTriggered is emitted when MachineHealthCheck triggers remediation for an unhealthy machine.
-	EventRemediationTriggered string = "RemediationTriggered"
 )
 
 var (

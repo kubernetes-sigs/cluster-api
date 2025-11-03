@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -100,7 +101,8 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 		// of an in-place update here, e.g. for the case where the InfraMachineTemplate was rotated.
 		clusterv1.TemplateClonedFromNameAnnotation:      desiredInfraMachine.GetAnnotations()[clusterv1.TemplateClonedFromNameAnnotation],
 		clusterv1.TemplateClonedFromGroupKindAnnotation: desiredInfraMachine.GetAnnotations()[clusterv1.TemplateClonedFromGroupKindAnnotation],
-		clusterv1.UpdateInProgressAnnotation:            "",
+		// Machine controller waits for this annotation to exist on Machine and related objects before starting the in-place update.
+		clusterv1.UpdateInProgressAnnotation: "",
 	})
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, desiredInfraMachine); err != nil {
 		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
@@ -109,6 +111,7 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 	// Write KubeadmConfig without the labels & annotations that are written continuously by updateLabelsAndAnnotations.
 	desiredKubeadmConfig.Labels = nil
 	desiredKubeadmConfig.Annotations = map[string]string{
+		// Machine controller waits for this annotation to exist on Machine and related objects before starting the in-place update.
 		clusterv1.UpdateInProgressAnnotation: "",
 	}
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, desiredKubeadmConfig); err != nil {
@@ -134,6 +137,7 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 	}
 
 	log.Info("Completed triggering in-place update", "Machine", klog.KObj(machine))
+	r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine starting in-place update")
 
 	// Wait until the cache observed the Machine with PendingHooksAnnotation to ensure subsequent reconciles
 	// will observe it as well and won't repeatedly call triggerInPlaceUpdate.

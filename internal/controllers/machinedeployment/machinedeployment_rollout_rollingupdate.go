@@ -160,6 +160,19 @@ func (p *rolloutPlanner) reconcileReplicasPendingAcknowledgeMove(ctx context.Con
 	}
 }
 
+// reconcileNewMachineSet reconciles the replica number for the new MS.
+// Note: In case of scale down this function does not consider the possible impact on availability.
+// This is considered acceptable because historically it never led to any problem, but we might revisit this in the future
+// because some limitations of this approach are becoming more evident, e.g.
+//
+//	when users scale down the MD, the operation might temporarily breach min availability (maxUnavailable)
+//
+// There are code paths specifically added to prevent this issue becoming more relevant when doing in-place updates;
+// e.g. the MS controller will give highest delete priority to Machines still updating in-place,
+// which are also unavailable Machines.
+//
+// Notably, there is also no agreement yet on a different way forward because e.g. limiting scale down of the
+// new MS could lead e.g. to completing in place update of Machines that will be otherwise deleted.
 func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	allMSs := append(p.oldMSs, p.newMS)
@@ -401,7 +414,6 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 		}
 
 		// Check if the MachineSet can update in place; if not, move to the next MachineSet.
-		// TODO(in-place): replace with a call to the hook
 		canUpdateMachineSetInPlaceFunc := func(_ *clusterv1.MachineSet) bool { return false }
 		if p.overrideCanUpdateMachineSetInPlace != nil {
 			canUpdateMachineSetInPlaceFunc = p.overrideCanUpdateMachineSetInPlace

@@ -806,12 +806,6 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(_ context.C
 }
 
 // syncMachines updates Machines, InfrastructureMachines and KubeadmConfigs to propagate in-place mutable fields from KCP.
-// Note: It also cleans up managed fields of all Machines so that Machines that were
-// created/patched before (< v1.4.0) the controller adopted Server-Side-Apply (SSA) can also work with SSA.
-// Note: For InfrastructureMachines and KubeadmConfigs it also drops ownership of "metadata.labels" and
-// "metadata.annotations" from "manager" so that "capi-kubeadmcontrolplane" can own these fields and can work with SSA.
-// Otherwise, fields would be co-owned by our "old" "manager" and "capi-kubeadmcontrolplane" and then we would not be
-// able to e.g. drop labels and annotations.
 func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, controlPlane *internal.ControlPlane) error {
 	patchHelpers := map[string]*patch.Helper{}
 	for machineName := range controlPlane.Machines {

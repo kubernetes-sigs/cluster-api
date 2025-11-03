@@ -225,7 +225,7 @@ func ComputeDesiredKubeadmConfig(kcp *controlplanev1.KubeadmControlPlane, cluste
 	}
 	DefaultFeatureGates(spec, parsedVersion)
 
-	return &bootstrapv1.KubeadmConfig{
+	kubeadmConfig := &bootstrapv1.KubeadmConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
 			Namespace:       kcp.Namespace,
@@ -234,7 +234,11 @@ func ComputeDesiredKubeadmConfig(kcp *controlplanev1.KubeadmControlPlane, cluste
 			OwnerReferences: ownerReferences,
 		},
 		Spec: *spec,
-	}, nil
+	}
+	if existingKubeadmConfig != nil {
+		kubeadmConfig.SetUID(existingKubeadmConfig.GetUID())
+	}
+	return kubeadmConfig, nil
 }
 
 // ComputeDesiredInfraMachine computes the desired InfraMachine.
@@ -278,6 +282,9 @@ func ComputeDesiredInfraMachine(ctx context.Context, c client.Client, kcp *contr
 	infraMachine, err := external.GenerateTemplate(generateTemplateInput)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compute desired InfraMachine")
+	}
+	if existingInfraMachine != nil {
+		infraMachine.SetUID(existingInfraMachine.GetUID())
 	}
 	return infraMachine, nil
 }

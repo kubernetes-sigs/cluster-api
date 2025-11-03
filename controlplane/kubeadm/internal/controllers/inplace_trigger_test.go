@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -278,7 +279,8 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 			}
 
 			r := KubeadmControlPlaneReconciler{
-				Client: env.Client,
+				Client:   env.Client,
+				recorder: record.NewFakeRecorder(32),
 			}
 
 			err := r.triggerInPlaceUpdate(ctx, currentMachineForPatch, upToDateResult)

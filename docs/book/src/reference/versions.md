@@ -67,6 +67,7 @@ The table below documents support matrix for Cluster API versions (versions olde
 
 | Minor Release | Status                  | Supported Until (including maintenance mode)                                                |
 |---------------|-------------------------|---------------------------------------------------------------------------------------------|
+| v1.12.x       | Under development | in maintenance mode when v1.14.0 will be released, EOL when v1.15.0 will be released        |
 | v1.11.x       | Standard support period | in maintenance mode when v1.13.0 will be released, EOL when v1.14.0 will be released        |
 | v1.10.x       | Standard support period | in maintenance mode when v1.12.0 will be released, EOL when v1.13.0 will be released        |
 | v1.9.x        | Maintenance mode        | Maintenance mode since 2025-08-12 - v1.11.0 release date, EOL when v1.12.0 will be released |
@@ -270,19 +271,21 @@ In some cases, also Cluster API and/or Cluster API providers are defining additi
 The following table defines the support matrix for the Cluster API core provider.
 See [Cluster API release support](#cluster-api-release-support) and [Kubernetes versions support](#kubernetes-versions-support).
 
-|                  | v1.9, _Maintenance Mode_ | v1.10             | v1.11             |
-|------------------|--------------------------|-------------------|-------------------|
-| Kubernetes v1.24 |                          |                   |                   |
-| Kubernetes v1.25 |                          |                   |                   |
-| Kubernetes v1.26 | ✓ (only workload)        |                   |                   |
-| Kubernetes v1.27 | ✓ (only workload)        | ✓ (only workload) |                   |
-| Kubernetes v1.28 | ✓                        | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.29 | ✓                        | ✓                 | ✓ (only workload) |
-| Kubernetes v1.30 | ✓                        | ✓                 | ✓                 |
-| Kubernetes v1.31 | ✓                        | ✓                 | ✓                 |
-| Kubernetes v1.32 | ✓ >= v1.9.1              | ✓                 | ✓                 |
-| Kubernetes v1.33 |                          | ✓ >= v1.10.1      | ✓                 |
-| Kubernetes v1.34 |                          |                   | ✓ >= v1.11.1      |
+|                  | v1.9, _Maintenance Mode_ | v1.10             | v1.11             | v1.12, _Under Development_ |
+|------------------|--------------------------|-------------------|-------------------|------------------------------|
+| Kubernetes v1.24 |                          |                   |                   |                             |
+| Kubernetes v1.25 |                          |                   |                   |                             |
+| Kubernetes v1.26 | ✓ (only workload)        |                   |                   |                             |
+| Kubernetes v1.27 | ✓ (only workload)        | ✓ (only workload) |                   |                             |
+| Kubernetes v1.28 | ✓                        | ✓ (only workload) | ✓ (only workload) |                             |
+| Kubernetes v1.29 | ✓                        | ✓                 | ✓ (only workload) | ✓ (only workload)           |
+| Kubernetes v1.30 | ✓                        | ✓                 | ✓                 | ✓ (only workload)           |
+| Kubernetes v1.31 | ✓                        | ✓                 | ✓                 | ✓                           |
+| Kubernetes v1.32 | ✓ >= v1.9.1              | ✓                 | ✓                 | ✓                           |
+| Kubernetes v1.33 |                          | ✓ >= v1.10.1      | ✓                 | ✓                           |
+| Kubernetes v1.34 |                          |                   | ✓ >= v1.11.1      | ✓                           |
+| Kubernetes v1.35 (Under Development) |                          |                   |                   | ✓ >= v1.12.1                |
+
 
 See also [Kubernetes version specific notes](#kubernetes-version-specific-notes).
 
@@ -314,6 +317,7 @@ using the [kubeadm API](https://kubernetes.io/docs/setup/production-environment/
 | Kubernetes v1.32 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
 | Kubernetes v1.33 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
 | Kubernetes v1.34 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
+| Kubernetes v1.35 | [v1beta4](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
 
 ### Kubeadm Control Plane provider (`kubeadm-control-plane-controller`)
 

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -312,7 +313,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 +     Version:           "v1.31.0",
       ProviderID:        "",
       FailureDomain:     "",
-      ... // 3 identical fields
+      ... // 4 identical fields
     },
     Status: {},
   }`,
@@ -465,7 +466,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(canUpdateMachine).To(Equal(tt.wantCanUpdateMachine))
-			g.Expect(reasons).To(Equal(tt.wantReasons))
+			g.Expect(reasons).To(BeEquivalentTo(tt.wantReasons), cmp.Diff(reasons, tt.wantReasons))
 		})
 	}
 }

@@ -148,8 +148,6 @@ As a user, I want to define a taint that is applied only once so I could ensure 
 
 #### Functional Requirements
 
-Functional requirements are the properties that this design should include.
-
 ##### FR1
 
 Users should be able to define Taints on collection resources and have the taints propagate to the owned resources.

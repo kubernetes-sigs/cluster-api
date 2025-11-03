@@ -26,12 +26,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -2437,6 +2441,104 @@ func TestReconcileMachinePhases(t *testing.T) {
 				return false
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+			// Verify that the LastUpdated timestamp was updated
+			g.Expect(machine.Status.LastUpdated.IsZero()).To(BeFalse())
+			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
+			return true
+		}, 10*time.Second).Should(BeTrue())
+	})
+
+	t.Run("Should set `Updating` when Machine is in-place updating", func(t *testing.T) {
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
+
+		g := NewWithT(t)
+
+		ns, err := env.CreateNamespace(ctx, "test-reconcile-machine-phases")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		nodeProviderID := fmt.Sprintf("test://%s", util.RandomString(6))
+
+		cluster := defaultCluster.DeepCopy()
+		cluster.Namespace = ns.Name
+
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		bootstrapConfig.SetNamespace(ns.Name)
+		infraMachine := defaultInfra.DeepCopy()
+		infraMachine.SetNamespace(ns.Name)
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
+		machine := defaultMachine.DeepCopy()
+		machine.Namespace = ns.Name
+
+		// Create Node.
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "machine-test-node-",
+			},
+			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+		}
+		g.Expect(env.Create(ctx, node)).To(Succeed())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, node)).To(Succeed())
+		}()
+
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
+		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
+		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+		patch := client.MergeFrom(cluster.DeepCopy())
+		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
+
+		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
+		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain milliseconds.
+		preUpdate := time.Now().Add(-2 * time.Second)
+		// Create and wait on machine to make sure caches sync and reconciliation triggers.
+		g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
+
+		modifiedMachine := machine.DeepCopy()
+		// Set NodeRef.
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: node.Name}
+		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
+
+		// Set bootstrap ready.
+		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
+
+		// Set infra ready.
+		modifiedInfraMachine := infraMachine.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedInfraMachine, client.MergeFrom(infraMachine))).To(Succeed())
+
+		// Set annotations on Machine, BootstrapConfig and InfraMachine to trigger an in-place update.
+		orig := modifiedBootstrapConfig.DeepCopy()
+		annotations.AddAnnotations(modifiedBootstrapConfig, map[string]string{
+			clusterv1.UpdateInProgressAnnotation: "",
+		})
+		g.Expect(env.Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(orig))).To(Succeed())
+		orig = modifiedInfraMachine.DeepCopy()
+		annotations.AddAnnotations(modifiedInfraMachine, map[string]string{
+			clusterv1.UpdateInProgressAnnotation: "",
+		})
+		g.Expect(env.Patch(ctx, modifiedInfraMachine, client.MergeFrom(orig))).To(Succeed())
+		origMachine := modifiedMachine.DeepCopy()
+		annotations.AddAnnotations(modifiedMachine, map[string]string{
+			runtimev1.PendingHooksAnnotation:     "UpdateMachine",
+			clusterv1.UpdateInProgressAnnotation: "",
+		})
+		g.Expect(env.Patch(ctx, modifiedMachine, client.MergeFrom(origMachine))).To(Succeed())
+
+		// Wait until Machine was reconciled.
+		g.Eventually(func(g Gomega) bool {
+			if err := env.DirectAPIServerGet(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+				return false
+			}
+			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseUpdating))
 			// Verify that the LastUpdated timestamp was updated
 			g.Expect(machine.Status.LastUpdated.IsZero()).To(BeFalse())
 			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())

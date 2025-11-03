@@ -837,6 +837,10 @@ func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseRunning)
 	}
 
+	if conditions.IsTrue(m, clusterv1.MachineUpdatingCondition) {
+		m.Status.SetTypedPhase(clusterv1.MachinePhaseUpdating)
+	}
+
 	// Set the phase to "deleting" if the deletion timestamp is set.
 	if !m.DeletionTimestamp.IsZero() {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseDeleting)

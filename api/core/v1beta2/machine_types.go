@@ -570,7 +570,7 @@ type MachineStatus struct {
 
 	// phase represents the current phase of machine actuation.
 	// +optional
-	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;Deleting;Deleted;Failed;Unknown
+	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;Updating;Deleting;Deleted;Failed;Unknown
 	Phase string `json:"phase,omitempty"`
 
 	// certificatesExpiryDate is the expiry date of the machine certificates.
@@ -728,6 +728,7 @@ func (m *MachineStatus) GetTypedPhase() MachinePhase {
 		MachinePhaseProvisioning,
 		MachinePhaseProvisioned,
 		MachinePhaseRunning,
+		MachinePhaseUpdating,
 		MachinePhaseDeleting,
 		MachinePhaseDeleted,
 		MachinePhaseFailed:

@@ -514,6 +514,9 @@ func hubMachineSpec(in *clusterv1.MachineSpec, c randfill.Continue) {
 
 func hubMachineStatus(in *clusterv1.MachineStatus, c randfill.Continue) {
 	c.FillNoCustom(in)
+
+	in.Phase = []string{"Updating", "Running"}[c.Intn(2)]
+
 	// Drop empty structs with only omit empty fields.
 	if in.Deprecated != nil {
 		if in.Deprecated.V1Beta1 == nil || reflect.DeepEqual(in.Deprecated.V1Beta1, &clusterv1.MachineV1Beta1DeprecatedStatus{}) {

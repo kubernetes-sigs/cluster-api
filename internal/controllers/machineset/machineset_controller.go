@@ -369,13 +369,6 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 			continue
 		}
 
-		// Complete the move operation started by the source MachinesSet by updating machine, infraMachine and boostrapConfig
-		// to align to the desiredState for the current MachineSet.
-		if err := r.completeMoveMachine(ctx, s, machine); err != nil {
-			errs = append(errs, err)
-			continue
-		}
-
 		// If the existing machine is pending acknowledge from the MD controller after a move operation,
 		// wait until if it possible to drop the PendingAcknowledgeMove annotation.
 		orig := machine.DeepCopy()
@@ -403,6 +396,13 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 			}
 		}
 
+		// Complete the move operation started by the source MachinesSet by updating machine, infraMachine and boostrapConfig
+		// to align to the desiredState for the current MachineSet.
+		if err := r.completeMoveMachine(ctx, s, machine); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
 		// Note: Once we write PendingHooksAnnotation the Machine controller will start with the in-place update.
 		hooks.MarkObjectAsPending(machine, runtimehooksv1.UpdateMachine)
 
@@ -410,14 +410,13 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 		//       have to ensure we preserve PendingHooksAnnotation on existing Machines in MachineSet and that would lead to race
 		//       conditions when the Machine controller tries to remove the annotation and MachineSet adds it back.
 		if err := r.Client.Patch(ctx, machine, client.MergeFrom(orig)); err != nil {
-			r.recorder.Eventf(s.machineSet, corev1.EventTypeWarning, "FailedStartInPlaceUpdate", "Failed to start in-place update for Machine %q: %v", machine.Name, err)
 			errs = append(errs, errors.Wrapf(err, "failed to start in-place update for Machine %s", klog.KObj(machine)))
 			continue
 		}
 
 		machinesTriggeredInPlace = append(machinesTriggeredInPlace, machine)
 		log.Info("Completed triggering in-place update", "Machine", klog.KObj(machine))
-		r.recorder.Eventf(s.machineSet, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine %q started in place update", machine.Name)
+		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine starting in-place update")
 	}
 
 	// Wait until the cache observed the Machine with PendingHooksAnnotation to ensure subsequent reconciles
@@ -911,7 +910,6 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 		log := log
 		machine, computeMachineErr := r.computeDesiredMachine(ms, nil)
 		if computeMachineErr != nil {
-			r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create Machine: %v", err)
 			v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.MachineCreationFailedV1Beta1Reason,
 				clusterv1.ConditionSeverityError, "%s", computeMachineErr.Error())
 			return ctrl.Result{}, errors.Wrap(computeMachineErr, "failed to create Machine: failed to compute desired Machine")
@@ -926,7 +924,6 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 		if ms.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 			bootstrapConfig, bootstrapRef, err = r.createBootstrapConfig(ctx, ms, machine)
 			if err != nil {
-				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create Machine: %v", err)
 				v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.BootstrapTemplateCloningFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 				return ctrl.Result{}, errors.Wrapf(err, "failed to clone bootstrap configuration from %s %s while creating a Machine",
 					ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind,
@@ -947,7 +944,6 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 				}
 			}
 
-			r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create Machine: %v", err)
 			v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.InfrastructureTemplateCloningFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 			return ctrl.Result{}, kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to clone infrastructure machine from %s %s while creating a Machine",
 				ms.Spec.Template.Spec.InfrastructureRef.Kind,
@@ -969,7 +965,6 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 				}
 			}
 
-			r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create Machine: %v", err)
 			v1beta1conditions.MarkFalse(ms, clusterv1.MachinesCreatedV1Beta1Condition, clusterv1.MachineCreationFailedV1Beta1Reason,
 				clusterv1.ConditionSeverityError, "%s", err.Error())
 			return ctrl.Result{}, kerrors.NewAggregate(errs)
@@ -1016,15 +1011,13 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 		log := log.WithValues("Machine", klog.KObj(machine))
 		if machine.GetDeletionTimestamp().IsZero() {
 			if err := r.Client.Delete(ctx, machine); err != nil {
-				log.Error(err, "Unable to delete Machine")
-				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedDelete", "Failed to delete machine %q: %v", machine.Name, err)
 				errs = append(errs, err)
 				continue
 			}
 
 			machinesDeleted = append(machinesDeleted, machine)
 			log.Info(fmt.Sprintf("Deleting Machine (scale down, deleting %d of %d)", i+1, machinesToDelete))
-			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted machine %q", machine.Name)
+			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted Machine %q", machine.Name)
 		} else {
 			log.Info(fmt.Sprintf("Waiting for Machine to be deleted (scale down, deleting %d of %d)", i+1, machinesToDelete))
 		}
@@ -1121,7 +1114,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 		//       this label between "manager" and "capi-machineset", but this is not an issue because the MS controller will never unset this label.
 		targetUniqueLabel, ok := targetMS.Labels[clusterv1.MachineDeploymentUniqueLabel]
 		if !ok {
-			return ctrl.Result{}, errors.Errorf("MachineSet %s does not have a unique label", targetMS.Name)
+			return ctrl.Result{}, errors.Errorf("MachineSet %s does not have the %s label", targetMS.Name, clusterv1.MachineDeploymentUniqueLabel)
 		}
 		machine.Labels[clusterv1.MachineDeploymentUniqueLabel] = targetUniqueLabel
 

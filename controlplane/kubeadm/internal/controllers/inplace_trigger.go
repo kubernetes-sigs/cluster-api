@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -136,6 +137,7 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 	}
 
 	log.Info("Completed triggering in-place update", "Machine", klog.KObj(machine))
+	r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine starting in-place update")
 
 	// Wait until the cache observed the Machine with PendingHooksAnnotation to ensure subsequent reconciles
 	// will observe it as well and won't repeatedly call triggerInPlaceUpdate.

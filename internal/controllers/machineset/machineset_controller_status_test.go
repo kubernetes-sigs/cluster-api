@@ -1204,14 +1204,15 @@ func withCondition(c metav1.Condition) fakeMachinesOption {
 	}
 }
 
-func withHealthyStatus() fakeMachinesOption {
+func withHealthyNode() fakeMachinesOption {
+	// Note: This is what is required by delete priority functions to consider the machine healthy.
 	return func(m *clusterv1.Machine) {
 		m.Status = clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{Name: "some-node"},
 			Conditions: []metav1.Condition{
 				{
 					Type:   clusterv1.MachineNodeHealthyCondition,
-					Status: metav1.ConditionUnknown,
+					Status: metav1.ConditionTrue,
 				},
 			},
 		}

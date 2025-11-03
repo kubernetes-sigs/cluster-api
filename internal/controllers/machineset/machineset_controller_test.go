@@ -2647,8 +2647,6 @@ func TestMachineSetReconciler_createMachines(t *testing.T) {
 			interceptorFuncs: func(i *int) interceptor.Funcs {
 				return interceptor.Funcs{
 					Apply: func(ctx context.Context, c client.WithWatch, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
-						// simulate scenarios where for the first machine BootstrapConfig creation fails,
-						// for the second machine InfrastructureMachine creation fails, for the third machine, Machine creation fails.
 						clientObject, ok := obj.(client.Object)
 						if !ok {
 							return errors.Errorf("error during object creation: unexpected ApplyConfiguration")
@@ -2764,10 +2762,10 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 			name: "should delete machines using the given deletion order",
 			ms:   newMachineSet("ms1", "cluster1", 2, withDeletionOrder(clusterv1.NewestMachineSetDeletionOrder)),
 			machines: []*clusterv1.Machine{
-				fakeMachine("m1", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyStatus()), // oldest
-				fakeMachine("m2", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyStatus()),
-				fakeMachine("m3", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyStatus()),
-				fakeMachine("m4", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyStatus()), // newest
+				fakeMachine("m1", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyNode()),
+				fakeMachine("m3", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyNode()),
+				fakeMachine("m4", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode()), // newest
 			},
 			machinesToDelete: 2,
 			interceptorFuncs: interceptor.Funcs{},
@@ -2778,10 +2776,10 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 			name: "should not delete more machines when enough machines are already deleting",
 			ms:   newMachineSet("ms1", "cluster1", 2, withDeletionOrder(clusterv1.NewestMachineSetDeletionOrder)),
 			machines: []*clusterv1.Machine{
-				fakeMachine("m1", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyStatus()), // oldest
-				fakeMachine("m2", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyStatus(), withDeletionTimestamp()),
-				fakeMachine("m3", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyStatus()),
-				fakeMachine("m4", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyStatus(), withDeletionTimestamp()), // newest
+				fakeMachine("m1", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyNode(), withDeletionTimestamp()),
+				fakeMachine("m3", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyNode()),
+				fakeMachine("m4", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode(), withDeletionTimestamp()), // newest
 			},
 			machinesToDelete: 2,
 			interceptorFuncs: interceptor.Funcs{},
@@ -2792,10 +2790,10 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 			name: "should delete machines when not enough machines are already deleting",
 			ms:   newMachineSet("ms1", "cluster1", 2, withDeletionOrder(clusterv1.NewestMachineSetDeletionOrder)),
 			machines: []*clusterv1.Machine{
-				fakeMachine("m1", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyStatus()), // oldest
-				fakeMachine("m2", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyStatus()),
-				fakeMachine("m3", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyStatus()),
-				fakeMachine("m4", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyStatus(), withDeletionTimestamp()), // newest
+				fakeMachine("m1", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyNode()),
+				fakeMachine("m3", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyNode()),
+				fakeMachine("m4", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode(), withDeletionTimestamp()), // newest
 			},
 			machinesToDelete: 2,
 			interceptorFuncs: interceptor.Funcs{},
@@ -2806,10 +2804,10 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 			name: "should keep deleting machines when one deletion fails",
 			ms:   newMachineSet("ms1", "cluster1", 2), // use default deletion order, oldest machine deleted first
 			machines: []*clusterv1.Machine{
-				fakeMachine("m1", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyStatus()), // oldest
-				fakeMachine("m2", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyStatus()),
-				fakeMachine("m3", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyStatus()),
-				fakeMachine("m4", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyStatus()), // newest
+				fakeMachine("m1", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyNode()),
+				fakeMachine("m3", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyNode()),
+				fakeMachine("m4", withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode()), // newest
 			},
 			machinesToDelete: 2,
 			interceptorFuncs: interceptor.Funcs{
@@ -2901,8 +2899,8 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			),
 			targetMS: newMachineSet("do-not-exist", "cluster1", 2),
 			machines: []*clusterv1.Machine{
-				fakeMachine("m1", withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withOwnerMachineSet("ms1"), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyStatus()), // oldest
-				fakeMachine("m2", withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withOwnerMachineSet("ms1"), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyStatus()),
+				fakeMachine("m1", withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withOwnerMachineSet("ms1"), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withOwnerMachineSet("ms1"), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode()),
 			},
 			machinesToMove:       1,
 			interceptorFuncs:     interceptor.Funcs{},
@@ -2922,8 +2920,8 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms3,ms4"}),
 			),
 			machines: []*clusterv1.Machine{
-				fakeMachine("m1", withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withOwnerMachineSet("ms1"), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyStatus()), // oldest
-				fakeMachine("m2", withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withOwnerMachineSet("ms1"), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyStatus()),
+				fakeMachine("m1", withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withOwnerMachineSet("ms1"), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withOwnerMachineSet("ms1"), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode()),
 			},
 			machinesToMove:       1,
 			interceptorFuncs:     interceptor.Funcs{},
@@ -2943,15 +2941,15 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms1,ms3"}),
 			),
 			machines: []*clusterv1.Machine{
-				fakeMachine("m1", withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withOwnerMachineSet("ms1"), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyStatus()), // oldest
-				fakeMachine("m2", withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withOwnerMachineSet("ms1"), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyStatus()),
+				fakeMachine("m1", withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withOwnerMachineSet("ms1"), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withOwnerMachineSet("ms1"), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode()),
 			},
 			machinesToMove:       1,
 			interceptorFuncs:     interceptor.Funcs{},
 			wantMachinesNotMoved: []string{"m1", "m2"},
 			wantMovedMachines:    nil,
 			wantErr:              true,
-			wantErrorMessage:     "MachineSet ms2 does not have a unique label",
+			wantErrorMessage:     fmt.Sprintf("MachineSet ms2 does not have the %s label", clusterv1.MachineDeploymentUniqueLabel),
 		},
 		{
 			name: "should move machines",
@@ -2965,10 +2963,10 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms1,ms3"}),
 			),
 			machines: []*clusterv1.Machine{
-				fakeMachine("m1", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyStatus()), // oldest
-				fakeMachine("m2", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyStatus()),
-				fakeMachine("m3", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyStatus()),
-				fakeMachine("m4", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyStatus()), // newest
+				fakeMachine("m1", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyNode()),
+				fakeMachine("m3", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyNode()),
+				fakeMachine("m4", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode()), // newest
 			},
 			machinesToMove:       2,
 			interceptorFuncs:     interceptor.Funcs{},
@@ -2988,10 +2986,10 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms1,ms3"}),
 			),
 			machines: []*clusterv1.Machine{
-				fakeMachine("m1", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyStatus()), // oldest
-				fakeMachine("m2", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyStatus()),
-				fakeMachine("m3", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyStatus()),
-				fakeMachine("m4", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyStatus(), withDeletionTimestamp()), // newest
+				fakeMachine("m1", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyNode()),
+				fakeMachine("m3", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyNode()),
+				fakeMachine("m4", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode(), withDeletionTimestamp()), // newest
 			},
 			machinesToMove:       2,
 			interceptorFuncs:     interceptor.Funcs{},
@@ -3011,10 +3009,10 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms1,ms3"}),
 			),
 			machines: []*clusterv1.Machine{
-				fakeMachine("m1", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyStatus()), // oldest
-				fakeMachine("m2", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyStatus(), withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})),
-				fakeMachine("m3", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyStatus(), withMachineAnnotations(map[string]string{runtimev1.PendingHooksAnnotation: "UpdateMachine"})),
-				fakeMachine("m4", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyStatus()), // newest
+				fakeMachine("m1", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyNode(), withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})),
+				fakeMachine("m3", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyNode(), withMachineAnnotations(map[string]string{runtimev1.PendingHooksAnnotation: "UpdateMachine"})),
+				fakeMachine("m4", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode()), // newest
 			},
 			machinesToMove:       2,
 			interceptorFuncs:     interceptor.Funcs{},
@@ -3034,10 +3032,10 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 				withMachineSetAnnotations(map[string]string{clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms1,ms3"}),
 			),
 			machines: []*clusterv1.Machine{
-				fakeMachine("m1", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyStatus()), // oldest
-				fakeMachine("m2", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyStatus()),
-				fakeMachine("m3", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyStatus()),
-				fakeMachine("m4", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyStatus()), // newest
+				fakeMachine("m1", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-4*time.Minute)), withHealthyNode()), // oldest
+				fakeMachine("m2", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-3*time.Minute)), withHealthyNode()),
+				fakeMachine("m3", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-2*time.Minute)), withHealthyNode()),
+				fakeMachine("m4", withOwnerMachineSet("ms1"), withMachineLabels(map[string]string{clusterv1.MachineDeploymentUniqueLabel: "123"}), withMachineFinalizer(), withCreationTimestamp(time.Now().Add(-1*time.Minute)), withHealthyNode()), // newest
 			},
 			machinesToMove: 2,
 			interceptorFuncs: interceptor.Funcs{
@@ -3128,7 +3126,9 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 	bootstrapResource := map[string]interface{}{
 		"kind":       builder.GenericBootstrapConfigKind,
 		"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-		"spec":       map[string]interface{}{},
+		"spec": map[string]interface{}{
+			"foo": "bar",
+		},
 	}
 
 	bootstrapTmpl := &unstructured.Unstructured{
@@ -3207,7 +3207,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			ms:   newMachineSet("ms1", "cluster1", 2),
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: "", runtimev1.PendingHooksAnnotation: "UpdateMachine"})),
-				fakeMachine("m2", withMachineAnnotations(map[string]string{runtimev1.PendingHooksAnnotation: "UpdateMachine"})), // updating in place, failed to complete
+				fakeMachine("m2", withMachineAnnotations(map[string]string{runtimev1.PendingHooksAnnotation: "UpdateMachine"})), // updating in place, failed to complete (to remove both UpdateInProgressAnnotation and PendingHooksAnnotation)
 			},
 			interceptorFuncs: interceptor.Funcs{
 				Get: func(_ context.Context, _ client.WithWatch, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
@@ -3324,7 +3324,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 					if !ok {
 						return errors.Errorf("error during object creation: unexpected ApplyConfiguration")
 					}
-					if clientObject.GetObjectKind().GroupVersionKind().Kind == builder.GenericInfrastructureMachineKind && clientObject.GetName() == "m1" {
+					if clientObject.GetObjectKind().GroupVersionKind().Kind == builder.GenericBootstrapConfigKind && clientObject.GetName() == "m1" {
 						return errors.New("injected error when applying m1-bootstrap")
 					}
 					return c.Apply(ctx, obj, opts...)

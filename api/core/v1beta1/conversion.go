@@ -408,6 +408,10 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values.
 	if ok {
 		dst.Spec.MinReadySeconds = restored.Spec.MinReadySeconds
+		// Restore the phase, this also means that any client using v1beta1 during a round-trip
+		// won't be able to write the Phase field. But that's okay as the only client writing the Phase
+		// field should be the Machine controller.
+		dst.Status.Phase = restored.Status.Phase
 	}
 
 	return nil
@@ -1653,6 +1657,13 @@ func Convert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(in *clusterv1.Machin
 	if err := autoConvert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(in, out, s); err != nil {
 		return err
 	}
+
+	// Convert v1beta2 Updating phase to v1beta1 Running as Updating did not exist in v1beta1.
+	// We don't have to support a round-trip as only the core CAPI controller should write the Phase field.
+	if out.Phase == "Updating" {
+		out.Phase = "Running"
+	}
+
 	if !reflect.DeepEqual(in.LastUpdated, metav1.Time{}) {
 		out.LastUpdated = ptr.To(in.LastUpdated)
 	}

@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	builder "sigs.k8s.io/cluster-api/util/test/builder"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestSetBootstrapReadyCondition(t *testing.T) {
@@ -1439,6 +1439,11 @@ func TestSetReadyCondition(t *testing.T) {
 							Status: metav1.ConditionFalse,
 							Reason: clusterv1.MachineNotDeletingReason,
 						},
+						{
+							Type:   clusterv1.MachineUpdatingCondition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNotUpdatingReason,
+						},
 					},
 				},
 			},
@@ -1479,6 +1484,11 @@ func TestSetReadyCondition(t *testing.T) {
 							Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookReason,
 							Message: "Waiting for pre-drain hooks to succeed (hooks: test-hook)",
 						},
+						{
+							Type:   clusterv1.MachineUpdatingCondition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNotUpdatingReason,
+						},
 					},
 				},
 			},
@@ -1487,6 +1497,51 @@ func TestSetReadyCondition(t *testing.T) {
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineNotReadyReason,
 				Message: "* Deleting: Machine deletion in progress, stage: WaitingForPreDrainHook",
+			},
+		},
+		{
+			name: "Aggregates Ready condition correctly while the machine is updating",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Status: clusterv1.MachineStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.MachineBootstrapConfigReadyCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.InfrastructureReadyCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineNodeHealthyCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.MachineDeletingCondition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNotDeletingReason,
+						},
+						{
+							Type:    clusterv1.MachineUpdatingCondition,
+							Status:  metav1.ConditionTrue,
+							Reason:  clusterv1.MachineInPlaceUpdatingReason,
+							Message: "In place update in progress",
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineNotReadyReason,
+				Message: "* Updating: In place update in progress",
 			},
 		},
 		{
@@ -1527,6 +1582,11 @@ func TestSetReadyCondition(t *testing.T) {
   * some other error 3: pod-8-to-trigger-eviction-some-other-error
   * some other error 4: pod-9-to-trigger-eviction-some-other-error
   * ... (1 more error applying to 1 Pod)`,
+						},
+						{
+							Type:   clusterv1.MachineUpdatingCondition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNotUpdatingReason,
 						},
 					},
 				},
@@ -1572,6 +1632,11 @@ func TestSetReadyCondition(t *testing.T) {
 							Type:   clusterv1.MachineDeletingCondition,
 							Status: metav1.ConditionFalse,
 							Reason: clusterv1.MachineNotDeletingReason,
+						},
+						{
+							Type:   clusterv1.MachineUpdatingCondition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNotUpdatingReason,
 						},
 					},
 				},
@@ -1639,6 +1704,11 @@ func TestSetReadyCondition(t *testing.T) {
 							Type:   clusterv1.MachineDeletingCondition,
 							Status: metav1.ConditionFalse,
 							Reason: clusterv1.MachineNotDeletingReason,
+						},
+						{
+							Type:   clusterv1.MachineUpdatingCondition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNotUpdatingReason,
 						},
 					},
 				},
@@ -1709,6 +1779,11 @@ func TestSetReadyCondition(t *testing.T) {
 							Type:   clusterv1.MachineDeletingCondition,
 							Status: metav1.ConditionFalse,
 							Reason: clusterv1.MachineNotDeletingReason,
+						},
+						{
+							Type:   clusterv1.MachineUpdatingCondition,
+							Status: metav1.ConditionFalse,
+							Reason: clusterv1.MachineNotUpdatingReason,
 						},
 					},
 				},

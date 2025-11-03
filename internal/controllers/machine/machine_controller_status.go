@@ -657,12 +657,13 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 
 	forConditionTypes := conditions.ForConditionTypes{
 		clusterv1.MachineDeletingCondition,
+		clusterv1.MachineUpdatingCondition,
 		clusterv1.MachineBootstrapConfigReadyCondition,
 		clusterv1.MachineInfrastructureReadyCondition,
 		clusterv1.MachineNodeHealthyCondition,
 		clusterv1.MachineHealthCheckSucceededCondition,
 	}
-	negativePolarityConditionTypes := []string{clusterv1.MachineDeletingCondition}
+	negativePolarityConditionTypes := []string{clusterv1.MachineDeletingCondition, clusterv1.MachineUpdatingCondition}
 	for _, g := range machine.Spec.ReadinessGates {
 		forConditionTypes = append(forConditionTypes, g.ConditionType)
 		if g.Polarity == clusterv1.NegativePolarityCondition {
@@ -685,9 +686,10 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 				negativePolarityConditionTypes: negativePolarityConditionTypes,
 			},
 		},
-		// Instruct summary to consider Deleting condition with negative polarity.
+		// Instruct summary to consider Deleting and updating condition with negative polarity.
 		conditions.NegativePolarityConditionTypes{
 			clusterv1.MachineDeletingCondition,
+			clusterv1.MachineUpdatingCondition,
 		},
 	}
 

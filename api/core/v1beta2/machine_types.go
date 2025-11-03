@@ -120,7 +120,7 @@ const (
 // Machine's Ready condition and corresponding reasons.
 const (
 	// MachineReadyCondition is true if the Machine's deletionTimestamp is not set, Machine's BootstrapConfigReady, InfrastructureReady,
-	// NodeHealthy and HealthCheckSucceeded (if present) conditions are true; if other conditions are defined in spec.readinessGates,
+	// NodeHealthy and HealthCheckSucceeded (if present) conditions are true, Updating condition is false; if other conditions are defined in spec.readinessGates,
 	// these conditions must be true as well.
 	// Note:
 	// - When summarizing the Deleting condition:

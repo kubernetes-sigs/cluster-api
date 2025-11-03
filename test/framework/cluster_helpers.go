@@ -433,6 +433,37 @@ func DescribeAllCluster(ctx context.Context, input DescribeAllClusterInput) {
 	}
 }
 
+type VerifyClusterConditionInput struct {
+	Getter        Getter
+	Name          string
+	Namespace     string
+	ConditionType string
+}
+
+// VerifyClusterCondition verifies that the Cluster's condition is set to true.
+func VerifyClusterCondition(ctx context.Context, input VerifyClusterConditionInput) {
+	cluster := &clusterv1.Cluster{}
+	key := client.ObjectKey{
+		Name:      input.Name,
+		Namespace: input.Namespace,
+	}
+
+	// Wait for the cluster condition to stabilize.
+	Eventually(func(g Gomega) {
+		g.Expect(input.Getter.Get(ctx, key, cluster)).To(Succeed())
+		conditionFound := false
+		for _, condition := range cluster.Status.Conditions {
+			if condition.Type == input.ConditionType {
+				conditionFound = true
+				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The %s condition on the Cluster should be set to true; message: %s", condition.Type, condition.Message)
+				g.Expect(condition.Message).To(BeEmpty(), "The %s condition on the Cluster should have an empty message", condition.Type)
+				break
+			}
+		}
+		g.Expect(conditionFound).To(BeTrue(), "Cluster %q should have a %s condition", input.Name, input.ConditionType)
+	}, 5*time.Minute, 10*time.Second).Should(Succeed(), "Failed to verify Cluster %s condition for %s", input.ConditionType, klog.KRef(input.Namespace, input.Name))
+}
+
 type VerifyClusterAvailableInput struct {
 	Getter    Getter
 	Name      string
@@ -441,26 +472,12 @@ type VerifyClusterAvailableInput struct {
 
 // VerifyClusterAvailable verifies that the Cluster's Available condition is set to true.
 func VerifyClusterAvailable(ctx context.Context, input VerifyClusterAvailableInput) {
-	cluster := &clusterv1.Cluster{}
-	key := client.ObjectKey{
-		Name:      input.Name,
-		Namespace: input.Namespace,
-	}
-
-	// Wait for the cluster Available condition to stabilize.
-	Eventually(func(g Gomega) {
-		g.Expect(input.Getter.Get(ctx, key, cluster)).To(Succeed())
-		availableConditionFound := false
-		for _, condition := range cluster.Status.Conditions {
-			if condition.Type == clusterv1.AvailableCondition {
-				availableConditionFound = true
-				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue), "The Available condition on the Cluster should be set to true; message: %s", condition.Message)
-				g.Expect(condition.Message).To(BeEmpty(), "The Available condition on the Cluster should have an empty message")
-				break
-			}
-		}
-		g.Expect(availableConditionFound).To(BeTrue(), "Cluster %q should have an Available condition", input.Name)
-	}, 5*time.Minute, 10*time.Second).Should(Succeed(), "Failed to verify Cluster Available condition for %s", klog.KRef(input.Namespace, input.Name))
+	VerifyClusterCondition(ctx, VerifyClusterConditionInput{
+		Getter:        input.Getter,
+		Name:          input.Name,
+		Namespace:     input.Namespace,
+		ConditionType: clusterv1.AvailableCondition,
+	})
 }
 
 type VerifyMachinesReadyInput struct {

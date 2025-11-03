@@ -609,7 +609,7 @@ func TestMachineOldestDelete(t *testing.T) {
 			expect: []*clusterv1.Machine{deleteMachineWithMachineAnnotation},
 		},
 		{
-			desc: "func=oldestDeletionOrder, diff=1 (hUpdateInProgressAnnotation)",
+			desc: "func=oldestDeletionOrder, diff=1 (UpdateInProgressAnnotation)",
 			diff: 1,
 			machines: []*clusterv1.Machine{
 				empty, secondNewest, oldest, secondOldest, newest, machineWithUpdateInProgressAnnotation,

@@ -504,7 +504,7 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 	// The prod code for the MachineSet controller performs in order triggerInPlaceUpdate and then syncReplicas and then updateStatus.
 	// This func mimics the same code structure, with the addition of the following operation that is implemented here for convenience.
 
-	// In order to simulate an in-place update being completed, remove the updatingInPlaceAnnotation from machines after
+	// In order to simulate an in-place update being completed, remove the UpdateInProgressAnnotation from machines after
 	// pendingAcknowledgeMove is gone in a previous reconcile.
 	// Note: ideally this should be implemented in the fake Machine controller, but current implementation is
 	// considered an acceptable trade-off because it provides a signal about in-place update completed, without
@@ -577,7 +577,7 @@ func machineSetControllerMutatorSyncReplicas(log *fileLogger, ms *clusterv1.Mach
 	diff := len(scope.machineSetMachines[ms.Name]) - int(ptr.Deref(ms.Spec.Replicas, 0))
 	switch {
 	case diff < 0:
-		// if too few machines, create missing machine unless machine creation is disabled.
+		// If there are not enough Machines, create missing Machines unless Machine creation is disabled.
 		machinesToAdd := -diff
 		if ms.Annotations != nil {
 			if value, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok && value == "true" {

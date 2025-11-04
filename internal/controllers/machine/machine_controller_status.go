@@ -42,7 +42,7 @@ import (
 // machine being partially deleted but also for running machines being disrupted e.g. by deleting the node.
 // Additionally, this func should ensure that the conditions managed by this controller are always set in order to
 // comply with the recommendation in the Kubernetes API guidelines.
-func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
+func (r *Reconciler) updateStatus(ctx context.Context, s *scope) ctrl.Result {
 	// Update status from the Bootstrap Config external resource.
 	// Note: some of the status fields derived from the Bootstrap Config are managed in reconcileBootstrap, e.g. status.BootstrapReady, etc.
 	// here we are taking care only of the delta (condition).
@@ -70,6 +70,16 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	setAvailableCondition(ctx, s.machine)
 
 	setMachinePhaseAndLastUpdated(ctx, s.machine)
+
+	// In case Available condition is waiting for machine.Spec.MinReadySeconds to expire, make sure to requeue accordingly
+	if conditions.IsTrue(s.machine, clusterv1.MachineReadyCondition) &&
+		conditions.IsFalse(s.machine, clusterv1.MachineAvailableCondition) {
+		return ctrl.Result{
+			RequeueAfter: time.Duration(ptr.Deref(s.machine.Spec.MinReadySeconds, 0))*time.Second -
+				time.Since(conditions.GetLastTransitionTime(s.machine, clusterv1.MachineReadyCondition).Time),
+		}
+	}
+	return ctrl.Result{}
 }
 
 func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, bootstrapConfig *unstructured.Unstructured, bootstrapConfigIsNotFound bool) {

@@ -415,7 +415,7 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 		}
 
 		// Check if the MachineSet can update in place; if not, move to the next MachineSet.
-		canUpdateMachineSetInPlaceFunc := func(_ *clusterv1.MachineSet) bool { return false }
+		canUpdateMachineSetInPlaceFunc := func(_ *clusterv1.MachineSet) bool { return true }
 		if p.overrideCanUpdateMachineSetInPlace != nil {
 			canUpdateMachineSetInPlaceFunc = p.overrideCanUpdateMachineSetInPlace
 		}

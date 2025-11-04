@@ -32,6 +32,7 @@ import (
 	"gomodules.xyz/jsonpatch/v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -198,7 +199,7 @@ func (h *ExtensionHandlers) DoUpdateMachine(ctx context.Context, req *runtimehoo
 	// Note: We are intentionally not actually applying any in-place changes we are just faking them,
 	// which is good enough for test purposes.
 	if firstTimeCalled, ok := h.state.Load(key); ok {
-		if time.Since(firstTimeCalled.(time.Time)) > 20*time.Second {
+		if time.Since(firstTimeCalled.(time.Time)) > time.Duration(20+rand.Intn(10))*time.Second {
 			h.state.Delete(key)
 			resp.Status = runtimehooksv1.ResponseStatusSuccess
 			resp.Message = "In-place update is done"

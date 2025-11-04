@@ -209,7 +209,13 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 
 		// Doing multiple in-place updates for additional coverage.
 		filePath := "/tmp/test"
-		for i, fileContent := range []string{"first in-place update", "second in-place update"} {
+		for i, fileContent := range []string{
+			"first in-place update",
+			"second in-place update",
+			"third in-place update",
+			"fourth in-place update",
+			"five in-place update",
+		} {
 			Byf("[%d] Trigger in-place update by modifying the files variable", i)
 
 			originalCluster := cluster.DeepCopy()
@@ -246,8 +252,7 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 				// Ensure only in-place updates were executed and no Machine was re-created.
 				machineObjectsAfterInPlaceUpdate = getMachineObjects(ctx, g, mgmtClient, cluster)
 				g.Expect(machineNames(machineObjectsAfterInPlaceUpdate.ControlPlaneMachines)).To(Equal(machineNames(machineObjectsBeforeInPlaceUpdate.ControlPlaneMachines)))
-				// TODO(in-place): enable once MD/MS/Machine controller PRs are merged
-				// g.Expect(machineNames(machineObjectsAfterInPlaceUpdate.WorkerMachines)).To(Equal(machineNames(machineObjectsBeforeInPlaceUpdate.WorkerMachines)))
+				g.Expect(machineNames(machineObjectsAfterInPlaceUpdate.WorkerMachines)).To(Equal(machineNames(machineObjectsBeforeInPlaceUpdate.WorkerMachines)))
 			}, input.E2EConfig.GetIntervals(specName, "wait-control-plane")...).Should(Succeed())
 
 			// Update machineObjectsBeforeInPlaceUpdate for the next round of in-place update.

@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/internal/hooks"
+	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/failuredomains"
@@ -199,12 +200,7 @@ func (c *ControlPlane) MachinesToCompleteTriggerInPlaceUpdate() collections.Mach
 
 // MachinesToCompleteInPlaceUpdate returns Machines that still have to complete their in-place update.
 func (c *ControlPlane) MachinesToCompleteInPlaceUpdate() collections.Machines {
-	return c.Machines.Filter(func(machine *clusterv1.Machine) bool {
-		// Note: Checking both annotations here to make this slightly more robust.
-		//       Theoretically only checking for IsPending would have been enough.
-		_, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]
-		return ok || hooks.IsPending(runtimehooksv1.UpdateMachine, machine)
-	})
+	return c.Machines.Filter(inplace.IsUpdateInProgress)
 }
 
 // FailureDomainWithMostMachines returns the fd with most machines in it and at least one eligible machine in it.

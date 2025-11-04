@@ -148,7 +148,7 @@ type ScaleSpecInput struct {
 	// Note: This should only be set if a Runtime Extension is used.
 	ExtensionServiceNamespace string
 
-	// ExtensionServiceNamespace is the name where the service for the Runtime Extension is located.
+	// ExtensionServiceName is the name where the service for the Runtime Extension is located.
 	// Note: This should only be set if a Runtime Extension is used.
 	ExtensionServiceName string
 

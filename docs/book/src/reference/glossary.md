@@ -374,6 +374,16 @@ to refer to any project that can be deployed and provides functionality to the C
 See [Bootstrap provider](#bootstrap-provider), [Control plane provider](#control-plane-provider), [Core provider](#core-provider),
 [Infrastructure provider](#infrastructure-provider), [IPAM provider](#ipam-provider)  [Runtime extension provider](#runtime-extension-provider).
 
+### ProviderID
+
+ProviderID is the provider-specific identifier used to correlate Cluster API objects with the
+underlying cloud instance. It appears in three resource types: InfrastructureMachine, Machine
+(Cluster API core), and Node (workload cluster). CAPI copies the ProviderID from the
+InfrastructureMachine to the Machine. The Node's ProviderID is set by the [Cloud Controller Manager
+(CCM)](https://kubernetes.io/docs/concepts/architecture/cloud-controller/) or the kubelet.
+
+The format is a URI-like string: `<provider>://<provider-specific-identifier>`.
+
 ### Provider components
 
 Refers to the YAML artifact published as part of the release process for [providers](#provider);

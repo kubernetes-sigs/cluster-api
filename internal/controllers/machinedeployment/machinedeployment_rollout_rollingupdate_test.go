@@ -881,7 +881,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		{
 			name:  "When moving replicas from oldMS to newMS, preserve newMS scale up intent if it does not use maxSurge",
 			md:    createMD("v2", 3, withRollingUpdateStrategy(1, 0)),
-			newMS: createMS("ms2", "v2", 1),
+			newMS: createMS("ms2", "v2", 1, withStatusUpToDateReplicas(1), withStatusAvailableReplicas(1)),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 1),
 			},
@@ -909,7 +909,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		{
 			name:  "When moving replicas from oldMS to newMS, preserve one usage of MaxSurge in the newMS scale up intent when required to start the rollout (maxSurge 1, maxUnavailable 0)",
 			md:    createMD("v2", 3, withRollingUpdateStrategy(1, 0)),
-			newMS: createMS("ms2", "v2", 0),
+			newMS: createMS("ms2", "v2", 0, withStatusUpToDateReplicas(0), withStatusAvailableReplicas(0)),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3),
 			},
@@ -939,7 +939,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		{
 			name:  "When moving replicas from oldMS to newMS, preserve one usage of MaxSurge in the newMS scale up intent when required to start the rollout (maxSurge 3, maxUnavailable 0)",
 			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 0)),
-			newMS: createMS("ms2", "v2", 0),
+			newMS: createMS("ms2", "v2", 0, withStatusUpToDateReplicas(0), withStatusAvailableReplicas(0)),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3),
 			},
@@ -967,9 +967,39 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			},
 		},
 		{
-			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are oldMS with scale down intent (maxSurge 3, maxUnavailable 1)",
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are oldMS with scale down from a previous reconcile (maxSurge 3, maxUnavailable 1)",
 			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 1)),
 			newMS: createMS("ms2", "v2", 0),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 3, withStatusReplicas(4), withStatusUpToDateReplicas(4), withStatusAvailableReplicas(4)), // scale down from a previous reconcile
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms1", "v1"),
+				createM("m3", "ms1", "v1"),
+				createM("m4", "ms1", "v1"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 2, // +2 => MD expect 3, has currently 4 replicas, +2 replica it is using maxSurge 3
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateAnswer: map[string]bool{
+				"ms1": true,
+			},
+			expectMoveFromMS:   []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				// "ms2": 3, +3 replica using maxSurge dropped, oldMS is scaling down
+			},
+		},
+		{
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are oldMS with scale down intent (maxSurge 3, maxUnavailable 1)",
+			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 1)),
+			newMS: createMS("ms2", "v2", 0, withStatusUpToDateReplicas(0), withStatusAvailableReplicas(0)),
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3),
 			},
@@ -998,68 +1028,9 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			},
 		},
 		{
-			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are oldMS with scale down from a previous reconcile (maxSurge 3, maxUnavailable 1)",
-			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 1)),
-			newMS: createMS("ms2", "v2", 0),
-			oldMS: []*clusterv1.MachineSet{
-				createMS("ms1", "v1", 3, withStatusReplicas(4)), // scale down from a previous reconcile
-			},
-			machines: []*clusterv1.Machine{
-				createM("m1", "ms1", "v1"),
-				createM("m2", "ms1", "v1"),
-				createM("m3", "ms1", "v1"),
-				createM("m4", "ms1", "v1"),
-			},
-			scaleIntents: map[string]int32{
-				"ms2": 2, // +2 => MD expect 3, has currently 4 replicas, +2 replica it is using maxSurge 3
-			},
-			upToDateResults: map[string]mdutil.UpToDateResult{
-				"ms1": {EligibleForInPlaceUpdate: true},
-			},
-			expectedCanUpdateCalls: map[string]bool{
-				"ms1": true,
-			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
-			},
-			expectMoveFromMS:   []string{"ms1"},
-			expectScaleIntents: map[string]int32{
-				// "ms2": 3, +3 replica using maxSurge dropped, oldMS is scaling down
-			},
-		},
-		{
-			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there machines in-place updating (maxSurge 3, maxUnavailable 0)",
-			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 0)),
-			newMS: createMS("ms2", "v2", 0),
-			oldMS: []*clusterv1.MachineSet{
-				createMS("ms1", "v1", 3),
-			},
-			machines: []*clusterv1.Machine{
-				createM("m1", "ms1", "v1", withMAnnotation(clusterv1.UpdateInProgressAnnotation, "")),
-				createM("m2", "ms1", "v1"),
-				createM("m3", "ms1", "v1"),
-			},
-			scaleIntents: map[string]int32{
-				"ms2": 3, // +3 => MD expect 3, has currently 3 replicas, +3 replica it is using maxSurge 3
-			},
-			upToDateResults: map[string]mdutil.UpToDateResult{
-				"ms1": {EligibleForInPlaceUpdate: true},
-			},
-			expectedCanUpdateCalls: map[string]bool{
-				"ms1": true,
-			},
-			canUpdateAnswer: map[string]bool{
-				"ms1": true,
-			},
-			expectMoveFromMS:   []string{"ms1"},
-			expectScaleIntents: map[string]int32{
-				// "ms2": 1, +1 replica using maxSurge dropped, there is a machine updating in place
-			},
-		},
-		{
 			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there newMS is scaling from a previous reconcile (maxSurge 3, maxUnavailable 1)",
 			md:    createMD("v6", 6, withRollingUpdateStrategy(3, 1)),
-			newMS: createMS("ms2", "v2", 3, withStatusReplicas(2)), // scaling from a previous reconcile
+			newMS: createMS("ms2", "v2", 3, withStatusReplicas(2), withStatusUpToDateReplicas(2), withStatusAvailableReplicas(2)), // scaling from a previous reconcile
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3),
 			},
@@ -1086,6 +1057,93 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			expectMoveFromMS:   []string{"ms1"},
 			expectScaleIntents: map[string]int32{
 				// "ms2": 6, +3 replicas from maxSurge dropped, newMS is already scaling up
+			},
+		},
+		{
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are still not UpToDateReplicas on the newMS (maxSurge 1, maxUnavailable 0)",
+			md:    createMD("v2", 3, withRollingUpdateStrategy(1, 0)),
+			newMS: createMS("ms2", "v2", 2, withStatusUpToDateReplicas(1), withStatusAvailableReplicas(1)),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms2", "v1"),
+				createM("m3", "ms2", "v1"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 3, // +1 => MD expect 3, has currently 3 replicas, +1 replica it is using maxSurge
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateAnswer: map[string]bool{
+				"ms1": true,
+			},
+			expectMoveFromMS:   []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				// "ms2": 1, +1 replica using maxSurge dropped, there is a machine updating in place
+			},
+		},
+		{
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there machines in-place updating (maxSurge 3, maxUnavailable 0)",
+			md:    createMD("v2", 3, withRollingUpdateStrategy(3, 0)),
+			newMS: createMS("ms2", "v2", 0, withStatusUpToDateReplicas(0), withStatusAvailableReplicas(0)),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 3),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1", withMAnnotation(clusterv1.UpdateInProgressAnnotation, "")),
+				createM("m2", "ms1", "v1"),
+				createM("m3", "ms1", "v1"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 3, // +3 => MD expect 3, has currently 3 replicas, +3 replica it is using maxSurge 3
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateAnswer: map[string]bool{
+				"ms1": true,
+			},
+			expectMoveFromMS:   []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				// "ms2": 1, +1 replica using maxSurge dropped, there is a machine updating in place
+			},
+		},
+		{
+			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there are still not AvailableReplicas on the newMS (maxSurge 1, maxUnavailable 0)",
+			md:    createMD("v2", 3, withRollingUpdateStrategy(1, 0)),
+			newMS: createMS("ms2", "v2", 2, withStatusUpToDateReplicas(2), withStatusAvailableReplicas(1)),
+			oldMS: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 1),
+			},
+			machines: []*clusterv1.Machine{
+				createM("m1", "ms1", "v1"),
+				createM("m2", "ms2", "v1"),
+				createM("m3", "ms2", "v1"),
+			},
+			scaleIntents: map[string]int32{
+				"ms2": 3, // +1 => MD expect 3, has currently 3 replicas, +1 replica it is using maxSurge
+			},
+			upToDateResults: map[string]mdutil.UpToDateResult{
+				"ms1": {EligibleForInPlaceUpdate: true},
+			},
+			expectedCanUpdateCalls: map[string]bool{
+				"ms1": true,
+			},
+			canUpdateAnswer: map[string]bool{
+				"ms1": true,
+			},
+			expectMoveFromMS:   []string{"ms1"},
+			expectScaleIntents: map[string]int32{
+				// "ms2": 1, +1 replica using maxSurge dropped, there is a machine updating in place
 			},
 		},
 	}

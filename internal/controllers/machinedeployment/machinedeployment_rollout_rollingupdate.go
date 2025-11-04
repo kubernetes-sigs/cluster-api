@@ -28,8 +28,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
@@ -502,6 +504,7 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 }
 
 func (p *rolloutPlanner) scalingOrInPlaceUpdateInProgress(_ context.Context) bool {
+	// Check if the new MS or old MS are scaling.
 	if ptr.Deref(p.newMS.Spec.Replicas, 0) != ptr.Deref(p.newMS.Status.Replicas, 0) {
 		return true
 	}
@@ -513,10 +516,29 @@ func (p *rolloutPlanner) scalingOrInPlaceUpdateInProgress(_ context.Context) boo
 			return true
 		}
 	}
+
+	// Check that there are no updates in progress.
+	// We check both that the newMS MachineSet will report that the update is completed via .status.upToDateReplicas
+	// and the Machine controller through the annotations so this code does not depend on a specific execution order
+	// of the MachineSet and Machine controllers.
+	if ptr.Deref(p.newMS.Spec.Replicas, 0) != ptr.Deref(p.newMS.Status.UpToDateReplicas, 0) {
+		return true
+	}
 	for _, m := range p.machines {
-		if _, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+		_, inPlaceUpdateInProgress := m.Annotations[clusterv1.UpdateInProgressAnnotation]
+		hasUpdateMachinePending := hooks.IsPending(runtimehooksv1.UpdateMachine, m)
+		if inPlaceUpdateInProgress || hasUpdateMachinePending {
 			return true
 		}
+	}
+
+	// We are also checking AvailableReplicas because we want to make sure that we wait until the
+	// Machine goes back to Available after the in-place update is completed.
+	// If we would not wait for this, the rolloutPlaner would use maxSurge to create an additional Machine.
+	// Note: This also means that if any Machine of the new MachineSet becomes unavailable we are blocking
+	// further progress of the in-place update.
+	if ptr.Deref(p.newMS.Spec.Replicas, 0) != ptr.Deref(p.newMS.Status.AvailableReplicas, 0) {
+		return true
 	}
 	return false
 }

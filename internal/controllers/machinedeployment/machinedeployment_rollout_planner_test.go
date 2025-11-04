@@ -1227,6 +1227,12 @@ func withStatusAvailableReplicas(r int32) fakeMachineSetOption {
 	}
 }
 
+func withStatusUpToDateReplicas(r int32) fakeMachineSetOption {
+	return func(ms *clusterv1.MachineSet) {
+		ms.Status.UpToDateReplicas = ptr.To(r)
+	}
+}
+
 func withMSAnnotation(name, value string) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
 		if ms.Annotations == nil {

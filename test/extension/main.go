@@ -53,6 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/extension/handlers/inplaceupdate"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/lifecycle"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/topologymutation"
+	"sigs.k8s.io/cluster-api/test/extension/handlers/upgradeplan"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
@@ -263,6 +264,7 @@ func main() {
 	setupTopologyMutationHookHandlers(runtimeExtensionWebhookServer)
 	setupLifecycleHookHandlers(mgr, runtimeExtensionWebhookServer)
 	setupInPlaceUpdateHookHandlers(mgr, runtimeExtensionWebhookServer)
+	setupUpgradePlanHookHandlers(mgr, runtimeExtensionWebhookServer)
 
 	// Setup checks, indexes, reconcilers and webhooks.
 	setupChecks(mgr)
@@ -432,6 +434,23 @@ func setupInPlaceUpdateHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookSer
 		HandlerFunc: inPlaceUpdateExtensionHandlers.DoUpdateMachine,
 	}); err != nil {
 		setupLog.Error(err, "Error adding UpdateMachine handler")
+		os.Exit(1)
+	}
+}
+
+// setupUpgradePlanHookHandlers sets up Upgrade Plan Hooks.
+func setupUpgradePlanHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookServer *server.Server) {
+	// Create the ExtensionHandlers for the upgrade plan hooks
+	// NOTE: it is not mandatory to group all the ExtensionHandlers using a struct, what is important
+	// is to have HandlerFunc with the signature defined in sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.
+	upgradePlanExtensionHandlers := upgradeplan.NewExtensionHandlers(mgr.GetClient())
+
+	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:        runtimehooksv1.GenerateUpgradePlan,
+		Name:        "generate-upgrade-plan",
+		HandlerFunc: upgradePlanExtensionHandlers.DoGenerateUpgradePlan,
+	}); err != nil {
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 }

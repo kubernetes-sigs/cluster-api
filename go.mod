@@ -2,6 +2,8 @@ module sigs.k8s.io/cluster-api
 
 go 1.23.0
 
+godebug default=go1.23
+
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Masterminds/sprig/v3 v3.3.0

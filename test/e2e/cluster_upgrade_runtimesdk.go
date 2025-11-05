@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -450,6 +451,14 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		dumpAndDeleteCluster(ctx, input.BootstrapClusterProxy, input.ClusterctlConfigPath, namespace.Name, clusterName, input.ArtifactFolder)
 
 		beforeClusterDeleteHandler(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, input.ExtensionConfigName)
+
+		Byf("Waiting for cluster to be deleted")
+		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
+			ClusterProxy:         input.BootstrapClusterProxy,
+			ClusterctlConfigPath: input.ClusterctlConfigPath,
+			Cluster:              clusterResources.Cluster,
+			ArtifactFolder:       input.ArtifactFolder,
+		}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
 
 		By("Checking all lifecycle hooks have been called")
 		// Assert that each hook has been called and returned "Success" during the test.
@@ -1037,12 +1046,19 @@ func afterWorkersUpgradeTestHandler(ctx context.Context, c client.Client, cluste
 // cannot be found in the API server.
 func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string) {
 	hookName := "BeforeClusterDelete"
+	clusterObjectKey := client.ObjectKeyFromObject(cluster)
 
 	// for BeforeClusterDelete, the hook is blocking if Get Cluster keep returning something different from IsNotFound error.
 	isBlockingDelete := func() bool {
 		var blocked = true
 
-		if apierrors.IsNotFound(c.Get(ctx, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}, &clusterv1.Cluster{})) {
+		// BeforeClusterDelete is unblocked either if the Cluster is gone or if OkToDeleteAnnotation is set.
+		cluster := &clusterv1.Cluster{}
+		if err := c.Get(ctx, clusterObjectKey, cluster); err != nil {
+			if apierrors.IsNotFound(err) {
+				blocked = false
+			}
+		} else if hooks.IsOkToDelete(cluster) {
 			blocked = false
 		}
 		return blocked

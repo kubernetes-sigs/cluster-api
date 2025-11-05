@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -1967,6 +1968,7 @@ func TestAvailableCondition(t *testing.T) {
 		name            string
 		machine         *clusterv1.Machine
 		expectCondition metav1.Condition
+		expectRes       ctrl.Result
 	}{
 		{
 			name: "Not Ready",
@@ -1990,6 +1992,7 @@ func TestAvailableCondition(t *testing.T) {
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.MachineNotReadyReason,
 			},
+			expectRes: ctrl.Result{},
 		},
 		{
 			name: "Ready but still waiting for MinReadySeconds",
@@ -2014,6 +2017,7 @@ func TestAvailableCondition(t *testing.T) {
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.MachineWaitingForMinReadySecondsReason,
 			},
+			expectRes: ctrl.Result{RequeueAfter: 10 * time.Second},
 		},
 		{
 			name: "Ready and available",
@@ -2038,6 +2042,7 @@ func TestAvailableCondition(t *testing.T) {
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineAvailableReason,
 			},
+			expectRes: ctrl.Result{},
 		},
 	}
 
@@ -2045,11 +2050,16 @@ func TestAvailableCondition(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setAvailableCondition(ctx, tc.machine)
+			res := setAvailableCondition(ctx, tc.machine)
 
 			availableCondition := conditions.Get(tc.machine, clusterv1.MachineAvailableCondition)
 			g.Expect(availableCondition).ToNot(BeNil())
 			g.Expect(*availableCondition).To(conditions.MatchCondition(tc.expectCondition, conditions.IgnoreLastTransitionTime(true)))
+
+			g.Expect(res.IsZero()).To(Equal(tc.expectRes.IsZero()))
+			if !tc.expectRes.IsZero() {
+				g.Expect(res.RequeueAfter).To(BeNumerically("~", tc.expectRes.RequeueAfter, 100*time.Millisecond))
+			}
 		})
 	}
 }

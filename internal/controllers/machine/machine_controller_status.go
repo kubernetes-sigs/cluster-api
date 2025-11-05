@@ -67,19 +67,9 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) ctrl.Result {
 	setDeletingCondition(ctx, s.machine, s.reconcileDeleteExecuted, s.deletingReason, s.deletingMessage)
 	setUpdatingCondition(ctx, s.machine, s.updatingReason, s.updatingMessage)
 	setReadyCondition(ctx, s.machine)
-	setAvailableCondition(ctx, s.machine)
-
 	setMachinePhaseAndLastUpdated(ctx, s.machine)
 
-	// In case Available condition is waiting for machine.Spec.MinReadySeconds to expire, make sure to requeue accordingly
-	if conditions.IsTrue(s.machine, clusterv1.MachineReadyCondition) &&
-		conditions.IsFalse(s.machine, clusterv1.MachineAvailableCondition) {
-		return ctrl.Result{
-			RequeueAfter: time.Duration(ptr.Deref(s.machine.Spec.MinReadySeconds, 0))*time.Second -
-				time.Since(conditions.GetLastTransitionTime(s.machine, clusterv1.MachineReadyCondition).Time),
-		}
-	}
-	return ctrl.Result{}
+	return setAvailableCondition(ctx, s.machine)
 }
 
 func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, bootstrapConfig *unstructured.Unstructured, bootstrapConfigIsNotFound bool) {
@@ -784,7 +774,7 @@ func calculateDeletingConditionForSummary(machine *clusterv1.Machine) conditions
 	}
 }
 
-func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
+func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) ctrl.Result {
 	log := ctrl.LoggerFrom(ctx)
 	readyCondition := conditions.Get(machine, clusterv1.MachineReadyCondition)
 
@@ -798,7 +788,7 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 			Reason:  clusterv1.MachineAvailableInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
-		return
+		return ctrl.Result{}
 	}
 
 	if readyCondition.Status != metav1.ConditionTrue {
@@ -807,16 +797,17 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.MachineNotReadyReason,
 		})
-		return
+		return ctrl.Result{}
 	}
 
-	if time.Since(readyCondition.LastTransitionTime.Time) >= time.Duration(ptr.Deref(machine.Spec.MinReadySeconds, 0))*time.Second {
+	t := time.Since(readyCondition.LastTransitionTime.Time) - time.Duration(ptr.Deref(machine.Spec.MinReadySeconds, 0))*time.Second
+	if t >= 0 {
 		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineAvailableCondition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.MachineAvailableReason,
 		})
-		return
+		return ctrl.Result{}
 	}
 
 	conditions.Set(machine, metav1.Condition{
@@ -824,6 +815,7 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 		Status: metav1.ConditionFalse,
 		Reason: clusterv1.MachineWaitingForMinReadySecondsReason,
 	})
+	return ctrl.Result{RequeueAfter: -t}
 }
 
 func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {

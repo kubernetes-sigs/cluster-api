@@ -1029,7 +1029,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 		},
 		{
 			name:  "When moving replicas from oldMS to newMS, drop usage of MaxSurge in the newMS scale up intent when there newMS is scaling from a previous reconcile (maxSurge 3, maxUnavailable 1)",
-			md:    createMD("v6", 6, withRollingUpdateStrategy(3, 1)),
+			md:    createMD("v2", 6, withRollingUpdateStrategy(3, 1)),
 			newMS: createMS("ms2", "v2", 3, withStatusReplicas(2), withStatusUpToDateReplicas(2), withStatusAvailableReplicas(2)), // scaling from a previous reconcile
 			oldMS: []*clusterv1.MachineSet{
 				createMS("ms1", "v1", 3),
@@ -1068,8 +1068,8 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			},
 			machines: []*clusterv1.Machine{
 				createM("m1", "ms1", "v1"),
-				createM("m2", "ms2", "v1"),
-				createM("m3", "ms2", "v1"),
+				createM("m2", "ms2", "v2"),
+				createM("m3", "ms2", "v2"),
 			},
 			scaleIntents: map[string]int32{
 				"ms2": 3, // +1 => MD expect 3, has currently 3 replicas, +1 replica it is using maxSurge
@@ -1126,8 +1126,8 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 			},
 			machines: []*clusterv1.Machine{
 				createM("m1", "ms1", "v1"),
-				createM("m2", "ms2", "v1"),
-				createM("m3", "ms2", "v1"),
+				createM("m2", "ms2", "v2"),
+				createM("m3", "ms2", "v2"),
 			},
 			scaleIntents: map[string]int32{
 				"ms2": 3, // +1 => MD expect 3, has currently 3 replicas, +1 replica it is using maxSurge

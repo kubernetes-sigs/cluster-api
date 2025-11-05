@@ -162,6 +162,10 @@ const (
 
 	// MachineNotUpToDateReason surface when a Machine spec does not match the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
 	MachineNotUpToDateReason = "NotUpToDate"
+
+	// MachineUpToDateUpdatingReason surface when a Machine spec matches the spec of the Machine's owner resource,
+	// but the Machine is still updating in-place.
+	MachineUpToDateUpdatingReason = "Updating"
 )
 
 // Machine's Updating condition and corresponding reasons.

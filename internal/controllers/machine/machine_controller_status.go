@@ -42,7 +42,7 @@ import (
 // machine being partially deleted but also for running machines being disrupted e.g. by deleting the node.
 // Additionally, this func should ensure that the conditions managed by this controller are always set in order to
 // comply with the recommendation in the Kubernetes API guidelines.
-func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
+func (r *Reconciler) updateStatus(ctx context.Context, s *scope) ctrl.Result {
 	// Update status from the Bootstrap Config external resource.
 	// Note: some of the status fields derived from the Bootstrap Config are managed in reconcileBootstrap, e.g. status.BootstrapReady, etc.
 	// here we are taking care only of the delta (condition).
@@ -67,9 +67,9 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	setDeletingCondition(ctx, s.machine, s.reconcileDeleteExecuted, s.deletingReason, s.deletingMessage)
 	setUpdatingCondition(ctx, s.machine, s.updatingReason, s.updatingMessage)
 	setReadyCondition(ctx, s.machine)
-	setAvailableCondition(ctx, s.machine)
-
 	setMachinePhaseAndLastUpdated(ctx, s.machine)
+
+	return setAvailableCondition(ctx, s.machine)
 }
 
 func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, bootstrapConfig *unstructured.Unstructured, bootstrapConfigIsNotFound bool) {
@@ -774,7 +774,7 @@ func calculateDeletingConditionForSummary(machine *clusterv1.Machine) conditions
 	}
 }
 
-func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
+func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) ctrl.Result {
 	log := ctrl.LoggerFrom(ctx)
 	readyCondition := conditions.Get(machine, clusterv1.MachineReadyCondition)
 
@@ -788,7 +788,7 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 			Reason:  clusterv1.MachineAvailableInternalErrorReason,
 			Message: "Please check controller logs for errors",
 		})
-		return
+		return ctrl.Result{}
 	}
 
 	if readyCondition.Status != metav1.ConditionTrue {
@@ -797,16 +797,17 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.MachineNotReadyReason,
 		})
-		return
+		return ctrl.Result{}
 	}
 
-	if time.Since(readyCondition.LastTransitionTime.Time) >= time.Duration(ptr.Deref(machine.Spec.MinReadySeconds, 0))*time.Second {
+	t := time.Since(readyCondition.LastTransitionTime.Time) - time.Duration(ptr.Deref(machine.Spec.MinReadySeconds, 0))*time.Second
+	if t >= 0 {
 		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineAvailableCondition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.MachineAvailableReason,
 		})
-		return
+		return ctrl.Result{}
 	}
 
 	conditions.Set(machine, metav1.Condition{
@@ -814,6 +815,7 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
 		Status: metav1.ConditionFalse,
 		Reason: clusterv1.MachineWaitingForMinReadySecondsReason,
 	})
+	return ctrl.Result{RequeueAfter: -t}
 }
 
 func setMachinePhaseAndLastUpdated(_ context.Context, m *clusterv1.Machine) {

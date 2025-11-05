@@ -54,6 +54,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
+	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -999,7 +1000,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 		log := log.WithValues("Machine", klog.KObj(machine))
 
 		// Make sure we are not moving machines still updating in place from a previous move (this includes also machines still pending AcknowledgeMove).
-		if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; ok || hooks.IsPending(runtimehooksv1.UpdateMachine, machine) {
+		if inplace.IsUpdateInProgress(machine) {
 			continue
 		}
 

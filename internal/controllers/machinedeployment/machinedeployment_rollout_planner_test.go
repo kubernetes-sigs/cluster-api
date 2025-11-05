@@ -39,9 +39,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
-	"sigs.k8s.io/cluster-api/internal/hooks"
+	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -699,7 +698,7 @@ func machineSetControllerMutatorMoveMachines(log *fileLogger, ms *clusterv1.Mach
 		}
 
 		// Make sure we are not moving machines still updating in place (this includes also machines still pending AcknowledgeMove).
-		if _, ok := m.Annotations[clusterv1.UpdateInProgressAnnotation]; ok || hooks.IsPending(runtimehooksv1.UpdateMachine, m) {
+		if inplace.IsUpdateInProgress(m) {
 			machinesSetMachines = append(machinesSetMachines, m)
 			continue
 		}
@@ -1131,11 +1130,11 @@ func sortMachineSetMachinesByDeletionPriorityAndName(machines []*clusterv1.Machi
 	// - if both machines are not updating in place, delete first the machine with the lowest machine NameIndex (e.g. between m3 and m4, pick m3)
 	sort.Slice(machinesSetMachinesSortedByDeletePriority, func(i, j int) bool {
 		iPriority := 100
-		if _, ok := machinesSetMachinesSortedByDeletePriority[i].Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+		if inplace.IsUpdateInProgress(machinesSetMachinesSortedByDeletePriority[i]) {
 			iPriority = 1
 		}
 		jPriority := 100
-		if _, ok := machinesSetMachinesSortedByDeletePriority[j].Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+		if inplace.IsUpdateInProgress(machinesSetMachinesSortedByDeletePriority[j]) {
 			jPriority = 1
 		}
 		if iPriority == jPriority {

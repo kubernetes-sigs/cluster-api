@@ -1408,6 +1408,94 @@ func TestTransformControlPlaneAndEtcdConditions(t *testing.T) {
 	}
 }
 
+func TestSetUpdatingCondition(t *testing.T) {
+	tests := []struct {
+		name            string
+		machine         *clusterv1.Machine
+		updatingReason  string
+		updatingMessage string
+		expectCondition *metav1.Condition
+	}{
+		{
+			name:            "A machine not in-place updating is not updating",
+			machine:         &clusterv1.Machine{},
+			updatingReason:  "foo",
+			updatingMessage: "bar",
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpdatingCondition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineNotUpdatingReason,
+			},
+		},
+		{
+			name: "A machine starting in-place update is updating",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.UpdateInProgressAnnotation: "",
+					},
+				},
+			},
+			updatingReason:  "foo",
+			updatingMessage: "bar",
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpdatingCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  "foo",
+				Message: "bar",
+			},
+		},
+		{
+			name: "A machine in-place updating is updating",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.UpdateInProgressAnnotation: "",
+						runtimev1.PendingHooksAnnotation:     "UpdateMachine",
+					},
+				},
+			},
+			updatingReason:  "foo",
+			updatingMessage: "bar",
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpdatingCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  "foo",
+				Message: "bar",
+			},
+		},
+		{
+			name: "A machine stopping in-place updating is updating",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						runtimev1.PendingHooksAnnotation: "UpdateMachine",
+					},
+				},
+			},
+			updatingReason:  "foo",
+			updatingMessage: "bar",
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpdatingCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  "foo",
+				Message: "bar",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setUpdatingCondition(ctx, tt.machine, tt.updatingReason, tt.updatingMessage)
+
+			condition := conditions.Get(tt.machine, clusterv1.MachineUpdatingCondition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(conditions.MatchCondition(*tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
 func TestSetUpToDateCondition(t *testing.T) {
 	reconciliationTime := time.Now()
 	tests := []struct {
@@ -1491,8 +1579,8 @@ func TestSetUpToDateCondition(t *testing.T) {
 			},
 			expectCondition: &metav1.Condition{
 				Type:   clusterv1.MachineUpToDateCondition,
-				Status: metav1.ConditionTrue,
-				Reason: clusterv1.MachineUpToDateReason,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineUpToDateUpdatingReason,
 			},
 		},
 		{
@@ -1663,10 +1751,9 @@ func TestSetUpToDateCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			machine := &clusterv1.Machine{}
-			setUpToDateCondition(ctx, machine, tt.machineSet, tt.machineDeployment)
+			setUpToDateCondition(ctx, tt.machine, tt.machineSet, tt.machineDeployment)
 
-			condition := conditions.Get(machine, clusterv1.MachineUpToDateCondition)
+			condition := conditions.Get(tt.machine, clusterv1.MachineUpToDateCondition)
 			if tt.expectCondition != nil {
 				g.Expect(condition).ToNot(BeNil())
 				g.Expect(*condition).To(conditions.MatchCondition(*tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))

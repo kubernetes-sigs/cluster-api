@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
+	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -637,20 +638,23 @@ func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, reconci
 }
 
 func setUpdatingCondition(_ context.Context, machine *clusterv1.Machine, updatingReason, updatingMessage string) {
-	if updatingReason == "" {
+	if inplace.IsUpdateInProgress(machine) {
+		if updatingReason == "" {
+			updatingReason = clusterv1.MachineInPlaceUpdatingReason
+		}
 		conditions.Set(machine, metav1.Condition{
-			Type:   clusterv1.MachineUpdatingCondition,
-			Status: metav1.ConditionFalse,
-			Reason: clusterv1.MachineNotUpdatingReason,
+			Type:    clusterv1.MachineUpdatingCondition,
+			Status:  metav1.ConditionTrue,
+			Reason:  updatingReason,
+			Message: updatingMessage,
 		})
 		return
 	}
 
 	conditions.Set(machine, metav1.Condition{
-		Type:    clusterv1.MachineUpdatingCondition,
-		Status:  metav1.ConditionTrue,
-		Reason:  updatingReason,
-		Message: updatingMessage,
+		Type:   clusterv1.MachineUpdatingCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.MachineNotUpdatingReason,
 	})
 }
 

@@ -18,11 +18,10 @@ package controllers
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,6 +31,7 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/internal/hooks"
+	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 )
 
@@ -60,11 +60,8 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 
 		// Wait until the cache observed the Machine with UpdateInProgressAnnotation to ensure subsequent reconciles
 		// will observe it as well and accordingly don't trigger another in-place update concurrently.
-		if err := waitForCache(ctx, r.Client, machine, func(m *clusterv1.Machine) bool {
-			_, annotationSet := m.Annotations[clusterv1.UpdateInProgressAnnotation]
-			return annotationSet
-		}); err != nil {
-			return errors.Wrapf(err, "failed waiting for Machine %s to be updated in the cache after setting the %s annotation", klog.KObj(machine), clusterv1.UpdateInProgressAnnotation)
+		if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, fmt.Sprintf("setting the %s annotation", clusterv1.UpdateInProgressAnnotation), machine); err != nil {
+			return err
 		}
 	}
 
@@ -141,13 +138,7 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 
 	// Wait until the cache observed the Machine with PendingHooksAnnotation to ensure subsequent reconciles
 	// will observe it as well and won't repeatedly call triggerInPlaceUpdate.
-	if err := waitForCache(ctx, r.Client, machine, func(m *clusterv1.Machine) bool {
-		return hooks.IsPending(runtimehooksv1.UpdateMachine, m)
-	}); err != nil {
-		return errors.Wrapf(err, "failed waiting for Machine %s to be updated in the cache after marking the UpdateMachine hook as pending", klog.KObj(machine))
-	}
-
-	return nil
+	return clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "marking the UpdateMachine hook as pending", desiredMachine)
 }
 
 func (r *KubeadmControlPlaneReconciler) removeInitConfiguration(ctx context.Context, desiredKubeadmConfig *bootstrapv1.KubeadmConfig) error {
@@ -175,14 +166,4 @@ func (r *KubeadmControlPlaneReconciler) removeInitConfiguration(ctx context.Cont
 		return errors.Wrap(err, "failed to patch KubeadmConfig: failed to remove initConfiguration")
 	}
 	return nil
-}
-
-func waitForCache(ctx context.Context, c client.Client, machine *clusterv1.Machine, f func(m *clusterv1.Machine) bool) error {
-	return wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-		m := &clusterv1.Machine{}
-		if err := c.Get(ctx, client.ObjectKeyFromObject(machine), m); err != nil {
-			return false, err
-		}
-		return f(m), nil
-	})
 }

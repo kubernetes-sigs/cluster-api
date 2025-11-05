@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -30,7 +29,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
+	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -505,18 +504,8 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 	// Note: It is good enough to check that the resource version changed. Other controllers might have updated the
 	// Cluster as well, but the combination of the patch call above without a conflict and a changed resource
 	// version here guarantees that we see the changes of our own update.
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-		key := client.ObjectKey{Namespace: s.Current.Cluster.GetNamespace(), Name: s.Current.Cluster.GetName()}
-		cachedCluster := &clusterv1.Cluster{}
-		if err := r.Client.Get(ctx, key, cachedCluster); err != nil {
-			return false, err
-		}
-		return s.Current.Cluster.GetResourceVersion() != cachedCluster.GetResourceVersion(), nil
-	})
-	if err != nil {
-		return errors.Wrapf(err, "failed waiting for Cluster %s to be updated in the cache after patch", klog.KObj(s.Current.Cluster))
-	}
-	return nil
+	// Note: Using DeepCopy to not modify s.Current.Cluster as it's not trivial to figure out what impact that would have.
+	return clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "Cluster update", s.Current.Cluster.DeepCopy())
 }
 
 // reconcileMachineDeployments reconciles the desired state of the MachineDeployment objects.
@@ -678,18 +667,8 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 	// Wait until MachineDeployment is visible in the cache.
 	// Note: We have to do this because otherwise using a cached client in current state could
 	// miss a newly created MachineDeployment (because the cache might be stale).
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-		key := client.ObjectKey{Namespace: md.Object.Namespace, Name: md.Object.Name}
-		if err := r.Client.Get(ctx, key, &clusterv1.MachineDeployment{}); err != nil {
-			if apierrors.IsNotFound(err) {
-				return false, nil
-			}
-			return false, err
-		}
-		return true, nil
-	})
-	if err != nil {
-		return errors.Wrapf(err, "failed waiting for MachineDeployment %s to be visible in the cache after create", md.Object.Kind)
+	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachineDeployment creation", md.Object); err != nil {
+		return err
 	}
 
 	// If the MachineDeployment has defined a MachineHealthCheck reconcile it.
@@ -812,16 +791,8 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 	// Note: It is good enough to check that the resource version changed. Other controllers might have updated the
 	// MachineDeployment as well, but the combination of the patch call above without a conflict and a changed resource
 	// version here guarantees that we see the changes of our own update.
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-		key := client.ObjectKey{Namespace: currentMD.Object.GetNamespace(), Name: currentMD.Object.GetName()}
-		cachedMD := &clusterv1.MachineDeployment{}
-		if err := r.Client.Get(ctx, key, cachedMD); err != nil {
-			return false, err
-		}
-		return currentMD.Object.GetResourceVersion() != cachedMD.GetResourceVersion(), nil
-	})
-	if err != nil {
-		return errors.Wrapf(err, "failed waiting for MachineDeployment %s to be updated in the cache after patch", klog.KObj(currentMD.Object))
+	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachineDeployment update", currentMD.Object); err != nil {
+		return err
 	}
 
 	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.
@@ -1019,21 +990,7 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 	// Wait until MachinePool is visible in the cache.
 	// Note: We have to do this because otherwise using a cached client in current state could
 	// miss a newly created MachinePool (because the cache might be stale).
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-		key := client.ObjectKey{Namespace: mp.Object.Namespace, Name: mp.Object.Name}
-		if err := r.Client.Get(ctx, key, &clusterv1.MachinePool{}); err != nil {
-			if apierrors.IsNotFound(err) {
-				return false, nil
-			}
-			return false, err
-		}
-		return true, nil
-	})
-	if err != nil {
-		return errors.Wrapf(err, "failed waiting for MachinePool %s to be visible in the cache after create", mp.Object.Kind)
-	}
-
-	return nil
+	return clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachinePool creation", mp.Object)
 }
 
 // updateMachinePool updates a MachinePool. Also updates the corresponding objects if necessary.
@@ -1094,16 +1051,8 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, mpTo
 	// Note: It is good enough to check that the resource version changed. Other controllers might have updated the
 	// MachinePool as well, but the combination of the patch call above without a conflict and a changed resource
 	// version here guarantees that we see the changes of our own update.
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-		key := client.ObjectKey{Namespace: currentMP.Object.GetNamespace(), Name: currentMP.Object.GetName()}
-		cachedMP := &clusterv1.MachinePool{}
-		if err := r.Client.Get(ctx, key, cachedMP); err != nil {
-			return false, err
-		}
-		return currentMP.Object.GetResourceVersion() != cachedMP.GetResourceVersion(), nil
-	})
-	if err != nil {
-		return errors.Wrapf(err, "failed waiting for MachinePool %s to be updated in the cache after patch", klog.KObj(currentMP.Object))
+	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachinePool update", currentMP.Object); err != nil {
+		return err
 	}
 
 	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.

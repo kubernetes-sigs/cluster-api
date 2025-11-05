@@ -178,6 +178,8 @@ linters:
           alias: ""
         - pkg: sigs.k8s.io/cluster-api/internal/topology/names
           alias: topologynames
+        - pkg: sigs.k8s.io/cluster-api/internal/util/client
+          alias: "clientutil"
         # CAPD
         - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3
           alias: infrav1alpha3

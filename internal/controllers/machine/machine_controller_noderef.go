@@ -145,7 +145,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	_, nodeHadInterruptibleLabel := s.node.Labels[clusterv1.InterruptibleLabel]
 
 	// Reconcile node taints
-	if err := r.patchNode(ctx, remoteClient, s.node, nodeLabels, nodeAnnotations, s.owningMachineSet, s.owningMachineDeployment); err != nil {
+	if err := r.patchNode(ctx, remoteClient, s.node, nodeLabels, nodeAnnotations, machine, s.owningMachineSet, s.owningMachineDeployment); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile Node %s", klog.KObj(s.node))
 	}
 	if !nodeHadInterruptibleLabel && interruptible {
@@ -248,7 +248,7 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID st
 
 // PatchNode is required to workaround an issue on Node.Status.Address which is incorrectly annotated as patchStrategy=merge
 // and this causes SSA patch to fail in case there are two addresses with the same key https://github.com/kubernetes-sigs/cluster-api/issues/8417
-func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, node *corev1.Node, newLabels, newAnnotations map[string]string, ms *clusterv1.MachineSet, md *clusterv1.MachineDeployment) error {
+func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, node *corev1.Node, newLabels, newAnnotations map[string]string, m *clusterv1.Machine, ms *clusterv1.MachineSet, md *clusterv1.MachineDeployment) error {
 	newNode := node.DeepCopy()
 
 	// Adds the annotations from the Machine.

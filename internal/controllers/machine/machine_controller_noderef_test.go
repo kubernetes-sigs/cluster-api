@@ -1299,7 +1299,7 @@ func TestPatchNode(t *testing.T) {
 				_ = env.CleanupAndWait(ctx, oldNode, machine, ms, md)
 			})
 
-			err := r.patchNode(ctx, env, oldNode, tc.newLabels, tc.newAnnotations, ms, md)
+			err := r.patchNode(ctx, env, oldNode, tc.newLabels, tc.newAnnotations, tc.machine, ms, md)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Eventually(func(g Gomega) {
@@ -1404,7 +1404,7 @@ func TestMultiplePatchNode(t *testing.T) {
 				_ = env.CleanupAndWait(ctx, oldNode, machine)
 			})
 
-			err := r.patchNode(ctx, env, oldNode, labels, tc.newAnnotations, nil, nil)
+			err := r.patchNode(ctx, env, oldNode, labels, tc.newAnnotations, machine, nil, nil)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			newNode := &corev1.Node{}
@@ -1418,7 +1418,7 @@ func TestMultiplePatchNode(t *testing.T) {
 			}, 10*time.Second).Should(Succeed())
 
 			// Re-reconcile with the same metadata
-			err = r.patchNode(ctx, env, newNode, labels, tc.newAnnotations, nil, nil)
+			err = r.patchNode(ctx, env, newNode, labels, tc.newAnnotations, machine, nil, nil)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Eventually(func(g Gomega) {

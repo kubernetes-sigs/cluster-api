@@ -1,6 +1,6 @@
 # Contract rules for ControlPlane
 
-Control plane providers MUST implement a ControlPlane resource.
+Control plane providers MUST implement a ControlPlane resource using Kubernetes' CustomResourceDefinition (CRD).
 
 The goal of a ControlPlane resource is to instantiate a Kubernetes control plane; a Kubernetes control plane
 at least contains the following components:

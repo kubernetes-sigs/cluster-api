@@ -14,7 +14,7 @@ Note that the IPAM contract is single-stack. If you need both v4 and v6 addresse
 
 ## Data Types
 
-An IPAM provider must define one or more API types for IP address pools. The types:
+An IPAM provider must define one or more API types for IP address pools using Kubernetes' CustomResourceDefinition (CRD). The types:
 
 1. Must belong to an API group served by the Kubernetes apiserver 
 2. Must be implemented as a CustomResourceDefinition. 

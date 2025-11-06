@@ -1,6 +1,6 @@
 # Contract rules for BootstrapConfig
 
-Bootstrap providers SHOULD implement a BootstrapConfig resource.
+Bootstrap providers SHOULD implement a BootstrapConfig resource using Kubernetes' CustomResourceDefinition (CRD).
 
 The goal of a BootstrapConfig resource is to generates bootstrap data that is used to bootstrap a Kubernetes node.
 These may be e.g. [cloud-init] scripts.
@@ -501,6 +501,6 @@ The following diagram shows the typical logic for a bootstrap provider:
 [clusterctl provider contract]: clusterctl.md
 [implementation best practices]: ../best-practices.md
 [Server Side Apply]: https://kubernetes.io/docs/reference/using-api/server-side-apply/
-[the DockerMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/internal/webhooks/dockermachinetemplate_webhook.go
+[the DockerMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/internal/webhooks/dockermachinetemplate.go
 [BootstrapConfig: pausing]: #bootstrapconfig-pausing
 [Cluster API v1.11 migration notes]: ../migrations/v1.10-to-v1.11.md

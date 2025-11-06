@@ -28,10 +28,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
-	"sigs.k8s.io/cluster-api/internal/hooks"
+	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
@@ -525,9 +524,7 @@ func (p *rolloutPlanner) scalingOrInPlaceUpdateInProgress(_ context.Context) boo
 		return true
 	}
 	for _, m := range p.machines {
-		_, inPlaceUpdateInProgress := m.Annotations[clusterv1.UpdateInProgressAnnotation]
-		hasUpdateMachinePending := hooks.IsPending(runtimehooksv1.UpdateMachine, m)
-		if inPlaceUpdateInProgress || hasUpdateMachinePending {
+		if inplace.IsUpdateInProgress(m) {
 			return true
 		}
 	}

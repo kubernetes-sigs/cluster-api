@@ -1409,6 +1409,362 @@ func TestTransformControlPlaneAndEtcdConditions(t *testing.T) {
 	}
 }
 
+func TestSetUpdatingCondition(t *testing.T) {
+	tests := []struct {
+		name            string
+		machine         *clusterv1.Machine
+		updatingReason  string
+		updatingMessage string
+		expectCondition *metav1.Condition
+	}{
+		{
+			name:            "A machine not in-place updating is not updating",
+			machine:         &clusterv1.Machine{},
+			updatingReason:  "foo",
+			updatingMessage: "bar",
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpdatingCondition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineNotUpdatingReason,
+			},
+		},
+		{
+			name: "A machine starting in-place update is updating",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.UpdateInProgressAnnotation: "",
+					},
+				},
+			},
+			updatingReason:  "foo",
+			updatingMessage: "bar",
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpdatingCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  "foo",
+				Message: "bar",
+			},
+		},
+		{
+			name: "A machine in-place updating is updating",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.UpdateInProgressAnnotation: "",
+						runtimev1.PendingHooksAnnotation:     "UpdateMachine",
+					},
+				},
+			},
+			updatingReason:  "foo",
+			updatingMessage: "bar",
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpdatingCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  "foo",
+				Message: "bar",
+			},
+		},
+		{
+			name: "A machine stopping in-place updating is updating",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						runtimev1.PendingHooksAnnotation: "UpdateMachine",
+					},
+				},
+			},
+			updatingReason:  "foo",
+			updatingMessage: "bar",
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpdatingCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  "foo",
+				Message: "bar",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setUpdatingCondition(ctx, tt.machine, tt.updatingReason, tt.updatingMessage)
+
+			condition := conditions.Get(tt.machine, clusterv1.MachineUpdatingCondition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(conditions.MatchCondition(*tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
+func TestSetUpToDateCondition(t *testing.T) {
+	reconciliationTime := time.Now()
+	tests := []struct {
+		name              string
+		machineDeployment *clusterv1.MachineDeployment
+		machineSet        *clusterv1.MachineSet
+		machine           *clusterv1.Machine
+		expectCondition   *metav1.Condition
+	}{
+		{
+			name:              "no condition returned for stand-alone Machines",
+			machineDeployment: nil,
+			machineSet:        nil,
+			machine:           &clusterv1.Machine{},
+			expectCondition:   nil,
+		},
+		{
+			name:              "no condition returned for stand-alone MachineSet",
+			machineDeployment: nil,
+			machineSet:        &clusterv1.MachineSet{},
+			machine:           &clusterv1.Machine{},
+			expectCondition:   nil,
+		},
+		{
+			name: "up-to-date",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{},
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineUpToDateReason,
+			},
+		},
+		{
+			name: "updating",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.MachineUpdatingCondition,
+							Status: metav1.ConditionTrue,
+							Reason: clusterv1.MachineInPlaceUpdatingReason,
+						},
+					},
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineUpToDateUpdatingReason,
+			},
+		},
+		{
+			name: "not up-to-date",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.30.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{},
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpToDateCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineNotUpToDateReason,
+				Message: "* Version v1.30.0, v1.31.0 required",
+			},
+		},
+		{
+			name: "up-to-date, spec.rolloutAfter not expired",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Rollout: clusterv1.MachineDeploymentRolloutSpec{
+						After: metav1.Time{Time: reconciliationTime.Add(1 * time.Hour)}, // rollout after not yet expired
+					},
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // MS created before rollout after
+				},
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{},
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineUpToDateReason,
+			},
+		},
+		{
+			name: "not up-to-date, rollout After expired",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Rollout: clusterv1.MachineDeploymentRolloutSpec{
+						After: metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // rollout after expired
+					},
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-2 * time.Hour)}, // MS created before rollout after
+				},
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{},
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpToDateCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineNotUpToDateReason,
+				Message: "* MachineDeployment spec.rolloutAfter expired",
+			},
+		},
+		{
+			name: "not up-to-date, rollout After expired and a new MS created",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Rollout: clusterv1.MachineDeploymentRolloutSpec{
+						After: metav1.Time{Time: reconciliationTime.Add(-2 * time.Hour)}, // rollout after expired
+					},
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // MS created after rollout after
+				},
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{},
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineUpToDateReason,
+			},
+		},
+		{
+			name: "not up-to-date, version changed, rollout After expired",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Rollout: clusterv1.MachineDeploymentRolloutSpec{
+						After: metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // rollout after expired
+					},
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.30.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-2 * time.Hour)}, // MS created before rollout after
+				},
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{},
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineNotUpToDateReason,
+				Message: "* Version v1.31.0, v1.30.0 required\n" +
+					"* MachineDeployment spec.rolloutAfter expired",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setUpToDateCondition(ctx, tt.machine, tt.machineSet, tt.machineDeployment)
+
+			condition := conditions.Get(tt.machine, clusterv1.MachineUpToDateCondition)
+			if tt.expectCondition != nil {
+				g.Expect(condition).ToNot(BeNil())
+				g.Expect(*condition).To(conditions.MatchCondition(*tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
+			} else {
+				g.Expect(condition).To(BeNil())
+			}
+		})
+	}
+}
+
 func TestSetReadyCondition(t *testing.T) {
 	testCases := []struct {
 		name            string

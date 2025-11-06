@@ -48,6 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -1039,6 +1040,16 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *internal
 			})
 			continue
 		}
+
+		if inplace.IsUpdateInProgress(machine) {
+			conditions.Set(machine, metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineUpToDateUpdatingReason,
+			})
+			continue
+		}
+
 		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionTrue,

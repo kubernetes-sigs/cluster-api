@@ -254,6 +254,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		machine: m,
 	}
 
+	//  If the Machine is controlled by a MachineSet, read it.
+	s.owningMachineSet, err = r.getOwnerMachineSet(ctx, s.machine)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	//  If the MachineSet is controlled by a MachineDeployment, get it as well.
+	s.owningMachineDeployment, err = r.getOwnerMachineDeployment(ctx, s.owningMachineSet)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	defer func() {
 		updateRes := r.updateStatus(ctx, s)
 		retres = util.LowestNonZeroResult(retres, updateRes)
@@ -294,6 +306,35 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	)
 
 	return doReconcile(ctx, reconcileNormal, s)
+}
+
+func (r *Reconciler) getOwnerMachineSet(ctx context.Context, m *clusterv1.Machine) (*clusterv1.MachineSet, error) {
+	machineSetKey, notFound, err := getOwnerMachineSetObjectKey(m.ObjectMeta)
+	if err != nil || notFound || machineSetKey == nil {
+		return nil, err
+	}
+	ms := &clusterv1.MachineSet{}
+	if err := r.Client.Get(ctx, *machineSetKey, ms); err != nil {
+		return nil, fmt.Errorf("failed to retrieve owner MachineSet for Machine %s: %w", klog.KObj(m), err)
+	}
+	return ms, nil
+}
+
+func (r *Reconciler) getOwnerMachineDeployment(ctx context.Context, ms *clusterv1.MachineSet) (*clusterv1.MachineDeployment, error) {
+	if ms == nil {
+		return nil, nil
+	}
+
+	mdName := ms.Labels[clusterv1.MachineDeploymentNameLabel]
+	if mdName == "" {
+		return nil, nil
+	}
+
+	md := &clusterv1.MachineDeployment{}
+	if err := r.Client.Get(ctx, client.ObjectKey{Namespace: ms.Namespace, Name: mdName}, md); err != nil {
+		return nil, fmt.Errorf("failed to retrieve owner MachineDeployment for MachineSet %s: %w", klog.KObj(ms), err)
+	}
+	return md, nil
 }
 
 func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clusterv1.Machine, options ...patch.Option) error {
@@ -377,6 +418,14 @@ type scope struct {
 	// machine is the Machine object. It is set at the beginning
 	// of the reconcile function.
 	machine *clusterv1.Machine
+
+	// owningMachineSet return the MachineSet owning this machine.
+	// Note: The value will be nil in case of stand-alone machines.
+	owningMachineSet *clusterv1.MachineSet
+
+	// owningMachineDeployment return the MachineDeployment controlling the MachineSet owning this machine.
+	// Note: The value will be nil in case of stand-alone Machines or in case of stand-alone MachineSet.
+	owningMachineDeployment *clusterv1.MachineDeployment
 
 	// infraMachine is the Infrastructure Machine object that is referenced by the
 	// Machine. It is set after reconcileInfrastructure is called.

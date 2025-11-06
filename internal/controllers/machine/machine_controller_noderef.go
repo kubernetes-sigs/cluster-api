@@ -24,7 +24,6 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -143,7 +142,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	_, nodeHadInterruptibleLabel := s.node.Labels[clusterv1.InterruptibleLabel]
 
 	// Reconcile node taints
-	if err := r.patchNode(ctx, remoteClient, s.node, nodeLabels, nodeAnnotations, machine); err != nil {
+	if err := r.patchNode(ctx, remoteClient, s.node, nodeLabels, nodeAnnotations, s.owningMachineSet, s.owningMachineDeployment); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile Node %s", klog.KObj(s.node))
 	}
 	if !nodeHadInterruptibleLabel && interruptible {
@@ -246,7 +245,7 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID st
 
 // PatchNode is required to workaround an issue on Node.Status.Address which is incorrectly annotated as patchStrategy=merge
 // and this causes SSA patch to fail in case there are two addresses with the same key https://github.com/kubernetes-sigs/cluster-api/issues/8417
-func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, node *corev1.Node, newLabels, newAnnotations map[string]string, m *clusterv1.Machine) error {
+func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, node *corev1.Node, newLabels, newAnnotations map[string]string, ms *clusterv1.MachineSet, md *clusterv1.MachineDeployment) error {
 	newNode := node.DeepCopy()
 
 	// Adds the annotations from the Machine.
@@ -336,20 +335,14 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	hasTaintChanges := taints.RemoveNodeTaint(newNode, clusterv1.NodeUninitializedTaint)
 
 	// Set Taint to a node in an old MachineSet and unset Taint from a node in a new MachineSet
-	isOutdated, notFound, err := shouldNodeHaveOutdatedTaint(ctx, r.Client, m)
+	isOutdated, err := shouldNodeHaveOutdatedTaint(ms, md)
 	if err != nil {
 		return errors.Wrapf(err, "failed to check if Node %s is outdated", klog.KRef("", node.Name))
 	}
-
-	// It is only possible to identify if we have to set or remove the NodeOutdatedRevisionTaint if shouldNodeHaveOutdatedTaint
-	// found all relevant objects.
-	// Example: when the MachineDeployment or Machineset can't be found due to a background deletion of objects.
-	if !notFound {
-		if isOutdated {
-			hasTaintChanges = taints.EnsureNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
-		} else {
-			hasTaintChanges = taints.RemoveNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
-		}
+	if isOutdated {
+		hasTaintChanges = taints.EnsureNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
+	} else {
+		hasTaintChanges = taints.RemoveNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
 	}
 
 	if !hasAnnotationChanges && !hasLabelChanges && !hasTaintChanges {
@@ -362,47 +355,23 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 // shouldNodeHaveOutdatedTaint tries to compare the revision of the owning MachineSet to the MachineDeployment.
 // It returns notFound = true if the OwnerReference is not set or the APIServer returns NotFound for the MachineSet or MachineDeployment.
 // Note: This three cases could happen during background deletion of objects.
-func shouldNodeHaveOutdatedTaint(ctx context.Context, c client.Client, m *clusterv1.Machine) (outdated bool, notFound bool, err error) {
-	if _, hasLabel := m.Labels[clusterv1.MachineDeploymentNameLabel]; !hasLabel {
-		return false, false, nil
+func shouldNodeHaveOutdatedTaint(ms *clusterv1.MachineSet, md *clusterv1.MachineDeployment) (outdated bool, err error) {
+	if ms == nil || md == nil {
+		return false, nil
 	}
 
-	// Resolve the MachineSet name via owner references because the label value
-	// could also be a hash.
-	objKey, notFound, err := getOwnerMachineSetObjectKey(m.ObjectMeta)
-	if err != nil || notFound {
-		return false, notFound, err
-	}
-	ms := &clusterv1.MachineSet{}
-	if err := c.Get(ctx, *objKey, ms); err != nil {
-		if apierrors.IsNotFound(err) {
-			return false, true, nil
-		}
-		return false, false, err
-	}
-	md := &clusterv1.MachineDeployment{}
-	objKey = &client.ObjectKey{
-		Namespace: m.Namespace,
-		Name:      m.Labels[clusterv1.MachineDeploymentNameLabel],
-	}
-	if err := c.Get(ctx, *objKey, md); err != nil {
-		if apierrors.IsNotFound(err) {
-			return false, true, nil
-		}
-		return false, false, err
-	}
 	msRev, err := mdutil.Revision(ms)
 	if err != nil {
-		return false, false, err
+		return false, err
 	}
 	mdRev, err := mdutil.Revision(md)
 	if err != nil {
-		return false, false, err
+		return false, err
 	}
 	if msRev < mdRev {
-		return true, false, nil
+		return true, nil
 	}
-	return false, false, nil
+	return false, nil
 }
 
 func getOwnerMachineSetObjectKey(obj metav1.ObjectMeta) (*client.ObjectKey, bool, error) {

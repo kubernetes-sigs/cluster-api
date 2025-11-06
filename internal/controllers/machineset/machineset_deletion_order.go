@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -56,7 +57,7 @@ func oldestDeletionOrder(machine *clusterv1.Machine) deletePriority {
 	}
 	// If there is machine still updating in progress and the MS is scaling down, consider this machine next
 	// so the system avoids to complete unnecessary in-place upgrades (drop machines not at the desired state first).
-	if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+	if inplace.IsUpdateInProgress(machine) {
 		return shouldDelete
 	}
 	// If there are machines not healthy, get rid of them next, because this will unblock the rollout
@@ -86,7 +87,7 @@ func newestDeletionOrder(machine *clusterv1.Machine) deletePriority {
 	}
 	// If there is machine still updating in progress and the MS is scaling down, consider this machine next
 	// so the system avoids to complete unnecessary in-place upgrades (drop machines not at the desired state first).
-	if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+	if inplace.IsUpdateInProgress(machine) {
 		return shouldDelete
 	}
 	// If there are machines not healthy, get rid of them next, because this will unblock the rollout
@@ -109,7 +110,7 @@ func randomDeletionOrder(machine *clusterv1.Machine) deletePriority {
 	}
 	// If there is machine still updating in progress and the MS is scaling down, consider this machine next
 	// so the system avoids to complete unnecessary in-place upgrades (drop machines not at the desired state first).
-	if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; ok {
+	if inplace.IsUpdateInProgress(machine) {
 		return shouldDelete
 	}
 	// If there are machines not healthy, get rid of them next, because this will unblock the rollout

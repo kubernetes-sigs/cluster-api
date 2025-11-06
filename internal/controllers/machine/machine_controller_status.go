@@ -34,6 +34,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
+	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -66,6 +68,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) ctrl.Result {
 	// MHC controller sets HealthCheckSucceeded and OwnerRemediated conditions, KCP sets conditions about etcd and control plane pods).
 	setDeletingCondition(ctx, s.machine, s.reconcileDeleteExecuted, s.deletingReason, s.deletingMessage)
 	setUpdatingCondition(ctx, s.machine, s.updatingReason, s.updatingMessage)
+	setUpToDateCondition(ctx, s.machine, s.owningMachineSet, s.owningMachineDeployment)
 	setReadyCondition(ctx, s.machine)
 	setMachinePhaseAndLastUpdated(ctx, s.machine)
 
@@ -635,20 +638,95 @@ func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, reconci
 }
 
 func setUpdatingCondition(_ context.Context, machine *clusterv1.Machine, updatingReason, updatingMessage string) {
-	if updatingReason == "" {
+	if inplace.IsUpdateInProgress(machine) {
+		if updatingReason == "" {
+			updatingReason = clusterv1.MachineInPlaceUpdatingReason
+		}
 		conditions.Set(machine, metav1.Condition{
-			Type:   clusterv1.MachineUpdatingCondition,
-			Status: metav1.ConditionFalse,
-			Reason: clusterv1.MachineNotUpdatingReason,
+			Type:    clusterv1.MachineUpdatingCondition,
+			Status:  metav1.ConditionTrue,
+			Reason:  updatingReason,
+			Message: updatingMessage,
 		})
 		return
 	}
 
 	conditions.Set(machine, metav1.Condition{
-		Type:    clusterv1.MachineUpdatingCondition,
-		Status:  metav1.ConditionTrue,
-		Reason:  updatingReason,
-		Message: updatingMessage,
+		Type:   clusterv1.MachineUpdatingCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.MachineNotUpdatingReason,
+	})
+}
+
+func setUpToDateCondition(_ context.Context, m *clusterv1.Machine, ms *clusterv1.MachineSet, md *clusterv1.MachineDeployment) {
+	// If the current Machine is a stand-alone machine or a machine controlled by a stand-alone MachineSet,
+	// do not set an up-to-date condition on Machines, allowing tools managing higher level abstractions to set this condition.
+	// Note: This is also consistent with the fact that the MachineSet primarily takes care of the number of Machine
+	//       replicas, it doesn't reconcile them (even if we have a few exceptions like in-place propagation of a few selected
+	//       fields and remediation).
+	// Note: The Machine controller is computing upToDate condition only for worker machines.
+	//       This difference exists for two reasons:
+	//       - We would like to avoid race conditions that might happen by computing machine's conditions on different controllers,
+	//         and most specifically for those conditions that are considered in the MachineSet controller and in the MachineDeployment
+	//         controller e.g. to orchestrate rollouts with in-place updates.
+	//       - Core CAPI is not aware of specific details of every control plane implementation, so it is not possible to
+	//         compute the UpToDateCondition for control plane machines.
+	if ms == nil || md == nil {
+		return
+	}
+
+	// Determine current and desired state.
+	// If the current MachineSet is owned by a MachineDeployment, we mirror what is implemented in the MachineDeployment controller
+	// to trigger rollouts (by creating new MachineSets).
+	// More specifically:
+	// - desired state for the Machine is the spec.Template of the MachineDeployment
+	// - current state for the Machine is the spec.Template of the MachineSet who owns the Machine
+	// Note: We are intentionally considering current spec from the MachineSet instead of spec from the Machine itself in
+	//       order to surface info consistent with what the MachineDeployment controller uses to take decisions about rollouts.
+	//       The downside is that the system will ignore out of band changes applied to controlled Machines, which is
+	//       considered an acceptable trade-off given that out of band changes are the exception (users should not change
+	//       objects owned by the system).
+	//       However, if out of band changes happen, at least the system will ignore out of band changes consistently, both in the
+	//       MachineDeployment controller and in the condition computed here.
+	current := &ms.Spec.Template
+	desired := &md.Spec.Template
+
+	upToDate, notUpToDateResult := mdutil.MachineTemplateUpToDate(current, desired)
+
+	if !md.Spec.Rollout.After.IsZero() {
+		if md.Spec.Rollout.After.Time.Before(time.Now()) && !ms.CreationTimestamp.After(md.Spec.Rollout.After.Time) {
+			upToDate = false
+			notUpToDateResult.ConditionMessages = append(notUpToDateResult.ConditionMessages, "MachineDeployment spec.rolloutAfter expired")
+		}
+	}
+
+	if !upToDate {
+		for i := range notUpToDateResult.ConditionMessages {
+			notUpToDateResult.ConditionMessages[i] = fmt.Sprintf("* %s", notUpToDateResult.ConditionMessages[i])
+		}
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineUpToDateCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachineNotUpToDateReason,
+			// Note: the code computing the message for MachineDeployment's RolloutOut condition is making assumptions on the format/content of this message.
+			Message: strings.Join(notUpToDateResult.ConditionMessages, "\n"),
+		})
+		return
+	}
+
+	if conditions.IsTrue(m, clusterv1.MachineUpdatingCondition) {
+		conditions.Set(m, metav1.Condition{
+			Type:   clusterv1.MachineUpToDateCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachineUpToDateUpdatingReason,
+		})
+		return
+	}
+
+	conditions.Set(m, metav1.Condition{
+		Type:   clusterv1.MachineUpToDateCondition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.MachineUpToDateReason,
 	})
 }
 

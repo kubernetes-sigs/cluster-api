@@ -1208,35 +1208,6 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 }
 
 func TestMachineSetReconciler_syncMachines(t *testing.T) {
-	setup := func(t *testing.T, g *WithT) (*corev1.Namespace, *clusterv1.Cluster) {
-		t.Helper()
-
-		t.Log("Creating the namespace")
-		ns, err := env.CreateNamespace(ctx, "test-machine-set-reconciler-sync-machines")
-		g.Expect(err).ToNot(HaveOccurred())
-
-		t.Log("Creating the Cluster")
-		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ns.Name,
-				Name:      testClusterName,
-			},
-			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: builder.ControlPlaneGroupVersion.Group,
-					Kind:     builder.GenericControlPlaneKind,
-					Name:     "cp1",
-				},
-			},
-		}
-		g.Expect(env.Create(ctx, cluster)).To(Succeed())
-
-		t.Log("Creating the Cluster Kubeconfig Secret")
-		g.Expect(env.CreateKubeconfigSecret(ctx, cluster)).To(Succeed())
-
-		return ns, cluster
-	}
-
 	teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace, cluster *clusterv1.Cluster) {
 		t.Helper()
 
@@ -1247,7 +1218,29 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	namespace, testCluster := setup(t, g)
+
+	t.Log("Creating the namespace")
+	namespace, err := env.CreateNamespace(ctx, "test-machine-set-reconciler-sync-machines")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	t.Log("Creating the Cluster")
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace.Name,
+			Name:      testClusterName,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: builder.ControlPlaneGroupVersion.Group,
+				Kind:     builder.GenericControlPlaneKind,
+				Name:     "cp1",
+			},
+		},
+	}
+	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
+
+	t.Log("Creating the Cluster Kubeconfig Secret")
+	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	defer teardown(t, g, namespace, testCluster)
 
 	replicas := int32(2)
@@ -1257,9 +1250,15 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "ms-1",
 			Namespace: namespace.Name,
+			Annotations: map[string]string{
+				// Pause the MachineSet controller that is running in the background as part of the controller
+				// suite as we want to control which part of the MachineSet controller is run in this test
+				// by calling the syncMachines func explicitly.
+				clusterv1.PausedAnnotation: "",
+			},
 			Labels: map[string]string{
-				"label-1":                            "true",
-				clusterv1.MachineDeploymentNameLabel: "md-1",
+				"label-1": "true",
+				// Note: not adding the clusterv1.MachineDeploymentNameLabel to keep the test simple.
 			},
 		},
 		Spec: clusterv1.MachineSetSpec{
@@ -1369,7 +1368,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			},
 		},
 		Spec: clusterv1.MachineSpec{
-			ClusterName: testClusterName,
+			ClusterName: testCluster.Name,
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Name:     infraMachine.GetName(),
 				APIGroup: infraMachine.GroupVersionKind().Group,
@@ -1394,7 +1393,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			Finalizers:  []string{"testing-finalizer"},
 		},
 		Spec: clusterv1.MachineSpec{
-			ClusterName: testClusterName,
+			ClusterName: testCluster.Name,
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.InfrastructureGroupVersion.Group,
 				Kind:     builder.TestInfrastructureMachineKind,
@@ -1458,7 +1457,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		machines:   machines,
 		getAndAdoptMachinesForMachineSetSucceeded: true,
 	}
-	_, err := reconciler.syncMachines(ctx, s)
+	_, err = reconciler.syncMachines(ctx, s)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	updatedInPlaceMutatingMachine := inPlaceMutatingMachine.DeepCopy()
@@ -1471,7 +1470,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			Manager:    machineSetManagerName,
 			Operation:  metav1.ManagedFieldsOperationApply,
 			APIVersion: clusterv1.GroupVersion.String(),
-			FieldsV1:   fmt.Sprintf("{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:preserved-annotation\":{}},\"f:finalizers\":{\"v:\\\"machine.cluster.x-k8s.io\\\"\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/deployment-name\":{},\"f:cluster.x-k8s.io/set-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}},\"f:ownerReferences\":{\"k:{\\\"uid\\\":\\\"%s\\\"}\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:configRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}},\"f:clusterName\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}}}", ms.UID),
+			FieldsV1:   fmt.Sprintf("{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:preserved-annotation\":{}},\"f:finalizers\":{\"v:\\\"machine.cluster.x-k8s.io\\\"\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/set-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}},\"f:ownerReferences\":{\"k:{\\\"uid\\\":\\\"%s\\\"}\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:configRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}},\"f:clusterName\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}}}", ms.UID),
 		}, {
 			// manager owns the finalizer.
 			Manager:    "manager",
@@ -1497,7 +1496,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			Manager:    machineSetMetadataManagerName,
 			Operation:  metav1.ManagedFieldsOperationApply,
 			APIVersion: updatedInfraMachine.GetAPIVersion(),
-			FieldsV1:   "{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:preserved-annotation\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/deployment-name\":{},\"f:cluster.x-k8s.io/set-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}}}}",
+			FieldsV1:   "{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:preserved-annotation\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/set-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}}}}",
 		}, {
 			// capi-machineset owns spec.
 			Manager:    machineSetManagerName,
@@ -1521,7 +1520,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			Manager:    machineSetMetadataManagerName,
 			Operation:  metav1.ManagedFieldsOperationApply,
 			APIVersion: updatedBootstrapConfig.GetAPIVersion(),
-			FieldsV1:   "{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:preserved-annotation\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/deployment-name\":{},\"f:cluster.x-k8s.io/set-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}}}}",
+			FieldsV1:   "{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:preserved-annotation\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/set-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}}}}",
 		}, {
 			// capi-machineset owns spec.
 			Manager:    machineSetManagerName,
@@ -1548,11 +1547,10 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		// Drop "dropped-label"
 	}
 	expectedLabels := map[string]string{
-		"preserved-label":                    "preserved-value",
-		"modified-label":                     "modified-value-2",
-		clusterv1.MachineSetNameLabel:        ms.Name,
-		clusterv1.MachineDeploymentNameLabel: "md-1",
-		clusterv1.ClusterNameLabel:           testClusterName, // This label is added by the Machine controller.
+		"preserved-label":             "preserved-value",
+		"modified-label":              "modified-value-2",
+		clusterv1.MachineSetNameLabel: ms.Name,
+		clusterv1.ClusterNameLabel:    testCluster.Name, // This label is added by the Machine controller.
 	}
 	ms.Spec.Template.Annotations = map[string]string{
 		"preserved-annotation": "preserved-value",  // Keep the annotation and value as is
@@ -3909,226 +3907,6 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			}
 
 			g.Expect(machineList.Items).To(ConsistOf(tt.wantMachines))
-		})
-	}
-}
-
-func TestNewMachineUpToDateCondition(t *testing.T) {
-	reconciliationTime := time.Now()
-	tests := []struct {
-		name              string
-		machineDeployment *clusterv1.MachineDeployment
-		machineSet        *clusterv1.MachineSet
-		expectCondition   *metav1.Condition
-	}{
-		{
-			name:              "no condition returned for stand-alone MachineSet",
-			machineDeployment: nil,
-			machineSet:        &clusterv1.MachineSet{},
-			expectCondition:   nil,
-		},
-		{
-			name: "up-to-date",
-			machineDeployment: &clusterv1.MachineDeployment{
-				Spec: clusterv1.MachineDeploymentSpec{
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							Version: "v1.31.0",
-						},
-					},
-				},
-			},
-			machineSet: &clusterv1.MachineSet{
-				Spec: clusterv1.MachineSetSpec{
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							Version: "v1.31.0",
-						},
-					},
-				},
-			},
-			expectCondition: &metav1.Condition{
-				Type:   clusterv1.MachineUpToDateCondition,
-				Status: metav1.ConditionTrue,
-				Reason: clusterv1.MachineUpToDateReason,
-			},
-		},
-		{
-			name: "not up-to-date",
-			machineDeployment: &clusterv1.MachineDeployment{
-				Spec: clusterv1.MachineDeploymentSpec{
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							Version: "v1.31.0",
-						},
-					},
-				},
-			},
-			machineSet: &clusterv1.MachineSet{
-				Spec: clusterv1.MachineSetSpec{
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							Version: "v1.30.0",
-						},
-					},
-				},
-			},
-			expectCondition: &metav1.Condition{
-				Type:    clusterv1.MachineUpToDateCondition,
-				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineNotUpToDateReason,
-				Message: "* Version v1.30.0, v1.31.0 required",
-			},
-		},
-		{
-			name: "up-to-date, spec.rolloutAfter not expired",
-			machineDeployment: &clusterv1.MachineDeployment{
-				Spec: clusterv1.MachineDeploymentSpec{
-					Rollout: clusterv1.MachineDeploymentRolloutSpec{
-						After: metav1.Time{Time: reconciliationTime.Add(1 * time.Hour)}, // rollout after not yet expired
-					},
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							Version: "v1.31.0",
-						},
-					},
-				},
-			},
-			machineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // MS created before rollout after
-				},
-				Spec: clusterv1.MachineSetSpec{
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							Version: "v1.31.0",
-						},
-					},
-				},
-			},
-			expectCondition: &metav1.Condition{
-				Type:   clusterv1.MachineUpToDateCondition,
-				Status: metav1.ConditionTrue,
-				Reason: clusterv1.MachineUpToDateReason,
-			},
-		},
-		{
-			name: "not up-to-date, rollout After expired",
-			machineDeployment: &clusterv1.MachineDeployment{
-				Spec: clusterv1.MachineDeploymentSpec{
-					Rollout: clusterv1.MachineDeploymentRolloutSpec{
-						After: metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // rollout after expired
-					},
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							Version: "v1.31.0",
-						},
-					},
-				},
-			},
-			machineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-2 * time.Hour)}, // MS created before rollout after
-				},
-				Spec: clusterv1.MachineSetSpec{
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							Version: "v1.31.0",
-						},
-					},
-				},
-			},
-			expectCondition: &metav1.Condition{
-				Type:    clusterv1.MachineUpToDateCondition,
-				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineNotUpToDateReason,
-				Message: "* MachineDeployment spec.rolloutAfter expired",
-			},
-		},
-		{
-			name: "not up-to-date, rollout After expired and a new MS created",
-			machineDeployment: &clusterv1.MachineDeployment{
-				Spec: clusterv1.MachineDeploymentSpec{
-					Rollout: clusterv1.MachineDeploymentRolloutSpec{
-						After: metav1.Time{Time: reconciliationTime.Add(-2 * time.Hour)}, // rollout after expired
-					},
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							Version: "v1.31.0",
-						},
-					},
-				},
-			},
-			machineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // MS created after rollout after
-				},
-				Spec: clusterv1.MachineSetSpec{
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							Version: "v1.31.0",
-						},
-					},
-				},
-			},
-			expectCondition: &metav1.Condition{
-				Type:   clusterv1.MachineUpToDateCondition,
-				Status: metav1.ConditionTrue,
-				Reason: clusterv1.MachineUpToDateReason,
-			},
-		},
-		{
-			name: "not up-to-date, version changed, rollout After expired",
-			machineDeployment: &clusterv1.MachineDeployment{
-				Spec: clusterv1.MachineDeploymentSpec{
-					Rollout: clusterv1.MachineDeploymentRolloutSpec{
-						After: metav1.Time{Time: reconciliationTime.Add(-1 * time.Hour)}, // rollout after expired
-					},
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							Version: "v1.30.0",
-						},
-					},
-				},
-			},
-			machineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-2 * time.Hour)}, // MS created before rollout after
-				},
-				Spec: clusterv1.MachineSetSpec{
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-							Version: "v1.31.0",
-						},
-					},
-				},
-			},
-			expectCondition: &metav1.Condition{
-				Type:   clusterv1.MachineUpToDateCondition,
-				Status: metav1.ConditionFalse,
-				Reason: clusterv1.MachineNotUpToDateReason,
-				Message: "* Version v1.31.0, v1.30.0 required\n" +
-					"* MachineDeployment spec.rolloutAfter expired",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			s := &scope{
-				owningMachineDeployment: tt.machineDeployment,
-				machineSet:              tt.machineSet,
-				reconciliationTime:      reconciliationTime,
-			}
-
-			condition := newMachineUpToDateCondition(s)
-			if tt.expectCondition != nil {
-				g.Expect(condition).ToNot(BeNil())
-				g.Expect(*condition).To(conditions.MatchCondition(*tt.expectCondition, conditions.IgnoreLastTransitionTime(true)))
-			} else {
-				g.Expect(condition).To(BeNil())
-			}
 		})
 	}
 }

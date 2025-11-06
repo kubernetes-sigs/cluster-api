@@ -261,10 +261,6 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: (clusterv1alpha3.*|clusterv1alpha4.*) is deprecated: This type will be removed in one of the next releases.'
-        # Specific exclude rules for deprecated feature flags
-      - linters:
-          - staticcheck
-        text: 'SA1019: feature.ClusterResourceSet is deprecated: ClusterResourceSet feature is now GA and the corresponding feature flag will be removed in 1.12 release.'
         # v1Beta1 deprecated fields
       - linters:
           - staticcheck

@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
 )
 
 func (webhook *ClusterResourceSetBinding) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -74,15 +73,6 @@ func (webhook *ClusterResourceSetBinding) ValidateDelete(_ context.Context, _ ru
 
 func (webhook *ClusterResourceSetBinding) validate(oldCRSB, newCRSB *addonsv1.ClusterResourceSetBinding) error {
 	var allErrs field.ErrorList
-
-	// NOTE: ClusterResourceSet is behind ClusterResourceSet feature gate flag; the web hook
-	// must prevent creating new objects in case the feature flag is disabled.
-	if !feature.Gates.Enabled(feature.ClusterResourceSet) {
-		return field.Forbidden(
-			field.NewPath("spec"),
-			"can be set only if the ClusterResourceSet feature flag is enabled",
-		)
-	}
 
 	if oldCRSB != nil && oldCRSB.Spec.ClusterName != "" && oldCRSB.Spec.ClusterName != newCRSB.Spec.ClusterName {
 		allErrs = append(allErrs,

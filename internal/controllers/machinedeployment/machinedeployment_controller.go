@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -28,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -41,6 +39,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -349,24 +348,10 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			// Keep trying to get the MachineSet. This will force the cache to update and prevent any future reconciliation of
 			// the MachineDeployment to reconcile with an outdated list of MachineSets which could lead to unwanted creation of
 			// a duplicate MachineSet.
-			var pollErrors []error
-			tmpMS := &clusterv1.MachineSet{}
-			if err := wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 10*time.Second, true, func(ctx context.Context) (bool, error) {
-				if err := r.Client.Get(ctx, client.ObjectKeyFromObject(ms), tmpMS); err != nil {
-					// Do not return error here. Continue to poll even if we hit an error
-					// so that we avoid existing because of transient errors like network flakes.
-					// Capture all the errors and return the aggregate error if the poll fails eventually.
-					pollErrors = append(pollErrors, err)
-					return false, nil
-				}
-				return true, nil
-			}); err != nil {
-				return errors.Wrapf(kerrors.NewAggregate(pollErrors), "failed to get the MachineSet %s after creation", klog.KObj(ms))
+			if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachineSet creation", ms); err != nil {
+				return err
 			}
 
-			// Report back creation timestamp, because legacy scale func uses it to sort machines.
-			// TODO(in-place): drop this as soon as handling of MD with paused rollouts is moved into rollout planner (see scale in machinedeployment_sync.go).
-			ms.CreationTimestamp = tmpMS.CreationTimestamp
 			continue
 		}
 
@@ -387,17 +372,24 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 
 		newReplicas := ptr.Deref(ms.Spec.Replicas, 0)
 		if newReplicas < originalReplicas {
-			changes = append(changes, "replicas", newReplicas)
-			log.Info(fmt.Sprintf("Scaled down MachineSet %s to %d replicas (-%d)", ms.Name, newReplicas, originalReplicas-newReplicas), changes...)
+			changes = append(changes, fmt.Sprintf("replicas %d", newReplicas))
+			log.Info(fmt.Sprintf("Scaled down MachineSet %s to %d replicas (-%d)", ms.Name, newReplicas, originalReplicas-newReplicas), "diff", strings.Join(changes, ","))
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled down MachineSet %v: %d -> %d", ms.Name, originalReplicas, newReplicas)
 		}
 		if newReplicas > originalReplicas {
-			changes = append(changes, "replicas", newReplicas)
-			log.Info(fmt.Sprintf("Scaled up MachineSet %s to %d replicas (+%d)", ms.Name, newReplicas, newReplicas-originalReplicas), changes...)
+			changes = append(changes, fmt.Sprintf("replicas %d", newReplicas))
+			log.Info(fmt.Sprintf("Scaled up MachineSet %s to %d replicas (+%d)", ms.Name, newReplicas, newReplicas-originalReplicas), "diff", strings.Join(changes, ","))
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled up MachineSet %v: %d -> %d", ms.Name, originalReplicas, newReplicas)
 		}
 		if newReplicas == originalReplicas && len(changes) > 0 {
-			log.Info(fmt.Sprintf("MachineSet %s updated", ms.Name), changes...)
+			log.Info(fmt.Sprintf("MachineSet %s updated", ms.Name), "diff", strings.Join(changes, ","))
+		}
+
+		// Only wait for cache if the object was changed.
+		if originalMS.ResourceVersion != ms.ResourceVersion {
+			if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachineSet update", ms); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -412,37 +404,37 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 	return nil
 }
 
-func getAnnotationChanges(originalMS *clusterv1.MachineSet, ms *clusterv1.MachineSet) []any {
-	changes := []any{}
+func getAnnotationChanges(originalMS *clusterv1.MachineSet, ms *clusterv1.MachineSet) []string {
+	changes := []string{}
 	if originalMS.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] != ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] {
 		if value, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok {
-			changes = append(changes, clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, value)
+			changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, value))
 		} else {
-			changes = append(changes, clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, "(annotation removed)")
+			changes = append(changes, fmt.Sprintf("%s removed", clusterv1.MachineSetMoveMachinesToMachineSetAnnotation))
 		}
 	}
 
 	if originalMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] != ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] {
 		if value, ok := ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]; ok {
-			changes = append(changes, clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation, value)
+			changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation, value))
 		} else {
-			changes = append(changes, clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation, "(annotation removed)")
+			changes = append(changes, fmt.Sprintf("%s removed", clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation))
 		}
 	}
 
 	if originalMS.Annotations[clusterv1.AcknowledgedMoveAnnotation] != ms.Annotations[clusterv1.AcknowledgedMoveAnnotation] {
 		if value, ok := ms.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok {
-			changes = append(changes, clusterv1.AcknowledgedMoveAnnotation, value)
+			changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.AcknowledgedMoveAnnotation, value))
 		} else {
-			changes = append(changes, clusterv1.AcknowledgedMoveAnnotation, "(annotation removed)")
+			changes = append(changes, fmt.Sprintf("%s removed", clusterv1.AcknowledgedMoveAnnotation))
 		}
 	}
 
 	if originalMS.Annotations[clusterv1.DisableMachineCreateAnnotation] != ms.Annotations[clusterv1.DisableMachineCreateAnnotation] {
 		if value, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok {
-			changes = append(changes, clusterv1.DisableMachineCreateAnnotation, value)
+			changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.DisableMachineCreateAnnotation, value))
 		} else {
-			changes = append(changes, clusterv1.DisableMachineCreateAnnotation, "(annotation removed)")
+			changes = append(changes, fmt.Sprintf("%s removed", clusterv1.DisableMachineCreateAnnotation))
 		}
 	}
 	return changes

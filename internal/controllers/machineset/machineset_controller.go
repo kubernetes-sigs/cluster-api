@@ -34,7 +34,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -54,6 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
+	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -72,13 +72,6 @@ import (
 var (
 	// machineSetKind contains the schema.GroupVersionKind for the MachineSet type.
 	machineSetKind = clusterv1.GroupVersion.WithKind("MachineSet")
-
-	// stateConfirmationTimeout is the amount of time allowed to wait for desired state.
-	stateConfirmationTimeout = 10 * time.Second
-
-	// stateConfirmationInterval is the amount of time between polling for the desired state.
-	// The polling is against a local memory cache.
-	stateConfirmationInterval = 100 * time.Millisecond
 )
 
 const (
@@ -421,7 +414,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 
 	// Wait until the cache observed the Machine with PendingHooksAnnotation to ensure subsequent reconciles
 	// will observe it as well and won't repeatedly call the logic to trigger in-place update.
-	if err := r.waitForMachinesInPlaceUpdateStarted(ctx, machinesTriggeredInPlace); err != nil {
+	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "starting in-place updates", machinesTriggeredInPlace...); err != nil {
 		errs = append(errs, err)
 	}
 	if len(errs) > 0 {
@@ -900,7 +893,7 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 	}
 
 	// Wait for cache update to ensure following reconcile gets latest change.
-	return ctrl.Result{}, r.waitForMachinesCreation(ctx, machinesAdded)
+	return ctrl.Result{}, clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "Machine creation", machinesAdded...)
 }
 
 func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDelete int) (ctrl.Result, error) {
@@ -948,7 +941,7 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 	}
 
 	// Wait for cache update to ensure following reconcile gets latest change.
-	if err := r.waitForMachinesDeletion(ctx, machinesDeleted); err != nil {
+	if err := clientutil.WaitForObjectsToBeDeletedFromTheCache(ctx, r.Client, "Machine deletion", machinesDeleted...); err != nil {
 		errs = append(errs, err)
 	}
 	if len(errs) > 0 {
@@ -1061,7 +1054,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 	}
 
 	// Wait for cache update to ensure following reconcile gets latest change.
-	if err := r.waitForMachinesStartedMove(ctx, machinesMoved); err != nil {
+	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "moving Machines", machinesMoved...); err != nil {
 		errs = append(errs, err)
 	}
 	if len(errs) > 0 {
@@ -1240,92 +1233,6 @@ func (r *Reconciler) adoptOrphan(ctx context.Context, machineSet *clusterv1.Mach
 	newRef := *metav1.NewControllerRef(machineSet, machineSetKind)
 	machine.SetOwnerReferences(util.EnsureOwnerRef(machine.GetOwnerReferences(), newRef))
 	return r.Client.Patch(ctx, machine, patch)
-}
-
-func (r *Reconciler) waitForMachinesCreation(ctx context.Context, machines []*clusterv1.Machine) error {
-	pollErr := wait.PollUntilContextTimeout(ctx, stateConfirmationInterval, stateConfirmationTimeout, true, func(ctx context.Context) (bool, error) {
-		for _, machine := range machines {
-			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
-			if err := r.Client.Get(ctx, key, &clusterv1.Machine{}); err != nil {
-				if apierrors.IsNotFound(err) {
-					return false, nil
-				}
-				return false, err
-			}
-		}
-		return true, nil
-	})
-
-	if pollErr != nil {
-		return errors.Wrap(pollErr, "failed waiting for Machines to be created")
-	}
-	return nil
-}
-
-func (r *Reconciler) waitForMachinesDeletion(ctx context.Context, machines []*clusterv1.Machine) error {
-	pollErr := wait.PollUntilContextTimeout(ctx, stateConfirmationInterval, stateConfirmationTimeout, true, func(ctx context.Context) (bool, error) {
-		for _, machine := range machines {
-			m := &clusterv1.Machine{}
-			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
-			if err := r.Client.Get(ctx, key, m); err != nil {
-				if apierrors.IsNotFound(err) {
-					continue
-				}
-				return false, err
-			}
-			if m.DeletionTimestamp.IsZero() {
-				return false, nil
-			}
-		}
-		return true, nil
-	})
-
-	if pollErr != nil {
-		return errors.Wrap(pollErr, "failed waiting for Machines to be deleted")
-	}
-	return nil
-}
-
-func (r *Reconciler) waitForMachinesStartedMove(ctx context.Context, machines []*clusterv1.Machine) error {
-	pollErr := wait.PollUntilContextTimeout(ctx, stateConfirmationInterval, stateConfirmationTimeout, true, func(ctx context.Context) (bool, error) {
-		for _, machine := range machines {
-			m := &clusterv1.Machine{}
-			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
-			if err := r.Client.Get(ctx, key, m); err != nil {
-				return false, err
-			}
-			if _, annotationSet := m.Annotations[clusterv1.UpdateInProgressAnnotation]; !annotationSet {
-				return false, nil
-			}
-		}
-		return true, nil
-	})
-
-	if pollErr != nil {
-		return errors.Wrap(pollErr, "failed waiting for Machines to start move")
-	}
-	return nil
-}
-
-func (r *Reconciler) waitForMachinesInPlaceUpdateStarted(ctx context.Context, machines []*clusterv1.Machine) error {
-	pollErr := wait.PollUntilContextTimeout(ctx, stateConfirmationInterval, stateConfirmationTimeout, true, func(ctx context.Context) (bool, error) {
-		for _, machine := range machines {
-			m := &clusterv1.Machine{}
-			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
-			if err := r.Client.Get(ctx, key, m); err != nil {
-				return false, err
-			}
-			if !hooks.IsPending(runtimehooksv1.UpdateMachine, m) {
-				return false, nil
-			}
-		}
-		return true, nil
-	})
-
-	if pollErr != nil {
-		return errors.Wrap(pollErr, "failed waiting for Machines to complete move")
-	}
-	return nil
 }
 
 // MachineToMachineSets is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation

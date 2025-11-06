@@ -114,6 +114,9 @@ trap "cleanup" EXIT SIGINT
 docker events > "${ARTIFACTS_LOCAL}/docker-events.txt" 2>&1 &
 ctr -n moby events > "${ARTIFACTS_LOCAL}/containerd-events.txt" 2>&1 &
 
+# Testing v1.30
+export KUBERNETES_VERSION_MANAGEMENT=v1.30.10
+
 # Run e2e tests
 mkdir -p "$ARTIFACTS"
 echo "+ run tests!"

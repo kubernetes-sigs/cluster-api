@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
@@ -34,13 +35,14 @@ import (
 )
 
 var (
-	// waitForCacheTimeout is the timeout used when waiting for the cache to become up-to-date.
-	waitForCacheTimeout = 10 * time.Second
-
-	// waitForCacheInterval is the timeout used when waiting for the cache to become up-to-date.
-	// This interval seems pretty low, but based on tests it's realistic that the cache is up-to-date
-	// that quickly.
-	waitForCacheInterval = 100 * time.Microsecond
+	// waitBackoff is the timeout used when waiting for the cache to become up-to-date.
+	// This adds up to ~ 10 seconds max wait duration.
+	waitBackoff = wait.Backoff{
+		Duration: 25 * time.Microsecond,
+		Cap:      2 * time.Second,
+		Factor:   1.2,
+		Steps:    63,
+	}
 )
 
 // WaitForCacheToBeUpToDate waits until the cache is up-to-date in the sense of that the cache contains
@@ -127,10 +129,15 @@ func waitFor[T client.Object](ctx context.Context, c client.Client, action strin
 		return nil
 	}
 
+	var o any = objs[0]
+	if _, ok := o.(*unstructured.Unstructured); ok {
+		return errors.Errorf("failed to wait for up-to-date objects in the cache after %s: Unstructured is not supported", action)
+	}
+
 	// All objects have the same type, so we can just take the GVK of the first object.
 	objGVK, err := apiutil.GVKForObject(objs[0], c.Scheme())
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to wait for up-to-date objects in the cache after %s", action)
 	}
 
 	log := ctrl.LoggerFrom(ctx)
@@ -147,7 +154,7 @@ func waitFor[T client.Object](ctx context.Context, c client.Client, action strin
 	now := time.Now()
 
 	var pollErrs []error
-	err = wait.PollUntilContextTimeout(ctx, waitForCacheInterval, waitForCacheTimeout, true, func(ctx context.Context) (bool, error) {
+	err = wait.ExponentialBackoffWithContext(ctx, waitBackoff, func(ctx context.Context) (bool, error) {
 		pollErrs = nil
 
 		for _, desiredObj := range desiredObjects {
@@ -177,7 +184,7 @@ func waitFor[T client.Object](ctx context.Context, c client.Client, action strin
 		var errSuffix string
 		if err != nil {
 			if wait.Interrupted(err) {
-				errSuffix = fmt.Sprintf(": timed out after %s", waitForCacheTimeout)
+				errSuffix = ": timed out"
 			} else {
 				errSuffix = fmt.Sprintf(": %s", err.Error())
 			}

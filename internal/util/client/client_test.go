@@ -26,8 +26,10 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -38,7 +40,12 @@ import (
 
 func Test_WaitForCacheToBeUpToDate(t *testing.T) {
 	// Modify timeout to speed up test
-	waitForCacheTimeout = 1 * time.Second
+	waitBackoff = wait.Backoff{
+		Duration: 25 * time.Microsecond,
+		Cap:      2 * time.Second,
+		Factor:   1.2,
+		Steps:    5,
+	}
 
 	tests := []struct {
 		name            string
@@ -92,7 +99,7 @@ func Test_WaitForCacheToBeUpToDate(t *testing.T) {
 				machine("machine-4", "4", nil),
 			},
 			clientResponses: map[client.ObjectKey][]client.Object{},
-			wantErr: "failed to wait for up-to-date Machine objects in the cache after Machine creation: timed out after 1s: [" +
+			wantErr: "failed to wait for up-to-date Machine objects in the cache after Machine creation: timed out: [" +
 				"machines.cluster.x-k8s.io \"machine-1\" not found, " +
 				"machines.cluster.x-k8s.io \"machine-2\" not found, " +
 				"machines.cluster.x-k8s.io \"machine-3\" not found, " +
@@ -201,7 +208,12 @@ func Test_WaitForCacheToBeUpToDate(t *testing.T) {
 
 func Test_WaitForObjectsToBeDeletedFromTheCache(t *testing.T) {
 	// Modify timeout to speed up test
-	waitForCacheTimeout = 1 * time.Second
+	waitBackoff = wait.Backoff{
+		Duration: 25 * time.Microsecond,
+		Cap:      2 * time.Second,
+		Factor:   1.2,
+		Steps:    5,
+	}
 
 	tests := []struct {
 		name            string
@@ -211,6 +223,13 @@ func Test_WaitForObjectsToBeDeletedFromTheCache(t *testing.T) {
 	}{
 		{
 			name: "no-op if no objects are passed in",
+		},
+		{
+			name: "error if Unstructured is used",
+			objs: []client.Object{
+				&unstructured.Unstructured{},
+			},
+			wantErr: "failed to wait for up-to-date objects in the cache after Machine deletion: Unstructured is not supported",
 		},
 		{
 			name: "success if objects are going away instantly (not found)",
@@ -306,7 +325,7 @@ func Test_WaitForObjectsToBeDeletedFromTheCache(t *testing.T) {
 					machine("machine-4", "7", nil),
 				},
 			},
-			wantErr: "failed to wait for up-to-date Machine objects in the cache after Machine deletion: timed out after 1s: [" +
+			wantErr: "failed to wait for up-to-date Machine objects in the cache after Machine deletion: timed out: [" +
 				"default/machine-1 still exists, " +
 				"default/machine-2 still exists, " +
 				"default/machine-3 still exists, " +

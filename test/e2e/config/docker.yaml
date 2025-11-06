@@ -332,6 +332,7 @@ providers:
     # Add cluster templates
     - sourcePath: "../data/infrastructure-docker/main/cluster-template.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-md-remediation.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-md-taints.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-remediation.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-adoption.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-machine-pool.yaml"
@@ -400,6 +401,7 @@ variables:
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
   EXP_PRIORITY_QUEUE: "false"
   EXP_IN_PLACE_UPDATES: "true"
+  EXP_MACHINE_TAINT_PROPAGATION: "true"
   CAPI_DIAGNOSTICS_ADDRESS: ":8080"
   CAPI_INSECURE_DIAGNOSTICS: "true"
 

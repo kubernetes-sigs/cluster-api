@@ -30,6 +30,7 @@ var _ = Describe("When testing MachineDeployment rolling upgrades", func() {
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
+			Flavor:                "md-taints",
 			SkipCleanup:           skipCleanup,
 		}
 	})

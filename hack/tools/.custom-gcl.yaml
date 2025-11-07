@@ -1,5 +1,5 @@
-version:  v1.63.4
-name: golangci-lint-kal-v1.63.4
+version:  v1.64.3
+name: golangci-lint-kal-v1.64.3
 destination: ./bin
 plugins:
 - module: 'github.com/JoelSpeed/kal'

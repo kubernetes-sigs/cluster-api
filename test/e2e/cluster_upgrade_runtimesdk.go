@@ -687,7 +687,7 @@ func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster ty
 		var blocked = true
 
 		// If the Cluster is not found it has been deleted and the hook is unblocked.
-		if apierrors.IsNotFound(c.Get(ctx, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}, &clusterv1.Cluster{})) {
+		if apierrors.IsNotFound(c.Get(ctx, cluster, &clusterv1.Cluster{})) {
 			blocked = false
 		}
 		return blocked

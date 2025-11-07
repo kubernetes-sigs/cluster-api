@@ -2,6 +2,8 @@ module sigs.k8s.io/cluster-api/test
 
 go 1.23.0
 
+godebug default=go1.23
+
 replace sigs.k8s.io/cluster-api => ../
 
 require (

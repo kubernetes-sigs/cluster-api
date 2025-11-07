@@ -42,7 +42,6 @@ func (r *Reconciler) rolloutRollingUpdate(ctx context.Context, md *clusterv1.Mac
 		return err
 	}
 
-	// TODO(in-place): TBD if we want to always prevent machine creation on oldMS.
 	if err := planner.planRollingUpdate(ctx); err != nil {
 		return err
 	}
@@ -173,7 +172,7 @@ func (p *rolloutPlanner) reconcileReplicasPendingAcknowledgeMove(ctx context.Con
 // which are also unavailable Machines.
 //
 // Notably, there is also no agreement yet on a different way forward because e.g. limiting scale down of the
-// new MS could lead e.g. to completing in place update of Machines that will be otherwise deleted.
+// new MS could lead e.g. to completing in-place update of Machines that will be otherwise deleted.
 func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	allMSs := append(p.oldMSs, p.newMS)
@@ -379,7 +378,7 @@ func (p *rolloutPlanner) scaleDownOldMSs(ctx context.Context, totalScaleDownCoun
 // When calling this func, new and old MS already have their scale intent, which was computed under the assumption that
 // rollout is going to happen by delete/re-create, and thus it will impact availability.
 //
-// Also in place updates are assumed to impact availability, even if the in place update technically is not impacting workloads,
+// Also in-place updates are assumed to impact availability, even if the in-place update technically is not impacting workloads,
 // the system must account for scenarios when the operation fails, leading to remediation of the machine/unavailability.
 //
 // As a consequence:
@@ -387,7 +386,7 @@ func (p *rolloutPlanner) scaleDownOldMSs(ctx context.Context, totalScaleDownCoun
 //   - unless the user accounts for this unavailability by setting MaxUnavailable >= 1,
 //     rollout with in-place will create one additional machine to ensure MaxUnavailable == 0 is respected.
 //
-// NOTE: if an in-place upgrade is possible and maxSurge is >= 1, creation of additional machines due to maxSurge is capped to 1 or entirely dropped.
+// NOTE: if an in-place update is possible and maxSurge is >= 1, creation of additional machines due to maxSurge is capped to 1 or entirely dropped.
 // Instead, creation of new machines due to scale up goes through as usual.
 func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
@@ -409,7 +408,7 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 			continue
 		}
 
-		// If the oldMS is not eligible for in place updates, move to the next MachineSet.
+		// If the oldMS is not eligible for in-place updates, move to the next MachineSet.
 		if result, ok := p.upToDateResults[oldMS.Name]; !ok || !result.EligibleForInPlaceUpdate {
 			continue
 		}
@@ -428,7 +427,7 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 		}
 
 		// Set the annotation informing the oldMS that it must move machines to the newMS instead of deleting them.
-		// Note: After a machine is moved from oldMS to newMS, the newMS will take care of the in-place upgrade process.
+		// Note: After a machine is moved from oldMS to newMS, the newMS will take care of the in-place update process.
 		// Note: Cleanup of the MachineSetMoveMachinesToMachineSetAnnotation will happen automatically as soon as the rollout planner stops
 		// to set it, because this annotation is not part of the output of computeDesiredMS
 		// (same applies to newMS, so annotation will always be removed from newMS).
@@ -492,7 +491,7 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 	}
 
 	newScaleIntent := ptr.Deref(p.newMS.Spec.Replicas, 0) + newScaleUpCount
-	log.V(5).Info(fmt.Sprintf("Revisited scale up intent for MachineSet %s to %d replicas (+%d) to prevent creation of new machines while there are still in place updates to be performed", p.newMS.Name, newScaleIntent, newScaleUpCount), "MachineSet", klog.KObj(p.newMS))
+	log.V(5).Info(fmt.Sprintf("Revisited scale up intent for MachineSet %s to %d replicas (+%d) to prevent creation of new machines while there are still in-place updates to be performed", p.newMS.Name, newScaleIntent, newScaleUpCount), "MachineSet", klog.KObj(p.newMS))
 	if newScaleUpCount == 0 {
 		delete(p.scaleIntents, p.newMS.Name)
 	} else {

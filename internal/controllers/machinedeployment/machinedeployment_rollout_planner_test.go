@@ -520,7 +520,7 @@ func machineSetControllerMutator(log *fileLogger, ms *clusterv1.MachineSet, scop
 		}
 	}
 	if replicasEndingInPlaceUpdate.Len() > 0 {
-		log.Logf("[MS controller] - Replicas %s completed in place update", sortAndJoin(replicasEndingInPlaceUpdate.UnsortedList()))
+		log.Logf("[MS controller] - Replicas %s completed in-place update", sortAndJoin(replicasEndingInPlaceUpdate.UnsortedList()))
 	}
 
 	// Starting from here, the code must mirror the implementation of the Reconcile func in the MachineSet controller to ensure the reliability of the tests.
@@ -563,7 +563,7 @@ func machineSetControllerMutatorTriggerInPlaceUpdate(ms *clusterv1.MachineSet, s
 			} else {
 				// If this MachineSet is not accepting anymore machines from other MS (e.g. because of MD spec changes),
 				// then drop the PendingAcknowledgeMove annotation; this machine will be treated as any other machine and either
-				// deleted or moved to another MS after completing the in-place upgrade.
+				// deleted or moved to another MS after completing the in-place update.
 				delete(m.Annotations, clusterv1.PendingAcknowledgeMoveAnnotation)
 			}
 		}

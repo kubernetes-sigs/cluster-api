@@ -78,7 +78,7 @@ __In-place Update__: any change to a Machine spec, including the Kubernetes Vers
 
 __Update Lifecycle Hook__: CAPI Lifecycle Runtime Hook to invoke external update extensions.
 
-__Update Extension__: Runtime Extension (Implementation) is a component responsible to perform in place updates when  the `External Update Lifecycle Hook` is invoked.
+__Update Extension__: Runtime Extension (Implementation) is a component responsible to perform in-place updates when  the `External Update Lifecycle Hook` is invoked.
 
 ## Summary
 
@@ -114,9 +114,9 @@ With the implementation of an Update extension, users can take ownership of the 
 
 ### Divide and conquer
 
-Considering the complexity of this topic, a phased approach is required to design and implement the solution for in-place upgrades.
+Considering the complexity of this topic, a phased approach is required to design and implement the solution for in-place updates.
 
-The main goal of the first iteration of this proposal is to make it possible for Cluster API users to start experimenting usage of in-place upgrades, so we can gather feedback and evolve to the next stage.
+The main goal of the first iteration of this proposal is to make it possible for Cluster API users to start experimenting usage of in-place updates, so we can gather feedback and evolve to the next stage.
 
 This iteration will focus on implementing the machinery required to interact with update extensions, while users facing changes in the API types are deferred to follow up iterations.
 
@@ -172,7 +172,7 @@ As a cluster operator, I want to perform in-place updates on my Kubernetes clust
 
 #### Story 2
 
-As a cluster operator, I want to seamlessly transition between rolling and in-place updates while maintaining a consistent user interface. I appreciate the option to extend the rollout process with in-place upgrade capabilities, ensuring that the update process aligns with my organization's unique needs.
+As a cluster operator, I want to seamlessly transition between rolling and in-place updates while maintaining a consistent user interface. I appreciate the option to extend the rollout process with in-place update capabilities, ensuring that the update process aligns with my organization's unique needs.
 
 #### Story 3
 As a cluster operator for resource constrained environments, I want to utilize CAPI pluggable external update mechanism to implement in-place updates without requiring additional compute capacity in a single node cluster.

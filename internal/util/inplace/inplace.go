@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package inplace provides utils for in place updates.
+// Package inplace provides utils for in-place updates.
 package inplace
 
 import (

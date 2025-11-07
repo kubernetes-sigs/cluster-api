@@ -548,7 +548,7 @@ Notes:
 - MachineSet is considered as a sort of implementation detail of MachineDeployments, so it doesn't have its own concept of availability.
   Similarly, this proposal is dropping the notion of MachineSet readiness because it is preferred to let users focus on Machines readiness.
 - When implementing this proposal `MachinesUpToDate` condition will be `false` for older MachineSet, `true` for the current MachineSet; 
-  in the future this might change in case Cluster API will start supporting in-place upgrades.
+  in the future this might change in case Cluster API will start supporting in-place updates.
 - `Remediating` for older MachineSets will report that remediation will happen as part of the regular rollout (Cluster API
   does not remediate Machines on old MachineSets, because those Machines are already scheduled for deletion).
 

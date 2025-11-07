@@ -43,7 +43,7 @@ const (
 	MachineSetMoveMachinesToMachineSetAnnotation = "in-place-updates.internal.cluster.x-k8s.io/move-machines-to-machineset"
 
 	// MachineSetReceiveMachinesFromMachineSetsAnnotation is an internal annotation added by the MD controller to the newMS
-	// when it should receive replicas from oldMSs as a first step of an in-place upgrade operation
+	// when it should receive replicas from oldMSs as a first step of an in-place update operation
 	// The annotation value is a comma separated list of oldMSs.
 	// Note: This annotation is used in pair with MachineSetMoveMachinesToMachineSetAnnotation to perform a two-ways check before moving a machine from oldMS to newMS:
 	//

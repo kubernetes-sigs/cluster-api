@@ -1893,7 +1893,7 @@ func TestSetReadyCondition(t *testing.T) {
 							Type:    clusterv1.MachineUpdatingCondition,
 							Status:  metav1.ConditionTrue,
 							Reason:  clusterv1.MachineInPlaceUpdatingReason,
-							Message: "In place update in progress",
+							Message: "In-place update in progress",
 						},
 					},
 				},
@@ -1902,7 +1902,7 @@ func TestSetReadyCondition(t *testing.T) {
 				Type:    clusterv1.MachineReadyCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineNotReadyReason,
-				Message: "* Updating: In place update in progress",
+				Message: "* Updating: In-place update in progress",
 			},
 		},
 		{

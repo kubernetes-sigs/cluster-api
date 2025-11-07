@@ -66,7 +66,7 @@
   - ms1, 2/2 replicas (m5,m6 => ms2)
   - ms2, 10/10 replicas (m1,m2,m3,m4🟡,m7,m8,m9,m10,m11,m12 <= ms1)
 [MS controller] Iteration 7, Reconcile ms2, 10/10 replicas (m1,m2,m3,m4🟡,m7,m8,m9,m10,m11,m12 <= ms1)
-[MS controller] - Replicas m4 completed in place update
+[MS controller] - Replicas m4 completed in-place update
 [MD controller] Iteration 8, Reconcile md
 [MD controller] - Input to rollout planner
   md, 12/12 replicas
@@ -93,7 +93,7 @@
 [MS controller] Iteration 10, Reconcile ms2, 11/11 replicas (m1,m2,m3,m4,m5🟡,m7,m8,m9,m10,m11,m12 <= ms1)
 [MS controller] Iteration 10, Reconcile ms1, 1/1 replicas (m6 => ms2)
 [MS controller] Iteration 11, Reconcile ms2, 11/11 replicas (m1,m2,m3,m4,m5🟡,m7,m8,m9,m10,m11,m12 <= ms1)
-[MS controller] - Replicas m5 completed in place update
+[MS controller] - Replicas m5 completed in-place update
 [MD controller] Iteration 11, Reconcile md
 [MD controller] - Input to rollout planner
   md, 12/12 replicas
@@ -147,7 +147,7 @@
 [MS controller] Iteration 17, Reconcile ms2, 11/12 replicas (m1,m2,m3,m4,m5,m6🟡,m7,m8,m9,m10,m11,m12 <= ms1)
 [MS controller] Iteration 17, Reconcile ms1, 0/0 replicas ( => ms2)
 [MS controller] Iteration 18, Reconcile ms2, 12/12 replicas (m1,m2,m3,m4,m5,m6🟡,m7,m8,m9,m10,m11,m12 <= ms1)
-[MS controller] - Replicas m6 completed in place update
+[MS controller] - Replicas m6 completed in-place update
 [MD controller] Iteration 18, Reconcile md
 [MD controller] - Input to rollout planner
   md, 11/12 replicas

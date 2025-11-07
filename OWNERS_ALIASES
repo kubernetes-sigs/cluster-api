@@ -117,15 +117,14 @@ aliases:
   #- pratik-mahalle
 
   cluster-api-release-team:
-  #- arshadd-b
-  #- aman4433
-  #- anshuman-agarwala
+  - arshadd-b
+  - aman4433
+  - anshuman-agarwala
   #- avaneesh634
   #- blind3dd
   - chandankumar4
   - mboersma
-  #- neoaggelos
+  # - neoaggelos
   - Peppi-Lotta
-  #- s3rj1k
   - SD-13
   - wendy-ha18

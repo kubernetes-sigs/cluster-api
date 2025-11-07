@@ -72,11 +72,13 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)
+	beforeClusterUpgradeGVH, _ := catalog.GroupVersionHook(runtimehooksv1.BeforeClusterUpgrade)
+	beforeControlPlaneUpgradeGVH, _ := catalog.GroupVersionHook(runtimehooksv1.BeforeControlPlaneUpgrade)
+	afterControlPlaneUpgradeGVH, _ := catalog.GroupVersionHook(runtimehooksv1.AfterControlPlaneUpgrade)
+	beforeWorkersUpgradeGVH, _ := catalog.GroupVersionHook(runtimehooksv1.BeforeWorkersUpgrade)
+	afterWorkersUpgradeGVH, _ := catalog.GroupVersionHook(runtimehooksv1.AfterWorkersUpgrade)
+	afterClusterUpgradeGVH, _ := catalog.GroupVersionHook(runtimehooksv1.AfterClusterUpgrade)
 
-	beforeClusterUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.BeforeClusterUpgrade)
-	if err != nil {
-		panic("unable to compute GVH")
-	}
 	blockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
 		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 			CommonResponse: runtimehooksv1.CommonResponse{
@@ -91,11 +93,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 				Status: runtimehooksv1.ResponseStatusSuccess,
 			},
 		},
-	}
-
-	beforeControlPlaneUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.BeforeControlPlaneUpgrade)
-	if err != nil {
-		panic("unable to compute GVH")
 	}
 
 	blockingBeforeControlPlaneUpgradeResponse := &runtimehooksv1.BeforeControlPlaneUpgradeResponse{
@@ -114,11 +111,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 		},
 	}
 
-	afterControlPlaneUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.AfterControlPlaneUpgrade)
-	if err != nil {
-		panic("unable to compute GVH")
-	}
-
 	blockingAfterControlPlaneUpgradeResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{
 		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 			CommonResponse: runtimehooksv1.CommonResponse{
@@ -133,11 +125,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 				Status: runtimehooksv1.ResponseStatusSuccess,
 			},
 		},
-	}
-
-	beforeWorkersUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.BeforeWorkersUpgrade)
-	if err != nil {
-		panic("unable to compute GVH")
 	}
 
 	blockingBeforeWorkersUpgradeResponse := &runtimehooksv1.BeforeWorkersUpgradeResponse{
@@ -156,10 +143,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 		},
 	}
 
-	afterWorkersUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.AfterWorkersUpgrade)
-	if err != nil {
-		panic("unable to compute GVH")
-	}
 	blockingAfterWorkersUpgradeResponse := &runtimehooksv1.AfterWorkersUpgradeResponse{
 		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 			CommonResponse: runtimehooksv1.CommonResponse{
@@ -1242,6 +1225,14 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 
 			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCatalog(catalog).
+				WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
+					beforeClusterUpgradeGVH:      {"foo"},
+					beforeControlPlaneUpgradeGVH: {"foo"},
+					afterControlPlaneUpgradeGVH:  {"foo"},
+					beforeWorkersUpgradeGVH:      {"foo"},
+					afterWorkersUpgradeGVH:       {"foo"},
+					afterClusterUpgradeGVH:       {"foo"},
+				}).
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					beforeClusterUpgradeGVH:      tt.beforeClusterUpgradeResponse,
 					beforeControlPlaneUpgradeGVH: tt.beforeControlPlaneUpgradeResponse,

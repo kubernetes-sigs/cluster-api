@@ -19,6 +19,7 @@ package desiredstate
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"reflect"
 	"time"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -507,6 +509,8 @@ func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, inf
 // The version is calculated using the state of the current machine deployments, the current control plane
 // and the version defined in the topology.
 func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Scope) (string, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	topologyVersion := s.Blueprint.Topology.Version
 	// If we are creating the control plane object (current control plane is nil), use version from topology.
 	if s.Current.ControlPlane == nil || s.Current.ControlPlane.Object == nil {
@@ -599,8 +603,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	// Also check if MachineDeployments/MachinePools are already upgrading.
 	// If the MachineDeployments/MachinePools are upgrading, then do not pick up the next control plane version yet.
 	// We will pick up the new version after the MachineDeployments/MachinePools finish upgrading.
-	if len(s.UpgradeTracker.MachineDeployments.UpgradingNames()) > 0 ||
-		len(s.UpgradeTracker.MachinePools.UpgradingNames()) > 0 {
+	if s.UpgradeTracker.MachineDeployments.IsAnyUpgrading() || s.UpgradeTracker.MachinePools.IsAnyUpgrading() {
 		return *currentVersion, nil
 	}
 
@@ -692,6 +695,11 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	s.UpgradeTracker.ControlPlane.IsStartingUpgrade = true
 	s.UpgradeTracker.ControlPlane.IsPendingUpgrade = false
 
+	log.Info(fmt.Sprintf("Control plane %s upgraded from version %s to version %s", klog.KObj(s.Current.ControlPlane.Object), *currentVersion, nextVersion),
+		"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
+		"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+		s.Current.ControlPlane.Object.GetKind(), klog.KObj(s.Current.ControlPlane.Object),
+	)
 	return nextVersion, nil
 }
 
@@ -857,7 +865,7 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	// Add ClusterTopologyMachineDeploymentLabel to the generated InfrastructureMachine template
 	infraMachineTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
 	desiredMachineDeployment.InfrastructureMachineTemplate.SetLabels(infraMachineTemplateLabels)
-	version, err := g.computeMachineDeploymentVersion(s, machineDeploymentTopology, currentMachineDeployment)
+	version, err := g.computeMachineDeploymentVersion(ctx, s, machineDeploymentTopology, currentMachineDeployment)
 	if err != nil {
 		return nil, err
 	}
@@ -1039,7 +1047,9 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 // computeMachineDeploymentVersion calculates the version of the desired machine deployment.
 // The version is calculated using the state of the current machine deployments,
 // the current control plane and the version defined in the topology.
-func (g *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology, currentMDState *scope.MachineDeploymentState) (string, error) {
+func (g *generator) computeMachineDeploymentVersion(ctx context.Context, s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology, currentMDState *scope.MachineDeploymentState) (string, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	topologyVersion := s.Blueprint.Topology.Version
 	// If creating a new machine deployment, mark it as pending if the control plane is not
 	// yet stable. Creating a new MD while the control plane is upgrading can lead to unexpected race conditions.
@@ -1111,6 +1121,12 @@ func (g *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeplo
 	s.UpgradeTracker.MachineDeployments.MarkUpgrading(currentMDState.Object.Name)
 
 	nextVersion := s.UpgradeTracker.MachineDeployments.UpgradePlan[0]
+
+	log.Info(fmt.Sprintf("MachineDeployment %s upgraded from version %s to version %s", klog.KObj(currentMDState.Object), currentVersion, nextVersion),
+		"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
+		"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+		"MachineDeployment", klog.KObj(currentMDState.Object),
+	)
 	return nextVersion, nil
 }
 
@@ -1165,7 +1181,7 @@ func (g *generator) computeMachinePools(ctx context.Context, s *scope.Scope) (sc
 // computeMachinePool computes the desired state for a MachinePoolTopology.
 // The generated machinePool object is calculated using the values from the machinePoolTopology and
 // the machinePool class.
-func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology clusterv1.MachinePoolTopology) (*scope.MachinePoolState, error) {
+func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, machinePoolTopology clusterv1.MachinePoolTopology) (*scope.MachinePoolState, error) {
 	desiredMachinePool := &scope.MachinePoolState{}
 
 	// Gets the blueprint for the MachinePool class.
@@ -1243,7 +1259,7 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 	// Add ClusterTopologyMachinePoolLabel to the generated InfrastructureMachinePool object
 	infraMachinePoolObjectLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
 	desiredMachinePool.InfrastructureMachinePoolObject.SetLabels(infraMachinePoolObjectLabels)
-	version, err := g.computeMachinePoolVersion(s, machinePoolTopology, currentMachinePool)
+	version, err := g.computeMachinePoolVersion(ctx, s, machinePoolTopology, currentMachinePool)
 	if err != nil {
 		return nil, err
 	}
@@ -1359,7 +1375,9 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 // computeMachinePoolVersion calculates the version of the desired machine pool.
 // The version is calculated using the state of the current machine pools,
 // the current control plane and the version defined in the topology.
-func (g *generator) computeMachinePoolVersion(s *scope.Scope, machinePoolTopology clusterv1.MachinePoolTopology, currentMPState *scope.MachinePoolState) (string, error) {
+func (g *generator) computeMachinePoolVersion(ctx context.Context, s *scope.Scope, machinePoolTopology clusterv1.MachinePoolTopology, currentMPState *scope.MachinePoolState) (string, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	topologyVersion := s.Blueprint.Topology.Version
 	// If creating a new machine pool, mark it as pending if the control plane is not
 	// yet stable. Creating a new MP while the control plane is upgrading can lead to unexpected race conditions.
@@ -1431,6 +1449,12 @@ func (g *generator) computeMachinePoolVersion(s *scope.Scope, machinePoolTopolog
 	s.UpgradeTracker.MachinePools.MarkUpgrading(currentMPState.Object.Name)
 
 	nextVersion := s.UpgradeTracker.MachinePools.UpgradePlan[0]
+
+	log.Info(fmt.Sprintf("MachinePool %s upgraded from version %s to version %s", klog.KObj(currentMPState.Object), currentVersion, nextVersion),
+		"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
+		"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+		"MachinePool", klog.KObj(currentMPState.Object),
+	)
 	return nextVersion, nil
 }
 

@@ -251,6 +251,12 @@ func (m *WorkerUpgradeTracker) UpgradingNames() []string {
 	return sets.List(m.upgradingNames)
 }
 
+// IsAnyUpgrading returns true if any of the machine deployments are upgrading.
+// Returns false, otherwise.
+func (m *WorkerUpgradeTracker) IsAnyUpgrading() bool {
+	return len(m.upgradingNames) != 0
+}
+
 // UpgradeConcurrencyReached returns true if the number of MachineDeployments/MachinePools upgrading is at the concurrency limit.
 func (m *WorkerUpgradeTracker) UpgradeConcurrencyReached() bool {
 	return m.upgradingNames.Len() >= m.maxUpgradeConcurrency
@@ -316,8 +322,8 @@ func (m *WorkerUpgradeTracker) DeferredUpgradeNames() []string {
 	return sets.List(m.deferredNames)
 }
 
-// DeferredUpgrade returns true if the upgrade has been deferred for any of the
+// IsAnyUpgradeDeferred returns true if the upgrade has been deferred for any of the
 // MachineDeployments/MachinePools. Returns false, otherwise.
-func (m *WorkerUpgradeTracker) DeferredUpgrade() bool {
+func (m *WorkerUpgradeTracker) IsAnyUpgradeDeferred() bool {
 	return len(m.deferredNames) != 0
 }

@@ -1232,6 +1232,9 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			tt.s.Current.Cluster.Annotations[conversion.DataAnnotation] = "should be cleaned up"
 
 			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+				WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
+					afterClusterUpgradeGVH: {"foo"},
+				}).
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					afterClusterUpgradeGVH: tt.hookResponse,
 				}).

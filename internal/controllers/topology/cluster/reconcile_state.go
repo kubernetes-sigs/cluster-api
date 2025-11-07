@@ -37,6 +37,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -231,6 +232,8 @@ func isControlPlaneInitialized(cluster *clusterv1.Cluster) bool {
 }
 
 func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
 	// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
 	// Note: also check that the AfterControlPlaneUpgrade hooks and the AfterWorkersUpgrade hooks already have been called.
@@ -242,16 +245,25 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 		// - MachineDeployments/MachinePools are not pending an upgrade
 		// - MachineDeployments/MachinePools are not pending create
 		if s.UpgradeTracker.ControlPlane.IsControlPlaneStable() && // Control Plane stable checks
-			len(s.UpgradeTracker.MachineDeployments.UpgradingNames()) == 0 && // Machine deployments are not upgrading or not about to upgrade
+			!s.UpgradeTracker.MachineDeployments.IsAnyUpgrading() && // Machine deployments are not upgrading or not about to upgrade
 			!s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate() && // No MachineDeployments are pending create
 			!s.UpgradeTracker.MachineDeployments.IsAnyPendingUpgrade() && // No MachineDeployments are pending an upgrade
-			!s.UpgradeTracker.MachineDeployments.DeferredUpgrade() && // No MachineDeployments have deferred an upgrade
-			len(s.UpgradeTracker.MachinePools.UpgradingNames()) == 0 && // Machine pools are not upgrading or not about to upgrade
+			!s.UpgradeTracker.MachineDeployments.IsAnyUpgradeDeferred() && // No MachineDeployments have deferred an upgrade
+			!s.UpgradeTracker.MachinePools.IsAnyUpgrading() && // Machine pools are not upgrading or not about to upgrade
 			!s.UpgradeTracker.MachinePools.IsAnyPendingCreate() && // No MachinePools are pending create
 			!s.UpgradeTracker.MachinePools.IsAnyPendingUpgrade() && // No MachinePools are pending an upgrade
-			!s.UpgradeTracker.MachinePools.DeferredUpgrade() { // No MachinePools have deferred an upgrade
-			v1beta1Cluster := &clusterv1beta1.Cluster{}
+			!s.UpgradeTracker.MachinePools.IsAnyUpgradeDeferred() { // No MachinePools have deferred an upgrade
+			// Return quickly if the hook is not defined.
+			extensionHandlers, err := r.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)
+			if err != nil {
+				return err
+			}
+			if len(extensionHandlers) == 0 {
+				return hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterClusterUpgrade)
+			}
+
 			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
+			v1beta1Cluster := &clusterv1beta1.Cluster{}
 			if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
 				return errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 			}
@@ -266,6 +278,18 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 				return err
 			}
 			s.HookResponseTracker.Add(runtimehooksv1.AfterClusterUpgrade, hookResponse)
+
+			// TODO(chained): uncomment this as soon as AfterClusterUpgrade will be blocking
+			//nolint:gocritic
+			/*
+				if hookResponse.RetryAfterSeconds != 0 {
+					log.Info(fmt.Sprintf("Cluster upgrade to version %s is blocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade)))
+					return nil
+				}
+			*/
+
+			log.Info(fmt.Sprintf("Control plane upgrade to version %s unblocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade)))
+
 			// The hook is successfully called; we can remove this hook from the list of pending-hooks.
 			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterClusterUpgrade); err != nil {
 				return err

@@ -64,6 +64,11 @@ func (h *HookResponseTracker) IsBlocking(hook runtimecatalog.Hook) bool {
 	return true
 }
 
+// IsAnyBlocking return true if at least one hook is blocking.
+func (h *HookResponseTracker) IsAnyBlocking() bool {
+	return h.AggregateRetryAfter() > 0
+}
+
 // AggregateRetryAfter calculates the lowest non-zero retryAfterSeconds time from all the tracked responses.
 func (h *HookResponseTracker) AggregateRetryAfter() time.Duration {
 	res := int32(0)
@@ -92,10 +97,10 @@ func (h *HookResponseTracker) AggregateMessage() string {
 	hookAndMessages := []string{}
 	for hook, message := range blockingHooks {
 		if message == "" {
-			hookAndMessages = append(hookAndMessages, fmt.Sprintf("hook %q is blocking", hook))
+			hookAndMessages = append(hookAndMessages, hook)
 		} else {
-			hookAndMessages = append(hookAndMessages, fmt.Sprintf("hook %q is blocking: %s", hook, message))
+			hookAndMessages = append(hookAndMessages, fmt.Sprintf("%s: %s", hook, message))
 		}
 	}
-	return strings.Join(hookAndMessages, "; ")
+	return fmt.Sprintf("Following hooks are blocking upgrade progress: %s", strings.Join(hookAndMessages, "; "))
 }

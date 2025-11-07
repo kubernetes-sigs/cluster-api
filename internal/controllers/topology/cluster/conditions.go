@@ -18,15 +18,19 @@ package cluster
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -74,25 +78,6 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		return nil
 	}
 
-	// Mark TopologyReconciled as false due to cluster deletion.
-	if !cluster.DeletionTimestamp.IsZero() {
-		v1beta1conditions.Set(cluster,
-			v1beta1conditions.FalseCondition(
-				clusterv1.TopologyReconciledV1Beta1Condition,
-				clusterv1.DeletedV1Beta1Reason,
-				clusterv1.ConditionSeverityInfo,
-				"",
-			),
-		)
-		conditions.Set(cluster, metav1.Condition{
-			Type:    clusterv1.ClusterTopologyReconciledCondition,
-			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.ClusterTopologyReconciledDeletingReason,
-			Message: "Cluster is deleting",
-		})
-		return nil
-	}
-
 	// If an error occurred during reconciliation set the TopologyReconciled condition to false.
 	// Add the error message from the reconcile function to the message of the condition.
 	if reconcileErr != nil {
@@ -111,6 +96,29 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 			Reason: clusterv1.ClusterTopologyReconciledFailedReason,
 			// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
 			Message: reconcileErr.Error(),
+		})
+		return nil
+	}
+
+	// Mark TopologyReconciled as false due to cluster deletion.
+	if !cluster.DeletionTimestamp.IsZero() {
+		message := "Cluster is deleting"
+		if s.HookResponseTracker.AggregateRetryAfter() != 0 {
+			message += ". " + strings.ReplaceAll(s.HookResponseTracker.AggregateMessage(), "upgrade", "delete")
+		}
+		v1beta1conditions.Set(cluster,
+			v1beta1conditions.FalseCondition(
+				clusterv1.TopologyReconciledV1Beta1Condition,
+				clusterv1.DeletingV1Beta1Reason,
+				clusterv1.ConditionSeverityInfo,
+				"%s", message,
+			),
+		)
+		conditions.Set(cluster, metav1.Condition{
+			Type:    clusterv1.ClusterTopologyReconciledCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.ClusterTopologyReconciledDeletingReason,
+			Message: message,
 		})
 		return nil
 	}
@@ -138,122 +146,164 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		return nil
 	}
 
-	// If any of the lifecycle hooks are blocking any part of the reconciliation then topology
-	// is not considered as fully reconciled.
-	if s.HookResponseTracker.AggregateRetryAfter() != 0 {
+	// If the cluster is performing initial provisioning.
+	if s.Blueprint != nil && s.Blueprint.ClusterClass != nil &&
+		s.Blueprint.ClusterClass.GetGeneration() != s.Blueprint.ClusterClass.Status.ObservedGeneration {
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
 				clusterv1.TopologyReconciledV1Beta1Condition,
-				clusterv1.TopologyReconciledHookBlockingV1Beta1Reason,
+				clusterv1.TopologyReconciledClusterClassNotReconciledV1Beta1Reason,
 				clusterv1.ConditionSeverityInfo,
-				// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
-				"%s", s.HookResponseTracker.AggregateMessage(),
+				"ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if"+
+					".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			),
 		)
 		conditions.Set(cluster, metav1.Condition{
 			Type:   clusterv1.ClusterTopologyReconciledCondition,
 			Status: metav1.ConditionFalse,
-			Reason: clusterv1.ClusterTopologyReconciledHookBlockingReason,
-			// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
-			Message: s.HookResponseTracker.AggregateMessage(),
+			Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledReason,
+			Message: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
+				".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 		})
 		return nil
 	}
 
-	// The topology is not considered as fully reconciled if one of the following is true:
-	// * either the Control Plane or any of the MachineDeployments/MachinePools are still pending to pick up the new version
-	//  (generally happens when upgrading the cluster)
-	// * when there are MachineDeployments/MachinePools for which the upgrade has been deferred
-	// * when new MachineDeployments/MachinePools are pending to be created
-	//  (generally happens when upgrading the cluster)
-	if s.UpgradeTracker.ControlPlane.IsPendingUpgrade ||
-		s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate() ||
-		s.UpgradeTracker.MachineDeployments.IsAnyPendingUpgrade() ||
-		s.UpgradeTracker.MachineDeployments.DeferredUpgrade() ||
-		s.UpgradeTracker.MachinePools.IsAnyPendingCreate() ||
-		s.UpgradeTracker.MachinePools.IsAnyPendingUpgrade() ||
-		s.UpgradeTracker.MachinePools.DeferredUpgrade() {
-		msgBuilder := &strings.Builder{}
-		var reason string
-		var v1beta2Reason string
-
-		// TODO(ykakarap): Evaluate potential improvements to building the condition. Multiple causes can trigger the
-		// condition to be false at the same time (Example: ControlPlane.IsPendingUpgrade and MachineDeployments.IsAnyPendingCreate can
-		// occur at the same time). Find better wording and `Reason` for the condition so that the condition can be rich
-		// with all the relevant information.
-		switch {
-		case s.UpgradeTracker.ControlPlane.IsPendingUpgrade:
-			fmt.Fprintf(msgBuilder, "Control plane rollout and upgrade to version %s on hold.", s.Blueprint.Topology.Version)
-			reason = clusterv1.TopologyReconciledControlPlaneUpgradePendingV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledControlPlaneUpgradePendingReason
-		case s.UpgradeTracker.MachineDeployments.IsAnyPendingUpgrade():
-			fmt.Fprintf(msgBuilder, "MachineDeployment(s) %s rollout and upgrade to version %s on hold.",
-				computeNameList(s.UpgradeTracker.MachineDeployments.PendingUpgradeNames()),
-				s.Blueprint.Topology.Version,
+	// If the BeforeClusterCreate hook is blocking, reports it
+	if !s.Current.Cluster.Spec.InfrastructureRef.IsDefined() && !s.Current.Cluster.Spec.ControlPlaneRef.IsDefined() {
+		if s.HookResponseTracker.AggregateRetryAfter() != 0 {
+			v1beta1conditions.Set(cluster,
+				v1beta1conditions.TrueCondition(clusterv1.TopologyReconciledV1Beta1Condition),
 			)
-			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradePendingReason
-		case s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate():
-			fmt.Fprintf(msgBuilder, "MachineDeployment(s) for Topologies %s creation on hold.",
-				computeNameList(s.UpgradeTracker.MachineDeployments.PendingCreateTopologyNames()),
-			)
-			reason = clusterv1.TopologyReconciledMachineDeploymentsCreatePendingV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsCreatePendingReason
-		case s.UpgradeTracker.MachineDeployments.DeferredUpgrade():
-			fmt.Fprintf(msgBuilder, "MachineDeployment(s) %s rollout and upgrade to version %s deferred.",
-				computeNameList(s.UpgradeTracker.MachineDeployments.DeferredUpgradeNames()),
-				s.Blueprint.Topology.Version,
-			)
-			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredReason
-		case s.UpgradeTracker.MachinePools.IsAnyPendingUpgrade():
-			fmt.Fprintf(msgBuilder, "MachinePool(s) %s rollout and upgrade to version %s on hold.",
-				computeNameList(s.UpgradeTracker.MachinePools.PendingUpgradeNames()),
-				s.Blueprint.Topology.Version,
-			)
-			reason = clusterv1.TopologyReconciledMachinePoolsUpgradePendingV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachinePoolsUpgradePendingReason
-		case s.UpgradeTracker.MachinePools.IsAnyPendingCreate():
-			fmt.Fprintf(msgBuilder, "MachinePool(s) for Topologies %s creation on hold.",
-				computeNameList(s.UpgradeTracker.MachinePools.PendingCreateTopologyNames()),
-			)
-			reason = clusterv1.TopologyReconciledMachinePoolsCreatePendingV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachinePoolsCreatePendingReason
-		case s.UpgradeTracker.MachinePools.DeferredUpgrade():
-			fmt.Fprintf(msgBuilder, "MachinePool(s) %s rollout and upgrade to version %s deferred.",
-				computeNameList(s.UpgradeTracker.MachinePools.DeferredUpgradeNames()),
-				s.Blueprint.Topology.Version,
-			)
-			reason = clusterv1.TopologyReconciledMachinePoolsUpgradeDeferredV1Beta1Reason
-			v1beta2Reason = clusterv1.ClusterTopologyReconciledMachinePoolsUpgradeDeferredReason
+			conditions.Set(cluster, metav1.Condition{
+				Type:    clusterv1.ClusterTopologyReconciledCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.ClusterTopologyReconcileSucceededReason,
+				Message: strings.ReplaceAll(s.HookResponseTracker.AggregateMessage(), "upgrade progress", "Cluster topology creation"),
+			})
+			return nil
 		}
 
-		switch {
-		case s.UpgradeTracker.ControlPlane.IsProvisioning:
-			msgBuilder.WriteString(" Control plane is completing initial provisioning")
+		// Note: this should never happen, controlPlane and infrastructure ref should be set at the first reconcile of the topology controller if the hook is not blocking.
+		v1beta1conditions.Set(cluster,
+			v1beta1conditions.TrueCondition(clusterv1.TopologyReconciledV1Beta1Condition),
+		)
+		conditions.Set(cluster, metav1.Condition{
+			Type:   clusterv1.ClusterTopologyReconciledCondition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.ClusterTopologyReconcileSucceededReason,
+		})
+	}
 
-		case s.UpgradeTracker.ControlPlane.IsUpgrading:
-			cpVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
-			if err != nil {
-				return errors.Wrap(err, "failed to get control plane spec version")
+	// If Cluster is updating surface it.
+	// Note: intentionally checking all the signal about upgrade in progress to make sure to avoid edge cases.
+	if s.UpgradeTracker.ControlPlane.IsPendingUpgrade ||
+		s.UpgradeTracker.ControlPlane.IsStartingUpgrade ||
+		s.UpgradeTracker.ControlPlane.IsUpgrading ||
+		s.UpgradeTracker.MachineDeployments.IsAnyPendingUpgrade() ||
+		s.UpgradeTracker.MachineDeployments.IsAnyUpgrading() ||
+		s.UpgradeTracker.MachineDeployments.IsAnyUpgradeDeferred() ||
+		s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate() ||
+		s.UpgradeTracker.MachinePools.IsAnyPendingUpgrade() ||
+		s.UpgradeTracker.MachinePools.IsAnyUpgrading() ||
+		s.UpgradeTracker.MachinePools.IsAnyUpgradeDeferred() ||
+		s.UpgradeTracker.MachinePools.IsAnyPendingCreate() ||
+		hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, cluster) {
+		// Start building the condition message showing upgrade progress.
+		msgBuilder := &strings.Builder{}
+		fmt.Fprintf(msgBuilder, "Cluster is upgrading to %s", cluster.Spec.Topology.Version)
+
+		// Setting condition reasons showing upgrade is progress; this will be overridden only
+		// when users are blocking upgrade to make further progress, e.g. deferred upgrades
+		reason := clusterv1.ClusterTopologyReconciledClusterUpgradingReason
+		v1Beta1Reason := clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason
+
+		cpVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
+		if err != nil {
+			return errors.Wrap(err, "failed to get control plane spec version")
+		}
+
+		// If any of the lifecycle hooks are blocking the upgrade surface it as a first detail.
+		if s.HookResponseTracker.IsAnyBlocking() {
+			fmt.Fprintf(msgBuilder, "\n  * %s", s.HookResponseTracker.AggregateMessage())
+		}
+
+		// If control plane is upgrading surface it, otherwise surface the pending upgrade plan.
+		if s.UpgradeTracker.ControlPlane.IsStartingUpgrade || s.UpgradeTracker.ControlPlane.IsUpgrading {
+			fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s", s.Current.ControlPlane.Object.GetKind(), *cpVersion)
+			if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
+				fmt.Fprintf(msgBuilder, " (%s pending)", strings.Join(s.UpgradeTracker.ControlPlane.UpgradePlan, ", "))
 			}
-			fmt.Fprintf(msgBuilder, " Control plane is upgrading to version %s", *cpVersion)
+		} else if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
+			fmt.Fprintf(msgBuilder, "\n  * %s pending upgrade to version %s", s.Current.ControlPlane.Object.GetKind(), strings.Join(s.UpgradeTracker.ControlPlane.UpgradePlan, ", "))
+		}
 
-		case len(s.UpgradeTracker.MachineDeployments.UpgradingNames()) > 0:
-			fmt.Fprintf(msgBuilder, " MachineDeployment(s) %s are upgrading",
-				computeNameList(s.UpgradeTracker.MachineDeployments.UpgradingNames()),
-			)
+		// If MachineDeployments are upgrading surface it, if MachineDeployments are pending upgrades then surface the upgrade plans.
+		upgradingMachineDeploymentNames, pendingMachineDeploymentNames, deferredMachineDeploymentNames := dedupNames(s.UpgradeTracker.MachineDeployments)
+		if len(upgradingMachineDeploymentNames) > 0 {
+			fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s", nameList("MachineDeployment", "MachineDeployments", upgradingMachineDeploymentNames), *cpVersion)
+			if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
+				fmt.Fprintf(msgBuilder, " (%s pending)", strings.Join(s.UpgradeTracker.MachineDeployments.UpgradePlan, ", "))
+			}
+		}
 
-		case len(s.UpgradeTracker.MachinePools.UpgradingNames()) > 0:
-			fmt.Fprintf(msgBuilder, " MachinePool(s) %s are upgrading",
-				computeNameList(s.UpgradeTracker.MachinePools.UpgradingNames()),
-			)
+		if len(pendingMachineDeploymentNames) > 0 && len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 {
+			fmt.Fprintf(msgBuilder, "\n  * %s pending upgrade to version %s", nameList("MachineDeployment", "MachineDeployments", pendingMachineDeploymentNames), strings.Join(s.UpgradeTracker.MachineDeployments.UpgradePlan, ", "))
+		}
+
+		// If MachineDeployments has been deferred or put on hold, surface it.
+		if len(deferredMachineDeploymentNames) > 0 {
+			fmt.Fprintf(msgBuilder, "\n  * %s upgrade to version %s deferred using topology.cluster.x-k8s.io/defer-upgrade or hold-upgrade-sequence annotations", nameList("MachineDeployment", "MachineDeployments", deferredMachineDeploymentNames), *cpVersion)
+			// If Deferred upgrades are blocking an upgrade, surface it.
+			// Note: Hook blocking takes the precedence on this signal.
+			if !s.HookResponseTracker.IsAnyBlocking() &&
+				(!s.UpgradeTracker.ControlPlane.IsStartingUpgrade && !s.UpgradeTracker.ControlPlane.IsUpgrading) &&
+				!s.UpgradeTracker.MachineDeployments.IsAnyUpgrading() && len(pendingMachineDeploymentNames) == 0 {
+				reason = clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredReason
+				v1Beta1Reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta1Reason
+			}
+		}
+
+		// If creation of MachineDeployments has been deferred due to control plane upgrade in progress, surface it.
+		if s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate() {
+			fmt.Fprintf(msgBuilder, "\n  * %s creation deferred while control plane upgrade is in progress", nameList("MachineDeployment", "MachineDeployments", s.UpgradeTracker.MachineDeployments.PendingCreateTopologyNames()))
+		}
+
+		// If MachinePools are upgrading surface it, if MachinePools are pending upgrades then surface the upgrade plans.
+		upgradingMachinePoolNames, pendingMachinePoolNames, deferredMachinePoolNames := dedupNames(s.UpgradeTracker.MachinePools)
+		if len(upgradingMachinePoolNames) > 0 {
+			fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s", nameList("MachinePool", "MachinePools", upgradingMachinePoolNames), *cpVersion)
+			if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
+				fmt.Fprintf(msgBuilder, " (%s pending)", strings.Join(s.UpgradeTracker.MachinePools.UpgradePlan, ", "))
+			}
+		}
+
+		if len(pendingMachinePoolNames) > 0 && len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0 {
+			fmt.Fprintf(msgBuilder, "\n  * %s pending upgrade to version %s", nameList("MachinePool", "MachinePools", pendingMachinePoolNames), strings.Join(s.UpgradeTracker.MachinePools.UpgradePlan, ", "))
+		}
+
+		// If MachinePools has been deferred or put on hold, surface it.
+		if len(deferredMachinePoolNames) > 0 {
+			fmt.Fprintf(msgBuilder, "\n  * %s upgrade to version %s deferred using topology.cluster.x-k8s.io/defer-upgrade or hold-upgrade-sequence annotations", nameList("MachinePool", "MachinePools", deferredMachinePoolNames), *cpVersion)
+			// If Deferred upgrades are blocking an upgrade, surface it.
+			// Note: Hook blocking takes the precedence on this signal.
+			if !s.HookResponseTracker.IsAnyBlocking() &&
+				(!s.UpgradeTracker.ControlPlane.IsStartingUpgrade && !s.UpgradeTracker.ControlPlane.IsUpgrading) &&
+				!s.UpgradeTracker.MachinePools.IsAnyUpgrading() && len(pendingMachinePoolNames) == 0 &&
+				reason != clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredReason {
+				reason = clusterv1.ClusterTopologyReconciledMachinePoolsUpgradeDeferredReason
+				v1Beta1Reason = clusterv1.TopologyReconciledMachinePoolsUpgradeDeferredV1Beta1Reason
+			}
+		}
+
+		// If creation of MachinePools has been deferred due to control plane upgrade in progress, surface it.
+		if s.UpgradeTracker.MachinePools.IsAnyPendingCreate() {
+			fmt.Fprintf(msgBuilder, "\n  * %s creation deferred while control plane upgrade is in progress", nameList("MachinePool", "MachinePools", s.UpgradeTracker.MachinePools.PendingCreateTopologyNames()))
 		}
 
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
 				clusterv1.TopologyReconciledV1Beta1Condition,
-				reason,
+				v1Beta1Reason,
 				clusterv1.ConditionSeverityInfo,
 				"%s", msgBuilder.String(),
 			),
@@ -261,7 +311,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterTopologyReconciledCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  v1beta2Reason,
+			Reason:  reason,
 			Message: msgBuilder.String(),
 		})
 		return nil
@@ -281,13 +331,39 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	return nil
 }
 
+// dedupNames take care of names that might exist in multiple lists.
+func dedupNames(t scope.WorkerUpgradeTracker) ([]string, []string, []string) {
+	// upgrading names are preserved
+	upgradingSet := sets.Set[string]{}.Insert(t.UpgradingNames()...)
+	// upgrading names are removed from deferred names (give precedence to the fact that it is upgrading now)
+	deferredSet := sets.Set[string]{}.Insert(t.DeferredUpgradeNames()...).Difference(upgradingSet)
+	// upgrading and deferred names are removed from pending names (it is pending if not upgrading or deferred)
+	pendingSet := sets.Set[string]{}.Insert(t.PendingUpgradeNames()...).Difference(upgradingSet).Difference(deferredSet)
+	return upgradingSet.UnsortedList(), pendingSet.UnsortedList(), deferredSet.UnsortedList()
+}
+
 // computeNameList computes list of names from the given list to be shown in conditions.
 // It shortens the list to at most 5 names and adds an ellipsis at the end if the list
-// has more than 5 elements.
+// has more than 3 elements.
 func computeNameList(list []string) any {
-	if len(list) > 5 {
-		list = append(list[:5], "...")
+	if len(list) > 3 {
+		list = append(list[:3], "...")
 	}
 
 	return strings.Join(list, ", ")
+}
+
+// nameList computes list of names from the given list to be shown in conditions.
+// It shortens the list to at most 5 names and adds an ellipsis at the end if the list
+// has more than 3 elements.
+func nameList(kind, kindPlural string, names []string) any {
+	sort.Strings(names)
+	switch {
+	case len(names) == 1:
+		return fmt.Sprintf("%s %s", kind, strings.Join(names, ", "))
+	case len(names) <= 3:
+		return fmt.Sprintf("%s %s", kindPlural, strings.Join(names, ", "))
+	default:
+		return fmt.Sprintf("%s %s, ... (%d more)", kindPlural, strings.Join(names[:3], ", "), len(names)-3)
+	}
 }

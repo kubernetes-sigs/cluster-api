@@ -1074,21 +1074,14 @@ func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster *c
 func annotationHookTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, hook, annotation string, blockingCondition func() bool) {
 	log.Logf("Blocking with the %s annotation hook for 60 seconds", hook)
 
-	expectedBlockingMessage := fmt.Sprintf("hook %q is blocking: annotation [%s] is set", hook, annotation)
+	expectedBlockingMessage := fmt.Sprintf("annotation [%s] is set", annotation)
 
 	// Check if TopologyReconciledCondition reports if the annotation hook is blocking
 	topologyConditionCheck := func() bool {
 		cluster = framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Name: cluster.Name, Namespace: cluster.Namespace, Getter: c})
 
-		if conditions.GetReason(cluster, clusterv1.ClusterTopologyReconciledCondition) != clusterv1.ClusterTopologyReconciledHookBlockingReason {
-			return false
-		}
-		if !strings.Contains(conditions.GetMessage(cluster, clusterv1.ClusterTopologyReconciledCondition), expectedBlockingMessage) {
-			return false
-		}
-
-		return true
+		return strings.Contains(conditions.GetMessage(cluster, clusterv1.ClusterTopologyReconciledCondition), expectedBlockingMessage)
 	}
 
 	Byf("Waiting for %s hook (via annotation %s) to start blocking", hook, annotation)
@@ -1227,8 +1220,7 @@ func computeHookName(hook string, attributes []string) string {
 
 // clusterConditionShowsHookBlocking checks if the TopologyReconciled condition message contains both the hook name and hookFailedMessage.
 func clusterConditionShowsHookBlocking(cluster *clusterv1.Cluster, hookName string) bool {
-	return conditions.GetReason(cluster, clusterv1.ClusterTopologyReconciledCondition) == clusterv1.ClusterTopologyReconciledHookBlockingReason &&
-		strings.Contains(conditions.GetMessage(cluster, clusterv1.ClusterTopologyReconciledCondition), hookName)
+	return strings.Contains(conditions.GetMessage(cluster, clusterv1.ClusterTopologyReconciledCondition), hookName)
 }
 
 func waitControlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals []interface{}) {

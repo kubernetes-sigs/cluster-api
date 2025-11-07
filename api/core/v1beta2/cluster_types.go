@@ -82,15 +82,18 @@ const (
 
 	// ClusterTopologyReconciledControlPlaneUpgradePendingReason documents reconciliation of a Cluster topology
 	// not yet completed because Control Plane is not yet updated to match the desired topology spec.
+	// Deprecated: please use ClusterUpgrading instead.
 	ClusterTopologyReconciledControlPlaneUpgradePendingReason = "ControlPlaneUpgradePending"
 
 	// ClusterTopologyReconciledMachineDeploymentsCreatePendingReason documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachineDeployments is yet to be created.
 	// This generally happens because new MachineDeployment creations are held off while the ControlPlane is not stable.
+	// Deprecated: please use ClusterUpgrading instead.
 	ClusterTopologyReconciledMachineDeploymentsCreatePendingReason = "MachineDeploymentsCreatePending"
 
 	// ClusterTopologyReconciledMachineDeploymentsUpgradePendingReason documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachineDeployments is not yet updated to match the desired topology spec.
+	// Deprecated: please use ClusterUpgrading instead.
 	ClusterTopologyReconciledMachineDeploymentsUpgradePendingReason = "MachineDeploymentsUpgradePending"
 
 	// ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredReason documents reconciliation of a Cluster topology
@@ -99,20 +102,28 @@ const (
 
 	// ClusterTopologyReconciledMachinePoolsUpgradePendingReason documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachinePools is not yet updated to match the desired topology spec.
+	// Deprecated: please use ClusterUpgrading instead.
 	ClusterTopologyReconciledMachinePoolsUpgradePendingReason = "MachinePoolsUpgradePending"
 
 	// ClusterTopologyReconciledMachinePoolsCreatePendingReason documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachinePools is yet to be created.
 	// This generally happens because new MachinePool creations are held off while the ControlPlane is not stable.
+	// Deprecated: please use ClusterUpgrading instead.
 	ClusterTopologyReconciledMachinePoolsCreatePendingReason = "MachinePoolsCreatePending"
 
 	// ClusterTopologyReconciledMachinePoolsUpgradeDeferredReason documents reconciliation of a Cluster topology
 	// not yet completed because the upgrade for at least one of the MachinePools has been deferred.
+	// Deprecated: please use ClusterUpgrading instead.
 	ClusterTopologyReconciledMachinePoolsUpgradeDeferredReason = "MachinePoolsUpgradeDeferred"
 
 	// ClusterTopologyReconciledHookBlockingReason documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the lifecycle hooks is blocking.
+	// Deprecated: please use ClusterUpgrading instead.
 	ClusterTopologyReconciledHookBlockingReason = "LifecycleHookBlocking"
+
+	// ClusterTopologyReconciledClusterUpgradingReason documents reconciliation of a Cluster topology
+	// not yet completed because a cluster upgrade is still in progress.
+	ClusterTopologyReconciledClusterUpgradingReason = "ClusterUpgrading"
 
 	// ClusterTopologyReconciledClusterClassNotReconciledReason documents reconciliation of a Cluster topology not
 	// yet completed because the ClusterClass has not reconciled yet. If this condition persists there may be an issue

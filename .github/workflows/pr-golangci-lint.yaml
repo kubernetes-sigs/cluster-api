@@ -30,6 +30,6 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8 # tag=v6.1.1
         with:
-          version: v1.60.2
+          version: v1.64.3
           args: --out-format=colored-line-number
           working-directory: ${{matrix.working-directory}}

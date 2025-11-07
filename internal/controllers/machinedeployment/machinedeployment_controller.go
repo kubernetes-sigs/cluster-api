@@ -39,6 +39,8 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
+	"sigs.k8s.io/cluster-api/feature"
 	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -70,8 +72,9 @@ const machineDeploymentManagerName = "capi-machinedeployment"
 
 // Reconciler reconciles a MachineDeployment object.
 type Reconciler struct {
-	Client    client.Client
-	APIReader client.Reader
+	Client        client.Client
+	APIReader     client.Reader
+	RuntimeClient runtimeclient.Client
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -83,6 +86,9 @@ type Reconciler struct {
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.APIReader == nil {
 		return errors.New("Client and APIReader must not be nil")
+	}
+	if feature.Gates.Enabled(feature.InPlaceUpdates) && r.RuntimeClient == nil {
+		return errors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "machinedeployment")

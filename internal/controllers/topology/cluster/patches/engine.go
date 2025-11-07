@@ -505,7 +505,7 @@ func applyPatchToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatche
 
 	// Overwrite the spec of template.Template with the spec of the patchedTemplate,
 	// to ensure that we only pick up changes to the spec.
-	if err := patchutil.PatchSpec(&requestItem.Object, patchedTemplate); err != nil {
+	if err := patchutil.Patch(&requestItem.Object, patchedTemplate, "spec"); err != nil {
 		log.Error(err, fmt.Sprintf("Failed to apply patch to template with uid %q", requestItem.UID))
 		return errors.Wrap(err, "failed to apply patch to template")
 	}

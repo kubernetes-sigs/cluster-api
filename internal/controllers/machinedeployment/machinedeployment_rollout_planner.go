@@ -29,12 +29,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/util/hash"
 	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
 type rolloutPlanner struct {
+	Client        client.Client
+	RuntimeClient runtimeclient.Client
+
 	md       *clusterv1.MachineDeployment
 	revision string
 
@@ -47,14 +51,17 @@ type rolloutPlanner struct {
 	oldMSs          []*clusterv1.MachineSet
 	upToDateResults map[string]mdutil.UpToDateResult
 
-	scaleIntents                       map[string]int32
-	overrideComputeDesiredMS           func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error)
-	overrideCanUpdateMachineSetInPlace func(oldMS *clusterv1.MachineSet) bool
+	scaleIntents                          map[string]int32
+	overrideComputeDesiredMS              func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error)
+	overrideCanUpdateMachineSetInPlace    func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (bool, error)
+	overrideCanExtensionsUpdateMachineSet func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (bool, []string, error)
 }
 
-func newRolloutPlanner() *rolloutPlanner {
+func newRolloutPlanner(c client.Client, runtimeClient runtimeclient.Client) *rolloutPlanner {
 	return &rolloutPlanner{
-		scaleIntents: make(map[string]int32),
+		Client:        c,
+		RuntimeClient: runtimeClient,
+		scaleIntents:  make(map[string]int32),
 	}
 }
 

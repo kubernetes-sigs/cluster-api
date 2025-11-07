@@ -19,6 +19,7 @@ package machine
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -149,7 +150,7 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 	}
 
 	if len(extensions) > 1 {
-		return ctrl.Result{}, "", errors.Errorf("multiple extensions registered for UpdateMachine hook: only one extension is supported, found %d extensions: %v", len(extensions), extensions)
+		return ctrl.Result{}, "", errors.Errorf("found multiple UpdateMachine hooks (%s): only one hook is supported", strings.Join(extensions, ","))
 	}
 
 	// Note: When building request message, dropping status; Runtime extension should treat UpdateMachine

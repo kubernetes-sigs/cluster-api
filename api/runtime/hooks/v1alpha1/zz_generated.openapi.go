@@ -1408,21 +1408,21 @@ func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineResponse(ref common.Refer
 					},
 					"machinePatch": {
 						SchemaProps: spec.SchemaProps{
-							Description: "machinePatch when applied to the current Machine spec, indicates changes handled in-place.",
+							Description: "machinePatch when applied to the current Machine spec, indicates changes handled in-place. Only fields in spec have to be covered by the patch.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"),
 						},
 					},
 					"infrastructureMachinePatch": {
 						SchemaProps: spec.SchemaProps{
-							Description: "infrastructureMachinePatch indicates infra Machine spec changes handled in-place.",
+							Description: "infrastructureMachinePatch indicates infra Machine spec changes handled in-place. Only fields in spec have to be covered by the patch.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"),
 						},
 					},
 					"bootstrapConfigPatch": {
 						SchemaProps: spec.SchemaProps{
-							Description: "bootstrapConfigPatch indicates bootstrap config spec changes handled in-place.",
+							Description: "bootstrapConfigPatch indicates bootstrap config spec changes handled in-place. Only fields in spec have to be covered by the patch.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.Patch"),
 						},
@@ -1505,20 +1505,20 @@ func schema_api_runtime_hooks_v1alpha1_CanUpdateMachineSetRequestObjects(ref com
 				Properties: map[string]spec.Schema{
 					"machineSet": {
 						SchemaProps: spec.SchemaProps{
-							Description: "machineSet is the full MachineSet object.",
+							Description: "machineSet is the full MachineSet object. Only fields in spec.template.spec have to be covered by the patch.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSet"),
 						},
 					},
 					"infrastructureMachineTemplate": {
 						SchemaProps: spec.SchemaProps{
-							Description: "infrastructureMachineTemplate is the provider-specific InfrastructureMachineTemplate object.",
+							Description: "infrastructureMachineTemplate is the provider-specific InfrastructureMachineTemplate object. Only fields in spec.template.spec have to be covered by the patch.",
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},
 					"bootstrapConfigTemplate": {
 						SchemaProps: spec.SchemaProps{
-							Description: "bootstrapConfigTemplate is the provider-specific BootstrapConfigTemplate object.",
+							Description: "bootstrapConfigTemplate is the provider-specific BootstrapConfigTemplate object. Only fields in spec.template.spec have to be covered by the patch.",
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},

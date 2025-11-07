@@ -123,8 +123,9 @@ func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 
 // MachineDeploymentReconciler reconciles a MachineDeployment object.
 type MachineDeploymentReconciler struct {
-	Client    client.Client
-	APIReader client.Reader
+	Client        client.Client
+	APIReader     client.Reader
+	RuntimeClient runtimeclient.Client
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -134,6 +135,7 @@ func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr 
 	return (&machinedeploymentcontroller.Reconciler{
 		Client:           r.Client,
 		APIReader:        r.APIReader,
+		RuntimeClient:    r.RuntimeClient,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

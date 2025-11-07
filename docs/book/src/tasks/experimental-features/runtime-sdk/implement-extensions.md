@@ -304,7 +304,7 @@ created, the extension will detect the associated service and discover the assoc
 check the status of the ExtensionConfig. Below is an example of `ExtensionConfig` -
 
 ```yaml
-apiVersion: runtime.cluster.x-k8s.io/v1alpha1
+apiVersion: runtime.cluster.x-k8s.io/v1beta2
 kind: ExtensionConfig
 metadata:
   annotations:

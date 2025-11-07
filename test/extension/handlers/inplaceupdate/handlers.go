@@ -32,6 +32,7 @@ import (
 	"gomodules.xyz/jsonpatch/v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -104,6 +105,11 @@ func (h *ExtensionHandlers) DoCanUpdateMachine(ctx context.Context, req *runtime
 	log := ctrl.LoggerFrom(ctx).WithValues("Machine", klog.KObj(&req.Desired.Machine))
 	log.Info("CanUpdateMachine is called")
 
+	if req.Settings["disableInPlaceUpdates"] == "true" {
+		resp.Status = runtimehooksv1.ResponseStatusSuccess
+		return
+	}
+
 	currentMachine, desiredMachine,
 		currentBootstrapConfig, desiredBootstrapConfig,
 		currentInfraMachine, desiredInfraMachine, err := h.getObjectsFromCanUpdateMachineRequest(req)
@@ -145,6 +151,11 @@ func (h *ExtensionHandlers) DoCanUpdateMachine(ctx context.Context, req *runtime
 func (h *ExtensionHandlers) DoCanUpdateMachineSet(ctx context.Context, req *runtimehooksv1.CanUpdateMachineSetRequest, resp *runtimehooksv1.CanUpdateMachineSetResponse) {
 	log := ctrl.LoggerFrom(ctx).WithValues("MachineSet", klog.KObj(&req.Desired.MachineSet))
 	log.Info("CanUpdateMachineSet is called")
+
+	if req.Settings["disableInPlaceUpdates"] == "true" {
+		resp.Status = runtimehooksv1.ResponseStatusSuccess
+		return
+	}
 
 	currentMachineSet, desiredMachineSet,
 		currentBootstrapConfigTemplate, desiredBootstrapConfigTemplate,
@@ -193,12 +204,18 @@ func (h *ExtensionHandlers) DoUpdateMachine(ctx context.Context, req *runtimehoo
 		log.Info("UpdateMachine response", "Machine", klog.KObj(&req.Desired.Machine), "status", resp.Status, "message", resp.Message, "retryAfterSeconds", resp.RetryAfterSeconds)
 	}()
 
+	if req.Settings["disableInPlaceUpdates"] == "true" {
+		resp.Status = runtimehooksv1.ResponseStatusFailure
+		resp.Message = "Unexpected call to UpdateMachine hook after CanUpdateMachine or CanUpdateMachineSet did not return any patches"
+		return
+	}
+
 	key := klog.KObj(&req.Desired.Machine).String()
 
 	// Note: We are intentionally not actually applying any in-place changes we are just faking them,
 	// which is good enough for test purposes.
 	if firstTimeCalled, ok := h.state.Load(key); ok {
-		if time.Since(firstTimeCalled.(time.Time)) > 20*time.Second {
+		if time.Since(firstTimeCalled.(time.Time)) > time.Duration(20+rand.Intn(10))*time.Second {
 			h.state.Delete(key)
 			resp.Status = runtimehooksv1.ResponseStatusSuccess
 			resp.Message = "In-place update is done"

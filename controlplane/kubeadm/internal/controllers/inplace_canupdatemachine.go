@@ -17,19 +17,14 @@ limitations under the License.
 package controllers
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"runtime/debug"
 	"strings"
 
-	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
-	patchutil "sigs.k8s.io/cluster-api/internal/util/patch"
+	"sigs.k8s.io/cluster-api/internal/util/patch"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 )
 
@@ -75,7 +70,7 @@ func (r *KubeadmControlPlaneReconciler) canUpdateMachine(ctx context.Context, ma
 		return false, nil
 	}
 	if len(extensionHandlers) > 1 {
-		return false, errors.Errorf("found multiple CanUpdateMachine hooks (%s) (more than one is not supported yet)", strings.Join(extensionHandlers, ","))
+		return false, errors.Errorf("found multiple CanUpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
 	}
 
 	canUpdateMachine, reasons, err := r.canExtensionsUpdateMachine(ctx, machine, machineUpToDateResult, extensionHandlers)
@@ -186,19 +181,19 @@ func createRequest(ctx context.Context, c client.Client, currentMachine *cluster
 		},
 	}
 	var err error
-	req.Current.BootstrapConfig, err = convertToRawExtension(cleanupKubeadmConfig(currentKubeadmConfigForDiff))
+	req.Current.BootstrapConfig, err = patch.ConvertToRawExtension(cleanupKubeadmConfig(currentKubeadmConfigForDiff))
 	if err != nil {
 		return nil, err
 	}
-	req.Desired.BootstrapConfig, err = convertToRawExtension(cleanupKubeadmConfig(desiredKubeadmConfigForDiff))
+	req.Desired.BootstrapConfig, err = patch.ConvertToRawExtension(cleanupKubeadmConfig(desiredKubeadmConfigForDiff))
 	if err != nil {
 		return nil, err
 	}
-	req.Current.InfrastructureMachine, err = convertToRawExtension(cleanupUnstructured(currentInfraMachineForDiff))
+	req.Current.InfrastructureMachine, err = patch.ConvertToRawExtension(cleanupUnstructured(currentInfraMachineForDiff))
 	if err != nil {
 		return nil, err
 	}
-	req.Desired.InfrastructureMachine, err = convertToRawExtension(cleanupUnstructured(desiredInfraMachineForDiff))
+	req.Desired.InfrastructureMachine, err = patch.ConvertToRawExtension(cleanupUnstructured(desiredInfraMachineForDiff))
 	if err != nil {
 		return nil, err
 	}
@@ -255,141 +250,26 @@ func cleanupUnstructured(u *unstructured.Unstructured) *unstructured.Unstructure
 	return cleanedUpU
 }
 
-func convertToRawExtension(object runtime.Object) (runtime.RawExtension, error) {
-	objectBytes, err := json.Marshal(object)
-	if err != nil {
-		return runtime.RawExtension{}, errors.Wrap(err, "failed to marshal object to JSON")
-	}
-
-	objectUnstructured, ok := object.(*unstructured.Unstructured)
-	if !ok {
-		objectUnstructured = &unstructured.Unstructured{}
-		// Note: This only succeeds if object has apiVersion & kind set (which is always the case).
-		if err := json.Unmarshal(objectBytes, objectUnstructured); err != nil {
-			return runtime.RawExtension{}, errors.Wrap(err, "failed to Unmarshal object into Unstructured")
-		}
-	}
-
-	// Note: Raw and Object are always both set and Object is always set as an Unstructured
-	//       to simplify subsequent code in matchesUnstructuredSpec.
-	return runtime.RawExtension{
-		Raw:    objectBytes,
-		Object: objectUnstructured,
-	}, nil
-}
-
 func applyPatchesToRequest(ctx context.Context, req *runtimehooksv1.CanUpdateMachineRequest, resp *runtimehooksv1.CanUpdateMachineResponse) error {
 	if resp.MachinePatch.IsDefined() {
-		if err := applyPatchToMachine(ctx, &req.Current.Machine, resp.MachinePatch); err != nil {
+		if err := patch.ApplyPatchToTypedObject(ctx, &req.Current.Machine, resp.MachinePatch, "spec"); err != nil {
 			return err
 		}
 	}
 
 	if resp.BootstrapConfigPatch.IsDefined() {
-		if _, err := applyPatchToObject(ctx, &req.Current.BootstrapConfig, resp.BootstrapConfigPatch); err != nil {
+		if _, err := patch.ApplyPatchToObject(ctx, &req.Current.BootstrapConfig, resp.BootstrapConfigPatch, "spec"); err != nil {
 			return err
 		}
 	}
 
 	if resp.InfrastructureMachinePatch.IsDefined() {
-		if _, err := applyPatchToObject(ctx, &req.Current.InfrastructureMachine, resp.InfrastructureMachinePatch); err != nil {
+		if _, err := patch.ApplyPatchToObject(ctx, &req.Current.InfrastructureMachine, resp.InfrastructureMachinePatch, "spec"); err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func applyPatchToMachine(ctx context.Context, currentMachine *clusterv1.Machine, machinePath runtimehooksv1.Patch) error {
-	// Note: Machine needs special handling because it is not a runtime.RawExtension. Simply converting it here to
-	//       a runtime.RawExtension so we can avoid making the code in applyPatchToObject more complex.
-	currentMachineRaw, err := convertToRawExtension(currentMachine)
-	if err != nil {
-		return err
-	}
-
-	machineChanged, err := applyPatchToObject(ctx, &currentMachineRaw, machinePath)
-	if err != nil {
-		return err
-	}
-
-	if !machineChanged {
-		return nil
-	}
-
-	// Note: json.Unmarshal can't be used directly on *currentMachine as json.Unmarshal does not unset fields.
-	patchedCurrentMachine := &clusterv1.Machine{}
-	if err := json.Unmarshal(currentMachineRaw.Raw, patchedCurrentMachine); err != nil {
-		return err
-	}
-	*currentMachine = *patchedCurrentMachine
-	return nil
-}
-
-// applyPatchToObject applies the patch to the obj.
-// Note: This is following the same general structure that is used in the applyPatchToRequest func in
-// internal/controllers/topology/cluster/patches/engine.go.
-func applyPatchToObject(ctx context.Context, obj *runtime.RawExtension, patch runtimehooksv1.Patch) (objChanged bool, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	if patch.PatchType == "" {
-		return false, errors.Errorf("failed to apply patch: patchType is not set")
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			log.Info(fmt.Sprintf("Observed a panic when applying patch: %v\n%s", r, string(debug.Stack())))
-			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("observed a panic when applying patch: %v", r)})
-		}
-	}()
-
-	// Create a copy of obj.Raw.
-	// The patches will be applied to the copy and then only spec changes will be copied back to the obj.
-	patchedObject := bytes.Clone(obj.Raw)
-	var err error
-
-	switch patch.PatchType {
-	case runtimehooksv1.JSONPatchType:
-		log.V(5).Info("Accumulating JSON patch", "patch", string(patch.Patch))
-		jsonPatch, err := jsonpatch.DecodePatch(patch.Patch)
-		if err != nil {
-			log.Error(err, "Failed to apply patch: error decoding json patch (RFC6902)", "patch", string(patch.Patch))
-			return false, errors.Wrap(err, "failed to apply patch: error decoding json patch (RFC6902)")
-		}
-
-		if len(jsonPatch) == 0 {
-			// Return if there are no patches, nothing to do.
-			return false, nil
-		}
-
-		patchedObject, err = jsonPatch.Apply(patchedObject)
-		if err != nil {
-			log.Error(err, "Failed to apply patch: error applying json patch (RFC6902)", "patch", string(patch.Patch))
-			return false, errors.Wrap(err, "failed to apply patch: error applying json patch (RFC6902)")
-		}
-	case runtimehooksv1.JSONMergePatchType:
-		if len(patch.Patch) == 0 || bytes.Equal(patch.Patch, []byte("{}")) {
-			// Return if there are no patches, nothing to do.
-			return false, nil
-		}
-
-		log.V(5).Info("Accumulating JSON merge patch", "patch", string(patch.Patch))
-		patchedObject, err = jsonpatch.MergePatch(patchedObject, patch.Patch)
-		if err != nil {
-			log.Error(err, "Failed to apply patch: error applying json merge patch (RFC7386)", "patch", string(patch.Patch))
-			return false, errors.Wrap(err, "failed to apply patch: error applying json merge patch (RFC7386)")
-		}
-	default:
-		return false, errors.Errorf("failed to apply patch: unknown patchType %s", patch.PatchType)
-	}
-
-	// Overwrite the spec of obj with the spec of the patchedObject,
-	// to ensure that we only pick up changes to the spec.
-	if err := patchutil.PatchSpec(obj, patchedObject); err != nil {
-		return false, errors.Wrap(err, "failed to apply patch to object")
-	}
-
-	return true, nil
 }
 
 func matchesMachine(req *runtimehooksv1.CanUpdateMachineRequest) (bool, []string, error) {

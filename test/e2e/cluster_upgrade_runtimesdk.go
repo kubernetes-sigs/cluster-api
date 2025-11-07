@@ -203,7 +203,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		// cluster lifecycle by default. Setting defaultAllHandlersToBlocking to true enforces that the test-extension
 		// automatically creates the ConfigMap with blocking preloaded responses.
 		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
-			extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, namespaces...))).
+			extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, true, namespaces...))).
 			To(Succeed(), "Failed to create the extension config")
 
 		By("Creating a workload cluster; creation waits for BeforeClusterCreateHook to gate the operation")
@@ -494,7 +494,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		if !input.SkipCleanup {
 			// Delete the extensionConfig first to ensure the BeforeDeleteCluster hook doesn't block deletion.
 			Eventually(func() error {
-				return input.BootstrapClusterProxy.GetClient().Delete(ctx, extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, namespace.Name))
+				return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: input.ExtensionConfigName}})
 			}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
 
 			Byf("Deleting cluster %s", klog.KObj(clusterResources.Cluster))
@@ -629,7 +629,7 @@ func machineSetPreflightChecksTest(ctx context.Context, c client.Client, cluster
 // We make sure this cluster-wide object does not conflict with others by using a random generated
 // name and a NamespaceSelector selecting on the namespace of the current test.
 // Thus, this object is "namespaced" to the current test even though it's a cluster-wide object.
-func extensionConfig(name, extensionServiceNamespace, extensionServiceName string, defaultAllHandlersToBlocking bool, namespaces ...string) *runtimev1.ExtensionConfig {
+func extensionConfig(name, extensionServiceNamespace, extensionServiceName string, disableInPlaceUpdates, defaultAllHandlersToBlocking bool, namespaces ...string) *runtimev1.ExtensionConfig {
 	cfg := &runtimev1.ExtensionConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			// Note: We have to use a constant name here as we have to be able to reference it in the ClusterClass
@@ -650,6 +650,7 @@ func extensionConfig(name, extensionServiceNamespace, extensionServiceName strin
 			},
 			Settings: map[string]string{
 				"extensionConfigName":          name,
+				"disableInPlaceUpdates":        strconv.FormatBool(disableInPlaceUpdates),
 				"defaultAllHandlersToBlocking": strconv.FormatBool(defaultAllHandlersToBlocking),
 			},
 		},

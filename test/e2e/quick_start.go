@@ -27,8 +27,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -186,7 +188,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 				// Add the ClusterClass namespace, if the ClusterClass is deployed in a separate namespace.
 				namespaces = append(namespaces, clusterClassNamespace.Name)
 			}
-			extensionConfig := extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, defaultAllHandlersToBlocking, namespaces...)
+			extensionConfig := extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, defaultAllHandlersToBlocking, namespaces...)
 			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
 				extensionConfig)).
 				To(Succeed(), "Failed to create the ExtensionConfig")
@@ -252,7 +254,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 		if !input.SkipCleanup {
 			if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
 				Eventually(func() error {
-					return input.BootstrapClusterProxy.GetClient().Delete(ctx, extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true))
+					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: input.ExtensionConfigName}})
 				}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
 			}
 			if input.DeployClusterClassInSeparateNamespace {

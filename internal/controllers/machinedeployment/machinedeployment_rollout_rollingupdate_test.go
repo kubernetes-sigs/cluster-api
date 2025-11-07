@@ -123,7 +123,7 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			planner := newRolloutPlanner()
+			planner := newRolloutPlanner(nil, nil)
 			planner.md = tc.md
 			planner.newMS = tc.newMS
 			if tc.originalNewMS != nil {
@@ -349,7 +349,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			planner := newRolloutPlanner()
+			planner := newRolloutPlanner(nil, nil)
 			planner.md = tc.machineDeployment
 			planner.newMS = tc.newMachineSet
 			planner.oldMSs = tc.oldMachineSets
@@ -1154,16 +1154,16 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 
 			canUpdateCalls := make(map[string]bool)
 
-			planner := newRolloutPlanner()
+			planner := newRolloutPlanner(nil, nil)
 			planner.md = tc.md
 			planner.newMS = tc.newMS
 			planner.oldMSs = tc.oldMS
 			planner.machines = tc.machines
 			planner.scaleIntents = tc.scaleIntents
 			planner.upToDateResults = tc.upToDateResults
-			planner.overrideCanUpdateMachineSetInPlace = func(oldMS *clusterv1.MachineSet) bool {
+			planner.overrideCanUpdateMachineSetInPlace = func(_ context.Context, oldMS, _ *clusterv1.MachineSet) (bool, error) {
 				canUpdateCalls[oldMS.Name] = true
-				return tc.canUpdateAnswer[oldMS.Name]
+				return tc.canUpdateAnswer[oldMS.Name], nil
 			}
 
 			err := planner.reconcileInPlaceUpdateIntent(ctx)
@@ -1354,7 +1354,7 @@ type rollingUpdateSequenceTestCase struct {
 	desiredMachineNames []string
 
 	// overrideCanUpdateMachineSetInPlaceFunc allows to inject a function that will be used to perform the canUpdateMachineSetInPlace decision
-	overrideCanUpdateMachineSetInPlaceFunc func(oldMS *clusterv1.MachineSet) bool
+	overrideCanUpdateMachineSetInPlaceFunc func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (bool, error)
 
 	// skipLogToFileAndGoldenFileCheck allows to skip storing the log to file and golden file Check.
 	// NOTE: this field is controlled by the test itself.
@@ -1752,8 +1752,11 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 				fLogger.Logf("[MD controller] - Input to rollout planner\n%s", current)
 
 				// Running a small subset of MD reconcile (the rollout logic and a bit of setReplicas)
-				p := newRolloutPlanner()
-				p.overrideCanUpdateMachineSetInPlace = tt.overrideCanUpdateMachineSetInPlaceFunc
+				p := newRolloutPlanner(nil, nil)
+				p.overrideCanUpdateMachineSetInPlace = func(_ context.Context, _, _ *clusterv1.MachineSet) (bool, error) { return false, nil }
+				if tt.overrideCanUpdateMachineSetInPlaceFunc != nil {
+					p.overrideCanUpdateMachineSetInPlace = tt.overrideCanUpdateMachineSetInPlaceFunc
+				}
 				p.overrideComputeDesiredMS = func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentNewMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
 					log := ctrl.LoggerFrom(ctx)
 					desiredNewMS := currentNewMS
@@ -1849,8 +1852,8 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 	}
 }
 
-func oldMSCanAlwaysUpdateInPlace(_ *clusterv1.MachineSet) bool {
-	return true
+func oldMSCanAlwaysUpdateInPlace(_ context.Context, _, _ *clusterv1.MachineSet) (bool, error) {
+	return true, nil
 }
 
 func maxUnavailableBreachToleration() func(log *fileLogger, _ int, _ *rolloutScope, _, _ int32) bool {

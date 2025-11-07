@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package util implements clusterctl utilty functions.
+// Package util implements clusterctl utility functions.
 package util

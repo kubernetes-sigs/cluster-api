@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-// Func is the functon definition for a filter.
+// Func is the function definition for a filter.
 type Func func(machine *clusterv1.Machine) bool
 
 // And returns a filter that returns true if all of the given filters returns true.

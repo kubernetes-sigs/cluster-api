@@ -246,15 +246,16 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 					Namespace:     clusterResources.Cluster.Namespace,
 					ConditionType: clusterv1.ClusterWorkerMachinesUpToDateCondition,
 				})
-				for _, kubeadmConfig := range machineObjectsAfterInPlaceUpdate.KubeadmConfigByMachine {
-					g.Expect(kubeadmConfig.Spec.Files).To(ContainElement(HaveField("Path", filePath)))
-					g.Expect(kubeadmConfig.Spec.Files).To(ContainElement(HaveField("Content", fileContent)))
-				}
 
 				// Ensure only in-place updates were executed and no Machine was re-created.
 				machineObjectsAfterInPlaceUpdate = getMachineObjects(ctx, g, mgmtClient, cluster)
 				g.Expect(machineNames(machineObjectsAfterInPlaceUpdate.ControlPlaneMachines)).To(Equal(machineNames(machineObjectsBeforeInPlaceUpdate.ControlPlaneMachines)))
 				g.Expect(machineNames(machineObjectsAfterInPlaceUpdate.WorkerMachines)).To(Equal(machineNames(machineObjectsBeforeInPlaceUpdate.WorkerMachines)))
+
+				for _, kubeadmConfig := range machineObjectsAfterInPlaceUpdate.KubeadmConfigByMachine {
+					g.Expect(kubeadmConfig.Spec.Files).To(ContainElement(HaveField("Path", filePath)))
+					g.Expect(kubeadmConfig.Spec.Files).To(ContainElement(HaveField("Content", fileContent)))
+				}
 			}, input.E2EConfig.GetIntervals(specName, "wait-control-plane")...).Should(Succeed())
 
 			// Update machineObjectsBeforeInPlaceUpdate for the next round of in-place update.

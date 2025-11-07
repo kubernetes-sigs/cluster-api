@@ -95,6 +95,7 @@
         - [Provider contracts](developer/providers/contracts/overview.md)
           - [InfraCluster](./developer/providers/contracts/infra-cluster.md)
           - [InfraMachine](developer/providers/contracts/infra-machine.md)
+          - [InfraMachinePool](developer/providers/contracts/infra-machinepool.md)
           - [BootstrapConfig](developer/providers/contracts/bootstrap-config.md)
           - [ControlPlane](developer/providers/contracts/control-plane.md)
           - [clusterctl](developer/providers/contracts/clusterctl.md)

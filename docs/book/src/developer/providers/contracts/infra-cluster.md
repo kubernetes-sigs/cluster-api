@@ -1,6 +1,6 @@
 # Contract rules for InfraCluster
 
-Infrastructure providers SHOULD implement an InfraCluster resource.
+Infrastructure providers SHOULD implement an InfraCluster resource using Kubernetes' CustomResourceDefinition (CRD).
 
 The goal of an InfraCluster resource is to supply whatever prerequisites (in term of infrastructure) are necessary for running machines.
 Examples might include networking, load balancers, firewall rules, and so on.

@@ -80,6 +80,41 @@ The table below documents support matrix for Cluster API versions (versions olde
 | v1.1.x        | EOL                     | EOL since 2023-03-28 - v1.4.0 release date                                                  |
 | v1.0.x        | EOL                     | EOL since 2022-12-01 - v1.3.0 release date                                                  |
 
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+When importing Cluster API go modules as a dependency, you MUST consider any Cluster API behaviour that is not defined 
+by an API field or by a well-defined extension point, as a Cluster API internal implementation detail, and internal 
+implementation details can change at any time.
+
+Accordingly, in order to not expose users of projects importing Cluster API go modules as a dependency to the risk 
+that issue arises when one of the Cluster API internal behavior changes, you MUST NOT rely on any Cluster API 
+internal behaviours.
+
+Please note that this applies to any public go func or types; As a only and notable exception, maintainers 
+are committed to avoid as much as possible breaking changes within the same minor release for the following packages:
+- /util/*
+- /cmd/clusterctl/client 
+
+The Cluster API maintainers welcome feedback and contributions to improve project's extensibility point, 
+please [open an issue](https://github.com/kubernetes-sigs/cluster-api/issues/new?assignees=&labels=&template=feature_request.md) on the Cluster API repo or add an item to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
+
+</aside>
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+Forks of the CLuster API project are not recommended, instead, Cluster API maintainers welcome feedback and contributions 
+to improve project's extensibility point, please [open an issue](https://github.com/kubernetes-sigs/cluster-api/issues/new?assignees=&labels=&template=feature_request.md) on the Cluster API repo or add an item 
+to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
+
+If a user still wants to fork this project, please note that it is up to the user to validate if the fork works
+properly and maintainers will not provide any support or guarantee on these kind of integrations/usage.
+
+</aside>
+
 #### Skip upgrades
 
 Cluster API supports at maximum n-3 minor version skip upgrades.
@@ -285,6 +320,17 @@ See [Cluster API release support](#cluster-api-release-support) and [Kubernetes 
 | Kubernetes v1.34 |                          |                   | ✓ >= v1.11.1      |
 
 See also [Kubernetes version specific notes](#kubernetes-version-specific-notes).
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+Cluster API is tested with upstream, fully conformant, Kubernetes releases.
+
+It might be possible to use Cluster API also with non conformant Kubernetes releases, but it is up to users
+to validate if this works and the project does not provide any support or guarantees for these kind of deployments.
+
+</aside>
 
 ### Kubeadm Bootstrap provider (`kubeadm-bootstrap-controller`) 
 

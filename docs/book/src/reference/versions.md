@@ -273,9 +273,6 @@ See [Cluster API release support](#cluster-api-release-support) and [Kubernetes 
 
 |                  |v1.10, _Maintenance Mode_ | v1.11             | v1.12                        |
 |------------------|--------------------------|-------------------|------------------------------|
-| Kubernetes v1.24 |                          |                   |                              |
-| Kubernetes v1.25 |                          |                   |                              |
-| Kubernetes v1.26 |                          |                   |                              |
 | Kubernetes v1.27 | ✓ (only workload)        |                   |                              |
 | Kubernetes v1.28 | ✓ (only workload)        | ✓ (only workload) |                              |
 | Kubernetes v1.29 | ✓                        | ✓ (only workload) | ✓ (only workload)            |

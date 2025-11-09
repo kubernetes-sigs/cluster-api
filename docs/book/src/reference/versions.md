@@ -303,9 +303,6 @@ using the [kubeadm API](https://kubernetes.io/docs/setup/production-environment/
 
 |                  | kubeadm API Version                                                                |
 |------------------|------------------------------------------------------------------------------------|
-| Kubernetes v1.24 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
-| Kubernetes v1.25 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
-| Kubernetes v1.26 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
 | Kubernetes v1.27 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
 | Kubernetes v1.28 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |
 | Kubernetes v1.29 | [v1beta3](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/) |

@@ -70,7 +70,7 @@ One simplification that might be controversial in this proposal is the lack of
 API control over "in-place" versus "replace" reconciliation strategies. For
 instance, if a Machine's spec is updated with a different version of kubelet
 than is actually running, it is up to the provider-specific controller whether
-the request would best be fulfilled by performing an in-place upgrade on the
+the request would best be fulfilled by performing an in-place update on the
 Node, or by deleting the Node and creating a new one in its place (or reporting
 an error if this particular update is not supported). One can force a Node
 replacement by deleting and recreating the Machine object rather than updating

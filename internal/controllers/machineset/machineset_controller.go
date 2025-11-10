@@ -357,7 +357,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 	errs := []error{}
 	machinesTriggeredInPlace := []*clusterv1.Machine{}
 	for _, machine := range s.machines {
-		// If a machine is not updating in place, or if the in place upgrade has been already triggered, no-op
+		// If a machine is not updating in place, or if the in-place update has been already triggered, no-op
 		if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; !ok || hooks.IsPending(runtimehooksv1.UpdateMachine, machine) {
 			continue
 		}
@@ -384,7 +384,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 			} else {
 				// If this MachineSet is not accepting anymore machines from other MS (e.g. because of MD spec changes),
 				// then drop the PendingAcknowledgeMove annotation; this machine will be treated as any other machine and either
-				// deleted or moved to another MS after completing the in-place upgrade.
+				// deleted or moved to another MS after completing the in-place update.
 				delete(machine.Annotations, clusterv1.PendingAcknowledgeMoveAnnotation)
 			}
 		}

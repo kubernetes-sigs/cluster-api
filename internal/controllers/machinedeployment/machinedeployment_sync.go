@@ -69,7 +69,7 @@ func (r *Reconciler) sync(ctx context.Context, md *clusterv1.MachineDeployment, 
 	oldMSs := planner.oldMSs
 	allMSs := append(oldMSs, newMS)
 
-	// TODO(in-place): consider if to move the scale logic to the rollout planner as well, so we can improve test coverage
+	// Note: Consider if to move the scale logic to the rollout planner as well, so we can improve test coverage
 	//  like we did for RolloutUpdate and OnDelete strategy.
 	if err := r.scale(ctx, md, newMS, oldMSs); err != nil {
 		// If we get an error while trying to scale, the deployment will be requeued

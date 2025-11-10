@@ -49,7 +49,7 @@ A "Machine" is the declarative spec for an infrastructure component hosting a Ku
 
 Common fields such as Kubernetes version are modeled as fields on the Machine's spec. Any information that is provider-specific is part of the `InfrastructureRef` and is not portable between different providers.
 
-#### Machine Immutability (In-place Upgrade vs. Replace)
+#### Machine Immutability (In-place Update vs. Replace)
 
 From the perspective of Cluster API, all Machines are immutable: once they are created, they are never updated (except for labels, annotations and status), only deleted.
 

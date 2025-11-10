@@ -23,9 +23,9 @@ into the proposal or into the user-facing documentation for this feature.
       - Old MS is instructed to move machines to the newMS, and newMS is informed to receive machines from oldMS.
   - MS controller manages a subset of Machines
     - When scaling down the old MS, if required to move, MS controller is responsible for moving a Machine to newMS
-    - When reconciling the new MachineSet, the MS controller takes ownership of the moved machine and begins the actual in-place upgrade.
+    - When reconciling the new MachineSet, the MS controller takes ownership of the moved machine and begins the actual in-place update.
 
-- Orchestration of in-place upgrades between MD controller, MS controller, and Machine controller is implemented using annotations.
+- Orchestration of in-place updates between MD controller, MS controller, and Machine controller is implemented using annotations.
   Following schemas provide an overview of how new annotations are used.
 
 Workflow #1: MD controller detects an in-place update is possible and it informs oldMS and newMS about how to perform this operation.
@@ -74,7 +74,7 @@ sequenceDiagram
     MD Controller->>MS2 (NewMS): Scale up to acknowledge receipt of M1<br/>Apply annotation ".../acknowledged-move": "M1"
 ```
 
-Workflow #4: MS controller, when reconciling newMS, detects that a machine has been acknowledged; it cleans up annotations on the machine, allowing the in-place upgrade to begin.
+Workflow #4: MS controller, when reconciling newMS, detects that a machine has been acknowledged; it cleans up annotations on the machine, allowing the in-place update to begin.
 
 ```mermaid
 sequenceDiagram

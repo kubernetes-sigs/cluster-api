@@ -3213,7 +3213,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			wantErr:                        false,
 		},
 		{
-			name: "No op when in place upgrade has been already triggered",
+			name: "No op when in-place update has been already triggered",
 			ms:   newMachineSet("ms1", "cluster1", 2),
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: "", runtimev1.PendingHooksAnnotation: "UpdateMachine"})),
@@ -3221,7 +3221,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			},
 			interceptorFuncs: interceptor.Funcs{
 				Get: func(_ context.Context, _ client.WithWatch, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
-					return errors.New("injected error performing get") // we should not perform any get if in place upgrade has been already triggered
+					return errors.New("injected error performing get") // we should not perform any get if in-place update has been already triggered
 				},
 			},
 			wantMachinesNotInPlaceUpdating: nil,
@@ -3490,12 +3490,12 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			}
 			res, err := r.triggerInPlaceUpdate(ctx, s)
 			if tt.wantErr {
-				g.Expect(err).To(HaveOccurred(), "expected error when triggering in place update, got none")
+				g.Expect(err).To(HaveOccurred(), "expected error when triggering in-place update, got none")
 				g.Expect(err.Error()).To(ContainSubstring(tt.wantErrorMessage))
 			} else {
-				g.Expect(err).ToNot(HaveOccurred(), "unexpected error when triggering in place update")
+				g.Expect(err).ToNot(HaveOccurred(), "unexpected error when triggering in-place update")
 			}
-			g.Expect(res.IsZero()).To(BeTrue(), "unexpected non zero result when triggering in place update")
+			g.Expect(res.IsZero()).To(BeTrue(), "unexpected non zero result when triggering in-place update")
 
 			machines := &clusterv1.MachineList{}
 			g.Expect(fakeClient.List(ctx, machines)).ToNot(HaveOccurred(), "unexpected error when listing machines")

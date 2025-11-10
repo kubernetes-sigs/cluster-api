@@ -207,7 +207,7 @@ func (r *Reconciler) completeInPlaceUpdate(ctx context.Context, s *scope) error 
 		return err
 	}
 
-	log.Info("In place upgrade completed!")
+	log.Info("In-place update completed!")
 	return nil
 }
 

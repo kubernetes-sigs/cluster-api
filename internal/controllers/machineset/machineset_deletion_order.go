@@ -56,7 +56,7 @@ func oldestDeletionOrder(machine *clusterv1.Machine) deletePriority {
 		return shouldDeleteFirst
 	}
 	// If there is machine still updating in progress and the MS is scaling down, consider this machine next
-	// so the system avoids to complete unnecessary in-place upgrades (drop machines not at the desired state first).
+	// so the system avoids to complete unnecessary in-place updates (drop machines not at the desired state first).
 	if inplace.IsUpdateInProgress(machine) {
 		return shouldDelete
 	}
@@ -86,7 +86,7 @@ func newestDeletionOrder(machine *clusterv1.Machine) deletePriority {
 		return shouldDeleteFirst
 	}
 	// If there is machine still updating in progress and the MS is scaling down, consider this machine next
-	// so the system avoids to complete unnecessary in-place upgrades (drop machines not at the desired state first).
+	// so the system avoids to complete unnecessary in-place updates (drop machines not at the desired state first).
 	if inplace.IsUpdateInProgress(machine) {
 		return shouldDelete
 	}
@@ -109,7 +109,7 @@ func randomDeletionOrder(machine *clusterv1.Machine) deletePriority {
 		return shouldDeleteFirst
 	}
 	// If there is machine still updating in progress and the MS is scaling down, consider this machine next
-	// so the system avoids to complete unnecessary in-place upgrades (drop machines not at the desired state first).
+	// so the system avoids to complete unnecessary in-place updates (drop machines not at the desired state first).
 	if inplace.IsUpdateInProgress(machine) {
 		return shouldDelete
 	}

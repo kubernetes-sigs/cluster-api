@@ -155,6 +155,21 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 // Note: This only gets initialized once and does not change if the kubeadm config map goes away.
 func setControlPlaneInitialized(ctx context.Context, controlPlane *internal.ControlPlane) error {
 	if !ptr.Deref(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized, false) {
+		// If the control plane has only one machine, and this machine is marked for remediation or in the process of deleting,
+		// do not check for control plane initialized.
+		// This prevents an issue that happens if kubeadm init completes in the short timeframe between when machine deletion is triggered
+		// to when the machine goes away; this issue, if not properly handled, will lead to an inconsistent state where
+		// cluster is initialized, no CP machine exists, and the replacement CP machine fails when trying to join.
+		if len(controlPlane.Machines) == 1 {
+			m := controlPlane.Machines.UnsortedList()[0]
+			if collections.IsUnhealthyAndOwnerRemediated(m) {
+				return nil
+			}
+			if !m.DeletionTimestamp.IsZero() {
+				return nil
+			}
+		}
+
 		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 		if err != nil {
 			return errors.Wrap(err, "failed to create remote cluster client")

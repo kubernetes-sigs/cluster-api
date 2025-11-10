@@ -75,6 +75,9 @@ func TestKubeadmControlPlaneReconciler_setControlPlaneInitialized(t *testing.T) 
 		controlPlane := &internal.ControlPlane{
 			Cluster: &clusterv1.Cluster{},
 			KCP:     &controlplanev1.KubeadmControlPlane{},
+			Machines: collections.FromMachines(
+				&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+			),
 		}
 		controlPlane.InjectTestManagementCluster(&fakeManagementCluster{
 			Workload: &fakeWorkloadCluster{
@@ -96,6 +99,85 @@ func TestKubeadmControlPlaneReconciler_setControlPlaneInitialized(t *testing.T) 
 			Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 			Status: metav1.ConditionTrue,
 			Reason: controlplanev1.KubeadmControlPlaneInitializedReason,
+		}, conditions.IgnoreLastTransitionTime(true)))
+	})
+	t.Run("kubeadm config exists is ignored if there is a single CP machine and it is marked for remediation", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlane := &internal.ControlPlane{
+			Cluster: &clusterv1.Cluster{},
+			KCP:     &controlplanev1.KubeadmControlPlane{},
+			Machines: collections.FromMachines(
+				&clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+					Status: clusterv1.MachineStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.MachineHealthCheckSucceededCondition,
+								Status: metav1.ConditionFalse,
+								Reason: clusterv1.MachineHealthCheckNodeDeletedReason,
+							},
+							{
+								Type:    clusterv1.MachineOwnerRemediatedCondition,
+								Status:  metav1.ConditionFalse,
+								Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationReason,
+								Message: "Waiting for remediation",
+							},
+						},
+					},
+				},
+			),
+		}
+		controlPlane.InjectTestManagementCluster(&fakeManagementCluster{
+			Workload: &fakeWorkloadCluster{
+				Status: internal.ClusterStatus{
+					HasKubeadmConfig: true,
+				},
+			},
+		})
+
+		err := setControlPlaneInitialized(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(ptr.Deref(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized, false)).To(BeFalse())
+
+		setInitializedCondition(ctx, controlPlane.KCP)
+		c := conditions.Get(controlPlane.KCP, controlplanev1.KubeadmControlPlaneInitializedCondition)
+		g.Expect(c).ToNot(BeNil())
+		g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
+			Status: metav1.ConditionFalse,
+			Reason: controlplanev1.KubeadmControlPlaneNotInitializedReason,
+		}, conditions.IgnoreLastTransitionTime(true)))
+	})
+	t.Run("kubeadm config exists is ignored if there is a single CP machine and it is deleting", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlane := &internal.ControlPlane{
+			Cluster: &clusterv1.Cluster{},
+			KCP:     &controlplanev1.KubeadmControlPlane{},
+			Machines: collections.FromMachines(
+				&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: ptr.To(metav1.Now())}},
+			),
+		}
+		controlPlane.InjectTestManagementCluster(&fakeManagementCluster{
+			Workload: &fakeWorkloadCluster{
+				Status: internal.ClusterStatus{
+					HasKubeadmConfig: true,
+				},
+			},
+		})
+
+		err := setControlPlaneInitialized(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(ptr.Deref(controlPlane.KCP.Status.Initialization.ControlPlaneInitialized, false)).To(BeFalse())
+
+		setInitializedCondition(ctx, controlPlane.KCP)
+		c := conditions.Get(controlPlane.KCP, controlplanev1.KubeadmControlPlaneInitializedCondition)
+		g.Expect(c).ToNot(BeNil())
+		g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
+			Status: metav1.ConditionFalse,
+			Reason: controlplanev1.KubeadmControlPlaneNotInitializedReason,
 		}, conditions.IgnoreLastTransitionTime(true)))
 	})
 }

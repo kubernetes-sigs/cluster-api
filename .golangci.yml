@@ -373,3 +373,14 @@ issues:
   - linters:
       - govet
     text: "non-constant format string in call to sigs\\.k8s\\.io\\/cluster-api\\/util\\/conditions\\."
+    # Ignore ginkgolinter suggestions
+  - linters:
+    - ginkgolinter
+    text: "(wrong error assertion|wrong comparison assertion)"
+    path: "(^.*_test\\.go$|^test/e2e/.*\\.go$)"
+    # Ignore intrange suggestions in targeted files only
+  - linters:
+    - intrange
+    text: "for loop can be changed to `i := range machineList`"
+    path: "(^exp/internal/controllers/machinepool_controller_phases\\.go$|^internal/controllers/machineset/machineset_controller\\.go$)"
+     

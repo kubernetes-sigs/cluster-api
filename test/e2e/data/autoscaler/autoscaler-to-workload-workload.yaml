@@ -194,6 +194,9 @@ spec:
             - --scale-down-delay-after-delete=1m
             # Set a short scale down delay after failure time, so we don't have to wait too long during e2e testing
             - --scale-down-delay-after-failure=1m
+            # Disable special handling for pods in kube-system to prevent flakes when one of the core-dns pod is scheduled
+            # on one of the MachineDeployment machines and the test is trying to scale down to zero.
+            - --skip-nodes-with-system-pods=false
             # Set a max nodes limit as safeguard so that the test does not scale up unbounded.
             # Note: The E2E test should only go up to 4 (assuming it starts with a min node group size of 2).
             # Using 6 for additional some buffer and to allow different starting min node group sizes.

@@ -410,7 +410,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 +         Version:           "v1.31.0",
           ProviderID:        "",
           FailureDomain:     "",
-          ... // 3 identical fields
+          ... // 4 identical fields
         },
       },
       MachineNaming: {},
@@ -590,7 +590,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
-			g.Expect(reasons).To(Equal(tt.wantReasons))
+			g.Expect(reasons).To(BeComparableTo(tt.wantReasons))
 		})
 	}
 }

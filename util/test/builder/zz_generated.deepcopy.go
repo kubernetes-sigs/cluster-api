@@ -435,9 +435,7 @@ func (in *MachineBuilder) DeepCopyInto(out *MachineBuilder) {
 	if in.taints != nil {
 		in, out := &in.taints, &out.taints
 		*out = make([]v1beta2.MachineTaint, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
+		copy(*out, *in)
 	}
 }
 
@@ -509,9 +507,7 @@ func (in *MachineDeploymentBuilder) DeepCopyInto(out *MachineDeploymentBuilder) 
 	if in.taints != nil {
 		in, out := &in.taints, &out.taints
 		*out = make([]v1beta2.MachineTaint, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
+		copy(*out, *in)
 	}
 }
 
@@ -865,9 +861,7 @@ func (in *MachineSetBuilder) DeepCopyInto(out *MachineSetBuilder) {
 	if in.taints != nil {
 		in, out := &in.taints, &out.taints
 		*out = make([]v1beta2.MachineTaint, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
+		copy(*out, *in)
 	}
 }
 

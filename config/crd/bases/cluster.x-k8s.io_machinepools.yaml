@@ -1947,11 +1947,13 @@ spec:
                       taints:
                         description: |-
                           taints are the node taints that Cluster API will manage.
-                          This list is not necessarily complete: other Kubernetes components may add or remove other taints.
+                          This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,
+                          e.g. the node controller might add the node.kubernetes.io/not-ready taint.
                           Only those taints defined in this list will be added or removed by core Cluster API controllers.
 
+                          There can be at most 64 taints.
+
                           NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
-                          As of Kubernetes 1.33, this is different from the implementation on corev1.NodeSpec, but provides a more flexible API for components building on top of Cluster API.
                         items:
                           description: MachineTaint defines a taint equivalent to
                             corev1.Taint, but additionally having a propagation field.
@@ -1973,6 +1975,7 @@ spec:
                             propagation:
                               description: |-
                                 propagation defines how this taint should be propagated to nodes.
+                                Valid values are 'Always' and 'OnInitialization'.
                                 Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
                                 OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
                               enum:
@@ -1983,6 +1986,7 @@ spec:
                               description: value is the taint value corresponding
                                 to the taint key.
                               maxLength: 63
+                              minLength: 1
                               type: string
                           required:
                           - effect

@@ -6175,7 +6175,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSpec(ref common.ReferenceCallbac
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "taints are the node taints that Cluster API will manage. This list is not necessarily complete: other Kubernetes components may add or remove other taints. Only those taints defined in this list will be added or removed by core Cluster API controllers.\n\nNOTE: This list is implemented as a \"map\" type, meaning that individual elements can be managed by different owners. As of Kubernetes 1.33, this is different from the implementation on corev1.NodeSpec, but provides a more flexible API for components building on top of Cluster API.",
+							Description: "taints are the node taints that Cluster API will manage. This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes, e.g. the node controller might add the node.kubernetes.io/not-ready taint. Only those taints defined in this list will be added or removed by core Cluster API controllers.\n\nThere can be at most 64 taints.\n\nNOTE: This list is implemented as a \"map\" type, meaning that individual elements can be managed by different owners.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -6335,7 +6335,7 @@ func schema_cluster_api_api_core_v1beta2_MachineTaint(ref common.ReferenceCallba
 					},
 					"propagation": {
 						SchemaProps: spec.SchemaProps{
-							Description: "propagation defines how this taint should be propagated to nodes. Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation. OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.",
+							Description: "propagation defines how this taint should be propagated to nodes. Valid values are 'Always' and 'OnInitialization'. Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation. OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

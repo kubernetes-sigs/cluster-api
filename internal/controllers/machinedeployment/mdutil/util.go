@@ -412,22 +412,34 @@ func MachineTemplateUpToDate(current, desired *clusterv1.MachineTemplateSpec) (b
 // MachineTemplateDeepCopyRolloutFields copies a MachineTemplateSpec
 // and sets all fields that should be propagated in-place to nil and drops version from
 // external references.
+// Note: Please update inplace.CleanupMachineSpecForDiff accordingly if necessary.
 func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpec) *clusterv1.MachineTemplateSpec {
 	templateCopy := template.DeepCopy()
+	spec := templateCopy.Spec
 
-	// Moving MD from one cluster to another is not supported.
-	templateCopy.Spec.ClusterName = ""
+	// The following fields are set to their zero value so they are omitted from the comparison,
+	// because they should never be the reason for a rollout.
 
 	// Drop labels and annotations
 	templateCopy.Labels = nil
 	templateCopy.Annotations = nil
 
-	// Drop node timeout values
-	templateCopy.Spec.MinReadySeconds = nil
-	templateCopy.Spec.ReadinessGates = nil
-	templateCopy.Spec.Deletion.NodeDrainTimeoutSeconds = nil
-	templateCopy.Spec.Deletion.NodeDeletionTimeoutSeconds = nil
-	templateCopy.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = nil
+	// Should never change.
+	spec.ClusterName = ""
+
+	// Bootstrap and InfrastructureRef should be compared.
+
+	// Should not be set.
+	spec.ProviderID = ""
+
+	// Version & FailureDomain should be compared.
+
+	// Fields that are mutated in-place without a rollout.
+	spec.MinReadySeconds = nil
+	spec.ReadinessGates = nil
+	spec.Deletion.NodeDrainTimeoutSeconds = nil
+	spec.Deletion.NodeVolumeDetachTimeoutSeconds = nil
+	spec.Deletion.NodeDeletionTimeoutSeconds = nil
 
 	return templateCopy
 }

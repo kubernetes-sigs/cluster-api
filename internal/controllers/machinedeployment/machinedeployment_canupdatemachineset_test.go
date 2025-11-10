@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
-func Test_canUpdateMachine(t *testing.T) {
+func Test_canUpdateMachineSetInPlace(t *testing.T) {
 	ns := metav1.NamespaceDefault
 	oldMS := &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -141,7 +141,7 @@ func Test_canUpdateMachine(t *testing.T) {
 			wantErrorMessage: "found multiple CanUpdateMachineSet hooks (test-update-extension-1,test-update-extension-2): only one hook is supported",
 		},
 		{
-			name:                               "Return false if canExtensionsUpdateMachine returns false",
+			name:                               "Return false if canExtensionsUpdateMachineSet returns false",
 			oldMS:                              oldMS,
 			newMS:                              newMS,
 			oldMSInfrastructureMachineTemplate: oldMSInfrastructureMachineTemplate,
@@ -161,7 +161,7 @@ func Test_canUpdateMachine(t *testing.T) {
 			wantCanUpdateMachineSet:                 false,
 		},
 		{
-			name:                               "Return true if canExtensionsUpdateMachine returns true",
+			name:                               "Return true if canExtensionsUpdateMachineSet returns true",
 			oldMS:                              oldMS,
 			newMS:                              newMS,
 			oldMSInfrastructureMachineTemplate: oldMSInfrastructureMachineTemplate,
@@ -403,7 +403,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
     },
     Status: {},
   }`,
-				`BootstrapConfigTemplate cannot be updated in-place: &unstructured.Unstructured{
+				`TestBootstrapConfigTemplate cannot be updated in-place: &unstructured.Unstructured{
 -   Object: map[string]any{
 -     "spec": map[string]any{
 -       "template": map[string]any{"spec": map[string]any{"hello": string("world BootstrapConfigTemplate")}},
@@ -519,7 +519,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			},
 			wantCanUpdateMachineSet: false,
 			wantReasons: []string{
-				`BootstrapConfigTemplate cannot be updated in-place: &unstructured.Unstructured{
+				`TestBootstrapConfigTemplate cannot be updated in-place: &unstructured.Unstructured{
 -   Object: map[string]any{
 -     "spec": map[string]any{
 -       "template": map[string]any{"spec": map[string]any{"hello": string("world BootstrapConfigTemplate")}},

@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
+	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/patch"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 )
@@ -307,10 +308,10 @@ func matchesMachineSpec(patched, desired *clusterv1.Machine) (equal bool, diff s
 	// Note: Wrapping Machine specs in a Machine for proper formatting of the diff.
 	return compare.Diff(
 		&clusterv1.Machine{
-			Spec: patched.Spec,
+			Spec: *inplace.CleanupMachineSpecForDiff(&patched.Spec),
 		},
 		&clusterv1.Machine{
-			Spec: desired.Spec,
+			Spec: *inplace.CleanupMachineSpecForDiff(&desired.Spec),
 		},
 	)
 }

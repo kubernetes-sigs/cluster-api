@@ -17,6 +17,7 @@ limitations under the License.
 package machinedeployment
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"strings"
@@ -31,8 +32,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
+	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/patch"
 )
 
@@ -236,10 +237,10 @@ func matchesMachineSet(req *runtimehooksv1.CanUpdateMachineSetRequest) (bool, []
 	if req.Current.BootstrapConfigTemplate.Object != nil && req.Desired.BootstrapConfigTemplate.Object != nil {
 		match, diff, err = matchesUnstructuredSpec(req.Current.BootstrapConfigTemplate, req.Desired.BootstrapConfigTemplate)
 		if err != nil {
-			return false, nil, errors.Wrapf(err, "failed to match BootstrapConfigTemplate")
+			return false, nil, errors.Wrapf(err, "failed to match %s", req.Current.BootstrapConfigTemplate.Object.GetObjectKind().GroupVersionKind().Kind)
 		}
 		if !match {
-			reasons = append(reasons, fmt.Sprintf("BootstrapConfigTemplate cannot be updated in-place: %s", diff))
+			reasons = append(reasons, fmt.Sprintf("%s cannot be updated in-place: %s", req.Current.BootstrapConfigTemplate.Object.GetObjectKind().GroupVersionKind().Kind, diff))
 		}
 	}
 	match, diff, err = matchesUnstructuredSpec(req.Current.InfrastructureMachineTemplate, req.Desired.InfrastructureMachineTemplate)
@@ -259,29 +260,21 @@ func matchesMachineSet(req *runtimehooksv1.CanUpdateMachineSetRequest) (bool, []
 
 func matchesMachineSetSpec(patched, desired *clusterv1.MachineSet) (equal bool, diff string, matchErr error) {
 	// Note: Wrapping MachineSet specs in a MachineSet for proper formatting of the diff.
-	cleanedUpPatchedMachineSet := &clusterv1.MachineSet{
-		Spec: clusterv1.MachineSetSpec{
-			Template: clusterv1.MachineTemplateSpec{
-				Spec: patched.Spec.Template.Spec,
+	return compare.Diff(
+		&clusterv1.MachineSet{
+			Spec: clusterv1.MachineSetSpec{
+				Template: clusterv1.MachineTemplateSpec{
+					Spec: *inplace.CleanupMachineSpecForDiff(&patched.Spec.Template.Spec),
+				},
+			},
+		}, &clusterv1.MachineSet{
+			Spec: clusterv1.MachineSetSpec{
+				Template: clusterv1.MachineTemplateSpec{
+					Spec: *inplace.CleanupMachineSpecForDiff(&desired.Spec.Template.Spec),
+				},
 			},
 		},
-	}
-	cleanedUpDesiredMachineSet := &clusterv1.MachineSet{
-		Spec: clusterv1.MachineSetSpec{
-			Template: clusterv1.MachineTemplateSpec{
-				Spec: desired.Spec.Template.Spec,
-			},
-		},
-	}
-
-	// Cleanup fields that are not the responsibility of the in-place update extension.
-	// Remove in-place mutable fields.
-	cleanedUpPatchedMachineSet.Spec.Template = *mdutil.MachineTemplateDeepCopyRolloutFields(&cleanedUpPatchedMachineSet.Spec.Template)
-	cleanedUpDesiredMachineSet.Spec.Template = *mdutil.MachineTemplateDeepCopyRolloutFields(&cleanedUpDesiredMachineSet.Spec.Template)
-	// Set refs equal.
-	cleanedUpPatchedMachineSet.Spec.Template.Spec.Bootstrap.ConfigRef = cleanedUpDesiredMachineSet.Spec.Template.Spec.Bootstrap.ConfigRef
-	cleanedUpPatchedMachineSet.Spec.Template.Spec.InfrastructureRef = cleanedUpDesiredMachineSet.Spec.Template.Spec.InfrastructureRef
-	return compare.Diff(cleanedUpPatchedMachineSet, cleanedUpDesiredMachineSet)
+	)
 }
 
 func matchesUnstructuredSpec(patched, desired runtime.RawExtension) (equal bool, diff string, matchErr error) {
@@ -335,23 +328,23 @@ func (p *rolloutPlanner) getTemplateObjects(ctx context.Context, oldMS, newMS *c
 
 	templateObjects.CurrentInfraMachineTemplate, err = external.GetObjectFromContractVersionedRef(ctx, p.Client, oldMS.Spec.Template.Spec.InfrastructureRef, oldMS.Namespace)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate from MachineSet %s", oldMS.Name)
+		return nil, errors.Wrapf(err, "failed to get %s from MachineSet %s", cmp.Or(oldMS.Spec.Template.Spec.InfrastructureRef.Kind, "InfrastructureMachineTemplate"), oldMS.Name)
 	}
 	templateObjects.DesiredInfraMachineTemplate, err = external.GetObjectFromContractVersionedRef(ctx, p.Client, newMS.Spec.Template.Spec.InfrastructureRef, newMS.Namespace)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate from MachineSet %s", newMS.Name)
+		return nil, errors.Wrapf(err, "failed to get %s from MachineSet %s", cmp.Or(newMS.Spec.Template.Spec.InfrastructureRef.Kind, "InfrastructureMachineTemplate"), newMS.Name)
 	}
 
 	if oldMS.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 		templateObjects.CurrentBootstrapConfigTemplate, err = external.GetObjectFromContractVersionedRef(ctx, p.Client, oldMS.Spec.Template.Spec.Bootstrap.ConfigRef, oldMS.Namespace)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get BootstrapConfigTemplate from MachineSet %s", oldMS.Name)
+			return nil, errors.Wrapf(err, "failed to get %s from MachineSet %s", cmp.Or(oldMS.Spec.Template.Spec.Bootstrap.ConfigRef.Kind, "BootstrapConfigTemplate"), oldMS.Name)
 		}
 	}
 	if newMS.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 		templateObjects.DesiredBootstrapConfigTemplate, err = external.GetObjectFromContractVersionedRef(ctx, p.Client, newMS.Spec.Template.Spec.Bootstrap.ConfigRef, newMS.Namespace)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get BootstrapConfigTemplate from MachineSet %s", newMS.Name)
+			return nil, errors.Wrapf(err, "failed to get %s from MachineSet %s", cmp.Or(newMS.Spec.Template.Spec.Bootstrap.ConfigRef.Kind, "BootstrapConfigTemplate"), newMS.Name)
 		}
 	}
 

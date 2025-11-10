@@ -30,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
 )
 
 // ClusterResourceSet implements a validation and defaulting webhook for ClusterResourceSet.
@@ -92,15 +91,6 @@ func (webhook *ClusterResourceSet) ValidateDelete(_ context.Context, _ runtime.O
 
 func (webhook *ClusterResourceSet) validate(oldCRS, newCRS *addonsv1.ClusterResourceSet) error {
 	var allErrs field.ErrorList
-
-	// NOTE: ClusterResourceSet is behind ClusterResourceSet feature gate flag; the web hook
-	// must prevent creating new objects when the feature flag is disabled.
-	if !feature.Gates.Enabled(feature.ClusterResourceSet) {
-		return field.Forbidden(
-			field.NewPath("spec"),
-			"can be set only if the ClusterResourceSet feature flag is enabled",
-		)
-	}
 
 	// Validate selector parses as Selector
 	selector, err := metav1.LabelSelectorAsSelector(&newCRS.Spec.ClusterSelector)

@@ -279,14 +279,10 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 			}
 			s.HookResponseTracker.Add(runtimehooksv1.AfterClusterUpgrade, hookResponse)
 
-			// TODO(chained): uncomment this as soon as AfterClusterUpgrade will be blocking
-			//nolint:gocritic
-			/*
-				if hookResponse.RetryAfterSeconds != 0 {
-					log.Info(fmt.Sprintf("Cluster upgrade to version %s completed but %s hook is still blocking", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade)))
-					return nil
-				}
-			*/
+			if hookResponse.RetryAfterSeconds != 0 {
+				log.Info(fmt.Sprintf("Cluster upgrade to version %s completed but next upgrades are blocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade)))
+				return nil
+			}
 
 			// The hook is successfully called; we can remove this hook from the list of pending-hooks.
 			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterClusterUpgrade); err != nil {

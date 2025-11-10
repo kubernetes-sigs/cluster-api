@@ -29,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -38,7 +39,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
@@ -400,7 +404,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			// If a generateUpgradePlan extension is defined, we assume that additionally a Cluster validating webhook is implemented
 			// that validates Cluster.spec.topology.version in a way that matches with GenerateUpgradePlan responses.
 			shouldValidateVersionCeiling := len(clusterClass.Spec.KubernetesVersions) == 0 && clusterClass.Spec.Upgrade.External.GenerateUpgradePlanExtension == ""
-			if err := webhook.validateTopologyVersionUpdate(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, oldCluster, shouldValidateVersionCeiling); err != nil {
+			if err := webhook.validateTopologyVersionUpdate(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, newCluster, oldCluster, shouldValidateVersionCeiling); err != nil {
 				allErrs = append(allErrs, err)
 			}
 		}
@@ -430,10 +434,19 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	return allWarnings, allErrs
 }
 
-func (webhook *Cluster) validateTopologyVersionUpdate(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, oldCluster *clusterv1.Cluster, shouldValidateCeiling bool) *field.Error {
+func (webhook *Cluster) validateTopologyVersionUpdate(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, newCluster, oldCluster *clusterv1.Cluster, shouldValidateCeiling bool) *field.Error {
 	// Nothing to do if the version doesn't change.
 	if inVersion.String() == oldVersion.String() {
 		return nil
+	}
+
+	// Cannot upgrade when lifecycle hooks are still being completed for the previous upgrade.
+	if IsPending(runtimehooksv1.AfterClusterUpgrade, newCluster) {
+		return field.Invalid(
+			fldPath,
+			fldValue,
+			fmt.Sprintf("version cannot be change when the %q hook is still blocking", runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade)),
+		)
 	}
 
 	// Version could only be increased.
@@ -1069,4 +1082,28 @@ func validateAutoscalerAnnotationsForCluster(cluster *clusterv1.Cluster, cluster
 		}
 	}
 	return allErrs
+}
+
+// Note: code duplicated from internal/hooks/tracking.go to avoid a circular dependency when running tests
+// # sigs.k8s.io/cluster-api/util/patch
+// package sigs.k8s.io/cluster-api/util/patch
+//        imports sigs.k8s.io/cluster-api/internal/test/envtest from suite_test.go
+//        imports sigs.k8s.io/cluster-api/internal/webhooks from environment.go
+//        imports sigs.k8s.io/cluster-api/internal/hooks from cluster.go
+//        imports sigs.k8s.io/cluster-api/util/patch from tracking.go: import cycle not allowed in test
+// TODO: investigate.
+
+// IsPending returns true if there is an intent to call a hook being tracked in the object's PendingHooksAnnotation.
+func IsPending(hook runtimecatalog.Hook, obj client.Object) bool {
+	hookName := runtimecatalog.HookName(hook)
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		return false
+	}
+	return isInCommaSeparatedList(annotations[runtimev1.PendingHooksAnnotation], hookName)
+}
+
+func isInCommaSeparatedList(list, item string) bool {
+	set := sets.Set[string]{}.Insert(strings.Split(list, ",")...)
+	return set.Has(item)
 }

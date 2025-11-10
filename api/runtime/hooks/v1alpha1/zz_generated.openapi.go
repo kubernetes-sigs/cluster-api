@@ -192,8 +192,16 @@ func schema_api_runtime_hooks_v1alpha1_AfterClusterUpgradeResponse(ref common.Re
 							Format:      "",
 						},
 					},
+					"retryAfterSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "retryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
 				},
-				Required: []string{"status"},
+				Required: []string{"status", "retryAfterSeconds"},
 			},
 		},
 	}

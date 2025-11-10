@@ -322,8 +322,8 @@ var _ ResponseObject = &AfterClusterUpgradeResponse{}
 type AfterClusterUpgradeResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonResponse contains Status and Message fields common to all response types.
-	CommonResponse `json:",inline"`
+	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
+	CommonRetryResponse `json:",inline"`
 }
 
 // AfterClusterUpgrade is the hook that is called after the entire cluster is updated
@@ -458,7 +458,7 @@ func init() {
 			"Notes:\n" +
 			"- This hook will be called only for Clusters with a managed topology\n" +
 			"- The call's request contains the Cluster object and the Kubernetes version we upgraded to \n" +
-			"- This is a non-blocking hook",
+			"- This is a blocking hook; Runtime Extension implementers can use this hook to prevent the next upgrade to start.\n",
 	})
 
 	catalogBuilder.RegisterHook(BeforeClusterDelete, &runtimecatalog.HookMeta{

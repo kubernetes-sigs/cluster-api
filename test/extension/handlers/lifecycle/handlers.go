@@ -322,13 +322,13 @@ func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, clust
 			data = fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d}`, retryAfterSeconds)
 		case "AfterWorkersUpgrade":
 			data = fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d}`, retryAfterSeconds)
+		case "AfterClusterUpgrade":
+			data = fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d}`, retryAfterSeconds)
 		case "BeforeClusterDelete":
 			data = fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d}`, retryAfterSeconds)
 
 		// Non-blocking hooks are set to Status:Success.
 		case "AfterControlPlaneInitialized":
-			data = `{"Status": "Success"}`
-		case "AfterClusterUpgrade":
 			data = `{"Status": "Success"}`
 		}
 	}

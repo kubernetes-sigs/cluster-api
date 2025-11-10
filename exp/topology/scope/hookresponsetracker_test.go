@@ -164,7 +164,7 @@ func TestHookResponseTracker_IsBlocking(t *testing.T) {
 		},
 	}
 
-	afterClusterUpgradeResponse := &runtimehooksv1.AfterClusterUpgradeResponse{
+	afterClusterUpgradeResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{
 		CommonResponse: runtimehooksv1.CommonResponse{},
 	}
 

@@ -919,55 +919,52 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
 				"  * Following hooks are blocking upgrade: AfterWorkersUpgrade: msg",
 		},
-		// TODO(chained): uncomment this as soon as AfterClusterUpgrade will be blocking
-		/*
-			{
-				name:         "should set the condition to false if AfterClusterUpgrade hook is blocking",
-				reconcileErr: nil,
-				s: &scope.Scope{
-					Current: &scope.ClusterState{
-						Cluster: &clusterv1.Cluster{
-							ObjectMeta: metav1.ObjectMeta{
-								Annotations: map[string]string{
-									runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-								},
-							},
-							Spec: clusterv1.ClusterSpec{
-								ControlPlaneRef:   clusterv1.ContractVersionedObjectReference{Name: "controlplane1"},
-								InfrastructureRef: clusterv1.ContractVersionedObjectReference{Name: "infra1"},
-								Topology: clusterv1.Topology{
-									Version: "v1.22.0",
-								},
+		{
+			name:         "should set the condition to false if AfterClusterUpgrade hook is blocking",
+			reconcileErr: nil,
+			s: &scope.Scope{
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Annotations: map[string]string{
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 							},
 						},
-						ControlPlane: &scope.ControlPlaneState{
-							Object: builder.ControlPlane("ns1", "controlplane1").WithVersion("v1.22.0").Build(),
+						Spec: clusterv1.ClusterSpec{
+							ControlPlaneRef:   clusterv1.ContractVersionedObjectReference{Name: "controlplane1"},
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{Name: "infra1"},
+							Topology: clusterv1.Topology{
+								Version: "v1.22.0",
+							},
 						},
 					},
-					UpgradeTracker:  scope.NewUpgradeTracker(),
-					HookResponseTracker: func() *scope.HookResponseTracker {
-						hrt := scope.NewHookResponseTracker()
-						hrt.Add(runtimehooksv1.AfterClusterUpgrade, &runtimehooksv1.AfterClusterUpgradeResponse{
-							CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-								CommonResponse: runtimehooksv1.CommonResponse{
-									Message: "msg",
-								},
-								RetryAfterSeconds: 10,
-							},
-						})
-						return hrt
-					}(),
+					ControlPlane: &scope.ControlPlaneState{
+						Object: builder.ControlPlane("ns1", "controlplane1").WithVersion("v1.22.0").Build(),
+					},
 				},
-				wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-				wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
-				wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-					"  * Following hooks are blocking upgrade: AfterClusterUpgrade: msg",
-				wantConditionStatus: metav1.ConditionFalse,
-				wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
-				wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-					"  * Following hooks are blocking upgrade: AfterClusterUpgrade: msg",
+				UpgradeTracker: scope.NewUpgradeTracker(),
+				HookResponseTracker: func() *scope.HookResponseTracker {
+					hrt := scope.NewHookResponseTracker()
+					hrt.Add(runtimehooksv1.AfterClusterUpgrade, &runtimehooksv1.AfterClusterUpgradeResponse{
+						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+							CommonResponse: runtimehooksv1.CommonResponse{
+								Message: "msg",
+							},
+							RetryAfterSeconds: 10,
+						},
+					})
+					return hrt
+				}(),
 			},
-		*/
+			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
+				"  * Following hooks are blocking upgrade: AfterClusterUpgrade: msg",
+			wantConditionStatus: metav1.ConditionFalse,
+			wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
+			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
+				"  * Following hooks are blocking upgrade: AfterClusterUpgrade: msg",
+		},
 
 		// Hold & defer upgrade
 

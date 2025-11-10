@@ -604,7 +604,7 @@ func (e *Environment) DeleteAndWait(ctx context.Context, obj client.Object, opts
 				}
 				return false, err
 			}
-			if objCopy.GetDeletionTimestamp() != nil {
+			if !objCopy.GetDeletionTimestamp().IsZero() {
 				return true, nil
 			}
 			return false, nil
@@ -658,13 +658,6 @@ func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, opts 
 		return errors.Wrapf(err, "object %s, %s is not being added to or did not get updated in the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
 	}
 	return nil
-}
-
-// DirectAPIServerGet gets an object directly from apiserver bypassing informer caches..
-//
-// NOTE: Bypassing cache helps in preventing test flakes due to the cache sync delays but should only be used in validation steps of testing.
-func (e *Environment) DirectAPIServerGet(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-	return e.Manager.GetAPIReader().Get(ctx, key, obj, opts...)
 }
 
 // CreateNamespace creates a new namespace with a generated name.

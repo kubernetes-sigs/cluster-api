@@ -6314,14 +6314,14 @@ func schema_cluster_api_api_core_v1beta2_MachineTaint(ref common.ReferenceCallba
 				Properties: map[string]spec.Schema{
 					"key": {
 						SchemaProps: spec.SchemaProps{
-							Description: "key is the taint key to be applied to a node.",
+							Description: "key is the taint key to be applied to a node. Must be a valid qualified name of maximum size 63 characters with an optional subdomain prefix of maximum size 253 characters, separated by a `/`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"value": {
 						SchemaProps: spec.SchemaProps{
-							Description: "value is the taint value corresponding to the taint key.",
+							Description: "value is the taint value corresponding to the taint key. It must be a valid label value of maximum size 63 characters.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

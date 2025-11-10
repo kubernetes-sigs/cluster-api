@@ -1777,10 +1777,22 @@ spec:
                       - NoExecute
                       type: string
                     key:
-                      description: key is the taint key to be applied to a node.
-                      maxLength: 253
+                      description: |-
+                        key is the taint key to be applied to a node.
+                        Must be a valid qualified name of maximum size 63 characters
+                        with an optional subdomain prefix of maximum size 253 characters,
+                        separated by a `/`.
+                      maxLength: 317
                       minLength: 1
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
                       type: string
+                      x-kubernetes-validations:
+                      - message: key must be a valid qualified name of max size 63
+                          characters with an optional subdomain prefix of max size
+                          253 characters
+                        rule: 'self.contains(''/'') ? ( self.split(''/'') [0].size()
+                          <= 253 && self.split(''/'') [1].size() <= 63 && self.split(''/'').size()
+                          == 2 ) : self.size() <= 63'
                     propagation:
                       description: |-
                         propagation defines how this taint should be propagated to nodes.
@@ -1792,10 +1804,12 @@ spec:
                       - OnInitialization
                       type: string
                     value:
-                      description: value is the taint value corresponding to the taint
-                        key.
+                      description: |-
+                        value is the taint value corresponding to the taint key.
+                        It must be a valid label value of maximum size 63 characters.
                       maxLength: 63
                       minLength: 1
+                      pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                       type: string
                   required:
                   - effect

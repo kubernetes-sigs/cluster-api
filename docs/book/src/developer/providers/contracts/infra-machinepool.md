@@ -1,10 +1,12 @@
 # Contract rules for InfraMachinePool
 
-Infrastructure providers CAN OPTIONALLY implement an InfraMachinePool resource.
+Infrastructure providers CAN OPTIONALLY implement an InfraMachinePool resource using Kubernetes' CustomResourceDefinition (CRD).
 
 The goal of an InfraMachinePool is to manage the lifecycle of a provider-specific pool of machines using a provider specific service (like auto-scale groups in AWS & virtual machine scalesets in Azure).
 
-The machines in the pool may be physical or virtual instances (although most likely virtual), and they represent the infastructure for Kubernetes nodes.
+The machines in the pool may be physical or virtual instances (although most likely virtual), and they represent the infrastructure for Kubernetes nodes.
+
+The InfraMachinePool resource will be referenced by one of the Cluster API core resources, MachinePool.
 
 The [MachinePool's controller](../../core/controllers/machine-pool.md) is responsible to coordinate operations of the InfraMachinePool, and the interaction between the MachinePool's controller and the InfraMachinePool is based on the contract rules defined in this page.
 
@@ -18,7 +20,7 @@ in order to address very specific needs).
 <aside class="note warning">
 
 <h1>Never rely on Cluster API behaviours not defined as a contract rule!</h1>
-    
+
 When developing a provider, you MUST consider any Cluster API behaviour that is not defined by a contract rule
 as a Cluster API internal implementation detail, and internal implementation details can change at any time.
 
@@ -26,7 +28,7 @@ Accordingly, in order to not expose users to the risk that your provider breaks 
 changes, you MUST NOT rely on any Cluster API internal behaviour when implementing an InfraMachinePool resource.
 
 Instead, whenever you need something more from the Cluster API contract, you MUST engage the community.
-    
+
 The Cluster API maintainers welcome feedback and contributions to the contract in order to improve how it's defined,
 its clarity and visibility to provider implementers and its suitability across the different kinds of Cluster API providers.
 
@@ -43,18 +45,17 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [All resources: `TypeMeta` and `ObjectMeta`field]                    | Yes       |                                      |
 | [All resources: `APIVersion` field value]                            | Yes       |                                      |
 | [InfraMachinePool, InfraMachinePoolList resource definition]         | Yes       |                                      |
-| [InfraMachinePool: infrastructureMachineKind]                        | No        | Mandatory for MachinePoolMachines.   |
 | [InfraMachinePool: instances]                                        | No        |                                      |
+| [MachinePoolMachines support]                                        | No        |                                      |
 | [InfraMachinePool: providerID]                                       | No        |                                      |
 | [InfraMachinePool: providerIDList]                                   | Yes       |                                      |
-| [InfraMachinePool: ready]                                            | Yes       |                                      |
+| [InfraMachinePool: initialization completed]                         | Yes       |                                      |
 | [InfraMachinePool: pausing]                                          | No        |                                      |
 | [InfraMachinePool: conditions]                                       | No        |                                      |
 | [InfraMachinePool: replicas]                                         | Yes       |                                      |
 | [InfraMachinePool: terminal failures]                                | No        |                                      |
 | [InfraMachinePoolTemplate, InfraMachineTemplatePoolList resource definition] | No | Mandatory for ClusterClasses support |
 | [InfraMachinePoolTemplate: support for SSA dry run]                  | No        | Mandatory for ClusterClasses support |
-| [MachinePoolMachines support]                                        | No        |                                      |
 | [Multi tenancy]                                                      | No        | Mandatory for clusterctl CLI support |
 | [Clusterctl support]                                                 | No        | Mandatory for clusterctl CLI support |
 
@@ -85,7 +86,7 @@ If your provider uses a different API group, you MUST grant full read/write RBAC
 to the Cluster API core controllers. The canonical way to do so is via a `ClusterRole` resource with the [aggregation label]
 `cluster.x-k8s.io/aggregate-to-manager: "true"`.
 
-The following is an example ClusterRole for a `FooMachine` resource in the `infrastructure.foo.com` API group:
+The following is an example ClusterRole for a `FooMachinePool` resource in the `infrastructure.foo.com` API group:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -110,7 +111,7 @@ rules:
     - watch
 ```
 
-Note: The write permissions are required because Cluster API manages InfraMachinePools generated from InfraMachinePooolTemplates when using ClusterClass and managed topologies, also InfraMachinePoolTemplates are managed directly by Cluster API.
+Note: The write permissions are required because Cluster API manages InfraMachinePools generated from InfraMachinePoolTemplates; when using ClusterClass and managed topologies, also InfraMachinePoolTemplates are managed directly by Cluster API.
 
 #### All resources: version
 
@@ -145,7 +146,7 @@ An example of this is in the [AWS infrastructure provider](https://github.com/ku
 
 ### InfraMachinePool, InfraMachinePoolList resource definition
 
-You CAN define a InfraMachinePool resource.
+You MUST define a InfraMachinePool resource if you provider supports MachinePools.
 The InfraMachinePool resource name must have the format produced by `sigs.k8s.io/cluster-api/util/contract.CalculateCRDName(Group, Kind)`.
 
 Note: Cluster API is using such a naming convention to avoid an expensive CRD lookup operation when looking for labels from
@@ -160,11 +161,12 @@ is one for Azure.
 // +kubebuilder:resource:path=foomachinepools,shortName=foomp,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of FooMachinePool"
 
 // FooMachinePool is the Schema for foomachinepools.
 type FooMachinePool struct {
     metav1.TypeMeta `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+    metav1.ObjectMeta `json:"metadata,omitempty"`
     Spec FooMachinePoolSpec `json:"spec,omitempty"`
     Status FooMachinePoolStatus `json:"status,omitempty"`
 }
@@ -181,7 +183,7 @@ type FooMachinePoolStatus struct {
 ```
 
 For each InfraMachinePool resource, you MUST also add the corresponding list resource.
-The list resource MUST be named as `<InfraMachine>List`.
+The list resource MUST be named as `<InfraMachinePool>List`.
 
 ```go
 // +kubebuilder:object:root=true
@@ -194,28 +196,9 @@ type FooMachinePoolList struct {
 }
 ```
 
-### InfraMachinePool: infrastructureMachineKind
-
-If a providers implementation of a InfraMachinePool supports "MachinePool Machines" (where all the replicas in a MachinePool can be represented by a Machine & InfraMachine) then specifying and supplying a value for this field signals to Cluster API that the provider is opted-in to MachinePoolMachines.
-
-If you want to adopt MachinePool Machines then you MUST have a `status.infrastructureMachineKind` field and the field must contain the resource kind of the InfraMachine that represent the replicas of the pool. For example, for the AWS provider the value would be set to `AWSMachine`.
-
-```go
-type FooMachinePoolStatus struct {
-	// InfrastructureMachineKind is the kind of the infrastructure resources behind MachinePool Machines.
-	// +optional
-	InfrastructureMachineKind string `json:"infrastructureMachineKind,omitempty"`
-   
-    // See other rules for more details about mandatory/optional fields in InfraMachinePool status.
-    // Other fields SHOULD be added based on the needs of your provider.
-}
-```
-
-By opting into MachinePool Machines its the responsibility of the provider to create an instance of a InfraMachine for every replica and manage their lifecycle.
-
 ### InfraMachinePool: instances
 
-Each InfraMachinePool MAY specify a status field that is used to report information about each instance within the machine pool. This field is purely informational and is used as convenient way for a user to get details of the instances such as provider id and addresses.
+Each InfraMachinePool MAY specify a status field that is used to report information about each replica within the machine pool. This field is not used by core CAPI. It is purely informational and is used as convenient way for a user to get details of the replicas in the machine pool, such as their provider id and ip addresses.
 
 If you implement this then create a `status.instances` field that is a slice of a struct type that contains the information you want to store and be made available to the users.
 
@@ -231,38 +214,61 @@ type FooMachinePoolStatus struct {
 
 // FooMachinePoolInstanceStatus contains instance status information about a FooMachinePool.
 type FooMachinePoolInstanceStatus struct {
- // Addresses contains the associated addresses for the machine.
- // +optional
- Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
+    // Addresses contains the associated addresses for the machine.
+    // +optional
+    Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
- // InstanceName is the identification of the Machine Instance within the Machine Pool
- InstanceName string `json:"instanceName,omitempty"`
+    // InstanceName is the identification of the Machine Instance within the Machine Pool
+    InstanceName string `json:"instanceName,omitempty"`
 
- // ProviderID is the provider identification of the Machine Pool Instance
- // +optional
- ProviderID *string `json:"providerID,omitempty"`
+    // ProviderID is the provider identification of the Machine Pool Instance
+    // +optional
+    ProviderID *string `json:"providerID,omitempty"`
 
- // Version defines the Kubernetes version for the Machine Instance
- // +optional
- Version *string `json:"version,omitempty"`
+    // Version defines the Kubernetes version for the Machine Instance
+    // +optional
+    Version *string `json:"version,omitempty"`
 
- // Ready denotes that the machine is ready
- // +optional
- Ready bool `json:"ready"`
+    // Ready denotes that the machine is ready
+    // +optional
+    Ready bool `json:"ready"`
 }
 ```
 
+### MachinePoolMachines support
+
+A provider can opt-in to MachinePool Machines (MPM). With MPM machines all the replicas in a MachinePool are represented by a Machine & InfraMachine. This enables core CAPI to perform common operations on single machines (and their Nodes), such as draining a node before scale down, integration with Cluster Autoscaler and also machine healthchecks.
+
+If you want to adopt MPM then you MUST have a `status.infrastructureMachineKind` field and the field must contain the resource kind of the InfraMachine that represent the replicas in the pool. For example, for the AWS provider the value would be set to `AWSMachine`.
+
+By opting in an infra provider is expected to create a InfraMachine for every replica in the pool. The lifecycle of these InfraMachines must be managed so that when scale up or scale down happens the list of InfraMachines is representative.
+
+```go
+type FooMachinePoolStatus struct {
+    // InfrastructureMachineKind is the kind of the infrastructure resources behind MachinePool Machines.
+    // +optional
+    InfrastructureMachineKind string `json:"infrastructureMachineKind,omitempty"`
+   
+    // See other rules for more details about mandatory/optional fields in InfraMachinePool status.
+    // Other fields SHOULD be added based on the needs of your provider.
+}
+```
+
+For further information see the [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220209-machinepool-machines.md).
+
 ### InfraMachinePool: providerID
 
-Each InfraMachinePool MAY specify a provider ID on `spec.providerID` that can be used to identify the InfraMachinePool.
+Each InfraMachinePool MAY specify a provider ID on `spec.providerID` that can be used to identify the infrastructure resource that implements the InfraMachinePool.
+
+This field isn't used by core CAPI. Its main purpose is purely informational to the user to surface the infrastructures identifier for the InfraMachinePool. For example, for AWSMachinePool this would be the ASG identifier.
 
 ```go
 type FooMachinePoolSpec struct {
     // providerID is the identification ID of the FooMachinePool.
     // +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=512
-	ProviderID string `json:"providerID,omitempty"`
+    // +kubebuilder:validation:MinLength=1
+    // +kubebuilder:validation:MaxLength=512
+    ProviderID string `json:"providerID,omitempty"`
     
     // See other rules for more details about mandatory/optional fields in InfraMachinePool spec.
     // Other fields SHOULD be added based on the needs of your provider.
@@ -272,7 +278,6 @@ type FooMachinePoolSpec struct {
 NOTE: To align with API conventions, we recommend since the v1beta2 contract that the `ProviderID` field should be
 of type `string`.
 
-
 ### InfraMachinePool: providerIDList
 
 Each InfraMachinePool MUST supply a list of the identification IDs of the machine instances managed by the machine pool by storing these in `spec.providerIDList`.
@@ -280,8 +285,12 @@ Each InfraMachinePool MUST supply a list of the identification IDs of the machin
 ```go
 type FooMachinePoolSpec struct {
     // ProviderIDList is the list of identification IDs of machine instances managed by this Machine Pool
-	// +optional
-	ProviderIDList []string `json:"providerIDList,omitempty"`
+    // +optional
+    // +listType=atomic
+    // +kubebuilder:validation:MaxItems=10000
+    // +kubebuilder:validation:items:MinLength=1
+    // +kubebuilder:validation:items:MaxLength=512
+    ProviderIDList []string `json:"providerIDList,omitempty"`
     
     // See other rules for more details about mandatory/optional fields in InfraMachinePool spec.
     // Other fields SHOULD be added based on the needs of your provider.
@@ -290,28 +299,47 @@ type FooMachinePoolSpec struct {
 
 Cluster API uses this list to determine the status of the machine pool and to know when replicas have been deleted, at which point the Node will be deleted.
 
-### InfraMachinePool: ready
+### InfraMachinePool: initialization completed
 
-Each provider MUST indicate when then the InfraMachinePool has been complteley provisioned by setting `staus.ready` to **true**. This indicates to Cluster API that the infrastructure is ready and that it can continue with its processing. The value retuned here is stored in the MachinePool's `status.infraStructureReady` field.
+Each provider MUST indicate when then the InfraMachinePool has been completely provisioned.
+
+Currently this is done by setting `staus.ready` to **true**.  The value retuned here is stored in the MachinePool's `status.infraStructureReady` field.
+
+Additionally providers should set `initialization.provisioned` to **true**. This value isn't currently used by core CAPI for MachinePools. However, MachinePools will start to use this instead and `status.ready` will be deprecated. By setting both these fields it will make the future migration easier.
+
+This indicates to Cluster API that the infrastructure is ready and that it can continue with its processing.
 
 ```go
 type FooMachinePoolStatus struct {
-	// Ready is true when the provider resource is ready.
-	// +optional
-	Ready bool `json:"ready"`
+    // Ready is true when the provider resource is ready.
+    // +optional
+    Ready bool `json:"ready"`
+
+    // initialization provides observations of the FooMachinePool initialization process.
+    // +optional
+    Initialization FooMachinePoolInitializationStatus `json:"initialization,omitempty,omitzero"`
     
     // See other rules for more details about mandatory/optional fields in InfraMachinePool status.
     // Other fields SHOULD be added based on the needs of your provider.
 }
+
+// FooMachinePoolInitializationStatus provides observations of the FooMachinePool initialization process.
+// +kubebuilder:validation:MinProperties=1
+type FooMachinePoolInitializationStatus struct {
+    // provisioned is true when the infrastructure provider reports that the MachinePool's infrastructure is fully provisioned.
+    // +optional
+    Provisioned *bool `json:"provisioned,omitempty"`
+}
+
 ```
 
-When `ready` becomes true the phase of the MachinePool changes from **provisioning** to **provisioned**. Its also the signal that the providerIDList and replica status fields should be set on the MachinePool.
+Once `status.ready` is set the MachinePool “core” controller will bubble up this info in MachinePool’s `status.initialization.infrastructureProvisioned`; also InfraMachinePools’s `spec.providerIDList` and `status.replicas` will be surfaced on MachinePool’s corresponding fields at the same time.
 
 ### InfraMachinePool: pausing
 
 Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Cluster object and by checking for the `cluster.x-k8s.io/paused` annotation on the InfraMachinePool object.
 
-If implementing the pause behavior, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
+If implementing the pause behaviour, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
 
 ### InfraMachinePool: conditions
 
@@ -320,6 +348,7 @@ status reporting from a controller.
 
 Providers implementers SHOULD implement `status.conditions` for their InfraMachinePool resource.
 In case conditions are implemented on a InfraMachinePool resource, Cluster API will only consider conditions providing the following information:
+
 - `type` (required)
 - `status` (required, one of True, False, Unknown)
 - `reason` (optional, if omitted a default one will be used)
@@ -329,7 +358,9 @@ In case conditions are implemented on a InfraMachinePool resource, Cluster API w
 
 Other fields will be ignored.
 
-Conditions are not currently used by the Cluster APIs MachinePool controllers for any logic or status reporting. This will likely change in the future.
+If a condition with type `Ready` exist, such condition will be mirrored in MachinePool’s `InfrastructureReady` condition (not implemented yet).
+
+Please note that the `Ready` condition is expected to surface the status of the InfraMachinePool during its own entire lifecycle, including initial provisioning, the final deletion process, and the period in between these two moments.
 
 See [Improving status in CAPI resources] for more context.
 
@@ -351,13 +382,13 @@ the implication of this choice which are described both in the [Cluster API v1.1
 
 ### InfraMachinePool: replicas
 
-Provider implementors MUST implement `status.replicas` to report the most recently observed number of machine instances in the pool. For example, in AWS this would be the number of replicas in a Auto Scale Group (ASG).
+Provider implementers MUST implement `status.replicas` to report the most recently observed number of machine instances in the pool. For example, in AWS this would be the number of replicas in a Auto Scale Group (ASG).
 
 ```go
 type FooMachinePoolStatus struct {
-	// Replicas is the most recently observed number of replicas.
-	// +optional
-	Replicas int32 `json:"replicas"`
+    // Replicas is the most recently observed number of replicas.
+    // +optional
+    Replicas int32 `json:"replicas"`
     
     // See other rules for more details about mandatory/optional fields in InfraMachinePool status.
     // Other fields SHOULD be added based on the needs of your provider.
@@ -372,18 +403,18 @@ A provider MAY report failure information via their `status.failureReason` and `
 
 ```go
 type FooMachinePoolStatus struct {
-	// FailureReason will be set in the event that there is a terminal problem
-	// reconciling the Machine and will contain a succinct value suitable
-	// for machine interpretation.
-	// +optional
-	FailureReason *string `json:"failureReason,omitempty"`
+    // FailureReason will be set in the event that there is a terminal problem
+    // reconciling the Machine and will contain a succinct value suitable
+    // for machine interpretation.
+    // +optional
+    FailureReason *string `json:"failureReason,omitempty"`
 
-	// FailureMessage will be set in the event that there is a terminal problem
-	// reconciling the Machine and will contain a more verbose string suitable
-	// for logging and human consumption.
-	// +optional
-	FailureMessage *string `json:"failureMessage,omitempty"`
-    
+    // FailureMessage will be set in the event that there is a terminal problem
+    // reconciling the Machine and will contain a more verbose string suitable
+    // for logging and human consumption.
+    // +optional
+    FailureMessage *string `json:"failureMessage,omitempty"`
+
     // See other rules for more details about mandatory/optional fields in InfraMachinePool status.
     // Other fields SHOULD be added based on the needs of your provider.
 }
@@ -395,20 +426,17 @@ If a provider sets these fields then their value will populated to the same name
 
 <h1>New provider implementations</h1>
 
-The use of `failureReason` and `failureMessage` should not be used for new InfraMachinePool implementations. In other areas of the Cluster API, starting from the v1beta2 contract version, there is no more special treatment for provider's terminal failures within Cluster API.
+The use of `failureReason` and `failureMessage` should not be used for new InfraMachinePool implementations. In other areas of the Cluster API, starting from the v1beta2 contract version, there is no more special treatment for provider's terminal failures within Cluster API. These fields should be regarded as deprecated.
 
 In case necessary, "terminal failures" should be surfaced using conditions, with a well documented type/reason;
 it is up to consumers to treat them accordingly.
 
 </aside>
 
-
-
 ### InfraMachinePoolTemplate, InfraMachineTemplatePoolList resource definition
 
-For a given InfraMachinePool resource, you SHOULD also add a sorresponding InfraMachinePoolTemplate resource in order to use it in ClusterClasses. The template resource MUST be name `<InfraMachinePool>Template`.
+For a given InfraMachinePool resource, you SHOULD also add a corresponding InfraMachinePoolTemplate resource in order to use it in ClusterClasses. The template resource MUST be name `<InfraMachinePool>Template`.
 
-### InfraMachinePoolTemplate: support for SSA dry run
 
 ```go
 // +kubebuilder:object:root=true
@@ -460,22 +488,12 @@ the current Cluster topology, it is required to run [Server Side Apply] (SSA) dr
 
 However, in case you have immutability checks for your InfraMachinePoolTemplate, this can lead the SSA dry run call to error.
 
-In order to avoid this InfraMachinePoolTemplate MUST specifically implement support for SSA dry run calls from the topology controller. 
+In order to avoid this InfraMachinePoolTemplate MUST specifically implement support for SSA dry run calls from the topology controller.
 
 The implementation requires to use controller runtime's `CustomValidator`, available in CR versions >= v0.12.3.
 
 This will allow to skip the immutability check only when the topology controller is dry running while preserving the
 validation behavior for all other cases.
-
-### MachinePoolMachines support
-
-A provider can opt-in to MachinePool Machines. The mechanims to opt-in is by including `status.infrastructreMachineKind` (see InfraMachinePool: infrastructureMachineKind) in the InfraMachinePool.
-
-By opting in an infra provider is expected to create a InfraMachine for every replica in the pool. The lifecycle of these InfraMachines must be managed so that when scale up or scale down happens the list of InfraMachines is representative.
-
-By adopting MachinePool Machines this enables common processing with Cluster API, such as draining nodes before scale down. Also it enables integration with Cluster Autoscaler.
-
-For further information see the [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220209-machinepool-machines.md).
 
 ### Multi tenancy
 
@@ -504,11 +522,10 @@ The clusterctl command is designed to work with all the providers compliant with
 [All resources: `TypeMeta` and `ObjectMeta`field]: #all-resources-typemeta-and-objectmeta-field
 [All resources: `APIVersion` field value]: #all-resources-apiversion-field-value
 [InfraMachinePool, InfraMachinePoolList resource definition]: #inframachinepool-inframachinepoollist-resource-definition
-[InfraMachinePool: infrastructureMachineKind]: #inframachinepool-infrastructuremachinekind
 [InfraMachinePool: instances]: #inframachinepool-instances
 [InfraMachinePool: providerID]: #inframachinepool-providerid
 [InfraMachinePool: providerIDList]: #inframachinepool-provideridlist
-[InfraMachinePool: ready]: #inframachinepool-ready
+[InfraMachinePool: initialization completed]: #inframachinepool-initialization-completed
 [InfraMachinePool: pausing]: #inframachinepool-pausing
 [InfraMachinePool: conditions]: #inframachinepool-conditions
 [InfraMachinePool: replicas]: #inframachinepool-replicas

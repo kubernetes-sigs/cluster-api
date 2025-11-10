@@ -2846,7 +2846,7 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							Type:   clusterv1.ClusterTopologyReconciledCondition,
 							Status: metav1.ConditionFalse,
-							Reason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+							Reason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
 							Message: "Cluster is upgrading to v1.22.0\n" +
 								"  * MachineDeployment md1 upgrading to version v1.22.0",
 						},
@@ -2907,7 +2907,7 @@ func TestSetAvailableCondition(t *testing.T) {
 						{
 							Type:   clusterv1.ClusterTopologyReconciledCondition,
 							Status: metav1.ConditionFalse,
-							Reason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+							Reason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
 							Message: "Cluster is upgrading to v1.22.0\n" +
 								"  * MachineDeployment md1 upgrading to version v1.22.0",
 						},

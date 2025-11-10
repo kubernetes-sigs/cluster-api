@@ -77,7 +77,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 	afterControlPlaneUpgradeGVH, _ := catalog.GroupVersionHook(runtimehooksv1.AfterControlPlaneUpgrade)
 	beforeWorkersUpgradeGVH, _ := catalog.GroupVersionHook(runtimehooksv1.BeforeWorkersUpgrade)
 	afterWorkersUpgradeGVH, _ := catalog.GroupVersionHook(runtimehooksv1.AfterWorkersUpgrade)
-	afterClusterUpgradeGVH, _ := catalog.GroupVersionHook(runtimehooksv1.AfterClusterUpgrade)
 
 	blockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
 		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
@@ -1231,7 +1230,6 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 					afterControlPlaneUpgradeGVH:  {"foo"},
 					beforeWorkersUpgradeGVH:      {"foo"},
 					afterWorkersUpgradeGVH:       {"foo"},
-					afterClusterUpgradeGVH:       {"foo"},
 				}).
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					beforeClusterUpgradeGVH:      tt.beforeClusterUpgradeResponse,

@@ -80,6 +80,10 @@ const (
 	// failing due to an error.
 	ClusterTopologyReconciledFailedReason = "ReconcileFailed"
 
+	// ClusterTopologyReconciledClusterCreatingReason documents reconciliation of a Cluster topology
+	// not yet created because the BeforeClusterCreate hook is blocking.
+	ClusterTopologyReconciledClusterCreatingReason = "ClusterCreating"
+
 	// ClusterTopologyReconciledControlPlaneUpgradePendingReason documents reconciliation of a Cluster topology
 	// not yet completed because Control Plane is not yet updated to match the desired topology spec.
 	// Deprecated: please use ClusterUpgrading instead.
@@ -113,7 +117,6 @@ const (
 
 	// ClusterTopologyReconciledMachinePoolsUpgradeDeferredReason documents reconciliation of a Cluster topology
 	// not yet completed because the upgrade for at least one of the MachinePools has been deferred.
-	// Deprecated: please use ClusterUpgrading instead.
 	ClusterTopologyReconciledMachinePoolsUpgradeDeferredReason = "MachinePoolsUpgradeDeferred"
 
 	// ClusterTopologyReconciledHookBlockingReason documents reconciliation of a Cluster topology
@@ -124,7 +127,6 @@ const (
 	// ClusterTopologyReconciledClusterUpgradingReason documents reconciliation of a Cluster topology
 	// not yet completed because a cluster upgrade is still in progress.
 	ClusterTopologyReconciledClusterUpgradingReason = "ClusterUpgrading"
-
 	// ClusterTopologyReconciledClusterClassNotReconciledReason documents reconciliation of a Cluster topology not
 	// yet completed because the ClusterClass has not reconciled yet. If this condition persists there may be an issue
 	// with the ClusterClass surfaced in the ClusterClass status or controller logs.

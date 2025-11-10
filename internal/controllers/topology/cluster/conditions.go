@@ -104,7 +104,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	if !cluster.DeletionTimestamp.IsZero() {
 		message := "Cluster is deleting"
 		if s.HookResponseTracker.AggregateRetryAfter() != 0 {
-			message += ". " + strings.ReplaceAll(s.HookResponseTracker.AggregateMessage(), "upgrade", "delete")
+			message += ". " + s.HookResponseTracker.AggregateMessage("delete")
 		}
 		v1beta1conditions.Set(cluster,
 			v1beta1conditions.FalseCondition(
@@ -146,39 +146,22 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		return nil
 	}
 
-	// If the cluster is performing initial provisioning.
-	if s.Blueprint != nil && s.Blueprint.ClusterClass != nil &&
-		s.Blueprint.ClusterClass.GetGeneration() != s.Blueprint.ClusterClass.Status.ObservedGeneration {
-		v1beta1conditions.Set(cluster,
-			v1beta1conditions.FalseCondition(
-				clusterv1.TopologyReconciledV1Beta1Condition,
-				clusterv1.TopologyReconciledClusterClassNotReconciledV1Beta1Reason,
-				clusterv1.ConditionSeverityInfo,
-				"ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if"+
-					".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
-			),
-		)
-		conditions.Set(cluster, metav1.Condition{
-			Type:   clusterv1.ClusterTopologyReconciledCondition,
-			Status: metav1.ConditionFalse,
-			Reason: clusterv1.ClusterTopologyReconciledClusterClassNotReconciledReason,
-			Message: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
-				".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
-		})
-		return nil
-	}
-
 	// If the BeforeClusterCreate hook is blocking, reports it
 	if !s.Current.Cluster.Spec.InfrastructureRef.IsDefined() && !s.Current.Cluster.Spec.ControlPlaneRef.IsDefined() {
 		if s.HookResponseTracker.AggregateRetryAfter() != 0 {
 			v1beta1conditions.Set(cluster,
-				v1beta1conditions.TrueCondition(clusterv1.TopologyReconciledV1Beta1Condition),
+				v1beta1conditions.FalseCondition(
+					clusterv1.TopologyReconciledV1Beta1Condition,
+					clusterv1.TopologyReconciledClusterCreatingV1Beta1Reason,
+					clusterv1.ConditionSeverityInfo,
+					"%s", s.HookResponseTracker.AggregateMessage("Cluster topology creation"),
+				),
 			)
 			conditions.Set(cluster, metav1.Condition{
 				Type:    clusterv1.ClusterTopologyReconciledCondition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterTopologyReconcileSucceededReason,
-				Message: strings.ReplaceAll(s.HookResponseTracker.AggregateMessage(), "upgrade progress", "Cluster topology creation"),
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.ClusterTopologyReconciledClusterCreatingReason,
+				Message: s.HookResponseTracker.AggregateMessage("Cluster topology creation"),
 			})
 			return nil
 		}
@@ -192,6 +175,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1.ClusterTopologyReconcileSucceededReason,
 		})
+		return nil
 	}
 
 	// If Cluster is updating surface it.
@@ -215,7 +199,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		// Setting condition reasons showing upgrade is progress; this will be overridden only
 		// when users are blocking upgrade to make further progress, e.g. deferred upgrades
 		reason := clusterv1.ClusterTopologyReconciledClusterUpgradingReason
-		v1Beta1Reason := clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason
+		v1Beta1Reason := clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason
 
 		cpVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
 		if err != nil {
@@ -224,7 +208,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 
 		// If any of the lifecycle hooks are blocking the upgrade surface it as a first detail.
 		if s.HookResponseTracker.IsAnyBlocking() {
-			fmt.Fprintf(msgBuilder, "\n  * %s", s.HookResponseTracker.AggregateMessage())
+			fmt.Fprintf(msgBuilder, "\n  * %s", s.HookResponseTracker.AggregateMessage("upgrade"))
 		}
 
 		// If control plane is upgrading surface it, otherwise surface the pending upgrade plan.
@@ -252,7 +236,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 
 		// If MachineDeployments has been deferred or put on hold, surface it.
 		if len(deferredMachineDeploymentNames) > 0 {
-			fmt.Fprintf(msgBuilder, "\n  * %s upgrade to version %s deferred using topology.cluster.x-k8s.io/defer-upgrade or hold-upgrade-sequence annotations", nameList("MachineDeployment", "MachineDeployments", deferredMachineDeploymentNames), *cpVersion)
+			fmt.Fprintf(msgBuilder, "\n  * %s upgrade to version %s deferred using defer-upgrade or hold-upgrade-sequence annotations", nameList("MachineDeployment", "MachineDeployments", deferredMachineDeploymentNames), *cpVersion)
 			// If Deferred upgrades are blocking an upgrade, surface it.
 			// Note: Hook blocking takes the precedence on this signal.
 			if !s.HookResponseTracker.IsAnyBlocking() &&
@@ -360,7 +344,7 @@ func nameList(kind, kindPlural string, names []string) any {
 	sort.Strings(names)
 	switch {
 	case len(names) == 1:
-		return fmt.Sprintf("%s %s", kind, strings.Join(names, ", "))
+		return fmt.Sprintf("%s %s", kind, names[0])
 	case len(names) <= 3:
 		return fmt.Sprintf("%s %s", kindPlural, strings.Join(names, ", "))
 	default:

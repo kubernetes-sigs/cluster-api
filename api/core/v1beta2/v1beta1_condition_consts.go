@@ -300,6 +300,10 @@ const (
 	// failing due to an error.
 	TopologyReconcileFailedV1Beta1Reason = "TopologyReconcileFailed"
 
+	// TopologyReconciledClusterCreatingV1Beta1Reason documents reconciliation of a Cluster topology
+	// not yet created because the BeforeClusterCreate hook is blocking.
+	TopologyReconciledClusterCreatingV1Beta1Reason = "ClusterCreating"
+
 	// TopologyReconciledControlPlaneUpgradePendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because Control Plane is not yet updated to match the desired topology spec.
 	// Deprecated: please use ClusterUpgrading instead.
@@ -340,9 +344,9 @@ const (
 	// Deprecated: please use ClusterUpgrading instead.
 	TopologyReconciledHookBlockingV1Beta1Reason = "LifecycleHookBlocking"
 
-	// ClusterTopologyReconciledClusterUpgradingV1Beta1Reason documents reconciliation of a Cluster topology
+	// TopologyReconciledClusterUpgradingV1Beta1Reason documents reconciliation of a Cluster topology
 	// not yet completed because a cluster upgrade is still in progress.
-	ClusterTopologyReconciledClusterUpgradingV1Beta1Reason = "ClusterUpgrading"
+	TopologyReconciledClusterUpgradingV1Beta1Reason = "ClusterUpgrading"
 
 	// TopologyReconciledClusterClassNotReconciledV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology not
 	// yet completed because the ClusterClass has not reconciled yet. If this condition persists there may be an issue

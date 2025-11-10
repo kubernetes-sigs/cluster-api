@@ -81,7 +81,7 @@ func (h *HookResponseTracker) AggregateRetryAfter() time.Duration {
 }
 
 // AggregateMessage returns a human friendly message about the blocking status of hooks.
-func (h *HookResponseTracker) AggregateMessage() string {
+func (h *HookResponseTracker) AggregateMessage(action string) string {
 	blockingHooks := map[string]string{}
 	for hook, resp := range h.responses {
 		if retryResponse, ok := resp.(runtimehooksv1.RetryResponseObject); ok {
@@ -102,5 +102,5 @@ func (h *HookResponseTracker) AggregateMessage() string {
 			hookAndMessages = append(hookAndMessages, fmt.Sprintf("%s: %s", hook, message))
 		}
 	}
-	return fmt.Sprintf("Following hooks are blocking upgrade progress: %s", strings.Join(hookAndMessages, "; "))
+	return fmt.Sprintf("Following hooks are blocking %s: %s", action, strings.Join(hookAndMessages, "; "))
 }

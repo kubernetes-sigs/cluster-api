@@ -40,15 +40,6 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 	log := ctrl.LoggerFrom(ctx)
 
 	if !hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster) {
-		// Return quickly if the hook is not defined.
-		extensionHandlers, err := g.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster)
-		if err != nil {
-			return false, err
-		}
-		if len(extensionHandlers) == 0 {
-			return true, nil
-		}
-
 		var hookAnnotations []string
 		for key := range s.Current.Cluster.Annotations {
 			if strings.HasPrefix(key, clusterv1.BeforeClusterUpgradeHookAnnotationPrefix) {
@@ -57,9 +48,9 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 		}
 		if len(hookAnnotations) > 0 {
 			slices.Sort(hookAnnotations)
-			message := fmt.Sprintf("annotations [%s] are set", strings.Join(hookAnnotations, ", "))
+			message := fmt.Sprintf("annotations %s are set", strings.Join(hookAnnotations, ", "))
 			if len(hookAnnotations) == 1 {
-				message = fmt.Sprintf("annotation [%s] is set", strings.Join(hookAnnotations, ", "))
+				message = fmt.Sprintf("annotation %s is set", strings.Join(hookAnnotations, ", "))
 			}
 			// Add the hook with a response to the tracker so we can later update the condition.
 			s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
@@ -79,6 +70,15 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 				"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
 			)
 			return false, nil
+		}
+
+		// Return quickly if the hook is not defined.
+		extensionHandlers, err := g.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster)
+		if err != nil {
+			return false, err
+		}
+		if len(extensionHandlers) == 0 {
+			return true, nil
 		}
 
 		v1beta1Cluster := &clusterv1beta1.Cluster{}
@@ -110,7 +110,7 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 			return false, nil
 		}
 
-		log.Info(fmt.Sprintf("Control plane upgrade from version %s to version %s unblocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)),
+		log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s unblocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)),
 			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 			"WorkersUpgrades", hookRequest.WorkersUpgrades,
 		)
@@ -214,7 +214,7 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 		s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, hookResponse)
 
 		if hookResponse.RetryAfterSeconds != 0 {
-			log.Info(fmt.Sprintf("Cluster Upgrade to version %s is blocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)),
+			log.Info(fmt.Sprintf("Control plane upgrade to version %s completed but next steps are blocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 				"WorkersUpgrades", hookRequest.WorkersUpgrades,
 			)
@@ -224,7 +224,7 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 			return false, err
 		}
 
-		log.Info(fmt.Sprintf("Cluster upgrade to version %s unblocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)),
+		log.Info(fmt.Sprintf("Control plane upgrade to version %s and %s hook completed, next steps unblocked", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)),
 			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 			"WorkersUpgrades", hookRequest.WorkersUpgrades,
 		)
@@ -338,7 +338,7 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 		s.HookResponseTracker.Add(runtimehooksv1.AfterWorkersUpgrade, hookResponse)
 
 		if hookResponse.RetryAfterSeconds != 0 {
-			log.Info(fmt.Sprintf("Cluster upgrade to version %s is blocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)),
+			log.Info(fmt.Sprintf("Workers upgrade to version %s completed but next steps are blocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 				"WorkersUpgrades", hookRequest.WorkersUpgrades,
 			)
@@ -348,7 +348,7 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 			return false, err
 		}
 
-		log.Info(fmt.Sprintf("Cluster upgrade to version %s unblocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)),
+		log.Info(fmt.Sprintf("Workers upgrade to version %s and %s hook completed, next steps unblocked", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)),
 			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 			"WorkersUpgrades", hookRequest.WorkersUpgrades,
 		)

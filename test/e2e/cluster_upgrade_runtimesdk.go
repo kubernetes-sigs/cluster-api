@@ -1074,7 +1074,7 @@ func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster *c
 func annotationHookTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, hook, annotation string, blockingCondition func() bool) {
 	log.Logf("Blocking with the %s annotation hook for 60 seconds", hook)
 
-	expectedBlockingMessage := fmt.Sprintf("annotation [%s] is set", annotation)
+	expectedBlockingMessage := fmt.Sprintf("annotation %s is set", annotation)
 
 	// Check if TopologyReconciledCondition reports if the annotation hook is blocking
 	topologyConditionCheck := func() bool {

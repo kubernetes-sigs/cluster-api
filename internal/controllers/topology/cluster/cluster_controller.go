@@ -440,10 +440,7 @@ func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.S
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		if err != nil || len(extensionHandlers) == 0 {
-			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.BeforeClusterCreate); err != nil {
-				return ctrl.Result{}, err
-			}
+		if len(extensionHandlers) == 0 {
 			return ctrl.Result{}, nil
 		}
 
@@ -546,6 +543,18 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.
 	log := ctrl.LoggerFrom(ctx)
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
 		if !hooks.IsOkToDelete(cluster) {
+			// Return quickly if the hook is not defined.
+			extensionHandlers, err := r.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.BeforeClusterDelete, s.Current.Cluster)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			if len(extensionHandlers) == 0 {
+				if err := hooks.MarkAsOkToDelete(ctx, r.Client, cluster); err != nil {
+					return ctrl.Result{}, err
+				}
+				return ctrl.Result{}, nil
+			}
+
 			v1beta1Cluster := &clusterv1beta1.Cluster{}
 			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
 			if err := v1beta1Cluster.ConvertFrom(cluster.DeepCopy()); err != nil {
@@ -560,7 +569,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.
 				return ctrl.Result{}, err
 			}
 			// Add the response to the tracker so we can later update condition or requeue when required.
-			s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, hookResponse)
+			s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterDelete, hookResponse)
 
 			if hookResponse.RetryAfterSeconds != 0 {
 				log.Info(fmt.Sprintf("Cluster deletion is blocked by %q hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterDelete)))
@@ -571,6 +580,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.
 			if err := hooks.MarkAsOkToDelete(ctx, r.Client, cluster); err != nil {
 				return ctrl.Result{}, err
 			}
+			log.Info(fmt.Sprintf("Cluster deletion js unblocked by %s hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterDelete)))
 		}
 	}
 	return ctrl.Result{}, nil

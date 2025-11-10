@@ -581,7 +581,10 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 			tt.cluster.Annotations[conversion.DataAnnotation] = "should be cleaned up"
 
 			fakeClient := fake.NewClientBuilder().WithObjects(tt.cluster).Build()
-			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+			fakeRuntimeClient := (fakeruntimeclient.NewRuntimeClientBuilder().
+				WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
+					beforeClusterDeleteGVH: {"foo"},
+				})).
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					beforeClusterDeleteGVH: tt.hookResponse,
 				}).
@@ -609,7 +612,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 					g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.BeforeClusterDelete)).To(Equal(1), "Expected hook to be called once")
 					if !tt.wantOkToDelete {
 						g.Expect(s.HookResponseTracker.AggregateRetryAfter()).ToNot(BeZero())
-						g.Expect(s.HookResponseTracker.AggregateMessage()).To(Equal("Following hooks are blocking upgrade progress: BeforeClusterUpgrade: hook is blocking"))
+						g.Expect(s.HookResponseTracker.AggregateMessage("delete")).To(Equal("Following hooks are blocking delete: BeforeClusterDelete: hook is blocking"))
 					}
 				} else {
 					g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.BeforeClusterDelete)).To(Equal(0), "Did not expect hook to be called")

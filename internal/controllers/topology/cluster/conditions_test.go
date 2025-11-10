@@ -62,6 +62,25 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 		// Reconcile error
 
 		{
+			name:         "should set the condition to false if there is a reconcile error",
+			reconcileErr: errors.New("reconcile error"),
+			s: &scope.Scope{
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{},
+				},
+			},
+			wantV1Beta1ConditionStatus:  corev1.ConditionFalse,
+			wantV1Beta1ConditionReason:  clusterv1.TopologyReconcileFailedV1Beta1Reason,
+			wantV1Beta1ConditionMessage: "reconcile error",
+			wantConditionStatus:         metav1.ConditionFalse,
+			wantConditionReason:         clusterv1.ClusterTopologyReconciledFailedReason,
+			wantConditionMessage:        "reconcile error",
+			wantErr:                     false,
+		},
+
+		// Paused
+
+		{
 			name: "should set the TopologyReconciledCondition to False if spec.paused is set to true",
 			s: &scope.Scope{
 				Current: &scope.ClusterState{
@@ -79,9 +98,6 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionReason:         clusterv1.ClusterTopologyReconcilePausedReason,
 			wantConditionMessage:        "Cluster spec.paused is set to true",
 		},
-
-		// Paused
-
 		{
 			name: "should set the TopologyReconciledCondition to False if cluster.x-k8s.io/paused annotation is set to true",
 			s: &scope.Scope{
@@ -125,22 +141,6 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionReason:         clusterv1.ClusterTopologyReconcilePausedReason,
 			wantConditionMessage:        "Cluster spec.paused is set to true, Cluster has the cluster.x-k8s.io/paused annotation",
 		},
-		{
-			name:         "should set the condition to false if there is a reconcile error",
-			reconcileErr: errors.New("reconcile error"),
-			s: &scope.Scope{
-				Current: &scope.ClusterState{
-					Cluster: &clusterv1.Cluster{},
-				},
-			},
-			wantV1Beta1ConditionStatus:  corev1.ConditionFalse,
-			wantV1Beta1ConditionReason:  clusterv1.TopologyReconcileFailedV1Beta1Reason,
-			wantV1Beta1ConditionMessage: "reconcile error",
-			wantConditionStatus:         metav1.ConditionFalse,
-			wantConditionReason:         clusterv1.ClusterTopologyReconciledFailedReason,
-			wantConditionMessage:        "reconcile error",
-			wantErr:                     false,
-		},
 
 		// Delete
 		{
@@ -168,10 +168,10 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			},
 			wantV1Beta1ConditionStatus:  corev1.ConditionFalse,
 			wantV1Beta1ConditionReason:  clusterv1.DeletingV1Beta1Reason,
-			wantV1Beta1ConditionMessage: "Cluster is deleting. Following hooks are blocking delete progress: BeforeClusterDelete: msg",
+			wantV1Beta1ConditionMessage: "Cluster is deleting. Following hooks are blocking delete: BeforeClusterDelete: msg",
 			wantConditionStatus:         metav1.ConditionFalse,
 			wantConditionReason:         clusterv1.ClusterTopologyReconciledDeletingReason,
-			wantConditionMessage:        "Cluster is deleting. Following hooks are blocking delete progress: BeforeClusterDelete: msg",
+			wantConditionMessage:        "Cluster is deleting. Following hooks are blocking delete: BeforeClusterDelete: msg",
 		},
 		{
 			name: "should set the TopologyReconciledCondition to False if the cluster has been deleted",
@@ -261,15 +261,17 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					return hrt
 				}(),
 			},
-			wantV1Beta1ConditionStatus: corev1.ConditionTrue,
-			wantConditionStatus:        metav1.ConditionTrue,
-			wantConditionReason:        clusterv1.ClusterTopologyReconcileSucceededReason,
-			wantConditionMessage:       "Following hooks are blocking Cluster topology creation: BeforeClusterCreate: msg",
+			wantV1Beta1ConditionStatus:  corev1.ConditionFalse,
+			wantV1Beta1ConditionReason:  clusterv1.TopologyReconciledClusterCreatingV1Beta1Reason,
+			wantV1Beta1ConditionMessage: "Following hooks are blocking Cluster topology creation: BeforeClusterCreate: msg",
+			wantConditionStatus:         metav1.ConditionFalse,
+			wantConditionReason:         clusterv1.ClusterTopologyReconciledClusterCreatingReason,
+			wantConditionMessage:        "Following hooks are blocking Cluster topology creation: BeforeClusterCreate: msg",
 		},
 
 		// Upgrade
 
-		// First upgrade step (CP only)
+		// First upgrade step (CP only, MD are skipping this step)
 		{
 			name:         "should set the condition to false if control plane is pending upgrade and BeforeClusterUpgrade hook is blocking via an annotation",
 			reconcileErr: nil,
@@ -309,7 +311,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					hrt.Add(runtimehooksv1.BeforeClusterUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
 						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 							CommonResponse: runtimehooksv1.CommonResponse{
-								Message: fmt.Sprintf("annotation [%s] is set", clusterv1.BeforeClusterUpgradeHookAnnotationPrefix+"/test"),
+								Message: fmt.Sprintf("annotation %s is set", clusterv1.BeforeClusterUpgradeHookAnnotationPrefix+"/test"),
 							},
 							RetryAfterSeconds: int32(20 * 60),
 						},
@@ -318,15 +320,15 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: BeforeClusterUpgrade: annotation [before-upgrade.hook.cluster.cluster.x-k8s.io/test] is set\n" +
+				"  * Following hooks are blocking upgrade: BeforeClusterUpgrade: annotation before-upgrade.hook.cluster.cluster.x-k8s.io/test is set\n" +
 				"  * GenericControlPlane pending upgrade to version v1.21.2, v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 			wantConditionStatus: metav1.ConditionFalse,
 			wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
 			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: BeforeClusterUpgrade: annotation [before-upgrade.hook.cluster.cluster.x-k8s.io/test] is set\n" +
+				"  * Following hooks are blocking upgrade: BeforeClusterUpgrade: annotation before-upgrade.hook.cluster.cluster.x-k8s.io/test is set\n" +
 				"  * GenericControlPlane pending upgrade to version v1.21.2, v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 		},
@@ -373,15 +375,15 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: BeforeClusterUpgrade: msg\n" +
+				"  * Following hooks are blocking upgrade: BeforeClusterUpgrade: msg\n" +
 				"  * GenericControlPlane pending upgrade to version v1.21.2, v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 			wantConditionStatus: metav1.ConditionFalse,
 			wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
 			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: BeforeClusterUpgrade: msg\n" +
+				"  * Following hooks are blocking upgrade: BeforeClusterUpgrade: msg\n" +
 				"  * GenericControlPlane pending upgrade to version v1.21.2, v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 		},
@@ -428,15 +430,15 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: BeforeControlPlaneUpgrade: msg\n" +
+				"  * Following hooks are blocking upgrade: BeforeControlPlaneUpgrade: msg\n" +
 				"  * GenericControlPlane pending upgrade to version v1.21.2, v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 			wantConditionStatus: metav1.ConditionFalse,
 			wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
 			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: BeforeControlPlaneUpgrade: msg\n" +
+				"  * Following hooks are blocking upgrade: BeforeControlPlaneUpgrade: msg\n" +
 				"  * GenericControlPlane pending upgrade to version v1.21.2, v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 		},
@@ -473,7 +475,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
 				"  * GenericControlPlane upgrading to version v1.21.2 (v1.22.0 pending)\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
@@ -516,7 +518,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
 				"  * GenericControlPlane upgrading to version v1.21.2 (v1.22.0 pending)\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
@@ -569,15 +571,15 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: AfterControlPlaneUpgrade: msg\n" +
+				"  * Following hooks are blocking upgrade: AfterControlPlaneUpgrade: msg\n" +
 				"  * GenericControlPlane pending upgrade to version v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 			wantConditionStatus: metav1.ConditionFalse,
 			wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
 			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: AfterControlPlaneUpgrade: msg\n" +
+				"  * Following hooks are blocking upgrade: AfterControlPlaneUpgrade: msg\n" +
 				"  * GenericControlPlane pending upgrade to version v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 		},
@@ -625,15 +627,15 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: BeforeControlPlaneUpgrade: msg\n" +
+				"  * Following hooks are blocking upgrade: BeforeControlPlaneUpgrade: msg\n" +
 				"  * GenericControlPlane pending upgrade to version v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 			wantConditionStatus: metav1.ConditionFalse,
 			wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
 			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: BeforeControlPlaneUpgrade: msg\n" +
+				"  * Following hooks are blocking upgrade: BeforeControlPlaneUpgrade: msg\n" +
 				"  * GenericControlPlane pending upgrade to version v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 		},
@@ -669,7 +671,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
 				"  * GenericControlPlane upgrading to version v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
@@ -711,7 +713,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
 				"  * GenericControlPlane upgrading to version v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
@@ -763,14 +765,14 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: AfterControlPlaneUpgrade: msg\n" +
+				"  * Following hooks are blocking upgrade: AfterControlPlaneUpgrade: msg\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 			wantConditionStatus: metav1.ConditionFalse,
 			wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
 			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: AfterControlPlaneUpgrade: msg\n" +
+				"  * Following hooks are blocking upgrade: AfterControlPlaneUpgrade: msg\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 		},
 		{
@@ -815,14 +817,14 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: BeforeWorkersUpgrade: msg\n" +
+				"  * Following hooks are blocking upgrade: BeforeWorkersUpgrade: msg\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 			wantConditionStatus: metav1.ConditionFalse,
 			wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
 			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: BeforeWorkersUpgrade: msg\n" +
+				"  * Following hooks are blocking upgrade: BeforeWorkersUpgrade: msg\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0",
 		},
 		{
@@ -856,7 +858,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
 				"  * MachineDeployment md1 upgrading to version v1.22.0\n" +
 				"  * MachineDeployments md2, md3, md4 pending upgrade to version v1.22.0",
@@ -909,13 +911,13 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				}(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: AfterWorkersUpgrade: msg",
+				"  * Following hooks are blocking upgrade: AfterWorkersUpgrade: msg",
 			wantConditionStatus: metav1.ConditionFalse,
 			wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
 			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * Following hooks are blocking upgrade progress: AfterWorkersUpgrade: msg",
+				"  * Following hooks are blocking upgrade: AfterWorkersUpgrade: msg",
 		},
 		// TODO(chained): uncomment this as soon as AfterClusterUpgrade will be blocking
 		/*
@@ -957,13 +959,13 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					}(),
 				},
 				wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-				wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+				wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 				wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-					"  * Following hooks are blocking upgrade progress: AfterClusterUpgrade: msg",
+					"  * Following hooks are blocking upgrade: AfterClusterUpgrade: msg",
 				wantConditionStatus: metav1.ConditionFalse,
 				wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
 				wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-					"  * Following hooks are blocking upgrade progress: AfterClusterUpgrade: msg",
+					"  * Following hooks are blocking upgrade: AfterClusterUpgrade: msg",
 			},
 		*/
 
@@ -999,15 +1001,15 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
 				"  * MachineDeployment md4 pending upgrade to version v1.22.0\n" +
-				"  * MachineDeployment md3 upgrade to version v1.22.0 deferred using topology.cluster.x-k8s.io/defer-upgrade or hold-upgrade-sequence annotations",
+				"  * MachineDeployment md3 upgrade to version v1.22.0 deferred using defer-upgrade or hold-upgrade-sequence annotations",
 			wantConditionStatus: metav1.ConditionFalse,
 			wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
 			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
 				"  * MachineDeployment md4 pending upgrade to version v1.22.0\n" +
-				"  * MachineDeployment md3 upgrade to version v1.22.0 deferred using topology.cluster.x-k8s.io/defer-upgrade or hold-upgrade-sequence annotations",
+				"  * MachineDeployment md3 upgrade to version v1.22.0 deferred using defer-upgrade or hold-upgrade-sequence annotations",
 		},
 		{
 			name:         "should report when deferred MD upgrades are blocking further progress",
@@ -1040,11 +1042,11 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
 			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * MachineDeployment md2 upgrade to version v1.22.0 deferred using topology.cluster.x-k8s.io/defer-upgrade or hold-upgrade-sequence annotations",
+				"  * MachineDeployment md2 upgrade to version v1.22.0 deferred using defer-upgrade or hold-upgrade-sequence annotations",
 			wantConditionStatus: metav1.ConditionFalse,
 			wantConditionReason: clusterv1.ClusterTopologyReconciledMachineDeploymentsUpgradeDeferredReason,
 			wantConditionMessage: "Cluster is upgrading to v1.22.0\n" +
-				"  * MachineDeployment md2 upgrade to version v1.22.0 deferred using topology.cluster.x-k8s.io/defer-upgrade or hold-upgrade-sequence annotations",
+				"  * MachineDeployment md2 upgrade to version v1.22.0 deferred using defer-upgrade or hold-upgrade-sequence annotations",
 		},
 
 		// Create deferred
@@ -1081,7 +1083,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
-			wantV1Beta1ConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
 			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.22.0\n" +
 				"  * GenericControlPlane upgrading to version v1.22.0\n" +
 				"  * MachineDeployments md1, md2, md3, ... (1 more) pending upgrade to version v1.22.0\n" +

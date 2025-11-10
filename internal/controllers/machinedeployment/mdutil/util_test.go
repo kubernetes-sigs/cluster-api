@@ -415,6 +415,9 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 
 	matchingMSDiffersInPlaceMutableFields := generateMS(deployment)
 	matchingMSDiffersInPlaceMutableFields.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(20))
+	matchingMSDiffersInPlaceMutableFields.Spec.Template.Spec.Taints = []clusterv1.MachineTaint{
+		{Key: "taint-key", Value: "taint-value", Effect: corev1.TaintEffectNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
+	}
 
 	oldMS := generateMS(deployment)
 	oldMS.Spec.Template.Spec.InfrastructureRef.Name = "old-infra-ref"

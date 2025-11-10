@@ -472,10 +472,17 @@ func TestMachineSetReconciler(t *testing.T) {
 		}
 
 		// Verify that in-place mutable fields propagate from MachineSet to Machines.
-		t.Log("Updating NodeDrainTimeoutSeconds on MachineSet")
+		t.Log("Updating NodeDrainTimeoutSeconds and Taints on MachineSet")
 		patchHelper, err := patch.NewHelper(instance, env)
 		g.Expect(err).ToNot(HaveOccurred())
 		instance.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = duration5m
+		additionalTaint := clusterv1.MachineTaint{
+			Key:         "additional-taint-key",
+			Value:       "additional-taint-value",
+			Effect:      corev1.TaintEffectNoSchedule,
+			Propagation: clusterv1.MachineTaintPropagationAlways,
+		}
+		instance.Spec.Template.Spec.Taints = []clusterv1.MachineTaint{additionalTaint}
 		g.Expect(patchHelper.Patch(ctx, instance)).Should(Succeed())
 
 		t.Log("Verifying new NodeDrainTimeoutSeconds value is set on Machines")
@@ -483,7 +490,7 @@ func TestMachineSetReconciler(t *testing.T) {
 			if err := env.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
 				return false
 			}
-			// All the machines should have the new NodeDrainTimeoutValue
+			// All the machines should have the new NodeDrainTimeoutValue and the new taint
 			for _, m := range machines.Items {
 				if m.Spec.Deletion.NodeDrainTimeoutSeconds == nil {
 					return false
@@ -491,9 +498,13 @@ func TestMachineSetReconciler(t *testing.T) {
 				if *m.Spec.Deletion.NodeDrainTimeoutSeconds != *duration5m {
 					return false
 				}
+				if len(m.Spec.Taints) != 1 || m.Spec.Taints[0].Key != additionalTaint.Key ||
+					m.Spec.Taints[0].Value != additionalTaint.Value || m.Spec.Taints[0].Effect != additionalTaint.Effect {
+					return false
+				}
 			}
 			return true
-		}, timeout).Should(BeTrue(), "machine should have the updated NodeDrainTimeoutSeconds value")
+		}, timeout).Should(BeTrue(), "machine should have the updated NodeDrainTimeoutSeconds and Taints values")
 
 		// Try to delete 1 machine and check the MachineSet scales back up.
 		machineToBeDeleted := machines.Items[0]
@@ -3528,6 +3539,19 @@ func TestComputeDesiredMachine(t *testing.T) {
 	duration5s := ptr.To(int32(5))
 	duration10s := ptr.To(int32(10))
 
+	machineTaint := clusterv1.MachineTaint{
+		Key:         "taint-key",
+		Value:       "taint-value",
+		Effect:      corev1.TaintEffectNoSchedule,
+		Propagation: clusterv1.MachineTaintPropagationAlways,
+	}
+	changedMachineTaint := clusterv1.MachineTaint{
+		Key:         "changed-taint-key",
+		Value:       "changed-taint-value",
+		Effect:      corev1.TaintEffectNoSchedule,
+		Propagation: clusterv1.MachineTaintPropagationAlways,
+	}
+
 	namingTemplateKey := "-md"
 	mdName := "testmd"
 	msName := "ms1"
@@ -3567,6 +3591,9 @@ func TestComputeDesiredMachine(t *testing.T) {
 				NodeDeletionTimeoutSeconds:     duration10s,
 			},
 			MinReadySeconds: ptr.To[int32](10),
+			Taints: []clusterv1.MachineTaint{
+				machineTaint,
+			},
 		},
 	}
 
@@ -3590,6 +3617,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 				NodeDeletionTimeoutSeconds:     duration10s,
 			},
 			MinReadySeconds: ptr.To[int32](10),
+			Taints:          []clusterv1.MachineTaint{machineTaint},
 		},
 	}
 
@@ -3618,6 +3646,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 	existingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = duration5s
 	existingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration5s
 	existingMachine.Spec.MinReadySeconds = ptr.To[int32](5)
+	existingMachine.Spec.Taints = []clusterv1.MachineTaint{changedMachineTaint}
 
 	expectedUpdatedMachine := skeletonMachine.DeepCopy()
 	expectedUpdatedMachine.Name = existingMachine.Name

@@ -48,9 +48,9 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 		}
 		if len(hookAnnotations) > 0 {
 			slices.Sort(hookAnnotations)
-			message := fmt.Sprintf("annotations [%s] are set", strings.Join(hookAnnotations, ", "))
+			message := fmt.Sprintf("annotations %s are set", strings.Join(hookAnnotations, ", "))
 			if len(hookAnnotations) == 1 {
-				message = fmt.Sprintf("annotation [%s] is set", strings.Join(hookAnnotations, ", "))
+				message = fmt.Sprintf("annotation %s is set", strings.Join(hookAnnotations, ", "))
 			}
 			// Add the hook with a response to the tracker so we can later update the condition.
 			s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
@@ -70,6 +70,15 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 				"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
 			)
 			return false, nil
+		}
+
+		// Return quickly if the hook is not defined.
+		extensionHandlers, err := g.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster)
+		if err != nil {
+			return false, err
+		}
+		if len(extensionHandlers) == 0 {
+			return true, nil
 		}
 
 		v1beta1Cluster := &clusterv1beta1.Cluster{}
@@ -94,12 +103,17 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 
 		if hookResponse.RetryAfterSeconds != 0 {
 			// Cannot pickup the new version right now. Need to try again later.
-			log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s is blocked by %s hook", *currentVersion, topologyVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)),
+			log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s is blocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 				"WorkersUpgrades", hookRequest.WorkersUpgrades,
 			)
 			return false, nil
 		}
+
+		log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s unblocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)),
+			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
+			"WorkersUpgrades", hookRequest.WorkersUpgrades,
+		)
 	}
 	return true, nil
 }
@@ -110,6 +124,15 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 // NOTE: the hook doesn't need call intent tracking: it is always called before picking up a new control plane version.
 func (g *generator) callBeforeControlPlaneUpgradeHook(ctx context.Context, s *scope.Scope, currentVersion *string, nextVersion string) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
+
+	// Return quickly if the hook is not defined.
+	extensionHandlers, err := g.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.BeforeControlPlaneUpgrade, s.Current.Cluster)
+	if err != nil {
+		return false, err
+	}
+	if len(extensionHandlers) == 0 {
+		return true, nil
+	}
 
 	// NOTE: the hook should always be called before piking up a new version.
 	v1beta1Cluster := &clusterv1beta1.Cluster{}
@@ -134,12 +157,17 @@ func (g *generator) callBeforeControlPlaneUpgradeHook(ctx context.Context, s *sc
 
 	if hookResponse.RetryAfterSeconds != 0 {
 		// Cannot pickup the new version right now. Need to try again later.
-		log.Info(fmt.Sprintf("Control plane upgrade from version %s to version %s is blocked by %s hook", *currentVersion, nextVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade)),
+		log.Info(fmt.Sprintf("Control plane upgrade from version %s to version %s is blocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade)),
 			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 			"WorkersUpgrades", hookRequest.WorkersUpgrades,
 		)
 		return false, nil
 	}
+
+	log.Info(fmt.Sprintf("Control plane upgrade from version %s to version %s unblocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade)),
+		"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
+		"WorkersUpgrades", hookRequest.WorkersUpgrades,
+	)
 
 	return true, nil
 }
@@ -153,8 +181,20 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
 	// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
 	if hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
-		v1beta1Cluster := &clusterv1beta1.Cluster{}
+		// Return quickly if the hook is not defined.
+		extensionHandlers, err := g.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster)
+		if err != nil {
+			return false, err
+		}
+		if len(extensionHandlers) == 0 {
+			if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
+				return false, err
+			}
+			return true, nil
+		}
+
 		// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
+		v1beta1Cluster := &clusterv1beta1.Cluster{}
 		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
 			return false, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 		}
@@ -174,7 +214,7 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 		s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, hookResponse)
 
 		if hookResponse.RetryAfterSeconds != 0 {
-			log.Info(fmt.Sprintf("Cluster upgrade is blocked after control plane upgrade to version %s by %s hook", *currentVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)),
+			log.Info(fmt.Sprintf("Control plane upgrade to version %s completed but next steps are blocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 				"WorkersUpgrades", hookRequest.WorkersUpgrades,
 			)
@@ -183,6 +223,11 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
 			return false, err
 		}
+
+		log.Info(fmt.Sprintf("Control plane upgrade to version %s and %s hook completed, next steps unblocked", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)),
+			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
+			"WorkersUpgrades", hookRequest.WorkersUpgrades,
+		)
 	}
 	return true, nil
 }
@@ -197,8 +242,20 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
 	// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
 	if hooks.IsPending(runtimehooksv1.BeforeWorkersUpgrade, s.Current.Cluster) {
-		v1beta1Cluster := &clusterv1beta1.Cluster{}
+		// Return quickly if the hook is not defined.
+		extensionHandlers, err := g.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.BeforeWorkersUpgrade, s.Current.Cluster)
+		if err != nil {
+			return false, err
+		}
+		if len(extensionHandlers) == 0 {
+			if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.BeforeWorkersUpgrade); err != nil {
+				return false, err
+			}
+			return true, nil
+		}
+
 		// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
+		v1beta1Cluster := &clusterv1beta1.Cluster{}
 		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
 			return false, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 		}
@@ -219,7 +276,7 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 
 		if hookResponse.RetryAfterSeconds != 0 {
 			// Cannot pickup the new version right now. Need to try again later.
-			log.Info(fmt.Sprintf("Workers upgrade from version %s to version %s is blocked by %s hook", *currentVersion, nextVersion, runtimecatalog.HookName(runtimehooksv1.BeforeWorkersUpgrade)),
+			log.Info(fmt.Sprintf("Workers upgrade from version %s to version %s is blocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeWorkersUpgrade)),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 				"WorkersUpgrades", hookRequest.WorkersUpgrades,
 			)
@@ -228,6 +285,11 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.BeforeWorkersUpgrade); err != nil {
 			return false, err
 		}
+
+		log.Info(fmt.Sprintf("Workers upgrade from version %s to version %s unblocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeWorkersUpgrade)),
+			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
+			"WorkersUpgrades", hookRequest.WorkersUpgrades,
+		)
 	}
 
 	return true, nil
@@ -243,8 +305,20 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
 	// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
 	if hooks.IsPending(runtimehooksv1.AfterWorkersUpgrade, s.Current.Cluster) {
-		v1beta1Cluster := &clusterv1beta1.Cluster{}
+		// Return quickly if the hook is not defined.
+		extensionHandlers, err := g.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.AfterWorkersUpgrade, s.Current.Cluster)
+		if err != nil {
+			return false, err
+		}
+		if len(extensionHandlers) == 0 {
+			if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterWorkersUpgrade); err != nil {
+				return false, err
+			}
+			return true, nil
+		}
+
 		// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
+		v1beta1Cluster := &clusterv1beta1.Cluster{}
 		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
 			return false, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 		}
@@ -264,7 +338,7 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 		s.HookResponseTracker.Add(runtimehooksv1.AfterWorkersUpgrade, hookResponse)
 
 		if hookResponse.RetryAfterSeconds != 0 {
-			log.Info(fmt.Sprintf("Cluster upgrade is blocked after workers upgrade to version %s by %s hook", *currentVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)),
+			log.Info(fmt.Sprintf("Workers upgrade to version %s completed but next steps are blocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 				"WorkersUpgrades", hookRequest.WorkersUpgrades,
 			)
@@ -273,6 +347,11 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterWorkersUpgrade); err != nil {
 			return false, err
 		}
+
+		log.Info(fmt.Sprintf("Workers upgrade to version %s and %s hook completed, next steps unblocked", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)),
+			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
+			"WorkersUpgrades", hookRequest.WorkersUpgrades,
+		)
 	}
 	return true, nil
 }

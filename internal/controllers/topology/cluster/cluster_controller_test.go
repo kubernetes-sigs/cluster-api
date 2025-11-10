@@ -454,7 +454,8 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 			RetryAfterSeconds: int32(10),
 			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
+				Status:  runtimehooksv1.ResponseStatusSuccess,
+				Message: "hook is blocking",
 			},
 		},
 	}
@@ -580,7 +581,10 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 			tt.cluster.Annotations[conversion.DataAnnotation] = "should be cleaned up"
 
 			fakeClient := fake.NewClientBuilder().WithObjects(tt.cluster).Build()
-			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+			fakeRuntimeClient := (fakeruntimeclient.NewRuntimeClientBuilder().
+				WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
+					beforeClusterDeleteGVH: {"foo"},
+				})).
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					beforeClusterDeleteGVH: tt.hookResponse,
 				}).
@@ -594,7 +598,9 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 				RuntimeClient: fakeRuntimeClient,
 			}
 
-			res, err := r.reconcileDelete(ctx, tt.cluster)
+			s := scope.New(tt.cluster)
+
+			res, err := r.reconcileDelete(ctx, s)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -604,6 +610,10 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 
 				if tt.wantHookToBeCalled {
 					g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.BeforeClusterDelete)).To(Equal(1), "Expected hook to be called once")
+					if !tt.wantOkToDelete {
+						g.Expect(s.HookResponseTracker.AggregateRetryAfter()).ToNot(BeZero())
+						g.Expect(s.HookResponseTracker.AggregateMessage("delete")).To(Equal("Following hooks are blocking delete: BeforeClusterDelete: hook is blocking"))
+					}
 				} else {
 					g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.BeforeClusterDelete)).To(Equal(0), "Did not expect hook to be called")
 				}
@@ -756,6 +766,9 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 
 			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCatalog(catalog).
+				WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{
+					gvh: {"foo"},
+				}).
 				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
 					gvh: tt.hookResponse,
 				}).
@@ -764,6 +777,7 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 
 			r := &Reconciler{
 				RuntimeClient: runtimeClient,
+				Client:        fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build(),
 			}
 			res, err := r.callBeforeClusterCreateHook(ctx, s)
 			if tt.wantErr {
@@ -1754,6 +1768,7 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 		}
 
 		originalClusterCopy := originalCluster.DeepCopy()
+		originalClusterCopy.TypeMeta = metav1.TypeMeta{}
 		originalClusterCopy.SetManagedFields(nil)
 		if originalClusterCopy.Annotations != nil {
 			annotations := maps.Clone(cluster.Annotations)

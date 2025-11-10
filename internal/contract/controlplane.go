@@ -214,7 +214,7 @@ func (c *ControlPlaneContract) ExternalManagedControlPlane() *Bool {
 // IsProvisioning returns true if the control plane is being created for the first time.
 // Returns false, if the control plane was already previously provisioned.
 func (c *ControlPlaneContract) IsProvisioning(obj *unstructured.Unstructured) (bool, error) {
-	// We can know if the control plane was previously created or is being cretaed for the first
+	// We can know if the control plane was previously created or is being created for the first
 	// time by looking at controlplane.status.version. If the version in status is set to a valid
 	// value then the control plane was already provisioned at a previous time. If not, we can
 	// assume that the control plane is being created for the first time.

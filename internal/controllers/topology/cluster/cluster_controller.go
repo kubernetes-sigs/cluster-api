@@ -314,7 +314,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// In case the object is deleted, the managed topology stops to reconcile;
 	// (the other controllers will take care of deletion).
 	if !cluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, cluster)
+		return r.reconcileDelete(ctx, s)
 	}
 
 	// Handle normal reconciliation loop.
@@ -435,8 +435,17 @@ func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.S
 	log := ctrl.LoggerFrom(ctx)
 
 	if !s.Current.Cluster.Spec.InfrastructureRef.IsDefined() && !s.Current.Cluster.Spec.ControlPlaneRef.IsDefined() {
-		v1beta1Cluster := &clusterv1beta1.Cluster{}
+		// Return quickly if the hook is not defined.
+		extensionHandlers, err := r.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.BeforeClusterCreate, s.Current.Cluster)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if len(extensionHandlers) == 0 {
+			return ctrl.Result{}, nil
+		}
+
 		// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
+		v1beta1Cluster := &clusterv1beta1.Cluster{}
 		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
 		}
@@ -449,10 +458,13 @@ func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.S
 			return ctrl.Result{}, err
 		}
 		s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterCreate, hookResponse)
+
 		if hookResponse.RetryAfterSeconds != 0 {
 			log.Info(fmt.Sprintf("Creation of Cluster topology is blocked by %s hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterCreate)))
 			return ctrl.Result{RequeueAfter: time.Duration(hookResponse.RetryAfterSeconds) * time.Second}, nil
 		}
+
+		log.Info(fmt.Sprintf("Creation of Cluster topology unblocked by %s hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterCreate)))
 	}
 	return ctrl.Result{}, nil
 }
@@ -523,12 +535,26 @@ func (r *Reconciler) machinePoolToCluster(_ context.Context, o client.Object) []
 	}}
 }
 
-func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.Result, error) {
+	cluster := s.Current.Cluster
+
 	// Call the BeforeClusterDelete hook if the 'ok-to-delete' annotation is not set
 	// and add the annotation to the cluster after receiving a successful non-blocking response.
 	log := ctrl.LoggerFrom(ctx)
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
 		if !hooks.IsOkToDelete(cluster) {
+			// Return quickly if the hook is not defined.
+			extensionHandlers, err := r.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.BeforeClusterDelete, s.Current.Cluster)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			if len(extensionHandlers) == 0 {
+				if err := hooks.MarkAsOkToDelete(ctx, r.Client, cluster); err != nil {
+					return ctrl.Result{}, err
+				}
+				return ctrl.Result{}, nil
+			}
+
 			v1beta1Cluster := &clusterv1beta1.Cluster{}
 			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
 			if err := v1beta1Cluster.ConvertFrom(cluster.DeepCopy()); err != nil {
@@ -542,6 +568,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 			if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterDelete, cluster, hookRequest, hookResponse); err != nil {
 				return ctrl.Result{}, err
 			}
+			// Add the response to the tracker so we can later update condition or requeue when required.
+			s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterDelete, hookResponse)
+
 			if hookResponse.RetryAfterSeconds != 0 {
 				log.Info(fmt.Sprintf("Cluster deletion is blocked by %q hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterDelete)))
 				return ctrl.Result{RequeueAfter: time.Duration(hookResponse.RetryAfterSeconds) * time.Second}, nil
@@ -551,6 +580,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 			if err := hooks.MarkAsOkToDelete(ctx, r.Client, cluster); err != nil {
 				return ctrl.Result{}, err
 			}
+			log.Info(fmt.Sprintf("Cluster deletion js unblocked by %s hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterDelete)))
 		}
 	}
 	return ctrl.Result{}, nil

@@ -132,8 +132,8 @@ func TestHookResponseTracker_AggregateMessage(t *testing.T) {
 		hrt.Add(runtimehooksv1.BeforeClusterCreate, blockingBeforeClusterCreateResponse)
 		hrt.Add(runtimehooksv1.BeforeClusterUpgrade, blockingBeforeClusterUpgradeResponse)
 
-		g.Expect(hrt.AggregateMessage()).To(ContainSubstring(runtimecatalog.HookName(runtimehooksv1.BeforeClusterCreate)))
-		g.Expect(hrt.AggregateMessage()).To(ContainSubstring(runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)))
+		g.Expect(hrt.AggregateMessage("upgrade")).To(ContainSubstring(runtimecatalog.HookName(runtimehooksv1.BeforeClusterCreate)))
+		g.Expect(hrt.AggregateMessage("upgrade")).To(ContainSubstring(runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)))
 	})
 	t.Run("AggregateMessage should return empty string if there are no blocking hook responses", func(t *testing.T) {
 		g := NewWithT(t)
@@ -142,7 +142,7 @@ func TestHookResponseTracker_AggregateMessage(t *testing.T) {
 		hrt.Add(runtimehooksv1.BeforeClusterCreate, nonBlockingBeforeClusterCreateResponse)
 		hrt.Add(runtimehooksv1.BeforeClusterUpgrade, nonBlockingBeforeClusterUpgradeResponse)
 
-		g.Expect(hrt.AggregateMessage()).To(Equal(""))
+		g.Expect(hrt.AggregateMessage("upgrade")).To(Equal(""))
 	})
 }
 

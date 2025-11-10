@@ -251,6 +251,18 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Version: "v1.30.0",
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigTemplateKind,
+							Name:     "bootstrap-config-template-1",
+						},
+					},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachineTemplateKind,
+						Name:     "infrastructure-machine-template-1",
+					},
 				},
 			},
 		},
@@ -258,6 +270,9 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 	desiredMachineSet := currentMachineSet.DeepCopy()
 	desiredMachineSet.Name = "new-machineset"
 	desiredMachineSet.Spec.Template.Spec.Version = "v1.31.0"
+	// Note: Changes in refs should not influence the in-place rollout decision.
+	desiredMachineSet.Spec.Template.Spec.Bootstrap.ConfigRef.Name = "bootstrap-config-template-2"
+	desiredMachineSet.Spec.Template.Spec.InfrastructureRef.Name = "infrastructure-machine-template-2"
 
 	currentBootstrapConfigTemplate := &unstructured.Unstructured{
 		Object: map[string]interface{}{

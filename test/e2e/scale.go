@@ -47,6 +47,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -292,7 +293,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 			if !deployClusterInSeparateNamespaces {
 				namespaces = append(namespaces, namespace.Name)
 			}
-			extensionConfig := extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, defaultAllHandlersToBlocking, namespaces...)
+			extensionConfig := extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true, defaultAllHandlersToBlocking, namespaces...)
 			if deployClusterInSeparateNamespaces {
 				extensionConfig.Spec.NamespaceSelector = &metav1.LabelSelector{
 					// Note: we are limiting the test extension to be used by the namespace where the test is run.
@@ -519,7 +520,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 		if !input.SkipCleanup {
 			if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
 				Eventually(func() error {
-					return input.BootstrapClusterProxy.GetClient().Delete(ctx, extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true))
+					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: input.ExtensionConfigName}})
 				}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
 			}
 		}

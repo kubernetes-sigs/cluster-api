@@ -29,12 +29,14 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -153,7 +155,7 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 			// This is necessary so in CI this test doesn't influence other tests by enabling lifecycle hooks
 			// in other test namespaces.
 			namespaces := []string{namespace.Name}
-			extensionConfig := extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, defaultAllHandlersToBlocking, namespaces...)
+			extensionConfig := extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, false, defaultAllHandlersToBlocking, namespaces...)
 			Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
 				extensionConfig)).
 				To(Succeed(), "Failed to create the ExtensionConfig")
@@ -209,7 +211,13 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 
 		// Doing multiple in-place updates for additional coverage.
 		filePath := "/tmp/test"
-		for i, fileContent := range []string{"first in-place update", "second in-place update"} {
+		for i, fileContent := range []string{
+			"first in-place update",
+			"second in-place update",
+			"third in-place update",
+			"fourth in-place update",
+			"five in-place update",
+		} {
 			Byf("[%d] Trigger in-place update by modifying the files variable", i)
 
 			originalCluster := cluster.DeepCopy()
@@ -238,16 +246,16 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 					Namespace:     clusterResources.Cluster.Namespace,
 					ConditionType: clusterv1.ClusterWorkerMachinesUpToDateCondition,
 				})
-				for _, kubeadmConfig := range machineObjectsAfterInPlaceUpdate.KubeadmConfigByMachine {
-					g.Expect(kubeadmConfig.Spec.Files).To(ContainElement(HaveField("Path", filePath)))
-					g.Expect(kubeadmConfig.Spec.Files).To(ContainElement(HaveField("Content", fileContent)))
-				}
 
 				// Ensure only in-place updates were executed and no Machine was re-created.
 				machineObjectsAfterInPlaceUpdate = getMachineObjects(ctx, g, mgmtClient, cluster)
 				g.Expect(machineNames(machineObjectsAfterInPlaceUpdate.ControlPlaneMachines)).To(Equal(machineNames(machineObjectsBeforeInPlaceUpdate.ControlPlaneMachines)))
-				// TODO(in-place): enable once MD/MS/Machine controller PRs are merged
-				// g.Expect(machineNames(machineObjectsAfterInPlaceUpdate.WorkerMachines)).To(Equal(machineNames(machineObjectsBeforeInPlaceUpdate.WorkerMachines)))
+				g.Expect(machineNames(machineObjectsAfterInPlaceUpdate.WorkerMachines)).To(Equal(machineNames(machineObjectsBeforeInPlaceUpdate.WorkerMachines)))
+
+				for _, kubeadmConfig := range machineObjectsAfterInPlaceUpdate.KubeadmConfigByMachine {
+					g.Expect(kubeadmConfig.Spec.Files).To(ContainElement(HaveField("Path", filePath)))
+					g.Expect(kubeadmConfig.Spec.Files).To(ContainElement(HaveField("Content", fileContent)))
+				}
 			}, input.E2EConfig.GetIntervals(specName, "wait-control-plane")...).Should(Succeed())
 
 			// Update machineObjectsBeforeInPlaceUpdate for the next round of in-place update.
@@ -263,7 +271,7 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 		if !input.SkipCleanup {
 			if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
 				Eventually(func() error {
-					return input.BootstrapClusterProxy.GetClient().Delete(ctx, extensionConfig(input.ExtensionConfigName, input.ExtensionServiceNamespace, input.ExtensionServiceName, true))
+					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: input.ExtensionConfigName}})
 				}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
 			}
 		}

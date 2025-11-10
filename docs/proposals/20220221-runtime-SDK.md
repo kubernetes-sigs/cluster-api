@@ -296,7 +296,7 @@ behavior is introduced by this proposal:
 The Cluster administrator is required to register available Runtime Extension server using the following CR:
 
 ```yaml
-apiVersion: runtime.cluster.x-k8s.io/v1alpha1
+apiVersion: runtime.cluster.x-k8s.io/v1beta2
 kind: ExtensionConfig
 metadata:
   name: "my-amazing-extensions"
@@ -326,7 +326,7 @@ The `namespaceSelector` will enable targeting of a subset of Clusters.
 
 ```yaml
 
-apiVersion: runtime.cluster.x-k8s.io/v1alpha1
+apiVersion: runtime.cluster.x-k8s.io/v1beta2
 kind: ExtensionConfig
 metadata:
   name: "my-amazing-extensions"
@@ -367,8 +367,7 @@ dependencies among Runtime Extensions, being it modeled with something similar t
 [systemd unit options](https://www.freedesktop.org/software/systemd/man/systemd.unit.html) or alternative approaches.
 
 The main reason behind that is that such type of feature introduces complexity and creates "pet" like relations across
-components making the overall system more fragile. This is also consistent with the [avoid dependencies](#avoid-dependencies)
-recommendation above.
+components making the overall system more fragile. This is also consistent with the avoid dependencies recommendation.
 
 ## Runtime Hooks developer guide (CAPI internals)
 

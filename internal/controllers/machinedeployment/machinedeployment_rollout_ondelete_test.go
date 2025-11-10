@@ -322,7 +322,7 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			planner := newRolloutPlanner()
+			planner := newRolloutPlanner(nil, nil)
 			planner.scaleIntents = tt.scaleIntent
 			planner.md = tt.machineDeployment
 			planner.newMS = tt.newMachineSet
@@ -580,7 +580,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 				fLogger.Logf("[MD controller] - Input to rollout planner\n%s", current)
 
 				// Running a small subset of MD reconcile (the rollout logic and a bit of setReplicas)
-				p := newRolloutPlanner()
+				p := newRolloutPlanner(nil, nil)
 				p.overrideComputeDesiredMS = func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentNewMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
 					log := ctrl.LoggerFrom(ctx)
 					desiredNewMS := currentNewMS

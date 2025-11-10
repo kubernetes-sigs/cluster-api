@@ -367,13 +367,8 @@ func TestCallUpdateMachineHook(t *testing.T) {
 					Build()
 				return &Reconciler{RuntimeClient: runtimeClient}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
 			},
-			wantErr: true,
-			wantErrSubstrings: []string{
-				"multiple extensions registered for UpdateMachine hook",
-				"only one extension is supported",
-				"ext-a",
-				"ext-b",
-			},
+			wantErr:           true,
+			wantErrSubstrings: []string{"found multiple UpdateMachine hooks (ext-a,ext-b): only one hook is supported"},
 		},
 		{
 			name: "fails when hook invocation returns error",

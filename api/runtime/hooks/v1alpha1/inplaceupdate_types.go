@@ -67,14 +67,17 @@ type CanUpdateMachineResponse struct {
 	CommonResponse `json:",inline"`
 
 	// machinePatch when applied to the current Machine spec, indicates changes handled in-place.
+	// Only fields in spec have to be covered by the patch.
 	// +optional
 	MachinePatch Patch `json:"machinePatch,omitempty,omitzero"`
 
 	// infrastructureMachinePatch indicates infra Machine spec changes handled in-place.
+	// Only fields in spec have to be covered by the patch.
 	// +optional
 	InfrastructureMachinePatch Patch `json:"infrastructureMachinePatch,omitempty,omitzero"`
 
 	// bootstrapConfigPatch indicates bootstrap config spec changes handled in-place.
+	// Only fields in spec have to be covered by the patch.
 	// +optional
 	BootstrapConfigPatch Patch `json:"bootstrapConfigPatch,omitempty,omitzero"`
 }
@@ -119,14 +122,17 @@ type CanUpdateMachineSetRequest struct {
 // CanUpdateMachineSetRequestObjects groups objects for CanUpdateMachineSetRequest.
 type CanUpdateMachineSetRequestObjects struct {
 	// machineSet is the full MachineSet object.
+	// Only fields in spec.template.spec have to be covered by the patch.
 	// +required
 	MachineSet clusterv1.MachineSet `json:"machineSet,omitempty,omitzero"`
 
 	// infrastructureMachineTemplate is the provider-specific InfrastructureMachineTemplate object.
+	// Only fields in spec.template.spec have to be covered by the patch.
 	// +required
 	InfrastructureMachineTemplate runtime.RawExtension `json:"infrastructureMachineTemplate,omitempty,omitzero"`
 
 	// bootstrapConfigTemplate is the provider-specific BootstrapConfigTemplate object.
+	// Only fields in spec.template.spec have to be covered by the patch.
 	// +optional
 	BootstrapConfigTemplate runtime.RawExtension `json:"bootstrapConfigTemplate,omitempty,omitzero"`
 }
@@ -217,7 +223,8 @@ func init() {
 			"Notes:\n" +
 			"- This hook is called during the planning phase of updates\n" +
 			"- Only spec is provided, status fields are not included\n" +
-			"- If no extension can cover the required changes, CAPI will fallback to rolling updates\n",
+			"- If no extension can cover the required changes, CAPI will fallback to rolling updates\n" +
+			"- Only fields in Machine/InfraMachine/BootstrapConfig spec have to be covered by patches\n",
 	})
 
 	catalogBuilder.RegisterHook(CanUpdateMachineSet, &runtimecatalog.HookMeta{
@@ -230,7 +237,8 @@ func init() {
 			"Notes:\n" +
 			"- This hook is called during the planning phase of updates\n" +
 			"- Only spec is provided, status fields are not included\n" +
-			"- If no extension can cover the required changes, CAPI will fallback to rolling updates\n",
+			"- If no extension can cover the required changes, CAPI will fallback to rolling updates\n" +
+			"- Only fields in MachineSet/InfraMachineTemplate/BootstrapConfigTemplate spec.template.spec have to be covered by patches\n",
 	})
 
 	catalogBuilder.RegisterHook(UpdateMachine, &runtimecatalog.HookMeta{

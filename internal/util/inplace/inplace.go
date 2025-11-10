@@ -34,3 +34,35 @@ func IsUpdateInProgress(machine *clusterv1.Machine) bool {
 
 	return inPlaceUpdateInProgress || hasUpdateMachinePending
 }
+
+// CleanupMachineSpecForDiff cleans up a MachineSpec for diff.
+// Note: Please update mdutil.MachineTemplateDeepCopyRolloutFields accordingly if necessary.
+func CleanupMachineSpecForDiff(spec *clusterv1.MachineSpec) *clusterv1.MachineSpec {
+	spec = spec.DeepCopy()
+
+	// The following fields are set to their zero value so they are omitted from the comparison,
+	// because they should never be the reason for an in-place update.
+
+	// Should never change.
+	spec.ClusterName = ""
+
+	// Machine: should never change.
+	// MachineSet: not responsibility of the in-place update extension.
+	spec.Bootstrap = clusterv1.Bootstrap{}
+	spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{}
+
+	// Machine: should never change.
+	// MachineSet: should not be set.
+	spec.ProviderID = ""
+
+	// Version & FailureDomain should be compared.
+
+	// Fields that are mutated in-place without a rollout.
+	spec.MinReadySeconds = nil
+	spec.ReadinessGates = nil
+	spec.Deletion.NodeDrainTimeoutSeconds = nil
+	spec.Deletion.NodeVolumeDetachTimeoutSeconds = nil
+	spec.Deletion.NodeDeletionTimeoutSeconds = nil
+
+	return spec
+}

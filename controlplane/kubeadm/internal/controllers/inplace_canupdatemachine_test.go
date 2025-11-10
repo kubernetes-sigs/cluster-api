@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
+	"sigs.k8s.io/cluster-api/internal/util/patch"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -104,7 +105,7 @@ func Test_canUpdateMachine(t *testing.T) {
 				canUpdateMachineGVH: {"test-update-extension-1", "test-update-extension-2"},
 			},
 			wantError:        true,
-			wantErrorMessage: "found multiple CanUpdateMachine hooks (test-update-extension-1,test-update-extension-2) (more than one is not supported yet)",
+			wantErrorMessage: "found multiple CanUpdateMachine hooks (test-update-extension-1,test-update-extension-2): only one hook is supported",
 		},
 		{
 			name:                            "Return false if canExtensionsUpdateMachine returns false",
@@ -518,7 +519,7 @@ func validateCanUpdateMachineRequests(currentMachine *clusterv1.Machine, machine
 				mutator(currentInfraMachine)
 			}
 			currentInfraMachineBytes, _ := json.Marshal(currentInfraMachine)
-			reqCurrentInfraMachineBytes := bytes.TrimSuffix(req.Current.InfrastructureMachine.Raw, []byte("\n")) // Note: Somehow PatchSpec introduces a trailing \n.
+			reqCurrentInfraMachineBytes := bytes.TrimSuffix(req.Current.InfrastructureMachine.Raw, []byte("\n")) // Note: Somehow Patch introduces a trailing \n.
 			if d := diff(reqCurrentInfraMachineBytes, currentInfraMachineBytes); d != "" {
 				return fmt.Errorf("expected currentInfraMachine to be equal, got diff: %s", d)
 			}
@@ -1174,7 +1175,7 @@ func diff(a, b any) string {
 }
 
 func mustConvertToRawExtension(object runtime.Object) runtime.RawExtension {
-	raw, err := convertToRawExtension(object)
+	raw, err := patch.ConvertToRawExtension(object)
 	if err != nil {
 		panic(err)
 	}

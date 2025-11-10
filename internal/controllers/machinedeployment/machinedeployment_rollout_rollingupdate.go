@@ -22,6 +22,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -37,7 +38,7 @@ import (
 
 // rolloutRollingUpdate reconcile machine sets controlled by a MachineDeployment that is using the RolloutUpdate strategy.
 func (r *Reconciler) rolloutRollingUpdate(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines collections.Machines, templateExists bool) error {
-	planner := newRolloutPlanner()
+	planner := newRolloutPlanner(r.Client, r.RuntimeClient)
 	if err := planner.init(ctx, md, msList, machines.UnsortedList(), true, templateExists); err != nil {
 		return err
 	}
@@ -414,12 +415,10 @@ func (p *rolloutPlanner) reconcileInPlaceUpdateIntent(ctx context.Context) error
 		}
 
 		// Check if the MachineSet can update in place; if not, move to the next MachineSet.
-		canUpdateMachineSetInPlaceFunc := func(_ *clusterv1.MachineSet) bool { return false }
-		if p.overrideCanUpdateMachineSetInPlace != nil {
-			canUpdateMachineSetInPlaceFunc = p.overrideCanUpdateMachineSetInPlace
+		canUpdateInPlace, err := p.canUpdateMachineSetInPlace(ctx, oldMS, p.newMS)
+		if err != nil {
+			return errors.Wrapf(err, "failed to determine if MachineSet %s can be updated in-place", oldMS.Name)
 		}
-
-		canUpdateInPlace := canUpdateMachineSetInPlaceFunc(oldMS)
 		log.V(5).Info(fmt.Sprintf("CanUpdate in-place decision for MachineSet %s: %t", oldMS.Name, canUpdateInPlace), "MachineSet", klog.KObj(oldMS))
 
 		if !canUpdateInPlace {

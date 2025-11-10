@@ -254,6 +254,8 @@ type FooMachinePoolStatus struct {
 }
 ```
 
+Note: not all InfraMachinePool implementations support MPM as it depends on whether the infrastructure service underpinning the InfraMachinePool supports operations being performed against single machines. For example, in CAPA `AWSManagedMachinePool` is used to represent an "EKS managed node group" and as a "managed" service you are expected to NOT perform operations against single nodes.
+
 For further information see the [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220209-machinepool-machines.md).
 
 ### InfraMachinePool: providerID

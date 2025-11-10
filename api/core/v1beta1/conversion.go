@@ -408,11 +408,11 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values.
 	if ok {
 		dst.Spec.MinReadySeconds = restored.Spec.MinReadySeconds
+		dst.Spec.Taints = restored.Spec.Taints
 		// Restore the phase, this also means that any client using v1beta1 during a round-trip
 		// won't be able to write the Phase field. But that's okay as the only client writing the Phase
 		// field should be the Machine controller.
 		dst.Status.Phase = restored.Status.Phase
-		dst.Spec.Taints = restored.Spec.Taints
 	}
 
 	return nil

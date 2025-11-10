@@ -286,7 +286,7 @@ func TestMachineTaintValidation(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:           "should block taint with keyprefix node.cloudprovider.kubernetes.io/",
+			name:           "should block taint with key prefix node.cloudprovider.kubernetes.io/",
 			featureEnabled: true,
 			machine: m.DeepCopy().WithTaints(clusterv1.MachineTaint{
 				Key: "node.cloudprovider.kubernetes.io/some-taint", Effect: corev1.TaintEffectNoSchedule,

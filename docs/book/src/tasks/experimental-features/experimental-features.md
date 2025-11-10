@@ -14,6 +14,8 @@ Currently Cluster API has the following experimental features:
 * `ClusterTopology` (env var: `CLUSTER_TOPOLOGY`): [ClusterClass](./cluster-class/index.md)
 * `RuntimeSDK` (env var: `EXP_RUNTIME_SDK`): [RuntimeSDK](./runtime-sdk/index.md)
 * `KubeadmBootstrapFormatIgnition` (env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`): [Ignition](./ignition.md)
+* `MachineTaintPropagation` (env var: `EXP_MACHINE_TAINT_PROPAGATION`):
+  * Allows in-place propagation of taints to nodes using the taint fields within Machines, MachineSets, and MachineDeployments.
 
 ## Enabling Experimental Features for Management Clusters Started with clusterctl
 

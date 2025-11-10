@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -342,7 +341,7 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	if feature.Gates.Enabled(feature.MachineTaintPropagation) {
 		var err error
 		if propagateTaintsChanges, err = propagateMachineTaintsToNode(newNode, m.Spec.Taints); err != nil {
-			return errors.Wrapf(err, "failed to propagate machine taints to node %s", klog.KRef("", node.Name))
+			return errors.Wrapf(err, "failed to propagate Machine taints to Node %s", klog.KObj(node))
 		}
 	}
 
@@ -361,10 +360,8 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 		return nil
 	}
 
-	var mergeOptions []client.MergeFromOption
-	if feature.Gates.Enabled(feature.MachineTaintPropagation) {
-		mergeOptions = append(mergeOptions, client.MergeFromWithOptimisticLock{})
-	}
+	// Use optimistic locking to avoid conflicts with other controllers.
+	mergeOptions := []client.MergeFromOption{client.MergeFromWithOptimisticLock{}}
 
 	return remoteClient.Patch(ctx, newNode, client.StrategicMergeFrom(node, mergeOptions...))
 }
@@ -389,14 +386,14 @@ func propagateMachineTaintsToNode(node *corev1.Node, machineTaints []clusterv1.M
 		// Collect Always and OnInitialization taints to identify taints to delete.
 		// Separating Always taints so the tracking annotation can be updated accordingly.
 		switch taint.Propagation {
-		case clusterv1.TaintPropagationAlways:
+		case clusterv1.MachineTaintPropagationAlways:
 			newOwnedTaints.Insert(fmt.Sprintf("%s:%s", taint.Key, taint.Effect))
-		case clusterv1.TaintPropagationOnInitialization:
+		case clusterv1.MachineTaintPropagationOnInitialization:
 			onInitializationTaints.Insert(fmt.Sprintf("%s:%s", taint.Key, taint.Effect))
 		}
 
 		// Only add OnInitialization taints if the tracking annotation has not been set yet.
-		if taint.Propagation == clusterv1.TaintPropagationOnInitialization && nodeTaintsInitialized {
+		if taint.Propagation == clusterv1.MachineTaintPropagationOnInitialization && nodeTaintsInitialized {
 			continue
 		}
 
@@ -454,7 +451,7 @@ func unmarshalMachineTaintsAnnotation(annotationValue string) sets.Set[string] {
 func convertMachineTaintToCoreV1Taint(machineTaint clusterv1.MachineTaint) corev1.Taint {
 	return corev1.Taint{
 		Key:    machineTaint.Key,
-		Value:  ptr.Deref(machineTaint.Value, ""),
+		Value:  machineTaint.Value,
 		Effect: machineTaint.Effect,
 	}
 }

@@ -74,7 +74,6 @@ const (
 	InPlaceUpdates featuregate.Feature = "InPlaceUpdates"
 
 	// MachineTaintPropagation is a feature gate for the machine taint propagation functionality.
-	// See docs/proposals/20250513-propogate-taints.md for more details.
 	//
 	// alpha: v1.12
 	MachineTaintPropagation featuregate.Feature = "MachineTaintPropagation"

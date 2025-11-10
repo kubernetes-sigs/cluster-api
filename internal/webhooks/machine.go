@@ -161,12 +161,12 @@ func validateMachineTaints(taints []clusterv1.MachineTaint, taintsPath *field.Pa
 		idxPath := taintsPath.Index(i)
 
 		// Validate key syntax.
-		if errs := metav1validation.ValidateLabelName(taint.Key, idxPath); len(errs) > 0 {
+		if errs := metav1validation.ValidateLabelName(taint.Key, idxPath.Child("key")); len(errs) > 0 {
 			allErrs = append(allErrs, errs...)
 		}
 
 		// Validate value syntax.
-		if errs := validation.IsValidLabelValue(ptr.Deref(taint.Value, "")); len(errs) > 0 {
+		if errs := validation.IsValidLabelValue(taint.Value); len(errs) > 0 {
 			allErrs = append(allErrs, field.Invalid(idxPath.Child("value"), taint.Value, strings.Join(errs, ";")))
 		}
 
@@ -174,11 +174,11 @@ func validateMachineTaints(taints []clusterv1.MachineTaint, taintsPath *field.Pa
 
 		switch {
 		// Validate for keys which are reserved for usage by the cluster-api or providers.
-		case taint.Key == "node.cluster.x-k8s.io/uninitialized":
-			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint key must not be node.cluster.x-k8s.io/uninitialized"))
-		case taint.Key == "node.cluster.x-k8s.io/outdated-revision":
-			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint key must not be node.cluster.x-k8s.io/uninitialized or node.cluster.x-k8s.io/outdated-revision"))
-		// Validate for key's which are reserved for usage by the node or node-lifecycle-controller, but allow `node.kubernetes.io/out-of-service`.
+		case taint.Key == clusterv1.NodeUninitializedTaint.Key:
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint key is not allowed"))
+		case taint.Key == clusterv1.NodeOutdatedRevisionTaint.Key:
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint key is not allowed"))
+		// Validate for keys which are reserved for usage by the node or node-lifecycle-controller, but allow `node.kubernetes.io/out-of-service`.
 		case strings.HasPrefix(taint.Key, "node.kubernetes.io/") && taint.Key != "node.kubernetes.io/out-of-service":
 			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint key must not have the prefix node.kubernetes.io/, except for node.kubernetes.io/out-of-service"))
 		// Validate for keys which are reserved for usage by the cloud-controller-manager or kubelet.
@@ -212,7 +212,7 @@ func validateMachineTaintsForWorkers(taints []clusterv1.MachineTaint, machine *c
 		idxPath := taintsPath.Index(i)
 
 		if taint.Key == "node-role.kubernetes.io/control-plane" {
-			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint is not allowed for worker machines"))
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint is not allowed for worker Machines"))
 		}
 	}
 

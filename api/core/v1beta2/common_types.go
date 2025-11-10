@@ -419,8 +419,9 @@ type MachineTaint struct {
 
 	// value is the taint value corresponding to the taint key.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	Value *string `json:"value,omitempty"`
+	Value string `json:"value,omitempty"`
 
 	// effect is the effect for the taint. Valid values are NoSchedule, PreferNoSchedule and NoExecute.
 	// +required
@@ -428,6 +429,7 @@ type MachineTaint struct {
 	Effect corev1.TaintEffect `json:"effect,omitempty"`
 
 	// propagation defines how this taint should be propagated to nodes.
+	// Valid values are 'Always' and 'OnInitialization'.
 	// Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation.
 	// OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.
 	// +required
@@ -439,18 +441,18 @@ type MachineTaint struct {
 type MachineTaintPropagation string
 
 const (
-	// TaintPropagationAlways means the taint should be continuously reconciled and kept on the node.
+	// MachineTaintPropagationAlways means the taint should be continuously reconciled and kept on the node.
 	// - If an Always taint is added to the Machine, the taint will be added to the node.
 	// - If an Always taint is removed from the Machine, the taint will be removed from the node.
 	// - If an OnInitialization taint is changed to Always, the Machine controller will ensure the taint is set on the node.
 	// - If an Always taint is removed from the node, it will be re-added during reconciliation.
-	TaintPropagationAlways MachineTaintPropagation = "Always"
+	MachineTaintPropagationAlways MachineTaintPropagation = "Always"
 
-	// TaintPropagationOnInitialization means the taint should be set once during initialization and then
+	// MachineTaintPropagationOnInitialization means the taint should be set once during initialization and then
 	// left alone.
 	// - If an OnInitialization taint is added to the Machine, the taint will only be added to the node on initialization.
 	// - If an OnInitialization taint is removed from the Machine nothing will be changed on the node.
 	// - If an Always taint is changed to OnInitialization, the taint will only be added to the node on initialization.
 	// - If an OnInitialization taint is removed from the node, it will not be re-added during reconciliation.
-	TaintPropagationOnInitialization MachineTaintPropagation = "OnInitialization"
+	MachineTaintPropagationOnInitialization MachineTaintPropagation = "OnInitialization"
 )

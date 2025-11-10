@@ -282,6 +282,9 @@ func TestComputeDesiredMS(t *testing.T) {
 						NodeVolumeDetachTimeoutSeconds: duration10s,
 						NodeDeletionTimeoutSeconds:     duration10s,
 					},
+					Taints: []clusterv1.MachineTaint{
+						{Key: "taint-key", Value: "taint-value", Effect: corev1.TaintEffectNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
+					},
 				},
 			},
 		},
@@ -375,6 +378,7 @@ func TestComputeDesiredMS(t *testing.T) {
 							NodeVolumeDetachTimeoutSeconds: nil,
 							NodeDeletionTimeoutSeconds:     nil,
 						},
+						Taints: nil,
 					},
 				},
 			},
@@ -398,6 +402,7 @@ func TestComputeDesiredMS(t *testing.T) {
 		expectedMS.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = deployment.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
 		expectedMS.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = deployment.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
 		expectedMS.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = deployment.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
+		expectedMS.Spec.Template.Spec.Taints = deployment.Spec.Template.Spec.Taints
 
 		g := NewWithT(t)
 		actualMS, err := computeDesiredMS(ctx, deployment, currentMS)

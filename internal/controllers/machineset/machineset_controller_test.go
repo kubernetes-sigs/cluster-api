@@ -37,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,6 +49,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -61,6 +63,8 @@ var _ reconcile.Reconciler = &Reconciler{}
 
 func TestMachineSetReconciler(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) (*corev1.Namespace, *clusterv1.Cluster) {
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
+
 		t.Helper()
 
 		t.Log("Creating the namespace")
@@ -118,6 +122,9 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		duration10m := ptr.To(int32(10 * 60))
 		duration5m := ptr.To(int32(5 * 60))
+		machineTaints := []clusterv1.MachineTaint{
+			{Key: "taint-key", Value: "taint-value", Effect: corev1.TaintEffectNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
+		}
 		replicas := int32(2)
 		version := "v1.14.2"
 		machineTemplateSpec := clusterv1.MachineTemplateSpec{
@@ -152,6 +159,7 @@ func TestMachineSetReconciler(t *testing.T) {
 					NodeVolumeDetachTimeoutSeconds: duration10m,
 				},
 				MinReadySeconds: ptr.To[int32](0),
+				Taints:          machineTaints,
 			},
 		}
 
@@ -1208,6 +1216,8 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 }
 
 func TestMachineSetReconciler_syncMachines(t *testing.T) {
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
+
 	teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace, cluster *clusterv1.Cluster) {
 		t.Helper()
 
@@ -1563,6 +1573,10 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = duration10s
 	ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = duration10s
 	ms.Spec.Template.Spec.MinReadySeconds = ptr.To[int32](10)
+	machineTaints := []clusterv1.MachineTaint{
+		{Key: "taint-key", Value: "taint-value", Effect: corev1.TaintEffectNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
+	}
+	ms.Spec.Template.Spec.Taints = machineTaints
 	s = &scope{
 		machineSet: ms,
 		machines:   []*clusterv1.Machine{updatedInPlaceMutatingMachine, deletingMachine},
@@ -1581,6 +1595,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
 	g.Expect(updatedInPlaceMutatingMachine.Spec.MinReadySeconds).Should(Equal(ms.Spec.Template.Spec.MinReadySeconds))
 	g.Expect(updatedInPlaceMutatingMachine.Spec.ReadinessGates).Should(Equal(readinessGates))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Taints).Should(Equal(machineTaints))
 
 	// Verify in-place mutable fields are updated on InfrastructureMachine
 	updatedInfraMachine = infraMachine.DeepCopy()
@@ -1615,7 +1630,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			Manager:    "manager",
 			Operation:  metav1.ManagedFieldsOperationUpdate,
 			APIVersion: clusterv1.GroupVersion.String(),
-			FieldsV1:   "{\"f:spec\":{\"f:deletion\":{\"f:nodeDrainTimeoutSeconds\":{},\"f:nodeVolumeDetachTimeoutSeconds\":{}},\"f:minReadySeconds\":{},\"f:readinessGates\":{\".\":{},\"k:{\\\"conditionType\\\":\\\"foo\\\"}\":{\".\":{},\"f:conditionType\":{}}}}}",
+			FieldsV1:   "{\"f:spec\":{\"f:deletion\":{\"f:nodeDrainTimeoutSeconds\":{},\"f:nodeVolumeDetachTimeoutSeconds\":{}},\"f:minReadySeconds\":{},\"f:readinessGates\":{\".\":{},\"k:{\\\"conditionType\\\":\\\"foo\\\"}\":{\".\":{},\"f:conditionType\":{}}},\"f:taints\":{\".\":{},\"k:{\\\"effect\\\":\\\"NoSchedule\\\",\\\"key\\\":\\\"taint-key\\\"}\":{\".\":{},\"f:effect\":{},\"f:key\":{},\"f:propagation\":{},\"f:value\":{}}}}}",
 		}, {
 			// manager owns status.
 			Manager:    "manager",
@@ -1637,12 +1652,14 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
 	g.Expect(updatedDeletingMachine.Spec.MinReadySeconds).Should(Equal(ms.Spec.Template.Spec.MinReadySeconds))
 	g.Expect(updatedDeletingMachine.Spec.ReadinessGates).Should(Equal(readinessGates))
+	g.Expect(updatedDeletingMachine.Spec.Taints).Should(Equal(machineTaints))
 	// Verify the machine spec is otherwise unchanged.
 	deletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds = ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
 	deletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
 	deletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 	deletingMachine.Spec.MinReadySeconds = ms.Spec.Template.Spec.MinReadySeconds
 	deletingMachine.Spec.ReadinessGates = ms.Spec.Template.Spec.ReadinessGates
+	deletingMachine.Spec.Taints = machineTaints
 	g.Expect(updatedDeletingMachine.Spec).Should(BeComparableTo(deletingMachine.Spec))
 }
 

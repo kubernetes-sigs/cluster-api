@@ -65,15 +65,15 @@ func TestReconcileNode(t *testing.T) {
 	defaultMachineWithTaints.Spec.Taints = []clusterv1.MachineTaint{
 		{
 			Key:         "test-always-taint",
-			Value:       ptr.To("test-value1"),
+			Value:       "test-value1",
 			Effect:      corev1.TaintEffectNoSchedule,
-			Propagation: clusterv1.TaintPropagationAlways,
+			Propagation: clusterv1.MachineTaintPropagationAlways,
 		},
 		{
 			Key:         "test-on-initialization-taint",
-			Value:       ptr.To("test-value2"),
+			Value:       "test-value2",
 			Effect:      corev1.TaintEffectNoSchedule,
-			Propagation: clusterv1.TaintPropagationOnInitialization,
+			Propagation: clusterv1.MachineTaintPropagationOnInitialization,
 		},
 	}
 
@@ -1556,32 +1556,32 @@ func Test_shouldNodeHaveOutdatedTaint(t *testing.T) {
 func Test_propagateMachineTaintsToNode(t *testing.T) {
 	alwaysTaint := clusterv1.MachineTaint{
 		Key:         "added-always",
-		Value:       ptr.To("always-value"),
+		Value:       "always-value",
 		Effect:      corev1.TaintEffectNoSchedule,
-		Propagation: clusterv1.TaintPropagationAlways,
+		Propagation: clusterv1.MachineTaintPropagationAlways,
 	}
 	onInitializationTaint := clusterv1.MachineTaint{
 		Key:         "added-on-initialization",
-		Value:       ptr.To("on-initialization-value"),
+		Value:       "on-initialization-value",
 		Effect:      corev1.TaintEffectNoSchedule,
-		Propagation: clusterv1.TaintPropagationOnInitialization,
+		Propagation: clusterv1.MachineTaintPropagationOnInitialization,
 	}
 
 	existingAlwaysTaint := clusterv1.MachineTaint{
 		Key:         "existing-always",
-		Value:       ptr.To("existing-always-value"),
+		Value:       "existing-always-value",
 		Effect:      corev1.TaintEffectNoExecute,
-		Propagation: clusterv1.TaintPropagationAlways,
+		Propagation: clusterv1.MachineTaintPropagationAlways,
 	}
 
 	transitionAlways := clusterv1.MachineTaint{
 		Key:         "transition-taint",
-		Value:       ptr.To("transition-value"),
+		Value:       "transition-value",
 		Effect:      corev1.TaintEffectNoSchedule,
-		Propagation: clusterv1.TaintPropagationAlways,
+		Propagation: clusterv1.MachineTaintPropagationAlways,
 	}
 	transitionOnInitialization := transitionAlways
-	transitionOnInitialization.Propagation = clusterv1.TaintPropagationOnInitialization
+	transitionOnInitialization.Propagation = clusterv1.MachineTaintPropagationOnInitialization
 
 	tests := []struct {
 		name               string

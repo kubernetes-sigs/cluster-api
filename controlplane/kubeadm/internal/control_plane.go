@@ -394,7 +394,7 @@ func (c *ControlPlane) GetWorkloadCluster(ctx context.Context) (WorkloadCluster,
 		return c.workloadCluster, nil
 	}
 
-	workloadCluster, err := c.managementCluster.GetWorkloadCluster(ctx, client.ObjectKeyFromObject(c.Cluster), c.GetKeyEncryptionAlgorithm())
+	workloadCluster, err := c.managementCluster.GetWorkloadCluster(ctx, c.Cluster, c.GetKeyEncryptionAlgorithm())
 	if err != nil {
 		return nil, err
 	}

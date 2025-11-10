@@ -49,7 +49,7 @@ func (f *fakeManagementCluster) List(ctx context.Context, list client.ObjectList
 	return f.Reader.List(ctx, list, opts...)
 }
 
-func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ client.ObjectKey, _ bootstrapv1.EncryptionAlgorithmType) (internal.WorkloadCluster, error) {
+func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ *clusterv1.Cluster, _ bootstrapv1.EncryptionAlgorithmType) (internal.WorkloadCluster, error) {
 	return f.Workload, f.WorkloadErr
 }
 

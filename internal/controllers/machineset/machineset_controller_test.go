@@ -63,9 +63,9 @@ var _ reconcile.Reconciler = &Reconciler{}
 
 func TestMachineSetReconciler(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) (*corev1.Namespace, *clusterv1.Cluster) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
-
 		t.Helper()
+
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, "test-machine-set-reconciler")

@@ -22,9 +22,7 @@ import (
 	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -159,16 +157,6 @@ func validateMachineTaints(taints []clusterv1.MachineTaint, taintsPath *field.Pa
 
 	for i, taint := range taints {
 		idxPath := taintsPath.Index(i)
-
-		// Validate key syntax.
-		if errs := metav1validation.ValidateLabelName(taint.Key, idxPath.Child("key")); len(errs) > 0 {
-			allErrs = append(allErrs, errs...)
-		}
-
-		// Validate value syntax.
-		if errs := validation.IsValidLabelValue(taint.Value); len(errs) > 0 {
-			allErrs = append(allErrs, field.Invalid(idxPath.Child("value"), taint.Value, strings.Join(errs, ";")))
-		}
 
 		// The following validations uses a switch statement, because if one of them matches, then the others won't.
 

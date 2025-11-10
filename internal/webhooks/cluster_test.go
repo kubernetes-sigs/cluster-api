@@ -1676,13 +1676,14 @@ func TestClusterTopologyValidation(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	tests := []struct {
-		name                 string
-		in                   *clusterv1.Cluster
-		old                  *clusterv1.Cluster
-		additionalObjects    []client.Object
-		clusterClassVersions []string
-		expectErr            bool
-		expectWarning        bool
+		name                         string
+		in                           *clusterv1.Cluster
+		old                          *clusterv1.Cluster
+		additionalObjects            []client.Object
+		clusterClassVersions         []string
+		generateUpgradePlanExtension string
+		expectErr                    bool
+		expectWarning                bool
 	}{
 		{
 			name:      "should return error when topology does not have class",
@@ -1896,6 +1897,31 @@ func TestClusterTopologyValidation(t *testing.T) {
 				builder.GenericControlPlaneCRD,
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3+ANCBG0").
 					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3+ANCBG0"}).
+					Build(),
+			},
+		},
+		{
+			name: "should allow upgrading >1 minor version when generateUpgradePlan extension is defined in CC",
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.2.3").
+					Build()).
+				Build(),
+			in: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.4.0").
+					Build()).
+				Build(),
+			generateUpgradePlanExtension: "foo",
+			additionalObjects: []client.Object{
+				// Note: CRD is needed to look up the apiVersion from contract labels.
+				builder.GenericControlPlaneCRD,
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3").
+					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3"}).
 					Build(),
 			},
 		},
@@ -2246,6 +2272,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 			if tt.clusterClassVersions != nil {
 				class.Spec.KubernetesVersions = tt.clusterClassVersions
 			}
+			class.Spec.Upgrade.External.GenerateUpgradePlanExtension = tt.generateUpgradePlanExtension
 
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
 			conditions.Set(class, metav1.Condition{

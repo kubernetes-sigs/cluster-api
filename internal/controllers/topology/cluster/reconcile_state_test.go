@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
@@ -558,13 +559,26 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 	}
 
 	successResponse := &runtimehooksv1.AfterClusterUpgradeResponse{
-		CommonResponse: runtimehooksv1.CommonResponse{
-			Status: runtimehooksv1.ResponseStatusSuccess,
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
 		},
 	}
 	failureResponse := &runtimehooksv1.AfterClusterUpgradeResponse{
-		CommonResponse: runtimehooksv1.CommonResponse{
-			Status: runtimehooksv1.ResponseStatusFailure,
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusFailure,
+			},
+		},
+	}
+	blockingResponse := &runtimehooksv1.AfterClusterUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status:  runtimehooksv1.ResponseStatusSuccess,
+				Message: "foo",
+			},
+			RetryAfterSeconds: 60,
 		},
 	}
 
@@ -578,6 +592,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 		hookResponse       *runtimehooksv1.AfterClusterUpgradeResponse
 		wantMarked         bool
 		wantHookToBeCalled bool
+		wantRetryAfter     time.Duration
 		wantError          bool
 	}{
 		{
@@ -1173,6 +1188,44 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			wantError:          false,
 		},
 		{
+			name: "hook should be called if the control plane, MDs, and MPs are stable at the topology version - retry response should leave the hook marked",
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: clusterv1.Topology{
+						ControlPlane: clusterv1.ControlPlaneTopology{
+							Replicas: ptr.To[int32](2),
+						},
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-cluster",
+							Namespace: "test-ns",
+							Annotations: map[string]string{
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
+							},
+						},
+						Spec: clusterv1.ClusterSpec{
+							Topology: clusterv1.Topology{
+								Version: topologyVersion,
+							},
+						},
+					},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: controlPlaneObj,
+					},
+				},
+				HookResponseTracker: scope.NewHookResponseTracker(),
+				UpgradeTracker:      scope.NewUpgradeTracker(),
+			},
+			wantMarked:         true,
+			hookResponse:       blockingResponse,
+			wantHookToBeCalled: true,
+			wantRetryAfter:     time.Second * time.Duration(blockingResponse.RetryAfterSeconds),
+			wantError:          false,
+		},
+		{
 			name: "hook should be called if the control plane, MDs, and MPs are stable at the topology version - failure response should leave the hook marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
@@ -1265,6 +1318,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 
+			g.Expect(tt.s.HookResponseTracker.AggregateRetryAfter()).To(Equal(tt.wantRetryAfter))
 			if tt.wantHookToBeCalled {
 				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterClusterUpgrade)).To(Equal(1), "Expected hook to be called once")
 			} else {

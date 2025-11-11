@@ -580,7 +580,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.
 			if err := hooks.MarkAsOkToDelete(ctx, r.Client, cluster); err != nil {
 				return ctrl.Result{}, err
 			}
-			log.Info(fmt.Sprintf("Cluster deletion js unblocked by %s hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterDelete)))
+			log.Info(fmt.Sprintf("Cluster deletion is unblocked by %s hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterDelete)))
 		}
 	}
 	return ctrl.Result{}, nil

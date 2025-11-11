@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -412,11 +413,12 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		})
 
 		// Check if the AfterClusterUpgrade hook is actually called.
-		hookName := computeHookName("AfterClusterUpgrade", []string{toVersion})
-		Byf("Waiting for %s hook to be called", hookName)
-		Eventually(func(_ Gomega) error {
-			return checkLifecycleHooksCalledAtLeastOnce(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster, input.ExtensionConfigName, "AfterClusterUpgrade", []string{toVersion})
-		}, 30*time.Second, 2*time.Second).Should(Succeed(), "%s has not been called", hookName)
+		afterAfterClusterUpgradeTestHandler(ctx,
+			input.BootstrapClusterProxy.GetClient(),
+			clusterResources.Cluster,
+			input.ExtensionConfigName,
+			toVersion, // toVersion of the upgrade.
+		)
 
 		By("Waiting until nodes are ready")
 		workloadProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterResources.Cluster.Name)
@@ -466,7 +468,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 			computeHookName("BeforeClusterCreate", nil):                               "Status: Success, RetryAfterSeconds: 0",
 			computeHookName("AfterControlPlaneInitialized", nil):                      "Success",
 			computeHookName("BeforeClusterUpgrade", []string{fromVersion, toVersion}): "Status: Success, RetryAfterSeconds: 0",
-			computeHookName("AfterClusterUpgrade", []string{toVersion}):               "Success",
+			computeHookName("AfterClusterUpgrade", []string{toVersion}):               "Status: Success, RetryAfterSeconds: 0",
 			computeHookName("BeforeClusterDelete", nil):                               "Status: Success, RetryAfterSeconds: 0",
 		}
 		fromv := fromVersion
@@ -1041,6 +1043,32 @@ func afterWorkersUpgradeTestHandler(ctx context.Context, c client.Client, cluste
 	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, []string{workersVersion}, isBlockingUpgrade, nil)
 
 	Byf("AfterWorkersUpgrade to %s unblocked", workersVersion)
+}
+
+// afterAfterClusterUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false
+// if it is possible to upgrade to the next K8s version.
+func afterAfterClusterUpgradeTestHandler(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, topologyVersion string) {
+	hookName := "AfterClusterUpgrade"
+
+	v, err := semver.ParseTolerant(topologyVersion)
+	Expect(err).ToNot(HaveOccurred())
+
+	nextUpgradeCluster := cluster.DeepCopy()
+	v.Minor++
+	nextUpgradeCluster.Spec.Topology.Version = fmt.Sprintf("v%s", v.String())
+
+	isBlockingUpgrade := func() bool {
+		if err := c.Patch(ctx, nextUpgradeCluster, client.MergeFrom(cluster), client.DryRunAll); err != nil {
+			if apierrors.IsInvalid(err) && strings.Contains(err.Error(), fmt.Sprintf("%q hook is still blocking", hookName)) {
+				return true
+			}
+		}
+		return false
+	}
+
+	runtimeHookTestHandler(ctx, c, cluster, extensionConfigName, hookName, []string{topologyVersion}, isBlockingUpgrade, nil)
+
+	Byf("AfterClusterUpgrade to %s unblocked", topologyVersion)
 }
 
 // beforeClusterDeleteHandler calls runtimeHookTestHandler with a blocking function which returns false if the Cluster

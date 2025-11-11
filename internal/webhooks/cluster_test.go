@@ -41,6 +41,7 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -1849,6 +1850,28 @@ func TestClusterTopologyValidation(t *testing.T) {
 					Build()).
 				Build(),
 			clusterClassVersions: []string{"v1.2.3", "v1.3.1", "v1.4.0"},
+		},
+		{
+			name:      "fails when upgrading but the AfterClusterUpgrade is still pending",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithAnnotations(map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
+				}).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.2.3").
+					Build()).
+				Build(),
+			in: builder.Cluster("fooboo", "cluster1").
+				WithAnnotations(map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
+				}).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.3.2").
+					Build()).
+				Build(),
 		},
 		{
 			name: "should allow upgrading >1 minor version when kubernetes version are defined in CC",

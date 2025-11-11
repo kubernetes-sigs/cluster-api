@@ -85,40 +85,44 @@ func TestReconcileNode(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name               string
-		machine            *clusterv1.Machine
-		node               *corev1.Node
-		nodeGetErr         bool
-		expectResult       ctrl.Result
-		expectError        bool
-		expected           func(g *WithT, m *clusterv1.Machine)
-		expectNodeGetError bool
-		expectedNode       func(g *WithT, m *corev1.Node)
+		name                            string
+		machine                         *clusterv1.Machine
+		node                            *corev1.Node
+		featureGateMachineTaintsEnabled bool
+		nodeGetErr                      bool
+		expectResult                    ctrl.Result
+		expectError                     bool
+		expected                        func(g *WithT, m *clusterv1.Machine)
+		expectNodeGetError              bool
+		expectedNode                    func(g *WithT, m *corev1.Node)
 	}{
 		{
-			name:         "No op if provider ID is not set",
-			machine:      &clusterv1.Machine{},
-			node:         nil,
-			nodeGetErr:   false,
-			expectResult: ctrl.Result{},
-			expectError:  false,
+			name:                            "No op if provider ID is not set",
+			machine:                         &clusterv1.Machine{},
+			node:                            nil,
+			featureGateMachineTaintsEnabled: false,
+			nodeGetErr:                      false,
+			expectResult:                    ctrl.Result{},
+			expectError:                     false,
 		},
 		{
-			name:               "err reading node (something different than not found), it should return error",
-			machine:            defaultMachine.DeepCopy(),
-			node:               nil,
-			nodeGetErr:         true,
-			expectResult:       ctrl.Result{},
-			expectError:        true,
-			expectNodeGetError: true,
+			name:                            "err reading node (something different than not found), it should return error",
+			machine:                         defaultMachine.DeepCopy(),
+			node:                            nil,
+			featureGateMachineTaintsEnabled: false,
+			nodeGetErr:                      true,
+			expectResult:                    ctrl.Result{},
+			expectError:                     true,
+			expectNodeGetError:              true,
 		},
 		{
-			name:         "waiting for the node to exist, no op",
-			machine:      defaultMachine.DeepCopy(),
-			node:         nil,
-			nodeGetErr:   false,
-			expectResult: ctrl.Result{},
-			expectError:  false,
+			name:                            "waiting for the node to exist, no op",
+			machine:                         defaultMachine.DeepCopy(),
+			node:                            nil,
+			featureGateMachineTaintsEnabled: false,
+			nodeGetErr:                      false,
+			expectResult:                    ctrl.Result{},
+			expectError:                     false,
 		},
 		{
 			name:    "node found, should surface info",
@@ -146,9 +150,10 @@ func TestReconcileNode(t *testing.T) {
 					},
 				},
 			},
-			nodeGetErr:   false,
-			expectResult: ctrl.Result{},
-			expectError:  false,
+			featureGateMachineTaintsEnabled: false,
+			nodeGetErr:                      false,
+			expectResult:                    ctrl.Result{},
+			expectError:                     false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.NodeRef.Name).To(Equal("test-node-1"))
 				g.Expect(m.Status.NodeInfo).ToNot(BeNil())
@@ -174,10 +179,11 @@ func TestReconcileNode(t *testing.T) {
 					},
 				},
 			},
-			node:         nil,
-			nodeGetErr:   false,
-			expectResult: ctrl.Result{},
-			expectError:  true,
+			node:                            nil,
+			featureGateMachineTaintsEnabled: false,
+			nodeGetErr:                      false,
+			expectResult:                    ctrl.Result{},
+			expectError:                     true,
 		},
 		{
 			name: "node not found is tolerated when machine is deleting",
@@ -200,10 +206,11 @@ func TestReconcileNode(t *testing.T) {
 					},
 				},
 			},
-			node:         nil,
-			nodeGetErr:   false,
-			expectResult: ctrl.Result{},
-			expectError:  false,
+			node:                            nil,
+			featureGateMachineTaintsEnabled: false,
+			nodeGetErr:                      false,
+			expectResult:                    ctrl.Result{},
+			expectError:                     false,
 		},
 		{
 			name:    "node found, should propagate taints",
@@ -227,9 +234,10 @@ func TestReconcileNode(t *testing.T) {
 					},
 				},
 			},
-			nodeGetErr:   false,
-			expectResult: ctrl.Result{},
-			expectError:  false,
+			featureGateMachineTaintsEnabled: true,
+			nodeGetErr:                      false,
+			expectResult:                    ctrl.Result{},
+			expectError:                     false,
 			expectedNode: func(g *WithT, n *corev1.Node) {
 				g.Expect(n.Spec.Taints).To(BeComparableTo([]corev1.Taint{
 					{
@@ -248,7 +256,7 @@ func TestReconcileNode(t *testing.T) {
 		},
 		{
 			name:    "node found, should not add taints annotation if taints feature gate is disabled",
-			machine: defaultMachine.DeepCopy(), // The test only enables the feature gate if machine has taints.
+			machine: defaultMachineWithTaints.DeepCopy(), // The test only enables the feature gate if machine has taints.
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-node-1",
@@ -268,9 +276,10 @@ func TestReconcileNode(t *testing.T) {
 					},
 				},
 			},
-			nodeGetErr:   false,
-			expectResult: ctrl.Result{},
-			expectError:  false,
+			featureGateMachineTaintsEnabled: false,
+			nodeGetErr:                      false,
+			expectResult:                    ctrl.Result{},
+			expectError:                     false,
 			expectedNode: func(g *WithT, n *corev1.Node) {
 				g.Expect(n.Spec.Taints).To(BeEmpty())
 				g.Expect(n.Annotations).ToNot(HaveKey(clusterv1.TaintsFromMachineAnnotation))
@@ -282,7 +291,7 @@ func TestReconcileNode(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			if tc.machine.Spec.Taints != nil {
+			if tc.featureGateMachineTaintsEnabled {
 				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
 			}
 

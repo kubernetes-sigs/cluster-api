@@ -422,7 +422,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		// Update the taints of the MachineDeployment,
 		// expect the Reconcile to be called and the MachineSet to be updated in-place.
-		t.Log("Updating deletion.order on the MachineDeployment")
+		t.Log("Updating template.spec.taints on the MachineDeployment")
 		additionalTaint := clusterv1.MachineTaint{
 			Key:         "additional-taint-key",
 			Value:       "additional-taint-value",

@@ -178,7 +178,7 @@ func TestMachineTaintValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name:           "should block taint key with multuple slashes",
+			name:           "should block taint key with multiple slashes",
 			featureEnabled: true,
 			machine: m.DeepCopy().WithTaints(clusterv1.MachineTaint{
 				Key: "one/two/with-prefix", Effect: corev1.TaintEffectNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways,

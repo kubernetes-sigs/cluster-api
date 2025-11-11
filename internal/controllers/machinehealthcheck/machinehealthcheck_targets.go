@@ -183,8 +183,10 @@ func (t *healthCheckTarget) machineChecks(logger logr.Logger) ([]string, time.Du
 		timeoutSecondsDuration := time.Duration(ptr.Deref(c.TimeoutSeconds, 0)) * time.Second
 
 		if machineCondition.LastTransitionTime.Add(timeoutSecondsDuration).Before(now) {
-			unhealthyMachineMessages = append(unhealthyMachineMessages, fmt.Sprintf("Condition %s on Machine is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String()))
-			logger.V(3).Info("Target is unhealthy: machine condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", timeoutSecondsDuration.String())
+			unhealthyMachineMessages = append(unhealthyMachineMessages, fmt.Sprintf("Condition %s on Machine is reporting status %s with reason %s for more than %s",
+				c.Type, c.Status, machineCondition.Reason, timeoutSecondsDuration.String()))
+			logger.V(3).Info(fmt.Sprintf("Target is unhealthy: Machine condition is in unhealthy state more than %s", timeoutSecondsDuration.String()),
+				"condition", c.Type, "state", c.Status, "reason", machineCondition.Reason, "message", machineCondition.Message)
 			continue
 		}
 
@@ -272,8 +274,10 @@ func (t *healthCheckTarget) nodeChecks(logger logr.Logger, timeoutForMachineToHa
 		timeoutSecondsDuration := time.Duration(ptr.Deref(c.TimeoutSeconds, 0)) * time.Second
 
 		if nodeCondition.LastTransitionTime.Add(timeoutSecondsDuration).Before(now) {
-			unhealthyNodeMessages = append(unhealthyNodeMessages, fmt.Sprintf("Condition %s on Node is reporting status %s for more than %s", c.Type, c.Status, timeoutSecondsDuration.String()))
-			logger.V(3).Info("Target is unhealthy: node condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", timeoutSecondsDuration.String())
+			unhealthyNodeMessages = append(unhealthyNodeMessages, fmt.Sprintf("Condition %s on Node is reporting status %s with reason %s for more than %s",
+				c.Type, c.Status, nodeCondition.Reason, timeoutSecondsDuration.String()))
+			logger.V(3).Info(fmt.Sprintf("Target is unhealthy: Node condition is in unhealthy state more than %s", timeoutSecondsDuration.String()),
+				"condition", c.Type, "state", c.Status, "reason", nodeCondition.Reason, "message", nodeCondition.Message)
 			continue
 		}
 

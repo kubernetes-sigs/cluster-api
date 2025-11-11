@@ -256,7 +256,7 @@ func TestReconcileNode(t *testing.T) {
 		},
 		{
 			name:    "node found, should not add taints annotation if taints feature gate is disabled",
-			machine: defaultMachineWithTaints.DeepCopy(), // The test only enables the feature gate if machine has taints.
+			machine: defaultMachineWithTaints.DeepCopy(),
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-node-1",

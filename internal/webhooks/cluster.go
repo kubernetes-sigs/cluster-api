@@ -389,10 +389,17 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			log.Info(warningMsg)
 			allWarnings = append(allWarnings, warningMsg)
 		} else {
-			// TODO(chained-upgrade): handle properly when upgrade paths are called using a runtime extension.
-
-			// NOTE: We validate the version ceiling only if we can't validate the version against versions defined in the ClusterClass.
-			shouldValidateVersionCeiling := len(clusterClass.Spec.KubernetesVersions) == 0
+			// NOTE: Validate the version ceiling only if:
+			// * there are no Kubernetes versions defined in the ClusterClass and
+			// * there is no generateUpgradePlan extension defined in the ClusterClass
+			//
+			// If there are Kubernetes versions defined, we will instead validate that the Cluster.spec.topology.version
+			// is one of these versions and then we can use the chained upgrade feature to upgrade to that version.
+			// Note: The ClusterClass webhook ensures the KubernetesVersions in the ClusterClass don't have any gaps.
+			//
+			// If a generateUpgradePlan extension is defined, we assume that additionally a Cluster validating webhook is implemented
+			// that validates Cluster.spec.topology.version in a way that matches with GenerateUpgradePlan responses.
+			shouldValidateVersionCeiling := len(clusterClass.Spec.KubernetesVersions) == 0 && clusterClass.Spec.Upgrade.External.GenerateUpgradePlanExtension == ""
 			if err := webhook.validateTopologyVersionUpdate(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, oldCluster, shouldValidateVersionCeiling); err != nil {
 				allErrs = append(allErrs, err)
 			}

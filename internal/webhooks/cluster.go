@@ -440,15 +440,6 @@ func (webhook *Cluster) validateTopologyVersionUpdate(ctx context.Context, fldPa
 		return nil
 	}
 
-	// Cannot upgrade when lifecycle hooks are still being completed for the previous upgrade.
-	if IsPending(runtimehooksv1.AfterClusterUpgrade, newCluster) {
-		return field.Invalid(
-			fldPath,
-			fldValue,
-			fmt.Sprintf("version cannot be change when the %q hook is still blocking", runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade)),
-		)
-	}
-
 	// Version could only be increased.
 	if inVersion.NE(semver.Version{}) && oldVersion.NE(semver.Version{}) && version.Compare(inVersion, oldVersion, version.WithoutPreReleases()) < 0 {
 		return field.Invalid(
@@ -472,6 +463,15 @@ func (webhook *Cluster) validateTopologyVersionUpdate(ctx context.Context, fldPa
 				fmt.Sprintf("version cannot be increased from %q to %q", oldVersion, inVersion),
 			)
 		}
+	}
+
+	// Cannot upgrade when lifecycle hooks are still being completed for the previous upgrade.
+	if IsPending(runtimehooksv1.AfterClusterUpgrade, newCluster) {
+		return field.Invalid(
+			fldPath,
+			fldValue,
+			fmt.Sprintf("version cannot be changed when the %q hook is still blocking", runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade)),
+		)
 	}
 
 	allErrs := []error{}

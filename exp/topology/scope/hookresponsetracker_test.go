@@ -164,7 +164,7 @@ func TestHookResponseTracker_IsBlocking(t *testing.T) {
 		},
 	}
 
-	afterClusterUpgradeResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{
+	afterAfterControlPlaneInitializedResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{
 		CommonResponse: runtimehooksv1.CommonResponse{},
 	}
 
@@ -195,8 +195,8 @@ func TestHookResponseTracker_IsBlocking(t *testing.T) {
 	t.Run("should return false if the hook is non-blocking", func(t *testing.T) {
 		g := NewWithT(t)
 		hrt := NewHookResponseTracker()
-		// AfterClusterUpgradeHook is non-blocking.
-		hrt.Add(runtimehooksv1.AfterClusterUpgrade, afterClusterUpgradeResponse)
-		g.Expect(hrt.IsBlocking(runtimehooksv1.AfterClusterUpgrade)).To(BeFalse())
+		// AfterControlPlaneInitialized is non-blocking.
+		hrt.Add(runtimehooksv1.AfterControlPlaneInitialized, afterAfterControlPlaneInitializedResponse)
+		g.Expect(hrt.IsBlocking(runtimehooksv1.AfterControlPlaneInitialized)).To(BeFalse())
 	})
 }

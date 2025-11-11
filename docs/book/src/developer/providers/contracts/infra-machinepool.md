@@ -2,7 +2,7 @@
 
 Infrastructure providers CAN OPTIONALLY implement an InfraMachinePool resource using Kubernetes' CustomResourceDefinition (CRD).
 
-The goal of an InfraMachinePool is to manage the lifecycle of a provider-specific pool of machines using a provider specific service (like auto-scale groups in AWS & virtual machine scalesets in Azure).
+The goal of an InfraMachinePool is to manage the lifecycle of a provider-specific pool of machines using a provider specific service (like Auto Scaling groups in AWS & Virtual Machine Scale Sets in Azure).
 
 The machines in the pool may be physical or virtual instances (although most likely virtual), and they represent the infrastructure for Kubernetes nodes.
 
@@ -32,8 +32,7 @@ Instead, whenever you need something more from the Cluster API contract, you MUS
 The Cluster API maintainers welcome feedback and contributions to the contract in order to improve how it's defined,
 its clarity and visibility to provider implementers and its suitability across the different kinds of Cluster API providers.
 
-To provide feedback or open a discussion about the provider contract please [open an issue on the Cluster API](https://github.com/kubernetes-sigs/cluster-api/issues/new?assignees=&labels=&template=feature_request.md)
-repo or add an item to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
+To provide feedback or open a discussion about the provider contract please [open an issue on the Cluster API](https://github.com/kubernetes-sigs/cluster-api/issues/new?template=feature_request.yaml) repo or add an item to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
 
 </aside>
 
@@ -75,7 +74,7 @@ All resources MUST have the standard Kubernetes `TypeMeta` and `ObjectMeta` fiel
 ### All resources: `APIVersion` field value
 
 In Kubernetes `APIVersion` is a combination of API group and version.
-Special consideration MUST applies to both API group and version for all the resources Cluster API interacts with.
+Special consideration MUST apply to both API group and version for all the resources Cluster API interacts with.
 
 #### All resources: API group
 
@@ -147,7 +146,7 @@ An example of this is in the [AWS infrastructure provider](https://github.com/ku
 ### InfraMachinePool, InfraMachinePoolList resource definition
 
 You MUST define a InfraMachinePool resource if you provider supports MachinePools.
-The InfraMachinePool resource name must have the format produced by `sigs.k8s.io/cluster-api/util/contract.CalculateCRDName(Group, Kind)`.
+The InfraMachinePool CRD name must have the format produced by [`sigs.k8s.io/cluster-api/util/contract.CalculateCRDName(Group, Kind)`](https://github.com/search?q=repo%3Akubernetes-sigs%2Fcluster-api+%22func+CalculateCRDName%22&type=code).
 
 Note: Cluster API is using such a naming convention to avoid an expensive CRD lookup operation when looking for labels from
 the CRD definition of the InfraMachinePool resource.
@@ -237,11 +236,11 @@ type FooMachinePoolInstanceStatus struct {
 
 ### MachinePoolMachines support
 
-A provider can opt-in to MachinePool Machines (MPM). With MPM machines all the replicas in a MachinePool are represented by a Machine & InfraMachine. This enables core CAPI to perform common operations on single machines (and their Nodes), such as draining a node before scale down, integration with Cluster Autoscaler and also machine healthchecks.
+A provider can opt-in to MachinePool Machines (MPM). With MPM machines all the replicas in a MachinePool are represented by a Machine & InfraMachine. This enables core CAPI to perform common operations on single machines (and their Nodes), such as draining a node before scale down, integration with Cluster Autoscaler and also [MachineHealthChecks].
 
-If you want to adopt MPM then you MUST have a `status.infrastructureMachineKind` field and the field must contain the resource kind of the InfraMachine that represent the replicas in the pool. For example, for the AWS provider the value would be set to `AWSMachine`.
+If you want to adopt MPM then you MUST have an `status.infrastructureMachineKind` field and the field must contain the resource kind that represents the replicas in the pool. This is usually named InfraMachine if machine pool machines are representable like regular machines, or InfraMachinePoolMachine in other cases. For example, for the AWS provider the value would be set to `AWSMachine`.
 
-By opting in an infra provider is expected to create a InfraMachine for every replica in the pool. The lifecycle of these InfraMachines must be managed so that when scale up or scale down happens the list of InfraMachines is representative.
+By opting in, the infra provider is expected to create a InfraMachine for every replica in the pool. The lifecycle of these InfraMachines must be managed so that when scale up or scale down happens, the list of InfraMachines is kept up to date.
 
 ```go
 type FooMachinePoolStatus struct {
@@ -299,13 +298,13 @@ type FooMachinePoolSpec struct {
 }
 ```
 
-Cluster API uses this list to determine the status of the machine pool and to know when replicas have been deleted, at which point the Node will be deleted.
+Cluster API uses this list to determine the status of the machine pool and to know when replicas have been deleted, at which point the Node will be deleted. Therefore, the list MUST be kept up to date.
 
 ### InfraMachinePool: initialization completed
 
 Each provider MUST indicate when then the InfraMachinePool has been completely provisioned.
 
-Currently this is done by setting `staus.ready` to **true**.  The value retuned here is stored in the MachinePool's `status.infraStructureReady` field.
+Currently this is done by setting `status.ready` to **true**.  The value returned here is stored in the MachinePool's `status.infraStructureReady` field.
 
 Additionally providers should set `initialization.provisioned` to **true**. This value isn't currently used by core CAPI for MachinePools. However, MachinePools will start to use this instead and `status.ready` will be deprecated. By setting both these fields it will make the future migration easier.
 
@@ -339,7 +338,7 @@ Once `status.ready` is set the MachinePool “core” controller will bubble up 
 
 ### InfraMachinePool: pausing
 
-Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Cluster object and by checking for the `cluster.x-k8s.io/paused` annotation on the InfraMachinePool object.
+Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Cluster object and by checking for the `cluster.x-k8s.io/paused` annotation on the InfraMachinePool object. Preferably, the utility `sigs.k8s.io/cluster-api/util/annotations.IsPaused(cluster, infraMachinePool)` SHOULD be used.
 
 If implementing the pause behaviour, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
 
@@ -384,7 +383,7 @@ the implication of this choice which are described both in the [Cluster API v1.1
 
 ### InfraMachinePool: replicas
 
-Provider implementers MUST implement `status.replicas` to report the most recently observed number of machine instances in the pool. For example, in AWS this would be the number of replicas in a Auto Scale Group (ASG).
+Provider implementers MUST implement `status.replicas` to report the most recently observed number of machine instances in the pool. For example, in AWS this would be the number of replicas in a Auto Scaling group (ASG).
 
 ```go
 type FooMachinePoolStatus struct {
@@ -492,7 +491,7 @@ However, in case you have immutability checks for your InfraMachinePoolTemplate,
 
 In order to avoid this InfraMachinePoolTemplate MUST specifically implement support for SSA dry run calls from the topology controller.
 
-The implementation requires to use controller runtime's `CustomValidator`, available in CR versions >= v0.12.3.
+The implementation requires to use controller runtime's `CustomValidator`, available since version v0.12.3.
 
 This will allow to skip the immutability check only when the topology controller is dry running while preserving the
 validation behavior for all other cases.
@@ -542,3 +541,4 @@ The clusterctl command is designed to work with all the providers compliant with
 [infrastructure Provider Security Guidance]: ../security-guidelines.md
 [Support running multiple instances of the same provider]: ../../core/support-multiple-instances.md
 [clusterctl provider contract]: clusterctl.md
+[MachineHealthChecks]: ../../../tasks/automated-machine-management/healthchecking.md

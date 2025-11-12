@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -136,8 +137,72 @@ func (webhook *Machine) validate(oldM, newM *clusterv1.Machine) error {
 		}
 	}
 
+	allErrs = append(allErrs, validateMachineTaints(newM.Spec.Taints, specPath.Child("taints"))...)
+	allErrs = append(allErrs, validateMachineTaintsForWorkers(newM.Spec.Taints, newM, specPath.Child("taints"))...)
+
 	if len(allErrs) == 0 {
 		return nil
 	}
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Machine").GroupKind(), newM.Name, allErrs)
+}
+
+func validateMachineTaints(taints []clusterv1.MachineTaint, taintsPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if !feature.Gates.Enabled(feature.MachineTaintPropagation) {
+		if len(taints) > 0 {
+			allErrs = append(allErrs, field.Forbidden(taintsPath, "taints are not allowed to be set when the feature gate MachineTaintPropagation is disabled"))
+		}
+	}
+
+	for i, taint := range taints {
+		idxPath := taintsPath.Index(i)
+
+		// The following validations uses a switch statement, because if one of them matches, then the others won't.
+
+		switch {
+		// Validate for keys which are reserved for usage by the cluster-api or providers.
+		case taint.Key == clusterv1.NodeUninitializedTaint.Key:
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint key is not allowed"))
+		case taint.Key == clusterv1.NodeOutdatedRevisionTaint.Key:
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint key is not allowed"))
+		// Validate for keys which are reserved for usage by the node or node-lifecycle-controller, but allow `node.kubernetes.io/out-of-service`.
+		case strings.HasPrefix(taint.Key, "node.kubernetes.io/") && taint.Key != "node.kubernetes.io/out-of-service":
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint key must not have the prefix node.kubernetes.io/, except for node.kubernetes.io/out-of-service"))
+		// Validate for keys which are reserved for usage by the cloud-controller-manager or kubelet.
+		case strings.HasPrefix(taint.Key, "node.cloudprovider.kubernetes.io/"):
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint key must not have the prefix node.cloudprovider.kubernetes.io/"))
+		// Validate for the deprecated kubeadm node-role taint.
+		case taint.Key == "node-role.kubernetes.io/master":
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint is deprecated since 1.24 and should not be used anymore"))
+		}
+	}
+
+	return allErrs
+}
+
+func validateMachineTaintsForWorkers(taints []clusterv1.MachineTaint, machine *clusterv1.Machine, taintsPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if !feature.Gates.Enabled(feature.MachineTaintPropagation) {
+		return allErrs
+	}
+
+	// Skip for control-plane machines.
+	if machine != nil && machine.Labels != nil {
+		if _, ok := machine.Labels[clusterv1.MachineControlPlaneLabel]; ok {
+			return allErrs
+		}
+	}
+
+	// Validate taints for worker machines.
+	for i, taint := range taints {
+		idxPath := taintsPath.Index(i)
+
+		if taint.Key == "node-role.kubernetes.io/control-plane" {
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("key"), taint.Key, "taint is not allowed for worker Machines"))
+		}
+	}
+
+	return allErrs
 }

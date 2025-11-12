@@ -322,6 +322,7 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 	desiredMS.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = deployment.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
 	desiredMS.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = deployment.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
 	desiredMS.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = deployment.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
+	desiredMS.Spec.Template.Spec.Taints = deployment.Spec.Template.Spec.Taints
 
 	return desiredMS, nil
 }

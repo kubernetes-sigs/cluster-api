@@ -1609,8 +1609,10 @@ func (c *TestControlPlaneBuilder) Build() *unstructured.Unstructured {
 
 // NodeBuilder holds the variables required to build a Node.
 type NodeBuilder struct {
-	name   string
-	status corev1.NodeStatus
+	name        string
+	annotations map[string]string
+	taints      []corev1.Taint
+	status      corev1.NodeStatus
 }
 
 // Node returns a NodeBuilder.
@@ -1618,6 +1620,18 @@ func Node(name string) *NodeBuilder {
 	return &NodeBuilder{
 		name: name,
 	}
+}
+
+// WithAnnotations adds the given annotations to the NodeBuilder.
+func (n *NodeBuilder) WithAnnotations(annotations map[string]string) *NodeBuilder {
+	n.annotations = annotations
+	return n
+}
+
+// WithTaints adds the given taints to the NodeBuilder.
+func (n *NodeBuilder) WithTaints(taints ...corev1.Taint) *NodeBuilder {
+	n.taints = taints
+	return n
 }
 
 // WithStatus adds Status to the NodeBuilder.
@@ -1630,7 +1644,11 @@ func (n *NodeBuilder) WithStatus(status corev1.NodeStatus) *NodeBuilder {
 func (n *NodeBuilder) Build() *corev1.Node {
 	obj := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: n.name,
+			Name:        n.name,
+			Annotations: n.annotations,
+		},
+		Spec: corev1.NodeSpec{
+			Taints: n.taints,
 		},
 		Status: n.status,
 	}
@@ -1764,6 +1782,7 @@ type MachineDeploymentBuilder struct {
 	annotations            map[string]string
 	status                 *clusterv1.MachineDeploymentStatus
 	minReadySeconds        *int32
+	taints                 []clusterv1.MachineTaint
 }
 
 // MachineDeployment creates a MachineDeploymentBuilder with the given name and namespace.
@@ -1840,6 +1859,12 @@ func (m *MachineDeploymentBuilder) WithMinReadySeconds(minReadySeconds int32) *M
 	return m
 }
 
+// WithTaints adds the given taints to the MachineDeploymentBuilder.
+func (m *MachineDeploymentBuilder) WithTaints(taints ...clusterv1.MachineTaint) *MachineDeploymentBuilder {
+	m.taints = taints
+	return m
+}
+
 // Build creates a new MachineDeployment with the variables and objects passed to the MachineDeploymentBuilder.
 func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 	obj := &clusterv1.MachineDeployment{
@@ -1883,6 +1908,9 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 	if m.minReadySeconds != nil {
 		obj.Spec.Template.Spec.MinReadySeconds = m.minReadySeconds
 	}
+	if m.taints != nil {
+		obj.Spec.Template.Spec.Taints = m.taints
+	}
 
 	return obj
 }
@@ -1897,6 +1925,7 @@ type MachineSetBuilder struct {
 	labels                 map[string]string
 	clusterName            string
 	ownerRefs              []metav1.OwnerReference
+	taints                 []clusterv1.MachineTaint
 }
 
 // MachineSet creates a MachineSetBuilder with the given name and namespace.
@@ -1943,6 +1972,12 @@ func (m *MachineSetBuilder) WithOwnerReferences(ownerRefs []metav1.OwnerReferenc
 	return m
 }
 
+// WithTaints adds the given taints to the MachineSetBuilder.
+func (m *MachineSetBuilder) WithTaints(taints ...clusterv1.MachineTaint) *MachineSetBuilder {
+	m.taints = taints
+	return m
+}
+
 // Build creates a new MachineSet with the variables and objects passed to the MachineSetBuilder.
 func (m *MachineSetBuilder) Build() *clusterv1.MachineSet {
 	obj := &clusterv1.MachineSet{
@@ -1962,6 +1997,9 @@ func (m *MachineSetBuilder) Build() *clusterv1.MachineSet {
 	if m.infrastructureTemplate != nil {
 		obj.Spec.Template.Spec.InfrastructureRef = objToRef(m.infrastructureTemplate)
 	}
+	if m.taints != nil {
+		obj.Spec.Template.Spec.Taints = m.taints
+	}
 	return obj
 }
 
@@ -1974,6 +2012,7 @@ type MachineBuilder struct {
 	bootstrap    *unstructured.Unstructured
 	infraMachine *unstructured.Unstructured
 	labels       map[string]string
+	taints       []clusterv1.MachineTaint
 }
 
 // Machine returns a MachineBuilder.
@@ -2014,6 +2053,12 @@ func (m *MachineBuilder) WithLabels(labels map[string]string) *MachineBuilder {
 	return m
 }
 
+// WithTaints adds the given taints to the MachineBuilder.
+func (m *MachineBuilder) WithTaints(taints ...clusterv1.MachineTaint) *MachineBuilder {
+	m.taints = taints
+	return m
+}
+
 // Build produces a Machine object from the information passed to the MachineBuilder.
 func (m *MachineBuilder) Build() *clusterv1.Machine {
 	machine := &clusterv1.Machine{
@@ -2038,6 +2083,9 @@ func (m *MachineBuilder) Build() *clusterv1.Machine {
 			machine.Labels = map[string]string{}
 		}
 		machine.Labels[clusterv1.ClusterNameLabel] = m.clusterName
+	}
+	if m.taints != nil {
+		machine.Spec.Taints = m.taints
 	}
 	return machine
 }

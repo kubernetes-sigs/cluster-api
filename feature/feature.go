@@ -72,6 +72,11 @@ const (
 	// InPlaceUpdates is a feature gate for the in-place machine updates functionality.
 	// alpha: v1.12
 	InPlaceUpdates featuregate.Feature = "InPlaceUpdates"
+
+	// MachineTaintPropagation is a feature gate for the machine taint propagation functionality.
+	//
+	// alpha: v1.12
+	MachineTaintPropagation featuregate.Feature = "MachineTaintPropagation"
 )
 
 func init() {
@@ -90,4 +95,5 @@ var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	KubeadmBootstrapFormatIgnition: {Default: false, PreRelease: featuregate.Alpha},
 	RuntimeSDK:                     {Default: false, PreRelease: featuregate.Alpha},
 	InPlaceUpdates:                 {Default: false, PreRelease: featuregate.Alpha},
+	MachineTaintPropagation:        {Default: false, PreRelease: featuregate.Alpha},
 }

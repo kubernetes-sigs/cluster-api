@@ -23,14 +23,18 @@ import (
 
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestMachineDeploymentDefault(t *testing.T) {
@@ -835,6 +839,112 @@ func TestMachineDeploymentTemplateMetadataValidation(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
+		})
+	}
+}
+
+func TestMachineDeploymentTaintValidation(t *testing.T) {
+	md := builder.MachineDeployment("default", "md").
+		WithBootstrapTemplate(builder.BootstrapTemplate("default", "bootstrap-template").Build())
+	webhook := &MachineDeployment{}
+
+	tests := []struct {
+		name              string
+		machineDeployment *clusterv1.MachineDeployment
+		featureEnabled    bool
+		expectErr         bool
+	}{
+		{
+			name:              "should allow empty taints with feature gate disabled",
+			featureEnabled:    false,
+			machineDeployment: md.DeepCopy().Build(),
+			expectErr:         false,
+		},
+		{
+			name:              "should allow empty taints with feature gate enabled",
+			featureEnabled:    true,
+			machineDeployment: md.DeepCopy().Build(),
+			expectErr:         false,
+		},
+		{
+			name:           "should block taint key node.cluster.x-k8s.io/uninitialized",
+			featureEnabled: true,
+			machineDeployment: md.DeepCopy().WithTaints(clusterv1.MachineTaint{
+				Key: "node.cluster.x-k8s.io/uninitialized", Effect: corev1.TaintEffectNoSchedule,
+			}).Build(),
+			expectErr: true,
+		},
+		{
+			name:           "should block taint key node.cluster.x-k8s.io/outdated-revision",
+			featureEnabled: true,
+			machineDeployment: md.DeepCopy().WithTaints(clusterv1.MachineTaint{
+				Key: "node.cluster.x-k8s.io/outdated-revision", Effect: corev1.TaintEffectNoSchedule,
+			}).Build(),
+			expectErr: true,
+		},
+		{
+			name:           "should block taint with key prefix node.kubernetes.io/, which is not `out-of-service`",
+			featureEnabled: true,
+			machineDeployment: md.DeepCopy().WithTaints(clusterv1.MachineTaint{
+				Key: "node.kubernetes.io/some-taint", Effect: corev1.TaintEffectNoSchedule,
+			}).Build(),
+			expectErr: true,
+		},
+		{
+			name:           "should allow taint node.kubernetes.io/out-of-service",
+			featureEnabled: true,
+			machineDeployment: md.DeepCopy().WithTaints(clusterv1.MachineTaint{
+				Key: "node.kubernetes.io/out-of-service", Effect: corev1.TaintEffectNoSchedule,
+			}).Build(),
+			expectErr: false,
+		},
+		{
+			name:           "should block taint with key prefix node.cloudprovider.kubernetes.io/",
+			featureEnabled: true,
+			machineDeployment: md.DeepCopy().WithTaints(clusterv1.MachineTaint{
+				Key: "node.cloudprovider.kubernetes.io/some-taint", Effect: corev1.TaintEffectNoSchedule,
+			}).Build(),
+			expectErr: true,
+		},
+		{
+			name:           "should block taint key node-role.kubernetes.io/master",
+			featureEnabled: true,
+			machineDeployment: md.DeepCopy().WithTaints(clusterv1.MachineTaint{
+				Key: "node-role.kubernetes.io/master", Effect: corev1.TaintEffectNoSchedule,
+			}).Build(),
+			expectErr: true,
+		},
+		{
+			name:           "should block taint key node-role.kubernetes.io/control-plane for worker nodes",
+			featureEnabled: true,
+			machineDeployment: md.DeepCopy().WithTaints(clusterv1.MachineTaint{
+				Key: "node-role.kubernetes.io/control-plane", Effect: corev1.TaintEffectNoSchedule,
+			}).Build(),
+			expectErr: true,
+		},
+	}
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, tt.featureEnabled)
+
+			warnings, err := webhook.ValidateCreate(ctx, tt.machineDeployment)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(warnings).To(BeEmpty())
+
+			warnings, err = webhook.ValidateUpdate(ctx, tt.machineDeployment, tt.machineDeployment)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }

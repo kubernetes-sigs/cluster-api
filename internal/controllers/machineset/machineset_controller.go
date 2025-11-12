@@ -669,6 +669,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 			m.Spec.Deletion.NodeDeletionTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
 			m.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 			m.Spec.MinReadySeconds = machineSet.Spec.Template.Spec.MinReadySeconds
+			m.Spec.Taints = machineSet.Spec.Template.Spec.Taints
 
 			if err := patchHelper.Patch(ctx, m); err != nil {
 				return ctrl.Result{}, err
@@ -1153,6 +1154,7 @@ func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, exi
 	desiredMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
 	desiredMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
 	desiredMachine.Spec.MinReadySeconds = machineSet.Spec.Template.Spec.MinReadySeconds
+	desiredMachine.Spec.Taints = machineSet.Spec.Template.Spec.Taints
 
 	return desiredMachine, nil
 }

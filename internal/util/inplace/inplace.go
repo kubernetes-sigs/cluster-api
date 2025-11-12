@@ -63,6 +63,7 @@ func CleanupMachineSpecForDiff(spec *clusterv1.MachineSpec) *clusterv1.MachineSp
 	spec.Deletion.NodeDrainTimeoutSeconds = nil
 	spec.Deletion.NodeVolumeDetachTimeoutSeconds = nil
 	spec.Deletion.NodeDeletionTimeoutSeconds = nil
+	spec.Taints = nil
 
 	return spec
 }

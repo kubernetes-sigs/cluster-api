@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -33,6 +34,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -48,6 +50,8 @@ var _ reconcile.Reconciler = &Reconciler{}
 func TestMachineDeploymentReconciler(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) (*corev1.Namespace, *clusterv1.Cluster) {
 		t.Helper()
+
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, machineDeploymentNamespace)
@@ -414,6 +418,30 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 			// Verify that the old machine set have the new values.
 			g.Expect(machineSets.Items[1].Spec.Deletion.Order).Should(Equal(clusterv1.NewestMachineSetDeletionOrder))
+		}).Should(Succeed())
+
+		// Update the taints of the MachineDeployment,
+		// expect the Reconcile to be called and the MachineSet to be updated in-place.
+		t.Log("Updating template.spec.taints on the MachineDeployment")
+		additionalTaint := clusterv1.MachineTaint{
+			Key:         "additional-taint-key",
+			Value:       "additional-taint-value",
+			Effect:      corev1.TaintEffectNoSchedule,
+			Propagation: clusterv1.MachineTaintPropagationAlways,
+		}
+		modifyFunc = func(d *clusterv1.MachineDeployment) {
+			d.Spec.Template.Spec.Taints = append(d.Spec.Template.Spec.Taints, additionalTaint)
+		}
+		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
+		g.Eventually(func(g Gomega) {
+			g.Expect(env.List(ctx, machineSets, msListOpts...)).Should(Succeed())
+			// Verify we still only have 2 MachineSets.
+			g.Expect(machineSets.Items).To(HaveLen(2))
+			// Verify the taints value is updated
+			g.Expect(machineSets.Items[0].Spec.Template.Spec.Taints).Should(ContainElement(additionalTaint))
+
+			// Verify that the old machine set has the new taints.
+			g.Expect(machineSets.Items[1].Spec.Template.Spec.Taints).Should(ContainElement(additionalTaint))
 		}).Should(Succeed())
 
 		// Verify that all the MachineSets have the expected OwnerRef.

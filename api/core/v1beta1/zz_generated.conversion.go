@@ -3167,6 +3167,7 @@ func autoConvert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in *v1beta2.MachineS
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	out.ReadinessGates = *(*[]MachineReadinessGate)(unsafe.Pointer(&in.ReadinessGates))
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	return nil
 }
 

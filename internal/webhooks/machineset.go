@@ -229,6 +229,9 @@ func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
 		}
 	}
 
+	allErrs = append(allErrs, validateMachineTaints(newMS.Spec.Template.Spec.Taints, specPath.Child("template", "spec", "taints"))...)
+	allErrs = append(allErrs, validateMachineTaintsForWorkers(newMS.Spec.Template.Spec.Taints, nil, specPath.Child("template", "spec", "taints"))...)
+
 	allErrs = append(allErrs, validateMSMachineNaming(newMS.Spec.MachineNaming, specPath.Child("machineNaming"))...)
 
 	// Validate the metadata of the template.

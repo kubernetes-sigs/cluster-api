@@ -202,6 +202,9 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 					APIGroup: clusterv1.GroupVersionBootstrap.Group,
 				},
 			},
+			Taints: []clusterv1.MachineTaint{
+				{Key: "taint-key", Value: "taint-value", Effect: corev1.TaintEffectNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
+			},
 		},
 	}
 
@@ -225,6 +228,10 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(int32(20))
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(20))
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.MinReadySeconds = ptr.To[int32](20)
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Taints = []clusterv1.MachineTaint{
+		{Key: "taint-key", Value: "taint-value", Effect: corev1.TaintEffectNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
+		{Key: "other-key", Value: "other-value", Effect: corev1.TaintEffectNoExecute, Propagation: clusterv1.MachineTaintPropagationAlways},
+	}
 
 	machineTemplateWithDifferentClusterName := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentClusterName.Spec.ClusterName = "cluster2"
@@ -408,6 +415,9 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 
 	matchingMSDiffersInPlaceMutableFields := generateMS(deployment)
 	matchingMSDiffersInPlaceMutableFields.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(20))
+	matchingMSDiffersInPlaceMutableFields.Spec.Template.Spec.Taints = []clusterv1.MachineTaint{
+		{Key: "taint-key", Value: "taint-value", Effect: corev1.TaintEffectNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
+	}
 
 	oldMS := generateMS(deployment)
 	oldMS.Spec.Template.Spec.InfrastructureRef.Name = "old-infra-ref"

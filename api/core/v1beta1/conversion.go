@@ -408,6 +408,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	// Recover other values.
 	if ok {
 		dst.Spec.MinReadySeconds = restored.Spec.MinReadySeconds
+		dst.Spec.Taints = restored.Spec.Taints
 		// Restore the phase, this also means that any client using v1beta1 during a round-trip
 		// won't be able to write the Phase field. But that's okay as the only client writing the Phase
 		// field should be the Machine controller.
@@ -450,6 +451,17 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.MinReadySeconds = &src.Spec.MinReadySeconds
 	}
 
+	restored := &clusterv1.MachineSet{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	// Recover other values
+	if ok {
+		dst.Spec.Template.Spec.Taints = restored.Spec.Template.Spec.Taints
+	}
+
 	return nil
 }
 
@@ -467,7 +479,8 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	dst.Spec.MinReadySeconds = ptr.Deref(src.Spec.Template.Spec.MinReadySeconds, 0)
 
 	dropEmptyStringsMachineSpec(&dst.Spec.Template.Spec)
-	return nil
+
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
@@ -491,6 +504,11 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Recover intent for bool values converted to *bool.
 	clusterv1.Convert_bool_To_Pointer_bool(src.Spec.Paused, ok, restored.Spec.Paused, &dst.Spec.Paused)
+
+	// Recover other values
+	if ok {
+		dst.Spec.Template.Spec.Taints = restored.Spec.Template.Spec.Taints
+	}
 
 	return nil
 }
@@ -576,6 +594,11 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	clusterv1.Convert_bool_To_Pointer_bool(src.Status.InfrastructureReady, ok, restoredInfrastructureProvisioned, &initialization.InfrastructureProvisioned)
 	if !reflect.DeepEqual(initialization, clusterv1.MachinePoolInitializationStatus{}) {
 		dst.Status.Initialization = initialization
+	}
+
+	// Recover other values
+	if ok {
+		dst.Spec.Template.Spec.Taints = restored.Spec.Template.Spec.Taints
 	}
 
 	return nil

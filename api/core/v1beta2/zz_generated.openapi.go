@@ -163,6 +163,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSetV1Beta1DeprecatedStatus":                        schema_cluster_api_api_core_v1beta2_MachineSetV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineSpec":                                              schema_cluster_api_api_core_v1beta2_MachineSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineStatus":                                            schema_cluster_api_api_core_v1beta2_MachineStatus(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint":                                             schema_cluster_api_api_core_v1beta2_MachineTaint(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec":                                      schema_cluster_api_api_core_v1beta2_MachineTemplateSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineV1Beta1DeprecatedStatus":                           schema_cluster_api_api_core_v1beta2_MachineV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.NetworkRanges":                                            schema_cluster_api_api_core_v1beta2_NetworkRanges(ref),
@@ -6163,12 +6164,35 @@ func schema_cluster_api_api_core_v1beta2_MachineSpec(ref common.ReferenceCallbac
 							Ref:         ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeletionSpec"),
 						},
 					},
+					"taints": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"key",
+									"effect",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "taints are the node taints that Cluster API will manage. This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes, e.g. the node controller might add the node.kubernetes.io/not-ready taint. Only those taints defined in this list will be added or removed by core Cluster API controllers.\n\nThere can be at most 64 taints. A pod would have to tolerate all existing taints to run on the corresponding node.\n\nNOTE: This list is implemented as a \"map\" type, meaning that individual elements can be managed by different owners.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint"),
+									},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"clusterName", "bootstrap", "infrastructureRef"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.Bootstrap", "sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.Bootstrap", "sigs.k8s.io/cluster-api/api/core/v1beta2.ContractVersionedObjectReference", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeletionSpec", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineReadinessGate", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTaint"},
 	}
 }
 
@@ -6278,6 +6302,48 @@ func schema_cluster_api_api_core_v1beta2_MachineStatus(ref common.ReferenceCallb
 		},
 		Dependencies: []string{
 			"k8s.io/api/core/v1.NodeSystemInfo", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineAddress", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeletionStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineDeprecatedStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineInitializationStatus", "sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNodeReference"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_MachineTaint(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineTaint defines a taint equivalent to corev1.Taint, but additionally having a propagation field.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"key": {
+						SchemaProps: spec.SchemaProps{
+							Description: "key is the taint key to be applied to a node. Must be a valid qualified name of maximum size 63 characters with an optional subdomain prefix of maximum size 253 characters, separated by a `/`.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"value": {
+						SchemaProps: spec.SchemaProps{
+							Description: "value is the taint value corresponding to the taint key. It must be a valid label value of maximum size 63 characters.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"effect": {
+						SchemaProps: spec.SchemaProps{
+							Description: "effect is the effect for the taint. Valid values are NoSchedule, PreferNoSchedule and NoExecute.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"propagation": {
+						SchemaProps: spec.SchemaProps{
+							Description: "propagation defines how this taint should be propagated to nodes. Valid values are 'Always' and 'OnInitialization'. Always: The taint will be continuously reconciled. If it is not set for a node, it will be added during reconciliation. OnInitialization: The taint will be added during node initialization. If it gets removed from the node later on it will not get added again.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"key", "effect", "propagation"},
+			},
+		},
 	}
 }
 

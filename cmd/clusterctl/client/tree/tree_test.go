@@ -438,7 +438,7 @@ func Test_minLastTransitionTimeV1Beta1(t *testing.T) {
 	}
 }
 
-func Test_isObjDebug(t *testing.T) {
+func Test_showConditions(t *testing.T) {
 	obj := fakeMachine("my-machine")
 	type args struct {
 		filter string
@@ -446,56 +446,77 @@ func Test_isObjDebug(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want bool
+		want ConditionFilterType
 	}{
 		{
-			name: "empty filter should return false",
+			name: "empty filter should return empty string",
 			args: args{
 				filter: "",
 			},
-			want: false,
+			want: ShownNoConditions,
 		},
 		{
-			name: "all filter should return true",
+			name: "all filter should return All",
 			args: args{
 				filter: "all",
 			},
-			want: true,
+			want: ShowAllConditions,
 		},
 		{
-			name: "kind filter should return true",
+			name: "kind filter should return All",
 			args: args{
 				filter: "Machine",
 			},
-			want: true,
+			want: ShowAllConditions,
 		},
 		{
-			name: "another kind filter should return false",
+			name: "another kind filter should return empty string",
 			args: args{
 				filter: "AnotherKind",
 			},
-			want: false,
+			want: ShownNoConditions,
 		},
 		{
-			name: "kind/name filter should return true",
+			name: "kind/name filter should return All",
 			args: args{
 				filter: "Machine/my-machine",
 			},
-			want: true,
+			want: ShowAllConditions,
 		},
 		{
-			name: "kind/wrong name filter should return false",
+			name: "kind/wrong name filter should return empty string",
 			args: args{
 				filter: "Cluster/another-cluster",
 			},
-			want: false,
+			want: ShownNoConditions,
+		},
+		{
+			name: "all! filter should return NonZero",
+			args: args{
+				filter: "all" + ShowNonZeroConditionsSuffix,
+			},
+			want: ShowNonZeroConditions,
+		},
+		{
+			name: "kind! filter should return NonZero",
+			args: args{
+				filter: "Machine" + ShowNonZeroConditionsSuffix,
+			},
+			want: ShowNonZeroConditions,
+		},
+		{
+			name: "kind/name filter should return NonZero",
+			args: args{
+				filter: "Machine/my-machine" + ShowNonZeroConditionsSuffix,
+			},
+			want: ShowNonZeroConditions,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got := isObjDebug(obj, tt.args.filter)
+			got := showConditions(obj, tt.args.filter)
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -842,21 +863,28 @@ func Test_Add_setsShowObjectConditionsAnnotation(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want bool
+		want string
 	}{
 		{
-			name: "filter selecting my machine should not add the annotation",
+			name: "filter selecting my machine should add the annotation with All",
 			args: args{
 				treeOptions: ObjectTreeOptions{ShowOtherConditions: "all"},
 			},
-			want: true,
+			want: "All",
 		},
 		{
-			name: "filter not selecting my machine should not add the annotation",
+			name: "filter selecting my machine should add the annotation with NonZero",
+			args: args{
+				treeOptions: ObjectTreeOptions{ShowOtherConditions: "all" + ShowNonZeroConditionsSuffix},
+			},
+			want: "NonZero",
+		},
+		{
+			name: "filter not selecting my machine should add the annotation with empty value",
 			args: args{
 				treeOptions: ObjectTreeOptions{ShowOtherConditions: ""},
 			},
-			want: false,
+			want: "",
 		},
 	}
 	for _, tt := range tests {
@@ -874,13 +902,7 @@ func Test_Add_setsShowObjectConditionsAnnotation(t *testing.T) {
 
 				gotObj := tree.GetObject("my-machine")
 				g.Expect(gotObj).ToNot(BeNil())
-				switch tt.want {
-				case true:
-					g.Expect(gotObj.GetAnnotations()).To(HaveKey(ShowObjectConditionsAnnotation))
-					g.Expect(gotObj.GetAnnotations()[ShowObjectConditionsAnnotation]).To(Equal("True"))
-				case false:
-					g.Expect(gotObj.GetAnnotations()).ToNot(HaveKey(ShowObjectConditionsAnnotation))
-				}
+				g.Expect(gotObj.GetAnnotations()).To(HaveKeyWithValue(ShowObjectConditionsAnnotation, tt.want))
 			})
 		}
 	}

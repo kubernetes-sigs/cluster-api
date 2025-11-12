@@ -34,7 +34,7 @@ import (
 // ObjectTreeOptions defines the options for an ObjectTree.
 type ObjectTreeOptions struct {
 	// ShowOtherConditions is a list of comma separated kind or kind/name for which we should add   the ShowObjectConditionsAnnotation
-	// to signal to the presentation layer to show all the conditions for the objects.
+	// to signal to the presentation layer to show the conditions for the objects and also which filter to apply.
 	ShowOtherConditions string
 
 	// ShowMachineSets instructs the discovery process to include machine sets in the ObjectTree.
@@ -74,11 +74,9 @@ type ObjectTree struct {
 
 // NewObjectTree creates a new object tree with the given root and options.
 func NewObjectTree(root client.Object, options ObjectTreeOptions) *ObjectTree {
-	// If it is requested to show all the conditions for the root, add
+	// If it is requested to show conditions for the root, add
 	// the ShowObjectConditionsAnnotation to signal this to the presentation layer.
-	if isObjDebug(root, options.ShowOtherConditions) {
-		addAnnotation(root, ShowObjectConditionsAnnotation, "True")
-	}
+	addAnnotation(root, ShowObjectConditionsAnnotation, string(showConditions(root, options.ShowOtherConditions)))
 
 	return &ObjectTree{
 		root:       root,
@@ -116,11 +114,9 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 		parentReady = GetReadyCondition(parent)
 	}
 
-	// If it is requested to show all the conditions for the object, add
+	// If it is requested to show conditions for the object, add
 	// the ShowObjectConditionsAnnotation to signal this to the presentation layer.
-	if isObjDebug(obj, od.options.ShowOtherConditions) {
-		addAnnotation(obj, ShowObjectConditionsAnnotation, "True")
-	}
+	addAnnotation(obj, ShowObjectConditionsAnnotation, string(showConditions(obj, od.options.ShowOtherConditions)))
 
 	// If echo should be dropped from the ObjectTree, return if the object's ready condition is true, and it is the same it has of parent's object ready condition (it is an echo).
 	// Note: the Echo option applies only for infrastructure machine or bootstrap config objects, and for those objects only Ready condition makes sense.
@@ -497,28 +493,36 @@ func updateV1Beta1GroupNode(groupObj client.Object, groupReady *clusterv1.Condit
 	}
 }
 
-func isObjDebug(obj client.Object, debugFilter string) bool {
-	if debugFilter == "" {
-		return false
+func showConditions(obj client.Object, showOtherConditions string) ConditionFilterType {
+	if showOtherConditions == "" {
+		return ShownNoConditions
 	}
-	for _, filter := range strings.Split(strings.ToLower(debugFilter), ",") {
-		filter = strings.TrimSpace(filter)
+	for _, filter := range strings.Split(showOtherConditions, ",") {
 		if filter == "" {
 			continue
 		}
-		if strings.EqualFold(filter, "all") {
-			return true
+		if strings.EqualFold("all", strings.TrimSuffix(filter, ShowNonZeroConditionsSuffix)) {
+			if strings.HasSuffix(filter, ShowNonZeroConditionsSuffix) {
+				return ShowNonZeroConditions
+			}
+			return ShowAllConditions
 		}
 		kn := strings.Split(filter, "/")
 		if len(kn) == 2 {
-			if strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind) == kn[0] && obj.GetName() == kn[1] {
-				return true
+			if strings.EqualFold(obj.GetObjectKind().GroupVersionKind().Kind, kn[0]) && strings.EqualFold(obj.GetName(), strings.TrimSuffix(kn[1], ShowNonZeroConditionsSuffix)) {
+				if strings.HasSuffix(kn[1], ShowNonZeroConditionsSuffix) {
+					return ShowNonZeroConditions
+				}
+				return ShowAllConditions
 			}
 			continue
 		}
-		if strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind) == kn[0] {
-			return true
+		if strings.EqualFold(obj.GetObjectKind().GroupVersionKind().Kind, strings.TrimSuffix(kn[0], ShowNonZeroConditionsSuffix)) {
+			if strings.HasSuffix(kn[0], ShowNonZeroConditionsSuffix) {
+				return ShowNonZeroConditions
+			}
+			return ShowAllConditions
 		}
 	}
-	return false
+	return ShownNoConditions
 }

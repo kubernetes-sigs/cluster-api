@@ -36,7 +36,7 @@ import (
 // DiscoverOptions define options for the discovery process.
 type DiscoverOptions struct {
 	// ShowOtherConditions is a list of comma separated kind or kind/name for which we should add the ShowObjectConditionsAnnotation
-	// to signal to the presentation layer to show all the conditions for the objects.
+	// to signal to the presentation layer to show conditions for the objects.
 	ShowOtherConditions string
 
 	// ShowMachineSets instructs the discovery process to include machine sets in the ObjectTree.

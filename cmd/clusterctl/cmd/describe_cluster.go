@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/fatih/color"
@@ -26,6 +27,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/internal/templates"
 	cmdtree "sigs.k8s.io/cluster-api/internal/util/tree"
 )
@@ -93,7 +95,7 @@ func init() {
 		"The namespace where the workload cluster is located. If unspecified, the current namespace will be used.")
 
 	describeClusterClusterCmd.Flags().StringVar(&dc.showOtherConditions, "show-conditions", "",
-		"list of comma separated kind or kind/name for which the command should show all the object's conditions (use 'all' to show conditions for everything).")
+		fmt.Sprintf("list of comma separated kind or kind/name for which the command should show all the object's conditions (use 'all' to show conditions for everything, use the %s suffix to show only non-zero conditions).", tree.ShowNonZeroConditionsSuffix))
 	describeClusterClusterCmd.Flags().BoolVar(&dc.showMachineSets, "show-machinesets", false,
 		"Show MachineSet objects.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.showClusterResourceSets, "show-resourcesets", false,

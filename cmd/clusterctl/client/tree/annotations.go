@@ -23,7 +23,8 @@ import (
 )
 
 const (
-	// ShowObjectConditionsAnnotation documents that the presentation layer should show all the conditions for the object.
+	// ShowObjectConditionsAnnotation documents that the presentation layer should show conditions for the object
+	// and the filter to select those conditions.
 	ShowObjectConditionsAnnotation = "tree.cluster.x-k8s.io.io/show-conditions"
 
 	// ObjectMetaNameAnnotation contains the meta name that should be used for the object in the presentation layer,
@@ -72,6 +73,26 @@ const (
 	// z-order is the same. Objects with no z-order set are assumed to have a default z-order of 0.
 	ObjectZOrderAnnotation = "tree.cluster.x-k8s.io.io/z-order"
 )
+
+// ConditionFilterType defines the type for condition filters.
+type ConditionFilterType string
+
+const (
+	// ShownNoConditions should be used when no conditions must be used for an object.
+	ShownNoConditions ConditionFilterType = ""
+
+	// ShowAllConditions should be used when all the conditions for an object must be shown.
+	ShowAllConditions ConditionFilterType = "All"
+
+	// ShowNonZeroConditions should be used when only non-zero conditions for an object must be shown.
+	// Non-zero conditions are conditions with a message set or with status different from the normal state
+	// for a given condition polarity (e.g. for positive polarity normal state is True, so the non-zero
+	// status are Unknown and False).
+	ShowNonZeroConditions ConditionFilterType = "NonZero"
+)
+
+// ShowNonZeroConditionsSuffix defines the suffix to be used when the ShowNonZeroConditions filter should be applied.
+const ShowNonZeroConditionsSuffix = "+"
 
 // GetMetaName returns the object meta name that should be used for the object in the presentation layer, if defined.
 func GetMetaName(obj client.Object) string {
@@ -181,12 +202,22 @@ func IsVirtualObject(obj client.Object) bool {
 	return false
 }
 
-// IsShowConditionsObject returns true if the presentation layer should show all the conditions for the object.
-func IsShowConditionsObject(obj client.Object) bool {
-	if val, ok := getBoolAnnotation(obj, ShowObjectConditionsAnnotation); ok {
-		return val
+// ShowConditionsFilter returns the filter to be used by the presentation layer when showing conditions
+// for an object.
+func ShowConditionsFilter(obj client.Object) ConditionFilterType {
+	switch val, _ := getAnnotation(obj, ShowObjectConditionsAnnotation); val {
+	case "All":
+		return ShowAllConditions
+	case "NonZero":
+		return ShowNonZeroConditions
 	}
-	return false
+	return ShownNoConditions
+}
+
+// IsShowConditionsObject returns true if the presentation layer should show all the conditions for the object
+// or a subset of them.
+func IsShowConditionsObject(obj client.Object) bool {
+	return ShowConditionsFilter(obj) != ShownNoConditions
 }
 
 func getAnnotation(obj client.Object, annotation string) (string, bool) {

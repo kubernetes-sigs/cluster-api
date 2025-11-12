@@ -75,6 +75,10 @@ type Client interface {
 	// DescribeCluster returns the object tree representing the status of a Cluster API cluster.
 	DescribeCluster(ctx context.Context, options DescribeClusterOptions) (*tree.ObjectTree, error)
 
+	// Convert converts CAPI core resources between API versions.
+	// EXPERIMENTAL: This method is experimental and may be removed in a future release.
+	Convert(ctx context.Context, options ConvertOptions) (ConvertResult, error)
+
 	// AlphaClient is an Interface for alpha features in clusterctl
 	AlphaClient
 }

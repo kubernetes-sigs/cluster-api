@@ -16,6 +16,7 @@ Currently Cluster API has the following experimental features:
 * `KubeadmBootstrapFormatIgnition` (env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`): [Ignition](./ignition.md)
 * `MachineTaintPropagation` (env var: `EXP_MACHINE_TAINT_PROPAGATION`):
   * Allows in-place propagation of taints to nodes using the taint fields within Machines, MachineSets, and MachineDeployments.
+  * In future this feature is planned to also cover topology clusters and KCP. See the proposal [Propagating taints from Cluster API to Nodes](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20250513-propogate-taints.md) for more information.
 
 ## Enabling Experimental Features for Management Clusters Started with clusterctl
 

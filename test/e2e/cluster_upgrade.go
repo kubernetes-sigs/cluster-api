@@ -70,6 +70,10 @@ type ClusterUpgradeConformanceSpecInput struct {
 	// Allows to inject a function to be run before checking control-plane machines to be upgraded.
 	// If not specified, this is a no-op.
 	PreWaitForControlPlaneToBeUpgraded func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
+
+	// ClusterctlVariables allows injecting variables to the cluster template.
+	// If not specified, this is a no-op.
+	ClusterctlVariables map[string]string
 }
 
 // ClusterUpgradeConformanceSpec implements a spec that upgrades a cluster and runs the Kubernetes conformance suite.
@@ -153,6 +157,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
+				ClusterctlVariables:      input.ClusterctlVariables,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   infrastructureProvider,
 				Flavor:                   ptr.Deref(input.Flavor, "upgrades"),

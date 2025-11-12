@@ -1589,8 +1589,17 @@ func Test_propagateMachineTaintsToNode(t *testing.T) {
 		Effect:      corev1.TaintEffectNoSchedule,
 		Propagation: clusterv1.MachineTaintPropagationAlways,
 	}
+
 	transitionOnInitialization := transitionAlways
 	transitionOnInitialization.Propagation = clusterv1.MachineTaintPropagationOnInitialization
+
+	transitionExistingAlwaysNewValue := existingAlwaysTaint
+	transitionExistingAlwaysNewValue.Value = "transition-value-new"
+
+	transitionExistingAlwaysNewEffect := existingAlwaysTaint
+	transitionExistingAlwaysNewEffect.Effect = corev1.TaintEffectNoSchedule
+
+	externalNodeTaint := corev1.Taint{Key: "external-taint", Value: "external-value", Effect: corev1.TaintEffectNoExecute}
 
 	tests := []struct {
 		name               string
@@ -1640,6 +1649,15 @@ func Test_propagateMachineTaintsToNode(t *testing.T) {
 			machineTaints:      []clusterv1.MachineTaint{alwaysTaint},
 			expectedTaints:     []corev1.Taint{convertMachineTaintToCoreV1Taint(alwaysTaint)},
 			expectedAnnotation: "added-always:NoSchedule",
+			expectChanged:      true,
+		},
+		{
+			name: "Add missing but tracked Always taint, tracking annotation, no other taints",
+			node: builder.Node("").
+				WithAnnotations(map[string]string{clusterv1.TaintsFromMachineAnnotation: "existing-always:NoExecute"}).Build(),
+			machineTaints:      []clusterv1.MachineTaint{existingAlwaysTaint},
+			expectedTaints:     []corev1.Taint{convertMachineTaintToCoreV1Taint(existingAlwaysTaint)},
+			expectedAnnotation: "existing-always:NoExecute",
 			expectChanged:      true,
 		},
 		{
@@ -1699,6 +1717,54 @@ func Test_propagateMachineTaintsToNode(t *testing.T) {
 			machineTaints:      []clusterv1.MachineTaint{transitionAlways},
 			expectedTaints:     []corev1.Taint{convertMachineTaintToCoreV1Taint(transitionOnInitialization)},
 			expectedAnnotation: "transition-taint:NoSchedule",
+			expectChanged:      true,
+		},
+		{
+			name: "Transition Always taint to have a new value should change the value also on the node",
+			node: builder.Node("").
+				WithAnnotations(map[string]string{clusterv1.TaintsFromMachineAnnotation: "existing-always:NoExecute"}).
+				WithTaints(convertMachineTaintToCoreV1Taint(existingAlwaysTaint)).Build(),
+			machineTaints:      []clusterv1.MachineTaint{transitionExistingAlwaysNewValue},
+			expectedTaints:     []corev1.Taint{convertMachineTaintToCoreV1Taint(transitionExistingAlwaysNewValue)},
+			expectedAnnotation: "existing-always:NoExecute",
+			expectChanged:      true,
+		},
+		{
+			name: "Transition Always taint to have a new effect should change the effect also on the node",
+			node: builder.Node("").
+				WithAnnotations(map[string]string{clusterv1.TaintsFromMachineAnnotation: "existing-always:NoExecute"}).
+				WithTaints(convertMachineTaintToCoreV1Taint(existingAlwaysTaint)).Build(),
+			machineTaints:      []clusterv1.MachineTaint{transitionExistingAlwaysNewEffect},
+			expectedTaints:     []corev1.Taint{convertMachineTaintToCoreV1Taint(transitionExistingAlwaysNewEffect)},
+			expectedAnnotation: "existing-always:NoSchedule",
+			expectChanged:      true,
+		},
+		{
+			name: "Add missing taints, no tracking annotation, preserve other taints",
+			node: builder.Node("").
+				WithTaints(externalNodeTaint).Build(),
+			machineTaints:      []clusterv1.MachineTaint{alwaysTaint, onInitializationTaint},
+			expectedTaints:     []corev1.Taint{externalNodeTaint, convertMachineTaintToCoreV1Taint(alwaysTaint), convertMachineTaintToCoreV1Taint(onInitializationTaint)},
+			expectedAnnotation: "added-always:NoSchedule",
+			expectChanged:      true,
+		},
+		{
+			name: "Adopt existing taint, no tracking annotation",
+			node: builder.Node("").
+				WithTaints(convertMachineTaintToCoreV1Taint(existingAlwaysTaint)).Build(),
+			machineTaints:      []clusterv1.MachineTaint{existingAlwaysTaint},
+			expectedTaints:     []corev1.Taint{convertMachineTaintToCoreV1Taint(existingAlwaysTaint)},
+			expectedAnnotation: "existing-always:NoExecute",
+			expectChanged:      true,
+		},
+		{
+			name: "Recover from broken tracking annotation",
+			node: builder.Node("").
+				WithAnnotations(map[string]string{clusterv1.TaintsFromMachineAnnotation: "existing-always:NoExecute,"}).
+				WithTaints(convertMachineTaintToCoreV1Taint(existingAlwaysTaint)).Build(),
+			machineTaints:      []clusterv1.MachineTaint{existingAlwaysTaint},
+			expectedTaints:     []corev1.Taint{convertMachineTaintToCoreV1Taint(existingAlwaysTaint)},
+			expectedAnnotation: "existing-always:NoExecute",
 			expectChanged:      true,
 		},
 	}

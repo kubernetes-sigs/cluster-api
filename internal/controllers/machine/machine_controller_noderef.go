@@ -398,7 +398,7 @@ func propagateMachineTaintsToNode(node *corev1.Node, machineTaints []clusterv1.M
 		}
 
 		// Ensure the taint is set on the node and has the correct value.
-		if changedTaints := taints.EnsureNodeTaint(node, convertMachineTaintToCoreV1Taint(taint)); changedTaints {
+		if changedTaints := ensureNodeTaintWithValue(node, convertMachineTaintToCoreV1Taint(taint)); changedTaints {
 			changed = true
 		}
 	}
@@ -408,6 +408,10 @@ func propagateMachineTaintsToNode(node *corev1.Node, machineTaints []clusterv1.M
 
 	// Remove all identified taints from the node.
 	for taintToDelete := range taintsToDelete {
+		if taintToDelete == "" {
+			continue
+		}
+
 		splitted := strings.Split(taintToDelete, ":")
 		if len(splitted) != 2 {
 			return changed, fmt.Errorf("invalid taint format: %q", taintToDelete)
@@ -428,6 +432,29 @@ func propagateMachineTaintsToNode(node *corev1.Node, machineTaints []clusterv1.M
 	}
 
 	return changed, nil
+}
+
+// ensureNodeTaintWithValue makes sure the node has the Taint with the expected value.
+// It returns true if the taints are modified, false otherwise.
+func ensureNodeTaintWithValue(node *corev1.Node, taint corev1.Taint) bool {
+	for i, currentTaint := range node.Spec.Taints {
+		if !taint.MatchTaint(&currentTaint) {
+			continue
+		}
+
+		// Modify the taint if the value is different.
+		if currentTaint.Value != taint.Value {
+			node.Spec.Taints[i] = taint
+			return true
+		}
+
+		// The taint is already set and has the correct value.
+		return false
+	}
+
+	// Add the taint if not present.
+	node.Spec.Taints = append(node.Spec.Taints, taint)
+	return true
 }
 
 // marshalMachineTaintsAnnotation marshals the tracking annotation value.

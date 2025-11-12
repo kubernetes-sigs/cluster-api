@@ -6175,7 +6175,7 @@ func schema_cluster_api_api_core_v1beta2_MachineSpec(ref common.ReferenceCallbac
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "taints are the node taints that Cluster API will manage. This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes, e.g. the node controller might add the node.kubernetes.io/not-ready taint. Only those taints defined in this list will be added or removed by core Cluster API controllers.\n\nThere can be at most 64 taints.\n\nNOTE: This list is implemented as a \"map\" type, meaning that individual elements can be managed by different owners.",
+							Description: "taints are the node taints that Cluster API will manage. This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes, e.g. the node controller might add the node.kubernetes.io/not-ready taint. Only those taints defined in this list will be added or removed by core Cluster API controllers.\n\nThere can be at most 64 taints. A pod would have to tolerate all existing taints to run on the corresponding node.\n\nNOTE: This list is implemented as a \"map\" type, meaning that individual elements can be managed by different owners.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

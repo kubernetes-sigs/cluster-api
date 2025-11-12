@@ -2348,6 +2348,7 @@ spec:
                           Only those taints defined in this list will be added or removed by core Cluster API controllers.
 
                           There can be at most 64 taints.
+                          A pod would have to tolerate all existing taints to run on the corresponding node.
 
                           NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners.
                         items:

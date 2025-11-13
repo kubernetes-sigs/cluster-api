@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -137,6 +138,9 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			Name:      clusterResources.Cluster.Name,
 			Namespace: clusterResources.Cluster.Namespace,
 		})
+
+		// Get all machines before doing in-place changes so we can check at the end that no machines were replaced.
+		machinesBeforeInPlaceChanges := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
 
 		preExistingAlwaysTaint := clusterv1.MachineTaint{
 			Key:         "pre-existing-always-taint",
@@ -269,6 +273,25 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			MachineTaints:          wantMachineTaints,
 			NodeTaints:             wantNodeTaints,
 		})
+
+		By("Verifying there are no unexpected rollouts through in-place changes")
+		Consistently(func(g Gomega) {
+			machinesAfterInPlaceChanges := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
+			g.Expect(machinesAfterInPlaceChanges.Equal(machinesBeforeInPlaceChanges)).To(BeTrue(), "Machines must not be replaced through in-place rollout")
+		}, 30*time.Second, 1*time.Second).Should(Succeed())
+		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass,
+			// Filter metadata to ignore the taints from machine annotation which has changed due to in-place updates.
+			func(obj client.Object) clusterv1.ObjectMeta {
+				annotations := map[string]string{}
+				for k, v := range obj.GetAnnotations() {
+					if k == clusterv1.TaintsFromMachineAnnotation {
+						continue
+					}
+					annotations[k] = v
+				}
+				return clusterv1.ObjectMeta{Labels: obj.GetLabels(), Annotations: annotations}
+			},
+		)
 
 		By("PASSED!")
 	})

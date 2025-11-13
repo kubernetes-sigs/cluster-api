@@ -210,15 +210,15 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 			name: "Conditions should get the right prefix",
 			objectTree: func() *tree.ObjectTree {
 				root := fakeObject("root")
-				obectjTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{})
+				obectjTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{
+					ShowOtherConditions: "All",
+				})
 
 				o1 := fakeObject("child1",
-					withAnnotation(tree.ShowObjectConditionsAnnotation, "True"),
 					withV1Beta1Condition(v1beta1conditions.TrueCondition("C1.1")),
 					withV1Beta1Condition(v1beta1conditions.TrueCondition("C1.2")),
 				)
 				o2 := fakeObject("child2",
-					withAnnotation(tree.ShowObjectConditionsAnnotation, "True"),
 					withV1Beta1Condition(v1beta1conditions.TrueCondition("C2.1")),
 					withV1Beta1Condition(v1beta1conditions.TrueCondition("C2.2")),
 				)
@@ -240,17 +240,17 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 			name: "Conditions should get the right prefix if the object has a child",
 			objectTree: func() *tree.ObjectTree {
 				root := fakeObject("root")
-				obectjTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{})
+				obectjTree := tree.NewObjectTree(root, tree.ObjectTreeOptions{
+					ShowOtherConditions: "All",
+				})
 
 				o1 := fakeObject("child1",
-					withAnnotation(tree.ShowObjectConditionsAnnotation, "True"),
 					withV1Beta1Condition(v1beta1conditions.TrueCondition("C1.1")),
 					withV1Beta1Condition(v1beta1conditions.TrueCondition("C1.2")),
 				)
 				o1_1 := fakeObject("child1.1")
 
 				o2 := fakeObject("child2",
-					withAnnotation(tree.ShowObjectConditionsAnnotation, "True"),
 					withV1Beta1Condition(v1beta1conditions.TrueCondition("C2.1")),
 					withV1Beta1Condition(v1beta1conditions.TrueCondition("C2.2")),
 				)
@@ -289,7 +289,8 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 			// Compare the output with the expected prefix.
 			// We only check whether the output starts with the expected prefix,
 			// meaning expectPrefix does not contain the full expected output.
-			g.Expect(output.String()).Should(MatchTable(tt.expectPrefix))
+			outputString := output.String()
+			g.Expect(outputString).Should(MatchTable(tt.expectPrefix))
 		})
 	}
 }

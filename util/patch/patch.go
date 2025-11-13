@@ -170,17 +170,17 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	// patching conditions first avoids an extra loop if spec or status patch succeeds first
 	// given that causes the resourceVersion to mutate.
 	if err := h.patchStatusConditions(ctx, obj, options.ForceOverwriteConditions, options.OwnedConditions, options.OwnedV1Beta2Conditions); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, errors.Wrapf(err, "failed to patch status conditions"))
 	}
 	// Then proceed to patch the rest of the object.
 	if err := h.patch(ctx, obj); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, errors.Wrapf(err, "failed to patch spec and metadata"))
 	}
 
 	if err := h.patchStatus(ctx, obj); err != nil {
 		//nolint:staticcheck
 		if !(apierrors.IsNotFound(err) && !obj.GetDeletionTimestamp().IsZero() && len(obj.GetFinalizers()) == 0) {
-			errs = append(errs, err)
+			errs = append(errs, errors.Wrapf(err, "failed to patch status"))
 		}
 	}
 

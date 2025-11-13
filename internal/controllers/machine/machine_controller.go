@@ -668,7 +668,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	// We only delete the node after the underlying infrastructure is gone.
 	// https://github.com/kubernetes-sigs/cluster-api/issues/2565
 	if isDeleteNodeAllowed {
-		log.Info("Deleting node", "Node", klog.KRef("", m.Status.NodeRef.Name))
+		log.Info("Deleting Node", "Node", klog.KRef("", m.Status.NodeRef.Name))
 
 		var deleteNodeErr error
 		waitErr := wait.PollUntilContextTimeout(ctx, 2*time.Second, r.nodeDeletionRetryTimeout, true, func(ctx context.Context) (bool, error) {
@@ -678,9 +678,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			return true, nil
 		})
 		if waitErr != nil {
-			log.Error(deleteNodeErr, "Timed out deleting node", "Node", klog.KRef("", m.Status.NodeRef.Name))
+			log.Error(deleteNodeErr, "Timed out deleting Node", "Node", klog.KRef("", m.Status.NodeRef.Name))
 			v1beta1conditions.MarkFalse(m, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
-			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's node: %v", deleteNodeErr)
+			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's Node: %v", deleteNodeErr)
 
 			// If the node deletion timeout is not expired yet, requeue the Machine for reconciliation.
 			if m.Spec.Deletion.NodeDeletionTimeoutSeconds == nil || *m.Spec.Deletion.NodeDeletionTimeoutSeconds == 0 || m.DeletionTimestamp.Add(time.Duration(*m.Spec.Deletion.NodeDeletionTimeoutSeconds)*time.Second).After(time.Now()) {

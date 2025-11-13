@@ -24,8 +24,6 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -129,7 +127,7 @@ func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployme
 	}
 
 	if !mdTemplateExists {
-		return errors.New("cannot create a new MachineSet when templates do not exist")
+		return errors.New("cannot create a MachineSet when templates do not exist")
 	}
 
 	// Compute a new MachineSet with mandatory labels, fields in-place propagated from the MachineDeployment etc.
@@ -200,7 +198,6 @@ func (p *rolloutPlanner) computeDesiredOldMS(ctx context.Context, currentOldMS *
 // computeDesiredMS computes the desired MachineSet, which could be either a newly created newMS, or the new desired version of an existing newMS/OldMS.
 // Note: because we are using Server-Side-Apply we always have to calculate the full object.
 func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployment, currentMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
-	log := ctrl.LoggerFrom(ctx)
 	var name string
 	var uid types.UID
 	var finalizers []string
@@ -230,7 +227,6 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 		replicas = 0
 		machineTemplateSpec = *deployment.Spec.Template.Spec.DeepCopy()
 		creationTimestamp = metav1.NewTime(time.Now())
-		log.V(5).Info(fmt.Sprintf("Computing new MachineSet %s with %d replicas", name, replicas), "MachineSet", klog.KRef(deployment.Namespace, name))
 	} else {
 		// For updating an existing MachineSet use name, uid, finalizers, replicas, uniqueIdentifier and machine template spec from existingMS.
 		// Note: We use the uid, to ensure that the Server-Side-Apply only updates the existingMS.

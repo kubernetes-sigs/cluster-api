@@ -483,7 +483,7 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 				// No need to set an additional condition message, it is not used anywhere.
 				upToDateResults[ms.Name] = upToDateResult
 			}
-			diffs = append(diffs, fmt.Sprintf("MachineSet %s: diff: %s", ms.Name, strings.Join(upToDateResult.LogMessages, ", ")))
+			diffs = append(diffs, fmt.Sprintf("MachineSet %s needs rollout: %s", ms.Name, strings.Join(upToDateResult.LogMessages, ", ")))
 		}
 	}
 

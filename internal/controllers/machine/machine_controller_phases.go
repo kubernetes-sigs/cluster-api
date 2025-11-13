@@ -37,6 +37,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -212,9 +213,12 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 
 	// If the data secret was not created yet, return.
 	if !dataSecretCreated {
-		log.Info(fmt.Sprintf("Waiting for bootstrap provider to generate data secret and set %s",
-			contract.Bootstrap().DataSecretCreated(contractVersion).Path().String()),
-			s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig))
+		// Only log if the Machine is a control plane Machine or the Cluster is already initialized to reduce noise.
+		if util.IsControlPlaneMachine(m) || conditions.IsTrue(s.cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
+			log.Info(fmt.Sprintf("Waiting for bootstrap provider to generate data secret and set %s",
+				contract.Bootstrap().DataSecretCreated(contractVersion).Path().String()),
+				s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig))
+		}
 		return ctrl.Result{}, nil
 	}
 
@@ -309,21 +313,27 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 
 	// If the InfrastructureMachine is not provisioned (and it wasn't already provisioned before), return.
 	if !provisioned && !ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false) {
-		log.Info(fmt.Sprintf("Waiting for infrastructure provider to create machine infrastructure and set %s",
-			contract.InfrastructureMachine().Provisioned(contractVersion).Path().String()),
-			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
+		// Only log if the Machine is a control plane Machine or the Cluster is already initialized to reduce noise.
+		if util.IsControlPlaneMachine(m) || conditions.IsTrue(s.cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
+			log.Info(fmt.Sprintf("Waiting for infrastructure provider to set %s on %s",
+				contract.InfrastructureMachine().Provisioned(contractVersion).Path().String(), s.infraMachine.GetKind()),
+				s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
+		}
 		return ctrl.Result{}, nil
 	}
 
 	// Get providerID from the InfrastructureMachine (intentionally not setting it on the Machine yet).
-	var providerID *string
-	if providerID, err = contract.InfrastructureMachine().ProviderID().Get(s.infraMachine); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to read providerID from %s %s",
-			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
-	} else if *providerID == "" {
-		return ctrl.Result{}, errors.Errorf("got empty %s field from %s %s",
+	providerID, err := contract.InfrastructureMachine().ProviderID().Get(s.infraMachine)
+	switch {
+	case err != nil && !errors.Is(err, contract.ErrFieldNotFound):
+		return ctrl.Result{}, errors.Wrapf(err, "failed to read %s from %s %s",
 			contract.InfrastructureMachine().ProviderID().Path().String(),
 			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
+	case ptr.Deref(providerID, "") == "":
+		log.Info(fmt.Sprintf("Waiting for infrastructure provider to set %s on %s",
+			contract.InfrastructureMachine().ProviderID().Path().String(), s.infraMachine.GetKind()),
+			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
+		return ctrl.Result{}, nil // Note: Requeue is not needed, changes to InfraMachine trigger another reconcile.
 	}
 
 	// Get and set addresses from the InfrastructureMachine.

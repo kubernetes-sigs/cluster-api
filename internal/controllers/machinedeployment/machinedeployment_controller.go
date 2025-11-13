@@ -346,7 +346,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			// Create the MachineSet.
 			if err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, ms); err != nil {
 				r.recorder.Eventf(p.md, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %s: %v", klog.KObj(ms), err)
-				return errors.Wrapf(err, "failed to create new MachineSet %s", klog.KObj(ms))
+				return errors.Wrapf(err, "failed to create MachineSet %s", klog.KObj(ms))
 			}
 			log.Info(fmt.Sprintf("MachineSet created (%s)", p.createReason))
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %s with %d replicas", klog.KObj(ms), ptr.Deref(ms.Spec.Replicas, 0))
@@ -370,6 +370,11 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 
 		err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, ms, ssa.WithCachingProxy{Cache: r.ssaCache, Original: originalMS})
 		if err != nil {
+			// Note: If we are Applying a MachineSet with UID set and the MachineSet does not exist anymore, the
+			// kube-apiserver returns a conflict error.
+			if (apierrors.IsConflict(err) || apierrors.IsNotFound(err)) && !ms.DeletionTimestamp.IsZero() {
+				continue
+			}
 			r.recorder.Eventf(p.md, corev1.EventTypeWarning, "FailedUpdate", "Failed to update MachineSet %s: %v", klog.KObj(ms), err)
 			return errors.Wrapf(err, "failed to update MachineSet %s", klog.KObj(ms))
 		}
@@ -388,7 +393,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled up MachineSet %v: %d -> %d", ms.Name, originalReplicas, newReplicas)
 		}
 		if newReplicas == originalReplicas && len(changes) > 0 {
-			log.Info(fmt.Sprintf("MachineSet %s updated", ms.Name), "diff", strings.Join(changes, ","))
+			log.Info(fmt.Sprintf("Updated MachineSet %s", ms.Name), "diff", strings.Join(changes, ","))
 		}
 
 		// Only wait for cache if the object was changed.
@@ -462,11 +467,11 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 	for _, ms := range s.machineSets {
 		if ms.DeletionTimestamp.IsZero() {
 			if err := r.Client.Delete(ctx, ms); err != nil && !apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "failed to delete MachineSet %s", klog.KObj(ms))
+				return errors.Wrapf(err, "failed to delete MachineSet %s (MachineDeployment deleting)", klog.KObj(ms))
 			}
 			// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 			// Also, setting DeletionTimestamp doesn't mean the MachineSet is actually deleted (deletion takes some time).
-			log.Info("Deleting MachineSet (MachineDeployment deleted)", "MachineSet", klog.KObj(ms))
+			log.Info(fmt.Sprintf("MachineSet %s deleting (MachineDeployment deleting)", ms.Name), "MachineSet", klog.KObj(ms))
 		}
 	}
 

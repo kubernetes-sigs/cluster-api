@@ -646,7 +646,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 		// If the object is a MachineDeployment, returns all the replica counters and pick the Available condition
 		// as the condition to show for this object in case not all the conditions are visualized.
 		if obj.Spec.Replicas != nil {
-			v.replicas = fmt.Sprintf("%d/%d", *obj.Spec.Replicas, ptr.Deref(obj.Status.Replicas, 0))
+			v.replicas = fmt.Sprintf("%d/%d", ptr.Deref(obj.Status.Replicas, 0), ptr.Deref(obj.Spec.Replicas, 0))
 		}
 		if obj.Status.AvailableReplicas != nil {
 			v.availableCounters = fmt.Sprintf("%d", *obj.Status.AvailableReplicas)
@@ -670,7 +670,7 @@ func newRowDescriptor(obj ctrlclient.Object) rowDescriptor {
 		// If the object is a MachineSet, returns all the replica counters; no condition
 		// is shown for this object in case not all the conditions are visualized.
 		if obj.Spec.Replicas != nil {
-			v.replicas = fmt.Sprintf("%d/%d", *obj.Spec.Replicas, ptr.Deref(obj.Status.Replicas, 0))
+			v.replicas = fmt.Sprintf("%d/%d", ptr.Deref(obj.Status.Replicas, 0), ptr.Deref(obj.Spec.Replicas, 0))
 		}
 		if obj.Status.AvailableReplicas != nil {
 			v.availableCounters = fmt.Sprintf("%d", *obj.Status.AvailableReplicas)

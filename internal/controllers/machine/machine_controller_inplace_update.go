@@ -66,7 +66,7 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 
 	// If hook is not pending, we're waiting for the owner controller to mark it as pending.
 	if !hasUpdateMachinePending {
-		log.Info("In-place update annotation is set, waiting for UpdateMachine hook to be marked as pending")
+		log.Info("Machine marked for in-place update, waiting for owning controller to mark UpdateMachine hook as pending")
 		return ctrl.Result{}, nil
 	}
 
@@ -110,7 +110,6 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 		return result, nil
 	}
 
-	log.Info("In-place update completed successfully")
 	if err := r.completeInPlaceUpdate(ctx, s); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to complete in-place update")
 	}
@@ -144,11 +143,9 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 	if err != nil {
 		return ctrl.Result{}, "", err
 	}
-
 	if len(extensions) == 0 {
 		return ctrl.Result{}, "", errors.New("no extensions registered for UpdateMachine hook")
 	}
-
 	if len(extensions) > 1 {
 		return ctrl.Result{}, "", errors.Errorf("found multiple UpdateMachine hooks (%s): only one hook is supported", strings.Join(extensions, ","))
 	}
@@ -208,7 +205,7 @@ func (r *Reconciler) completeInPlaceUpdate(ctx context.Context, s *scope) error 
 		return err
 	}
 
-	log.Info("In-place update completed!")
+	log.Info("Completed in-place update")
 	return nil
 }
 
@@ -224,6 +221,8 @@ func (r *Reconciler) removeInPlaceUpdateAnnotation(ctx context.Context, obj clie
 		return errors.Wrapf(err, "failed to remove %s annotation from object %s", clusterv1.UpdateInProgressAnnotation, klog.KObj(obj))
 	}
 
+	// Note: DeepCopy object to not modify the passed-in object which can lead to conflict errors later on.
+	obj = obj.DeepCopyObject().(client.Object)
 	orig := obj.DeepCopyObject().(client.Object)
 	delete(annotations, clusterv1.UpdateInProgressAnnotation)
 	obj.SetAnnotations(annotations)

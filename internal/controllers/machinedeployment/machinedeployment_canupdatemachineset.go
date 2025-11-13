@@ -42,7 +42,7 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, 
 		return p.overrideCanUpdateMachineSetInPlace(ctx, oldMS, newMS)
 	}
 
-	log := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx).WithValues("MachineSet", klog.KObj(oldMS))
 
 	templateObjects, err := p.getTemplateObjects(ctx, oldMS, newMS)
 	if err != nil {
@@ -77,9 +77,10 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, 
 		return false, err
 	}
 	if !canUpdateMachineSet {
-		log.Info(fmt.Sprintf("MachineSet cannot be updated in-place by extensions: %s", strings.Join(reasons, ",")), "MachineSet", klog.KObj(oldMS))
+		log.Info(fmt.Sprintf("MachineSet %s cannot be updated in-place by extensions", oldMS.Name), "reason", strings.Join(reasons, ","))
 		return false, nil
 	}
+	log.Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions", oldMS.Name))
 	return true, nil
 }
 

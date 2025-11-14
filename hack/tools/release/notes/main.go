@@ -77,7 +77,8 @@ func readCmdConfig() *notesCmdConfig {
 	flag.StringVar(&config.toRef, "to", "", "The ref (tag, branch or commit to stop at. It must be formatted as heads/<branch name> for branches and tags/<tag name> for tags. If not set, it will default to branch.")
 	flag.StringVar(&config.branch, "branch", "", "The branch to generate the notes from. If not set, it will be calculated from release.")
 	flag.StringVar(&config.newTag, "release", "", "The tag for the new release.")
-	flag.StringVar(&config.previousReleaseVersion, "previous-release-version", "", "The tag for the previous beta release.")
+	flag.StringVar(&config.previousReleaseVersion, "previous-release-version", "", "The tag for the previous pre-release. This is used to generate an additional section with the changes since the previous pre-release"+
+		"Accordingly this flag should not be set for the first pre-release.")
 
 	flag.BoolVar(&config.prefixAreaLabel, "prefix-area-label", true, "If enabled, will prefix the area label.")
 	flag.BoolVar(&config.deprecation, "deprecation", true, "If enabled, will add a templated deprecation warning header.")

@@ -53,7 +53,7 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 	}
 
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
-		Info("Machine created (init)",
+		Info(fmt.Sprintf("Machine %s created (init)", newMachine.Name),
 			"Machine", klog.KObj(newMachine),
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
@@ -87,7 +87,7 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 	}
 
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
-		Info("Machine created (scale up)",
+		Info(fmt.Sprintf("Machine %s created (scale up)", newMachine.Name),
 			"Machine", klog.KObj(newMachine),
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
@@ -144,7 +144,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 	// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToDelete)...).
-		Info("Deleting Machine (scale down)", "Machine", klog.KObj(machineToDelete))
+		Info(fmt.Sprintf("Machine %s deleting (scale down)", machineToDelete.Name), "Machine", klog.KObj(machineToDelete))
 
 	// Requeue the control plane, in case there are additional operations to perform
 	return ctrl.Result{Requeue: true}, nil

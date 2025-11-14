@@ -333,7 +333,6 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 	}
 
 	sort.Sort(mdutil.MachineSetsByCreationTimestamp(cleanableMSes))
-	log.V(4).Info("Looking to cleanup old machine sets for deployment")
 
 	for i := range cleanableMSCount {
 		ms := cleanableMSes[i]
@@ -346,15 +345,14 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 			continue
 		}
 
-		log.V(4).Info("Trying to cleanup machine set for deployment", "MachineSet", klog.KObj(ms))
 		if err := r.Client.Delete(ctx, ms); err != nil && !apierrors.IsNotFound(err) {
 			// Return error instead of aggregating and continuing DELETEs on the theory
 			// that we may be overloading the api server.
 			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedDelete", "Failed to delete MachineSet %q: %v", ms.Name, err)
-			return err
+			return errors.Wrapf(err, "failed to delete MachineSet %s (cleanup of old MachineSets)", klog.KObj(ms))
 		}
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
-		log.Info("Deleting MachineSet (cleanup of old MachineSet)", "MachineSet", klog.KObj(ms))
+		log.Info(fmt.Sprintf("MachineSet %s deleting (cleanup of old MachineSets)", ms.Name), "MachineSet", klog.KObj(ms))
 		r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted MachineSet %q", ms.Name)
 	}
 

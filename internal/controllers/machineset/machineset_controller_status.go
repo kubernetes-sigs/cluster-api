@@ -199,7 +199,13 @@ func setScalingDownCondition(_ context.Context, ms *clusterv1.MachineSet, machin
 	if !ms.DeletionTimestamp.IsZero() {
 		desiredReplicas = 0
 	}
-	currentReplicas := int32(len(machines))
+	currentReplicas := int32(0)
+	for _, m := range machines {
+		if _, ok := m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation]; ok {
+			continue
+		}
+		currentReplicas++
+	}
 
 	// Scaling down.
 	if currentReplicas > desiredReplicas {

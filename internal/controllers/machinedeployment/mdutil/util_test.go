@@ -469,7 +469,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 					EligibleForInPlaceUpdate: true,
 				},
 			},
-			expectedCreateReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s: diff: spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required`, oldMS.Name),
+			expectedCreateReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s needs rollout: spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required`, oldMS.Name),
 		},
 		{
 			Name:           "Get the MachineSet with the MachineTemplate that matches the intent of the MachineDeployment",
@@ -550,7 +550,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 					EligibleForInPlaceUpdate: true,
 				},
 			},
-			expectedCreateReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s: diff: spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required`, oldMS.Name),
+			expectedCreateReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s needs rollout: spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required`, oldMS.Name),
 		},
 		{
 			Name:               "Get nil if no MachineSet matches the desired intent of the MachineDeployment, reconciliationTime is > rolloutAfter",
@@ -571,7 +571,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 					EligibleForInPlaceUpdate: false,
 				},
 			},
-			expectedCreateReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s: diff: spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required, MachineDeployment spec.rolloutAfter expired`, oldMS.Name),
+			expectedCreateReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s needs rollout: spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required, MachineDeployment spec.rolloutAfter expired`, oldMS.Name),
 		},
 		{
 			Name:               "Get the MachineSet if reconciliationTime < rolloutAfter",

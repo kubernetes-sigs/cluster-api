@@ -680,7 +680,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			},
 		},
 		{
-			name:     "infra machine ready and no provider ID, it should fail",
+			name:     "should do nothing if infra machine ready and no provider ID",
 			contract: "v1beta1",
 			machine:  defaultMachine.DeepCopy(),
 			infraMachine: map[string]interface{}{
@@ -697,7 +697,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			},
 			infraMachineGetError: nil,
 			expectResult:         ctrl.Result{},
-			expectError:          true,
+			expectError:          false,
 		},
 		{
 			name:     "should never revert back to infrastructure not ready",

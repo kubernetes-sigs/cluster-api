@@ -357,6 +357,8 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 	errs := []error{}
 	machinesTriggeredInPlace := []*clusterv1.Machine{}
 	for _, machine := range s.machines {
+		log := log.WithValues("Machine", klog.KObj(machine))
+
 		// If a machine is not updating in place, or if the in-place update has been already triggered, no-op
 		if _, ok := machine.Annotations[clusterv1.UpdateInProgressAnnotation]; !ok || hooks.IsPending(runtimehooksv1.UpdateMachine, machine) {
 			continue
@@ -403,18 +405,18 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 		//       have to ensure we preserve PendingHooksAnnotation on existing Machines in MachineSet and that would lead to race
 		//       conditions when the Machine controller tries to remove the annotation and MachineSet adds it back.
 		if err := r.Client.Patch(ctx, machine, client.MergeFrom(orig)); err != nil {
-			errs = append(errs, errors.Wrapf(err, "failed to start in-place update for Machine %s", klog.KObj(machine)))
+			errs = append(errs, errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine)))
 			continue
 		}
 
 		machinesTriggeredInPlace = append(machinesTriggeredInPlace, machine)
-		log.Info("Completed triggering in-place update", "Machine", klog.KObj(machine))
+		log.Info(fmt.Sprintf("Completed triggering in-place update for Machine %s", machine.Name))
 		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine starting in-place update")
 	}
 
 	// Wait until the cache observed the Machine with PendingHooksAnnotation to ensure subsequent reconciles
 	// will observe it as well and won't repeatedly call the logic to trigger in-place update.
-	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "starting in-place updates", machinesTriggeredInPlace...); err != nil {
+	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "complete triggering in-place update", machinesTriggeredInPlace...); err != nil {
 		errs = append(errs, err)
 	}
 	if len(errs) > 0 {
@@ -482,19 +484,19 @@ func (r *Reconciler) completeMoveMachine(ctx context.Context, s *scope, currentM
 	// Write InfraMachine.
 	// Note: Let's update InfraMachine first because that is the call that is most likely to fail.
 	if err := ssa.Patch(ctx, r.Client, machineSetManagerName, desiredInfraMachine); err != nil {
-		return errors.Wrapf(err, "failed to update InfraMachine %s", klog.KObj(desiredInfraMachine))
+		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(desiredMachine))
 	}
 
 	// Write BootstrapConfig.
 	if desiredMachine.Spec.Bootstrap.ConfigRef.IsDefined() {
 		if err := ssa.Patch(ctx, r.Client, machineSetManagerName, desiredBootstrapConfig); err != nil {
-			return errors.Wrapf(err, "failed to update BootstrapConfig %s", klog.KObj(desiredBootstrapConfig))
+			return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(desiredMachine))
 		}
 	}
 
 	// Write Machine.
 	if err := ssa.Patch(ctx, r.Client, machineSetManagerName, desiredMachine); err != nil {
-		return errors.Wrap(err, "failed to update Machine")
+		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(desiredMachine))
 	}
 
 	return nil
@@ -584,7 +586,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			}
 			// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 			// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
-			log.Info("Deleting Machine (MachineSet deleted)", "Machine", klog.KObj(machine))
+			log.Info(fmt.Sprintf("Deleting Machine %s (MachineSet deleted)", machine.Name), "Machine", klog.KObj(machine))
 		}
 	}
 
@@ -750,10 +752,10 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 	case diff < 0:
 		// If there are not enough Machines, create missing Machines unless Machine creation is disabled.
 		machinesToAdd := -diff
-		log.Info(fmt.Sprintf("MachineSet is scaling up to %d replicas by creating %d machines", *(ms.Spec.Replicas), machinesToAdd), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines))
+		log.Info(fmt.Sprintf("MachineSet is scaling up to %d replicas by creating %d Machines", *(ms.Spec.Replicas), machinesToAdd), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines))
 		if ms.Annotations != nil {
 			if value, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok && value == "true" {
-				log.Info("Automatic creation of new machines disabled for machine set")
+				log.Info("Automatic creation of new machines disabled for MachineSet")
 				return ctrl.Result{}, nil
 			}
 		}
@@ -776,7 +778,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 			}
 		}
 		if notAcknowledgeMoveReplicas.Len() > 0 {
-			log.Info(fmt.Sprintf("Replicas %s moved from an old MachineSet still pending acknowledge from MachineDeployment", notAcknowledgeMoveReplicas.UnsortedList()))
+			log.V(5).Info(fmt.Sprintf("Machines %s moved from an old MachineSet still pending acknowledge from MachineDeployment", notAcknowledgeMoveReplicas.UnsortedList()))
 		}
 
 		machinesToDeleteOrMove := len(machines) - notAcknowledgeMoveReplicas.Len() - int(ptr.Deref(ms.Spec.Replicas, 0))
@@ -889,7 +891,7 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 		}
 
 		machinesAdded = append(machinesAdded, machine)
-		log.Info(fmt.Sprintf("Machine created (scale up, creating %d of %d)", i+1, machinesToAdd), "Machine", klog.KObj(machine))
+		log.Info(fmt.Sprintf("Machine %s created (scale up, creating %d of %d)", machine.Name, i+1, machinesToAdd), "Machine", klog.KObj(machine))
 		r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulCreate", "Created Machine %q", machine.Name)
 	}
 
@@ -934,7 +936,7 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 			}
 
 			machinesDeleted = append(machinesDeleted, machine)
-			log.Info(fmt.Sprintf("Deleting Machine (scale down, deleting %d of %d)", i+1, machinesToDelete))
+			log.Info(fmt.Sprintf("Machine %s deleting (scale down, deleting %d of %d)", machine.Name, i+1, machinesToDelete))
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted Machine %q", machine.Name)
 		} else {
 			log.Info(fmt.Sprintf("Waiting for Machine to be deleted (scale down, deleting %d of %d)", i+1, machinesToDelete))
@@ -1010,6 +1012,8 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 			continue
 		}
 
+		log.Info(fmt.Sprintf("Triggering in-place update for Machine %s (by moving to MachineSet %s)", machine.Name, targetMS.Name))
+
 		// Perform the first part of a move operation, the part under the responsibility of the oldMS.
 		orig := machine.DeepCopy()
 
@@ -1047,8 +1051,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 		//       UpdateInProgressAnnotation on existing Machines and that would lead to race conditions when
 		//       the Machine controller tries to remove the annotation and then the MachineSet controller adds it back.
 		if err := r.Client.Patch(ctx, machine, client.MergeFrom(orig)); err != nil {
-			log.Error(err, "Failed to start moving Machine")
-			errs = append(errs, errors.Wrapf(err, "failed to start moving Machine %s", klog.KObj(machine)))
+			errs = append(errs, errors.Wrapf(err, "failed to trigger in-place update for Machine %s by moving to MachineSet %s", klog.KObj(machine), klog.KObj(targetMS)))
 			continue
 		}
 		machinesMoved = append(machinesMoved, machine)
@@ -1407,7 +1410,7 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 		// are actually provisioned (vs reporting completed immediately after the last machine object is created). This convention is also used by KCP.
 		if ms.Status.Deprecated.V1Beta1.ReadyReplicas == currentReplicas {
 			if v1beta1conditions.IsFalse(ms, clusterv1.ResizedV1Beta1Condition) {
-				log.Info("All the replicas are ready", "replicas", ms.Status.Deprecated.V1Beta1.ReadyReplicas)
+				log.V(5).Info("All the replicas are ready", "replicas", ms.Status.Deprecated.V1Beta1.ReadyReplicas)
 			}
 			v1beta1conditions.MarkTrue(ms, clusterv1.ResizedV1Beta1Condition)
 		}
@@ -1668,7 +1671,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		}
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 		// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
-		log.Info("Deleting Machine (remediating unhealthy Machine)", "Machine", klog.KObj(m))
+		log.Info(fmt.Sprintf("Deleting Machine %s (remediating unhealthy Machine)", m.Name), "Machine", klog.KObj(m))
 	}
 	if len(errs) > 0 {
 		return ctrl.Result{}, errors.Wrapf(kerrors.NewAggregate(errs), "failed to delete unhealthy Machines")

@@ -45,7 +45,7 @@ func (r *KubeadmControlPlaneReconciler) canUpdateMachine(ctx context.Context, ma
 		return r.overrideCanUpdateMachineFunc(ctx, machine, machineUpToDateResult)
 	}
 
-	log := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx).WithValues("Machine", klog.KObj(machine))
 
 	// Machine cannot be updated in-place if the feature gate is not enabled.
 	if !feature.Gates.Enabled(feature.InPlaceUpdates) {
@@ -79,7 +79,7 @@ func (r *KubeadmControlPlaneReconciler) canUpdateMachine(ctx context.Context, ma
 		return false, err
 	}
 	if !canUpdateMachine {
-		log.Info(fmt.Sprintf("Machine cannot be updated in-place by extensions: %s", strings.Join(reasons, ",")), "Machine", klog.KObj(machine))
+		log.Info(fmt.Sprintf("Machine %s cannot be updated in-place by extensions", machine.Name), "reason", strings.Join(reasons, ","))
 		return false, nil
 	}
 	return true, nil

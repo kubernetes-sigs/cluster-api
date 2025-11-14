@@ -642,6 +642,9 @@ func setUpdatingCondition(_ context.Context, machine *clusterv1.Machine, updatin
 		if updatingReason == "" {
 			updatingReason = clusterv1.MachineInPlaceUpdatingReason
 		}
+		if updatingMessage == "" {
+			updatingMessage = "In-place update in progress"
+		}
 		conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineUpdatingCondition,
 			Status:  metav1.ConditionTrue,
@@ -714,11 +717,16 @@ func setUpToDateCondition(_ context.Context, m *clusterv1.Machine, ms *clusterv1
 		return
 	}
 
-	if conditions.IsTrue(m, clusterv1.MachineUpdatingCondition) {
+	if c := conditions.Get(m, clusterv1.MachineUpdatingCondition); c != nil && c.Status == metav1.ConditionTrue {
+		msg := "* In-place update in progress"
+		if c.Message != "" {
+			msg = fmt.Sprintf("* %s", c.Message)
+		}
 		conditions.Set(m, metav1.Condition{
-			Type:   clusterv1.MachineUpToDateCondition,
-			Status: metav1.ConditionFalse,
-			Reason: clusterv1.MachineUpToDateUpdatingReason,
+			Type:    clusterv1.MachineUpToDateCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachineUpToDateUpdatingReason,
+			Message: msg,
 		})
 		return
 	}

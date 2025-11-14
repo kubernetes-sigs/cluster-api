@@ -1579,9 +1579,49 @@ func TestSetUpToDateCondition(t *testing.T) {
 				},
 			},
 			expectCondition: &metav1.Condition{
-				Type:   clusterv1.MachineUpToDateCondition,
-				Status: metav1.ConditionFalse,
-				Reason: clusterv1.MachineUpToDateUpdatingReason,
+				Type:    clusterv1.MachineUpToDateCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineUpToDateUpdatingReason,
+				Message: "* In-place update in progress",
+			},
+		},
+		{
+			name: "updating (message from Updating)",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:    clusterv1.MachineUpdatingCondition,
+							Status:  metav1.ConditionTrue,
+							Reason:  clusterv1.MachineInPlaceUpdatingReason,
+							Message: "In-place update in progress: Extension is updating Machine",
+						},
+					},
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpToDateCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineUpToDateUpdatingReason,
+				Message: "* In-place update in progress: Extension is updating Machine",
 			},
 		},
 		{

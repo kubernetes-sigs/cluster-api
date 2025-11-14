@@ -2400,9 +2400,10 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					Message: "Waiting for a Node with spec.providerID foo to exist",
 				},
 				{
-					Type:   clusterv1.MachineUpToDateCondition,
-					Status: metav1.ConditionFalse,
-					Reason: clusterv1.MachineUpToDateUpdatingReason,
+					Type:    clusterv1.MachineUpToDateCondition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineUpToDateUpdatingReason,
+					Message: "* In-place update in progress",
 				},
 			},
 		},

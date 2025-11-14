@@ -40,8 +40,8 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 		return r.overrideTriggerInPlaceUpdate(ctx, machine, machineUpToDateResult)
 	}
 
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Triggering in-place update", "Machine", klog.KObj(machine))
+	log := ctrl.LoggerFrom(ctx).WithValues("Machine", klog.KObj(machine))
+	log.Info(fmt.Sprintf("Triggering in-place update for Machine %s", machine.Name))
 
 	// Mark Machine for in-place update.
 	// Note: Once we write UpdateInProgressAnnotation we will always continue with the in-place update.
@@ -133,7 +133,7 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
 	}
 
-	log.Info("Completed triggering in-place update", "Machine", klog.KObj(machine))
+	log.Info(fmt.Sprintf("Completed triggering in-place update for Machine %s", machine.Name))
 	r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine starting in-place update")
 
 	// Wait until the cache observed the Machine with PendingHooksAnnotation to ensure subsequent reconciles

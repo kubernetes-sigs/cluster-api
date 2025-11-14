@@ -402,7 +402,7 @@ func (c *Certificate) AsFiles() []bootstrapv1.File {
 		out = append(out, bootstrapv1.File{
 			Path:        c.CertFile,
 			Owner:       rootOwnerValue,
-			Permissions: "0640",
+			Permissions: "0600",
 			Content:     string(c.KeyPair.Cert),
 		})
 	}

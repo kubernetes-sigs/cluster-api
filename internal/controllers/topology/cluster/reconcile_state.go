@@ -187,7 +187,7 @@ func (r *Reconciler) callAfterHooks(ctx context.Context, s *scope.Scope) error {
 func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *scope.Scope) error {
 	// If the cluster topology is being created then track to intent to call the AfterControlPlaneInitialized hook so that we can call it later.
 	if !s.Current.Cluster.Spec.InfrastructureRef.IsDefined() && !s.Current.Cluster.Spec.ControlPlaneRef.IsDefined() {
-		if err := hooks.MarkAsPending(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneInitialized); err != nil {
+		if err := hooks.MarkAsPending(ctx, r.Client, s.Current.Cluster, false, runtimehooksv1.AfterControlPlaneInitialized); err != nil {
 			return err
 		}
 	}
@@ -211,7 +211,7 @@ func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *sc
 				return err
 			}
 			s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneInitialized, hookResponse)
-			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneInitialized); err != nil {
+			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, false, runtimehooksv1.AfterControlPlaneInitialized); err != nil {
 				return err
 			}
 		}
@@ -259,7 +259,7 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 				return err
 			}
 			if len(extensionHandlers) == 0 {
-				return hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterClusterUpgrade)
+				return hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, false, runtimehooksv1.AfterClusterUpgrade)
 			}
 
 			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
@@ -285,7 +285,7 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 			}
 
 			// The hook is successfully called; we can remove this hook from the list of pending-hooks.
-			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterClusterUpgrade); err != nil {
+			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, false, runtimehooksv1.AfterClusterUpgrade); err != nil {
 				return err
 			}
 

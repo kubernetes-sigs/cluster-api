@@ -204,7 +204,9 @@ func (r *Reconciler) completeInPlaceUpdate(ctx context.Context, s *scope) error 
 		}
 	}
 
-	if err := hooks.MarkAsDone(ctx, r.Client, s.machine, runtimehooksv1.UpdateMachine); err != nil {
+	// Note: This call will not update the resourceVersion on machine, so that the patchHelper in the main
+	// Reconcile func won't get a conflict.
+	if err := hooks.MarkAsDone(ctx, r.Client, s.machine, false, runtimehooksv1.UpdateMachine); err != nil {
 		return err
 	}
 

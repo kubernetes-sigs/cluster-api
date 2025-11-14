@@ -107,6 +107,7 @@ func TestMarkAsPending(t *testing.T) {
 		obj                client.Object
 		hook               runtimecatalog.Hook
 		expectedAnnotation string
+		expectNoOp         bool
 	}{
 		{
 			name: "should add the marker if not already marked as pending",
@@ -118,6 +119,7 @@ func TestMarkAsPending(t *testing.T) {
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
 			expectedAnnotation: "AfterClusterUpgrade",
+			expectNoOp:         false,
 		},
 		{
 			name: "should add the marker if not already marked as pending - other hooks are present",
@@ -132,6 +134,7 @@ func TestMarkAsPending(t *testing.T) {
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
 			expectedAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+			expectNoOp:         false,
 		},
 		{
 			name: "should pass if the marker is already marked as pending",
@@ -146,6 +149,7 @@ func TestMarkAsPending(t *testing.T) {
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
 			expectedAnnotation: "AfterClusterUpgrade",
+			expectNoOp:         true,
 		},
 		{
 			name: "should pass if the marker is already marked as pending and remove empty string entry",
@@ -160,18 +164,32 @@ func TestMarkAsPending(t *testing.T) {
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
 			expectedAnnotation: "AfterClusterUpgrade",
+			expectNoOp:         false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithObjects(tt.obj).Build()
-			ctx := context.Background()
-			g.Expect(MarkAsPending(ctx, fakeClient, tt.obj, tt.hook)).To(Succeed())
-			annotations := tt.obj.GetAnnotations()
-			g.Expect(annotations[runtimev1.PendingHooksAnnotation]).To(ContainSubstring(runtimecatalog.HookName(tt.hook)))
-			g.Expect(annotations[runtimev1.PendingHooksAnnotation]).To(Equal(tt.expectedAnnotation))
+
+			for _, updateResourceVersionOnObject := range []bool{true, false} {
+				obj := tt.obj.DeepCopyObject().(client.Object)
+				fakeClient := fake.NewClientBuilder().WithObjects(obj).Build()
+
+				origResourceVersion := obj.GetResourceVersion()
+
+				ctx := context.Background()
+				g.Expect(MarkAsPending(ctx, fakeClient, obj, updateResourceVersionOnObject, tt.hook)).To(Succeed())
+				annotations := obj.GetAnnotations()
+				g.Expect(annotations[runtimev1.PendingHooksAnnotation]).To(ContainSubstring(runtimecatalog.HookName(tt.hook)))
+				g.Expect(annotations[runtimev1.PendingHooksAnnotation]).To(Equal(tt.expectedAnnotation))
+
+				if tt.expectNoOp || !updateResourceVersionOnObject {
+					g.Expect(obj.GetResourceVersion()).To(Equal(origResourceVersion))
+				} else {
+					g.Expect(obj.GetResourceVersion()).ToNot(Equal(origResourceVersion))
+				}
+			}
 		})
 	}
 }
@@ -182,6 +200,7 @@ func TestMarkAsDone(t *testing.T) {
 		obj                client.Object
 		hook               runtimecatalog.Hook
 		expectedAnnotation string
+		expectNoOp         bool
 	}{
 		{
 			name: "should pass if the marker is not already present",
@@ -193,6 +212,7 @@ func TestMarkAsDone(t *testing.T) {
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
 			expectedAnnotation: "",
+			expectNoOp:         true,
 		},
 		{
 			name: "should remove if the marker is already present",
@@ -207,6 +227,7 @@ func TestMarkAsDone(t *testing.T) {
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
 			expectedAnnotation: "",
+			expectNoOp:         false,
 		},
 		{
 			name: "should remove if the marker is already present among multiple hooks",
@@ -221,6 +242,7 @@ func TestMarkAsDone(t *testing.T) {
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
 			expectedAnnotation: "AfterControlPlaneUpgrade",
+			expectNoOp:         false,
 		},
 		{
 			name: "should remove empty string entry",
@@ -235,18 +257,32 @@ func TestMarkAsDone(t *testing.T) {
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
 			expectedAnnotation: "AfterControlPlaneUpgrade",
+			expectNoOp:         false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithObjects(tt.obj).Build()
-			ctx := context.Background()
-			g.Expect(MarkAsDone(ctx, fakeClient, tt.obj, tt.hook)).To(Succeed())
-			annotations := tt.obj.GetAnnotations()
-			g.Expect(annotations[runtimev1.PendingHooksAnnotation]).NotTo(ContainSubstring(runtimecatalog.HookName(tt.hook)))
-			g.Expect(annotations[runtimev1.PendingHooksAnnotation]).To(Equal(tt.expectedAnnotation))
+
+			for _, updateResourceVersionOnObject := range []bool{true, false} {
+				obj := tt.obj.DeepCopyObject().(client.Object)
+				fakeClient := fake.NewClientBuilder().WithObjects(obj).Build()
+
+				origResourceVersion := obj.GetResourceVersion()
+
+				ctx := context.Background()
+				g.Expect(MarkAsDone(ctx, fakeClient, obj, updateResourceVersionOnObject, tt.hook)).To(Succeed())
+				annotations := obj.GetAnnotations()
+				g.Expect(annotations[runtimev1.PendingHooksAnnotation]).NotTo(ContainSubstring(runtimecatalog.HookName(tt.hook)))
+				g.Expect(annotations[runtimev1.PendingHooksAnnotation]).To(Equal(tt.expectedAnnotation))
+
+				if tt.expectNoOp || !updateResourceVersionOnObject {
+					g.Expect(obj.GetResourceVersion()).To(Equal(origResourceVersion))
+				} else {
+					g.Expect(obj.GetResourceVersion()).ToNot(Equal(origResourceVersion))
+				}
+			}
 		})
 	}
 }
@@ -292,8 +328,9 @@ func TestIsOkToDelete(t *testing.T) {
 
 func TestMarkAsOkToDelete(t *testing.T) {
 	tests := []struct {
-		name string
-		obj  client.Object
+		name       string
+		obj        client.Object
+		expectNoOp bool
 	}{
 		{
 			name: "should add the 'ok-to-delete' annotation on the object if not already present",
@@ -303,6 +340,7 @@ func TestMarkAsOkToDelete(t *testing.T) {
 					Namespace: "test-ns",
 				},
 			},
+			expectNoOp: false,
 		},
 		{
 			name: "should succeed if the 'ok-to-delete' annotation is already present",
@@ -315,17 +353,31 @@ func TestMarkAsOkToDelete(t *testing.T) {
 					},
 				},
 			},
+			expectNoOp: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithObjects(tt.obj).Build()
-			ctx := context.Background()
-			g.Expect(MarkAsOkToDelete(ctx, fakeClient, tt.obj)).To(Succeed())
-			annotations := tt.obj.GetAnnotations()
-			g.Expect(annotations).To(HaveKey(runtimev1.OkToDeleteAnnotation))
+
+			for _, updateResourceVersionOnObject := range []bool{true, false} {
+				obj := tt.obj.DeepCopyObject().(client.Object)
+				fakeClient := fake.NewClientBuilder().WithObjects(obj).Build()
+
+				origResourceVersion := obj.GetResourceVersion()
+
+				ctx := context.Background()
+				g.Expect(MarkAsOkToDelete(ctx, fakeClient, obj, updateResourceVersionOnObject)).To(Succeed())
+				annotations := obj.GetAnnotations()
+				g.Expect(annotations).To(HaveKey(runtimev1.OkToDeleteAnnotation))
+
+				if tt.expectNoOp || !updateResourceVersionOnObject {
+					g.Expect(obj.GetResourceVersion()).To(Equal(origResourceVersion))
+				} else {
+					g.Expect(obj.GetResourceVersion()).ToNot(Equal(origResourceVersion))
+				}
+			}
 		})
 	}
 }

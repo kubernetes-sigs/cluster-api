@@ -896,7 +896,7 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 	}
 
 	// Wait for cache update to ensure following reconcile gets latest change.
-	return ctrl.Result{}, clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "Machine creation", machinesAdded...)
+	return ctrl.Result{}, clientutil.WaitForObjectsToBeAddedToTheCache(ctx, r.Client, "Machine creation", machinesAdded...)
 }
 
 func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDelete int) (ctrl.Result, error) {
@@ -944,7 +944,7 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 	}
 
 	// Wait for cache update to ensure following reconcile gets latest change.
-	if err := clientutil.WaitForObjectsToBeDeletedFromTheCache(ctx, r.Client, "Machine deletion", machinesDeleted...); err != nil {
+	if err := clientutil.WaitForObjectsToBeDeletedFromTheCache(ctx, r.Client, "Machine deletion (scale down)", machinesDeleted...); err != nil {
 		errs = append(errs, err)
 	}
 	if len(errs) > 0 {

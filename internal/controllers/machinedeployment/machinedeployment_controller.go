@@ -354,7 +354,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			// Keep trying to get the MachineSet. This will force the cache to update and prevent any future reconciliation of
 			// the MachineDeployment to reconcile with an outdated list of MachineSets which could lead to unwanted creation of
 			// a duplicate MachineSet.
-			if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachineSet creation", ms); err != nil {
+			if err := clientutil.WaitForObjectsToBeAddedToTheCache(ctx, r.Client, "MachineSet creation", ms); err != nil {
 				return err
 			}
 

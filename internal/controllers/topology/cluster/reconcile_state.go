@@ -693,7 +693,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 	// Wait until MachineDeployment is visible in the cache.
 	// Note: We have to do this because otherwise using a cached client in current state could
 	// miss a newly created MachineDeployment (because the cache might be stale).
-	if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachineDeployment creation", md.Object); err != nil {
+	if err := clientutil.WaitForObjectsToBeAddedToTheCache(ctx, r.Client, "MachineDeployment creation", md.Object); err != nil {
 		return err
 	}
 
@@ -1016,7 +1016,7 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 	// Wait until MachinePool is visible in the cache.
 	// Note: We have to do this because otherwise using a cached client in current state could
 	// miss a newly created MachinePool (because the cache might be stale).
-	return clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachinePool creation", mp.Object)
+	return clientutil.WaitForObjectsToBeAddedToTheCache(ctx, r.Client, "MachinePool creation", mp.Object)
 }
 
 // updateMachinePool updates a MachinePool. Also updates the corresponding objects if necessary.

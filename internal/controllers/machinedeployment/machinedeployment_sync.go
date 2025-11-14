@@ -32,6 +32,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
+	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -335,6 +336,7 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 	sort.Sort(mdutil.MachineSetsByCreationTimestamp(cleanableMSes))
 	log.V(4).Info("Looking to cleanup old machine sets for deployment")
 
+	machineSetsDeleted := []*clusterv1.MachineSet{}
 	for i := range cleanableMSCount {
 		ms := cleanableMSes[i]
 		if ms.Spec.Replicas == nil {
@@ -353,10 +355,12 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedDelete", "Failed to delete MachineSet %q: %v", ms.Name, err)
 			return err
 		}
+		machineSetsDeleted = append(machineSetsDeleted, ms)
+
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 		log.Info("Deleting MachineSet (cleanup of old MachineSet)", "MachineSet", klog.KObj(ms))
 		r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted MachineSet %q", ms.Name)
 	}
 
-	return nil
+	return clientutil.WaitForObjectsToBeDeletedFromTheCache(ctx, r.Client, "MachineSet deletion (cleanup of old MachineSet)", machineSetsDeleted...)
 }

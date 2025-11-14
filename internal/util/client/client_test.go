@@ -57,6 +57,23 @@ func Test_WaitForCacheToBeUpToDate(t *testing.T) {
 			name: "no-op if no objects are passed in",
 		},
 		{
+			name: "error if passed in objects have no resourceVersion set",
+			objs: []client.Object{
+				machine("machine-1", "", nil),
+				machine("machine-2", "", nil),
+			},
+			clientResponses: map[client.ObjectKey][]client.Object{
+				{Namespace: metav1.NamespaceDefault, Name: "machine-1"}: {
+					machine("machine-1", "1", nil),
+				},
+				{Namespace: metav1.NamespaceDefault, Name: "machine-2"}: {
+					machine("machine-2", "2", nil),
+				},
+			},
+			wantErr: "failed to wait for up-to-date Machine objects in the cache after Machine update: " +
+				"default/machine-1: cannot compare with invalid resourceVersion: resourceVersion not set",
+		},
+		{
 			name: "error if passed in objects have invalid resourceVersion",
 			objs: []client.Object{
 				machine("machine-1", "invalidResourceVersion", nil),
@@ -70,7 +87,7 @@ func Test_WaitForCacheToBeUpToDate(t *testing.T) {
 					machine("machine-2", "2", nil),
 				},
 			},
-			wantErr: "failed to wait for up-to-date Machine objects in the cache after Machine creation: " +
+			wantErr: "failed to wait for up-to-date Machine objects in the cache after Machine update: " +
 				"default/machine-1: cannot compare with invalid resourceVersion: current: 1, expected to be >= invalidResourceVersion: resource version is not well formed: invalidResourceVersion",
 		},
 		{
@@ -87,11 +104,11 @@ func Test_WaitForCacheToBeUpToDate(t *testing.T) {
 					machine("machine-2", "invalidResourceVersion", nil),
 				},
 			},
-			wantErr: "failed to wait for up-to-date Machine objects in the cache after Machine creation: " +
+			wantErr: "failed to wait for up-to-date Machine objects in the cache after Machine update: " +
 				"default/machine-1: cannot compare with invalid resourceVersion: current: invalidResourceVersion, expected to be >= 1: resource version is not well formed: invalidResourceVersion",
 		},
 		{
-			name: "error if objects never show up in the cache",
+			name: "success if objects are never visible in the cache (deleted before WaitForCacheToBeUpToDate is called)",
 			objs: []client.Object{
 				machine("machine-1", "1", nil),
 				machine("machine-2", "2", nil),
@@ -99,23 +116,18 @@ func Test_WaitForCacheToBeUpToDate(t *testing.T) {
 				machine("machine-4", "4", nil),
 			},
 			clientResponses: map[client.ObjectKey][]client.Object{},
-			wantErr: "failed to wait for up-to-date Machine objects in the cache after Machine creation: timed out: [" +
-				"machines.cluster.x-k8s.io \"machine-1\" not found, " +
-				"machines.cluster.x-k8s.io \"machine-2\" not found, " +
-				"machines.cluster.x-k8s.io \"machine-3\" not found, " +
-				"machines.cluster.x-k8s.io \"machine-4\" not found]",
 		},
 		{
 			name: "success if objects are instantly up-to-date",
 			objs: []client.Object{
-				machine("machine-1", "", nil),
+				machine("machine-1", "1", nil),
 				machine("machine-2", "2", nil),
 				machine("machine-3", "3", nil),
 				machine("machine-4", "4", nil),
 			},
 			clientResponses: map[client.ObjectKey][]client.Object{
 				{Namespace: metav1.NamespaceDefault, Name: "machine-1"}: {
-					// For this object it's enough if it shows up, exact resourceVersion doesn't matter.
+					// This object has an even newer resourceVersion.
 					machine("machine-1", "5", nil),
 				},
 				{Namespace: metav1.NamespaceDefault, Name: "machine-2"}: {
@@ -133,14 +145,13 @@ func Test_WaitForCacheToBeUpToDate(t *testing.T) {
 		{
 			name: "success if objects are up-to-date after a few tries",
 			objs: []client.Object{
-				machine("machine-1", "", nil),
+				machine("machine-1", "1", nil),
 				machine("machine-2", "10", nil),
 				machine("machine-3", "11", nil),
 				machine("machine-4", "12", nil),
 			},
 			clientResponses: map[client.ObjectKey][]client.Object{
 				{Namespace: metav1.NamespaceDefault, Name: "machine-1"}: {
-					// For this object it's enough if it shows up, exact resourceVersion doesn't matter.
 					machine("machine-1", "4", nil),
 				},
 				{Namespace: metav1.NamespaceDefault, Name: "machine-2"}: {
@@ -195,7 +206,109 @@ func Test_WaitForCacheToBeUpToDate(t *testing.T) {
 				},
 			})
 
-			err := WaitForCacheToBeUpToDate(t.Context(), fakeClient, "Machine creation", tt.objs...)
+			err := WaitForCacheToBeUpToDate(t.Context(), fakeClient, "Machine update", tt.objs...)
+			if tt.wantErr != "" {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(Equal(tt.wantErr))
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+		})
+	}
+}
+
+func Test_WaitForObjectsToBeAddedToTheCache(t *testing.T) {
+	// Modify timeout to speed up test
+	waitBackoff = wait.Backoff{
+		Duration: 25 * time.Microsecond,
+		Cap:      2 * time.Second,
+		Factor:   1.2,
+		Steps:    5,
+	}
+
+	tests := []struct {
+		name            string
+		objs            []client.Object
+		clientResponses map[client.ObjectKey][]client.Object
+		wantErr         string
+	}{
+		{
+			name: "no-op if no objects are passed in",
+		},
+		{
+			name: "error if objects never show up in the cache",
+			objs: []client.Object{
+				machine("machine-1", "1", nil),
+				machine("machine-2", "2", nil),
+				machine("machine-3", "3", nil),
+				machine("machine-4", "4", nil),
+			},
+			clientResponses: map[client.ObjectKey][]client.Object{},
+			wantErr: "failed to wait for up-to-date Machine objects in the cache after Machine creation: timed out: [" +
+				"machines.cluster.x-k8s.io \"machine-1\" not found, " +
+				"machines.cluster.x-k8s.io \"machine-2\" not found, " +
+				"machines.cluster.x-k8s.io \"machine-3\" not found, " +
+				"machines.cluster.x-k8s.io \"machine-4\" not found]",
+		},
+		{
+			name: "success if objects instantly show up in the cache",
+			objs: []client.Object{
+				machine("machine-1", "1", nil),
+				machine("machine-2", "2", nil),
+				machine("machine-3", "3", nil),
+				machine("machine-4", "4", nil),
+			},
+			clientResponses: map[client.ObjectKey][]client.Object{
+				{Namespace: metav1.NamespaceDefault, Name: "machine-1"}: {
+					// This object has an even newer resourceVersion.
+					machine("machine-1", "5", nil),
+				},
+				{Namespace: metav1.NamespaceDefault, Name: "machine-2"}: {
+					machine("machine-2", "2", nil),
+				},
+				{Namespace: metav1.NamespaceDefault, Name: "machine-3"}: {
+					machine("machine-3", "3", nil),
+				},
+				{Namespace: metav1.NamespaceDefault, Name: "machine-4"}: {
+					// This object has an even newer resourceVersion.
+					machine("machine-4", "6", nil),
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			scheme := runtime.NewScheme()
+			_ = clusterv1.AddToScheme(scheme)
+
+			callCounter := map[client.ObjectKey]int{}
+			fakeClient := interceptor.NewClient(fake.NewClientBuilder().WithScheme(scheme).Build(), interceptor.Funcs{
+				Get: func(ctx context.Context, _ client.WithWatch, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
+					if len(tt.clientResponses) == 0 || len(tt.clientResponses[key]) == 0 {
+						return apierrors.NewNotFound(schema.GroupResource{
+							Group:    clusterv1.GroupVersion.Group,
+							Resource: "machines",
+						}, key.Name)
+					}
+
+					currentCall := callCounter[key]
+					currentCall = min(currentCall, len(tt.clientResponses[key])-1)
+
+					// Write back the modified object so callers can access the patched object.
+					if err := scheme.Convert(tt.clientResponses[key][currentCall], obj, ctx); err != nil {
+						return errors.Wrapf(err, "unexpected error: failed to get")
+					}
+
+					callCounter[key]++
+
+					return nil
+				},
+			})
+
+			err := WaitForObjectsToBeAddedToTheCache(t.Context(), fakeClient, "Machine creation", tt.objs...)
 			if tt.wantErr != "" {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErr))

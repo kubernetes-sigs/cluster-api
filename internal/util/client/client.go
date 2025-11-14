@@ -49,9 +49,18 @@ var (
 // all passed in objects with at least the passed in resourceVersion.
 // This is done by retrieving objects from the cache via the client and then comparing resourceVersions.
 // Note: This func will update the passed in objects while polling.
+// Note: resourceVersion must be set on the passed in objects.
 // Note: The generic parameter enforces that all objects have the same type.
 func WaitForCacheToBeUpToDate[T client.Object](ctx context.Context, c client.Client, action string, objs ...T) error {
 	return waitFor(ctx, c, action, checkIfObjectUpToDate, objs...)
+}
+
+// WaitForObjectsToBeAddedToTheCache waits until the cache is up-to-date in the sense of that the
+// passed in objects exist in the cache.
+// Note: This func will update the passed in objects while polling.
+// Note: The generic parameter enforces that all objects have the same type.
+func WaitForObjectsToBeAddedToTheCache[T client.Object](ctx context.Context, c client.Client, action string, objs ...T) error {
+	return waitFor(ctx, c, action, checkIfObjectAdded, objs...)
 }
 
 // WaitForObjectsToBeDeletedFromTheCache waits until the cache is up-to-date in the sense of that the
@@ -64,20 +73,19 @@ func WaitForObjectsToBeDeletedFromTheCache[T client.Object](ctx context.Context,
 
 // checkIfObjectUpToDate checks if an object is up-to-date and returns an error if it is not.
 func checkIfObjectUpToDate(ctx context.Context, c client.Client, desiredObj desiredObject) (isErrorRetryable bool, err error) {
+	if desiredObj.MinimumResourceVersion == "" {
+		// Unexpected error occurred: resourceVersion not set on passed in object (not retryable).
+		return false, errors.Errorf("%s: cannot compare with invalid resourceVersion: resourceVersion not set",
+			klog.KObj(desiredObj.Object))
+	}
+
 	if err := c.Get(ctx, desiredObj.Key, desiredObj.Object); err != nil {
 		if apierrors.IsNotFound(err) {
-			// Object is not yet in the cache (retryable).
-			return true, err
+			// Done, object was deleted in the meantime.
+			return false, nil
 		}
 		// Unexpected error occurred (not retryable).
 		return false, err
-	}
-
-	if desiredObj.MinimumResourceVersion == "" {
-		// Done, if MinimumResourceVersion is empty, as it is enough if the object exists in the cache.
-		// Note: This can happen when the ServerSidePatchHelper is used to create an object as the ServerSidePatchHelper
-		//       does not update the object after Apply and accordingly resourceVersion remains empty.
-		return false, nil
 	}
 
 	cmp, err := compareResourceVersion(desiredObj.Object.GetResourceVersion(), desiredObj.MinimumResourceVersion)
@@ -93,6 +101,20 @@ func checkIfObjectUpToDate(ctx context.Context, c client.Client, desiredObj desi
 	}
 
 	// Done, resourceVersion is new enough.
+	return false, nil
+}
+
+func checkIfObjectAdded(ctx context.Context, c client.Client, desiredObj desiredObject) (isErrorRetryable bool, err error) {
+	if err := c.Get(ctx, desiredObj.Key, desiredObj.Object); err != nil {
+		if apierrors.IsNotFound(err) {
+			// Object is not yet in the cache (retryable).
+			return true, err
+		}
+		// Unexpected error occurred (not retryable).
+		return false, err
+	}
+
+	// Done, object exists in the cache.
 	return false, nil
 }
 

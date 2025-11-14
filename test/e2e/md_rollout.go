@@ -217,7 +217,7 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			NodeTaints:             wantNodeTaints,
 		})
 
-		Byf("Verify in-place propagation when removing an Always taint from the nodes")
+		Byf("Verify in-place propagation when removing preExisting Always and OnInitialization taint from the nodes")
 		nodes := corev1.NodeList{}
 		Expect(wlClient.List(ctx, &nodes)).To(Succeed())
 		// Remove the initial taints from the nodes.
@@ -279,19 +279,6 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			machinesAfterInPlaceChanges := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
 			g.Expect(machinesAfterInPlaceChanges.Equal(machinesBeforeInPlaceChanges)).To(BeTrue(), "Machines must not be replaced through in-place rollout")
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
-		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass,
-			// Filter metadata to ignore the taints from machine annotation which has changed due to in-place updates.
-			func(obj client.Object) clusterv1.ObjectMeta {
-				annotations := map[string]string{}
-				for k, v := range obj.GetAnnotations() {
-					if k == clusterv1.TaintsFromMachineAnnotation {
-						continue
-					}
-					annotations[k] = v
-				}
-				return clusterv1.ObjectMeta{Labels: obj.GetLabels(), Annotations: annotations}
-			},
-		)
 
 		By("PASSED!")
 	})

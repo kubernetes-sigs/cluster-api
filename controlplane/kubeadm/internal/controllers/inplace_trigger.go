@@ -129,7 +129,8 @@ func (r *KubeadmControlPlaneReconciler) triggerInPlaceUpdate(ctx context.Context
 	// Note: Intentionally using client.Patch (via hooks.MarkAsPending + patchHelper) instead of SSA. Otherwise we would
 	//       have to ensure we preserve PendingHooksAnnotation on existing Machines in KCP and that would lead to race
 	//       conditions when the Machine controller tries to remove the annotation and KCP adds it back.
-	if err := hooks.MarkAsPending(ctx, r.Client, desiredMachine, runtimehooksv1.UpdateMachine); err != nil {
+	// Note: This call will update the resourceVersion on desiredMachine, so that WaitForCacheToBeUpToDate also considers this change.
+	if err := hooks.MarkAsPending(ctx, r.Client, desiredMachine, true, runtimehooksv1.UpdateMachine); err != nil {
 		return errors.Wrapf(err, "failed to complete triggering in-place update for Machine %s", klog.KObj(machine))
 	}
 

@@ -649,7 +649,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 		// After BeforeClusterUpgrade unblocked the upgrade, consider the upgrade started.
 		// As a consequence, the system start tracking the intent of calling AfterClusterUpgrade once the upgrade is complete.
 		// Note: this also prevent the BeforeClusterUpgrade to be called again (until after the upgrade is completed).
-		if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterClusterUpgrade); err != nil {
+		if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, false, runtimehooksv1.AfterClusterUpgrade); err != nil {
 			return "", err
 		}
 	}
@@ -685,7 +685,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 		if machineDeploymentPendingUpgrade || machinePoolPendingUpgrade {
 			hooksToBeCalled = append(hooksToBeCalled, runtimehooksv1.BeforeWorkersUpgrade, runtimehooksv1.AfterWorkersUpgrade)
 		}
-		if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, hooksToBeCalled...); err != nil {
+		if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, false, hooksToBeCalled...); err != nil {
 			return "", err
 		}
 	}

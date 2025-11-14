@@ -187,7 +187,7 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 			return false, err
 		}
 		if len(extensionHandlers) == 0 {
-			if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
+			if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, false, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
 				return false, err
 			}
 			return true, nil
@@ -220,7 +220,7 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 			)
 			return false, nil
 		}
-		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
+		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, false, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
 			return false, err
 		}
 
@@ -248,7 +248,7 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 			return false, err
 		}
 		if len(extensionHandlers) == 0 {
-			if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.BeforeWorkersUpgrade); err != nil {
+			if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, false, runtimehooksv1.BeforeWorkersUpgrade); err != nil {
 				return false, err
 			}
 			return true, nil
@@ -282,7 +282,7 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 			)
 			return false, nil
 		}
-		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.BeforeWorkersUpgrade); err != nil {
+		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, false, runtimehooksv1.BeforeWorkersUpgrade); err != nil {
 			return false, err
 		}
 
@@ -311,7 +311,7 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 			return false, err
 		}
 		if len(extensionHandlers) == 0 {
-			if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterWorkersUpgrade); err != nil {
+			if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, false, runtimehooksv1.AfterWorkersUpgrade); err != nil {
 				return false, err
 			}
 			return true, nil
@@ -344,7 +344,7 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 			)
 			return false, nil
 		}
-		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, runtimehooksv1.AfterWorkersUpgrade); err != nil {
+		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, false, runtimehooksv1.AfterWorkersUpgrade); err != nil {
 			return false, err
 		}
 

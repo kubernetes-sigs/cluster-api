@@ -556,6 +556,7 @@ This allows to gain experience and the ability to do adjustments and graduate th
 - [ ] 2025-06-06: Open proposal PR
 - [ ] 2025-10-13: Reworked the proposal based on feedback
 - [ ] 2025-10-21: Review feedback and discussions
+- [ ] 2025-11-12: Implementation for Machine, MachineSet and MachineDeployments
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI/edit#heading=h.pxsq37pzkbdq

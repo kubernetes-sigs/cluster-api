@@ -30,12 +30,15 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
+	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -404,14 +407,15 @@ func TestReconcileInfrastructure(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                 string
-		contract             string
-		machine              *clusterv1.Machine
-		infraMachine         map[string]interface{}
-		infraMachineGetError error
-		expectResult         ctrl.Result
-		expectError          bool
-		expected             func(g *WithT, m *clusterv1.Machine)
+		name                     string
+		contract                 string
+		machine                  *clusterv1.Machine
+		infraMachine             map[string]interface{}
+		infraMachineGetError     error
+		expectResult             ctrl.Result
+		expectError              bool
+		expected                 func(g *WithT, m *clusterv1.Machine)
+		expectDeferNextReconcile time.Duration
 	}{
 		{
 			name:                 "err reading infra machine (something different than not found), it should return error",
@@ -695,9 +699,10 @@ func TestReconcileInfrastructure(t *testing.T) {
 					"ready": true,
 				},
 			},
-			infraMachineGetError: nil,
-			expectResult:         ctrl.Result{},
-			expectError:          false,
+			infraMachineGetError:     nil,
+			expectResult:             ctrl.Result{},
+			expectError:              false,
+			expectDeferNextReconcile: 5 * time.Second,
 		},
 		{
 			name:     "should never revert back to infrastructure not ready",
@@ -974,8 +979,11 @@ func TestReconcileInfrastructure(t *testing.T) {
 				g.Expect(c.Create(ctx, infraMachine)).To(Succeed())
 			}
 
+			fc := capicontrollerutil.NewFakeController()
+
 			r := &Reconciler{
-				Client: c,
+				Client:     c,
+				controller: fc,
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
@@ -994,6 +1002,15 @@ func TestReconcileInfrastructure(t *testing.T) {
 
 			if tc.expected != nil {
 				tc.expected(g, tc.machine)
+			}
+
+			if tc.expectDeferNextReconcile == 0 {
+				g.Expect(fc.Deferrals).To(BeEmpty())
+			} else {
+				g.Expect(fc.Deferrals).To(HaveKeyWithValue(
+					reconcile.Request{NamespacedName: client.ObjectKeyFromObject(s.machine)},
+					BeTemporally("~", time.Now().Add(tc.expectDeferNextReconcile), 1*time.Second)),
+				)
 			}
 		})
 	}

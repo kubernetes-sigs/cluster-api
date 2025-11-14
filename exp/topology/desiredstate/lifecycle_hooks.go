@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -31,6 +32,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/internal/hooks"
+	"sigs.k8s.io/cluster-api/util/cache"
 )
 
 // callBeforeClusterUpgradeHook calls the BeforeClusterUpgrade at the beginning of an upgrade.
@@ -81,6 +83,14 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 			return true, nil
 		}
 
+		if cacheEntry, ok := g.hookCache.Has(cache.NewHookEntryKey(s.Current.Cluster, runtimehooksv1.BeforeClusterUpgrade)); ok {
+			if requeueAfter, requeue := cacheEntry.ShouldRequeue(time.Now()); requeue {
+				log.V(5).Info(fmt.Sprintf("Skip calling BeforeClusterUpgrade hook, retry after %s", requeueAfter))
+				s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, cacheEntry.ToResponse(&runtimehooksv1.BeforeClusterUpgradeResponse{}, requeueAfter))
+				return false, nil
+			}
+		}
+
 		v1beta1Cluster := &clusterv1beta1.Cluster{}
 		// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
 		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
@@ -103,7 +113,8 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 
 		if hookResponse.RetryAfterSeconds != 0 {
 			// Cannot pickup the new version right now. Need to try again later.
-			log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s is blocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)),
+			g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.BeforeClusterUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
+			log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s is blocked by %s hook, retry after %ds", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade), hookResponse.RetryAfterSeconds),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 				"WorkersUpgrades", hookRequest.WorkersUpgrades,
 			)
@@ -134,6 +145,14 @@ func (g *generator) callBeforeControlPlaneUpgradeHook(ctx context.Context, s *sc
 		return true, nil
 	}
 
+	if cacheEntry, ok := g.hookCache.Has(cache.NewHookEntryKey(s.Current.Cluster, runtimehooksv1.BeforeControlPlaneUpgrade)); ok {
+		if requeueAfter, requeue := cacheEntry.ShouldRequeue(time.Now()); requeue {
+			log.V(5).Info(fmt.Sprintf("Skip calling BeforeControlPlaneUpgrade hook, retry after %s", requeueAfter))
+			s.HookResponseTracker.Add(runtimehooksv1.BeforeControlPlaneUpgrade, cacheEntry.ToResponse(&runtimehooksv1.BeforeControlPlaneUpgradeResponse{}, requeueAfter))
+			return false, nil
+		}
+	}
+
 	// NOTE: the hook should always be called before piking up a new version.
 	v1beta1Cluster := &clusterv1beta1.Cluster{}
 	// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
@@ -157,7 +176,8 @@ func (g *generator) callBeforeControlPlaneUpgradeHook(ctx context.Context, s *sc
 
 	if hookResponse.RetryAfterSeconds != 0 {
 		// Cannot pickup the new version right now. Need to try again later.
-		log.Info(fmt.Sprintf("Control plane upgrade from version %s to version %s is blocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade)),
+		g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.BeforeControlPlaneUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
+		log.Info(fmt.Sprintf("Control plane upgrade from version %s to version %s is blocked by %s hook, retry after %ds", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade), hookResponse.RetryAfterSeconds),
 			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 			"WorkersUpgrades", hookRequest.WorkersUpgrades,
 		)
@@ -193,6 +213,14 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 			return true, nil
 		}
 
+		if cacheEntry, ok := g.hookCache.Has(cache.NewHookEntryKey(s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade)); ok {
+			if requeueAfter, requeue := cacheEntry.ShouldRequeue(time.Now()); requeue {
+				log.V(5).Info(fmt.Sprintf("Skip calling AfterControlPlaneUpgrade hook, retry after %s", requeueAfter))
+				s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, cacheEntry.ToResponse(&runtimehooksv1.AfterControlPlaneUpgradeResponse{}, requeueAfter))
+				return false, nil
+			}
+		}
+
 		// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
 		v1beta1Cluster := &clusterv1beta1.Cluster{}
 		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
@@ -214,7 +242,8 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 		s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, hookResponse)
 
 		if hookResponse.RetryAfterSeconds != 0 {
-			log.Info(fmt.Sprintf("Control plane upgrade to version %s completed but next steps are blocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)),
+			g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
+			log.Info(fmt.Sprintf("Control plane upgrade to version %s completed but next steps are blocked by %s hook, retry after %ds", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade), hookResponse.RetryAfterSeconds),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 				"WorkersUpgrades", hookRequest.WorkersUpgrades,
 			)
@@ -254,6 +283,14 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 			return true, nil
 		}
 
+		if cacheEntry, ok := g.hookCache.Has(cache.NewHookEntryKey(s.Current.Cluster, runtimehooksv1.BeforeWorkersUpgrade)); ok {
+			if requeueAfter, requeue := cacheEntry.ShouldRequeue(time.Now()); requeue {
+				log.V(5).Info(fmt.Sprintf("Skip calling BeforeWorkersUpgrade hook, retry after %s", requeueAfter))
+				s.HookResponseTracker.Add(runtimehooksv1.BeforeWorkersUpgrade, cacheEntry.ToResponse(&runtimehooksv1.BeforeWorkersUpgradeResponse{}, requeueAfter))
+				return false, nil
+			}
+		}
+
 		// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
 		v1beta1Cluster := &clusterv1beta1.Cluster{}
 		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
@@ -276,7 +313,8 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 
 		if hookResponse.RetryAfterSeconds != 0 {
 			// Cannot pickup the new version right now. Need to try again later.
-			log.Info(fmt.Sprintf("Workers upgrade from version %s to version %s is blocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeWorkersUpgrade)),
+			g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.BeforeWorkersUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
+			log.Info(fmt.Sprintf("Workers upgrade from version %s to version %s is blocked by %s hook, retry after %ds", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeWorkersUpgrade), hookResponse.RetryAfterSeconds),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 				"WorkersUpgrades", hookRequest.WorkersUpgrades,
 			)
@@ -317,6 +355,14 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 			return true, nil
 		}
 
+		if cacheEntry, ok := g.hookCache.Has(cache.NewHookEntryKey(s.Current.Cluster, runtimehooksv1.AfterWorkersUpgrade)); ok {
+			if requeueAfter, requeue := cacheEntry.ShouldRequeue(time.Now()); requeue {
+				log.V(5).Info(fmt.Sprintf("Skip calling AfterWorkersUpgrade hook, retry after %s", requeueAfter))
+				s.HookResponseTracker.Add(runtimehooksv1.AfterWorkersUpgrade, cacheEntry.ToResponse(&runtimehooksv1.AfterWorkersUpgradeResponse{}, requeueAfter))
+				return false, nil
+			}
+		}
+
 		// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
 		v1beta1Cluster := &clusterv1beta1.Cluster{}
 		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
@@ -338,7 +384,8 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 		s.HookResponseTracker.Add(runtimehooksv1.AfterWorkersUpgrade, hookResponse)
 
 		if hookResponse.RetryAfterSeconds != 0 {
-			log.Info(fmt.Sprintf("Workers upgrade to version %s completed but next steps are blocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)),
+			g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.AfterWorkersUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
+			log.Info(fmt.Sprintf("Workers upgrade to version %s completed but next steps are blocked by %s hook, retry after %ds", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade), hookResponse.RetryAfterSeconds),
 				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
 				"WorkersUpgrades", hookRequest.WorkersUpgrades,
 			)

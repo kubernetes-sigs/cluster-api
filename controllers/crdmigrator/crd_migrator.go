@@ -45,6 +45,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/contract"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -121,7 +122,7 @@ func (r *CRDMigrator) SetupWithManager(ctx context.Context, mgr ctrl.Manager, co
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "crdmigrator")
-	err := ctrl.NewControllerManagedBy(mgr).
+	err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&apiextensionsv1.CustomResourceDefinition{},
 			// This controller uses a PartialObjectMetadata watch/informer to avoid an informer for CRDs
 			// to reduce memory usage.

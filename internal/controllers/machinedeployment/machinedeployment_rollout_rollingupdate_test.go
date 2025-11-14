@@ -124,7 +124,7 @@ func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			planner := newRolloutPlanner(nil, nil)
+			planner := newRolloutPlanner(nil, nil, nil)
 			planner.md = tc.md
 			planner.newMS = tc.newMS
 			if tc.originalNewMS != nil {
@@ -355,7 +355,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			planner := newRolloutPlanner(nil, nil)
+			planner := newRolloutPlanner(nil, nil, nil)
 			planner.md = tc.machineDeployment
 			planner.newMS = tc.newMachineSet
 			planner.oldMSs = tc.oldMachineSets
@@ -1256,7 +1256,7 @@ func TestReconcileInPlaceUpdateIntent(t *testing.T) {
 
 			canUpdateCalls := make(map[string]bool)
 
-			planner := newRolloutPlanner(nil, nil)
+			planner := newRolloutPlanner(nil, nil, nil)
 			planner.md = tc.md
 			planner.newMS = tc.newMS
 			planner.oldMSs = tc.oldMS
@@ -1864,7 +1864,7 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 				fLogger.Logf("[MD controller] Iteration %d, Reconcile md", i)
 
 				// Running a small subset of MD reconcile (the rollout logic and a bit of setReplicas)
-				p := newRolloutPlanner(nil, nil)
+				p := newRolloutPlanner(nil, nil, nil)
 				p.overrideCanUpdateMachineSetInPlace = func(_ context.Context, _, _ *clusterv1.MachineSet) (bool, error) { return false, nil }
 				if tt.overrideCanUpdateMachineSetInPlaceFunc != nil {
 					p.overrideCanUpdateMachineSetInPlace = tt.overrideCanUpdateMachineSetInPlaceFunc

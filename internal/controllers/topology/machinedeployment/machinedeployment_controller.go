@@ -33,6 +33,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/machineset"
+	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/finalizers"
@@ -69,12 +70,11 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return err
 	}
 
-	err = ctrl.NewControllerManagedBy(mgr).
+	err = capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&clusterv1.MachineDeployment{},
 			builder.WithPredicates(
-				predicates.All(mgr.GetScheme(), predicateLog,
-					predicates.ResourceIsTopologyOwned(mgr.GetScheme(), predicateLog),
-					predicates.ResourceNotPaused(mgr.GetScheme(), predicateLog)),
+				predicates.ResourceIsTopologyOwned(mgr.GetScheme(), predicateLog),
+				predicates.ResourceNotPaused(mgr.GetScheme(), predicateLog),
 			),
 		).
 		Named("topology/machinedeployment").
@@ -83,13 +83,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
-			builder.WithPredicates(
-				predicates.All(mgr.GetScheme(), predicateLog,
-					predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
-					predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
-					predicates.ClusterHasTopology(mgr.GetScheme(), predicateLog),
-				),
-			),
+			predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
+			predicates.ClusterHasTopology(mgr.GetScheme(), predicateLog),
 		).
 		Complete(r)
 	if err != nil {

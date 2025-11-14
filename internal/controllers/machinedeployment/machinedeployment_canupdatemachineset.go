@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -36,6 +37,18 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/patch"
 )
+
+// CanUpdateMachineSetCacheEntry is an entry for the CanUpdateMachineSet hook cache.
+type CanUpdateMachineSetCacheEntry struct {
+	OldMS               client.ObjectKey
+	NewMS               client.ObjectKey
+	CanUpdateMachineSet bool
+}
+
+// Key returns the cache key of a CanUpdateMachineSetCacheEntry.
+func (r CanUpdateMachineSetCacheEntry) Key() string {
+	return fmt.Sprintf("%s => %s", r.OldMS, r.NewMS)
+}
 
 func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (bool, error) {
 	if p.overrideCanUpdateMachineSetInPlace != nil {
@@ -72,10 +85,27 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, 
 		return false, errors.Errorf("found multiple CanUpdateMachineSet hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
 	}
 
+	entry := CanUpdateMachineSetCacheEntry{
+		OldMS: client.ObjectKeyFromObject(oldMS),
+		NewMS: client.ObjectKeyFromObject(newMS),
+	}
+
+	if cacheEntry, ok := p.canUpdateMachineSetCache.Has(entry.Key()); ok {
+		if cacheEntry.CanUpdateMachineSet {
+			log.V(5).Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions (cached)", oldMS.Name))
+		} else {
+			log.V(5).Info(fmt.Sprintf("MachineSet %s cannot be updated in-place by extensions (cached)", oldMS.Name))
+		}
+		return cacheEntry.CanUpdateMachineSet, nil
+	}
+
 	canUpdateMachineSet, reasons, err := p.canExtensionsUpdateMachineSet(ctx, oldMS, newMS, templateObjects, extensionHandlers)
 	if err != nil {
 		return false, err
 	}
+	entry.CanUpdateMachineSet = canUpdateMachineSet
+	p.canUpdateMachineSetCache.Add(entry)
+
 	if !canUpdateMachineSet {
 		log.Info(fmt.Sprintf("MachineSet %s cannot be updated in-place by extensions", oldMS.Name), "reason", strings.Join(reasons, ","))
 		return false, nil

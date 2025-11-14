@@ -38,6 +38,7 @@ import (
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/internal/util/patch"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -81,6 +82,7 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 		wantCanUpdateMachineSet                 bool
 		wantError                               bool
 		wantErrorMessage                        string
+		wantCacheEntry                          *CanUpdateMachineSetCacheEntry
 	}{
 		{
 			name:             "Return error if oldMS infrastructureRef is not set",
@@ -159,6 +161,11 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			},
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSet:                 false,
+			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
+				OldMS:               client.ObjectKeyFromObject(oldMS),
+				NewMS:               client.ObjectKeyFromObject(newMS),
+				CanUpdateMachineSet: false,
+			},
 		},
 		{
 			name:                               "Return true if canExtensionsUpdateMachineSet returns true",
@@ -179,6 +186,11 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			},
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSet:                 true,
+			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
+				OldMS:               client.ObjectKeyFromObject(oldMS),
+				NewMS:               client.ObjectKeyFromObject(newMS),
+				CanUpdateMachineSet: true,
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -216,10 +228,13 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 
 			fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 
+			canUpdateMachineSetCache := cache.New[CanUpdateMachineSetCacheEntry](cache.HookCacheDefaultTTL)
+
 			var canExtensionsUpdateMachineSetCalled bool
 			p := &rolloutPlanner{
-				RuntimeClient: runtimeClient,
-				Client:        fakeClient,
+				RuntimeClient:            runtimeClient,
+				Client:                   fakeClient,
+				canUpdateMachineSetCache: canUpdateMachineSetCache,
 				overrideCanExtensionsUpdateMachineSet: func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (bool, []string, error) {
 					canExtensionsUpdateMachineSetCalled = true
 					return tt.canExtensionsUpdateMachineSetFunc(ctx, oldMS, newMS, templateObjects, extensionHandlers)
@@ -236,6 +251,26 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			g.Expect(canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
 
 			g.Expect(canExtensionsUpdateMachineSetCalled).To(Equal(tt.wantCanExtensionsUpdateMachineSetCalled), "canExtensionsUpdateMachineSetCalled: actual: %t expected: %t", canExtensionsUpdateMachineSetCalled, tt.wantCanExtensionsUpdateMachineSetCalled)
+
+			cacheEntry, ok := canUpdateMachineSetCache.Has(CanUpdateMachineSetCacheEntry{
+				OldMS: client.ObjectKeyFromObject(oldMS),
+				NewMS: client.ObjectKeyFromObject(newMS),
+			}.Key())
+			if tt.wantCacheEntry == nil {
+				g.Expect(ok).To(BeFalse())
+				g.Expect(cacheEntry).To(Equal(CanUpdateMachineSetCacheEntry{}))
+			} else {
+				// Verify the cache entry.
+				g.Expect(ok).To(BeTrue())
+				g.Expect(cacheEntry).To(Equal(*tt.wantCacheEntry))
+
+				// Call canUpdateMachineSetInPlace again and verify the cache hit.
+				canExtensionsUpdateMachineSetCalled = false
+				canUpdateMachineSet, err := p.canUpdateMachineSetInPlace(ctx, oldMS, newMS)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(canUpdateMachineSet).To(Equal(tt.wantCanUpdateMachineSet))
+				g.Expect(canExtensionsUpdateMachineSetCalled).To(BeFalse())
+			}
 		})
 	}
 }

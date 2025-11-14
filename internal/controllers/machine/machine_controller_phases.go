@@ -333,6 +333,8 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		log.Info(fmt.Sprintf("Waiting for infrastructure provider to set %s on %s",
 			contract.InfrastructureMachine().ProviderID().Path().String(), s.infraMachine.GetKind()),
 			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
+		// Slow down reconcile frequency, provisioning infrastructure takes some time.
+		r.controller.DeferNextReconcileForObject(s.machine, time.Now().Add(5*time.Second))
 		return ctrl.Result{}, nil // Note: Requeue is not needed, changes to InfraMachine trigger another reconcile.
 	}
 

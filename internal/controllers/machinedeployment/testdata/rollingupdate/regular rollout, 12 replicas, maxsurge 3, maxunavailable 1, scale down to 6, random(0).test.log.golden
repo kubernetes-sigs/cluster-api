@@ -1,59 +1,54 @@
 ## Regular rollout, 12 Replicas, maxSurge 3, maxUnavailable 1, scale down to 6, random(0)
 
 [Test] Initial state
-  md, 6/6 replicas
-  - ms1, 9/9 replicas (m4,m5,m6,m7,m8,m9,m10,m11,m12)
-  - ms2, 3/3 replicas (m13,m14,m15)
+    md: 6/6 replicas, 6 available, 0 upToDate
+    ms1: 9/9 replicas, 9 available, 0 upToDate (m4,m5,m6,m7,m8,m9,m10,m11,m12)
+    ms2: 3/3 replicas, 3 available, 0 upToDate (m13,m14,m15)
 [Test] Rollout 12 replicas, MaxSurge=3, MaxUnavailable=1, random(0)
-[MS controller] Iteration 1, Reconcile ms2, 3/3 replicas (m13,m14,m15)
-[MS controller] Iteration 1, Reconcile ms1, 9/9 replicas (m4,m5,m6,m7,m8,m9,m10,m11,m12)
+[MS controller] Iteration 1, Reconcile ms2: 3/3 replicas, 3 available, 0 upToDate (m13,m14,m15)
+[MS controller] Iteration 1, Reconcile ms1: 9/9 replicas, 9 available, 0 upToDate (m4,m5,m6,m7,m8,m9,m10,m11,m12)
 [MD controller] Iteration 1, Reconcile md
-[MD controller] - Input to rollout planner
-  md, 6/6 replicas
-  - ms1, 9/9 replicas (m4,m5,m6,m7,m8,m9,m10,m11,m12)
-  - ms2, 3/3 replicas (m13,m14,m15)
 [MD controller] - Result of rollout planner
-  md, 12/6 replicas
-  - ms1, 9/2 replicas (m4,m5,m6,m7,m8,m9,m10,m11,m12)
-  - ms2, 3/3 replicas (m13,m14,m15)
+    md: md: 12/6 replicas, 12 available, 3 upToDate
+    ms1: from 9/9 to 9/2 replicas, 9 available, 0 upToDate (m4,m5,m6,m7,m8,m9,m10,m11,m12)
+      - Scaled down old MachineSet ms1 from 9 to 2 replicas (-7)
+        - Reason: 12 available replicas > 5 minimum available replicas
+        - Diff: replicas 2,cluster.x-k8s.io/disable-machine-create: false
+    ms2: 3/3 replicas, 3 available, 3 upToDate (m13,m14,m15)
+      - Updated current MachineSet ms2
+        - Diff: machinedeployment.clusters.x-k8s.io/revision: 1,cluster.x-k8s.io/disable-machine-create: false
 [Toleration] tolerate maxSurge breach
-[MS controller] Iteration 2, Reconcile ms1, 9/2 replicas (m4,m5,m6,m7,m8,m9,m10,m11,m12)
+[MS controller] Iteration 2, Reconcile ms1: 9/2 replicas, 9 available, 0 upToDate (m4,m5,m6,m7,m8,m9,m10,m11,m12)
 [MS controller] - ms1 scale down to 2/2 replicas (m4,m5,m6,m7,m8,m9,m10 deleted)
-[MS controller] Iteration 2, Reconcile ms1, 2/2 replicas (m11,m12)
+[MS controller] Iteration 2, Reconcile ms1: 2/2 replicas, 2 available, 0 upToDate (m11,m12)
 [MD controller] Iteration 3, Reconcile md
-[MD controller] - Input to rollout planner
-  md, 12/6 replicas
-  - ms1, 2/2 replicas (m11,m12)
-  - ms2, 3/3 replicas (m13,m14,m15)
 [MD controller] - Result of rollout planner
-  md, 5/6 replicas
-  - ms1, 2/2 replicas (m11,m12)
-  - ms2, 3/6 replicas (m13,m14,m15)
-[MS controller] Iteration 3, Reconcile ms2, 3/6 replicas (m13,m14,m15)
+    md: md: 5/6 replicas, 5 available, 3 upToDate
+    ms1: 2/2 replicas, 2 available, 0 upToDate (m11,m12)
+    ms2: from 3/3 to 3/6 replicas, 3 available, 3 upToDate (m13,m14,m15)
+      - Scaled up current MachineSet ms2 from 3 to 6 replicas (+3)
+        - Reason: 5 current Machines < 6 MachineDeployment spec.replicas + 3 maxSurge
+        - Diff: replicas 6
+[MS controller] Iteration 3, Reconcile ms2: 3/6 replicas, 3 available, 3 upToDate (m13,m14,m15)
 [MS controller] - ms2 scale up to 6/6 replicas (m16,m17,m18 created)
 [MD controller] Iteration 4, Reconcile md
-[MD controller] - Input to rollout planner
-  md, 5/6 replicas
-  - ms1, 2/2 replicas (m11,m12)
-  - ms2, 6/6 replicas (m13,m14,m15,m16,m17,m18)
 [MD controller] - Result of rollout planner
-  md, 8/6 replicas
-  - ms1, 2/0 replicas (m11,m12)
-  - ms2, 6/6 replicas (m13,m14,m15,m16,m17,m18)
-[MS controller] Iteration 4, Reconcile ms1, 2/0 replicas (m11,m12)
+    md: md: 8/6 replicas, 8 available, 6 upToDate
+    ms1: from 2/2 to 2/0 replicas, 2 available, 0 upToDate (m11,m12)
+      - Scaled down old MachineSet ms1 from 2 to 0 replicas (-2)
+        - Reason: 8 available replicas > 5 minimum available replicas
+        - Diff: replicas 0
+    ms2: 6/6 replicas, 6 available, 6 upToDate (m13,m14,m15,m16,m17,m18)
+[MS controller] Iteration 4, Reconcile ms1: 2/0 replicas, 2 available, 0 upToDate (m11,m12)
 [MS controller] - ms1 scale down to 0/0 replicas (m11,m12 deleted)
-[MS controller] Iteration 4, Reconcile ms2, 6/6 replicas (m13,m14,m15,m16,m17,m18)
-[MS controller] Iteration 5, Reconcile ms2, 6/6 replicas (m13,m14,m15,m16,m17,m18)
+[MS controller] Iteration 4, Reconcile ms2: 6/6 replicas, 6 available, 6 upToDate (m13,m14,m15,m16,m17,m18)
+[MS controller] Iteration 5, Reconcile ms2: 6/6 replicas, 6 available, 6 upToDate (m13,m14,m15,m16,m17,m18)
 [MD controller] Iteration 5, Reconcile md
-[MD controller] - Input to rollout planner
-  md, 8/6 replicas
-  - ms1, 0/0 replicas ()
-  - ms2, 6/6 replicas (m13,m14,m15,m16,m17,m18)
 [MD controller] - Result of rollout planner
-  md, 6/6 replicas
-  - ms1, 0/0 replicas ()
-  - ms2, 6/6 replicas (m13,m14,m15,m16,m17,m18)
+    md: md: 6/6 replicas, 6 available, 6 upToDate
+    ms1: 0/0 replicas, 0 available, 0 upToDate ()
+    ms2: 6/6 replicas, 6 available, 6 upToDate (m13,m14,m15,m16,m17,m18)
 [Test] Final state
-  md, 6/6 replicas
-  - ms1, 0/0 replicas ()
-  - ms2, 6/6 replicas (m13,m14,m15,m16,m17,m18)
+    md: 6/6 replicas, 6 available, 6 upToDate
+    ms1: 0/0 replicas, 0 available, 0 upToDate ()
+    ms2: 6/6 replicas, 6 available, 6 upToDate (m13,m14,m15,m16,m17,m18)

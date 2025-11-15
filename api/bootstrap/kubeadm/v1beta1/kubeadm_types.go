@@ -265,7 +265,7 @@ type NodeRegistrationOptions struct {
 	// +kubebuilder:validation:MaxLength=253
 	Name string `json:"name,omitempty"`
 
-	// criSocket is used to retrieve container runtime info. This information will be annotated to the Node API object, for later re-use
+	// criSocket is used to retrieve container runtime info. This information will be annotated to the Node API object, for later reuse
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
@@ -314,7 +314,7 @@ type NodeRegistrationOptions struct {
 // * [regular-array] => rendered as usual
 // We have to do this as the regular Golang JSON marshalling would just omit
 // the empty slice (xref: https://github.com/golang/go/issues/22480).
-// Note: We can't re-use the original struct as that would lead to an infinite recursion.
+// Note: We can't reuse the original struct as that would lead to an infinite recursion.
 // Note: The structs in this func have to be kept in sync with the NodeRegistrationOptions struct.
 func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 	// Marshal an empty Taints slice array without omitempty so it's preserved.
@@ -515,7 +515,7 @@ type JoinConfiguration struct {
 	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
 
 	// caCertPath is the path to the SSL certificate authority used to
-	// secure comunications between node and control-plane.
+	// secure communications between node and control-plane.
 	// Defaults to "/etc/kubernetes/pki/ca.crt".
 	// +optional
 	// TODO: revisit when there is defaulting from k/k
@@ -861,7 +861,7 @@ func (bts BootstrapTokenString) String() string {
 // is of the right format.
 func NewBootstrapTokenString(token string) (*BootstrapTokenString, error) {
 	substrs := bootstraputil.BootstrapTokenRegexp.FindStringSubmatch(token)
-	// TODO: Add a constant for the 3 value here, and explain better why it's needed (other than because how the regexp parsin works)
+	// TODO: Add a constant for the 3 value here, and explain better why it's needed (other than because how the regexp parsing works)
 	if len(substrs) != 3 {
 		return nil, errors.Errorf("the bootstrap token %q was not of the form %q", token, bootstrapapi.BootstrapTokenPattern)
 	}

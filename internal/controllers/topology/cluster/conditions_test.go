@@ -966,6 +966,50 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				"  * Following hooks are blocking upgrade: AfterClusterUpgrade: msg",
 		},
 
+		//  Message edge cases
+
+		{
+			name:         "Should drop fist version from pending upgrade",
+			reconcileErr: nil,
+			s: &scope.Scope{
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						Spec: clusterv1.ClusterSpec{
+							ControlPlaneRef:   clusterv1.ContractVersionedObjectReference{Name: "controlplane1"},
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{Name: "infra1"},
+							Topology: clusterv1.Topology{
+								Version: "v1.23.0",
+							},
+						},
+					},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: builder.ControlPlane("ns1", "controlplane1").WithVersion("v1.22.0").Build(),
+					},
+				},
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.UpgradePlan = []string{}
+					ut.MachineDeployments.UpgradePlan = []string{"v1.22.0", "v1.23.0"}
+					ut.MachineDeployments.MarkUpgrading("md1")
+					ut.MachineDeployments.MarkPendingUpgrade("md2")
+					ut.MachineDeployments.MarkPendingUpgrade("md3")
+					ut.MachineDeployments.MarkPendingUpgrade("md4")
+					return ut
+				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			},
+			wantV1Beta1ConditionStatus: corev1.ConditionFalse,
+			wantV1Beta1ConditionReason: clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason,
+			wantV1Beta1ConditionMessage: "Cluster is upgrading to v1.23.0\n" +
+				"  * MachineDeployment md1 upgrading to version v1.22.0 (v1.23.0 pending)\n" + // v1.22.0 dropped from the pending list
+				"  * MachineDeployments md2, md3, md4 pending upgrade to version v1.22.0, v1.23.0",
+			wantConditionStatus: metav1.ConditionFalse,
+			wantConditionReason: clusterv1.ClusterTopologyReconciledClusterUpgradingReason,
+			wantConditionMessage: "Cluster is upgrading to v1.23.0\n" +
+				"  * MachineDeployment md1 upgrading to version v1.22.0 (v1.23.0 pending)\n" + // v1.22.0 dropped from the pending list
+				"  * MachineDeployments md2, md3, md4 pending upgrade to version v1.22.0, v1.23.0",
+		},
+
 		// Hold & defer upgrade
 
 		{
@@ -1129,6 +1173,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 
 			objs := []client.Object{}
 			if tt.s != nil && tt.s.Current != nil {
+				tt.s.Desired = &scope.ClusterState{}
+				tt.s.Desired.Cluster = tt.s.Current.Cluster.DeepCopy()
+				if tt.s.Current.ControlPlane != nil {
+					tt.s.Desired.ControlPlane = &scope.ControlPlaneState{}
+					tt.s.Desired.ControlPlane.Object = tt.s.Current.ControlPlane.Object.DeepCopy()
+				}
 				for _, md := range tt.s.Current.MachineDeployments {
 					objs = append(objs, md.Object)
 				}

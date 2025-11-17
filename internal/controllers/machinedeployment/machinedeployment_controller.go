@@ -19,6 +19,7 @@ package machinedeployment
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -332,24 +333,53 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 // Note: When the newMS has been created by the rollout planner, also wait for the cache to be up to date.
 func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(ctx context.Context, p *rolloutPlanner) error {
 	log := ctrl.LoggerFrom(ctx)
-	allMSs := append(p.oldMSs, p.newMS)
 
+	// Note: newMS goes first so in the logs we will have first create/scale up newMS, then scale down oldMSs
+	allMSs := append([]*clusterv1.MachineSet{p.newMS}, p.oldMSs...)
+
+	// Get all the diff introduced by the rollout planner.
+	// Note: collect all the diff first, so for each change we can add an overview of all the MachineSets
+	// in the MachineDeployment, because those info are required to understand why a change happened.
+	machineSetsDiff := map[string]machineSetDiff{}
+	machineSetsSummary := map[string]string{}
 	for _, ms := range allMSs {
-		log = log.WithValues("MachineSet", klog.KObj(ms))
-		ctx = ctrl.LoggerInto(ctx, log)
-
+		// Update spec.Replicas in the MachineSet.
 		if scaleIntent, ok := p.scaleIntents[ms.Name]; ok {
-			ms.Spec.Replicas = &scaleIntent
+			ms.Spec.Replicas = ptr.To(scaleIntent)
 		}
 
-		if ms.GetUID() == "" {
+		diff := p.getMachineSetDiff(ms)
+		machineSetsDiff[ms.Name] = diff
+		machineSetsSummary[ms.Name] = diff.Summary
+	}
+
+	// Apply changes to MachineSets.
+	for _, ms := range allMSs {
+		log := log.WithValues("MachineSet", klog.KObj(ms))
+		ctx := ctrl.LoggerInto(ctx, log)
+
+		// Retrieve the diff for the MachineSet.
+		// Note: no need to check for diff doesn't exist, all the diff have been computed right above.
+		diff := machineSetsDiff[ms.Name]
+
+		// Add to the log kv pairs providing the overview of all the MachineSets computed above.
+		// Note: This value should not be added to the context to prevent propagation to other func.
+		log = log.WithValues("machineSets", machineSetsSummary)
+
+		if diff.OriginalMS == nil {
 			// Create the MachineSet.
 			if err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, ms); err != nil {
 				r.recorder.Eventf(p.md, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %s: %v", klog.KObj(ms), err)
 				return errors.Wrapf(err, "failed to create MachineSet %s", klog.KObj(ms))
 			}
-			log.Info(fmt.Sprintf("MachineSet created (%s)", p.createReason))
-			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %s with %d replicas", klog.KObj(ms), ptr.Deref(ms.Spec.Replicas, 0))
+			if len(p.oldMSs) > 0 {
+				log.Info(fmt.Sprintf("MachineSets need rollout: %s", strings.Join(machineSetNames(p.oldMSs), ", ")), "reason", p.createReason)
+			}
+			log.Info(fmt.Sprintf("MachineSet %s created, it is now the current MachineSet", ms.Name))
+			if diff.DesiredReplicas > 0 {
+				log.Info(fmt.Sprintf("Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)", ms.Name, diff.DesiredReplicas))
+			}
+			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %s with %d replicas", klog.KObj(ms), diff.DesiredReplicas)
 
 			// Keep trying to get the MachineSet. This will force the cache to update and prevent any future reconciliation of
 			// the MachineDeployment to reconcile with an outdated list of MachineSets which could lead to unwanted creation of
@@ -361,14 +391,21 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			continue
 		}
 
-		// Update the MachineSet to propagate in-place mutable fields from the MachineDeployment and/or changes applied by the rollout planner.
-		originalMS, ok := p.originalMS[ms.Name]
-		if !ok {
-			return errors.Errorf("failed to update MachineSet %s, original MS is missing", klog.KObj(ms))
+		// Add to the log kv pairs providing context and details about changes in this MachineSet (reason, diff)
+		// Note: Those values should not be added to the context to prevent propagation to other func.
+		statusToLogKeyAndValues := []any{
+			"reason", diff.Reason,
+			"diff", diff.OtherChanges,
 		}
-		originalReplicas := ptr.Deref(originalMS.Spec.Replicas, 0)
+		if len(p.acknowledgedMachineNames) > 0 {
+			statusToLogKeyAndValues = append(statusToLogKeyAndValues, "acknowledgedMachines", sortAndJoin(p.acknowledgedMachineNames))
+		}
+		if len(p.updatingMachineNames) > 0 {
+			statusToLogKeyAndValues = append(statusToLogKeyAndValues, "updatingMachines", sortAndJoin(p.updatingMachineNames))
+		}
+		log = log.WithValues(statusToLogKeyAndValues...)
 
-		err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, ms, ssa.WithCachingProxy{Cache: r.ssaCache, Original: originalMS})
+		err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, ms, ssa.WithCachingProxy{Cache: r.ssaCache, Original: diff.OriginalMS})
 		if err != nil {
 			// Note: If we are Applying a MachineSet with UID set and the MachineSet does not exist anymore, the
 			// kube-apiserver returns a conflict error.
@@ -379,25 +416,20 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			return errors.Wrapf(err, "failed to update MachineSet %s", klog.KObj(ms))
 		}
 
-		changes := getAnnotationChanges(originalMS, ms)
-
-		newReplicas := ptr.Deref(ms.Spec.Replicas, 0)
-		if newReplicas < originalReplicas {
-			changes = append(changes, fmt.Sprintf("replicas %d", newReplicas))
-			log.Info(fmt.Sprintf("Scaled down MachineSet %s to %d replicas (-%d)", ms.Name, newReplicas, originalReplicas-newReplicas), "diff", strings.Join(changes, ","))
-			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled down MachineSet %v: %d -> %d", ms.Name, originalReplicas, newReplicas)
+		if diff.DesiredReplicas < diff.OriginalReplicas {
+			log.Info(fmt.Sprintf("Scaled down %s MachineSet %s from %d to %d replicas (-%d)", diff.Type, ms.Name, diff.OriginalReplicas, diff.DesiredReplicas, diff.OriginalReplicas-diff.DesiredReplicas))
+			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled down MachineSet %v: %d -> %d", ms.Name, diff.OriginalReplicas, diff.DesiredReplicas)
 		}
-		if newReplicas > originalReplicas {
-			changes = append(changes, fmt.Sprintf("replicas %d", newReplicas))
-			log.Info(fmt.Sprintf("Scaled up MachineSet %s to %d replicas (+%d)", ms.Name, newReplicas, newReplicas-originalReplicas), "diff", strings.Join(changes, ","))
-			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled up MachineSet %v: %d -> %d", ms.Name, originalReplicas, newReplicas)
+		if diff.DesiredReplicas > diff.OriginalReplicas {
+			log.Info(fmt.Sprintf("Scaled up %s MachineSet %s from %d to %d replicas (+%d)", diff.Type, ms.Name, diff.OriginalReplicas, diff.DesiredReplicas, diff.DesiredReplicas-diff.OriginalReplicas))
+			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled up MachineSet %v: %d -> %d", ms.Name, diff.OriginalReplicas, diff.DesiredReplicas)
 		}
-		if newReplicas == originalReplicas && len(changes) > 0 {
-			log.Info(fmt.Sprintf("Updated MachineSet %s", ms.Name), "diff", strings.Join(changes, ","))
+		if diff.DesiredReplicas == diff.OriginalReplicas && diff.OtherChanges != "" {
+			log.Info(fmt.Sprintf("Updated %s MachineSet %s", diff.Type, ms.Name))
 		}
 
 		// Only wait for cache if the object was changed.
-		if originalMS.ResourceVersion != ms.ResourceVersion {
+		if diff.OriginalMS.ResourceVersion != ms.ResourceVersion {
 			if err := clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "MachineSet update", ms); err != nil {
 				return err
 			}
@@ -415,40 +447,13 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 	return nil
 }
 
-func getAnnotationChanges(originalMS *clusterv1.MachineSet, ms *clusterv1.MachineSet) []string {
-	changes := []string{}
-	if originalMS.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] != ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] {
-		if value, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok {
-			changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, value))
-		} else {
-			changes = append(changes, fmt.Sprintf("%s removed", clusterv1.MachineSetMoveMachinesToMachineSetAnnotation))
-		}
+func machineSetNames(machineSets []*clusterv1.MachineSet) []string {
+	names := []string{}
+	for _, ms := range machineSets {
+		names = append(names, ms.Name)
 	}
-
-	if originalMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] != ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] {
-		if value, ok := ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]; ok {
-			changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation, value))
-		} else {
-			changes = append(changes, fmt.Sprintf("%s removed", clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation))
-		}
-	}
-
-	if originalMS.Annotations[clusterv1.AcknowledgedMoveAnnotation] != ms.Annotations[clusterv1.AcknowledgedMoveAnnotation] {
-		if value, ok := ms.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok {
-			changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.AcknowledgedMoveAnnotation, value))
-		} else {
-			changes = append(changes, fmt.Sprintf("%s removed", clusterv1.AcknowledgedMoveAnnotation))
-		}
-	}
-
-	if originalMS.Annotations[clusterv1.DisableMachineCreateAnnotation] != ms.Annotations[clusterv1.DisableMachineCreateAnnotation] {
-		if value, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok {
-			changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.DisableMachineCreateAnnotation, value))
-		} else {
-			changes = append(changes, fmt.Sprintf("%s removed", clusterv1.DisableMachineCreateAnnotation))
-		}
-	}
-	return changes
+	sort.Strings(names)
+	return names
 }
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {

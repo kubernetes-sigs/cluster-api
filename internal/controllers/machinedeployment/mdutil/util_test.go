@@ -793,43 +793,76 @@ func TestResolveFenceposts(t *testing.T) {
 
 func TestNewMSNewReplicas(t *testing.T) {
 	tests := []struct {
-		Name          string
-		strategyType  clusterv1.MachineDeploymentRolloutStrategyType
-		depReplicas   int32
-		newMSReplicas int32
-		maxSurge      int32
-		expected      int32
+		Name               string
+		strategyType       clusterv1.MachineDeploymentRolloutStrategyType
+		deploymentReplicas int32
+		maxSurge           int32
+		oldMSReplicas      int32
+		newMSReplicas      int32
+		expected           int32
+		expectedNote       string
 	}{
 		{
-			"can not scale up - to newMSReplicas",
-			clusterv1.RollingUpdateMachineDeploymentStrategyType,
-			1, 5, 1, 5,
+			Name:               "RollingUpdate strategy can not scale up",
+			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
+			deploymentReplicas: 1,
+			maxSurge:           2,
+			oldMSReplicas:      5,
+			newMSReplicas:      4,
+			expected:           4,
+			expectedNote:       "9 current Machines >= 1 MachineDeployment spec.replicas + 2 maxSurge",
 		},
 		{
-			"scale up - to depReplicas",
-			clusterv1.RollingUpdateMachineDeploymentStrategyType,
-			6, 2, 10, 6,
+			Name:               "RollingUpdate strategy scale up to deploymentReplicas",
+			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
+			deploymentReplicas: 6,
+			maxSurge:           3,
+			oldMSReplicas:      5,
+			newMSReplicas:      2,
+			expected:           4, // +2 (6 MachineDeployment spec.replicas + 3 maxSurge - 7 current Machines)
+			expectedNote:       "7 current Machines < 6 MachineDeployment spec.replicas + 3 maxSurge",
+		},
+		{
+			Name:               "OnDeleteMachine strategy can not scale up",
+			strategyType:       clusterv1.OnDeleteMachineDeploymentStrategyType,
+			deploymentReplicas: 1,
+			maxSurge:           2,
+			oldMSReplicas:      3,
+			newMSReplicas:      5,
+			expected:           5,
+			expectedNote:       "8 current Machines >= 1 MachineDeployment spec.replicas",
+		},
+		{
+			Name:               "OnDeleteMachine strategy scale up to deploymentReplicas",
+			strategyType:       clusterv1.OnDeleteMachineDeploymentStrategyType,
+			deploymentReplicas: 6,
+			maxSurge:           10,
+			oldMSReplicas:      1,
+			newMSReplicas:      2,
+			expected:           5, // +3 (6 MachineDeployment spec.replicas - 3 current Machines)
+			expectedNote:       "3 current Machines < 6 MachineDeployment spec.replicas",
 		},
 	}
 	newDeployment := generateDeployment("nginx")
-	newRC := generateMS(newDeployment)
-	rs5 := generateMS(newDeployment)
-	*(rs5.Spec.Replicas) = 5
+	newMS := generateMS(newDeployment)
+	oldMS := generateMS(newDeployment)
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			*(newDeployment.Spec.Replicas) = test.depReplicas
+			*(newDeployment.Spec.Replicas) = test.deploymentReplicas
 			newDeployment.Spec.Rollout.Strategy.Type = test.strategyType
 			newDeployment.Spec.Rollout.Strategy.RollingUpdate = clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
 				MaxUnavailable: ptr.To(intstr.FromInt32(1)),
 				MaxSurge:       ptr.To(intstr.FromInt32(test.maxSurge)),
 			}
-			*(newRC.Spec.Replicas) = test.newMSReplicas
-			ms, err := NewMSNewReplicas(&newDeployment, []*clusterv1.MachineSet{&rs5}, *newRC.Spec.Replicas)
+			*(newMS.Spec.Replicas) = test.newMSReplicas
+			*(oldMS.Spec.Replicas) = test.oldMSReplicas
+			ms, note, err := NewMSNewReplicas(&newDeployment, []*clusterv1.MachineSet{&oldMS, &newMS}, *newMS.Spec.Replicas)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(ms).To(Equal(test.expected))
+			g.Expect(note).To(Equal(test.expectedNote))
 		})
 	}
 }

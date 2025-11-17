@@ -1,47 +1,43 @@
 ## Regular rollout, 6 Replicas, maxSurge 3, maxUnavailable 1, scale up to 12
 
 [Test] Initial state
-  md, 12/12 replicas
-  - ms1, 3/3 replicas (m4,m5,m6)
-  - ms2, 3/3 replicas (m7,m8,m9)
+    md: 12/12 replicas, 12 available, 0 upToDate
+    ms1: 3/3 replicas, 3 available, 0 upToDate (m4,m5,m6)
+    ms2: 3/3 replicas, 3 available, 0 upToDate (m7,m8,m9)
 [Test] Rollout 6 replicas, MaxSurge=3, MaxUnavailable=1
 [MD controller] Iteration 1, Reconcile md
-[MD controller] - Input to rollout planner
-  md, 12/12 replicas
-  - ms1, 3/3 replicas (m4,m5,m6)
-  - ms2, 3/3 replicas (m7,m8,m9)
 [MD controller] - Result of rollout planner
-  md, 6/12 replicas
-  - ms1, 3/3 replicas (m4,m5,m6)
-  - ms2, 3/12 replicas (m7,m8,m9)
+    md: md: 6/12 replicas, 6 available, 0 upToDate
+    ms1: 3/3 replicas, 3 available, 0 upToDate (m4,m5,m6)
+      - Updated old MachineSet ms1
+        - Diff: cluster.x-k8s.io/disable-machine-create: false
+    ms2: from 3/3 to 3/12 replicas, 3 available, 0 upToDate (m7,m8,m9)
+      - Scaled up current MachineSet ms2 from 3 to 12 replicas (+9)
+        - Reason: this is now the current MachineSet, 6 current Machines < 12 MachineDeployment spec.replicas + 3 maxSurge
+        - Diff: replicas 12,machinedeployment.clusters.x-k8s.io/revision: 1,cluster.x-k8s.io/disable-machine-create: false
 [Toleration] tolerate maxUnavailable breach
-[MS controller] Iteration 1, Reconcile ms1, 3/3 replicas (m4,m5,m6)
-[MS controller] Iteration 1, Reconcile ms2, 3/12 replicas (m7,m8,m9)
+[MS controller] Iteration 1, Reconcile ms1: 3/3 replicas, 3 available, 0 upToDate (m4,m5,m6)
+[MS controller] Iteration 1, Reconcile ms2: 3/12 replicas, 3 available, 0 upToDate (m7,m8,m9)
 [MS controller] - ms2 scale up to 12/12 replicas (m10,m11,m12,m13,m14,m15,m16,m17,m18 created)
 [MD controller] Iteration 2, Reconcile md
-[MD controller] - Input to rollout planner
-  md, 6/12 replicas
-  - ms1, 3/3 replicas (m4,m5,m6)
-  - ms2, 12/12 replicas (m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18)
 [MD controller] - Result of rollout planner
-  md, 15/12 replicas
-  - ms1, 3/0 replicas (m4,m5,m6)
-  - ms2, 12/12 replicas (m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18)
-[MS controller] Iteration 2, Reconcile ms1, 3/0 replicas (m4,m5,m6)
+    md: md: 15/12 replicas, 15 available, 12 upToDate
+    ms1: from 3/3 to 3/0 replicas, 3 available, 0 upToDate (m4,m5,m6)
+      - Scaled down old MachineSet ms1 from 3 to 0 replicas (-3)
+        - Reason: 15 available replicas > 11 minimum available replicas
+        - Diff: replicas 0
+    ms2: 12/12 replicas, 12 available, 12 upToDate (m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18)
+[MS controller] Iteration 2, Reconcile ms1: 3/0 replicas, 3 available, 0 upToDate (m4,m5,m6)
 [MS controller] - ms1 scale down to 0/0 replicas (m4,m5,m6 deleted)
-[MS controller] Iteration 2, Reconcile ms2, 12/12 replicas (m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18)
+[MS controller] Iteration 2, Reconcile ms2: 12/12 replicas, 12 available, 12 upToDate (m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18)
 [MD controller] Iteration 3, Reconcile md
-[MD controller] - Input to rollout planner
-  md, 15/12 replicas
-  - ms1, 0/0 replicas ()
-  - ms2, 12/12 replicas (m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18)
 [MD controller] - Result of rollout planner
-  md, 12/12 replicas
-  - ms1, 0/0 replicas ()
-  - ms2, 12/12 replicas (m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18)
-[MS controller] Iteration 3, Reconcile ms1, 0/0 replicas ()
-[MS controller] Iteration 3, Reconcile ms2, 12/12 replicas (m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18)
+    md: md: 12/12 replicas, 12 available, 12 upToDate
+    ms1: 0/0 replicas, 0 available, 0 upToDate ()
+    ms2: 12/12 replicas, 12 available, 12 upToDate (m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18)
+[MS controller] Iteration 3, Reconcile ms1: 0/0 replicas, 0 available, 0 upToDate ()
+[MS controller] Iteration 3, Reconcile ms2: 12/12 replicas, 12 available, 12 upToDate (m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18)
 [Test] Final state
-  md, 12/12 replicas
-  - ms1, 0/0 replicas ()
-  - ms2, 12/12 replicas (m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18)
+    md: 12/12 replicas, 12 available, 12 upToDate
+    ms1: 0/0 replicas, 0 available, 0 upToDate ()
+    ms2: 12/12 replicas, 12 available, 12 upToDate (m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18)

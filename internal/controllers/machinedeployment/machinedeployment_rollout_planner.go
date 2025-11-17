@@ -19,11 +19,13 @@ package machinedeployment
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -40,8 +42,10 @@ type rolloutPlanner struct {
 	md       *clusterv1.MachineDeployment
 	revision string
 
-	originalMS map[string]*clusterv1.MachineSet
-	machines   []*clusterv1.Machine
+	originalMSs              map[string]*clusterv1.MachineSet
+	machines                 []*clusterv1.Machine
+	acknowledgedMachineNames []string
+	updatingMachineNames     []string
 
 	newMS        *clusterv1.MachineSet
 	createReason string
@@ -49,7 +53,9 @@ type rolloutPlanner struct {
 	oldMSs          []*clusterv1.MachineSet
 	upToDateResults map[string]mdutil.UpToDateResult
 
-	scaleIntents                          map[string]int32
+	scaleIntents map[string]int32
+	notes        map[string][]string
+
 	overrideComputeDesiredMS              func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error)
 	overrideCanUpdateMachineSetInPlace    func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (bool, error)
 	overrideCanExtensionsUpdateMachineSet func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (bool, []string, error)
@@ -60,6 +66,7 @@ func newRolloutPlanner(c client.Client, runtimeClient runtimeclient.Client) *rol
 		Client:        c,
 		RuntimeClient: runtimeClient,
 		scaleIntents:  make(map[string]int32),
+		notes:         make(map[string][]string),
 	}
 }
 
@@ -91,9 +98,9 @@ func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployme
 	p.machines = machines
 
 	// Store original MS, for usage later with SSA patches / SSA caching.
-	p.originalMS = make(map[string]*clusterv1.MachineSet)
+	p.originalMSs = make(map[string]*clusterv1.MachineSet)
 	for _, ms := range msList {
-		p.originalMS[ms.Name] = ms.DeepCopy()
+		p.originalMSs[ms.Name] = ms.DeepCopy()
 	}
 
 	// Try to find a MachineSet which matches the MachineDeployments intent, the newMS; consider all the other MachineSets as oldMs.
@@ -113,11 +120,18 @@ func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployme
 
 	// If there is a current NewMS, compute the desired state for it with mandatory labels, fields in-place propagated from the MachineDeployment etc.
 	if currentNewMS != nil {
+		oldRevision := currentNewMS.Annotations[clusterv1.RevisionAnnotation]
 		desiredNewMS, err := p.computeDesiredNewMS(ctx, currentNewMS)
 		if err != nil {
 			return err
 		}
 		p.newMS = desiredNewMS
+		// Note: when an oldMS becomes again the current one, computeDesiredNewMS changes its revision number;
+		// the new revision number is also surfaced in p.revision, and thus we are using this information
+		// to determine when to add this note.
+		if oldRevision != p.revision {
+			p.addNote(p.newMS, "this is now the current MachineSet")
+		}
 		return nil
 	}
 
@@ -321,4 +335,112 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 	desiredMS.Spec.Template.Spec.Taints = deployment.Spec.Template.Spec.Taints
 
 	return desiredMS, nil
+}
+
+func (p *rolloutPlanner) addNote(ms *clusterv1.MachineSet, format string, a ...any) {
+	msg := fmt.Sprintf(format, a...)
+	for _, note := range p.notes[ms.Name] {
+		if note == msg {
+			return
+		}
+	}
+	p.notes[ms.Name] = append(p.notes[ms.Name], msg)
+}
+
+type machineSetDiff struct {
+	Type             string
+	OriginalMS       *clusterv1.MachineSet
+	OriginalReplicas int32
+	DesiredReplicas  int32
+	Summary          string
+	OtherChanges     string
+	Reason           string
+}
+
+func (p *rolloutPlanner) getMachineSetDiff(ms *clusterv1.MachineSet) machineSetDiff {
+	diff := machineSetDiff{}
+
+	// Get the originalMS, if any.
+	originalMS, hasOriginalMS := p.originalMSs[ms.Name]
+	if hasOriginalMS {
+		diff.OriginalMS = originalMS
+	}
+
+	// Determine if this is the current MS or an old one.
+	// Note: using "current" for logging instead of "new" to avoid confusion between new/current and new/last created.
+	diff.Type = "old"
+	if ms.Name == p.newMS.Name {
+		diff.Type = "current"
+	}
+
+	// Retrieve original spec.replicas
+	// Note: Used to determine if this is a scale up or a scale down operation.
+	if hasOriginalMS {
+		diff.OriginalReplicas = ptr.Deref(originalMS.Spec.Replicas, 0)
+	}
+
+	// Compute the desired spec.replicas
+	// Note: Used to determine if this is a scale up or a scale down operation.
+	diff.DesiredReplicas = ptr.Deref(ms.Spec.Replicas, 0)
+
+	// Compute a message that summarize changes to Machine set spec replicas.
+	// Note. Also other replicas counters not changed by the rollout planner are included, because they are used in the computation.
+	if !hasOriginalMS || diff.OriginalReplicas == diff.DesiredReplicas {
+		diff.Summary = fmt.Sprintf("%d/%d replicas", ptr.Deref(ms.Status.Replicas, 0), diff.DesiredReplicas)
+	} else {
+		diff.Summary = fmt.Sprintf("from %d/%d to %d/%d replicas", ptr.Deref(ms.Status.Replicas, 0), diff.OriginalReplicas, ptr.Deref(ms.Status.Replicas, 0), diff.DesiredReplicas)
+	}
+	diff.Summary += fmt.Sprintf(", %d available, %d upToDate", ptr.Deref(ms.Status.AvailableReplicas, 0), ptr.Deref(ms.Status.UpToDateReplicas, 0))
+
+	// Compute a message with the detailed changes between current and original MS (only fields/annotation relevant for the rollout decision are included).
+	changes := []string{}
+	if hasOriginalMS && diff.OriginalReplicas != diff.DesiredReplicas {
+		changes = append(changes, fmt.Sprintf("replicas %d", diff.DesiredReplicas))
+	}
+	if hasOriginalMS {
+		if originalMS.Annotations[clusterv1.RevisionAnnotation] != ms.Annotations[clusterv1.RevisionAnnotation] {
+			if value, ok := ms.Annotations[clusterv1.RevisionAnnotation]; ok {
+				changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.RevisionAnnotation, value))
+			}
+		}
+
+		if originalMS.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] != ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation] {
+			if value, ok := ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]; ok {
+				changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.MachineSetMoveMachinesToMachineSetAnnotation, value))
+			} else {
+				changes = append(changes, fmt.Sprintf("%s removed", clusterv1.MachineSetMoveMachinesToMachineSetAnnotation))
+			}
+		}
+
+		if originalMS.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] != ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation] {
+			if value, ok := ms.Annotations[clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation]; ok {
+				changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation, value))
+			} else {
+				changes = append(changes, fmt.Sprintf("%s removed", clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation))
+			}
+		}
+
+		if originalMS.Annotations[clusterv1.AcknowledgedMoveAnnotation] != ms.Annotations[clusterv1.AcknowledgedMoveAnnotation] {
+			if value, ok := ms.Annotations[clusterv1.AcknowledgedMoveAnnotation]; ok {
+				changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.AcknowledgedMoveAnnotation, value))
+			} else {
+				changes = append(changes, fmt.Sprintf("%s removed", clusterv1.AcknowledgedMoveAnnotation))
+			}
+		}
+
+		if originalMS.Annotations[clusterv1.DisableMachineCreateAnnotation] != ms.Annotations[clusterv1.DisableMachineCreateAnnotation] {
+			if value, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok {
+				changes = append(changes, fmt.Sprintf("%s: %s", clusterv1.DisableMachineCreateAnnotation, value))
+			} else {
+				changes = append(changes, fmt.Sprintf("%s removed", clusterv1.DisableMachineCreateAnnotation))
+			}
+		}
+
+		diff.OtherChanges = strings.Join(changes, ",")
+	}
+
+	// Collect notes explaining the reason why something changed
+	diff.Reason = strings.Join(p.notes[ms.Name], ", ")
+
+	return diff
 }

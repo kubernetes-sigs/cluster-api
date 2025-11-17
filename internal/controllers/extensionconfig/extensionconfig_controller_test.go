@@ -102,7 +102,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 		res, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(extensionConfig)})
 		g.Expect(err).ToNot(HaveOccurred())
 		// If the registry isn't warm the reconcile loop will return Requeue: True
-		g.Expect(res.Requeue).To(BeTrue())
+		g.Expect(res.RequeueAfter).To((Equal(10 * time.Second)))
 	})
 
 	t.Run("successful reconcile and discovery on ExtensionConfig create", func(*testing.T) {

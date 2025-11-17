@@ -272,7 +272,7 @@ linters:
           - staticcheck
         text: 'SA1019: .*(res|result|i|j)\.Requeue is deprecated: Use `RequeueAfter` instead'
         # TODO: Remove Requeue step by step
-        path: internal/controllers/(extensionconfig|machinepool)|util/util.go
+        path: internal/controllers/machinepool
       # TODO: var-naming: avoid meaningless package names by revive
       #   * test/infrastructure/docker/internal/docker/types/
       #   * bootstrap/kubeadm/types/

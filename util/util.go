@@ -690,6 +690,8 @@ func IsSupportedVersionSkew(a, b semver.Version) bool {
 
 // LowestNonZeroResult compares two reconciliation results
 // and returns the one with lowest requeue time.
+//
+//nolint:staticcheck // SA1019: Requeue is deprecated.
 func LowestNonZeroResult(i, j ctrl.Result) ctrl.Result {
 	switch {
 	case i.IsZero():

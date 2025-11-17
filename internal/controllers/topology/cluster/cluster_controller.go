@@ -549,7 +549,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.
 				return ctrl.Result{}, err
 			}
 			if len(extensionHandlers) == 0 {
-				if err := hooks.MarkAsOkToDelete(ctx, r.Client, cluster); err != nil {
+				if err := hooks.MarkAsOkToDelete(ctx, r.Client, cluster, false); err != nil {
 					return ctrl.Result{}, err
 				}
 				return ctrl.Result{}, nil
@@ -577,7 +577,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.
 			}
 			// The BeforeClusterDelete hook returned a non-blocking response. Now the cluster is ready to be deleted.
 			// Lets mark the cluster as `ok-to-delete`
-			if err := hooks.MarkAsOkToDelete(ctx, r.Client, cluster); err != nil {
+			if err := hooks.MarkAsOkToDelete(ctx, r.Client, cluster, false); err != nil {
 				return ctrl.Result{}, err
 			}
 			log.Info(fmt.Sprintf("Cluster deletion is unblocked by %s hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterDelete)))

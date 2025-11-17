@@ -201,7 +201,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		reason := clusterv1.ClusterTopologyReconciledClusterUpgradingReason
 		v1Beta1Reason := clusterv1.TopologyReconciledClusterUpgradingV1Beta1Reason
 
-		cpVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
+		cpVersion, err := contract.ControlPlane().Version().Get(s.Desired.ControlPlane.Object)
 		if err != nil {
 			return errors.Wrap(err, "failed to get control plane spec version")
 		}
@@ -213,10 +213,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 
 		// If control plane is upgrading surface it, otherwise surface the pending upgrade plan.
 		if s.UpgradeTracker.ControlPlane.IsStartingUpgrade || s.UpgradeTracker.ControlPlane.IsUpgrading {
-			fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s", s.Current.ControlPlane.Object.GetKind(), *cpVersion)
-			if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
-				fmt.Fprintf(msgBuilder, " (%s pending)", strings.Join(s.UpgradeTracker.ControlPlane.UpgradePlan, ", "))
-			}
+			fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s%s", s.Current.ControlPlane.Object.GetKind(), *cpVersion, pendingVersions(s.UpgradeTracker.ControlPlane.UpgradePlan, *cpVersion))
 		} else if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
 			fmt.Fprintf(msgBuilder, "\n  * %s pending upgrade to version %s", s.Current.ControlPlane.Object.GetKind(), strings.Join(s.UpgradeTracker.ControlPlane.UpgradePlan, ", "))
 		}
@@ -224,10 +221,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		// If MachineDeployments are upgrading surface it, if MachineDeployments are pending upgrades then surface the upgrade plans.
 		upgradingMachineDeploymentNames, pendingMachineDeploymentNames, deferredMachineDeploymentNames := dedupNames(s.UpgradeTracker.MachineDeployments)
 		if len(upgradingMachineDeploymentNames) > 0 {
-			fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s", nameList("MachineDeployment", "MachineDeployments", upgradingMachineDeploymentNames), *cpVersion)
-			if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
-				fmt.Fprintf(msgBuilder, " (%s pending)", strings.Join(s.UpgradeTracker.MachineDeployments.UpgradePlan, ", "))
-			}
+			fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s%s", nameList("MachineDeployment", "MachineDeployments", upgradingMachineDeploymentNames), *cpVersion, pendingVersions(s.UpgradeTracker.MachineDeployments.UpgradePlan, *cpVersion))
 		}
 
 		if len(pendingMachineDeploymentNames) > 0 && len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 {
@@ -255,10 +249,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		// If MachinePools are upgrading surface it, if MachinePools are pending upgrades then surface the upgrade plans.
 		upgradingMachinePoolNames, pendingMachinePoolNames, deferredMachinePoolNames := dedupNames(s.UpgradeTracker.MachinePools)
 		if len(upgradingMachinePoolNames) > 0 {
-			fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s", nameList("MachinePool", "MachinePools", upgradingMachinePoolNames), *cpVersion)
-			if len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 {
-				fmt.Fprintf(msgBuilder, " (%s pending)", strings.Join(s.UpgradeTracker.MachinePools.UpgradePlan, ", "))
-			}
+			fmt.Fprintf(msgBuilder, "\n  * %s upgrading to version %s%s", nameList("MachinePool", "MachinePools", upgradingMachinePoolNames), *cpVersion, pendingVersions(s.UpgradeTracker.MachinePools.UpgradePlan, *cpVersion))
 		}
 
 		if len(pendingMachinePoolNames) > 0 && len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0 {
@@ -313,6 +304,21 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		Reason: clusterv1.ClusterTopologyReconcileSucceededReason,
 	})
 	return nil
+}
+
+// pendingVersion return a message with pending version in the upgrad plan.
+func pendingVersions(plan []string, version string) string {
+	// clone the plan to avoid side effects on the original object.
+	planWithoutVersion := []string{}
+	for _, v := range plan {
+		if v != version {
+			planWithoutVersion = append(planWithoutVersion, v)
+		}
+	}
+	if len(planWithoutVersion) > 0 {
+		return fmt.Sprintf(" (%s pending)", strings.Join(planWithoutVersion, ", "))
+	}
+	return ""
 }
 
 // dedupNames take care of names that might exist in multiple lists.

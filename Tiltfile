@@ -249,7 +249,7 @@ def build_go_binary(context, reload_deps, debug, go_main, binary_name, label):
             build_cmd = build_cmd,
         ),
         deps = live_reload_deps,
-        labels = [label, "ALL.binaries"],
+        labels = [label],
     )
 
 def build_docker_image(image, context, binary_name, additional_docker_build_commands, additional_docker_helper_commands, port_forwards):
@@ -368,7 +368,7 @@ def enable_provider(name, debug):
             workload = find_object_name(objs, "Deployment"),
             objects = [find_object_qualified_name(objs, "Provider")] + find_all_objects_names(additional_objs),
             new_name = label.lower() + "_controller",
-            labels = [label, "ALL.controllers"],
+            labels = [label],
             port_forwards = port_forwards,
             links = links,
             resource_deps = ["provider_crd"] + p.get("resource_deps", []),

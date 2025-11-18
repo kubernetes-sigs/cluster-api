@@ -1000,6 +1000,11 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 			continue
 		}
 
+		// Make sure we are not moving machines not yet provisioned.
+		if !machine.Status.NodeRef.IsDefined() {
+			continue
+		}
+
 		// Note. Machines with the DeleteMachineAnnotation are going to be moved and the new MS
 		//       will take care of fulfilling this intent as soon as it scales down.
 		// Note. Also Machines marked as unhealthy by MHC are going to be moved, because otherwise

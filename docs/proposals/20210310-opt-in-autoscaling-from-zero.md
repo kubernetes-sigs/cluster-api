@@ -316,6 +316,23 @@ status:
 The cluster autoscaler will prefer the annotation on the MachineDeployment and will predict nodes that have a 
 `kubernetes.io/arch: amd64` label on them.
 
+**CSI driver attach limits and availability**
+
+When a user would like to signal that the node being created from a MachineSet or MachineDeployment will 
+have a specific CSI driver installed with any volume attach limits, they can use following 
+annotations to specify that information.
+
+```
+kind: <MachineSet or MachineDeployment>
+metadata:
+  annotations:
+    capacity.cluster-autoscaler.kubernetes.io/csi-driver: "driver1=attach-limit,driver2=attach-limit"
+```
+
+Users can specify `attach-limit` of `0` if they merely want to signal presence of CSI driver and 
+driver does not have any attach limits.
+
+
 ### Security Model
 
 This feature will require the service account associated with the cluster autoscaler to have

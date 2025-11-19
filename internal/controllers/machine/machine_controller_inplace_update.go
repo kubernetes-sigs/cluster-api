@@ -79,6 +79,11 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 		return ctrl.Result{}, nil
 	}
 
+	if !s.machine.Status.NodeRef.IsDefined() {
+		log.V(5).Info("Machine status.nodeRef is not yet set, skipping in-place update")
+		return ctrl.Result{}, nil
+	}
+
 	if s.infraMachine == nil {
 		s.updatingReason = clusterv1.MachineInPlaceUpdateFailedReason
 		s.updatingMessage = "In-place update not possible: InfraMachine not found"

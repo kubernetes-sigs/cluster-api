@@ -130,6 +130,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
 				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
 				return &Reconciler{}, &scope{machine: machine}
 			},
 			wantResult:      ctrl.Result{},
@@ -181,6 +182,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
 				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
 
 				infra := newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")
 				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
@@ -242,6 +244,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
 				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
 
 				infra := newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")
 				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})

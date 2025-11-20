@@ -61,7 +61,7 @@ var certManagerNamespaceYaml = []byte("apiVersion: v1\n" +
 func Test_getManifestObjs(t *testing.T) {
 	g := NewWithT(t)
 
-	defaultConfigClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "")))
+	defaultConfigClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "", "")))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	type fields struct {
@@ -109,7 +109,7 @@ func Test_getManifestObjs(t *testing.T) {
 			name: "successfully gets the cert-manager components for a custom release",
 			fields: fields{
 				configClient: func() config.Client {
-					configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "").WithCertManager("", "v1.0.0", "")))
+					configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "", "").WithCertManager("", "v1.0.0", "")))
 					g.Expect(err).ToNot(HaveOccurred())
 					return configClient
 				}(),

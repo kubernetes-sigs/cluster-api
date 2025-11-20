@@ -66,7 +66,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) ctrl.Result {
 	// in reconcileDelete (e.g. status.Deletion nested fields), and also in the defer patch at the end of the main reconcile loop (status.ObservedGeneration) etc.
 	// Note: also other controllers adds conditions to the machine object (machine's owner controller sets the UpToDate condition,
 	// MHC controller sets HealthCheckSucceeded and OwnerRemediated conditions, KCP sets conditions about etcd and control plane pods).
-	setDeletingCondition(ctx, s.machine, s.reconcileDeleteExecuted, s.deletingReason, s.deletingMessage)
+	setDeletingCondition(ctx, s.machine, s.deletingReason, s.deletingMessage)
 	setUpdatingCondition(ctx, s.machine, s.updatingReason, s.updatingMessage)
 	setUpToDateCondition(ctx, s.machine, s.owningMachineSet, s.owningMachineDeployment)
 	setReadyCondition(ctx, s.machine)
@@ -613,19 +613,13 @@ func transformControlPlaneAndEtcdConditions(messages []string) []string {
 	return out
 }
 
-func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, reconcileDeleteExecuted bool, deletingReason, deletingMessage string) {
+func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, deletingReason, deletingMessage string) {
 	if machine.DeletionTimestamp.IsZero() {
 		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineDeletingCondition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.MachineNotDeletingReason,
 		})
-		return
-	}
-
-	if !reconcileDeleteExecuted {
-		// Don't update the Deleting condition if reconcileDelete was not executed (e.g.
-		// because of rate-limiting).
 		return
 	}
 

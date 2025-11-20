@@ -26,12 +26,12 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers/backends"
@@ -68,17 +68,14 @@ func (r *DevClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "devcluster")
-	err := ctrl.NewControllerManagedBy(mgr).
+	err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&infrav1.DevCluster{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("DevCluster"), mgr.GetClient(), &infrav1.DevCluster{})),
-			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
-				predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
-				predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
-			)),
+			predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 		).Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

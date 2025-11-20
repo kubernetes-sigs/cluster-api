@@ -11,6 +11,10 @@ jobs:
   golangci:
     name: lint
     runs-on: ubuntu-latest
+    env:
+      # Required with Go 1.24 to enable usage of synctest in unit tests
+      # Can be removed after we bumped to Go 1.25.
+      GOEXPERIMENT: synctest
     strategy:
       fail-fast: false
       matrix:

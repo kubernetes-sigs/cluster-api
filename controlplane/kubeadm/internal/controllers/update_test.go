@@ -33,6 +33,7 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -40,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/desiredstate"
 	"sigs.k8s.io/cluster-api/feature"
+	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -85,9 +87,12 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	kcp.Spec.Replicas = ptr.To[int32](1)
 	setKCPHealthy(kcp)
 
+	fc := capicontrollerutil.NewFakeController()
+
 	r := &KubeadmControlPlaneReconciler{
 		Client:              env,
 		SecretCachingClient: secretCachingClient,
+		controller:          fc,
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
@@ -158,6 +163,10 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	result, err = r.reconcile(context.Background(), controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
+	g.Expect(fc.Deferrals).To(HaveKeyWithValue(
+		reconcile.Request{NamespacedName: client.ObjectKeyFromObject(kcp)},
+		BeTemporally("~", time.Now().Add(5*time.Second), 1*time.Second)),
+	)
 	g.Eventually(func(g Gomega) {
 		g.Expect(env.List(context.Background(), bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
 		g.Expect(bothMachines.Items).To(HaveLen(2))

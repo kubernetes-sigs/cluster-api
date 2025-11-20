@@ -31,6 +31,10 @@ GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 GOTOOLCHAIN = go$(GO_VERSION)
 export GOTOOLCHAIN
 
+# Required with Go 1.24 to enable usage of synctest in unit tests
+# Can be removed after we bumped to Go 1.25.
+export GOEXPERIMENT=synctest
+
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
 ifeq ($(GOPROXY),)

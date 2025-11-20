@@ -20,6 +20,7 @@ linters:
     - durationcheck # multiplying two durations
     - errcheck # unchecked errors
     - errchkjson # invalid types passed to json encoder
+    - forbidigo # allows to block usage of funcs
     - ginkgolinter # ginkgo and gomega
     - gocritic # bugs, performance, style (we could add custom ones to this one)
     - godot # checks that comments end in a period
@@ -52,6 +53,10 @@ linters:
     # TODO: It will be dropped when the Go version migration is done.
     - usetesting
   settings:
+    forbidigo:
+      forbid:
+        - pattern: ctrl.NewControllerManagedBy
+          msg: Use capicontrollerutil.NewControllerManagedBy instead
     ginkgolinter:
       forbid-focus-container: true
     gocritic:
@@ -180,6 +185,8 @@ linters:
           alias: topologynames
         - pkg: sigs.k8s.io/cluster-api/internal/util/client
           alias: "clientutil"
+        - pkg: sigs.k8s.io/cluster-api/internal/util/controller
+          alias: "capicontrollerutil"
         # CAPD
         - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3
           alias: infrav1alpha3

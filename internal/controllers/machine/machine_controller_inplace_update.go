@@ -36,6 +36,7 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/hooks"
+	"sigs.k8s.io/cluster-api/util/cache"
 )
 
 // reconcileInPlaceUpdate handles the in-place update workflow for a Machine.
@@ -155,6 +156,13 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 		return ctrl.Result{}, "", errors.Errorf("found multiple UpdateMachine hooks (%s): only one hook is supported", strings.Join(extensions, ","))
 	}
 
+	if cacheEntry, ok := r.hookCache.Has(cache.NewHookEntryKey(s.machine, runtimehooksv1.UpdateMachine)); ok {
+		if requeueAfter, requeue := cacheEntry.ShouldRequeue(time.Now()); requeue {
+			log.V(5).Info(fmt.Sprintf("Skip calling UpdateMachine hook, retry after %s", requeueAfter))
+			return ctrl.Result{RequeueAfter: requeueAfter}, cacheEntry.ResponseMessage, nil
+		}
+	}
+
 	// Note: When building request message, dropping status; Runtime extension should treat UpdateMachine
 	// requests as desired state; it is up to them to compare with current state and perform necessary actions.
 	request := &runtimehooksv1.UpdateMachineRequest{
@@ -176,7 +184,9 @@ func (r *Reconciler) callUpdateMachineHook(ctx context.Context, s *scope) (ctrl.
 
 	if response.GetRetryAfterSeconds() != 0 {
 		log.Info(fmt.Sprintf("UpdateMachine hook requested retry after %d seconds", response.GetRetryAfterSeconds()))
-		return ctrl.Result{RequeueAfter: time.Duration(response.GetRetryAfterSeconds()) * time.Second}, response.GetMessage(), nil
+		requeueAfter := time.Duration(response.RetryAfterSeconds) * time.Second
+		r.hookCache.Add(cache.NewHookEntry(s.machine, runtimehooksv1.UpdateMachine, time.Now().Add(requeueAfter), response.GetMessage()))
+		return ctrl.Result{RequeueAfter: requeueAfter}, response.GetMessage(), nil
 	}
 
 	log.Info("UpdateMachine hook completed successfully")

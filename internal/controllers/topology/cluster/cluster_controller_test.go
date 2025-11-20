@@ -48,6 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -483,6 +484,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 		wantResult         ctrl.Result
 		wantOkToDelete     bool
 		wantErr            bool
+		wantHookCacheEntry *cache.HookEntry
 	}{
 		{
 			name: "should apply the ok-to-delete annotation if the BeforeClusterDelete hook returns a non-blocking response",
@@ -517,6 +519,13 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 			wantHookToBeCalled: true,
 			wantOkToDelete:     false,
 			wantErr:            false,
+			wantHookCacheEntry: ptr.To(cache.NewHookEntry(&clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test-ns",
+					Name:      "test-cluster",
+				},
+			}, runtimehooksv1.BeforeClusterDelete,
+				time.Now().Add(time.Duration(blockingResponse.RetryAfterSeconds)*time.Second), blockingResponse.Message)),
 		},
 		{
 			name: "should fail if the BeforeClusterDelete hook returns a failure response",
@@ -596,6 +605,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 				Client:        fakeClient,
 				APIReader:     fakeClient,
 				RuntimeClient: fakeRuntimeClient,
+				hookCache:     cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
 			}
 
 			s := scope.New(tt.cluster)
@@ -617,6 +627,28 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 				} else {
 					g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.BeforeClusterDelete)).To(Equal(0), "Did not expect hook to be called")
 				}
+			}
+
+			if tt.wantHookCacheEntry != nil {
+				// Verify the cache entry.
+				cacheEntry, ok := r.hookCache.Has(tt.wantHookCacheEntry.Key())
+				g.Expect(ok).To(BeTrue())
+				g.Expect(cacheEntry.ObjectKey).To(Equal(tt.wantHookCacheEntry.ObjectKey))
+				g.Expect(cacheEntry.HookName).To(Equal(tt.wantHookCacheEntry.HookName))
+				g.Expect(cacheEntry.ReconcileAfter).To(BeTemporally("~", tt.wantHookCacheEntry.ReconcileAfter, 5*time.Second))
+				g.Expect(cacheEntry.ResponseMessage).To(Equal(tt.wantHookCacheEntry.ResponseMessage))
+
+				// Call reconcileDelete again and verify the cache hit.
+				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.BeforeClusterDelete)).To(Equal(1))
+				secondResult, err := r.reconcileDelete(ctx, s)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.BeforeClusterDelete)).To(Equal(1))
+				g.Expect(s.HookResponseTracker.AggregateMessage("delete")).To(Equal(
+					fmt.Sprintf("Following hooks are blocking delete: BeforeClusterDelete: %s", tt.wantHookCacheEntry.ResponseMessage)))
+				// RequeueAfter should be now < then the previous RequeueAfter.
+				g.Expect(secondResult.RequeueAfter).To(BeNumerically("<", res.RequeueAfter))
+			} else {
+				g.Expect(r.hookCache.Len()).To(Equal(0))
 			}
 		})
 	}
@@ -689,7 +721,8 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 	blockingResponse := &runtimehooksv1.BeforeClusterCreateResponse{
 		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
+				Status:  runtimehooksv1.ResponseStatusSuccess,
+				Message: "processing",
 			},
 			RetryAfterSeconds: int32(10),
 		},
@@ -711,16 +744,24 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		hookResponse *runtimehooksv1.BeforeClusterCreateResponse
-		wantResult   reconcile.Result
-		wantErr      bool
+		name               string
+		hookResponse       *runtimehooksv1.BeforeClusterCreateResponse
+		wantResult         reconcile.Result
+		wantErr            bool
+		wantHookCacheEntry *cache.HookEntry
 	}{
 		{
 			name:         "should return a requeue response when the BeforeClusterCreate hook is blocking",
 			hookResponse: blockingResponse,
 			wantResult:   ctrl.Result{RequeueAfter: time.Duration(10) * time.Second},
 			wantErr:      false,
+			wantHookCacheEntry: ptr.To(cache.NewHookEntry(&clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "cluster-1",
+				},
+			}, runtimehooksv1.BeforeClusterCreate,
+				time.Now().Add(time.Duration(blockingResponse.RetryAfterSeconds)*time.Second), blockingResponse.Message)),
 		},
 		{
 			name:         "should return an empty response when the BeforeClusterCreate hook is not blocking",
@@ -743,6 +784,8 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
 						ObjectMeta: metav1.ObjectMeta{
+							Namespace: metav1.NamespaceDefault,
+							Name:      "cluster-1",
 							// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
 							ManagedFields: []metav1.ManagedFieldsEntry{
 								{
@@ -778,6 +821,7 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 			r := &Reconciler{
 				RuntimeClient: runtimeClient,
 				Client:        fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build(),
+				hookCache:     cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
 			}
 			res, err := r.callBeforeClusterCreateHook(ctx, s)
 			if tt.wantErr {
@@ -785,6 +829,28 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(res).To(BeComparableTo(tt.wantResult))
+			}
+
+			if tt.wantHookCacheEntry != nil {
+				// Verify the cache entry.
+				cacheEntry, ok := r.hookCache.Has(tt.wantHookCacheEntry.Key())
+				g.Expect(ok).To(BeTrue())
+				g.Expect(cacheEntry.ObjectKey).To(Equal(tt.wantHookCacheEntry.ObjectKey))
+				g.Expect(cacheEntry.HookName).To(Equal(tt.wantHookCacheEntry.HookName))
+				g.Expect(cacheEntry.ReconcileAfter).To(BeTemporally("~", tt.wantHookCacheEntry.ReconcileAfter, 5*time.Second))
+				g.Expect(cacheEntry.ResponseMessage).To(Equal(tt.wantHookCacheEntry.ResponseMessage))
+
+				// Call callBeforeClusterCreateHook again and verify the cache hit.
+				g.Expect(runtimeClient.CallAllCount(runtimehooksv1.BeforeClusterCreate)).To(Equal(1))
+				secondResult, err := r.callBeforeClusterCreateHook(ctx, s)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(runtimeClient.CallAllCount(runtimehooksv1.BeforeClusterCreate)).To(Equal(1))
+				g.Expect(s.HookResponseTracker.AggregateMessage("Cluster topology creation")).To(Equal(
+					fmt.Sprintf("Following hooks are blocking Cluster topology creation: BeforeClusterCreate: %s", tt.wantHookCacheEntry.ResponseMessage)))
+				// RequeueAfter should be now < then the previous RequeueAfter.
+				g.Expect(secondResult.RequeueAfter).To(BeNumerically("<", res.RequeueAfter))
+			} else {
+				g.Expect(r.hookCache.Len()).To(Equal(0))
 			}
 		})
 	}

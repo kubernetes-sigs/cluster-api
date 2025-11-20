@@ -19,11 +19,13 @@ package desiredstate
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -31,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -1173,12 +1176,36 @@ func TestGetUpgradePlanFromExtension(t *testing.T) {
 		Build()
 
 	// Call GetUpgradePlanFromExtension
-	f := GetUpgradePlanFromExtension(fakeRuntimeClient, cluster, "test-extension")
+	generateUpgradePlanCache := cache.New[GenerateUpgradePlanCacheEntry](10 * time.Minute)
+	f := GetUpgradePlanFromExtension(fakeRuntimeClient, generateUpgradePlanCache, cluster, "test-extension")
 	controlPlaneUpgradePlan, workersUpgradePlan, err := f(ctx, "v1.33.0", "v1.31.0", "v1.31.0")
 
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(controlPlaneUpgradePlan).To(Equal([]string{"v1.32.0", "v1.33.0"}))
 	g.Expect(workersUpgradePlan).To(Equal([]string{"v1.33.0"}))
+	g.Expect(fakeRuntimeClient.CallCount(runtimehooksv1.GenerateUpgradePlan)).To(Equal(1))
+
+	// Verify the cache entry.
+	wantCacheEntry := GenerateUpgradePlanCacheEntry{
+		ClusterKey:                        client.ObjectKeyFromObject(cluster),
+		FromControlPlaneKubernetesVersion: "v1.31.0",
+		FromWorkersKubernetesVersion:      "v1.31.0",
+		ToKubernetesVersion:               "v1.33.0",
+		ControlPlaneUpgradePlan:           controlPlaneUpgradePlan,
+		WorkersUpgradePlan:                workersUpgradePlan,
+	}
+
+	cacheEntry, ok := generateUpgradePlanCache.Has(wantCacheEntry.Key())
+	g.Expect(ok).To(BeTrue())
+	g.Expect(cacheEntry).To(Equal(wantCacheEntry))
+
+	// Call GetUpgradePlanFromExtension again and verify the cache hit.
+	f = GetUpgradePlanFromExtension(fakeRuntimeClient, generateUpgradePlanCache, cluster, "test-extension")
+	controlPlaneUpgradePlan, workersUpgradePlan, err = f(ctx, "v1.33.0", "v1.31.0", "v1.31.0")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(fakeRuntimeClient.CallCount(runtimehooksv1.GenerateUpgradePlan)).To(Equal(1))
+	g.Expect(controlPlaneUpgradePlan).To(Equal(wantCacheEntry.ControlPlaneUpgradePlan))
+	g.Expect(workersUpgradePlan).To(Equal(wantCacheEntry.WorkersUpgradePlan))
 }
 
 func TestGetUpgradePlanFromExtension_Errors(t *testing.T) {
@@ -1236,7 +1263,7 @@ func TestGetUpgradePlanFromExtension_Errors(t *testing.T) {
 			fakeRuntimeClient := fakeRuntimeClientBuilder.Build()
 
 			// Call GetUpgradePlanFromExtension
-			f := GetUpgradePlanFromExtension(fakeRuntimeClient, cluster, "test-extension")
+			f := GetUpgradePlanFromExtension(fakeRuntimeClient, cache.New[GenerateUpgradePlanCacheEntry](10*time.Minute), cluster, "test-extension")
 			_, _, err := f(ctx, tt.desiredVersion, tt.currentControlPlaneVersion, tt.currentMinWorkersVersion)
 
 			g.Expect(err).To(HaveOccurred())

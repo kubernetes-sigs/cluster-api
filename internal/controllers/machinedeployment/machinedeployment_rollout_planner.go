@@ -33,11 +33,13 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/util/hash"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/cache"
 )
 
 type rolloutPlanner struct {
-	Client        client.Client
-	RuntimeClient runtimeclient.Client
+	Client                   client.Client
+	RuntimeClient            runtimeclient.Client
+	canUpdateMachineSetCache cache.Cache[CanUpdateMachineSetCacheEntry]
 
 	md       *clusterv1.MachineDeployment
 	revision string
@@ -61,12 +63,13 @@ type rolloutPlanner struct {
 	overrideCanExtensionsUpdateMachineSet func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (bool, []string, error)
 }
 
-func newRolloutPlanner(c client.Client, runtimeClient runtimeclient.Client) *rolloutPlanner {
+func newRolloutPlanner(c client.Client, runtimeClient runtimeclient.Client, canUpdateMachineSetCache cache.Cache[CanUpdateMachineSetCacheEntry]) *rolloutPlanner {
 	return &rolloutPlanner{
-		Client:        c,
-		RuntimeClient: runtimeClient,
-		scaleIntents:  make(map[string]int32),
-		notes:         make(map[string][]string),
+		Client:                   c,
+		RuntimeClient:            runtimeClient,
+		canUpdateMachineSetCache: canUpdateMachineSetCache,
+		scaleIntents:             make(map[string]int32),
+		notes:                    make(map[string][]string),
 	}
 }
 

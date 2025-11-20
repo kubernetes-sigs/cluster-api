@@ -69,6 +69,12 @@ const (
 	// alpha: v1.10
 	PriorityQueue featuregate.Feature = "PriorityQueue"
 
+	// ReconcilerRateLimiting is a feature gate that controls if reconcilers are rate-limited.
+	// Note: Currently the feature gate is rate-limiting to 1 request / 1 second.
+	//
+	// alpha: v1.12
+	ReconcilerRateLimiting featuregate.Feature = "ReconcilerRateLimiting"
+
 	// InPlaceUpdates is a feature gate for the in-place machine updates functionality.
 	// alpha: v1.12
 	InPlaceUpdates featuregate.Feature = "InPlaceUpdates"
@@ -91,6 +97,7 @@ var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	MachineSetPreflightChecks: {Default: true, PreRelease: featuregate.Beta},
 	MachineWaitForVolumeDetachConsiderVolumeAttachments: {Default: true, PreRelease: featuregate.Beta},
 	PriorityQueue:                  {Default: false, PreRelease: featuregate.Alpha},
+	ReconcilerRateLimiting:         {Default: false, PreRelease: featuregate.Alpha},
 	ClusterTopology:                {Default: false, PreRelease: featuregate.Alpha},
 	KubeadmBootstrapFormatIgnition: {Default: false, PreRelease: featuregate.Alpha},
 	RuntimeSDK:                     {Default: false, PreRelease: featuregate.Alpha},

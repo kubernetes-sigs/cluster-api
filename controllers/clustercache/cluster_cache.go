@@ -44,6 +44,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -328,7 +329,8 @@ func SetupWithManager(ctx context.Context, mgr manager.Manager, options Options,
 		cacheCtxCancel:        cacheCtxCancel,
 	}
 
-	err := ctrl.NewControllerManagedBy(mgr).
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "clustercache")
+	err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		Named("clustercache").
 		For(&clusterv1.Cluster{}).
 		WithOptions(controllerOptions).

@@ -25,6 +25,7 @@ import (
 	"io"
 	"os"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -56,6 +57,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/contract"
 	"sigs.k8s.io/cluster-api/webhooks"
@@ -119,6 +121,8 @@ func TestHandler(t *testing.T) {
 		clientWithV1Beta2ContractCRD,
 		clustercache.NewFakeEmptyClusterCache(),
 		runtimeClient,
+		cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
+		cache.New[desiredstate.GenerateUpgradePlanCacheEntry](10*time.Minute),
 	)
 	g.Expect(err).ToNot(HaveOccurred())
 

@@ -35,7 +35,6 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -52,6 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
+	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -87,13 +87,12 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "clusterclass")
-	err := ctrl.NewControllerManagedBy(mgr).
+	err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&clusterv1.ClusterClass{}).
 		WithOptions(options).
 		Watches(
 			&runtimev1.ExtensionConfig{},
 			handler.EnqueueRequestsFromMapFunc(r.extensionConfigToClusterClass),
-			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Complete(r)
@@ -155,10 +154,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		if err := patchHelper.Patch(ctx, clusterClass, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 			return
-		}
-
-		if reterr != nil {
-			retres = ctrl.Result{}
 		}
 	}()
 

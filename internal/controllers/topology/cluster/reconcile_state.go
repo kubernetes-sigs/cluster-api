@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -49,6 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/cache"
 )
 
 const (
@@ -262,6 +264,14 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 				return hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, false, runtimehooksv1.AfterClusterUpgrade)
 			}
 
+			if cacheEntry, ok := r.hookCache.Has(cache.NewHookEntryKey(s.Current.Cluster, runtimehooksv1.AfterClusterUpgrade)); ok {
+				if requeueAfter, requeue := cacheEntry.ShouldRequeue(time.Now()); requeue {
+					log.V(5).Info(fmt.Sprintf("Skip calling AfterClusterUpgrade hook, retry after %s", requeueAfter))
+					s.HookResponseTracker.Add(runtimehooksv1.AfterClusterUpgrade, cacheEntry.ToResponse(&runtimehooksv1.AfterClusterUpgradeResponse{}, requeueAfter))
+					return nil
+				}
+			}
+
 			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
 			v1beta1Cluster := &clusterv1beta1.Cluster{}
 			if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
@@ -280,7 +290,8 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 			s.HookResponseTracker.Add(runtimehooksv1.AfterClusterUpgrade, hookResponse)
 
 			if hookResponse.RetryAfterSeconds != 0 {
-				log.Info(fmt.Sprintf("Cluster upgrade to version %s completed but next upgrades are blocked by %s hook", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade)))
+				r.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.AfterClusterUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
+				log.Info(fmt.Sprintf("Cluster upgrade to version %s completed but next upgrades are blocked by %s hook, retry after %ds", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade), hookResponse.RetryAfterSeconds))
 				return nil
 			}
 

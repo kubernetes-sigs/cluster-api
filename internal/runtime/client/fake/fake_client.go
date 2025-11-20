@@ -99,6 +99,7 @@ func (f *RuntimeClientBuilder) Build() *RuntimeClient {
 		callValidations:    f.callValidations,
 		catalog:            f.catalog,
 		callAllTracker:     map[string]int{},
+		callTracker:        map[string]int{},
 	}
 }
 
@@ -114,6 +115,7 @@ type RuntimeClient struct {
 	callResponses      map[string]runtimehooksv1.ResponseObject
 	callValidations    func(name string, object runtimehooksv1.RequestObject) error
 
+	callTracker    map[string]int
 	callAllTracker map[string]int
 }
 
@@ -164,7 +166,11 @@ func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecata
 }
 
 // CallExtension implements Client.
-func (fc *RuntimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hook, _ client.Object, name string, req runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
+func (fc *RuntimeClient) CallExtension(ctx context.Context, hook runtimecatalog.Hook, _ client.Object, name string, req runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, _ ...runtimeclient.CallExtensionOption) error {
+	defer func() {
+		fc.callTracker[runtimecatalog.HookName(hook)]++
+	}()
+
 	if fc.callValidations != nil {
 		if err := fc.callValidations(name, req); err != nil {
 			return err
@@ -217,7 +223,12 @@ func (fc *RuntimeClient) WarmUp(_ *runtimev1.ExtensionConfigList) error {
 	panic("unimplemented")
 }
 
-// CallAllCount return the number of times a hook was called.
+// CallAllCount returns the number of times a hook was called with CallAllExtensions.
 func (fc *RuntimeClient) CallAllCount(hook runtimecatalog.Hook) int {
 	return fc.callAllTracker[runtimecatalog.HookName(hook)]
+}
+
+// CallCount returns the number of times a hook was called with CallExtension.
+func (fc *RuntimeClient) CallCount(hook runtimecatalog.Hook) int {
+	return fc.callTracker[runtimecatalog.HookName(hook)]
 }

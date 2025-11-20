@@ -105,7 +105,7 @@ key value pairs (in order of importance):
 Notably, over time in CAPI we are also standardizing usage of other key value pairs to improve consistency when reading
 logs, e.g.
 - key `reason` MUST be used when adding details about WHY a change happened.
-- key `diff` MUST be used when documenting the diff in an object that either lead to a chance, or that is resulting from a change.
+- key `diff` MUST be used when documenting the diff in an object that either lead to a change, or that is resulting from a change.
 
 ## Log Messages
 
@@ -118,10 +118,10 @@ logs, e.g.
 - If Kubernetes resource name is used in log messages, it MUST be used as is, For example `Reconciling DockerMachineTemplate`
 - If an API field name is used in log messages, the entire path MUST be used and field names MUST capitalized like in the 
   API (not as in the golang type). For example `Waiting for spec.providerID to be set`
-- If a log messages about a controlled or a referenced object, e.g. Machine controller performing an action on MachineSet,
+- If a log message is about a controlled or a referenced object, e.g. Machine controller performing an action on MachineSet,
   the message MUST contain the Kind of the controlled/referenced object and its name, for example `Created MachineSet foo-bar`
   - If the controlled/referenced object is in another namespace, use namespace/name instead of name
-  - The controlled/referenced MUST also be added as a key value pair (see guidelines above)
+  - The controlled/referenced object MUST also be added as a key value pair (see guidelines above)
 
 ## Log Levels
 

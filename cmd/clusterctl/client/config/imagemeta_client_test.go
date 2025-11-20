@@ -239,6 +239,56 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			want:    "",
 			wantErr: true,
 		},
+		{
+			name: "image config for cluster-api/cluster-api-controller with name override only: only image name should be changed",
+			fields: fields{
+				reader: test.NewFakeReader().WithImageMetaWithName("cluster-api/cluster-api-controller", "", "custom-cluster-api-controller", ""),
+			},
+			args: args{
+				component: "cluster-api",
+				image:     "registry.k8s.io/cluster-api/cluster-api-controller:v1.8.0",
+			},
+			want:    "registry.k8s.io/cluster-api/custom-cluster-api-controller:v1.8.0",
+			wantErr: false,
+		},
+		{
+			name: "image config for cluster-api/cluster-api-controller with repository and name override: repository and name should be changed, tag preserved",
+			fields: fields{
+				reader: test.NewFakeReader().WithImageMetaWithName("cluster-api/cluster-api-controller", "myorg.io/mirror", "custom-cluster-api-controller", ""),
+			},
+			args: args{
+				component: "cluster-api",
+				image:     "registry.k8s.io/cluster-api/cluster-api-controller:v1.10.6",
+			},
+			want:    "myorg.io/mirror/custom-cluster-api-controller:v1.10.6",
+			wantErr: false,
+		},
+		{
+			name: "image config for cluster-api/cluster-api-controller with specific name override and generic repository from all: both should be applied",
+			fields: fields{
+				reader: test.NewFakeReader().
+					WithImageMeta(allImageConfig, "myorg.io/mirror", "").
+					WithImageMetaWithName("cluster-api/cluster-api-controller", "", "custom-cluster-api-controller", ""),
+			},
+			args: args{
+				component: "cluster-api",
+				image:     "registry.k8s.io/cluster-api/cluster-api-controller:v1.10.6",
+			},
+			want:    "myorg.io/mirror/custom-cluster-api-controller:v1.10.6",
+			wantErr: false,
+		},
+		{
+			name: "image config for cluster-api/cluster-api-controller with repository, name and tag override: all fields should be changed",
+			fields: fields{
+				reader: test.NewFakeReader().WithImageMetaWithName("cluster-api/cluster-api-controller", "myorg.io/mirror", "custom-cluster-api-controller", "v1.5.0"),
+			},
+			args: args{
+				component: "cluster-api",
+				image:     "registry.k8s.io/cluster-api/cluster-api-controller:v1.10.6",
+			},
+			want:    "myorg.io/mirror/custom-cluster-api-controller:v1.5.0",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

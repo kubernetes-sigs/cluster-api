@@ -464,6 +464,36 @@ func Test_reconcileOldMachineSetsRollingUpdate(t *testing.T) {
 			expectedNotes: map[string][]string{},
 		},
 		{
+			name:        "do not scale down if there are unavailable replicas on the new MachineSet (maxSurge 1, maxUnavailable 9), all  machines unavailable",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRollingUpdateStrategy(1, 0)),
+			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(0)), // one machine created on the new NewMS due to maxSurge, but it is not reaching the available state,
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2, withStatusReplicas(3), withStatusAvailableReplicas(0)), // OldMS has unavailable replicas
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+				// 3 available replicas from ms1 - 1 replica already scaling down from ms1 + 3 available replica from ms2 = 5 available replicas == minAvailability, we cannot further scale down
+			},
+			expectedNotes:              map[string][]string{},
+			skipMaxUnavailabilityCheck: true, // The test case is simulating all machines not unavailable, so this check will fail
+		},
+		{
+			name:        "do not scale down if there are unavailable replicas on the new MachineSet (maxSurge 0, maxUnavailable 1), all  machines unavailable",
+			scaleIntent: map[string]int32{},
+			md:          createMD("v2", 3, withRollingUpdateStrategy(0, 1)),
+			newMS:       createMS("ms2", "v2", 1, withStatusReplicas(1), withStatusAvailableReplicas(0)), // one machine created on the new NewMS after scale down on the old MS, but it is not reaching the available state,
+			oldMSs: []*clusterv1.MachineSet{
+				createMS("ms1", "v1", 2, withStatusReplicas(2), withStatusAvailableReplicas(0)), // OldMS scaled down due to maxUnavailable 1
+			},
+			expectScaleIntent: map[string]int32{
+				// no new scale down intent for oldMSs (ms1):
+				// 3 available replicas from ms1 - 1 replica already scaling down from ms1 + 3 available replica from ms2 = 5 available replicas == minAvailability, we cannot further scale down
+			},
+			expectedNotes:              map[string][]string{},
+			skipMaxUnavailabilityCheck: true, // The test case is simulating all machines not unavailable, so this check will fail
+		},
+		{
 			name: "do not scale down if there are more replicas than minAvailable replicas, but scale down from current reconcile already takes the availability buffer (newMS is scaling down)",
 			scaleIntent: map[string]int32{
 				"ms2": 1, // newMS (ms2) has a scaling down intent from current reconcile

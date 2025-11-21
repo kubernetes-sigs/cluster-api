@@ -339,6 +339,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 					ClusterConfiguration: bootstrapv1.ClusterConfiguration{},
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Timeouts: bootstrapv1.Timeouts{
+							// ControlPlaneComponentHealthCheckSeconds is different, but it is ignored for the diff
 							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](5),
 							KubernetesAPICallSeconds:                ptr.To[int32](7),
 						},
@@ -392,7 +393,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 					// InitConfiguration will be converted to JoinConfiguration and then compared against the JoinConfiguration from KCP.
 					InitConfiguration: bootstrapv1.InitConfiguration{
 						Timeouts: bootstrapv1.Timeouts{
-							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](5),
+							// ControlPlaneComponentHealthCheckSeconds is different, but it is ignored for the diff
+							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](1),
 							KubernetesAPICallSeconds:                ptr.To[int32](7),
 						},
 						Patches: bootstrapv1.Patches{
@@ -420,7 +422,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(currentKubeadmConfig).ToNot(BeNil())
 		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
-		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(desiredKubeadmConfig.Spec.InitConfiguration).To(Equal(bootstrapv1.InitConfiguration{})) // Verify that this is a join.
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
 	})
@@ -478,7 +480,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(currentKubeadmConfig).ToNot(BeNil())
 		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
-		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(desiredKubeadmConfig.Spec.InitConfiguration).To(Equal(bootstrapv1.InitConfiguration{})) // Verify that this is a join.
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
 	})
@@ -536,7 +538,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(currentKubeadmConfig).ToNot(BeNil())
 		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
-		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(desiredKubeadmConfig.Spec.InitConfiguration).To(Equal(bootstrapv1.InitConfiguration{})) // Verify that this is a join.
 		g.Expect(match).To(BeFalse())
 		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig is outdated: diff: &v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: {},
@@ -597,6 +599,12 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						// This field is technically set by CABPK, but adding it here so that matchesKubeadmConfig detects this correctly as a join KubeadmConfig.
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
+								APIServerEndpoint: "1.2.3.4:6443",
+							},
+						},
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "A new name",
 						},
@@ -608,11 +616,11 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(currentKubeadmConfig).ToNot(BeNil())
 		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
-		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(desiredKubeadmConfig.Spec.InitConfiguration).To(Equal(bootstrapv1.InitConfiguration{})) // Verify that this is a join.
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
 	})
-	t.Run("returns true if JoinConfiguration is equal apart from discovery", func(t *testing.T) {
+	t.Run("returns true if JoinConfiguration is equal apart from Discovery and Timeouts", func(t *testing.T) {
 		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -625,6 +633,9 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 						},
 						// Discovery gets removed because Discovery is not relevant for the rollout decision.
 						Discovery: bootstrapv1.Discovery{TLSBootstrapToken: "aaa"},
+						Timeouts: bootstrapv1.Timeouts{
+							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](1),
+						},
 					},
 				},
 				Version: "v1.30.0",
@@ -656,8 +667,16 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "A new name",
 						},
-						// Discovery gets removed because Discovery is not relevant for the rollout decision.
-						Discovery: bootstrapv1.Discovery{TLSBootstrapToken: "bbb"},
+						// This field is technically set by CABPK, but adding it here so that matchesKubeadmConfig detects this correctly as a join KubeadmConfig.
+						// Discovery gets removed only for the diff because Discovery is not relevant for the rollout decision.
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
+								APIServerEndpoint: "1.2.3.4:6443",
+							},
+						},
+						Timeouts: bootstrapv1.Timeouts{
+							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](11),
+						},
 					},
 				},
 			},
@@ -666,7 +685,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(currentKubeadmConfig).ToNot(BeNil())
 		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
-		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(desiredKubeadmConfig.Spec.InitConfiguration).To(Equal(bootstrapv1.InitConfiguration{})) // Verify that this is a join.
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
 	})
@@ -710,6 +729,12 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						// This field is technically set by CABPK, but adding it here so that matchesKubeadmConfig detects this correctly as a join KubeadmConfig.
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
+								APIServerEndpoint: "1.2.3.4:6443",
+							},
+						},
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "A new name",
 						},
@@ -722,7 +747,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(currentKubeadmConfig).ToNot(BeNil())
 		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
-		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(desiredKubeadmConfig.Spec.InitConfiguration).To(Equal(bootstrapv1.InitConfiguration{})) // Verify that this is a join.
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
 	})
@@ -780,7 +805,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(currentKubeadmConfig).ToNot(BeNil())
 		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
-		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(desiredKubeadmConfig.Spec.InitConfiguration).To(Equal(bootstrapv1.InitConfiguration{})) // Verify that this is a join.
 		g.Expect(match).To(BeFalse())
 		g.Expect(reason).To(Equal(`Machine KubeadmConfig is outdated: diff: &v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: {},
@@ -842,6 +867,12 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						// This field is technically set by CABPK, but adding it here so that matchesKubeadmConfig detects this correctly as a join KubeadmConfig.
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
+								APIServerEndpoint: "1.2.3.4:6443",
+							},
+						},
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "name",
 						},
@@ -859,7 +890,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(currentKubeadmConfig).ToNot(BeNil())
 		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
-		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(desiredKubeadmConfig.Spec.InitConfiguration).To(Equal(bootstrapv1.InitConfiguration{})) // Verify that this is a join.
 		g.Expect(match).To(BeFalse())
 		g.Expect(reason).To(Equal(`Machine KubeadmConfig is outdated: diff: &v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: {},
@@ -920,6 +951,12 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						// This field is technically set by CABPK, but adding it here so that matchesKubeadmConfig detects this correctly as a join KubeadmConfig.
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
+								APIServerEndpoint: "1.2.3.4:6443",
+							},
+						},
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "An old name", // This is a change
 						},
@@ -931,7 +968,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(currentKubeadmConfig).ToNot(BeNil())
 		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
-		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(desiredKubeadmConfig.Spec.InitConfiguration).To(Equal(bootstrapv1.InitConfiguration{})) // Verify that this is a join.
 		g.Expect(match).To(BeFalse())
 		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig is outdated: diff: &v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: {},
@@ -988,6 +1025,12 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						// This field is technically set by CABPK, but adding it here so that matchesKubeadmConfig detects this correctly as a join KubeadmConfig.
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
+								APIServerEndpoint: "1.2.3.4:6443",
+							},
+						},
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "An old name", // This is a change
 						},
@@ -1071,6 +1114,12 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 					ClusterConfiguration: bootstrapv1.ClusterConfiguration{},
 					InitConfiguration:    bootstrapv1.InitConfiguration{},
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						// This field is technically set by CABPK, but adding it here so that matchesKubeadmConfig detects this correctly as a join KubeadmConfig.
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
+								APIServerEndpoint: "1.2.3.4:6443",
+							},
+						},
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "name",
 						},
@@ -1082,7 +1131,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(currentKubeadmConfig).ToNot(BeNil())
 		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
-		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(desiredKubeadmConfig.Spec.InitConfiguration).To(Equal(bootstrapv1.InitConfiguration{})) // Verify that this is a join.
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
 	})
@@ -1125,6 +1174,12 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: "",
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						// This field is technically set by CABPK, but adding it here so that matchesKubeadmConfig detects this correctly as a join KubeadmConfig.
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
+								APIServerEndpoint: "1.2.3.4:6443",
+							},
+						},
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "name",
 						},
@@ -1136,7 +1191,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(currentKubeadmConfig).ToNot(BeNil())
 		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
-		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(desiredKubeadmConfig.Spec.InitConfiguration).To(Equal(bootstrapv1.InitConfiguration{})) // Verify that this is a join.
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
 	})
@@ -1180,6 +1235,12 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						// This field is technically set by CABPK, but adding it here so that matchesKubeadmConfig detects this correctly as a join KubeadmConfig.
+						Discovery: bootstrapv1.Discovery{
+							BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
+								APIServerEndpoint: "1.2.3.4:6443",
+							},
+						},
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "name",
 						},
@@ -1191,7 +1252,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(currentKubeadmConfig).ToNot(BeNil())
 		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
-		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(desiredKubeadmConfig.Spec.InitConfiguration).To(Equal(bootstrapv1.InitConfiguration{})) // Verify that this is a join.
 		g.Expect(match).To(BeFalse())
 		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig is outdated: diff: &v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: {},

@@ -619,6 +619,12 @@ func Test_createRequest(t *testing.T) {
 				},
 			},
 			JoinConfiguration: bootstrapv1.JoinConfiguration{
+				// This field is technically set by CABPK, but adding it here so that matchesKubeadmConfig detects this correctly as a join KubeadmConfig.
+				Discovery: bootstrapv1.Discovery{
+					BootstrapToken: bootstrapv1.BootstrapTokenDiscovery{
+						APIServerEndpoint: "1.2.3.4:6443",
+					},
+				},
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 					KubeletExtraArgs: []bootstrapv1.Arg{{
 						Name:  "v",
@@ -635,6 +641,7 @@ func Test_createRequest(t *testing.T) {
 	currentKubeadmConfigCleanedUp.SetGroupVersionKind(bootstrapv1.GroupVersion.WithKind("KubeadmConfig")) // cleanupKubeadmConfig adds GVK.
 	currentKubeadmConfigCleanedUp.Status = bootstrapv1.KubeadmConfigStatus{}                              // cleanupKubeadmConfig drops status.
 	defaulting.ApplyPreviousKubeadmConfigDefaults(&currentKubeadmConfigCleanedUp.Spec)                    // PrepareKubeadmConfigsForDiff applies defaults.
+	currentKubeadmConfigCleanedUp.Spec.JoinConfiguration.Discovery = bootstrapv1.Discovery{}              // PrepareKubeadmConfigsForDiff cleans up Discovery.
 	currentKubeadmConfigWithOutdatedLabelsAndAnnotations := currentKubeadmConfig.DeepCopy()
 	currentKubeadmConfigWithOutdatedLabelsAndAnnotations.Labels["outdated-label-1"] = "outdated-label-value-1"
 	currentKubeadmConfigWithOutdatedLabelsAndAnnotations.Annotations["outdated-annotation-1"] = "outdated-annotation-value-1"
@@ -648,6 +655,7 @@ func Test_createRequest(t *testing.T) {
 	desiredKubeadmConfigCleanedUp.SetGroupVersionKind(bootstrapv1.GroupVersion.WithKind("KubeadmConfig")) // cleanupKubeadmConfig adds GVK.
 	desiredKubeadmConfigCleanedUp.Status = bootstrapv1.KubeadmConfigStatus{}                              // cleanupKubeadmConfig drops status.
 	defaulting.ApplyPreviousKubeadmConfigDefaults(&desiredKubeadmConfigCleanedUp.Spec)                    // PrepareKubeadmConfigsForDiff applies defaults.
+	desiredKubeadmConfigCleanedUp.Spec.JoinConfiguration.Discovery = bootstrapv1.Discovery{}              // PrepareKubeadmConfigsForDiff cleans up Discovery.
 
 	currentInfraMachine := &unstructured.Unstructured{
 		Object: map[string]interface{}{

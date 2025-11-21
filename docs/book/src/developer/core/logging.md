@@ -19,6 +19,8 @@ In Cluster API we strive to follow three principles while implementing logging:
 Kubernetes defines a set of [logging conventions](https://git.k8s.io/community/contributors/devel/sig-instrumentation/logging.md),
 as well as tools and libraries for logging.
 
+Cluster API should align to those guidelines and use those tools as much as possible.
+
 ## Continuous improvement
 
 The foundational items of Cluster API logging are:
@@ -100,6 +102,11 @@ key value pairs (in order of importance):
   creates a MachineSet.
 - Other Key value pairs.
 
+Notably, over time in CAPI we are also standardizing usage of other key value pairs to improve consistency when reading
+logs, e.g.
+- key `reason` MUST be used when adding details about WHY a change happened.
+- key `diff` MUST be used when documenting the diff in an object that either lead to a change, or that is resulting from a change.
+
 ## Log Messages
 
 - A Message MUST always start with a capital letter.
@@ -108,7 +115,13 @@ key value pairs (in order of importance):
   the action log and the corresponding error log; While logging before the action, log verbs should use the -ing form.
 - Ideally log messages should surface a different level of detail according to the target log level (see [log levels](#log-levels)
   for more details).
-- If Kubernetes resource name is used in log messages, it should be used as is, For example `Reconciling DockerMachineTemplate`
+- If Kubernetes resource name is used in log messages, it MUST be used as is, For example `Reconciling DockerMachineTemplate`
+- If an API field name is used in log messages, the entire path MUST be used and field names MUST capitalized like in the 
+  API (not as in the golang type). For example `Waiting for spec.providerID to be set`
+- If a log message is about a controlled or a referenced object, e.g. Machine controller performing an action on MachineSet,
+  the message MUST contain the Kind of the controlled/referenced object and its name, for example `Created MachineSet foo-bar`
+  - If the controlled/referenced object is in another namespace, use namespace/name instead of name
+  - The controlled/referenced object MUST also be added as a key value pair (see guidelines above)
 
 ## Log Levels
 

@@ -316,9 +316,25 @@ func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp 
 	}
 	machineConfig = machineConfig.DeepCopy()
 
+	// Cleanup ControlPlaneComponentHealthCheckSeconds from machineConfig,
+	// because through conversion apiServer.timeoutForControlPlane in v1beta1 is converted to
+	// initConfiguration/joinConfiguration.timeouts.controlPlaneComponentHealthCheckSeconds in v1beta2 and
+	// this can lead to a diff here that would lead to a rollout.
+	// Note: Changes to ControlPlaneComponentHealthCheckSeconds will apply for the next join, but they will not lead to a rollout.
+	machineConfig.Spec.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = nil
+	machineConfig.Spec.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = nil
+
 	// takes the KubeadmConfigSpec from KCP and applies the transformations required
 	// to allow a comparison with the KubeadmConfig referenced from the machine.
 	kcpConfig := getAdjustedKcpConfig(kcp, machineConfig)
+
+	// Cleanup ControlPlaneComponentHealthCheckSeconds from kcpConfig,
+	// because through conversion apiServer.timeoutForControlPlane in v1beta1 is converted to
+	// initConfiguration/joinConfiguration.timeouts.controlPlaneComponentHealthCheckSeconds in v1beta2 and
+	// this can lead to a diff here that would lead to a rollout.
+	// Note: Changes to ControlPlaneComponentHealthCheckSeconds will apply for the next join, but they will not lead to a rollout.
+	kcpConfig.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = nil
+	kcpConfig.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = nil
 
 	// Default both KubeadmConfigSpecs before comparison.
 	// *Note* This assumes that newly added default values never

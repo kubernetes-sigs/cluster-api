@@ -1127,7 +1127,11 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 					ClusterConfiguration: bootstrapv1.ClusterConfiguration{},
 					InitConfiguration:    bootstrapv1.InitConfiguration{},
-					JoinConfiguration:    bootstrapv1.JoinConfiguration{},
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						Timeouts: bootstrapv1.Timeouts{
+							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](1),
+						},
+					},
 				},
 			},
 		}
@@ -1161,7 +1165,11 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 					Name:      "test",
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: bootstrapv1.JoinConfiguration{},
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						Timeouts: bootstrapv1.Timeouts{
+							ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](2),
+						},
+					},
 				},
 			},
 		}

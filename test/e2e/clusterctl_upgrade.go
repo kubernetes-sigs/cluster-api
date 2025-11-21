@@ -1041,6 +1041,11 @@ func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Clie
 				return 0, err
 			}
 
+			// The MachinePool does not support machines if the field does not exist.
+			if errors.Is(err, util.ErrUnstructuredFieldNotFound) {
+				continue
+			}
+
 			replicas, found, err := unstructured.NestedInt64(mp.Object, "spec", "replicas")
 			if err == nil && found {
 				expectedMachinePoolMachineCount += replicas

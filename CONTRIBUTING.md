@@ -86,7 +86,7 @@ Any backport MUST NOT be breaking for API or behavioral changes.
 We usually backport critical bugs or security fixes, changes to support new Kubernetes minor versions (see [supported Kubernetes versions](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions)), documentation and test signal improvements. Everything else is considered case by case.
 
 Release branches outside of the [standard support period](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#cluster-api-release-support) are usually frozen,
-although maintainers may allow backports to releases in [maintenance mode](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#cluster-api-release-support) in specific situations 
+although maintainers may allow backports to releases in [maintenance mode](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#cluster-api-release-support) in specific situations
 like CVEs, security, and other critical bug fixes.
 
 ### APIs
@@ -377,7 +377,7 @@ licenses dependencies and other artifacts use. For go dependencies only dependen
 
 This project follows the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
 We enforce the API conventions via [kube-api-linter](https://github.com/kubernetes-sigs/kube-api-linter).
-The corresponding configuration field can be found [here](https://github.com/kubernetes-sigs/cluster-api/blob/main/.golangci-kal.yml). 
+The corresponding configuration field can be found [here](https://github.com/kubernetes-sigs/cluster-api/blob/main/.golangci-kal.yml).
 
 Minor additions to the conventions are listed below.
 
@@ -458,3 +458,5 @@ As of today there are following OWNERS files/Owner groups defining sub areas:
 - [Test](https://github.com/kubernetes-sigs/cluster-api/tree/main/test)
 - [Test Framework](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/framework)
 - [Docs](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs)
+- [Machine pools](https://github.com/kubernetes-sigs/cluster-api/tree/main/internal/controllers/machinepool)
+- Ignition support [in kubeadm Bootstrap Provider](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm/internal/ignition) and [in CAPD](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker/internal/provisioning/ignition)

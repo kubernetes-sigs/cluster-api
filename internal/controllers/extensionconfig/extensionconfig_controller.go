@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -132,7 +133,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Requeue events when the registry is not ready.
 	// The registry will become ready after it is 'warmed up' by warmupRunnable.
 	if !r.RuntimeClient.IsReady() {
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	extensionConfig := &runtimev1.ExtensionConfig{}

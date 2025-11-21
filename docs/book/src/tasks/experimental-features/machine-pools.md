@@ -71,7 +71,7 @@ While powerful, MachinePool comes with tradeoffs:
 
 - **Infrastructure provider complexity**: requires infrastructure providers to implement and maintain an InfrastructureMachinePool type.
 - **Less per-machine granularity**: you cannot configure each node individually; the pool defines a shared template.
-  > **Note**: While this is typically true, certain cloud providers do offer flexibility. 
+  > **Note**: While this is typically true, certain cloud providers do offer flexibility.
   > **Example**: AWS allows `AWSMachinepool.spec.mixedInstancesPolicy.instancesDistribution` while Azure allows `AzureMachinePool.spec.orchestrationMode`.
 - **Complex reconciliation**: node-to-providerID matching introduces edge cases (delays, inconsistent states).
 - **Draining**: The cloud resources for MachinePool may not necessarily support draining of Kubernetes worker nodes. For example, with an AWSMachinePool, AWS would normally terminate instances as quickly as possible. To solve this, tools like `aws-node-termination-handler` combined with ASG lifecycle hooks (defined in `AWSMachine.spec.lifecycleHooks`) must be installed, and is not a built-in feature of the infrastructure provider (CAPA in this example).
@@ -114,13 +114,15 @@ clusterctl upgrade
 
 The following Cluster API infrastructure providers have implemented support for MachinePools:
 
-| Provider | Implementations | Status |
-| --- | --- | --- |
-| [AWS](https://cluster-api-aws.sigs.k8s.io/topics/machinepools.html) | `AWSManagedMachinePool`<br> `AWSMachinePool`<br>`ROSAMachinePool` | Implemented, MachinePoolMachines supported |
-| [Azure](https://capz.sigs.k8s.io/self-managed/machinepools) | `AzureASOManagedMachinePool`<br> `AzureManagedMachinePool`<br> `AzureMachinePool` | Implemented, MachinePoolMachines supported |
-| [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/pull/1506) | `GCPMachinePool` | In Progress |
-| [OCI](https://oracle.github.io/cluster-api-provider-oci/managed/managedcluster.html) | `OCIManagedMachinePool`<br> `OCIMachinePool` | Implemented, MachinePoolMachines supported |
-| [Scaleway](https://github.com/scaleway/cluster-api-provider-scaleway/blob/main/docs/scalewaymanagedmachinepool.md) | `ScalewayManagedMachinePool` | Implemented |
+| Provider | Implementations | Status | MachinePool Machines support |
+| --- | --- | --- | --- |
+| [AWS](https://cluster-api-aws.sigs.k8s.io/topics/machinepools.html) | `AWSManagedMachinePool`<br> `AWSMachinePool`<br>`ROSAMachinePool` | Implemented | Yes; has support for deletion of single machine |
+| [Azure](https://capz.sigs.k8s.io/self-managed/machinepools) | `AzureASOManagedMachinePool`<br> `AzureManagedMachinePool`<br> `AzureMachinePool` | Implemented | Yes; has support for deletion of single machine |
+| [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/pull/1506) | `GCPMachinePool` | In Progress | Unknown |
+| [OCI](https://oracle.github.io/cluster-api-provider-oci/managed/managedcluster.html) | `OCIManagedMachinePool`<br> `OCIMachinePool` | Implemented | Yes; doesn't have support for deletion of single machine |
+| [Scaleway](https://github.com/scaleway/cluster-api-provider-scaleway/blob/main/docs/scalewaymanagedmachinepool.md) | `ScalewayManagedMachinePool` | Implemented | No |
+
+Providers may support the deletion of single machine pool `Machine` objects. That allows, for example, using `MachineHealthCheck` to remediate machines that became unhealthy (requires [this PR](https://github.com/kubernetes-sigs/cluster-api/pull/11392) to be merged and released).
 
 ## Additional Resources
 

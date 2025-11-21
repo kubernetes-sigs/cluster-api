@@ -59,8 +59,7 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
 
-	// Requeue the control plane, in case there are additional operations to perform
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{}, nil // No need to requeue here. Machine creation above triggers reconciliation.
 }
 
 func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
@@ -93,8 +92,7 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name))
 
-	// Requeue the control plane, in case there are other operations to perform
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{}, nil // No need to requeue here. Machine creation above triggers reconciliation.
 }
 
 func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
@@ -147,8 +145,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToDelete)...).
 		Info(fmt.Sprintf("Machine %s deleting (scale down)", machineToDelete.Name), "Machine", klog.KObj(machineToDelete))
 
-	// Requeue the control plane, in case there are additional operations to perform
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{}, nil // No need to requeue here. Machine deletion above triggers reconciliation.
 }
 
 // preflightChecks checks if the control plane is stable before proceeding with a scale up/scale down operation,

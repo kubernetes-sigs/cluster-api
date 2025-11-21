@@ -211,8 +211,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(kcp, r.Client)
 	if err != nil {
-		log.Error(err, "Failed to configure the patch helper")
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{}, err
 	}
 
 	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, kcp); err != nil || isPaused || requeue {
@@ -558,8 +557,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	// Get the workload cluster client.
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
-		log.V(2).Info("cannot get remote client to workload cluster, will requeue", "cause", err)
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{}, err
 	}
 
 	// Update kube-proxy daemonset.

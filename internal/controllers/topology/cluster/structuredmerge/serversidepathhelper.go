@@ -133,9 +133,9 @@ func (h *serverSidePatchHelper) HasChanges() bool {
 }
 
 // Patch will server side apply the current intent (the modified object.
-func (h *serverSidePatchHelper) Patch(ctx context.Context) error {
+func (h *serverSidePatchHelper) Patch(ctx context.Context) (string, error) {
 	if !h.HasChanges() {
-		return nil
+		return "", nil
 	}
 
 	log := ctrl.LoggerFrom(ctx)
@@ -147,5 +147,8 @@ func (h *serverSidePatchHelper) Patch(ctx context.Context) error {
 		// overwrite values and become sole manager.
 		client.ForceOwnership,
 	}
-	return h.client.Apply(ctx, client.ApplyConfigurationFromUnstructured(h.modified), options...)
+	if err := h.client.Apply(ctx, client.ApplyConfigurationFromUnstructured(h.modified), options...); err != nil {
+		return "", err
+	}
+	return h.modified.GetResourceVersion(), nil
 }

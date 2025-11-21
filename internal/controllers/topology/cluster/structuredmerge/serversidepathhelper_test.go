@@ -104,7 +104,8 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(p0.Changes()).To(BeNil()) // changes are expected to be nil on create.
 
 		// Create the object using server side apply
-		g.Expect(p0.Patch(ctx)).To(Succeed())
+		_, err = p0.Patch(ctx)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		// Check the object and verify managed field are properly set.
 		got := obj.DeepCopy()
@@ -306,7 +307,8 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(p0.Changes()).To(BeNil())
 
 		// Change the object using server side apply
-		g.Expect(p0.Patch(ctx)).To(Succeed())
+		_, err = p0.Patch(ctx)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		// Check the object and verify fields set by the other controller are preserved.
 		got := obj.DeepCopy()
@@ -354,7 +356,8 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(p0.Changes()).To(Equal([]byte(`{"spec":{"controlPlaneEndpoint":{"host":"changed"}}}`)))
 
 		// Create the object using server side apply
-		g.Expect(p0.Patch(ctx)).To(Succeed())
+		_, err = p0.Patch(ctx)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		// Check the object and verify the change is applied as well as the fields set by the other controller are still preserved.
 		got := obj.DeepCopy()
@@ -393,7 +396,8 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(p0.Changes()).To(BeEmpty()) // Note: metadata.managedFields have been removed from the diff to reduce log verbosity.
 
 		// Create the object using server side apply
-		g.Expect(p0.Patch(ctx)).To(Succeed())
+		_, err = p0.Patch(ctx)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		// Check the object and verify the change is applied as well as managed field updated accordingly.
 		got := obj.DeepCopy()
@@ -434,7 +438,8 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(p0.Changes()).To(Equal([]byte(`{"spec":{"bar":"changed-by-topology-controller"}}`)))
 
 		// Create the object using server side apply
-		g.Expect(p0.Patch(ctx)).To(Succeed())
+		_, err = p0.Patch(ctx)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		// Check the object and verify the change is applied as well as managed field updated accordingly.
 		got := obj.DeepCopy()
@@ -667,7 +672,8 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(p0.HasChanges()).To(BeTrue())
 			g.Expect(p0.HasSpecChanges()).To(BeTrue())
-			g.Expect(p0.Patch(ctx)).To(Succeed())
+			_, err = p0.Patch(ctx)
+			g.Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				g.Expect(env.CleanupAndWait(ctx, kct.DeepCopy())).To(Succeed())
 			}()
@@ -731,7 +737,8 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(p0.HasChanges()).To(Equal(tt.expectChanges), fmt.Sprintf("changes: %s", string(p0.Changes())))
 			g.Expect(p0.HasSpecChanges()).To(Equal(tt.expectSpecChanges))
-			g.Expect(p0.Patch(ctx)).To(Succeed())
+			_, err = p0.Patch(ctx)
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// Verify field ownership
 			// Note: It might take a bit for the cache to be up-to-date.
@@ -779,7 +786,8 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 				// Expect no changes.
 				g.Expect(p0.HasChanges()).To(BeFalse())
 				g.Expect(p0.HasSpecChanges()).To(BeFalse())
-				g.Expect(p0.Patch(ctx)).To(Succeed())
+				_, err := p0.Patch(ctx)
+				g.Expect(err).ToNot(HaveOccurred())
 
 				// Expect webhook to be called.
 				g.Expect(defaulter.Counter).To(Equal(countBefore+2),
@@ -806,7 +814,8 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			// Expect no changes.
 			g.Expect(p0.HasChanges()).To(BeFalse())
 			g.Expect(p0.HasSpecChanges()).To(BeFalse())
-			g.Expect(p0.Patch(ctx)).To(Succeed())
+			_, err = p0.Patch(ctx)
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// Expect webhook to not be called.
 			g.Expect(defaulter.Counter).To(Equal(countBefore),

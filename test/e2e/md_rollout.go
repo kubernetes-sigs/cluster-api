@@ -109,6 +109,9 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
+		// Get all machines before doing in-place changes so we can check at the end that no machines were replaced.
+		machinesBeforeInPlaceChanges := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
+
 		By("Upgrade MachineDeployment in-place mutable fields and wait for in-place propagation")
 		framework.UpgradeMachineDeploymentInPlaceMutableFieldsAndWait(ctx, framework.UpgradeMachineDeploymentInPlaceMutableFieldsAndWaitInput{
 			ClusterProxy:                input.BootstrapClusterProxy,
@@ -116,31 +119,6 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 			MachineDeployments:          clusterResources.MachineDeployments,
 		})
-
-		By("Upgrading MachineDeployment Infrastructure ref and wait for rolling upgrade")
-		framework.UpgradeMachineDeploymentInfrastructureRefAndWait(ctx, framework.UpgradeMachineDeploymentInfrastructureRefAndWaitInput{
-			ClusterProxy:                input.BootstrapClusterProxy,
-			Cluster:                     clusterResources.Cluster,
-			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			MachineDeployments:          clusterResources.MachineDeployments,
-		})
-
-		Byf("Verify Cluster Available condition is true")
-		framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
-			Getter:    input.BootstrapClusterProxy.GetClient(),
-			Name:      clusterResources.Cluster.Name,
-			Namespace: clusterResources.Cluster.Namespace,
-		})
-
-		Byf("Verify Machines Ready condition is true")
-		framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
-			Lister:    input.BootstrapClusterProxy.GetClient(),
-			Name:      clusterResources.Cluster.Name,
-			Namespace: clusterResources.Cluster.Namespace,
-		})
-
-		// Get all machines before doing in-place changes so we can check at the end that no machines were replaced.
-		machinesBeforeInPlaceChanges := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
 
 		preExistingAlwaysTaint := clusterv1.MachineTaint{
 			Key:         "pre-existing-always-taint",
@@ -277,8 +255,30 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 		By("Verifying there are no unexpected rollouts through in-place changes")
 		Consistently(func(g Gomega) {
 			machinesAfterInPlaceChanges := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
-			g.Expect(machinesAfterInPlaceChanges.Equal(machinesBeforeInPlaceChanges)).To(BeTrue(), "Machines must not be replaced through in-place rollout")
+			g.Expect(machinesAfterInPlaceChanges).To(BeComparableTo(machinesBeforeInPlaceChanges), "Machines must not be replaced through in-place rollout")
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
+
+		By("Upgrading MachineDeployment Infrastructure ref and wait for rolling upgrade")
+		framework.UpgradeMachineDeploymentInfrastructureRefAndWait(ctx, framework.UpgradeMachineDeploymentInfrastructureRefAndWaitInput{
+			ClusterProxy:                input.BootstrapClusterProxy,
+			Cluster:                     clusterResources.Cluster,
+			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			MachineDeployments:          clusterResources.MachineDeployments,
+		})
+
+		Byf("Verify Cluster Available condition is true")
+		framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
+			Getter:    input.BootstrapClusterProxy.GetClient(),
+			Name:      clusterResources.Cluster.Name,
+			Namespace: clusterResources.Cluster.Namespace,
+		})
+
+		Byf("Verify Machines Ready condition is true")
+		framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
+			Lister:    input.BootstrapClusterProxy.GetClient(),
+			Name:      clusterResources.Cluster.Name,
+			Namespace: clusterResources.Cluster.Namespace,
+		})
 
 		By("PASSED!")
 	})

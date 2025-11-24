@@ -619,6 +619,7 @@ func Test_ComputeDesiredKubeadmConfig(t *testing.T) {
 		if isJoin {
 			expectedKubeadmConfigWithoutOwner.Spec.InitConfiguration = bootstrapv1.InitConfiguration{}
 			expectedKubeadmConfigWithoutOwner.Spec.JoinConfiguration = kcp.Spec.KubeadmConfigSpec.JoinConfiguration
+			expectedKubeadmConfigWithoutOwner.Spec.JoinConfiguration.ControlPlane = &bootstrapv1.JoinControlPlane{}
 		} else {
 			expectedKubeadmConfigWithoutOwner.Spec.InitConfiguration = kcp.Spec.KubeadmConfigSpec.InitConfiguration
 			expectedKubeadmConfigWithoutOwner.Spec.JoinConfiguration = bootstrapv1.JoinConfiguration{}

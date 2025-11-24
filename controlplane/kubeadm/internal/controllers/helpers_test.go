@@ -417,7 +417,9 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 		UID:        kcp.UID,
 	}))
 	g.Expect(kubeadmConfig.Spec.InitConfiguration).To(BeComparableTo(bootstrapv1.InitConfiguration{}))
-	g.Expect(kubeadmConfig.Spec.JoinConfiguration).To(BeComparableTo(kcp.Spec.KubeadmConfigSpec.JoinConfiguration))
+	expectedJoinConfiguration := kcp.Spec.KubeadmConfigSpec.JoinConfiguration.DeepCopy()
+	expectedJoinConfiguration.ControlPlane = &bootstrapv1.JoinControlPlane{}
+	g.Expect(kubeadmConfig.Spec.JoinConfiguration).To(BeComparableTo(*expectedJoinConfiguration))
 	// Note: capi-kubeadmcontrolplane should own ownerReferences and spec, labels and annotations should be orphaned.
 	// 		 Labels and annotations will be owned by capi-kubeadmcontrolplane-metadata after the next update
 	//		 of labels and annotations.
@@ -433,6 +435,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 },
 "f:spec":{
 	"f:joinConfiguration":{
+		"f:controlPlane":{},
 		"f:nodeRegistration":{
 			"f:kubeletExtraArgs":{
 				"k:{\"name\":\"v\",\"value\":\"8\"}":{
@@ -508,6 +511,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 },
 "f:spec":{
 	"f:joinConfiguration":{
+		"f:controlPlane":{},
 		"f:nodeRegistration":{
 			"f:kubeletExtraArgs":{
 				"k:{\"name\":\"v\",\"value\":\"8\"}":{

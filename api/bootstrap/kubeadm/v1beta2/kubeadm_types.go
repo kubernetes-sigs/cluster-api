@@ -695,11 +695,6 @@ type Discovery struct {
 	TLSBootstrapToken string `json:"tlsBootstrapToken,omitempty"`
 }
 
-// IsDefined returns true if the Discovery is defined.
-func (r *Discovery) IsDefined() bool {
-	return !reflect.DeepEqual(r, &Discovery{})
-}
-
 // BootstrapTokenDiscovery is used to set the options for bootstrap token based discovery.
 // +kubebuilder:validation:MinProperties=1
 type BootstrapTokenDiscovery struct {

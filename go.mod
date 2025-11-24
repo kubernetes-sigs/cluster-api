@@ -26,7 +26,7 @@ require (
 	github.com/onsi/gomega v1.38.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.22.0
-	github.com/prometheus/client_model v0.6.1
+	github.com/prometheus/client_model v0.6.2
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
@@ -34,7 +34,7 @@ require (
 	go.etcd.io/etcd/api/v3 v3.6.6
 	go.etcd.io/etcd/client/pkg/v3 v3.6.6
 	go.etcd.io/etcd/client/v3 v3.6.6
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/oauth2 v0.33.0
 	golang.org/x/text v0.31.0

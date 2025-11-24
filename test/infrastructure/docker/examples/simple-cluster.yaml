@@ -33,7 +33,7 @@ metadata:
   namespace: default
 spec:
   replicas: 1
-  version: v1.34.0
+  version: v1.35.0-beta.0
   machineTemplate:
     spec:
       infrastructureRef:
@@ -83,7 +83,7 @@ spec:
       cluster.x-k8s.io/cluster-name: my-cluster
   template:
     spec:
-      version: v1.34.0
+      version: v1.35.0-beta.0
       clusterName: my-cluster
       bootstrap:
         configRef:

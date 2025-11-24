@@ -19,7 +19,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -308,10 +307,8 @@ func PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig *bo
 		currentKubeadmConfig.Spec.JoinConfiguration.Patches = currentKubeadmConfig.Spec.InitConfiguration.Patches
 		currentKubeadmConfig.Spec.JoinConfiguration.SkipPhases = currentKubeadmConfig.Spec.InitConfiguration.SkipPhases
 		currentKubeadmConfig.Spec.JoinConfiguration.NodeRegistration = currentKubeadmConfig.Spec.InitConfiguration.NodeRegistration
-		if currentKubeadmConfig.Spec.InitConfiguration.LocalAPIEndpoint.IsDefined() {
-			currentKubeadmConfig.Spec.JoinConfiguration.ControlPlane = &bootstrapv1.JoinControlPlane{
-				LocalAPIEndpoint: currentKubeadmConfig.Spec.InitConfiguration.LocalAPIEndpoint,
-			}
+		currentKubeadmConfig.Spec.JoinConfiguration.ControlPlane = &bootstrapv1.JoinControlPlane{
+			LocalAPIEndpoint: currentKubeadmConfig.Spec.InitConfiguration.LocalAPIEndpoint,
 		}
 		currentKubeadmConfig.Spec.InitConfiguration = bootstrapv1.InitConfiguration{}
 
@@ -350,14 +347,6 @@ func PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig *bo
 	desiredKubeadmConfig.Spec.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = nil
 	currentKubeadmConfig.Spec.InitConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = nil
 	currentKubeadmConfig.Spec.JoinConfiguration.Timeouts.ControlPlaneComponentHealthCheckSeconds = nil
-
-	// If KCP JoinConfiguration.ControlPlane is nil and the Machine JoinConfiguration.ControlPlane is empty,
-	// set Machine JoinConfiguration.ControlPlane to nil.
-	// NOTE: This is required because CABPK applies an empty JoinConfiguration.ControlPlane in case it is nil.
-	if desiredKubeadmConfig.Spec.JoinConfiguration.ControlPlane == nil &&
-		reflect.DeepEqual(currentKubeadmConfig.Spec.JoinConfiguration.ControlPlane, &bootstrapv1.JoinControlPlane{}) {
-		currentKubeadmConfig.Spec.JoinConfiguration.ControlPlane = nil
-	}
 
 	// Drop differences that do not lead to changes to Machines, but that might exist due
 	// to changes in how we serialize objects or how webhooks work.
@@ -542,15 +531,15 @@ func dropOmittableFields(spec *bootstrapv1.KubeadmConfigSpec) {
 // isKubeadmConfigForJoin returns true if the KubeadmConfig is for a control plane
 // or a worker machine that joined an existing cluster.
 // Note: This check is based on the assumption that KubeadmConfig for joining
-// control plane and workers nodes always have a non-empty JoinConfiguration.Discovery, while
-// instead the JoinConfiguration for the first control plane machine in the
+// control plane always have a non-empty JoinConfiguration.ControlPlane, while
+// instead the entire JoinConfiguration for the first control plane machine in the
 // cluster is emptied out by KCP.
 // Note: Previously we checked if the entire JoinConfiguration is defined, but that
 // is not safe because apiServer.timeoutForControlPlane in v1beta1 is also converted to
 // joinConfiguration.timeouts.controlPlaneComponentHealthCheckSeconds in v1beta2 and
 // accordingly we would also detect init KubeadmConfigs as join.
 func isKubeadmConfigForJoin(c *bootstrapv1.KubeadmConfig) bool {
-	return c.Spec.JoinConfiguration.Discovery.IsDefined()
+	return c.Spec.JoinConfiguration.ControlPlane != nil
 }
 
 // isKubeadmConfigForInit returns true if the KubeadmConfig is for the first control plane

@@ -17,7 +17,7 @@ jobs:
         branch: [ main, release-1.11, release-1.10, release-1.9 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # tag=v5.0.1
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # tag=v6.0.0
         with:
           ref: ${{ matrix.branch }}
       - uses: gaurav-nelson/github-action-markdown-link-check@3c3b66f1f7d0900e37b71eca45b63ea9eedfce31 # tag=1.0.17

@@ -217,8 +217,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, m.Namespace, m.Spec.ClusterName)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
-			m.Spec.ClusterName, m.Name, m.Namespace)
+		return ctrl.Result{}, err
 	}
 
 	// Initialize the patch helper

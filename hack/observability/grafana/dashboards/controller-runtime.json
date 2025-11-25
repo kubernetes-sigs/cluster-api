@@ -1280,7 +1280,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(rate(controller_runtime_reconcile_total{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod)",
+              "expr": "sum(rate(capi_reconcile_total{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod) or sum(rate(controller_runtime_reconcile_total{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod)",
               "legendFormat": "{{pod}}",
               "range": true,
               "refId": "A"
@@ -1373,7 +1373,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(rate(controller_runtime_reconcile_total{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller)",
+              "expr": "sum(rate(capi_reconcile_total{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller) or sum(rate(controller_runtime_reconcile_total{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller)",
               "legendFormat": "{{pod}}: {{controller}}",
               "range": true,
               "refId": "A"
@@ -1466,7 +1466,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(rate(controller_runtime_reconcile_total{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,result)",
+              "expr": "sum(rate(capi_reconcile_total{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,result) or sum(rate(controller_runtime_reconcile_total{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,result)",
               "legendFormat": "{{pod}}: {{result}}",
               "range": true,
               "refId": "A"
@@ -1559,7 +1559,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(rate(controller_runtime_reconcile_total{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller,result)",
+              "expr": "sum(rate(capi_reconcile_total{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller,result) or sum(rate(controller_runtime_reconcile_total{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller,result)",
               "legendFormat": "{{pod}}: {{controller}}: {{result}}",
               "range": true,
               "refId": "A"
@@ -1852,7 +1852,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(rate(controller_runtime_reconcile_time_seconds_sum{pod=~\"$Pod\"}[5m])) by (pod) / sum(rate(controller_runtime_reconcile_time_seconds_count{pod=~\"$Pod\"}[5m])) by (pod)",
+              "expr": "sum(rate(capi_reconcile_time_seconds_sum{pod=~\"$Pod\"}[5m])) by (pod) / sum(rate(capi_reconcile_time_seconds_count{pod=~\"$Pod\"}[5m])) by (pod) or sum(rate(controller_runtime_reconcile_time_seconds_sum{pod=~\"$Pod\"}[5m])) by (pod) / sum(rate(controller_runtime_reconcile_time_seconds_count{pod=~\"$Pod\"}[5m])) by (pod)",
               "legendFormat": "{{pod}}",
               "range": true,
               "refId": "A"
@@ -1946,7 +1946,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "histogram_quantile(0.50, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\"}[5m])) by (pod, le))",
+              "expr": "histogram_quantile(0.50, sum(rate(capi_reconcile_time_seconds_bucket{pod=~\"$Pod\"}[5m])) by (pod, le)) or histogram_quantile(0.50, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\"}[5m])) by (pod, le))",
               "hide": false,
               "legendFormat": "P50 {{pod}}",
               "range": true,
@@ -1958,7 +1958,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "histogram_quantile(0.90, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\"}[5m])) by (pod, le))",
+              "expr": "histogram_quantile(0.90, sum(rate(capi_reconcile_time_seconds_bucket{pod=~\"$Pod\"}[5m])) by (pod, le)) or histogram_quantile(0.90, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\"}[5m])) by (pod, le))",
               "hide": false,
               "legendFormat": "P90 {{pod}}",
               "range": true,
@@ -1970,7 +1970,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "histogram_quantile(0.99, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\"}[5m])) by (pod, le))",
+              "expr": "histogram_quantile(0.99, sum(rate(capi_reconcile_time_seconds_bucket{pod=~\"$Pod\"}[5m])) by (pod, le)) or histogram_quantile(0.99, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\"}[5m])) by (pod, le))",
               "hide": false,
               "legendFormat": "P99 {{pod}}",
               "range": true,
@@ -2064,7 +2064,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(rate(controller_runtime_reconcile_time_seconds_sum{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller) / sum(rate(controller_runtime_reconcile_time_seconds_count{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller)",
+              "expr": "sum(rate(capi_reconcile_time_seconds_sum{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller) / sum(rate(capi_reconcile_time_seconds_count{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller) or sum(rate(controller_runtime_reconcile_time_seconds_sum{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller) / sum(rate(controller_runtime_reconcile_time_seconds_count{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller)",
               "legendFormat": "{{pod}}: {{controller}}",
               "range": true,
               "refId": "A"
@@ -2158,7 +2158,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "histogram_quantile(0.50, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod, controller, le))",
+              "expr": "histogram_quantile(0.50, sum(rate(capi_reconcile_time_seconds_bucket{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod, controller, le)) or histogram_quantile(0.50, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod, controller, le))",
               "hide": false,
               "legendFormat": "P50 {{pod}} {{controller}} ",
               "range": true,
@@ -2170,7 +2170,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "histogram_quantile(0.90, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod, controller, le))",
+              "expr": "histogram_quantile(0.90, sum(rate(capi_reconcile_time_seconds_bucket{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod, controller, le)) or histogram_quantile(0.90, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod, controller, le))",
               "hide": false,
               "legendFormat": "P90 {{pod}} {{controller}} ",
               "range": true,
@@ -2182,7 +2182,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "histogram_quantile(0.99, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod, controller, le))",
+              "expr": "histogram_quantile(0.99, sum(rate(capi_reconcile_time_seconds_bucket{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod, controller, le)) or histogram_quantile(0.99, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod, controller, le))",
               "hide": false,
               "legendFormat": "P99 {{pod}} {{controller}} ",
               "range": true,
@@ -2262,7 +2262,7 @@
               },
               "editorMode": "code",
               "exemplar": true,
-              "expr": "rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\", controller=~\"$Controller\"}[$__rate_interval])",
+              "expr": "rate(capi_reconcile_time_seconds_bucket{pod=~\"$Pod\", controller=~\"$Controller\"}[$__rate_interval]) or rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\", controller=~\"$Controller\"}[$__rate_interval])",
               "format": "heatmap",
               "legendFormat": "{{le}}",
               "range": true,

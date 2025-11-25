@@ -102,7 +102,7 @@ type WaitForMachinesReadyInput struct {
 	Intervals []interface{}
 }
 
-func WaitForMachinesReady(ctx context.Context, input WaitForMachinesReadyInput, intervals ...interface{}) {
+func WaitForMachinesReady(ctx context.Context, input WaitForMachinesReadyInput) {
 	By("Waiting for the machines' Ready condition to be true")
 	machineList := &clusterv1.MachineList{}
 
@@ -127,5 +127,5 @@ func WaitForMachinesReady(ctx context.Context, input WaitForMachinesReadyInput, 
 			}
 			g.Expect(readyConditionFound).To(BeTrue(), "Machine %q should have a Ready condition", machine.Name)
 		}
-	}, intervals...).Should(Succeed(), "Failed to wait for Machines Ready condition for Cluster %s", klog.KRef(input.Namespace, input.Name))
+	}, input.Intervals...).Should(Succeed(), "Failed to wait for Machines Ready condition for Cluster %s", klog.KRef(input.Namespace, input.Name))
 }

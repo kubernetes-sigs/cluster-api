@@ -854,6 +854,8 @@ func downloadToTmpFile(ctx context.Context, url string) string {
 	Expect(err).ToNot(HaveOccurred(), "failed to get clusterctl")
 	defer resp.Body.Close()
 
+	Expect(resp.StatusCode).To(Equal(http.StatusOK), "unexpected status code when downloading clusterctl")
+
 	// Write the body to file
 	_, err = io.Copy(tmpFile, resp.Body)
 	Expect(err).ToNot(HaveOccurred(), "failed to write temporary file")

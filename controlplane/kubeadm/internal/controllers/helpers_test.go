@@ -39,6 +39,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	clientutil "sigs.k8s.io/cluster-api/internal/util/client"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -447,6 +448,13 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	}})))
 
 	// Sync Machines
+
+	// Note: Ensure the client observed the latest objects so syncMachines below is not failing with conflict errors.
+	// Note: Not adding a WaitForCacheToBeUpToDate for infraObj for now as we didn't have test flakes because of it and
+	//       WaitForCacheToBeUpToDate does not support Unstructured as of now.
+	g.Expect(clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "cloneConfigsAndGenerateMachine", &m)).To(Succeed())
+	g.Expect(clientutil.WaitForCacheToBeUpToDate(ctx, r.Client, "cloneConfigsAndGenerateMachine", kubeadmConfig)).To(Succeed())
+
 	controlPlane, err := internal.NewControlPlane(ctx, r.managementCluster, r.Client, cluster, kcp, collections.FromMachines(&m))
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(r.syncMachines(ctx, controlPlane)).To(Succeed())

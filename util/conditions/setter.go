@@ -116,7 +116,9 @@ func Delete(to Setter, conditionType string) {
 	}
 
 	conditions := to.GetConditions()
-	newConditions := make([]metav1.Condition, 0, len(conditions)-1)
+	// allocate same length array because the conditions length might be 0
+	// or the condition to be deleted might not be part of the list.
+	newConditions := make([]metav1.Condition, 0, len(conditions))
 	for _, condition := range conditions {
 		if condition.Type != conditionType {
 			newConditions = append(newConditions, condition)

@@ -1529,7 +1529,7 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
 		},
 	}
-	g.Expect(env.Create(ctx, kcp)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, kcp)).To(Succeed())
 
 	corednsCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

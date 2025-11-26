@@ -15,18 +15,18 @@ The following table shows the preliminary dates for the `v1.13` release cycle.
 | v1.13.0-beta.0 released                              | Release Lead | Tuesday 17th March 2026     | week 11  |
 | Communicate beta to providers                        | Comms Lead   | Tuesday 17th March 2026     | week 11  |
 | Communicate upcoming code freeze to the community    | Comms Lead   | Tuesday 17th March 2026     | week 11  |
-| KubeCon idle week                                    | ---          | ---                         | week 12  |
-| v1.13.0-beta.1 released                              | Release Lead | Tuesday 31st March 2026     | week 13  |
+| KubeCon EU (23-26 March 2026) idle week              | ---          | ---                         | week 12  |
+| v1.13.0-beta.x released                              | Release Lead | Tuesday 31st March 2026     | week 13  |
 | release-1.13 branch created (**Begin Code Freeze**)  | Release Lead | Tuesday 7th April 2026      | week 14  |
 | v1.13.0-rc.0 released                                | Release Lead | Tuesday 7th April 2026      | week 14  |
-| release-1.13 jobs created                            | Release Lead | Tuesday 7th April 2026      | week 14  |
-| v1.13.0-rc.1 released                                | Release Lead | Tuesday 14th April 2026     | week 15  |
+| release-1.13 jobs created                            | CI Lead      | Tuesday 7th April 2026      | week 14  |
+| v1.13.0-rc.x released                                | Release Lead | Tuesday 14th April 2026     | week 15  |
 | **v1.13.0 released**                                 | Release Lead | Tuesday 21st April 2026     | week 16  |
 | *v1.11.x & v1.12.x released*                         | Release Lead | Tuesday 21st April 2026     | week 16  |
 | Organize release retrospective                       | Release Lead | TBC                         | week 16  |
 | *v1.13.1 released (tentative)*                       | Release Lead | Tuesday 28th April 2026     |          |
 
-After CAPI v1.13.0, the .1 release will follow up to add support for Kubernetes 1.36.0 when it becomes available. After .1, we expect to do monthly patch releases (more details will be provided in the 1.14 release schedule).
+After CAPI v1.13.0, the .1 release will follow up to add support for Kubernetes 1.36.0 when it becomes available. After .1, we expect to do monthly patch releases (more details will be provided in the v1.14 release schedule).
 
 ## Release team
 

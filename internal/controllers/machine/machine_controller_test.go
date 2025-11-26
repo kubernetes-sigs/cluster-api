@@ -273,10 +273,10 @@ func TestWatchesDelete(t *testing.T) {
 		},
 	}
 
-	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
-	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
-	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, defaultBootstrap)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, infraMachine)).To(Succeed())
 
 	defer func(do ...client.Object) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())

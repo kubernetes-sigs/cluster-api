@@ -493,7 +493,9 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	}
 
 	// Use client-go's transport.TLSConfigureFor to ensure good defaults for tls
-	client := http.DefaultClient
+	client := &http.Client{}
+	defer client.CloseIdleConnections()
+
 	tlsConfig, err := transport.TLSConfigFor(&transport.Config{
 		TLS: transport.TLSConfig{
 			CertFile:   opts.certFile,

@@ -7,7 +7,7 @@ helmCharts:
   releaseName: metrics-server
   namespace: observability
   valuesFile: values.yaml
-  version: 3.12.2
+  version: 3.13.0
 
 helmGlobals:
   # Store chart in ".charts" folder instead of "charts".

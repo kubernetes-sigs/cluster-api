@@ -20,6 +20,7 @@ package client
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -441,6 +442,37 @@ type httpCallOptions struct {
 	timeout         time.Duration
 }
 
+type tlsConfigContextKeyType string
+
+const tlsConfigContextKey = tlsConfigContextKeyType("tlsConfig")
+
+type dynamicTLSRoundtripper struct {
+	baseTransport *http.Transport
+}
+
+func (d *dynamicTLSRoundtripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	// 1. Extract TLS config from context
+	ctxConfig, ok := req.Context().Value(tlsConfigContextKey).(*tls.Config)
+
+	// If no specific config provided, use the base transport
+	if !ok {
+		return d.baseTransport.RoundTrip(req)
+	}
+
+	// We clone the baseTransport to keep settings like Proxy, DialContext, etc.
+	newTransport := d.baseTransport.Clone()
+	newTransport.TLSClientConfig = ctxConfig
+
+	return newTransport.RoundTrip(req)
+}
+
+var httpClient = &http.Client{
+	Transport: &dynamicTLSRoundtripper{
+		// This also adds http2
+		baseTransport: utilnet.SetTransportDefaults(&http.Transport{}),
+	},
+}
+
 func httpCall(ctx context.Context, request, response runtime.Object, opts *httpCallOptions) error {
 	log := ctrl.LoggerFrom(ctx)
 	if opts == nil || request == nil || response == nil {
@@ -518,9 +550,6 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	}
 
 	// Use client-go's transport.TLSConfigureFor to ensure good defaults for tls
-	client := &http.Client{}
-	defer client.CloseIdleConnections()
-
 	tlsConfig, err := transport.TLSConfigFor(&transport.Config{
 		TLS: transport.TLSConfig{
 			CertFile:   opts.certFile,
@@ -532,12 +561,9 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	if err != nil {
 		return errors.Wrap(err, "http call failed: failed to create tls config")
 	}
-	// This also adds http2
-	client.Transport = utilnet.SetTransportDefaults(&http.Transport{
-		TLSClientConfig: tlsConfig,
-	})
+	httpRequest = httpRequest.WithContext(context.WithValue(httpRequest.Context(), tlsConfigContextKey, tlsConfig))
 
-	resp, err := client.Do(httpRequest)
+	resp, err := httpClient.Do(httpRequest)
 
 	// Create http request metric.
 	defer func() {

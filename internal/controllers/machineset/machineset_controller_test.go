@@ -47,10 +47,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -3478,10 +3480,19 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			wantErr:                     false,
 		},
 	}
+
+	// We want to test that trigger in place handles version and failure domain, which are not reconciled by syncMachines
+	versionBeforeInplaceUpdate := "v1.33.0"
+	versionAfterInplaceUpdate := "v1.34.0"
+	failureDomainBeforeInplaceUpdate := "fd-1"
+	failureDomainAfterInplaceUpdate := "fd-2"
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			tt.ms.Spec.Template.Spec.Version = versionAfterInplaceUpdate
+			tt.ms.Spec.Template.Spec.FailureDomain = failureDomainAfterInplaceUpdate
 			tt.ms.Spec.Template.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 				APIGroup: infraTmpl.GroupVersionKind().Group,
 				Kind:     infraTmpl.GetKind(),
@@ -3507,6 +3518,15 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 
 			for _, m := range tt.machines {
 				m.SetNamespace(tt.ms.Namespace)
+
+				if hooks.IsPending(runtimehooksv1.UpdateMachine, m) {
+					m.Spec.Version = versionAfterInplaceUpdate
+					m.Spec.FailureDomain = failureDomainAfterInplaceUpdate
+				} else {
+					// NOTE: following values must be changed when in place upgrade is triggered for a machine
+					m.Spec.Version = versionBeforeInplaceUpdate
+					m.Spec.FailureDomain = failureDomainBeforeInplaceUpdate
+				}
 
 				mInfraObj := infraObj.DeepCopy()
 				mInfraObj.SetName(m.Name)
@@ -3552,6 +3572,15 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 
 			updatingMachines := machinesInPlaceUpdating(machines)
 			g.Expect(updatingMachines).To(ConsistOf(tt.wantMachinesInPlaceUpdating))
+			for _, m := range machines.Items {
+				if hooks.IsPending(runtimehooksv1.UpdateMachine, &m) {
+					g.Expect(m.Spec.Version).To(Equal(versionAfterInplaceUpdate))
+					g.Expect(m.Spec.FailureDomain).To(Equal(failureDomainAfterInplaceUpdate))
+				} else {
+					g.Expect(m.Spec.Version).To(Equal(versionBeforeInplaceUpdate))
+					g.Expect(m.Spec.FailureDomain).To(Equal(failureDomainBeforeInplaceUpdate))
+				}
+			}
 		})
 	}
 }

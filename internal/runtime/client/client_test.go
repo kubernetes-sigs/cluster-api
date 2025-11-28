@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -201,6 +202,15 @@ func TestClient_httpCall(t *testing.T) {
 				// set url to srv for in tt.opts
 				tt.opts.config.URL = ptr.To(srv.URL)
 				tt.opts.config.CABundle = testcerts.CACert
+
+				// set httpClient in tt.opts
+				// Note: cert and key file are not necessary, because in this test the server do not requires client authentication with certificates signed by a given CA.
+				u, err := url.Parse(srv.URL)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				httpClient, err := createHTTPClient("", "", testcerts.CACert, u.Hostname())
+				g.Expect(err).ToNot(HaveOccurred())
+				tt.opts.httpClient = httpClient
 			}
 
 			err := httpCall(context.TODO(), tt.request, tt.response, tt.opts)
@@ -939,6 +949,92 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 	err := c.CallExtension(context.Background(), fakev1alpha1.FakeHook, obj, "valid-extension", &fakev1alpha1.FakeRequest{}, &fakev1alpha1.FakeResponse{})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(serverCallCount).To(Equal(1))
+}
+
+func TestClient_GetHttpClient(t *testing.T) {
+	g := NewWithT(t)
+
+	extension1 := runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "extension1",
+			ResourceVersion: "15",
+		},
+		Spec: runtimev1.ExtensionConfigSpec{
+			ClientConfig: runtimev1.ClientConfig{
+				URL:      ptr.To("https://serverA.example.com/"),
+				CABundle: testcerts.CACert,
+			},
+		},
+	}
+
+	extension2 := runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "extension2",
+			ResourceVersion: "36",
+		},
+		Spec: runtimev1.ExtensionConfigSpec{
+			ClientConfig: runtimev1.ClientConfig{
+				URL:      ptr.To("https://serverA.example.com/"),
+				CABundle: testcerts.CACert,
+			},
+		},
+	}
+
+	extension3 := runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "extension3",
+			ResourceVersion: "54",
+		},
+		Spec: runtimev1.ExtensionConfigSpec{
+			ClientConfig: runtimev1.ClientConfig{
+				URL:      ptr.To("https://serverB.example.com/"),
+				CABundle: testcerts.CACert, // in a real example also CA should be different, but the host name is already enough to require a different client.
+			},
+		},
+	}
+
+	c := New(Options{})
+
+	internalClient := c.(*client)
+	g.Expect(internalClient.httpClientsCache.Len()).To(Equal(0))
+
+	// Get http client for extension 1
+	gotClientExtension1, err := internalClient.getHTTPClient(extension1.Spec.ClientConfig)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(gotClientExtension1).ToNot(BeNil())
+
+	// Check http client cache have only one item
+	g.Expect(internalClient.httpClientsCache.Len()).To(Equal(1))
+	_, ok := internalClient.httpClientsCache.Has(newHTTPClientEntryKey("serverA.example.com", extension1.Spec.ClientConfig.CABundle))
+	g.Expect(ok).To(BeTrue())
+
+	// Check http client cache is used for the same extension
+	gotClientExtension1Again, err := internalClient.getHTTPClient(extension1.Spec.ClientConfig)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(gotClientExtension1Again).To(Equal(gotClientExtension1))
+
+	// Get http client for extension 2, same server
+	gotClientExtension2, err := internalClient.getHTTPClient(extension2.Spec.ClientConfig)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(gotClientExtension2).ToNot(BeNil())
+	g.Expect(gotClientExtension2).To(Equal(gotClientExtension1))
+
+	// Check http client cache have two items
+	g.Expect(internalClient.httpClientsCache.Len()).To(Equal(1))
+	_, ok = internalClient.httpClientsCache.Has(newHTTPClientEntryKey("serverA.example.com", extension2.Spec.ClientConfig.CABundle))
+	g.Expect(ok).To(BeTrue())
+
+	// Get http client for extension 3, another server
+	gotClientExtension3, err := internalClient.getHTTPClient(extension3.Spec.ClientConfig)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(gotClientExtension3).ToNot(BeNil())
+
+	// Check http client cache have two items
+	g.Expect(internalClient.httpClientsCache.Len()).To(Equal(2))
+	_, ok = internalClient.httpClientsCache.Has(newHTTPClientEntryKey("serverA.example.com", extension1.Spec.ClientConfig.CABundle))
+	g.Expect(ok).To(BeTrue())
+	_, ok = internalClient.httpClientsCache.Has(newHTTPClientEntryKey("serverB.example.com", extension2.Spec.ClientConfig.CABundle))
+	g.Expect(ok).To(BeTrue())
 }
 
 func cacheKeyFunc(extensionName, extensionConfigResourceVersion string, request runtimehooksv1.RequestObject) string {

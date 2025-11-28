@@ -738,12 +738,14 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					Namespace: workloadCluster.Namespace,
 				})
 
-				Byf("[%d] Verify Machines Ready condition is true", i)
-				framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
-					Lister:    managementClusterProxy.GetClient(),
-					Name:      workloadCluster.Name,
-					Namespace: workloadCluster.Namespace,
-				})
+				if len(postUpgradeMachineList.Items) > 0 {
+					Byf("[%d] Verify Machines Ready condition is true", i)
+					framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
+						Lister:    managementClusterProxy.GetClient(),
+						Name:      workloadCluster.Name,
+						Namespace: workloadCluster.Namespace,
+					})
+				}
 			}
 
 			// Note: It is a known issue on Kubernetes < v1.29 that SSA sometimes fail:

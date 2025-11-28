@@ -400,7 +400,7 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 		}
 
 		if nextCheck > 0 {
-			logger.V(3).Info("Target is likely to go unhealthy", "timeUntilUnhealthy", nextCheck.Truncate(time.Second).String())
+			logger.V(2).Info("Target is likely to go unhealthy", "timeUntilUnhealthy", nextCheck.Truncate(time.Second).String())
 			nextCheckTimes = append(nextCheckTimes, nextCheck)
 			continue
 		}

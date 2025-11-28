@@ -52,6 +52,7 @@ import (
 	runtimemetrics "sigs.k8s.io/cluster-api/internal/runtime/metrics"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/cache"
 )
 
 type errCallingExtensionHandler error
@@ -70,22 +71,52 @@ type Options struct {
 // New returns a new Client.
 func New(options Options) runtimeclient.Client {
 	return &client{
-		certFile: options.CertFile,
-		keyFile:  options.KeyFile,
-		catalog:  options.Catalog,
-		registry: options.Registry,
-		client:   options.Client,
+		certFile:         options.CertFile,
+		keyFile:          options.KeyFile,
+		catalog:          options.Catalog,
+		registry:         options.Registry,
+		client:           options.Client,
+		httpClientsCache: cache.New[httpClientEntry](24 * time.Hour),
 	}
 }
 
 var _ runtimeclient.Client = &client{}
 
 type client struct {
-	certFile string
-	keyFile  string
-	catalog  *runtimecatalog.Catalog
-	registry runtimeregistry.ExtensionRegistry
-	client   ctrlclient.Client
+	certFile         string
+	keyFile          string
+	catalog          *runtimecatalog.Catalog
+	registry         runtimeregistry.ExtensionRegistry
+	client           ctrlclient.Client
+	httpClientsCache cache.Cache[httpClientEntry]
+}
+
+type httpClientEntry struct {
+	// Note: caData and hostName are the variable parts in the TLSConfig
+	// for an http.Client that is used to call runtime extensions.
+	caData   []byte
+	hostName string
+
+	client *http.Client
+}
+
+func newHTTPClientEntry(hostName string, caData []byte, client *http.Client) httpClientEntry {
+	return httpClientEntry{
+		hostName: hostName,
+		caData:   caData,
+		client:   client,
+	}
+}
+
+func newHTTPClientEntryKey(hostName string, caData []byte) string {
+	return httpClientEntry{
+		hostName: hostName,
+		caData:   caData,
+	}.Key()
+}
+
+func (r httpClientEntry) Key() string {
+	return fmt.Sprintf("%s/%s", r.hostName, string(r.caData))
 }
 
 func (c *client) WarmUp(extensionConfigList *runtimev1.ExtensionConfigList) error {
@@ -105,16 +136,20 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 		return nil, errors.Wrapf(err, "failed to discover extension %q: failed to compute GVH of hook", extensionConfig.Name)
 	}
 
+	httpClient, err := c.getHTTPClient(extensionConfig.Spec.ClientConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to discover extension %q: failed to get http client", extensionConfig.Name)
+	}
+
 	request := &runtimehooksv1.DiscoveryRequest{}
 	response := &runtimehooksv1.DiscoveryResponse{}
 	opts := &httpCallOptions{
-		certFile:        c.certFile,
-		keyFile:         c.keyFile,
 		catalog:         c.catalog,
 		config:          extensionConfig.Spec.ClientConfig,
 		registrationGVH: hookGVH,
 		hookGVH:         hookGVH,
 		timeout:         defaultDiscoveryTimeout,
+		httpClient:      httpClient,
 	}
 	if err := httpCall(ctx, request, response, opts); err != nil {
 		return nil, errors.Wrapf(err, "failed to discover extension %q", extensionConfig.Name)
@@ -336,15 +371,19 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 		}
 	}
 
+	httpClient, err := c.getHTTPClient(registration.ClientConfig)
+	if err != nil {
+		return errors.Wrapf(err, "failed to call extension handler %q: failed to get http client", name)
+	}
+
 	httpOpts := &httpCallOptions{
-		certFile:        c.certFile,
-		keyFile:         c.keyFile,
 		catalog:         c.catalog,
 		config:          registration.ClientConfig,
 		registrationGVH: registration.GroupVersionHook,
 		hookGVH:         hookGVH,
 		name:            strings.TrimSuffix(registration.Name, "."+registration.ExtensionConfigName),
 		timeout:         timeoutDuration,
+		httpClient:      httpClient,
 	}
 	err = httpCall(ctx, request, response, httpOpts)
 	if err != nil {
@@ -388,6 +427,48 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	return nil
 }
 
+func (c *client) getHTTPClient(config runtimev1.ClientConfig) (*http.Client, error) {
+	// Note: we are passing an empty gvh and "" as name because the only relevant part of the url
+	// for this function is the Hostname, which derives from config (ghv and name are appended to the path).
+	extensionURL, err := urlForExtension(config, runtimecatalog.GroupVersionHook{}, "")
+	if err != nil {
+		return nil, err
+	}
+
+	if cacheEntry, ok := c.httpClientsCache.Has(newHTTPClientEntryKey(extensionURL.Hostname(), config.CABundle)); ok {
+		return cacheEntry.client, nil
+	}
+
+	httpClient, err := createHTTPClient(c.certFile, c.keyFile, config.CABundle, extensionURL.Hostname())
+	if err != nil {
+		return nil, err
+	}
+
+	c.httpClientsCache.Add(newHTTPClientEntry(extensionURL.Hostname(), config.CABundle, httpClient))
+	return httpClient, nil
+}
+
+func createHTTPClient(certFile, keyFile string, caData []byte, hostName string) (*http.Client, error) {
+	httpClient := &http.Client{}
+	tlsConfig, err := transport.TLSConfigFor(&transport.Config{
+		TLS: transport.TLSConfig{
+			CertFile:   certFile,
+			KeyFile:    keyFile,
+			CAData:     caData,
+			ServerName: hostName,
+		},
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create tls config")
+	}
+
+	// This also adds http2
+	httpClient.Transport = utilnet.SetTransportDefaults(&http.Transport{
+		TLSClientConfig: tlsConfig,
+	})
+	return httpClient, nil
+}
+
 // cloneAndAddSettings creates a new request object and adds settings to it.
 func cloneAndAddSettings(request runtimehooksv1.RequestObject, registrationSettings map[string]string) runtimehooksv1.RequestObject {
 	// Merge the settings from registration with the settings in the request.
@@ -406,14 +487,13 @@ func cloneAndAddSettings(request runtimehooksv1.RequestObject, registrationSetti
 }
 
 type httpCallOptions struct {
-	certFile        string
-	keyFile         string
 	catalog         *runtimecatalog.Catalog
 	config          runtimev1.ClientConfig
 	registrationGVH runtimecatalog.GroupVersionHook
 	hookGVH         runtimecatalog.GroupVersionHook
 	name            string
 	timeout         time.Duration
+	httpClient      *http.Client
 }
 
 func httpCall(ctx context.Context, request, response runtime.Object, opts *httpCallOptions) error {
@@ -492,27 +572,8 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 		return errors.Wrap(err, "http call failed: failed to create http request")
 	}
 
-	// Use client-go's transport.TLSConfigureFor to ensure good defaults for tls
-	client := &http.Client{}
-	defer client.CloseIdleConnections()
-
-	tlsConfig, err := transport.TLSConfigFor(&transport.Config{
-		TLS: transport.TLSConfig{
-			CertFile:   opts.certFile,
-			KeyFile:    opts.keyFile,
-			CAData:     opts.config.CABundle,
-			ServerName: extensionURL.Hostname(),
-		},
-	})
-	if err != nil {
-		return errors.Wrap(err, "http call failed: failed to create tls config")
-	}
-	// This also adds http2
-	client.Transport = utilnet.SetTransportDefaults(&http.Transport{
-		TLSClientConfig: tlsConfig,
-	})
-
-	resp, err := client.Do(httpRequest)
+	// Call the extension.
+	resp, err := opts.httpClient.Do(httpRequest)
 
 	// Create http request metric.
 	defer func() {

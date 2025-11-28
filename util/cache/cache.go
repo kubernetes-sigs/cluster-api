@@ -49,6 +49,9 @@ type Cache[E Entry] interface {
 	// Has checks if the given key (still) exists in the Cache.
 	// Note: entries expire after the ttl.
 	Has(key string) (E, bool)
+
+	// Len returns the number of entries in the cache.
+	Len() int
 }
 
 // New creates a new cache.
@@ -94,6 +97,10 @@ func (r *cache[E]) Has(key string) (E, bool) {
 		return item.(E), true
 	}
 	return *new(E), false
+}
+
+func (r *cache[E]) Len() int {
+	return len(r.ListKeys())
 }
 
 // ReconcileEntry is an Entry for the Cache that stores the

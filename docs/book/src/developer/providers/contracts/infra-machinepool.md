@@ -8,7 +8,7 @@ The machines in the pool may be physical or virtual instances (although most lik
 
 The InfraMachinePool resource will be referenced by one of the Cluster API core resources, MachinePool.
 
-The [MachinePool's controller](../../core/controllers/machine-pool.md) is responsible to coordinate operations of the InfraMachinePool, and the interaction between the MachinePool's controller and the InfraMachinePool is based on the contract rules defined in this page.
+The [core MachinePool's controller](../../core/controllers/machine-pool.md) is responsible to coordinate operations of the MachinePool with the InfraMachinePool. The operations are coordinated via the contract rules defined in this page.
 
 Once contract rules are satisfied by an InfraMachinePool implementation, other implementation details
 could be addressed according to the specific needs (Cluster API is not prescriptive).
@@ -238,7 +238,7 @@ type FooMachinePoolInstanceStatus struct {
 
 A provider can opt-in to MachinePool Machines (MPM). With MPM machines all the replicas in a MachinePool are represented by a Machine & InfraMachine. This enables core CAPI to perform common operations on single machines (and their Nodes), such as draining a node before scale down, integration with Cluster Autoscaler and also [MachineHealthChecks].
 
-If you want to adopt MPM then you MUST have an `status.infrastructureMachineKind` field and the field must contain the resource kind that represents the replicas in the pool. This is usually named InfraMachine if machine pool machines are representable like regular machines, or InfraMachinePoolMachine in other cases. For example, for the AWS provider the value would be set to `AWSMachine`.
+If you want to adopt MPM then you MUST have an `status.infrastructureMachineKind` field and the fields value must be set to the resource kind that represents the replicas in the pool. This is usually the resource kind name for the providers InfraMachine. For example, for the AWS provider the value would be set to `AWSMachine`.
 
 By opting in, the infra provider is expected to create a InfraMachine for every replica in the pool. The lifecycle of these InfraMachines must be managed so that when scale up or scale down happens, the list of InfraMachines is kept up to date.
 
@@ -302,20 +302,10 @@ Cluster API uses this list to determine the status of the machine pool and to kn
 
 ### InfraMachinePool: initialization completed
 
-Each provider MUST indicate when then the InfraMachinePool has been completely provisioned.
-
-Currently this is done by setting `status.ready` to **true**.  The value returned here is stored in the MachinePool's `status.infraStructureReady` field.
-
-Additionally providers should set `initialization.provisioned` to **true**. This value isn't currently used by core CAPI for MachinePools. However, MachinePools will start to use this instead and `status.ready` will be deprecated. By setting both these fields it will make the future migration easier.
-
-This indicates to Cluster API that the infrastructure is ready and that it can continue with its processing.
+Each InfraMachinePool MUST report when the MachinePool's infrastructure is fully provisioned (initialization) by setting `status.initialization.provisioned` in the InfraMachinePool resource.
 
 ```go
 type FooMachinePoolStatus struct {
-    // Ready is true when the provider resource is ready.
-    // +optional
-    Ready bool `json:"ready"`
-
     // initialization provides observations of the FooMachinePool initialization process.
     // +optional
     Initialization FooMachinePoolInitializationStatus `json:"initialization,omitempty,omitzero"`
@@ -334,7 +324,22 @@ type FooMachinePoolInitializationStatus struct {
 
 ```
 
-Once `status.ready` is set the MachinePool “core” controller will bubble up this info in MachinePool’s `status.initialization.infrastructureProvisioned`; also InfraMachinePools’s `spec.providerIDList` and `status.replicas` will be surfaced on MachinePool’s corresponding fields at the same time.
+Once `status.initialization.provisioned` is set, the MachinePool "core" controller will bubble this info in the MachinePool's `status.initialization.infrastructureProvisioned`; also InfraMachinePools’s `spec.providerIDList` and `status.replicas` will be surfaced on MachinePool’s corresponding fields at the same time.
+
+<aside class="note warning">
+
+<h1>Compatibility with the deprecated v1beta1 contract</h1>
+
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_ preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+
+With regard to initialization completed:
+
+Cluster API will continue to temporarily support InfraMachinePool resource using `status.ready` field to report initialization completed.
+
+After compatibility with the deprecated v1beta1 contract will be removed, `status.ready` field in
+the InfraMachine resource will be ignored.
+
+</aside>
 
 ### InfraMachinePool: pausing
 
@@ -400,44 +405,29 @@ The value from this field is surfaced via the MachinePool's `status.replicas` fi
 
 ### InfraMachinePool: terminal failures
 
-A provider MAY report failure information via their `status.failureReason` and `status.failureMessage` fields.
+Starting from the v1beta2 contract version, there is no more special treatment for provider's terminal failures within Cluster API.
 
-```go
-type FooMachinePoolStatus struct {
-    // FailureReason will be set in the event that there is a terminal problem
-    // reconciling the Machine and will contain a succinct value suitable
-    // for machine interpretation.
-    // +optional
-    FailureReason *string `json:"failureReason,omitempty"`
+In case necessary, "terminal failures" should be surfaced using conditions, with a well documented type/reason; it is up to consumers to treat them accordingly.
 
-    // FailureMessage will be set in the event that there is a terminal problem
-    // reconciling the Machine and will contain a more verbose string suitable
-    // for logging and human consumption.
-    // +optional
-    FailureMessage *string `json:"failureMessage,omitempty"`
-
-    // See other rules for more details about mandatory/optional fields in InfraMachinePool status.
-    // Other fields SHOULD be added based on the needs of your provider.
-}
-```
-
-If a provider sets these fields then their value will populated to the same named fields on the the MachinePool.
+See [Improving status in CAPI resources] for more context.
 
 <aside class="note warning">
 
-<h1>New provider implementations</h1>
+<h1>Compatibility with the deprecated v1beta1 contract</h1>
 
-The use of `failureReason` and `failureMessage` should not be used for new InfraMachinePool implementations. In other areas of the Cluster API, starting from the v1beta2 contract version, there is no more special treatment for provider's terminal failures within Cluster API. These fields should be regarded as deprecated.
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_ preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
-In case necessary, "terminal failures" should be surfaced using conditions, with a well documented type/reason;
-it is up to consumers to treat them accordingly.
+With regards to terminal failures:
+
+In case an infrastructure provider reports that a InfraMachinePool resource is in a state that cannot be recovered (terminal failure) by setting `status.failureReason` and `status.failureMessage` as defined by the deprecated v1beta1 contract, the "core" MachinePool controller will surface those info in the corresponding fields in the MachinePools's `status.deprecated.v1beta1` struct.
+
+After compatibility with the deprecated v1beta1 contract will be removed, `status.failureReason` and `status.failureMessage` fields in the InfraMachine resource will be ignored and Machine's `status.deprecated.v1beta1` struct will be dropped.
 
 </aside>
 
 ### InfraMachinePoolTemplate, InfraMachineTemplatePoolList resource definition
 
 For a given InfraMachinePool resource, you SHOULD also add a corresponding InfraMachinePoolTemplate resource in order to use it in ClusterClasses. The template resource MUST be name `<InfraMachinePool>Template`.
-
 
 ```go
 // +kubebuilder:object:root=true

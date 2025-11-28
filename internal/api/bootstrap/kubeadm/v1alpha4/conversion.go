@@ -119,6 +119,14 @@ func RestoreKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored *boot
 	// otherwise those field won't exist in restored.
 	dst.JoinConfiguration.NodeRegistration.ImagePullPolicy = restored.JoinConfiguration.NodeRegistration.ImagePullPolicy
 	dst.JoinConfiguration.NodeRegistration.ImagePullSerial = restored.JoinConfiguration.NodeRegistration.ImagePullSerial
+
+	if restored.DiskSetup.IsDefined() {
+		dst.DiskSetup = restored.DiskSetup
+	}
+}
+
+func Convert_v1beta2_Partition_To_v1alpha4_Partition(in *bootstrapv1.Partition, out *Partition, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_Partition_To_v1alpha4_Partition(in, out, s)
 }
 
 func RestoreBoolIntentKubeadmConfigSpec(src *KubeadmConfigSpec, dst *bootstrapv1.KubeadmConfigSpec, hasRestored bool, restored *bootstrapv1.KubeadmConfigSpec) error {

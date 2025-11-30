@@ -137,7 +137,7 @@ func (d *Helper) GetPodsForEviction(ctx context.Context, cluster *clusterv1.Clus
 		// Skip Pods with deletionTimestamp (if Node is unreachable & time.Since(deletionTimestamp) > 1s)
 		d.skipDeletedFilter,
 
-		// Skip DaemonSet Pods (if they are not finished)
+		// Skip DaemonSet Pods
 		d.daemonSetFilter,
 
 		// Skip static Pods

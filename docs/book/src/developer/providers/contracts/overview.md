@@ -10,7 +10,7 @@ See [Cluster API release vs contract versions](../../../reference/versions.md#cl
 - Infrastructure provider
   - Contract rules for [InfraCluster](infra-cluster.md) resource
   - Contract rules for [InfraMachine](infra-machine.md) resource
-  - Contract rules for InfraMachinePool resource (TODO)
+  - Contract rules for [InfraMachinePool](infra-machinepool.md) resource
   
 - Bootstrap provider
   - Contract rules for [BootstrapConfig](bootstrap-config.md) resource

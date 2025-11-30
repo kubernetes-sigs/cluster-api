@@ -422,8 +422,8 @@ func (r *Reconciler) completeMoveMachine(ctx context.Context, s *scope, currentM
 	//       not updated by r.computeDesiredMachine, so we have to update them here.
 	// Note: for MachineSets we have to explicitly also set spec.failureDomain (this is a difference from what happens in KCP
 	//       where the field is set only on create and never updated)
-	desiredMachine.Spec.Version = currentMachine.Spec.Version
-	desiredMachine.Spec.FailureDomain = currentMachine.Spec.FailureDomain
+	desiredMachine.Spec.Version = s.machineSet.Spec.Template.Spec.Version
+	desiredMachine.Spec.FailureDomain = s.machineSet.Spec.Template.Spec.FailureDomain
 
 	// Compute desiredInfraMachine.
 	currentInfraMachine, err := external.GetObjectFromContractVersionedRef(ctx, r.Client, currentMachine.Spec.InfrastructureRef, currentMachine.Namespace)

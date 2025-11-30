@@ -47,10 +47,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -3478,10 +3480,19 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			wantErr:                     false,
 		},
 	}
+
+	// We want to test that trigger in place handles version and failure domain, which are not reconciled by syncMachines
+	versionBeforeInplaceUpdate := "v1.33.0"
+	versionAfterInplaceUpdate := "v1.34.0"
+	failureDomainBeforeInplaceUpdate := "fd-1"
+	failureDomainAfterInplaceUpdate := "fd-2"
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			tt.ms.Spec.Template.Spec.Version = versionAfterInplaceUpdate
+			tt.ms.Spec.Template.Spec.FailureDomain = failureDomainAfterInplaceUpdate
 			tt.ms.Spec.Template.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 				APIGroup: infraTmpl.GroupVersionKind().Group,
 				Kind:     infraTmpl.GetKind(),
@@ -3507,6 +3518,15 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 
 			for _, m := range tt.machines {
 				m.SetNamespace(tt.ms.Namespace)
+
+				if hooks.IsPending(runtimehooksv1.UpdateMachine, m) {
+					m.Spec.Version = versionAfterInplaceUpdate
+					m.Spec.FailureDomain = failureDomainAfterInplaceUpdate
+				} else {
+					// NOTE: following values must be changed when in place upgrade is triggered for a machine
+					m.Spec.Version = versionBeforeInplaceUpdate
+					m.Spec.FailureDomain = failureDomainBeforeInplaceUpdate
+				}
 
 				mInfraObj := infraObj.DeepCopy()
 				mInfraObj.SetName(m.Name)
@@ -3552,6 +3572,15 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 
 			updatingMachines := machinesInPlaceUpdating(machines)
 			g.Expect(updatingMachines).To(ConsistOf(tt.wantMachinesInPlaceUpdating))
+			for _, m := range machines.Items {
+				if hooks.IsPending(runtimehooksv1.UpdateMachine, &m) {
+					g.Expect(m.Spec.Version).To(Equal(versionAfterInplaceUpdate))
+					g.Expect(m.Spec.FailureDomain).To(Equal(failureDomainAfterInplaceUpdate))
+				} else {
+					g.Expect(m.Spec.Version).To(Equal(versionBeforeInplaceUpdate))
+					g.Expect(m.Spec.FailureDomain).To(Equal(failureDomainBeforeInplaceUpdate))
+				}
+			}
 		})
 	}
 }
@@ -4121,4 +4150,159 @@ func managedFieldsMatching(managedFields []metav1.ManagedFieldsEntry, manager st
 		}
 	}
 	return res
+}
+
+func TestReconciler_completeMoveMachine(t *testing.T) {
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: testClusterName},
+	}
+
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+	// Create bootstrap template resource.
+	bootstrapResource := map[string]interface{}{
+		"kind":       "GenericBootstrapConfig",
+		"apiVersion": clusterv1.GroupVersionBootstrap.String(),
+		"spec":       map[string]interface{}{},
+	}
+	bootstrapTmpl := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"template": bootstrapResource,
+			},
+		},
+	}
+	bootstrapTmpl.SetKind("GenericBootstrapConfigTemplate")
+	bootstrapTmpl.SetAPIVersion(clusterv1.GroupVersionBootstrap.String())
+	bootstrapTmpl.SetName("ms-template")
+	bootstrapTmpl.SetNamespace(metav1.NamespaceDefault)
+
+	// Create infrastructure template resource.
+	infraResource := map[string]interface{}{
+		"kind":       "GenericInfrastructureMachine",
+		"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
+		"spec":       map[string]interface{}{},
+	}
+	infraTmpl := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"template": infraResource,
+			},
+		},
+	}
+	infraTmpl.SetKind("GenericInfrastructureMachineTemplate")
+	infraTmpl.SetAPIVersion(clusterv1.GroupVersionInfrastructure.String())
+	infraTmpl.SetName("ms-template")
+	infraTmpl.SetNamespace(metav1.NamespaceDefault)
+
+	// Create a MachineSet with a specific version and failure domain
+	machineSet := &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "ms-",
+			Namespace:    metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.MachineSetSpec{
+			ClusterName: testClusterName,
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					ClusterName: testClusterName,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "GenericInfrastructureMachineTemplate",
+						Name:     "ms-template",
+						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Kind:     "GenericBootstrapConfigTemplate",
+							Name:     "ms-template",
+							APIGroup: clusterv1.GroupVersionBootstrap.Group,
+						},
+					},
+					Version:       "v1.20.0",
+					FailureDomain: "failure-domain-1",
+				},
+			},
+		},
+	}
+
+	bootstrapObj := &unstructured.Unstructured{
+		Object: bootstrapResource["spec"].(map[string]interface{}),
+	}
+	bootstrapObj.SetKind(builder.GenericBootstrapConfigKind)
+	bootstrapObj.SetAPIVersion(clusterv1.GroupVersionBootstrap.String())
+	bootstrapObj.SetNamespace(metav1.NamespaceDefault)
+	bootstrapObj.SetName("current-machine")
+
+	infraObj := &unstructured.Unstructured{
+		Object: infraResource["spec"].(map[string]interface{}),
+	}
+	infraObj.SetKind(builder.GenericInfrastructureMachineKind)
+	infraObj.SetAPIVersion(clusterv1.GroupVersionInfrastructure.String())
+	infraObj.SetNamespace(metav1.NamespaceDefault)
+	infraObj.SetName("current-machine")
+
+	// Create a Machine with a different version and failure domain
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "current-machine",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "current-machine",
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "GenericBootstrapConfig",
+					Name:     "current-machine",
+					APIGroup: clusterv1.GroupVersionBootstrap.Group,
+				},
+			},
+			ClusterName:   testClusterName,
+			Version:       "v1.19.0",
+			FailureDomain: "failure-domain-2",
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		builder.GenericBootstrapConfigCRD,
+		builder.GenericInfrastructureMachineCRD,
+		builder.GenericBootstrapConfigTemplateCRD,
+		builder.GenericInfrastructureMachineTemplateCRD,
+		bootstrapTmpl,
+		infraTmpl,
+		bootstrapObj,
+		infraObj,
+		testCluster,
+		machineSet,
+		machine,
+	).Build()
+	msr := &Reconciler{
+		Client:   fakeClient,
+		recorder: record.NewFakeRecorder(32),
+	}
+
+	s := &scope{
+		machineSet: machineSet,
+		machines:   []*clusterv1.Machine{machine},
+		getAndAdoptMachinesForMachineSetSucceeded: true,
+	}
+
+	err := msr.completeMoveMachine(ctx, s, machine)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bootstrapObj), bootstrapObj)).To(Succeed())
+	g.Expect(bootstrapObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.UpdateInProgressAnnotation, ""))
+
+	g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(infraObj), infraObj)).To(Succeed())
+	g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.UpdateInProgressAnnotation, ""))
+
+	g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(machine), machine)).To(Succeed())
+	g.Expect(machine.Spec.Version).To(Equal(machineSet.Spec.Template.Spec.Version))
+	g.Expect(machine.Spec.FailureDomain).To(Equal(machineSet.Spec.Template.Spec.FailureDomain))
 }

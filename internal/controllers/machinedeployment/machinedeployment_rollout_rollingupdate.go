@@ -38,7 +38,7 @@ import (
 
 // rolloutRollingUpdate reconcile machine sets controlled by a MachineDeployment that is using the RolloutUpdate strategy.
 func (r *Reconciler) rolloutRollingUpdate(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines collections.Machines, templateExists bool) error {
-	planner := newRolloutPlanner(r.Client, r.RuntimeClient)
+	planner := newRolloutPlanner(r.Client, r.RuntimeClient, r.canUpdateMachineSetCache)
 	if err := planner.init(ctx, md, msList, machines.UnsortedList(), true, templateExists); err != nil {
 		return err
 	}
@@ -247,12 +247,18 @@ func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Contex
 		}
 	}
 
+	// On top of considering maxUnavailable, before scaling down it is also important to consider how unavailability is distributed
+	// across MachineSets, because if there are unavailable machines on the new MachineSet it is necessary to slow down or stop rollout
+	// to prevent to transition all the Machines to a broken state.
+	// In order to do so, compute the number of unavailable machines on the new MachineSet and use it to reduce totalScaleDownCount.
+	newMSUnavailableMachineCount := max(ptr.Deref(p.newMS.Spec.Replicas, 0)-ptr.Deref(p.newMS.Status.AvailableReplicas, 0), 0)
+
 	// Compute the total number of replicas that can be scaled down.
 	// Exit immediately if there is no room for scaling down.
 	// NOTE: this is a quick preliminary check to verify if there is room for scaling down any of the oldMSs; further down the code
 	// will make additional checks to ensure scale down actually happens without breaching MaxUnavailable, and
 	// if necessary, it will reduce the extent of the scale down accordingly.
-	totalScaleDownCount := max(totalSpecReplicas-totalPendingScaleDown-minAvailable, 0)
+	totalScaleDownCount := max(totalSpecReplicas-totalPendingScaleDown-minAvailable-newMSUnavailableMachineCount, 0)
 	if totalScaleDownCount <= 0 {
 		return nil
 	}

@@ -37,6 +37,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	"sigs.k8s.io/cluster-api/feature"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
+	"sigs.k8s.io/cluster-api/util/cache"
 )
 
 func TestReconcileInPlaceUpdate(t *testing.T) {
@@ -82,7 +83,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 
 				client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine, infra, bootstrap).Build()
 
-				return &Reconciler{Client: client}, &scope{
+				return &Reconciler{Client: client, hookCache: cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)}, &scope{
 					machine:         machine,
 					infraMachine:    infra,
 					bootstrapConfig: bootstrap,
@@ -130,6 +131,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
 				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
 				return &Reconciler{}, &scope{machine: machine}
 			},
 			wantResult:      ctrl.Result{},
@@ -181,6 +183,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
 				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
 
 				infra := newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")
 				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
@@ -190,6 +193,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				return &Reconciler{
 						Client:        client,
 						RuntimeClient: runtimeClient,
+						hookCache:     cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
 					}, &scope{
 						machine:      machine,
 						infraMachine: infra,
@@ -242,6 +246,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
 				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
 
 				infra := newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")
 				infra.SetAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: ""})
@@ -254,6 +259,7 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				return &Reconciler{
 						Client:        client,
 						RuntimeClient: runtimeClient,
+						hookCache:     cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
 					}, &scope{
 						machine:         machine,
 						infraMachine:    infra,
@@ -335,12 +341,13 @@ func TestCallUpdateMachineHook(t *testing.T) {
 	}
 
 	tests := []struct {
-		name              string
-		setup             func(*testing.T) (*Reconciler, *scope)
-		wantResult        ctrl.Result
-		wantMessage       string
-		wantErr           bool
-		wantErrSubstrings []string
+		name               string
+		setup              func(*testing.T) (*Reconciler, *scope)
+		wantResult         ctrl.Result
+		wantMessage        string
+		wantErr            bool
+		wantErrSubstrings  []string
+		wantHookCacheEntry *cache.HookEntry
 	}{
 		{
 			name: "fails if no extensions registered",
@@ -350,7 +357,7 @@ func TestCallUpdateMachineHook(t *testing.T) {
 					WithCatalog(catalog).
 					WithGetAllExtensionResponses(map[runtimecatalog.GroupVersionHook][]string{}).
 					Build()
-				return &Reconciler{RuntimeClient: runtimeClient}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
 			},
 			wantErr:           true,
 			wantErrSubstrings: []string{"no extensions registered for UpdateMachine hook"},
@@ -365,7 +372,7 @@ func TestCallUpdateMachineHook(t *testing.T) {
 						updateGVH: {"ext-a", "ext-b"},
 					}).
 					Build()
-				return &Reconciler{RuntimeClient: runtimeClient}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
 			},
 			wantErr:           true,
 			wantErrSubstrings: []string{"found multiple UpdateMachine hooks (ext-a,ext-b): only one hook is supported"},
@@ -387,7 +394,7 @@ func TestCallUpdateMachineHook(t *testing.T) {
 						},
 					}).
 					Build()
-				return &Reconciler{RuntimeClient: runtimeClient}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
 			},
 			wantErr:           true,
 			wantErrSubstrings: []string{"runtime hook", "UpdateMachine", "failed"},
@@ -413,10 +420,12 @@ func TestCallUpdateMachineHook(t *testing.T) {
 						},
 					}).
 					Build()
-				return &Reconciler{RuntimeClient: runtimeClient}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
 			},
 			wantResult:  ctrl.Result{RequeueAfter: 45 * time.Second},
 			wantMessage: "processing",
+			wantHookCacheEntry: ptr.To(cache.NewHookEntry(newTestMachine(), runtimehooksv1.UpdateMachine,
+				time.Now().Add(45*time.Second), "processing")),
 		},
 		{
 			name: "returns message when hook succeeds",
@@ -438,7 +447,7 @@ func TestCallUpdateMachineHook(t *testing.T) {
 						},
 					}).
 					Build()
-				return &Reconciler{RuntimeClient: runtimeClient}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
+				return &Reconciler{RuntimeClient: runtimeClient, hookCache: cache.New[cache.HookEntry](cache.HookCacheDefaultTTL)}, &scope{machine: newTestMachine(), infraMachine: newTestUnstructured("GenericInfrastructureMachine", "infrastructure.cluster.x-k8s.io/v1beta2", "infra")}
 			},
 			wantResult:  ctrl.Result{},
 			wantMessage: "done",
@@ -462,6 +471,25 @@ func TestCallUpdateMachineHook(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result).To(Equal(tt.wantResult))
 			g.Expect(message).To(Equal(tt.wantMessage))
+
+			if tt.wantHookCacheEntry != nil {
+				// Verify the cache entry.
+				cacheEntry, ok := r.hookCache.Has(tt.wantHookCacheEntry.Key())
+				g.Expect(ok).To(BeTrue())
+				g.Expect(cacheEntry.ObjectKey).To(Equal(tt.wantHookCacheEntry.ObjectKey))
+				g.Expect(cacheEntry.HookName).To(Equal(tt.wantHookCacheEntry.HookName))
+				g.Expect(cacheEntry.ReconcileAfter).To(BeTemporally("~", tt.wantHookCacheEntry.ReconcileAfter, 5*time.Second))
+				g.Expect(cacheEntry.ResponseMessage).To(Equal(tt.wantHookCacheEntry.ResponseMessage))
+
+				// Call callUpdateMachineHook again and verify the cache hit.
+				secondResult, message, err := r.callUpdateMachineHook(context.Background(), scope)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(message).To(Equal(tt.wantHookCacheEntry.ResponseMessage))
+				// RequeueAfter should be now < then the previous RequeueAfter.
+				g.Expect(secondResult.RequeueAfter).To(BeNumerically("<", result.RequeueAfter))
+			} else {
+				g.Expect(r.hookCache.Len()).To(Equal(0))
+			}
 		})
 	}
 }

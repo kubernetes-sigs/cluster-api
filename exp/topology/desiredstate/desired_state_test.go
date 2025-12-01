@@ -54,6 +54,7 @@ import (
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -1713,6 +1714,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			r := &generator{
 				Client:        fakeClient,
 				RuntimeClient: runtimeClient,
+				hookCache:     cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
 			}
 			version, err := r.computeControlPlaneVersion(ctx, s)
 			if tt.wantErr {
@@ -3947,6 +3949,8 @@ func TestGenerate(t *testing.T) {
 			fakeClient,
 			clusterCache,
 			fakeRuntimeClient,
+			cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
+			cache.New[GenerateUpgradePlanCacheEntry](10*time.Minute),
 		)
 		g.Expect(err).ToNot(HaveOccurred())
 

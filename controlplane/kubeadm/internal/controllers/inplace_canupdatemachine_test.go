@@ -202,6 +202,9 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					},
 				},
 			},
+			JoinConfiguration: bootstrapv1.JoinConfiguration{
+				ControlPlane: &bootstrapv1.JoinControlPlane{},
+			},
 		},
 	}
 	desiredKubeadmConfig := currentKubeadmConfig.DeepCopy()
@@ -323,7 +326,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 +       "clusterConfiguration": map[string]any{"etcd": map[string]any{"local": map[string]any{"imageTag": string("3.6.4-0")}}},
         "format":               string("cloud-config"),
         "initConfiguration":    map[string]any{"nodeRegistration": map[string]any{"imagePullPolicy": string("IfNotPresent")}},
-        "joinConfiguration":    map[string]any{"nodeRegistration": map[string]any{"imagePullPolicy": string("IfNotPresent")}},
+        "joinConfiguration":    map[string]any{"controlPlane": map[string]any{}, "nodeRegistration": map[string]any{"imagePullPolicy": string("IfNotPresent")}},
       },
     },
   }`,
@@ -424,7 +427,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 +       "clusterConfiguration": map[string]any{"etcd": map[string]any{"local": map[string]any{"imageTag": string("3.6.4-0")}}},
         "format":               string("cloud-config"),
         "initConfiguration":    map[string]any{"nodeRegistration": map[string]any{"imagePullPolicy": string("IfNotPresent")}},
-        "joinConfiguration":    map[string]any{"nodeRegistration": map[string]any{"imagePullPolicy": string("IfNotPresent")}},
+        "joinConfiguration":    map[string]any{"controlPlane": map[string]any{}, "nodeRegistration": map[string]any{"imagePullPolicy": string("IfNotPresent")}},
       },
     },
   }`,
@@ -619,6 +622,7 @@ func Test_createRequest(t *testing.T) {
 				},
 			},
 			JoinConfiguration: bootstrapv1.JoinConfiguration{
+				ControlPlane: &bootstrapv1.JoinControlPlane{},
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 					KubeletExtraArgs: []bootstrapv1.Arg{{
 						Name:  "v",

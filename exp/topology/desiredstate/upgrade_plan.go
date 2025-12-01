@@ -19,11 +19,13 @@ package desiredstate
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -31,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -410,8 +413,23 @@ func GetUpgradePlanFromClusterClassVersions(clusterClassVersions []string) func(
 	}
 }
 
+// GenerateUpgradePlanCacheEntry is an entry for the GenerateUpgradePlan hook cache.
+type GenerateUpgradePlanCacheEntry struct {
+	ClusterKey                        client.ObjectKey
+	FromControlPlaneKubernetesVersion string
+	FromWorkersKubernetesVersion      string
+	ToKubernetesVersion               string
+	ControlPlaneUpgradePlan           []string
+	WorkersUpgradePlan                []string
+}
+
+// Key returns the cache key of a GenerateUpgradePlanCacheEntry.
+func (r GenerateUpgradePlanCacheEntry) Key() string {
+	return fmt.Sprintf("%s: (%s,%s) => %s", r.ClusterKey, r.FromControlPlaneKubernetesVersion, r.FromWorkersKubernetesVersion, r.ToKubernetesVersion)
+}
+
 // GetUpgradePlanFromExtension returns an upgrade plan by calling the GenerateUpgradePlan runtime extension.
-func GetUpgradePlanFromExtension(runtimeClient runtimeclient.Client, cluster *clusterv1.Cluster, extensionName string) func(ctx context.Context, desiredVersion, currentControlPlaneVersion, currentMinWorkersVersion string) ([]string, []string, error) {
+func GetUpgradePlanFromExtension(runtimeClient runtimeclient.Client, getUpgradePlanCache cache.Cache[GenerateUpgradePlanCacheEntry], cluster *clusterv1.Cluster, extensionName string) func(ctx context.Context, desiredVersion, currentControlPlaneVersion, currentMinWorkersVersion string) ([]string, []string, error) {
 	return func(ctx context.Context, desiredVersion, currentControlPlaneVersion, currentMinWorkersVersion string) ([]string, []string, error) {
 		if !feature.Gates.Enabled(feature.RuntimeSDK) {
 			return nil, nil, errors.Errorf("can not use GenerateUpgradePlan extension %q if RuntimeSDK feature flag is disabled", extensionName)
@@ -423,6 +441,17 @@ func GetUpgradePlanFromExtension(runtimeClient runtimeclient.Client, cluster *cl
 			FromControlPlaneKubernetesVersion: currentControlPlaneVersion,
 			FromWorkersKubernetesVersion:      currentMinWorkersVersion,
 			ToKubernetesVersion:               desiredVersion,
+		}
+
+		entry := GenerateUpgradePlanCacheEntry{
+			ClusterKey:                        client.ObjectKeyFromObject(cluster),
+			FromControlPlaneKubernetesVersion: req.FromControlPlaneKubernetesVersion,
+			FromWorkersKubernetesVersion:      req.FromWorkersKubernetesVersion,
+			ToKubernetesVersion:               req.ToKubernetesVersion,
+		}
+
+		if cacheEntry, ok := getUpgradePlanCache.Has(entry.Key()); ok {
+			return slices.Clone(cacheEntry.ControlPlaneUpgradePlan), slices.Clone(cacheEntry.WorkersUpgradePlan), nil
 		}
 
 		// Call the extension.
@@ -441,6 +470,10 @@ func GetUpgradePlanFromExtension(runtimeClient runtimeclient.Client, cluster *cl
 		for i, step := range resp.WorkersUpgrades {
 			workersUpgradePlan[i] = step.Version
 		}
+
+		entry.ControlPlaneUpgradePlan = slices.Clone(controlPlaneUpgradePlan)
+		entry.WorkersUpgradePlan = slices.Clone(workersUpgradePlan)
+		getUpgradePlanCache.Add(entry)
 
 		return controlPlaneUpgradePlan, workersUpgradePlan, nil
 	}

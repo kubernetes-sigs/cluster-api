@@ -1171,12 +1171,11 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 
 func TestDeletingCondition(t *testing.T) {
 	testCases := []struct {
-		name                    string
-		machine                 *clusterv1.Machine
-		reconcileDeleteExecuted bool
-		deletingReason          string
-		deletingMessage         string
-		expectCondition         metav1.Condition
+		name            string
+		machine         *clusterv1.Machine
+		deletingReason  string
+		deletingMessage string
+		expectCondition metav1.Condition
 	}{
 		{
 			name: "deletionTimestamp not set",
@@ -1186,9 +1185,8 @@ func TestDeletingCondition(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 			},
-			reconcileDeleteExecuted: false,
-			deletingReason:          "",
-			deletingMessage:         "",
+			deletingReason:  "",
+			deletingMessage: "",
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeletingCondition,
 				Status: metav1.ConditionFalse,
@@ -1204,9 +1202,8 @@ func TestDeletingCondition(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				},
 			},
-			reconcileDeleteExecuted: true,
-			deletingReason:          clusterv1.MachineDeletingWaitingForPreDrainHookReason,
-			deletingMessage:         "Waiting for pre-drain hooks to succeed (hooks: test-hook)",
+			deletingReason:  clusterv1.MachineDeletingWaitingForPreDrainHookReason,
+			deletingMessage: "Waiting for pre-drain hooks to succeed (hooks: test-hook)",
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeletingCondition,
 				Status:  metav1.ConditionTrue,
@@ -1223,8 +1220,7 @@ func TestDeletingCondition(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				},
 			},
-			reconcileDeleteExecuted: true,
-			deletingReason:          clusterv1.MachineDeletingDrainingNodeReason,
+			deletingReason: clusterv1.MachineDeletingDrainingNodeReason,
 			deletingMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pods with deletionTimestamp that still exist: pod-2-deletionTimestamp-set-1, pod-2-deletionTimestamp-set-2, pod-2-deletionTimestamp-set-3, pod-3-to-trigger-eviction-successfully-1, pod-3-to-trigger-eviction-successfully-2, ... (2 more)
 * Pods with eviction failed:
@@ -1249,43 +1245,13 @@ func TestDeletingCondition(t *testing.T) {
   * ... (1 more error applying to 1 Pod)`,
 			},
 		},
-		{
-			name: "deletionTimestamp set, reconcileDelete not executed",
-			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machine-test",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &metav1.Time{Time: time.Now()},
-				},
-				Status: clusterv1.MachineStatus{
-					Conditions: []metav1.Condition{
-						{
-							Type:    clusterv1.MachineDeletingCondition,
-							Status:  metav1.ConditionTrue,
-							Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookReason,
-							Message: "Waiting for pre-drain hooks to succeed (hooks: test-hook)",
-						},
-					},
-				},
-			},
-			reconcileDeleteExecuted: false,
-			deletingReason:          "",
-			deletingMessage:         "",
-			// Condition was not updated because reconcileDelete was not executed.
-			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeletingCondition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookReason,
-				Message: "Waiting for pre-drain hooks to succeed (hooks: test-hook)",
-			},
-		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setDeletingCondition(ctx, tc.machine, tc.reconcileDeleteExecuted, tc.deletingReason, tc.deletingMessage)
+			setDeletingCondition(ctx, tc.machine, tc.deletingReason, tc.deletingMessage)
 
 			deletingCondition := conditions.Get(tc.machine, clusterv1.MachineDeletingCondition)
 			g.Expect(deletingCondition).ToNot(BeNil())

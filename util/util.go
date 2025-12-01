@@ -180,7 +180,7 @@ func GetClusterByName(ctx context.Context, c client.Client, namespace, name stri
 	}
 
 	if err := c.Get(ctx, key, cluster); err != nil {
-		return nil, errors.Wrapf(err, "failed to get Cluster/%s", name)
+		return nil, errors.Wrapf(err, "failed to get Cluster %s", klog.KRef(namespace, name))
 	}
 
 	return cluster, nil
@@ -690,6 +690,8 @@ func IsSupportedVersionSkew(a, b semver.Version) bool {
 
 // LowestNonZeroResult compares two reconciliation results
 // and returns the one with lowest requeue time.
+//
+//nolint:staticcheck // SA1019: Requeue is deprecated.
 func LowestNonZeroResult(i, j ctrl.Result) ctrl.Result {
 	switch {
 	case i.IsZero():

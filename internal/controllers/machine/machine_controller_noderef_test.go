@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
+	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -458,7 +459,8 @@ func TestGetNode(t *testing.T) {
 		Client:       env,
 	}
 
-	w, err := ctrl.NewControllerManagedBy(env.Manager).For(&corev1.Node{}).Build(r)
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "node")
+	w, err := capicontrollerutil.NewControllerManagedBy(env.Manager, predicateLog).For(&corev1.Node{}).Build(r)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Retry because the ClusterCache might not have immediately created the clusterAccessor.

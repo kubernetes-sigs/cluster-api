@@ -7,7 +7,7 @@ helmCharts:
   releaseName: tempo
   namespace: observability
   valuesFile: values.yaml
-  version: 1.18.2
+  version: 1.24.1
 
 helmGlobals:
   # Store chart in ".charts" folder instead of "charts".

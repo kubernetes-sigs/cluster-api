@@ -50,8 +50,8 @@ import (
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -273,10 +273,10 @@ func TestWatchesDelete(t *testing.T) {
 		},
 	}
 
-	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
-	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
-	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, defaultBootstrap)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, infraMachine)).To(Succeed())
 
 	defer func(do ...client.Object) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
@@ -968,10 +968,9 @@ func TestReconcileRequest(t *testing.T) {
 			).WithStatusSubresource(&clusterv1.Machine{}).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 
 			r := &Reconciler{
-				Client:               clientFake,
-				ClusterCache:         clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
-				recorder:             record.NewFakeRecorder(10),
-				reconcileDeleteCache: cache.New[cache.ReconcileEntry](cache.DefaultTTL),
+				Client:       clientFake,
+				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				recorder:     record.NewFakeRecorder(10),
 				externalTracker: external.ObjectTracker{
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
@@ -1340,6 +1339,10 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 
 type fakeController struct{}
 
+func (f fakeController) DeferNextReconcile(_ reconcile.Request, _ time.Time) {}
+
+func (f fakeController) DeferNextReconcileForObject(_ metav1.Object, _ time.Time) {}
+
 func (f fakeController) Reconcile(_ context.Context, _ reconcile.Request) (reconcile.Result, error) {
 	panic("implement me")
 }
@@ -1392,9 +1395,8 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	c := fake.NewClientBuilder().WithObjects(testCluster, m, builder.GenericInfrastructureMachineCRD.DeepCopy()).WithStatusSubresource(&clusterv1.Machine{}).Build()
 	mr := &Reconciler{
-		Client:               c,
-		ClusterCache:         clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(testCluster)),
-		reconcileDeleteCache: cache.New[cache.ReconcileEntry](cache.DefaultTTL),
+		Client:       c,
+		ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(testCluster)),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1589,16 +1591,17 @@ func TestDrainNode(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	tests := []struct {
-		name                 string
-		nodeName             string
-		node                 *corev1.Node
-		pods                 []*corev1.Pod
-		nodeDrainStartTime   metav1.Time
-		wantV1Beta1Condition *clusterv1.Condition
-		wantResult           ctrl.Result
-		wantErr              string
-		wantDeletingReason   string
-		wantDeletingMessage  string
+		name                     string
+		nodeName                 string
+		node                     *corev1.Node
+		pods                     []*corev1.Pod
+		nodeDrainStartTime       metav1.Time
+		wantV1Beta1Condition     *clusterv1.Condition
+		wantResult               ctrl.Result
+		wantErr                  string
+		wantDeletingReason       string
+		wantDeletingMessage      string
+		expectDeferNextReconcile time.Duration
 	}{
 		{
 			name:     "Node does not exist, no-op",
@@ -1714,6 +1717,7 @@ func TestDrainNode(t *testing.T) {
 			wantDeletingReason: clusterv1.MachineDeletingDrainingNodeReason,
 			wantDeletingMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pod test-namespace/pod-2-delete-running-deployment-pod: deletionTimestamp set, but still not removed from the Node`,
+			expectDeferNextReconcile: drainRetryInterval,
 		},
 		{
 			name:     "Node does exist but is unreachable, no Pods have to be drained because they all have old deletionTimestamps",
@@ -1789,10 +1793,12 @@ func TestDrainNode(t *testing.T) {
 				WithObjects(remoteObjs...).
 				Build()
 
+			fc := capicontrollerutil.NewFakeController()
+
 			r := &Reconciler{
-				Client:               c,
-				ClusterCache:         clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(testCluster)),
-				reconcileDeleteCache: cache.New[cache.ReconcileEntry](cache.DefaultTTL),
+				Client:       c,
+				controller:   fc,
+				ClusterCache: clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(testCluster)),
 			}
 
 			testMachine.Status.NodeRef = clusterv1.MachineNodeReference{
@@ -1836,6 +1842,15 @@ func TestDrainNode(t *testing.T) {
 				gotNode := &corev1.Node{}
 				g.Expect(remoteClient.Get(ctx, client.ObjectKeyFromObject(tt.node), gotNode)).To(Succeed())
 				g.Expect(gotNode.Spec.Unschedulable).To(BeTrue())
+			}
+
+			if tt.expectDeferNextReconcile == 0 {
+				g.Expect(fc.Deferrals).To(BeEmpty())
+			} else {
+				g.Expect(fc.Deferrals).To(HaveKeyWithValue(
+					reconcile.Request{NamespacedName: client.ObjectKeyFromObject(s.machine)},
+					BeTemporally("~", time.Now().Add(tt.expectDeferNextReconcile), 1*time.Second)),
+				)
 			}
 		})
 	}
@@ -1923,11 +1938,12 @@ func TestDrainNode_withCaching(t *testing.T) {
 		WithObjects(remoteObjs...).
 		Build()
 
-	reconcileDeleteCache := cache.New[cache.ReconcileEntry](cache.DefaultTTL)
+	fc := capicontrollerutil.NewFakeController()
+
 	r := &Reconciler{
-		Client:               c,
-		ClusterCache:         clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(testCluster)),
-		reconcileDeleteCache: reconcileDeleteCache,
+		Client:       c,
+		ClusterCache: clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(testCluster)),
+		controller:   fc,
 	}
 
 	s := &scope{
@@ -1962,10 +1978,10 @@ func TestDrainNode_withCaching(t *testing.T) {
 	g.Expect(gotNode.Spec.Unschedulable).To(BeTrue())
 
 	// Drain cache should have an entry for the Machine
-	gotEntry, ok := reconcileDeleteCache.Has(cache.NewReconcileEntryKey(testMachine))
-	g.Expect(ok).To(BeTrue())
-	g.Expect(gotEntry.Request.Namespace).To(Equal(testMachine.Namespace))
-	g.Expect(gotEntry.Request.Name).To(Equal(testMachine.Name))
+	g.Expect(fc.Deferrals).To(HaveKeyWithValue(
+		reconcile.Request{NamespacedName: client.ObjectKeyFromObject(s.machine)},
+		BeTemporally("~", time.Now().Add(drainRetryInterval), 1*time.Second)),
+	)
 }
 
 func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
@@ -2202,13 +2218,14 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                    string
-		node                    *corev1.Node
-		remoteObjects           []client.Object
-		featureGateDisabled     bool
-		expected                ctrl.Result
-		expectedDeletingReason  string
-		expectedDeletingMessage string
+		name                     string
+		node                     *corev1.Node
+		remoteObjects            []client.Object
+		featureGateDisabled      bool
+		expected                 ctrl.Result
+		expectedDeletingReason   string
+		expectedDeletingMessage  string
+		expectDeferNextReconcile time.Duration
 	}{
 		{
 			name: "Node has volumes attached according to node status",
@@ -2233,6 +2250,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumeClaims: default/test-pvc`,
+			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
 		{
 			name: "Node has volumes attached according to node status but the pv does not reference a PersistentVolumeClaim",
@@ -2257,6 +2275,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumes without a .spec.claimRef to a PersistentVolumeClaim: test-pv`,
+			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
 		{
 			name: "Node has volumes attached according to node status but without a pv",
@@ -2279,6 +2298,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * Node with .status.volumesAttached entries not matching a PersistentVolume: kubernetes.io/csi/dummy^foo`,
+			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
 		{
 			name: "Node has volumes attached according to node status but its from a daemonset pod which gets ignored",
@@ -2356,6 +2376,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumeClaims: default/test-pvc`,
+			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
 		{
 			name: "Node has volumes attached according to volumeattachments (but ignored because feature gate is disabled)",
@@ -2401,6 +2422,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * VolumeAttachment with .spec.source.persistentVolumeName not matching a PersistentVolume: test-pv`,
+			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
 		{
 			name: "Node has volumes attached according to volumeattachments but its from a daemonset pod which gets ignored",
@@ -2502,6 +2524,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumeClaims: default/test-pvc`,
+			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
 		{
 			name: "Node has no volumes attached",
@@ -2580,10 +2603,12 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			remoteFakeClient := fake.NewClientBuilder().WithIndex(&corev1.Pod{}, "spec.nodeName", nodeNameIndex).
 				WithObjects(remoteObjects...).Build()
 
+			fc := capicontrollerutil.NewFakeController()
+
 			r := &Reconciler{
-				Client:               fakeClient,
-				ClusterCache:         clustercache.NewFakeClusterCache(remoteFakeClient, client.ObjectKeyFromObject(testCluster)),
-				reconcileDeleteCache: cache.New[cache.ReconcileEntry](cache.DefaultTTL),
+				Client:       fakeClient,
+				ClusterCache: clustercache.NewFakeClusterCache(remoteFakeClient, client.ObjectKeyFromObject(testCluster)),
+				controller:   fc,
 			}
 
 			testMachine.Status.NodeRef = clusterv1.MachineNodeReference{
@@ -2600,6 +2625,15 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			g.Expect(got).To(BeEquivalentTo(tt.expected))
 			g.Expect(s.deletingReason).To(BeEquivalentTo(tt.expectedDeletingReason))
 			g.Expect(s.deletingMessage).To(BeEquivalentTo(tt.expectedDeletingMessage))
+
+			if tt.expectDeferNextReconcile == 0 {
+				g.Expect(fc.Deferrals).To(BeEmpty())
+			} else {
+				g.Expect(fc.Deferrals).To(HaveKeyWithValue(
+					reconcile.Request{NamespacedName: client.ObjectKeyFromObject(s.machine)},
+					BeTemporally("~", time.Now().Add(tt.expectDeferNextReconcile), 1*time.Second)),
+				)
+			}
 		})
 	}
 }
@@ -3474,7 +3508,6 @@ func TestNodeDeletion(t *testing.T) {
 				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
 				recorder:                 record.NewFakeRecorder(10),
 				nodeDeletionRetryTimeout: 10 * time.Millisecond,
-				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](cache.DefaultTTL),
 			}
 
 			cluster := testCluster.DeepCopy()
@@ -3607,7 +3640,6 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
 				recorder:                 record.NewFakeRecorder(10),
 				nodeDeletionRetryTimeout: 10 * time.Millisecond,
-				reconcileDeleteCache:     cache.New[cache.ReconcileEntry](cache.DefaultTTL),
 			}
 
 			s := &scope{

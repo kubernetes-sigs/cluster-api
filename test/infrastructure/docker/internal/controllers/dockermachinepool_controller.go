@@ -31,7 +31,6 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -39,6 +38,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
@@ -174,7 +174,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 		return err
 	}
 
-	c, err := ctrl.NewControllerManagedBy(mgr).
+	c, err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&infrav1.DockerMachinePool{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
@@ -182,21 +182,16 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(util.MachinePoolToInfrastructureMapFunc(ctx,
 				infrav1.GroupVersion.WithKind("DockerMachinePool"))),
-			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		).
 		Watches(
 			&infrav1.DockerMachine{},
 			handler.EnqueueRequestsFromMapFunc(dockerMachineToDockerMachinePool),
-			builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachinePools),
-			builder.WithPredicates(predicates.All(mgr.GetScheme(), predicateLog,
-				predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
-				//nolint:staticcheck // This usage will be removed when adding v1beta2 status and implementing the Paused condition.
-				predicates.ClusterUnpausedAndInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
-			)),
+			//nolint:staticcheck // This usage will be removed when adding v1beta2 status and implementing the Paused condition.
+			predicates.ClusterUnpausedAndInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 		).Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

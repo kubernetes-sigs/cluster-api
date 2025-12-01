@@ -53,6 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -62,7 +63,7 @@ type Generator interface {
 }
 
 // NewGenerator creates a new generator to generate desired state.
-func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, runtimeClient runtimeclient.Client) (Generator, error) {
+func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, runtimeClient runtimeclient.Client, hookCache cache.Cache[cache.HookEntry], getUpgradePlanCache cache.Cache[GenerateUpgradePlanCacheEntry]) (Generator, error) {
 	if client == nil || clusterCache == nil {
 		return nil, errors.New("Client and ClusterCache must not be nil")
 	}
@@ -72,10 +73,12 @@ func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, 
 	}
 
 	return &generator{
-		Client:        client,
-		ClusterCache:  clusterCache,
-		RuntimeClient: runtimeClient,
-		patchEngine:   patches.NewEngine(client, runtimeClient),
+		Client:              client,
+		ClusterCache:        clusterCache,
+		RuntimeClient:       runtimeClient,
+		hookCache:           hookCache,
+		getUpgradePlanCache: getUpgradePlanCache,
+		patchEngine:         patches.NewEngine(client, runtimeClient),
 	}, nil
 }
 
@@ -87,6 +90,9 @@ type generator struct {
 	ClusterCache clustercache.ClusterCache
 
 	RuntimeClient runtimeclient.Client
+
+	hookCache           cache.Cache[cache.HookEntry]
+	getUpgradePlanCache cache.Cache[GenerateUpgradePlanCacheEntry]
 
 	// patchEngine is used to apply patches during computeDesiredState.
 	patchEngine patches.Engine
@@ -121,7 +127,7 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 	// Runtime extension takes precedence if defined.
 	getUpgradePlan := GetUpgradePlanOneMinor
 	if s.Blueprint.ClusterClass.Spec.Upgrade.External.GenerateUpgradePlanExtension != "" {
-		getUpgradePlan = GetUpgradePlanFromExtension(g.RuntimeClient, s.Current.Cluster, s.Blueprint.ClusterClass.Spec.Upgrade.External.GenerateUpgradePlanExtension)
+		getUpgradePlan = GetUpgradePlanFromExtension(g.RuntimeClient, g.getUpgradePlanCache, s.Current.Cluster, s.Blueprint.ClusterClass.Spec.Upgrade.External.GenerateUpgradePlanExtension)
 	} else if len(s.Blueprint.ClusterClass.Spec.KubernetesVersions) > 0 {
 		getUpgradePlan = GetUpgradePlanFromClusterClassVersions(s.Blueprint.ClusterClass.Spec.KubernetesVersions)
 	}

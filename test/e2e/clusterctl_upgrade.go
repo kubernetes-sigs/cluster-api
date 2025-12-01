@@ -738,12 +738,14 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					Namespace: workloadCluster.Namespace,
 				})
 
-				Byf("[%d] Verify Machines Ready condition is true", i)
-				framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
-					Lister:    managementClusterProxy.GetClient(),
-					Name:      workloadCluster.Name,
-					Namespace: workloadCluster.Namespace,
-				})
+				if len(postUpgradeMachineList.Items) > 0 {
+					Byf("[%d] Verify Machines Ready condition is true", i)
+					framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
+						Lister:    managementClusterProxy.GetClient(),
+						Name:      workloadCluster.Name,
+						Namespace: workloadCluster.Namespace,
+					})
+				}
 			}
 
 			// Note: It is a known issue on Kubernetes < v1.29 that SSA sometimes fail:
@@ -853,6 +855,8 @@ func downloadToTmpFile(ctx context.Context, url string) string {
 	resp, err := http.DefaultClient.Do(req)
 	Expect(err).ToNot(HaveOccurred(), "failed to get clusterctl")
 	defer resp.Body.Close()
+
+	Expect(resp.StatusCode).To(Equal(http.StatusOK), "unexpected status code when downloading clusterctl")
 
 	// Write the body to file
 	_, err = io.Copy(tmpFile, resp.Body)
@@ -1037,6 +1041,11 @@ func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Clie
 			err = util.UnstructuredUnmarshalField(infraMachinePool, ptr.To(""), "status", "infrastructureMachineKind")
 			if err != nil && !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
 				return 0, err
+			}
+
+			// The MachinePool does not support machines if the field does not exist.
+			if errors.Is(err, util.ErrUnstructuredFieldNotFound) {
+				continue
 			}
 
 			replicas, found, err := unstructured.NestedInt64(mp.Object, "spec", "replicas")

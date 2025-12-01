@@ -65,6 +65,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -576,7 +577,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
 			CommonResponse: runtimehooksv1.CommonResponse{
 				Status:  runtimehooksv1.ResponseStatusSuccess,
-				Message: "foo",
+				Message: "processing",
 			},
 			RetryAfterSeconds: 60,
 		},
@@ -594,6 +595,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 		wantHookToBeCalled bool
 		wantRetryAfter     time.Duration
 		wantError          bool
+		wantHookCacheEntry *cache.HookEntry
 	}{
 		{
 			name: "hook should not be called if it is not marked",
@@ -1224,6 +1226,13 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			wantHookToBeCalled: true,
 			wantRetryAfter:     time.Second * time.Duration(blockingResponse.RetryAfterSeconds),
 			wantError:          false,
+			wantHookCacheEntry: ptr.To(cache.NewHookEntry(&clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test-ns",
+					Name:      "test-cluster",
+				},
+			}, runtimehooksv1.AfterClusterUpgrade,
+				time.Now().Add(time.Duration(blockingResponse.RetryAfterSeconds)*time.Second), blockingResponse.Message)),
 		},
 		{
 			name: "hook should be called if the control plane, MDs, and MPs are stable at the topology version - failure response should leave the hook marked",
@@ -1301,6 +1310,8 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				fakeClient,
 				clustercache.NewFakeEmptyClusterCache(),
 				fakeRuntimeClient,
+				cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
+				cache.New[desiredstate.GenerateUpgradePlanCacheEntry](10*time.Minute),
 			)
 			g.Expect(err).ToNot(HaveOccurred())
 
@@ -1308,6 +1319,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Client:                fakeClient,
 				APIReader:             fakeClient,
 				RuntimeClient:         fakeRuntimeClient,
+				hookCache:             cache.New[cache.HookEntry](cache.HookCacheDefaultTTL),
 				desiredStateGenerator: desiredStateGenerator,
 			}
 
@@ -1326,6 +1338,26 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			}
 
 			g.Expect(hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, tt.s.Current.Cluster)).To(Equal(tt.wantMarked))
+
+			if tt.wantHookCacheEntry != nil {
+				// Verify the cache entry.
+				cacheEntry, ok := r.hookCache.Has(tt.wantHookCacheEntry.Key())
+				g.Expect(ok).To(BeTrue())
+				g.Expect(cacheEntry.ObjectKey).To(Equal(tt.wantHookCacheEntry.ObjectKey))
+				g.Expect(cacheEntry.HookName).To(Equal(tt.wantHookCacheEntry.HookName))
+				g.Expect(cacheEntry.ReconcileAfter).To(BeTemporally("~", tt.wantHookCacheEntry.ReconcileAfter, 5*time.Second))
+				g.Expect(cacheEntry.ResponseMessage).To(Equal(tt.wantHookCacheEntry.ResponseMessage))
+
+				// Call callAfterClusterUpgrade again and verify the cache hit.
+				g.Expect(r.callAfterClusterUpgrade(ctx, tt.s)).To(Succeed())
+				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterClusterUpgrade)).To(Equal(1))
+				g.Expect(tt.s.HookResponseTracker.AggregateMessage("upgrade")).To(Equal(
+					fmt.Sprintf("Following hooks are blocking upgrade: AfterClusterUpgrade: %s", tt.wantHookCacheEntry.ResponseMessage)))
+				// RequeueAfter should be now < then the previous RequeueAfter.
+				g.Expect(tt.s.HookResponseTracker.AggregateRetryAfter()).To(BeNumerically("<=", tt.wantRetryAfter))
+			} else {
+				g.Expect(r.hookCache.Len()).To(Equal(0))
+			}
 		})
 	}
 }

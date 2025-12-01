@@ -212,8 +212,13 @@ func ComputeDesiredKubeadmConfig(kcp *controlplanev1.KubeadmControlPlane, cluste
 	if isJoin {
 		// Note: When building a KubeadmConfig for a joining CP machine empty out the unnecessary InitConfiguration.
 		spec.InitConfiguration = bootstrapv1.InitConfiguration{}
-		// NOTE: For the joining we are preserving the ClusterConfiguration in order to determine if the
+		// Note: For the joining we are preserving the ClusterConfiguration in order to determine if the
 		// cluster is using an external etcd in the kubeadm bootstrap provider (even if this is not required by kubeadm Join).
+		// Note: We are always setting JoinConfiguration.ControlPlane so we can later identify this KubeadmConfig as a
+		// join KubeadmConfig.
+		if spec.JoinConfiguration.ControlPlane == nil {
+			spec.JoinConfiguration.ControlPlane = &bootstrapv1.JoinControlPlane{}
+		}
 	} else {
 		// Note: When building a KubeadmConfig for the first CP machine empty out the unnecessary JoinConfiguration.
 		spec.JoinConfiguration = bootstrapv1.JoinConfiguration{}

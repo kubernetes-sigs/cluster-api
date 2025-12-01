@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -40,6 +41,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
+	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -81,7 +83,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "extensionconfig")
-	b := ctrl.NewControllerManagedBy(mgr).
+	b := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&runtimev1.ExtensionConfig{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue))
@@ -131,7 +133,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Requeue events when the registry is not ready.
 	// The registry will become ready after it is 'warmed up' by warmupRunnable.
 	if !r.RuntimeClient.IsReady() {
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	extensionConfig := &runtimev1.ExtensionConfig{}

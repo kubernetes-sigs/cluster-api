@@ -41,5 +41,5 @@ type PatchHelper interface {
 	Changes() []byte
 
 	// Patch patches the given obj in the Kubernetes cluster.
-	Patch(ctx context.Context) error
+	Patch(ctx context.Context) (modifiedResourceVersion string, err error)
 }

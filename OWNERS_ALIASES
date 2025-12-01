@@ -71,6 +71,13 @@ aliases:
   - Jont828
 
   # -----------------------------------------------------------
+  # OWNER_ALIASES for internal/controllers/machinepool
+  # -----------------------------------------------------------
+
+  cluster-api-machinepool-maintainers:
+  cluster-api-machinepool-reviewers:
+
+  # -----------------------------------------------------------
   # OWNER_ALIASES for test
   # -----------------------------------------------------------
 

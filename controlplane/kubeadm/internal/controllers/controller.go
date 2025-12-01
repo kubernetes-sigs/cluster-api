@@ -36,7 +36,6 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -49,6 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
+	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -85,7 +85,7 @@ type KubeadmControlPlaneReconciler struct {
 	APIReader           client.Reader
 	SecretCachingClient client.Client
 	RuntimeClient       runtimeclient.Client
-	controller          controller.Controller
+	controller          capicontrollerutil.Controller
 	recorder            record.EventRecorder
 	ClusterCache        clustercache.ClusterCache
 
@@ -132,23 +132,18 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "kubeadmcontrolplane")
-	c, err := ctrl.NewControllerManagedBy(mgr).
+	c, err := capicontrollerutil.NewControllerManagedBy(mgr, predicateLog).
 		For(&controlplanev1.KubeadmControlPlane{}).
-		Owns(&clusterv1.Machine{}, builder.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog))).
+		Owns(&clusterv1.Machine{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmControlPlane),
-			builder.WithPredicates(
-				predicates.All(mgr.GetScheme(), predicateLog,
-					predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog),
-					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
-					predicates.Any(mgr.GetScheme(), predicateLog,
-						predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
-						predicates.ClusterTopologyVersionChanged(mgr.GetScheme(), predicateLog),
-					),
-				),
+			predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
+			predicates.Any(mgr.GetScheme(), predicateLog,
+				predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
+				predicates.ClusterTopologyVersionChanged(mgr.GetScheme(), predicateLog),
 			),
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("kubeadmcontrolplane", r.ClusterToKubeadmControlPlane,
@@ -282,12 +277,6 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			if conditions.IsFalse(kcp, controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition) {
 				res = ctrl.Result{RequeueAfter: 20 * time.Second}
 			}
-		}
-
-		// Note: controller-runtime logs a warning that non-empty result is ignored
-		// if error is not nil, so setting result here to empty to avoid noisy warnings.
-		if reterr != nil {
-			res = ctrl.Result{}
 		}
 	}()
 

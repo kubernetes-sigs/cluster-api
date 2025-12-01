@@ -17,6 +17,8 @@ spec:
           value: observability
         - name: SCRIPT
           value: /script/compile.sh
+        - name: HEALTH_PORT
+          value: "18080" # Should not conflict with kube-state-metrics port
         # This image continuously collects config maps with the specified label and
         # updates the configuration for kube-state-metrics using a script.
         image: kiwigrid/k8s-sidecar:latest

@@ -17,17 +17,22 @@ limitations under the License.
 package cache
 
 import (
+	"fmt"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	kcache "k8s.io/client-go/tools/cache"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
 const (
 	// DefaultTTL is the duration for which we keep entries in the cache.
 	DefaultTTL = 10 * time.Minute
+
+	// HookCacheDefaultTTL is the duration for which we keep entries in the hook cache.
+	HookCacheDefaultTTL = 24 * time.Hour
 
 	// expirationInterval is the interval in which we will remove expired entries
 	// from the cache.
@@ -49,6 +54,9 @@ type Cache[E Entry] interface {
 	// Has checks if the given key (still) exists in the Cache.
 	// Note: entries expire after the ttl.
 	Has(key string) (E, bool)
+
+	// Len returns the number of entries in the cache.
+	Len() int
 }
 
 // New creates a new cache.
@@ -96,47 +104,45 @@ func (r *cache[E]) Has(key string) (E, bool) {
 	return *new(E), false
 }
 
-// ReconcileEntry is an Entry for the Cache that stores the
-// earliest time after which the next Reconcile should be executed.
-type ReconcileEntry struct {
-	Request        ctrl.Request
-	ReconcileAfter time.Time
+func (r *cache[E]) Len() int {
+	return len(r.ListKeys())
 }
 
-// NewReconcileEntry creates a new ReconcileEntry based on an object and a reconcileAfter time.
-func NewReconcileEntry(obj metav1.Object, reconcileAfter time.Time) ReconcileEntry {
-	return ReconcileEntry{
-		Request: ctrl.Request{
-			NamespacedName: types.NamespacedName{
-				Namespace: obj.GetNamespace(),
-				Name:      obj.GetName(),
-			},
-		},
-		ReconcileAfter: reconcileAfter,
+// HookEntry is an Entry for the hook Cache.
+type HookEntry struct {
+	ObjectKey       client.ObjectKey
+	HookName        string
+	ReconcileAfter  time.Time
+	ResponseMessage string
+}
+
+// NewHookEntry creates a new HookEntry based on an object and a reconcileAfter time.
+func NewHookEntry(obj client.Object, hook runtimecatalog.Hook, reconcileAfter time.Time, responseMessage string) HookEntry {
+	return HookEntry{
+		ObjectKey:       client.ObjectKeyFromObject(obj),
+		HookName:        runtimecatalog.HookName(hook),
+		ReconcileAfter:  reconcileAfter,
+		ResponseMessage: responseMessage,
 	}
 }
 
-// NewReconcileEntryKey returns the key of a ReconcileEntry based on an object.
-func NewReconcileEntryKey(obj metav1.Object) string {
-	return ReconcileEntry{
-		Request: ctrl.Request{
-			NamespacedName: types.NamespacedName{
-				Namespace: obj.GetNamespace(),
-				Name:      obj.GetName(),
-			},
-		},
+// NewHookEntryKey returns the key of a HookEntry based on an object.
+func NewHookEntryKey(obj client.Object, hook runtimecatalog.Hook) string {
+	return HookEntry{
+		ObjectKey: client.ObjectKeyFromObject(obj),
+		HookName:  runtimecatalog.HookName(hook),
 	}.Key()
 }
 
-var _ Entry = &ReconcileEntry{}
+var _ Entry = &HookEntry{}
 
-// Key returns the cache key of a ReconcileEntry.
-func (r ReconcileEntry) Key() string {
-	return r.Request.String()
+// Key returns the cache key of a HookEntry.
+func (r HookEntry) Key() string {
+	return fmt.Sprintf("%s: %s", r.HookName, r.ObjectKey.String())
 }
 
 // ShouldRequeue returns if the current Reconcile should be requeued.
-func (r ReconcileEntry) ShouldRequeue(now time.Time) (requeueAfter time.Duration, requeue bool) {
+func (r HookEntry) ShouldRequeue(now time.Time) (requeueAfter time.Duration, requeue bool) {
 	if r.ReconcileAfter.IsZero() {
 		return time.Duration(0), false
 	}
@@ -146,4 +152,17 @@ func (r ReconcileEntry) ShouldRequeue(now time.Time) (requeueAfter time.Duration
 	}
 
 	return time.Duration(0), false
+}
+
+// ToResponse uses the values from a HookEntry to set status, message and retryAfterSeconds on a RetryResponseObject.
+// requeueAfter is passed in to make it possible to use durations computed from previous ShouldRequeue calls.
+func (r HookEntry) ToResponse(resp runtimehooksv1.RetryResponseObject, requeueAfter time.Duration) runtimehooksv1.RetryResponseObject {
+	resp.SetStatus(runtimehooksv1.ResponseStatusSuccess)
+	resp.SetMessage(r.ResponseMessage)
+	if requeueAfter > 0 {
+		// Note: We have to set at least 1 if requeueAfter > 0 otherwise components like
+		// the HookResponseTracker won't detect this correctly as a blocking response.
+		resp.SetRetryAfterSeconds(max(int32(requeueAfter.Round(time.Second).Seconds()), 1))
+	}
+	return resp
 }

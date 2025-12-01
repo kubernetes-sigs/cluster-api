@@ -39,6 +39,7 @@
             - [Implementing Runtime Extensions](./tasks/experimental-features/runtime-sdk/implement-extensions.md)
             - [Implementing Lifecycle Hook Extensions](./tasks/experimental-features/runtime-sdk/implement-lifecycle-hooks.md)
             - [Implementing Topology Mutation Hook Extensions](./tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md)
+            - [Implementing Upgrade Plan Runtime Extensions](./tasks/experimental-features/runtime-sdk/implement-upgrade-plan-hooks.md)
             - [Deploying Runtime Extensions](./tasks/experimental-features/runtime-sdk/deploy-runtime-extension.md)
         - [Ignition Bootstrap configuration](./tasks/experimental-features/ignition.md)
     - [Running multiple providers](./tasks/multiple-providers.md)

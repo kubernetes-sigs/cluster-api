@@ -1797,7 +1797,7 @@ spec:
                   - address
                   - type
                   type: object
-                maxItems: 32
+                maxItems: 128
                 type: array
                 x-kubernetes-list-type: atomic
               certificatesExpiryDate:

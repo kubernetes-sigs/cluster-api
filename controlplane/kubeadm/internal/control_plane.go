@@ -95,6 +95,8 @@ type ControlPlane struct {
 type PreflightCheckResults struct {
 	// HasDeletingMachine reports true if preflight check detected a deleting machine.
 	HasDeletingMachine bool
+	// CertificateMissing reports true if preflight check detected a certificate missing.
+	CertificateMissing bool
 	// ControlPlaneComponentsNotHealthy reports true if preflight check detected that the control plane components are not fully healthy.
 	ControlPlaneComponentsNotHealthy bool
 	// EtcdClusterNotHealthy reports true if preflight check detected that the etcd cluster is not fully healthy.

@@ -1663,6 +1663,121 @@ kubernetesVersion: metav1.16.1`,
 	}, 30*time.Second).Should(Succeed())
 }
 
+func TestReconcileClusterCertificates(t *testing.T) {
+	cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
+	cluster.Spec.ControlPlaneEndpoint.Host = "bar"
+	cluster.Spec.ControlPlaneEndpoint.Port = 6443
+	kcp.Spec.Version = "v1.31.0"
+
+	controlPlane := &internal.ControlPlane{
+		KCP:     kcp,
+		Cluster: cluster,
+	}
+
+	fakeClient := newFakeClient(cluster, kcp, tmpl)
+	r := KubeadmControlPlaneReconciler{
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+	}
+
+	assertCertificates := func(g *WithT) {
+		certificates := secret.Certificates{
+			{Purpose: secret.ClusterCA},
+			{Purpose: secret.FrontProxyCA},
+			{Purpose: secret.ServiceAccount},
+			{Purpose: secret.EtcdCA},
+		}
+		for _, c := range certificates {
+			s := &corev1.Secret{}
+			// Set the secret name to the purpose
+			s.Name = secret.Name(cluster.Name, c.Purpose)
+			g.Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: cluster.Namespace,
+				Name:      s.Name,
+			}, s)).To(Succeed())
+			g.Expect(s.Type).To(Equal(clusterv1.ClusterSecretType))
+			g.Expect(s.OwnerReferences).To(HaveLen(1))
+			g.Expect(s.OwnerReferences[0]).To(Equal(metav1.OwnerReference{
+				APIVersion:         controlplanev1.GroupVersion.String(),
+				Kind:               "KubeadmControlPlane",
+				Name:               kcp.Name,
+				UID:                kcp.UID,
+				Controller:         ptr.To(true),
+				BlockOwnerDeletion: ptr.To(true),
+			}))
+		}
+	}
+
+	t.Run("creates certificates if missing", func(*testing.T) {
+		g := NewWithT(t)
+
+		err := r.reconcileClusterCertificates(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ptr.Deref(conditions.Get(controlPlane.KCP, controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition), metav1.Condition{})).To(conditions.MatchCondition(metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
+			Status: metav1.ConditionTrue,
+			Reason: controlplanev1.KubeadmControlPlaneCertificatesAvailableReason,
+		}, conditions.IgnoreLastTransitionTime(true)))
+
+		assertCertificates(g)
+	})
+
+	t.Run("no-op if certificates exist", func(*testing.T) {
+		g := NewWithT(t)
+
+		err := r.reconcileClusterCertificates(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ptr.Deref(conditions.Get(controlPlane.KCP, controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition), metav1.Condition{})).To(conditions.MatchCondition(metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
+			Status: metav1.ConditionTrue,
+			Reason: controlplanev1.KubeadmControlPlaneCertificatesAvailableReason,
+		}, conditions.IgnoreLastTransitionTime(true)))
+
+		assertCertificates(g)
+	})
+
+	t.Run("no-op after control plane is initialized", func(*testing.T) {
+		g := NewWithT(t)
+
+		kcpBefore := controlPlane.KCP.DeepCopy()
+		conditions.Set(controlPlane.KCP, metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
+			Status: metav1.ConditionTrue,
+			Reason: controlplanev1.KubeadmControlPlaneInitializedReason,
+		})
+		g.Expect(fakeClient.Status().Patch(ctx, controlPlane.KCP, client.MergeFrom(kcpBefore))).To(Succeed())
+
+		err := r.reconcileClusterCertificates(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ptr.Deref(conditions.Get(controlPlane.KCP, controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition), metav1.Condition{})).To(conditions.MatchCondition(metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
+			Status: metav1.ConditionTrue,
+			Reason: controlplanev1.KubeadmControlPlaneCertificatesAvailableReason,
+		}, conditions.IgnoreLastTransitionTime(true)))
+
+		assertCertificates(g)
+	})
+
+	t.Run("should not recreate certificates if deleted after control plane is initialized", func(*testing.T) {
+		g := NewWithT(t)
+
+		s := &corev1.Secret{}
+		// Set the secret name to the purpose
+		s.Namespace = cluster.Namespace
+		s.Name = secret.Name(cluster.Name, secret.ClusterCA)
+		g.Expect(fakeClient.Delete(ctx, s)).To(Succeed())
+
+		err := r.reconcileClusterCertificates(ctx, controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ptr.Deref(conditions.Get(controlPlane.KCP, controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition), metav1.Condition{})).To(conditions.MatchCondition(metav1.Condition{
+			Type:    controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  controlplanev1.KubeadmControlPlaneCertificatesNotAvailableReason,
+			Message: "Cluster certificate for ca is not available, please check cluster certificate secrets",
+		}, conditions.IgnoreLastTransitionTime(true)))
+	})
+}
+
 func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) (*corev1.Namespace, *clusterv1.Cluster) {
 		t.Helper()
@@ -4103,6 +4218,7 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 func setKCPHealthy(kcp *controlplanev1.KubeadmControlPlane) {
 	conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition, Status: metav1.ConditionTrue})
 	conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(kcp, metav1.Condition{Type: controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition, Status: metav1.ConditionTrue})
 }
 
 func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ready bool) (*clusterv1.Machine, *corev1.Node) {

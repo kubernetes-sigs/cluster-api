@@ -125,6 +125,10 @@ const (
 	// Cluster certificates include: certificate authorities for ca, sa, front-proxy, etcd, and if external etcd is used,
 	// also the apiserver-etcd-client client certificate.
 	KubeadmControlPlaneCertificatesAvailableReason = clusterv1.AvailableReason
+
+	// KubeadmControlPlaneCertificatesNotAvailableReason surfaces when cluster certificates are not available
+	// after control plane initialized, which might happen when a user accidentally deletes certificates.
+	KubeadmControlPlaneCertificatesNotAvailableReason = clusterv1.NotAvailableReason
 )
 
 // KubeadmControlPlane's EtcdClusterHealthy condition and corresponding reasons.

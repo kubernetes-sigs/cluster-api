@@ -198,6 +198,15 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 		}
 	}
 
+	// If certificates are missing, can't join a new machine
+	if !conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition) {
+		controlPlane.PreflightCheckResults.CertificateMissing = true
+		log.Info("Certificates are missing or unknown, can't join a new machine")
+		// Slow down reconcile frequency, user intervention is required to fix the problem.
+		r.controller.DeferNextReconcileForObject(controlPlane.KCP, time.Now().Add(5*time.Second))
+		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}
+	}
+
 	// If there are deleting machines, wait for the operation to complete.
 	if controlPlane.HasDeletingMachine() {
 		controlPlane.PreflightCheckResults.HasDeletingMachine = true

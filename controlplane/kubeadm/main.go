@@ -495,7 +495,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		EtcdLogger:                  etcdLogger,
 		RemoteConditionsGracePeriod: remoteConditionsGracePeriod,
 		RuntimeClient:               runtimeClient,
-	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{
+		MaxConcurrentReconciles: kubeadmControlPlaneConcurrency,
+		ReconciliationTimeout:   3 * time.Minute, // increase reconciliation timeout because the KubeadmControlPlaneReconciler tries to connect with all the etcd member, and times out if those operations might sum up.
+	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 		os.Exit(1)
 	}

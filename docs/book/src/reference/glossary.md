@@ -133,9 +133,9 @@ Cluster API IPAM Provider Metal3
 Cluster API Runtime Extensions Provider Nutanix
 
 ### Chained upgrade
-An upgrade sequence that goes from one Kubernetes version to another by passing through a set of intermediate versions. 
-e.g., Upgrading from v1.31.0 (current state) to v1.34.0 (target version) requires
-a chained upgrade with the following steps: v1.32.0 (first intermediate version)-> v1.33.0 (second intermediate version) -> v1.34.0 (target version).
+An upgrade sequence that goes from one Kubernetes version to another by passing through a set of intermediate versions.
+E.g. upgrading from v1.31.0 (current state) to v1.34.0 (target version) requires
+a chained upgrade with the following steps: v1.32.0 (first intermediate version) -> v1.33.0 (second intermediate version) -> v1.34.0 (target version).
 
 The sequence of versions in a chained upgrade is also called [upgrade plan](#upgrade-plan).
 

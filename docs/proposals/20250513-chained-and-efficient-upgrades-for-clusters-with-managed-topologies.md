@@ -362,8 +362,8 @@ extending the upgrade duration for a long time by using (or abusing) lifecycle h
 The second point might become critical, depending on the complexity of operations that the users performs while the 
 upgrade is blocked.
 
-With this regard, the recommendation is to keep the upgrade workflow a simple as fast as possible, e.g.
-should avoid to combine application upgrades and Kubernetes version upgrade in a single workflow to risks under control.
+With this regard, the recommendation is to keep the upgrade workflow as simple and as fast as possible, 
+e.g. combining application upgrades and Kubernetes version upgrade in a single workflow should be avoided.
 
 - Upgrading a Cluster by multiple Kubernetes minor versions might compromise workloads.
 

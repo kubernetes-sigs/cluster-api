@@ -145,14 +145,14 @@ consistent with `controlPlaneUpgrades` and also compliant with the [Kubernetes v
 
 In all the cases above, the `GenerateUpgradePlanResponse` content must comply the following validation rules:
 
-- `ControlPlaneUpgrades` is the list of version upgrade steps for the control plane; it must be always specified
+- `controlPlaneUpgrades` is the list of version upgrade steps for the control plane; it must be always specified
   unless the control plane is already at the target version.
-  - there should be at least one version for every minor between `fromControlPlaneKubernetesVersion` (excluded) and `ToKubernetesVersion` (included).
+  - there should be at least one version for every minor between `fromControlPlaneKubernetesVersion` (excluded) and `toKubernetesVersion` (included).
   - each version must be:
     - greater than `fromControlPlaneKubernetesVersion` (or with a different build number)
     - greater than the previous version in the list (or with a different build number)
-    - less or equal to `ToKubernetesVersion` (or with a different build number)
-    - the last version in the plan must be equal to `ToKubernetesVersion`
+    - less or equal to `toKubernetesVersion` (or with a different build number)
+    - the last version in the plan must be equal to `toKubernetesVersion`
 
 - `workersUpgrades` is the list of version upgrade steps for the workers.
   - In case the upgrade plan for workers will be left to empty, the system will automatically
@@ -160,12 +160,12 @@ In all the cases above, the `GenerateUpgradePlanResponse` content must comply th
     the overall upgrade time.
   - If instead for any reason a custom upgrade plan for workers is required, `workersUpgrades` should be set and 
     the following rules apply to each version in the list. More specifically, each version must be:
-    - equal to `FromControlPlaneKubernetesVersion` or to one of the versions in the control plane upgrade plan.
-    - greater than `FromWorkersKubernetesVersion` (or with a different build number)
+    - equal to `fromControlPlaneKubernetesVersion` or to one of the versions in the control plane upgrade plan.
+    - greater than `fromWorkersKubernetesVersion` (or with a different build number)
     - greater than the previous version in the list (or with a different build number)
-    - less or equal to the `ToKubernetesVersion` (or with a different build number)
+    - less or equal to the `toKubernetesVersion` (or with a different build number)
     - in case of versions with the same major/minor/patch version but different build number, also the order
       of those versions must be the same for control plane and worker upgrade plan.
-    - the last version in the plan must be equal to `ToKubernetesVersion`
+    - the last version in the plan must be equal to `toKubernetesVersion`
     - the upgrade plane must have all the intermediate version which workers must go through to avoid breaking rules
       defining the max version skew between control plane and workers.

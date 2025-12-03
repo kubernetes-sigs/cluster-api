@@ -634,7 +634,7 @@ After above steps are completed, the machine controller will take over and compl
 
 <h1>High complexity</h1>
 
-Implementing the in-place update transition in a race condition free, re-entrant way is more complex that it might seem.
+Implementing the in-place update transition in a race condition-free, re-entrant way is more complex than it might seem.
 
 Please read the proposal's [implementation notes](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates-implementation-notes.md)
 carefully.

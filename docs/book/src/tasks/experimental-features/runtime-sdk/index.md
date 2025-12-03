@@ -31,6 +31,6 @@ Additional documentation:
     * [Implementing Runtime Extensions](./implement-extensions.md)
     * [Implementing Lifecycle Hook Extensions](./implement-lifecycle-hooks.md)
     * [Implementing Topology Mutation Hook Extensions](./implement-topology-mutation-hook.md)
-    * [Implementing In-Place Update Hooks Extensions](./implement-in-place-update-hooks.md)
+    * [Implementing In-place Update Hooks Extensions](./implement-in-place-update-hooks.md)
 * For Cluster operators:
     * [Deploying Runtime Extensions](./deploy-runtime-extension.md)

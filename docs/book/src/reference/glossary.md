@@ -295,6 +295,8 @@ see [Server](#server)
 
 A resource that does not mutate.  In Kubernetes we often state the instance of a running pod is immutable or does not change once it is run.  In order to make a change, a new pod is run.  In the context of [Cluster API](#cluster-api) we often refer to a running instance of a [Machine](#machine) as being immutable, from a [Cluster API](#cluster-api) perspective.
 
+Note: Cluster API also have extensibility points that make it possible to perform [in-place updates](#in-place-update) of machines.
+
 ### IPAM provider
 
 Refers to a [provider](#provider) that allows Cluster API to interact with IPAM solutions.

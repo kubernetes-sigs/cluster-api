@@ -10,7 +10,7 @@ Please note Runtime SDK is an advanced feature. If implemented incorrectly, a fa
 
 ## Introduction
 
-The proposal for [n-place updates in Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/20240807-in-place-updates.md)
+The proposal for [in-place updates in Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/20240807-in-place-updates.md)
 introduced extensions allowing users to execute changes on existing machines without deleting the machines and creating a new one.
 
 Notably, the Cluster API user experience remain the same as of today no matter of the in-place update feature is enabled 
@@ -19,7 +19,7 @@ or not e.g. in order to trigger a MachineDeployment rollout, you have to rotate 
 Users should care ONLY about the desired state (as of today).
 
 Cluster API is responsible to choose the best strategy to achieve desired state, and with the introduction of 
-update extensions, Cluster API is expanding the set of tools Cluster API can use to achieve the desired state.
+update extensions, Cluster API is expanding the set of tools that can be used to achieve the desired state.
 
 If external update extensions can not cover the totality of the desired changes, CAPI will fall back to Cluster API’s default, 
 immutable rollouts.
@@ -35,7 +35,17 @@ options like MaxSurge/MaxUnavailable. With this regard:
     is “buffer” for in-place, in-place update can proceed.
     - When in-place is possible, the system should try to in-place update as many machines as possible.
       In practice, this means that maxSurge might be not fully used (it is used only for scale up by one if maxUnavailable=0).
-  - No in-place updates are performed for workers machines when using rollout strategy on delete.
+  - No in-place updates are performed for workers machines when using rollout strategy `OnDelete`.
+
+<aside class="note warning">
+
+<h1>Important!</h1>
+
+Cluster API will call the in-place extensions only if the `InPlaceUpdates` feature flag is enabled.
+
+Also, please note that the current implementation of the [in-place updates proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/20240807-in-place-updates.md) only allows registering one extension for the `CanUpdateMachine`, `CanUpdateMachineSet` and `UpdateMachine` hooks.
+
+</aside>
 
 <!-- TOC -->
 * [Implementing in-place update hooks](#implementing-in-place-update-hooks)
@@ -74,7 +84,7 @@ file and then open it from the [Swagger UI](https://editor.swagger.io/).
 
 This hook is called by KCP when performing the "can update in-place" for a control plane machine.
 
-Example request
+Example request:
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
@@ -117,9 +127,9 @@ desired:
 Note:
 - All the objects will have the latest API version known by Cluster API.
 - Only spec is provided, status fields are not included
-- When more than one extension will be supported, the current state will already include changes that can handle in-place by other runtime extensions.
+- In a future release, when registering more than one extension for the `CanUpdateMachine` will be supported, the current state will already include changes that can be handled in-place by other runtime extensions.
 
-Example Response
+Example Response:
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
@@ -145,7 +155,7 @@ Note:
 This hook is called by the MachineDeployment controller when performing the "can update in-place" for all the Machines controlled by
 a MachineSet.
 
-Example request
+Example request:
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
@@ -188,9 +198,9 @@ desired:
 Note:
 - All the objects will have the latest API version known by Cluster API.
 - Only spec is provided, status fields are not included
-- When more than one extension will be supported, the current state will already include changes that can handle in-place by other runtime extensions.
+- In a future release, when registering more than one extension for the `CanUpdateMachineSet` will be supported, the current state will already include changes that can be handled in-place by other runtime extensions.
 
-Example Response
+Example Response:
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
@@ -215,7 +225,7 @@ Note:
 
 This hook is called by the Machine controller when performing the in-place updates for a Machine.
 
-Example request
+Example request:
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
@@ -252,7 +262,7 @@ Note:
 - Only desired is provided (the external updater extension should know current state of the Machine).
 - Only spec is provided, status fields are not included
 
-Example Response
+Example Response:
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1

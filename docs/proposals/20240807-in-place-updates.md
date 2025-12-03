@@ -165,7 +165,7 @@ The responsibility to determine which Machine/MachineSet should be updated, the 
 
 We propose to extend KCP and MachineDeployment rollout workflows to call External Update Extensions, if defined.
 
-Initially, this feature will be implemented without making API changes in the current core Cluster API objects. It will follow Kubernetes' feature gate mechanism. All functionality related to In-Place Updates will be available only if the `InPlaceUpdates` feature flag is set to true. It is disabled unless explicitly configured.
+Initially, this feature will be implemented without making API changes in the current core Cluster API objects. It will follow Kubernetes' feature gate mechanism. All functionality related to in-place Updates will be available only if the `InPlaceUpdates` feature flag is set to true. It is disabled unless explicitly configured.
 
 This proposal introduces three new Lifecycle Hooks named `CanUpdateMachine`, `CanUpdateMachineSet` and `UpdateMachine` for communication between CAPI and external update implementers. 
 
@@ -269,7 +269,7 @@ With `InPlaceUpdates` feature gate enabled, CAPI controllers will go through the
 
 As a first step, CAPI controllers will compute the set of desired changes (current and desired state).
 
-Then CAPI controllers will then iterate over the registered external updaters, requesting to each updater if it can handle required changes through the `CanUpdateMachineSet` (MachineDeployment) and `CanUpdateMachine` (KCP). 
+Then CAPI controllers will iterate over the registered external updaters, requesting each updater if it can handle required changes through the `CanUpdateMachineSet` (MachineDeployment) and `CanUpdateMachine` (KCP).
 
 The changes supported by an updater can be the complete set of desired changes, a subset of them or an empty set, signaling it cannot handle any of the desired changes.
 
@@ -431,11 +431,11 @@ However, in-place updates might cause Nodes to become unhealthy while the update
 
 ### Examples
 
-This section aims to showcase our vision for the In-Places Updates end state. It shows a high level picture of a few common use cases, specially around how the different components interact through the API.
+This section aims to showcase our vision for the in-place update end state. It shows a high level picture of a few common use cases, specially around how the different components interact through the API.
 
 Note that these examples don't show all the low level details, the examples here are just to help communicate the vision.
 
-Let's imagine a vSphere cluster with a KCP control plane that has two fictional In-Place update extensions already deployed and registered through their respective `ExtensionConfig`.
+Let's imagine a vSphere cluster with a KCP control plane that has two fictional in-place update extensions already deployed and registered through their respective `ExtensionConfig`.
 1. `vsphere-vm-memory-update`: The extension uses vSphere APIs to hot-add memory to VMs if "Memory Hot Add" is enabled or through a power cycle.
 2. `kcp-version-update`: Updates the kubernetes version of KCP machines by using an agent that first updates the kubernetes related packages (`kubeadm`, `kubectl`, etc.) and then runs the `kubeadm upgrade` command. The In-place Update extension communicates with this agent, sending instructions with the kubernetes version a machine needs to be updated to.
 

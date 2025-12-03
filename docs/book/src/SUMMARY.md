@@ -37,6 +37,7 @@
             - [Operating a managed Cluster](./tasks/experimental-features/cluster-class/operate-cluster.md)
         - [Runtime SDK](tasks/experimental-features/runtime-sdk/index.md)
             - [Implementing Runtime Extensions](./tasks/experimental-features/runtime-sdk/implement-extensions.md)
+            - [Implementing In-Place Update Hooks Extensions](./tasks/experimental-features/runtime-sdk/implement-in-place-update-hooks.md)
             - [Implementing Lifecycle Hook Extensions](./tasks/experimental-features/runtime-sdk/implement-lifecycle-hooks.md)
             - [Implementing Topology Mutation Hook Extensions](./tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md)
             - [Implementing Upgrade Plan Runtime Extensions](./tasks/experimental-features/runtime-sdk/implement-upgrade-plan-hooks.md)

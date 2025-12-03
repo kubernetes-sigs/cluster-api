@@ -281,6 +281,12 @@ are propagated in place by CAPI controllers to avoid the more elaborated mechani
 They include metadata, MinReadySeconds, NodeDrainTimeout, NodeVolumeDetachTimeout and NodeDeletionTimeout but are
 not limited to be expanded in the future.
 
+### In-place update
+
+Any change to a Machine spec, that is performed without deleting the machines and creating a new one.
+
+Note: changing [in-place mutable fields](#in-place-mutable-fields) is not considered an in-place upgrade.
+
 ### Instance
 
 see [Server](#server)
@@ -479,6 +485,14 @@ See [Topology Mutation](../tasks/experimental-features/runtime-sdk/implement-top
 
 # U
 ---
+
+### Update Extension
+
+A [runtime extension provider](#runtime-extension-provider) that implements [Update Lifecycle Hooks](#update-lifecycle-hooks).
+
+### Update Lifecycle Hooks
+Is a set of Cluster API [Runtime Hooks](#runtime-hook) called when performing the "can update in-place" decision or
+when performing an [in-place update](#in-place-update).
 
 ### Upgrade plan
 The sequence of intermediate versions ... target version that a Cluster must upgrade to when

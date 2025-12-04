@@ -36,7 +36,8 @@ type serverSidePatchHelper struct {
 	modified       *unstructured.Unstructured
 	hasChanges     bool
 	hasSpecChanges bool
-	changes        []byte
+	patch          string
+	diff           string
 }
 
 // NewServerSidePatchHelper returns a new PatchHelper using server side apply.
@@ -90,13 +91,13 @@ func NewServerSidePatchHelper(ctx context.Context, original, modified client.Obj
 	// Determine if the intent defined in the modified object is going to trigger
 	// an actual change when running server side apply, and if this change might impact the object spec or not.
 	var hasChanges, hasSpecChanges bool
-	var changes []byte
+	var patch, diff string
 	switch {
 	case util.IsNil(original):
 		hasChanges, hasSpecChanges = true, true
 	default:
 		var err error
-		hasChanges, hasSpecChanges, changes, err = dryRunSSAPatch(ctx, &dryRunSSAPatchInput{
+		hasChanges, hasSpecChanges, patch, diff, err = dryRunSSAPatch(ctx, &dryRunSSAPatchInput{
 			client:               c,
 			ssaCache:             ssaCache,
 			originalUnstructured: originalUnstructured,
@@ -113,7 +114,8 @@ func NewServerSidePatchHelper(ctx context.Context, original, modified client.Obj
 		modified:       modifiedUnstructured,
 		hasChanges:     hasChanges,
 		hasSpecChanges: hasSpecChanges,
-		changes:        changes,
+		patch:          patch,
+		diff:           diff,
 	}, nil
 }
 
@@ -122,9 +124,14 @@ func (h *serverSidePatchHelper) HasSpecChanges() bool {
 	return h.hasSpecChanges
 }
 
-// Changes return the changes.
-func (h *serverSidePatchHelper) Changes() []byte {
-	return h.changes
+// PatchData return the patch that will be applied.
+func (h *serverSidePatchHelper) PatchData() string {
+	return h.patch
+}
+
+// Diff return the diff between original and modified.
+func (h *serverSidePatchHelper) Diff() string {
+	return h.diff
 }
 
 // HasChanges return true if the patch has changes.

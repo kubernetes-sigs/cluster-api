@@ -37,8 +37,11 @@ type PatchHelper interface {
 	// HasSpecChanges return true if the modified object is generating spec changes vs the original object.
 	HasSpecChanges() bool
 
-	// Changes returns the changes vs the original object.
-	Changes() []byte
+	// PatchData return the patch that will be applied.
+	PatchData() string
+
+	// Diff return the diff between original and modified.
+	Diff() string
 
 	// Patch patches the given obj in the Kubernetes cluster.
 	Patch(ctx context.Context) (modifiedResourceVersion string, err error)

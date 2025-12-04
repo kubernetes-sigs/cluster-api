@@ -133,7 +133,7 @@ func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployme
 		// the new revision number is also surfaced in p.revision, and thus we are using this information
 		// to determine when to add this note.
 		if oldRevision != p.revision {
-			p.addNote(p.newMS, "this is now the current MachineSet")
+			p.addNotef(p.newMS, "this is now the current MachineSet")
 		}
 		return nil
 	}
@@ -340,7 +340,7 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 	return desiredMS, nil
 }
 
-func (p *rolloutPlanner) addNote(ms *clusterv1.MachineSet, format string, a ...any) {
+func (p *rolloutPlanner) addNotef(ms *clusterv1.MachineSet, format string, a ...any) {
 	msg := fmt.Sprintf(format, a...)
 	for _, note := range p.notes[ms.Name] {
 		if note == msg {

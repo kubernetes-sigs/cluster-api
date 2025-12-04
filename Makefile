@@ -62,6 +62,7 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 BIN_DIR := bin
 TEST_DIR := test
 TOOLS_DIR := hack/tools
+TOOLS_DIR_KAL := $(TOOLS_DIR)/kal
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
 DOCS_DIR := docs
 E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
@@ -163,9 +164,14 @@ GOLANGCI_LINT_VER := $(shell cat .github/workflows/pr-golangci-lint.yaml | grep 
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER))
 GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 
+# Github actions had a breaking change requiring golangci-lint >= v2.7.0 when building the KAL linter.
+TOOLS_BIN_DIR_KAL := $(abspath $(TOOLS_DIR_KAL)/bin)
+GOLANGCI_LINT_270_VER := v2.7.0
+GOLANGCI_LINT_270 := $(abspath $(TOOLS_BIN_DIR_KAL)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_270_VER))
+
 GOLANGCI_LINT_KAL_BIN := golangci-lint-kube-api-linter
-GOLANGCI_LINT_KAL_VER := $(shell cat ./hack/tools/.custom-gcl.yaml | grep version: | sed 's/version: //')
-GOLANGCI_LINT_KAL := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_KAL_BIN))
+GOLANGCI_LINT_KAL_VER := $(shell cat $(TOOLS_DIR_KAL)/.custom-gcl.yaml | grep version: | sed 's/version: //')
+GOLANGCI_LINT_KAL := $(abspath $(TOOLS_BIN_DIR_KAL)/$(GOLANGCI_LINT_KAL_BIN))
 
 GOVULNCHECK_BIN := govulncheck
 GOVULNCHECK_VER := v1.1.4
@@ -1498,8 +1504,11 @@ $(GINKGO): # Build ginkgo from tools folder.
 $(GOLANGCI_LINT): # Build golangci-lint from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_PKG) $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER)
 
-$(GOLANGCI_LINT_KAL): $(GOLANGCI_LINT) # Build golangci-lint-kal from custom configuration.
-	cd $(TOOLS_DIR); $(GOLANGCI_LINT) custom
+$(GOLANGCI_LINT_KAL): $(GOLANGCI_LINT_270) # Build golangci-lint-kal from custom configuration.
+	cd $(TOOLS_DIR_KAL); $(GOLANGCI_LINT_270) custom
+
+$(GOLANGCI_LINT_270):
+	GOBIN=$(TOOLS_BIN_DIR_KAL) $(GO_INSTALL) $(GOLANGCI_LINT_PKG) $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_270_VER)
 
 $(GOVULNCHECK): # Build govulncheck.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)

@@ -339,7 +339,7 @@ func TestMachineSetReconciler(t *testing.T) {
 					APIVersion: im.GetAPIVersion(),
 					Manager:    machineSetMetadataManagerName,
 					Operation:  metav1.ManagedFieldsOperationApply,
-					FieldsV1: `{					
+					FieldsV1: `{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{},
@@ -412,7 +412,7 @@ func TestMachineSetReconciler(t *testing.T) {
 					APIVersion: im.GetAPIVersion(),
 					Manager:    machineSetMetadataManagerName,
 					Operation:  metav1.ManagedFieldsOperationApply,
-					FieldsV1: `{					
+					FieldsV1: `{
 "f:metadata":{
 	"f:annotations":{
 		"f:annotation-1":{},
@@ -4017,93 +4017,6 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			g.Expect(machineList.Items).To(ConsistOf(tt.wantMachines))
 		})
 	}
-}
-
-func TestSortMachinesToRemediate(t *testing.T) {
-	unhealthyMachinesWithAnnotations := []*clusterv1.Machine{}
-	for i := range 4 {
-		unhealthyMachinesWithAnnotations = append(unhealthyMachinesWithAnnotations, &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              fmt.Sprintf("unhealthy-annotated-machine-%d", i),
-				Namespace:         "default",
-				CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
-				Annotations: map[string]string{
-					clusterv1.RemediateMachineAnnotation: "",
-				},
-			},
-			Status: clusterv1.MachineStatus{
-				Conditions: []metav1.Condition{
-					{
-						Type:    clusterv1.MachineOwnerRemediatedCondition,
-						Status:  metav1.ConditionFalse,
-						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationReason,
-						Message: "Waiting for remediation",
-					},
-					{
-						Type:    clusterv1.MachineHealthCheckSucceededCondition,
-						Status:  metav1.ConditionFalse,
-						Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationReason,
-						Message: "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
-					},
-				},
-			},
-		})
-	}
-
-	unhealthyMachines := []*clusterv1.Machine{}
-	for i := range 4 {
-		unhealthyMachines = append(unhealthyMachines, &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              fmt.Sprintf("unhealthy-machine-%d", i),
-				Namespace:         "default",
-				CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
-			},
-			Status: clusterv1.MachineStatus{
-				Conditions: []metav1.Condition{
-					{
-						Type:    clusterv1.MachineOwnerRemediatedCondition,
-						Status:  metav1.ConditionFalse,
-						Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationReason,
-						Message: "Waiting for remediation",
-					},
-					{
-						Type:    clusterv1.MachineHealthCheckSucceededCondition,
-						Status:  metav1.ConditionFalse,
-						Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationReason,
-						Message: "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
-					},
-				},
-			},
-		})
-	}
-
-	t.Run("remediation machines should be sorted with newest first", func(t *testing.T) {
-		g := NewWithT(t)
-		machines := make([]*clusterv1.Machine, len(unhealthyMachines))
-		copy(machines, unhealthyMachines)
-		sortMachinesToRemediate(machines)
-		sort.SliceStable(unhealthyMachines, func(i, j int) bool {
-			return unhealthyMachines[i].CreationTimestamp.After(unhealthyMachines[j].CreationTimestamp.Time)
-		})
-		g.Expect(unhealthyMachines).To(Equal(machines))
-	})
-
-	t.Run("remediation machines with annotation should be prioritised over other machines", func(t *testing.T) {
-		g := NewWithT(t)
-
-		machines := make([]*clusterv1.Machine, len(unhealthyMachines))
-		copy(machines, unhealthyMachines)
-		machines = append(machines, unhealthyMachinesWithAnnotations...)
-		sortMachinesToRemediate(machines)
-
-		sort.SliceStable(unhealthyMachines, func(i, j int) bool {
-			return unhealthyMachines[i].CreationTimestamp.After(unhealthyMachines[j].CreationTimestamp.Time)
-		})
-		sort.SliceStable(unhealthyMachinesWithAnnotations, func(i, j int) bool {
-			return unhealthyMachinesWithAnnotations[i].CreationTimestamp.After(unhealthyMachinesWithAnnotations[j].CreationTimestamp.Time)
-		})
-		g.Expect(machines).To(Equal(append(unhealthyMachinesWithAnnotations, unhealthyMachines...)))
-	})
 }
 
 func cleanupTime(fields []metav1.ManagedFieldsEntry) []metav1.ManagedFieldsEntry {

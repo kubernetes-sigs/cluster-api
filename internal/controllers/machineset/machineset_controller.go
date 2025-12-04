@@ -21,7 +21,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"sort"
 	"strings"
 	"time"
 
@@ -49,6 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/controllers/internal/remediation"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
@@ -57,7 +57,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -1583,7 +1582,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	// Sort the machines from newest to oldest.
 	// We are trying to remediate machines failing to come up first because
 	// there is a chance that they are not hosting any workloads (minimize disruption).
-	sortMachinesToRemediate(machinesToRemediate)
+	remediation.SortMachinesToRemediate(machinesToRemediate)
 
 	// Check if we should limit the in flight operations.
 	if len(machinesToRemediate) > maxInFlight {
@@ -1903,24 +1902,4 @@ func (r *Reconciler) computeDesiredInfraMachine(ctx context.Context, ms *cluster
 		infraMachine.SetUID(existingInfraMachine.GetUID())
 	}
 	return infraMachine, nil
-}
-
-// Returns the machines to be remediated in the following order
-//   - Machines with RemediateMachineAnnotation annotation if any,
-//   - Machines failing to come up first because
-//     there is a chance that they are not hosting any workloads (minimize disruption).
-func sortMachinesToRemediate(machines []*clusterv1.Machine) {
-	sort.SliceStable(machines, func(i, j int) bool {
-		if annotations.HasRemediateMachine(machines[i]) && !annotations.HasRemediateMachine(machines[j]) {
-			return true
-		}
-		if !annotations.HasRemediateMachine(machines[i]) && annotations.HasRemediateMachine(machines[j]) {
-			return false
-		}
-		// Use newest (and Name) as a tie-breaker criteria.
-		if machines[i].CreationTimestamp.Equal(&machines[j].CreationTimestamp) {
-			return machines[i].Name < machines[j].Name
-		}
-		return machines[i].CreationTimestamp.After(machines[j].CreationTimestamp.Time)
-	})
 }

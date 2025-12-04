@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"sort"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/controllers/internal/remediation"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -311,11 +312,10 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	res := ctrl.Result{}
 
 	reconcileMachinesRes, err := r.reconcileMachines(ctx, s, infraConfig)
-	res = util.LowestNonZeroResult(res, reconcileMachinesRes)
-
 	if err != nil || getNodeRefsErr != nil {
 		return ctrl.Result{}, kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to reconcile Machines for MachinePool %s", klog.KObj(mp)), errors.Wrapf(getNodeRefsErr, "failed to get nodeRefs for MachinePool %s", klog.KObj(mp))})
 	}
+	res = util.LowestNonZeroResult(res, reconcileMachinesRes)
 
 	if !ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
 		log.Info("Infrastructure provider is not yet ready", infraConfig.GetKind(), klog.KObj(infraConfig))
@@ -620,6 +620,36 @@ func (r *Reconciler) getNodeRefMap(ctx context.Context, c client.Client) (map[st
 	return nodeRefsMap, nil
 }
 
+func patchMachineConditions(ctx context.Context, c client.Client, machines []*clusterv1.Machine, condition metav1.Condition, v1beta1condition *clusterv1.Condition) error {
+	var errs []error
+	for _, m := range machines {
+		patchHelper, err := patch.NewHelper(m, c)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		if v1beta1condition != nil {
+			v1beta1conditions.Set(m, v1beta1condition)
+		}
+		conditions.Set(m, condition)
+
+		if err := patchHelper.Patch(ctx, m,
+			patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+				clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+			}}, patch.WithOwnedConditions{Conditions: []string{
+				clusterv1.MachineOwnerRemediatedCondition,
+			}}); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to patch Machines")
+	}
+
+	return nil
+}
+
 func (r *Reconciler) reconcileUnhealthyMachinePoolMachines(ctx context.Context, s *scope, machines []clusterv1.Machine) (ctrl.Result, error) {
 	if len(machines) == 0 {
 		return ctrl.Result{}, nil
@@ -678,6 +708,8 @@ func (r *Reconciler) reconcileUnhealthyMachinePoolMachines(ctx context.Context, 
 	log = log.WithValues("inFlight", inFlight)
 
 	if len(machinesToRemediate) == 0 {
+		log.V(5).Info("No MachinePool machines to remediate, requeueing")
+
 		// There's a MachineHealthCheck monitoring the machines, but currently
 		// no action to be taken. A machine could require remediation at any
 		// time, so use a short interval until next reconciliation.
@@ -687,17 +719,22 @@ func (r *Reconciler) reconcileUnhealthyMachinePoolMachines(ctx context.Context, 
 	if inFlight >= maxInFlight {
 		log.V(3).Info("Remediation strategy is set, and maximum in flight has been reached", "machinesToBeRemediated", len(machinesToRemediate))
 
-		// Check soon again whether the already-remediating (= deleting) machines are gone
-		// so that more machines can be remediated
-		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+		if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
+			Type:    clusterv1.MachineOwnerRemediatedCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachinePoolMachineRemediationDeferredReason,
+			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", mp.Spec.Remediation.MaxInFlight),
+		}, nil); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// Once the infrastructure provider updates `providerIDList`, MachinePool reconciliation
+		// will be triggered again, leading to the next check whether already-remediating (= deleting)
+		// machines are gone so that more machines could be remediated
+		return ctrl.Result{}, nil
 	}
 
-	// Sort the machines from newest to oldest.
-	// We are trying to remediate machines failing to come up first because
-	// there is a chance that they are not hosting any workloads (minimize disruption).
-	sort.SliceStable(machinesToRemediate, func(i, j int) bool {
-		return machinesToRemediate[i].CreationTimestamp.After(machinesToRemediate[j].CreationTimestamp.Time)
-	})
+	remediation.SortMachinesToRemediate(machinesToRemediate)
 
 	haveMoreMachinesToRemediate := false
 	if len(machinesToRemediate) > (maxInFlight - inFlight) {
@@ -705,6 +742,44 @@ func (r *Reconciler) reconcileUnhealthyMachinePoolMachines(ctx context.Context, 
 		log.V(5).Info("Remediation strategy is set, limiting in flight operations", "machinesToBeRemediated", len(machinesToRemediate))
 		machinesToRemediate = machinesToRemediate[:(maxInFlight - inFlight)]
 	}
+
+	// Run preflight checks.
+	preflightCheckErrMessages, err := r.runPreflightChecks(ctx, s.cluster, mp, "MachinePool machine remediation")
+	if err != nil || len(preflightCheckErrMessages) > 0 {
+		if err != nil {
+			// If err is not nil use that as the preflightCheckErrMessage
+			preflightCheckErrMessages = append(preflightCheckErrMessages, err.Error())
+		}
+
+		listMessages := make([]string, len(preflightCheckErrMessages))
+		for i, msg := range preflightCheckErrMessages {
+			listMessages[i] = fmt.Sprintf("* %s", msg)
+		}
+
+		// PreflightChecks did not pass. Update the MachineOwnerRemediated condition on the unhealthy Machines with
+		// WaitingForRemediationReason reason.
+		if patchErr := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
+			Type:    clusterv1.MachineOwnerRemediatedCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachinePoolMachineRemediationDeferredReason,
+			Message: strings.Join(listMessages, "\n"),
+		}, &clusterv1.Condition{
+			Type:     clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+			Status:   corev1.ConditionFalse,
+			Reason:   clusterv1.WaitingForRemediationV1Beta1Reason,
+			Severity: clusterv1.ConditionSeverityWarning,
+			Message:  strings.Join(preflightCheckErrMessages, "; "),
+		}); patchErr != nil {
+			return ctrl.Result{}, kerrors.NewAggregate([]error{err, patchErr})
+		}
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
+	}
+
+	// PreflightChecks passed, so it is safe to remediate unhealthy machines by deleting them.
 
 	// Remediate unhealthy machines by deleting them
 	var errs []error

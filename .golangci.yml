@@ -407,6 +407,22 @@ linters:
           - staticcheck
         path: (.+)\.go$
         text: 'QF1008: could remove embedded field'
+      - linters:
+          - revive
+        path: errors/.*\.go$
+        text: 'var-naming: avoid package names that conflict with Go standard library package names'
+      - linters:
+          - revive
+        path: internal/util/hash/.*\.go$
+        text: 'var-naming: avoid package names that conflict with Go standard library package names'
+      - linters:
+          - revive
+        path: internal/controllers/topology/cluster/patches/api/.*\.go$
+        text: 'var-naming: avoid meaningless package names'
+      - linters:
+          - revive
+        path: test/infrastructure/inmemory/pkg/server/api/.*\.go$
+        text: 'var-naming: avoid meaningless package names'
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

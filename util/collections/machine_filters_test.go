@@ -55,7 +55,7 @@ func TestAnd(t *testing.T) {
 	t.Run("returns true if both given machine filters return true", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.And(trueFilter, trueFilter)(m)).To(BeTrue())
+		g.Expect(collections.And(trueFilter, trueFilter)(m)).To(BeTrue()) //nolint:gocritic
 	})
 	t.Run("returns false if either given machine filter returns false", func(t *testing.T) {
 		g := NewWithT(t)
@@ -73,7 +73,7 @@ func TestOr(t *testing.T) {
 	t.Run("returns false if both given machine filter returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.Or(falseFilter, falseFilter)(m)).To(BeFalse())
+		g.Expect(collections.Or(falseFilter, falseFilter)(m)).To(BeFalse()) //nolint:gocritic
 	})
 }
 

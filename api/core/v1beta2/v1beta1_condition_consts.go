@@ -306,17 +306,20 @@ const (
 
 	// TopologyReconciledControlPlaneUpgradePendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because Control Plane is not yet updated to match the desired topology spec.
+	//
 	// Deprecated: please use ClusterUpgrading instead.
 	TopologyReconciledControlPlaneUpgradePendingV1Beta1Reason = "ControlPlaneUpgradePending"
 
 	// TopologyReconciledMachineDeploymentsCreatePendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachineDeployments is yet to be created.
 	// This generally happens because new MachineDeployment creations are held off while the ControlPlane is not stable.
+	//
 	// Deprecated: please use ClusterUpgrading instead.
 	TopologyReconciledMachineDeploymentsCreatePendingV1Beta1Reason = "MachineDeploymentsCreatePending"
 
 	// TopologyReconciledMachineDeploymentsUpgradePendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachineDeployments is not yet updated to match the desired topology spec.
+	//
 	// Deprecated: please use ClusterUpgrading instead.
 	TopologyReconciledMachineDeploymentsUpgradePendingV1Beta1Reason = "MachineDeploymentsUpgradePending"
 
@@ -326,12 +329,14 @@ const (
 
 	// TopologyReconciledMachinePoolsUpgradePendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachinePools is not yet updated to match the desired topology spec.
+	//
 	// Deprecated: please use ClusterUpgrading instead.
 	TopologyReconciledMachinePoolsUpgradePendingV1Beta1Reason = "MachinePoolsUpgradePending"
 
 	// TopologyReconciledMachinePoolsCreatePendingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachinePools is yet to be created.
 	// This generally happens because new MachinePool creations are held off while the ControlPlane is not stable.
+	//
 	// Deprecated: please use ClusterUpgrading instead.
 	TopologyReconciledMachinePoolsCreatePendingV1Beta1Reason = "MachinePoolsCreatePending"
 
@@ -341,6 +346,7 @@ const (
 
 	// TopologyReconciledHookBlockingV1Beta1Reason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the lifecycle hooks is blocking.
+	//
 	// Deprecated: please use ClusterUpgrading instead.
 	TopologyReconciledHookBlockingV1Beta1Reason = "LifecycleHookBlocking"
 

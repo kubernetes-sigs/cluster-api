@@ -130,7 +130,7 @@ func (v buildIdentifiers) compare(o buildIdentifiers) int {
 	}
 
 	// if everything is equal till now the longer is greater
-	if i == len(v) && i == len(o) { //nolint: gocritic
+	if i == len(v) && i == len(o) {
 		return 0
 	} else if i == len(v) && i < len(o) {
 		return -1

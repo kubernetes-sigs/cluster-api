@@ -24,7 +24,6 @@ see-also:
   * [Summary](#summary)
   * [Motivation](#motivation)
     * [Goals](#goals)
-    * [Future Work](#future-work)
     * [Non-Goals](#non-goals)
   * [Proposal](#proposal)
     * [User Stories](#user-stories)
@@ -82,10 +81,6 @@ When using clusters with managed topologies:
 - Allow Cluster API users to perform chained upgrades.
 - Automatically perform chained upgrades in an efficient way by skipping workers upgrades whenever possible.
 - Allow Cluster API users to influence the upgrade plan e.g. based on availability of machines images for the intermediate versions.
-
-### Future Work
-
-- Consider if and how to allow users to change the desired version while a chained upgrade is in progress.
 
 ### Non-Goals
 
@@ -361,7 +356,14 @@ That means that by doing any rollout, e.g. due to an automatic machine remediati
 fact that the system can successfully perform an upgrade, or you get the chance to detect and fix issues in the system
 before a full upgrade is performed.
 
-Conversely, risk increases for users not performing any form of rollouts for long periods.
+Conversely, risk increases for users not performing any form of rollouts for long periods, or for users artificially
+extending the upgrade duration for a long time by using (or abusing) lifecycle hooks.
+
+The second point might become critical, depending on the complexity of operations that the users performs while the 
+upgrade is blocked.
+
+With this regard, the recommendation is to keep the upgrade workflow as simple and as fast as possible, 
+e.g. combining application upgrades and Kubernetes version upgrade in a single workflow should be avoided.
 
 - Upgrading a Cluster by multiple Kubernetes minor versions might compromise workloads.
 
@@ -383,7 +385,7 @@ how a managed topology should behave.
 ## Upgrade Strategy
 
 No particular upgrade considerations are required, this feature will be available to users upgrading to
-Cluster API v1.11.
+Cluster API v1.12.
 
 However, it is required to enhance ClusterClasses with the information required to compute upgrade plans,
 otherwise the system will keep supporting only upgrade to the next minor for the corresponding clusters (opt-in). 
@@ -422,6 +424,7 @@ with managed topologies.
 
 ## Implementation History
 
-- [ ] 05/05/2023: Proposed idea in https://github.com/kubernetes-sigs/cluster-api/issues/8616
-- [ ] 05/07/2025: Presented proposal at a community meeting
-- [ ] 05/13/2025: Open proposal PR
+- [x] 05/05/2023: Proposed idea in https://github.com/kubernetes-sigs/cluster-api/issues/8616
+- [x] 05/07/2025: Presented proposal at a community meeting
+- [x] 05/13/2025: Open proposal PR
+- [x] 12/01/2025: Update the proposal to reflect changes during the implementation 

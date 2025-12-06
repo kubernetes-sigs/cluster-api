@@ -18,6 +18,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# Include debugging tools for build test
+export DBG=1
+
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 
 # Core Cluster API and Docker provider

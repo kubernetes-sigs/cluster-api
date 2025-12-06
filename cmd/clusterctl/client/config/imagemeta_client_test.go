@@ -55,7 +55,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 		{
 			name: "image config for cert-manager/cert-manager-cainjector: image for the cert-manager/cert-manager-cainjector should be changed",
 			fields: fields{
-				reader: test.NewFakeReader().WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "foo-tag"),
+				reader: test.NewFakeReader().WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "", "foo-tag"),
 			},
 			args: args{
 				component: CertManagerImageComponent,
@@ -67,7 +67,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 		{
 			name: "image config for cert-manager/cert-manager-cainjector: image for the cert-manager/cert-manager-webhook should not be changed",
 			fields: fields{
-				reader: test.NewFakeReader().WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "foo-tag"),
+				reader: test.NewFakeReader().WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "", "foo-tag"),
 			},
 			args: args{
 				component: CertManagerImageComponent,
@@ -79,7 +79,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 		{
 			name: "image config for cert-manager: images for the cert-manager should be changed",
 			fields: fields{
-				reader: test.NewFakeReader().WithImageMeta(CertManagerImageComponent, "foo-repository.io", "foo-tag"),
+				reader: test.NewFakeReader().WithImageMeta(CertManagerImageComponent, "foo-repository.io", "", "foo-tag"),
 			},
 			args: args{
 				component: CertManagerImageComponent,
@@ -92,8 +92,8 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			name: "image config for cert-manager/cert-manager-cainjector and for cert-manager: images for the cert-manager/cert-manager-cainjector should be changed according to the most specific",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "foo-tag").
-					WithImageMeta(CertManagerImageComponent, "bar-repository.io", "bar-tag"),
+					WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "", "foo-tag").
+					WithImageMeta(CertManagerImageComponent, "bar-repository.io", "", "bar-tag"),
 			},
 			args: args{
 				component: CertManagerImageComponent,
@@ -106,8 +106,8 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			name: "image config for cert-manager/cert-manager-cainjector and for cert-manager: images for the cert-manager/cert-manager-cainjector should be changed according to the most specific (mixed case)",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "").
-					WithImageMeta(CertManagerImageComponent, "", "bar-tag"),
+					WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "", "").
+					WithImageMeta(CertManagerImageComponent, "", "", "bar-tag"),
 			},
 			args: args{
 				component: CertManagerImageComponent,
@@ -120,8 +120,8 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			name: "image config for cert-manager/cert-manager-cainjector and for cert-manager: images for the cert-manager/cert-manager-webhook should be changed according to the most generic",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "foo-tag").
-					WithImageMeta(CertManagerImageComponent, "bar-repository.io", "bar-tag"),
+					WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "", "foo-tag").
+					WithImageMeta(CertManagerImageComponent, "bar-repository.io", "", "bar-tag"),
 			},
 			args: args{
 				component: CertManagerImageComponent,
@@ -133,7 +133,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 		{
 			name: "image config for all: images for the cert-manager should be changed",
 			fields: fields{
-				reader: test.NewFakeReader().WithImageMeta(allImageConfig, "foo-repository.io", "foo-tag"),
+				reader: test.NewFakeReader().WithImageMeta(allImageConfig, "foo-repository.io", "", "foo-tag"),
 			},
 			args: args{
 				component: CertManagerImageComponent,
@@ -146,8 +146,8 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			name: "image config for all and for cert-manager: images for the cert-manager should be changed according to the most specific",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithImageMeta(allImageConfig, "foo-repository.io", "foo-tag").
-					WithImageMeta(CertManagerImageComponent, "bar-repository.io", "bar-tag"),
+					WithImageMeta(allImageConfig, "foo-repository.io", "", "foo-tag").
+					WithImageMeta(CertManagerImageComponent, "bar-repository.io", "", "bar-tag"),
 			},
 			args: args{
 				component: CertManagerImageComponent,
@@ -160,8 +160,8 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			name: "image config for all and for cert-manager: images for the cert-manager should be changed according to the most specific (mixed case)",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithImageMeta(allImageConfig, "foo-repository.io", "").
-					WithImageMeta(CertManagerImageComponent, "", "bar-tag"),
+					WithImageMeta(allImageConfig, "foo-repository.io", "", "").
+					WithImageMeta(CertManagerImageComponent, "", "", "bar-tag"),
 			},
 			args: args{
 				component: CertManagerImageComponent,
@@ -174,9 +174,9 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			name: "image config for cert-manager/cert-manager-cainjector, for cert-manager and for all: images for the cert-manager/cert-manager-cainjector should be changed according to the most specific",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "foo-tag").
-					WithImageMeta(CertManagerImageComponent, "bar-repository.io", "bar-tag").
-					WithImageMeta(allImageConfig, "baz-repository.io", "baz-tag"),
+					WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "", "foo-tag").
+					WithImageMeta(CertManagerImageComponent, "bar-repository.io", "", "bar-tag").
+					WithImageMeta(allImageConfig, "baz-repository.io", "", "baz-tag"),
 			},
 			args: args{
 				component: CertManagerImageComponent,
@@ -189,9 +189,9 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			name: "image config for cert-manager/cert-manager-cainjector, for cert-manager and for all: images for the cert-manager/cert-manager-cainjector should be changed according to the most specific (mixed case)",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "").
-					WithImageMeta(CertManagerImageComponent, "", "bar-tag").
-					WithImageMeta(allImageConfig, "baz-repository.io", "baz-tag"),
+					WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "", "").
+					WithImageMeta(CertManagerImageComponent, "", "", "bar-tag").
+					WithImageMeta(allImageConfig, "baz-repository.io", "", "baz-tag"),
 			},
 			args: args{
 				component: CertManagerImageComponent,
@@ -204,9 +204,9 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			name: "image config for cert-manager/cert-manager-cainjector, for cert-manager and for all: images for the cert-manager/cert-manager-webhook should be changed according to the most generic",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "foo-tag").
-					WithImageMeta(CertManagerImageComponent, "bar-repository.io", "").
-					WithImageMeta(allImageConfig, "baz-repository.io", "baz-tag"),
+					WithImageMeta(fmt.Sprintf("%s/cert-manager-cainjector", CertManagerImageComponent), "foo-repository.io", "", "foo-tag").
+					WithImageMeta(CertManagerImageComponent, "bar-repository.io", "", "").
+					WithImageMeta(allImageConfig, "baz-repository.io", "", "baz-tag"),
 			},
 			args: args{
 				component: CertManagerImageComponent,
@@ -230,7 +230,7 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 		{
 			name: "fails if wrong image name",
 			fields: fields{
-				reader: test.NewFakeReader().WithImageMeta(allImageConfig, "foo-Repository.io", ""),
+				reader: test.NewFakeReader().WithImageMeta(allImageConfig, "foo-Repository.io", "", ""),
 			},
 			args: args{
 				component: "any",
@@ -238,6 +238,56 @@ func Test_imageMetaClient_AlterImage(t *testing.T) {
 			},
 			want:    "",
 			wantErr: true,
+		},
+		{
+			name: "image config for cluster-api/cluster-api-controller with name override only: only image name should be changed",
+			fields: fields{
+				reader: test.NewFakeReader().WithImageMeta("cluster-api/cluster-api-controller", "", "custom-cluster-api-controller", ""),
+			},
+			args: args{
+				component: "cluster-api",
+				image:     "registry.k8s.io/cluster-api/cluster-api-controller:v1.8.0",
+			},
+			want:    "registry.k8s.io/cluster-api/custom-cluster-api-controller:v1.8.0",
+			wantErr: false,
+		},
+		{
+			name: "image config for cluster-api/cluster-api-controller with repository and name override: repository and name should be changed, tag preserved",
+			fields: fields{
+				reader: test.NewFakeReader().WithImageMeta("cluster-api/cluster-api-controller", "myorg.io/mirror", "custom-cluster-api-controller", ""),
+			},
+			args: args{
+				component: "cluster-api",
+				image:     "registry.k8s.io/cluster-api/cluster-api-controller:v1.10.6",
+			},
+			want:    "myorg.io/mirror/custom-cluster-api-controller:v1.10.6",
+			wantErr: false,
+		},
+		{
+			name: "image config for cluster-api/cluster-api-controller with specific name override and generic repository from all: both should be applied",
+			fields: fields{
+				reader: test.NewFakeReader().
+					WithImageMeta(allImageConfig, "myorg.io/mirror", "", "").
+					WithImageMeta("cluster-api/cluster-api-controller", "", "custom-cluster-api-controller", ""),
+			},
+			args: args{
+				component: "cluster-api",
+				image:     "registry.k8s.io/cluster-api/cluster-api-controller:v1.10.6",
+			},
+			want:    "myorg.io/mirror/custom-cluster-api-controller:v1.10.6",
+			wantErr: false,
+		},
+		{
+			name: "image config for cluster-api/cluster-api-controller with repository, name and tag override: all fields should be changed",
+			fields: fields{
+				reader: test.NewFakeReader().WithImageMeta("cluster-api/cluster-api-controller", "myorg.io/mirror", "custom-cluster-api-controller", "v1.5.0"),
+			},
+			args: args{
+				component: "cluster-api",
+				image:     "registry.k8s.io/cluster-api/cluster-api-controller:v1.10.6",
+			},
+			want:    "myorg.io/mirror/custom-cluster-api-controller:v1.5.0",
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

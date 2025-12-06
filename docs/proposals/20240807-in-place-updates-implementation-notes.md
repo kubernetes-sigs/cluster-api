@@ -7,8 +7,8 @@ into the proposal or into the user-facing documentation for this feature.
 
 ## Notes about in-place update implementation for machine deployments
 
-- In place is always considered as potentially disruptive
-  - in place must respect maxUnavailable
+- In-place update is always considered as potentially disruptive
+  - in-place update must respect maxUnavailable
     - if maxUnavailable is zero, a new machine must be created first, then as soon as there is “buffer” for in-place, in-place update can proceed
   - when in-place is possible, the system should try to in-place update as many machines as possible.
     - maxSurge is not fully used (it is used only for scale up by one if maxUnavailable =0)

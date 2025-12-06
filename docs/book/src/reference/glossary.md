@@ -1,6 +1,6 @@
 # Table of Contents
 
-[A](#a) | [B](#b) | [C](#c) | [D](#d) | [E](#e) | [H](#h) | [I](#i) | [K](#k) | [L](#l)| [M](#m) | [N](#n) | [O](#o) | [P](#p) | [R](#r) | [S](#s) | [T](#t) | [W](#w)
+[A](#a) | [B](#b) | [C](#c) | [D](#d) | [E](#e) | [H](#h) | [I](#i) | [K](#k) | [L](#l)| [M](#m) | [N](#n) | [O](#o) | [P](#p) | [R](#r) | [S](#s) | [T](#t) | [U](#u) |[W](#w)
 
 # A
 ---
@@ -264,6 +264,12 @@ are propagated in place by CAPI controllers to avoid the more elaborated mechani
 They include metadata, MinReadySeconds, NodeDrainTimeout, NodeVolumeDetachTimeout and NodeDeletionTimeout but are
 not limited to be expanded in the future.
 
+### In-place update
+
+Any change to a Machine spec, that is performed without deleting the machines and creating a new one.
+
+Note: changing [in-place mutable fields](#in-place-mutable-fields) is not considered an in-place upgrade.
+
 ### Instance
 
 see [Server](#server)
@@ -271,6 +277,8 @@ see [Server](#server)
 ### Immutability
 
 A resource that does not mutate.  In Kubernetes we often state the instance of a running pod is immutable or does not change once it is run.  In order to make a change, a new pod is run.  In the context of [Cluster API](#cluster-api) we often refer to a running instance of a [Machine](#machine) as being immutable, from a [Cluster API](#cluster-api) perspective.
+
+Note: Cluster API also have extensibility points that make it possible to perform [in-place updates](#in-place-update) of machines.
 
 ### IPAM provider
 
@@ -459,6 +467,17 @@ See [ClusterClass](#clusterclass)
 A [Runtime Hook](#runtime-hook) that allows external components to generate [patches](#patch) for customizing Kubernetes objects that are part of a [Cluster topology](#topology).
 
 See [Topology Mutation](../tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md)
+
+# U
+---
+
+### Update Extension
+
+A [runtime extension provider](#runtime-extension-provider) that implements [Update Lifecycle Hooks](#update-lifecycle-hooks).
+
+### Update Lifecycle Hooks
+Is a set of Cluster API [Runtime Hooks](#runtime-hook) called when performing the "can update in-place" decision or
+when performing an [in-place update](#in-place-update).
 
 # W
 ---

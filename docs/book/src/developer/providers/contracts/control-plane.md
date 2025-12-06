@@ -68,6 +68,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [ControlPlane: version]                                              | No        | Mandatory if control plane allows direct management of the Kubernetes version in use; Mandatory for cluster class support. |
 | [ControlPlane: machines]                                             | No        | Mandatory if control plane instances are represented with a set of Cluster API Machines.                                   |
 | [ControlPlane: initialization completed]                             | Yes       |                                                                                                                            |
+| [ControlPlane: in-place updates]                                     | No        | Only supported for control plane providers with control plane machines                                                     |
 | [ControlPlane: conditions]                                           | No        |                                                                                                                            |
 | [ControlPlane: terminal failures]                                    | No        |                                                                                                                            |
 | [ControlPlaneTemplate, ControlPlaneTemplateList resource definition] | No        | Mandatory for ClusterClasses support                                                                                       |
@@ -616,8 +617,34 @@ the ControlPlane resource will be ignored.
 
 </aside>
 
-### ControlPlane: conditions
+### ControlPlane: in-place updates
 
+In case a control plane provider would like to provide support for in-place updates, please check the [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/20240807-in-place-updates.md).
+
+Supporting in-place updates requires:
+- implementing the call for the registered `CanUpdateMachine` hook when performing the "can update in-place" decision.
+- when it is decided to perform the in-place decision:
+  - the machine spec must be updated to the desired state, as well as the spec for the corresponding infrastructure machine and bootstrap config
+  - while updating those objects also the `in-place-updates.internal.cluster.x-k8s.io/update-in-progress` annotation must be set
+  - once all objects are updated the `UpdateMachine` hook must be set as pending on the machine object
+
+After above steps are completed, the machine controller will take over and complete the in-place upgrade.
+
+<aside class="note warning">
+
+<h1>High complexity</h1>
+
+Implementing the in-place update transition in a race condition-free, re-entrant way is more complex than it might seem.
+
+Please read the proposal's [implementation notes](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates-implementation-notes.md)
+carefully.
+
+Also, it is highly recommended to use the KCP implementation as a reference.
+
+</aside>
+
+
+### ControlPlane: conditions
 
 According to [Kubernetes API Conventions], Conditions provide a standard mechanism for higher-level
 status reporting from a controller.
@@ -873,7 +900,8 @@ is implemented in ControlPlane controllers:
 [ControlPlane: machines]: #controlplane-machines
 [In place propagation of changes affecting Kubernetes objects only]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20221003-In-place-propagation-of-Kubernetes-objects-only-changes.md
 [ControlPlane: version]: #controlplane-version 
-[ControlPlane: initialization completed]: #controlplane-initialization-completed 
+[ControlPlane: initialization completed]: #controlplane-initialization-completed
+[ControlPlane: in-place updates]: #controlplane-in-place-updates
 [ControlPlane: conditions]: #controlplane-conditions 
 [Kubernetes API Conventions]: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
 [Improving status in CAPI resources]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md

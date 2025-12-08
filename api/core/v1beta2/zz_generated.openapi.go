@@ -6213,7 +6213,7 @@ func schema_cluster_api_api_core_v1beta2_MachineStatus(ref common.ReferenceCallb
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions represents the observations of a Machine's current state. Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady, NodeHealthy, Deleting, Paused. If a MachineHealthCheck is targeting this machine, also HealthCheckSucceeded, OwnerRemediated conditions are added. Additionally control plane Machines controlled by KubeadmControlPlane will have following additional conditions: APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy.",
+							Description: "conditions represents the observations of a Machine's current state. Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady, NodeHealthy, Updating, Deleting, Paused. If a MachineHealthCheck is targeting this machine, also HealthCheckSucceeded, OwnerRemediated conditions are added. Additionally control plane Machines controlled by KubeadmControlPlane will have following additional conditions: APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

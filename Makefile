@@ -178,6 +178,11 @@ GOVULNCHECK_VER := v1.1.4
 GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN)-$(GOVULNCHECK_VER))
 GOVULNCHECK_PKG := golang.org/x/vuln/cmd/govulncheck
 
+CRANE_BIN := crane
+CRANE_VER := v0.20.7
+CRANE := $(abspath $(TOOLS_BIN_DIR)/$(CRANE_BIN)-$(CRANE_VER))
+CRANE_PKG := github.com/google/go-containerregistry/cmd/crane
+
 IMPORT_BOSS_BIN := import-boss
 IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
@@ -1449,6 +1454,9 @@ $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
 .PHONY: $(GOVULNCHECK_BIN)
 $(GOVULNCHECK_BIN): $(GOVULNCHECK) ## Build a local copy of govulncheck.
 
+.PHONY: $(CRANE_BIN)
+$(CRANE_BIN): $(CRANE) ## Build a local copy of crane.
+
 .PHONY: $(IMPORT_BOSS_BIN)
 $(IMPORT_BOSS_BIN): $(IMPORT_BOSS)
 
@@ -1512,6 +1520,9 @@ $(GOLANGCI_LINT_270):
 
 $(GOVULNCHECK): # Build govulncheck.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)
+
+$(CRANE): # Build crane.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CRANE_PKG) $(CRANE_BIN) $(CRANE_VER)
 
 $(IMPORT_BOSS): # Build import-boss
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(IMPORT_BOSS_PKG) $(IMPORT_BOSS_BIN) $(IMPORT_BOSS_VER)

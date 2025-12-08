@@ -270,14 +270,29 @@ kind:prepullAdditionalImages () {
 
 # kind:prepullImage pre-pull a docker image if no already present locally.
 # The result will be available in the retVal value which is accessible from the caller.
+# This uses crane to pull images instead of docker pull because loading images otherwise fails beginning with docker 29.
+# - related kind issue: https://github.com/kubernetes-sigs/kind/issues/3795#issuecomment-3276124207
+# - related containerd issue: https://github.com/containerd/containerd/issues/11344
 kind::prepullImage () {
+  make crane
+
   local image=$1
   image="${image//+/_}"
 
   retVal=0
   if [[ "$(docker images -q "$image" 2> /dev/null)" == "" ]]; then
+    TMPFILE="$(mktemp)"
+  
     echo "+ Pulling $image"
-    docker pull "$image" || retVal=$?
+
+    crane pull "$image" "${TMPFILE}" || retVal=$?
+    if [[ $retVal -gt 0 ]]; then
+      return
+    fi
+
+    docker load -i "${TMPFILE}" || retVal=$?
+
+    rm "${TMPFILE}"
   else
     echo "+ image $image already present in the system, skipping pre-pull"
   fi

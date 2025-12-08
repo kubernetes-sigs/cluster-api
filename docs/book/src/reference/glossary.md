@@ -1,6 +1,6 @@
 # Table of Contents
 
-[A](#a) | [B](#b) | [C](#c) | [D](#d) | [E](#e) | [H](#h) | [I](#i) | [K](#k) | [L](#l)| [M](#m) | [N](#n) | [O](#o) | [P](#p) | [R](#r) | [S](#s) | [T](#t) | [W](#w)
+[A](#a) | [B](#b) | [C](#c) | [D](#d) | [E](#e) | [H](#h) | [I](#i) | [K](#k) | [L](#l)| [M](#m) | [N](#n) | [O](#o) | [P](#p) | [R](#r) | [S](#s) | [T](#t) | [U](#u) |[W](#w)
 
 # A
 ---
@@ -132,6 +132,15 @@ Cluster API IPAM Provider Metal3
 ### CAREX
 Cluster API Runtime Extensions Provider Nutanix
 
+### Chained upgrade
+An upgrade sequence that goes from one Kubernetes version to another by passing through a set of intermediate versions.
+E.g. upgrading from v1.31.0 (current state) to v1.34.0 (target version) requires
+a chained upgrade with the following steps: v1.32.0 (first intermediate version) -> v1.33.0 (second intermediate version) -> v1.34.0 (target version).
+
+The sequence of versions in a chained upgrade is also called [upgrade plan](#upgrade-plan).
+
+See also [efficient upgrade](#efficient-upgrade).
+
 ### Cloud provider
 
 Or __Cloud service provider__
@@ -218,6 +227,14 @@ A feature implementation offered as part of the Cluster API project and maintain
 
 # E
 ---
+
+### Efficient upgrade
+
+A [chained upgrade](#chained-upgrade) where worker nodes skip some of the intermediate versions,
+when allowed by the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/).
+
+When the chained upgrade is also an efficient upgrade, the [upgrade plan](#upgrade-plan) for worker machines is a subset 
+of the [upgrade plan](#upgrade-plan) for control plane machines.
 
 ### External patch
 
@@ -459,6 +476,16 @@ See [ClusterClass](#clusterclass)
 A [Runtime Hook](#runtime-hook) that allows external components to generate [patches](#patch) for customizing Kubernetes objects that are part of a [Cluster topology](#topology).
 
 See [Topology Mutation](../tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md)
+
+# U
+---
+
+### Upgrade plan
+The sequence of intermediate versions ... target version that a Cluster must upgrade to when
+performing a [chained upgrade](#chained-upgrade).
+
+Notably, the upgrade plan for control plane machines might be a superset of the upgrade plan for
+workers machines.
 
 # W
 ---

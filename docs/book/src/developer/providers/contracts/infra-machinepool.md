@@ -143,6 +143,15 @@ labels:
 
 An example of this is in the [AWS infrastructure provider](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/config/crd/kustomization.yaml).
 
+<aside  class="note warning">
+
+<h1>Important</h1>
+
+If the provider implements the [clusterctl provider contract], the contract version defined in the
+label above must be consistent with the contract version defined in the `metadata.yaml` file.
+
+</aside>
+
 ### InfraMachinePool, InfraMachinePoolList resource definition
 
 You MUST define a InfraMachinePool resource if you provider supports MachinePools.

@@ -650,12 +650,11 @@ generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurat
 ##@ lint and verify:
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Lint the codebase
+lint: $(GOLANGCI_LINT) ## Lint the codebase. note lint-api must be run as a separated step
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TEST_DIR); $(GOLANGCI_LINT) run --path-prefix $(TEST_DIR) --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --path-prefix $(TOOLS_DIR) --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	./scripts/lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
-	$(GOLANGCI_LINT_KAL) run -v --config $(ROOT_DIR)/.golangci-kal.yml $(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: lint-dockerfiles
 lint-dockerfiles:

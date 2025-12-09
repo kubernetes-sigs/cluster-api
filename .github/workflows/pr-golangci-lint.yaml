@@ -33,5 +33,3 @@ jobs:
           version: v1.64.3
           args: --out-format=colored-line-number
           working-directory: ${{matrix.working-directory}}
-      - name: Lint API
-        run: GOLANGCI_LINT_EXTRA_ARGS=--out-format=colored-line-number make lint-api

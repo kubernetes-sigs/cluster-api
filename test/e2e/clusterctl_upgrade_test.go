@@ -21,7 +21,6 @@ package e2e
 
 import (
 	"fmt"
-	"runtime"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -40,6 +39,9 @@ var (
 	providerKubeadmPrefix = "kubeadm:v%s"
 	providerDockerPrefix  = "docker:v%s"
 )
+
+/*
+After test-infra upgrade to docker engine 29.1.2, following tests are failing because the docker client in CAPI 0.3/CAPI0.4 is too old.
 
 // Note: This test should not be changed during "prepare main branch".
 var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", FlakeAttempts(2), func() {
@@ -199,7 +201,8 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.6=>current)", Flake
 			UseKindForManagementCluster: true,
 		}
 	})
-})
+}).
+*/
 
 // Note: This test should be changed during "prepare main branch", it should test n-3 => current.
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.8=>current) [ClusterClass]", Label("ClusterClass"), func() {

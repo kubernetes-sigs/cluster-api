@@ -149,6 +149,7 @@ func (c *KubeadmConfigSpec) Validate(isKCP bool, pathPrefix *field.Path) field.E
 	allErrs = append(allErrs, c.validateFiles(pathPrefix)...)
 	allErrs = append(allErrs, c.validateUsers(pathPrefix)...)
 	allErrs = append(allErrs, c.validateIgnition(pathPrefix)...)
+	allErrs = append(allErrs, c.validateDiskSetup(pathPrefix)...)
 
 	// Validate JoinConfiguration.
 	if c.JoinConfiguration.IsDefined() {
@@ -401,6 +402,32 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 					cannotUseWithIgnition,
 				),
 			)
+		}
+	}
+
+	return allErrs
+}
+
+func (c *KubeadmConfigSpec) validateDiskSetup(pathPrefix *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	for i, partition := range c.DiskSetup.Partitions {
+		if len(partition.DiskLayout) > 0 {
+			var totalPercentage int32
+			for _, layout := range partition.DiskLayout {
+				totalPercentage += layout.Percentage
+			}
+
+			if totalPercentage > 100 {
+				allErrs = append(
+					allErrs,
+					field.Invalid(
+						pathPrefix.Child("diskSetup", "partitions").Index(i).Child("diskLayout"),
+						totalPercentage,
+						"the sum of all partition percentages must not be greater than 100",
+					),
+				)
+			}
 		}
 	}
 
@@ -847,7 +874,47 @@ type Partition struct {
 	// +optional
 	// +kubebuilder:validation:Enum=mbr;gpt
 	TableType string `json:"tableType,omitempty"`
+
+	// diskLayout specifies the percentage of disk space and partition types.
+	// If specified, this will override the Layout field.
+	// +optional
+	// +listType=atomic
+	DiskLayout []PartitionSpec `json:"diskLayout,omitempty"`
 }
+
+// PartitionSpec defines the size and optional type for a partition
+type PartitionSpec struct {
+	// percentage of disk that partition will take (1-100)
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=100
+	// +required
+	Percentage int32 `json:"percentage"`
+
+	// partitionType is the partition type (optional).
+	// +optional
+	PartitionType PartitionType `json:"partitionType,omitempty"`
+}
+
+// PartitionType defines the partition type.
+// +kubebuilder:validation:Enum="83";"82";"fd";"8e";"0c";"07";"85"
+type PartitionType string
+
+const (
+	// PartitionTypeLinux is the partition type for Linux (83).
+	PartitionTypeLinux PartitionType = "83"
+	// PartitionTypeSwap is the partition type for Linux Swap (82).
+	PartitionTypeSwap PartitionType = "82"
+	// PartitionTypeLinuxRAID is the partition type for Linux RAID (fd).
+	PartitionTypeLinuxRAID PartitionType = "fd"
+	// PartitionTypeLVM is the partition type for LVM (8e).
+	PartitionTypeLVM PartitionType = "8e"
+	// PartitionTypeWin95FAT32LBA is the partition type for Win95 FAT32 LBA (0c).
+	PartitionTypeWin95FAT32LBA PartitionType = "0c"
+	// PartitionTypeNTFS is the partition type for NTFS (07).
+	PartitionTypeNTFS PartitionType = "07"
+	// PartitionTypeLinuxExtended is the partition type for Linux Extended (85).
+	PartitionTypeLinuxExtended PartitionType = "85"
+)
 
 // Filesystem defines the file systems to be created.
 type Filesystem struct {

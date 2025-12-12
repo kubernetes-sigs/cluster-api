@@ -205,6 +205,20 @@ releaseSeries:
   contract: v1alpha2
 ```
 
+<aside  class="note warning">
+
+<h1>Important</h1>
+
+The contract version for a specific release series must match the contract version that is declared in the CRD for different provider's objects.
+
+More specifically, you can consider the contract version in `metadata.yaml` as a “preview” of the contract version supported by the provider, 
+but this value is used only during `clusterctl init` or `clusterctl upgrade`, not at runtime.
+
+At runtime, the system will use the contract version that is defined in the provider's CRD that are installed in the cluster.
+See contract rules for different providers for more details.
+
+</aside>
+
 #### Validation Rules
 
 Starting from clusterctl v1.11, the metadata YAML file is subject to strict validation to ensure consistency and prevent configuration errors. The following validation rules are enforced:

@@ -146,6 +146,15 @@ labels:
 
 An example of this is in the [Kubeadm Bootstrap provider](https://github.com/kubernetes-sigs/cluster-api/blob/release-1.1/controlplane/kubeadm/config/crd/kustomization.yaml).
 
+<aside  class="note warning">
+
+<h1>Important</h1>
+
+If the provider implements the [clusterctl provider contract], the contract version defined in the
+label above must be consistent with the contract version defined in the `metadata.yaml` file.
+
+</aside>
+
 ### BootstrapConfig, BootstrapConfigList resource definition
 
 You MUST define a BootstrapConfig resource.

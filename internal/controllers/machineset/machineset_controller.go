@@ -1823,6 +1823,7 @@ func (r *Reconciler) computeDesiredBootstrapConfig(ctx context.Context, ms *clus
 	}
 
 	if existingBootstrapConfig != nil {
+		bootstrapConfig.SetName(existingBootstrapConfig.GetName())
 		bootstrapConfig.SetUID(existingBootstrapConfig.GetUID())
 	}
 	return bootstrapConfig, nil
@@ -1900,6 +1901,7 @@ func (r *Reconciler) computeDesiredInfraMachine(ctx context.Context, ms *cluster
 	}
 
 	if existingInfraMachine != nil {
+		infraMachine.SetName(existingInfraMachine.GetName())
 		infraMachine.SetUID(existingInfraMachine.GetUID())
 	}
 	return infraMachine, nil

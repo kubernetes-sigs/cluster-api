@@ -115,6 +115,7 @@ type tiltSettings struct {
 	AllowedContexts          []string                           `json:"allowed_contexts,omitempty"`
 	ProviderRepos            []string                           `json:"provider_repos,omitempty"`
 	AdditionalKustomizations map[string]string                  `json:"additional_kustomizations,omitempty"`
+	PreloadImages            *bool                              `json:"preload_images,omitempty"`
 }
 
 type tiltSettingsDebugConfig struct {
@@ -298,9 +299,13 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 		// The images can only be preloaded when the cluster is a kind cluster.
 		// Note: Not repeating the validation on the config already done in allowK8sConfig here.
 		if strings.HasPrefix(cfg.Contexts[cfg.CurrentContext].Cluster, "kind-") {
-			tasks["cert-manager-cainjector"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-cainjector:%s", config.CertManagerDefaultVersion))
-			tasks["cert-manager-webhook"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-webhook:%s", config.CertManagerDefaultVersion))
-			tasks["cert-manager-controller"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-controller:%s", config.CertManagerDefaultVersion))
+			preloadImages := true
+			if ts.PreloadImages != nil {
+				preloadImages = *ts.PreloadImages
+			}
+			tasks["cert-manager-cainjector"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-cainjector:%s", config.CertManagerDefaultVersion), preloadImages)
+			tasks["cert-manager-webhook"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-webhook:%s", config.CertManagerDefaultVersion), preloadImages)
+			tasks["cert-manager-controller"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-controller:%s", config.CertManagerDefaultVersion), preloadImages)
 		}
 		tasks["cert-manager"] = certManagerTask()
 	}
@@ -533,9 +538,19 @@ func makeTask(name string) taskFunction {
 	}
 }
 
-// preLoadImageTask generates a task for pre-loading an image into kind.
-func preLoadImageTask(image string) taskFunction {
+func preLoadImageTask(image string, preload bool) taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
+		// `kind load docker-image` fails for multi-arch images like cert-manager on some configurations
+		// (e.g. Apple Silicon, Docker CE >= v29) due to https://github.com/kubernetes-sigs/kind/issues/3795.
+		//
+		// By skipping this step, we allow the Kubelet to pull the image on-demand when the pod starts.
+		// This works because the Kubelet (via containerd) will only pull the specific architecture it
+		// needs, bypassing the broken export/import flow.
+		if !preload {
+			fmt.Printf("[%s] Skipping image preload (configured in tilt-settings.yaml); Kubelet will pull %s on-demand\n", prefix, image)
+			return
+		}
+
 		docker, err := container.NewDockerClient()
 		if err != nil {
 			errCh <- errors.Wrapf(err, "[%s] failed to create docker client", prefix)

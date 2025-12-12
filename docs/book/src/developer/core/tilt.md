@@ -177,6 +177,8 @@ for more details.
 
 **enable_core_provider** (bool, default=true): By default, the `core` provider is enabled. This allows to disable it.
 
+**preload_images** (bool, default=true): By default, images are preloaded into the kind cluster. This works on most platforms but can fail on Apple Silicon or Docker v29+. Set this to false to skip preloading and let the kubelet pull images on demand.
+
 **template_dirs** (Map{String: Array[]String}, default={"docker": [
 "./test/infrastructure/docker/templates"]}): A map of providers to directories containing cluster templates. An example of the field is given below. See [Deploying a workload cluster](#deploying-a-workload-cluster) for how this is used.
 

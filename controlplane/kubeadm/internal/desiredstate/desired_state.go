@@ -241,6 +241,7 @@ func ComputeDesiredKubeadmConfig(kcp *controlplanev1.KubeadmControlPlane, cluste
 		Spec: *spec,
 	}
 	if existingKubeadmConfig != nil {
+		kubeadmConfig.SetName(existingKubeadmConfig.GetName())
 		kubeadmConfig.SetUID(existingKubeadmConfig.GetUID())
 	}
 	return kubeadmConfig, nil
@@ -289,6 +290,7 @@ func ComputeDesiredInfraMachine(ctx context.Context, c client.Client, kcp *contr
 		return nil, errors.Wrap(err, "failed to compute desired InfraMachine")
 	}
 	if existingInfraMachine != nil {
+		infraMachine.SetName(existingInfraMachine.GetName())
 		infraMachine.SetUID(existingInfraMachine.GetUID())
 	}
 	return infraMachine, nil

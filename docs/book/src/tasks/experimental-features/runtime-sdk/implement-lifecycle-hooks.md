@@ -51,7 +51,7 @@ Following recommendations are especially relevant:
 
 ## Definitions
 
-For additional details about the OpenAPI spec of the lifecycle hooks, please download the [`runtime-sdk-openapi.yaml`]({{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"runtime-sdk-openapi.yaml" version:"1.11.x"}})
+For additional details about the OpenAPI spec of the lifecycle hooks, please download the [`runtime-sdk-openapi.yaml`]({{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"runtime-sdk-openapi.yaml" version:"1.12.x"}})
 file and then open it from the [Swagger UI](https://editor.swagger.io/).
 
 ### BeforeClusterCreate

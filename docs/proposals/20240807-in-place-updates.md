@@ -167,7 +167,7 @@ We propose to extend KCP and MachineDeployment rollout workflows to call Externa
 
 Initially, this feature will be implemented without making API changes in the current core Cluster API objects. It will follow Kubernetes' feature gate mechanism. All functionality related to in-place Updates will be available only if the `InPlaceUpdates` feature flag is set to true. It is disabled unless explicitly configured.
 
-This proposal introduces three new Lifecycle Hooks named `CanUpdateMachine`, `CanUpdateMachineSet` and `UpdateMachine` for communication between CAPI and external update implementers. 
+This proposal introduces three new Update Hooks named `CanUpdateMachine`, `CanUpdateMachineSet` and `UpdateMachine` for communication between CAPI and external update implementers. 
 
 Multiple external updaters can be registered, each of them only covering a subset of machine changes (*). The CAPI controllers will ask the external updaters what kind of changes they can handle and, based on the response, compose and orchestrate them to achieve the desired state.
 
@@ -281,7 +281,7 @@ If ANY of the desired changes cannot be covered by the updaters capabilities, CA
 
 The MachineDeployment update should take care of:
 - The internal implementation details of MachineDeployments, or more specifically of the intermediate layer MachineSet that controls Machines.
-- The MaxUnavailability and MaxSurge constraint that exist to protect user workloads.
+- The maxUnavailable and maxSurge constraint that exist to protect user workloads.
 
 In order to do so:
 - The "can update in-place" decision is performed at MachineSet level by calling the `CanUpdateMachineSet` hook.
@@ -289,7 +289,7 @@ In order to do so:
   the MachineSet with the new spec; during this step also the Machine/InfraMachine/BootstrapConfig are updated 
   to the new spec.
 - Machines updating in-place are considered not available, because in-place updates are always considered as potentially disruptive.
-  - If maxUnavailable is zero, a new machine must be created first, then as soon as there is “buffer” for in-place, in-place update can proceed
+  - If maxUnavailable is 0, a new machine must be created first, then as soon as there is “buffer” for in-place, in-place update can proceed
 
 ```mermaid
 sequenceDiagram
@@ -308,9 +308,8 @@ apiserver->>capi: Notify changes
 apiserver->>Operator: OK
 capi->>capi: Decide Update Strategy
 capi->>apiserver: Create new MachineSet
-capi->>apiserver: Move existing Machine to the new MachineSet
 loop For all machines
-    capi->>apiserver: Move to new Machine Set, update spec
+    capi->>apiserver: Move to the new MachineSet, update spec
     mach->>apiserver: Mark Machine as Updating in-place
     loop For all updaters in plan
         mach->>hook: Wait for the updater to apply changes
@@ -321,23 +320,24 @@ end
 
 Please note that:
 - When in-place is possible, the system should try to in-place update as many machines as possible.
-  In practice, this means that maxSurge might be not fully used (it is used only for scale up by one if maxUnavailable=0)
-- No in-place updates are performed when using rollout strategy on delete.
+  In practice, this means that maxSurge might not be fully used (it is used only for scale up by one if maxUnavailable=0)
+- No in-place updates are performed when using rollout strategy OnDelete.
 
-Please refer to [implementation note](./20240807-in-place-updates-implementation-notes.md) for more details about how the move operation is performed.
+Please refer to [implementation notes](./20240807-in-place-updates-implementation-notes.md) for more details about how the move operation is performed.
 
 ### KCP updates
+
 The KCP external updates will work in a very similar way to MachineDeployments but removing the MachineSet level of indirection. 
 
 In order to do so:
-- The "can update in-place" decision is performed at MachineSet level by calling the `CanUpdateMachine` hook.
+- The "can update in-place" decision is performed at Machine level by calling the `CanUpdateMachine` hook.
 - Before starting an in-place update, the Machine/InfraMachine/BootstrapConfig are updated
   to the new spec.
-- If maxSurge is one, a new machine must be created first, then as soon as there is “buffer” for in-place, in-place update can proceed.
-- If maxSurge is zero, in-place update can proceed immediately.
+- If maxSurge is 1, a new Machine must be created first, then as soon as there is “buffer” for in-place, in-place update can proceed.
+- If maxSurge is 0, in-place update can proceed immediately.
 - Note: to better understand above points, you might want to consider that maxSurge in KCP is a way to express if the 
   control plane rollout should be performed "scaling-out" or "scaling-in"
-- Note: KCP has its own definition of availability, that is preserved during a rollout no matter of it is performed using
+- Note: KCP has its own definition of availability, that is preserved during a rollout no matter of if it is performed using
   in-place updates or regular rollouts.
 
 Notably, while KCP will always try to perform in-place whenever possible, KCP might decide to not perform in-place
@@ -378,7 +378,7 @@ The controller will trigger updaters by calling the `UpdateMachine` hook. The up
 
 CAPI expects the `UpdateMachine` endpoint of an updater to be idempotent: for the same Machine with the same spec, the endpoint can be called any number of times (before and after it completes), and the end result should be the same. CAPI guarantees that once an `UpdateMachine` endpoint has been called once, it won't change the Machine spec until the update either completes or fails.
 
-Once all of the updaters are complete, the Machine controller will mark machine as `UpToDate`. If the update fails, this will be reflected in the Machine status.
+Once all updaters complete, the Machine controller will mark machine as `UpToDate`. If the update fails, this will be reflected in the Machine status.
 
 ```mermaid
 sequenceDiagram
@@ -523,7 +523,7 @@ The `kcp-version-update` extension detects that this is a KCP machine, verifies 
 }
 ```
 
-Now that the KCP knows how to cover all desired changes, it proceeds to mark the `Updating` condition on the first selected KCP machine to true.
+Now that KCP knows how to cover all desired changes, it proceeds to mark the Machine for update.
 
 Please refer to [implementation note](./20240807-in-place-updates-implementation-notes.md) for more details about how the Machine is transitioned to Updating
 while avoiding race conditions between the controllers involved in this process.
@@ -552,7 +552,7 @@ The Machine controller then sends a similar request to `kcp-version-update/Updat
 {
     "status": "Success",
     "message": "I'm still applying changes",
-    "retryAfterSeconds": "5m0s"
+    "retryAfterSeconds": 300
 }
 ```
 
@@ -572,8 +572,8 @@ The Machine controller then repeats the request to the previously pending `kcp-v
 }
 ```
 
-All in-place `ExternalUpdate` hooks are completed execution, so the Machine controller sets the
-machine's `Upgrading` condition to false, and thus `UpToDate` flips back to true.
+All in-place `ExternalUpdate` hooks completed, so the Machine controller sets the
+machine's `Updating` condition to false, and thus `UpToDate` flips back to true.
 
 This process is repeated for the second and third KCP machine, finally marking the KCP object as up to date.
 
@@ -621,7 +621,7 @@ example, but in this case the `CanUpdateMachineSet` is called:
   },
   "desired": {
     "machineSet": { ... },
-    "infrastructureMachine"Template: { ... },
+    "infrastructureMachineTemplate": { ... },
     "bootstrapConfigTemplate": { ... },
   }
 }

@@ -42,7 +42,7 @@ func TestKubeadmConfigTemplateDefault(t *testing.T) {
 	updateDefaultingKubeadmConfigTemplate := kubeadmConfigTemplate.DeepCopy()
 	updateDefaultingKubeadmConfigTemplate.Spec.Template.Spec.Verbosity = ptr.To[int32](4)
 	webhook := &KubeadmConfigTemplate{}
-	t.Run("for KubeadmConfigTemplate", util.CustomDefaultValidateTest(admission.NewContextWithRequest(ctx, admission.Request{}), updateDefaultingKubeadmConfigTemplate, webhook))
+	t.Run("for KubeadmConfigTemplate", util.CustomDefaultValidateTest[*bootstrapv1.KubeadmConfigTemplate](admission.NewContextWithRequest(ctx, admission.Request{}), updateDefaultingKubeadmConfigTemplate, webhook))
 
 	// Expect no defaulting.
 	original := kubeadmConfigTemplate.DeepCopy()

@@ -30,10 +30,8 @@ import (
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -841,8 +839,7 @@ func setupWebhookWithManager(ns *corev1.Namespace) (*KubeadmConfigTemplateTestDe
 	// Serve KubeadmConfigTemplateTestDefaulter on the webhook server.
 	// Note: This should only ever be called once with the same path, otherwise we get a panic.
 	defaulter := &KubeadmConfigTemplateTestDefaulter{}
-	webhookServer.Register(webhookPath,
-		admission.WithCustomDefaulter(env.GetScheme(), &bootstrapv1.KubeadmConfigTemplate{}, defaulter))
+	webhookServer.Register(webhookPath, admission.WithDefaulter(env.GetScheme(), defaulter))
 
 	// Calculate the MutatingWebhookConfiguration
 	caBundle, err := os.ReadFile(filepath.Join(webhookServer.Options.CertDir, webhookServer.Options.CertName))
@@ -888,18 +885,13 @@ func setupWebhookWithManager(ns *corev1.Namespace) (*KubeadmConfigTemplateTestDe
 	return defaulter, webhookConfig, nil
 }
 
-var _ webhook.CustomDefaulter = &KubeadmConfigTemplateTestDefaulter{}
+var _ admission.Defaulter[*bootstrapv1.KubeadmConfigTemplate] = &KubeadmConfigTemplateTestDefaulter{}
 
 type KubeadmConfigTemplateTestDefaulter struct {
 	Counter int
 }
 
-func (d *KubeadmConfigTemplateTestDefaulter) Default(_ context.Context, obj runtime.Object) error {
-	kct, ok := obj.(*bootstrapv1.KubeadmConfigTemplate)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", obj))
-	}
-
+func (d *KubeadmConfigTemplateTestDefaulter) Default(_ context.Context, kct *bootstrapv1.KubeadmConfigTemplate) error {
 	d.Counter++
 
 	defaultKubeadmConfigTemplate(kct)

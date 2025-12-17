@@ -21,10 +21,8 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api/internal/util/compare"
@@ -37,8 +35,7 @@ import (
 type DevMachineTemplate struct{}
 
 func (webhook *DevMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.DevMachineTemplate{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.DevMachineTemplate{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
@@ -46,28 +43,20 @@ func (webhook *DevMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) err
 
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-devmachinetemplate,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates,versions=v1beta2,name=default.devmachinetemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomDefaulter = &DevMachineTemplate{}
+var _ admission.Defaulter[*infrav1.DevMachineTemplate] = &DevMachineTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *DevMachineTemplate) Default(_ context.Context, obj runtime.Object) error {
-	machineTemplate, ok := obj.(*infrav1.DevMachineTemplate)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a DevMachineTemplate but got a %T", obj))
-	}
+func (webhook *DevMachineTemplate) Default(_ context.Context, machineTemplate *infrav1.DevMachineTemplate) error {
 	defaultDevMachineSpec(&machineTemplate.Spec.Template.Spec)
 	return nil
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-devmachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=devmachinetemplates,versions=v1beta2,name=validation.devmachinetemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomValidator = &DevMachineTemplate{}
+var _ admission.Validator[*infrav1.DevMachineTemplate] = &DevMachineTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DevMachineTemplate) ValidateCreate(_ context.Context, raw runtime.Object) (admission.Warnings, error) {
-	obj, ok := raw.(*infrav1.DevMachineTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DevMachineTemplate but got a %T", raw))
-	}
+func (webhook *DevMachineTemplate) ValidateCreate(_ context.Context, obj *infrav1.DevMachineTemplate) (admission.Warnings, error) {
 	// Validate the metadata of the template.
 	allErrs := obj.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))
 	if len(allErrs) > 0 {
@@ -77,16 +66,7 @@ func (webhook *DevMachineTemplate) ValidateCreate(_ context.Context, raw runtime
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DevMachineTemplate) ValidateUpdate(ctx context.Context, oldRaw runtime.Object, newRaw runtime.Object) (admission.Warnings, error) {
-	newObj, ok := newRaw.(*infrav1.DevMachineTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DevMachineTemplate but got a %T", newRaw))
-	}
-	oldObj, ok := oldRaw.(*infrav1.DevMachineTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DevMachineTemplate but got a %T", oldRaw))
-	}
-
+func (webhook *DevMachineTemplate) ValidateUpdate(ctx context.Context, oldObj *infrav1.DevMachineTemplate, newObj *infrav1.DevMachineTemplate) (admission.Warnings, error) {
 	req, err := admission.RequestFromContext(ctx)
 	if err != nil {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a admission.Request inside context: %v", err))
@@ -115,6 +95,6 @@ func (webhook *DevMachineTemplate) ValidateUpdate(ctx context.Context, oldRaw ru
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DevMachineTemplate) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *DevMachineTemplate) ValidateDelete(_ context.Context, _ *infrav1.DevMachineTemplate) (admission.Warnings, error) {
 	return nil, nil
 }

@@ -24,14 +24,12 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -45,8 +43,7 @@ import (
 )
 
 func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&clusterv1.ClusterClass{}).
+	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.ClusterClass{}).
 		WithValidator(webhook).
 		Complete()
 }
@@ -58,37 +55,20 @@ type ClusterClass struct {
 	Client client.Reader
 }
 
-var _ webhook.CustomValidator = &ClusterClass{}
+var _ admission.Validator[*clusterv1.ClusterClass] = &ClusterClass{}
 
 // ValidateCreate implements validation for ClusterClass create.
-func (webhook *ClusterClass) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	in, ok := obj.(*clusterv1.ClusterClass)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterClass but got a %T", obj))
-	}
+func (webhook *ClusterClass) ValidateCreate(ctx context.Context, in *clusterv1.ClusterClass) (admission.Warnings, error) {
 	return nil, webhook.validate(ctx, nil, in)
 }
 
 // ValidateUpdate implements validation for ClusterClass update.
-func (webhook *ClusterClass) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	newClusterClass, ok := newObj.(*clusterv1.ClusterClass)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterClass but got a %T", newObj))
-	}
-	oldClusterClass, ok := oldObj.(*clusterv1.ClusterClass)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterClass but got a %T", oldObj))
-	}
+func (webhook *ClusterClass) ValidateUpdate(ctx context.Context, oldClusterClass, newClusterClass *clusterv1.ClusterClass) (admission.Warnings, error) {
 	return nil, webhook.validate(ctx, oldClusterClass, newClusterClass)
 }
 
 // ValidateDelete implements validation for ClusterClass delete.
-func (webhook *ClusterClass) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	clusterClass, ok := obj.(*clusterv1.ClusterClass)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterClass but got a %T", obj))
-	}
-
+func (webhook *ClusterClass) ValidateDelete(ctx context.Context, clusterClass *clusterv1.ClusterClass) (admission.Warnings, error) {
 	clusters, err := webhook.getClustersUsingClusterClass(ctx, clusterClass)
 	if err != nil {
 		return nil, apierrors.NewInternalError(errors.Wrapf(err, "could not retrieve Clusters using ClusterClass"))

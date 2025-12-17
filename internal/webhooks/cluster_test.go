@@ -83,7 +83,7 @@ func TestClusterTopologyDefaultNamespaces(t *testing.T) {
 
 	// Create the webhook and add the fakeClient as its client.
 	webhook := &Cluster{Client: fakeClient}
-	t.Run("for Cluster", util.CustomDefaultValidateTest(ctx, c, webhook))
+	t.Run("for Cluster", util.CustomDefaultValidateTest[*clusterv1.Cluster](ctx, c, webhook))
 
 	g.Expect(webhook.Default(ctx, c)).To(Succeed())
 }
@@ -1328,7 +1328,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 			if tt.wantErr {
 				t.Skip("skipping test for combination of defaulting and validation (not supported by the test)")
 			}
-			util.CustomDefaultValidateTest(ctx, cluster, webhook)(t)
+			util.CustomDefaultValidateTest[*clusterv1.Cluster](ctx, cluster, webhook)(t)
 		})
 	}
 }
@@ -1361,7 +1361,7 @@ func TestClusterDefaultTopologyVersion(t *testing.T) {
 
 	// Create the webhook and add the fakeClient as its client.
 	webhook := &Cluster{Client: fakeClient}
-	t.Run("for Cluster", util.CustomDefaultValidateTest(ctx, c, webhook))
+	t.Run("for Cluster", util.CustomDefaultValidateTest[*clusterv1.Cluster](ctx, c, webhook))
 
 	g.Expect(webhook.Default(ctx, c)).To(Succeed())
 

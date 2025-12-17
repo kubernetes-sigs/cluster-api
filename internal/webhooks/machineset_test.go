@@ -60,7 +60,7 @@ func TestMachineSetDefault(t *testing.T) {
 	}
 
 	reqCtx := admission.NewContextWithRequest(ctx, admission.Request{})
-	t.Run("for MachineSet", util.CustomDefaultValidateTest(reqCtx, ms, webhook))
+	t.Run("for MachineSet", util.CustomDefaultValidateTest[*clusterv1.MachineSet](reqCtx, ms, webhook))
 	g.Expect(webhook.Default(reqCtx, ms)).To(Succeed())
 
 	g.Expect(ms.Labels[clusterv1.ClusterNameLabel]).To(Equal(ms.Spec.ClusterName))

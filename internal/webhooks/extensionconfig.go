@@ -24,12 +24,10 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -40,8 +38,7 @@ import (
 type ExtensionConfig struct{}
 
 func (webhook *ExtensionConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&runtimev1.ExtensionConfig{}).
+	return ctrl.NewWebhookManagedBy(mgr, &runtimev1.ExtensionConfig{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
@@ -50,15 +47,11 @@ func (webhook *ExtensionConfig) SetupWebhookWithManager(mgr ctrl.Manager) error 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-runtime-cluster-x-k8s-io-v1beta2-extensionconfig,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=runtime.cluster.x-k8s.io,resources=extensionconfigs,versions=v1beta2,name=validation.extensionconfig.runtime.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-runtime-cluster-x-k8s-io-v1beta2-extensionconfig,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=runtime.cluster.x-k8s.io,resources=extensionconfigs,versions=v1beta2,name=default.extensionconfig.runtime.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomValidator = &ExtensionConfig{}
-var _ webhook.CustomDefaulter = &ExtensionConfig{}
+var _ admission.Validator[*runtimev1.ExtensionConfig] = &ExtensionConfig{}
+var _ admission.Defaulter[*runtimev1.ExtensionConfig] = &ExtensionConfig{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *ExtensionConfig) Default(_ context.Context, obj runtime.Object) error {
-	extensionConfig, ok := obj.(*runtimev1.ExtensionConfig)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected an ExtensionConfig but got a %T", obj))
-	}
+func (webhook *ExtensionConfig) Default(_ context.Context, extensionConfig *runtimev1.ExtensionConfig) error {
 	// Default NamespaceSelector to an empty LabelSelector, which matches everything, if not set.
 	if extensionConfig.Spec.NamespaceSelector == nil {
 		extensionConfig.Spec.NamespaceSelector = &metav1.LabelSelector{}
@@ -72,24 +65,12 @@ func (webhook *ExtensionConfig) Default(_ context.Context, obj runtime.Object) e
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ExtensionConfig) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	extensionConfig, ok := obj.(*runtimev1.ExtensionConfig)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an ExtensionConfig but got a %T", obj))
-	}
+func (webhook *ExtensionConfig) ValidateCreate(ctx context.Context, extensionConfig *runtimev1.ExtensionConfig) (admission.Warnings, error) {
 	return webhook.validate(ctx, nil, extensionConfig)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ExtensionConfig) ValidateUpdate(ctx context.Context, old, updated runtime.Object) (admission.Warnings, error) {
-	oldExtensionConfig, ok := old.(*runtimev1.ExtensionConfig)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an ExtensionConfig but got a %T", old))
-	}
-	newExtensionConfig, ok := updated.(*runtimev1.ExtensionConfig)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an ExtensionConfig but got a %T", updated))
-	}
+func (webhook *ExtensionConfig) ValidateUpdate(ctx context.Context, oldExtensionConfig, newExtensionConfig *runtimev1.ExtensionConfig) (admission.Warnings, error) {
 	return webhook.validate(ctx, oldExtensionConfig, newExtensionConfig)
 }
 
@@ -122,7 +103,7 @@ func (webhook *ExtensionConfig) validate(_ context.Context, _, newExtensionConfi
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ExtensionConfig) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *ExtensionConfig) ValidateDelete(_ context.Context, _ *runtimev1.ExtensionConfig) (admission.Warnings, error) {
 	return nil, nil
 }
 

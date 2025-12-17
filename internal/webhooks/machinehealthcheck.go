@@ -22,11 +22,9 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -49,8 +47,7 @@ func SetMinNodeStartupTimeoutSeconds(d int32) {
 }
 
 func (webhook *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&clusterv1.MachineHealthCheck{}).
+	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.MachineHealthCheck{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
@@ -62,16 +59,11 @@ func (webhook *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) err
 // MachineHealthCheck implements a validation and defaulting webhook for MachineHealthCheck.
 type MachineHealthCheck struct{}
 
-var _ webhook.CustomDefaulter = &MachineHealthCheck{}
-var _ webhook.CustomValidator = &MachineHealthCheck{}
+var _ admission.Defaulter[*clusterv1.MachineHealthCheck] = &MachineHealthCheck{}
+var _ admission.Validator[*clusterv1.MachineHealthCheck] = &MachineHealthCheck{}
 
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the type.
-func (webhook *MachineHealthCheck) Default(_ context.Context, obj runtime.Object) error {
-	m, ok := obj.(*clusterv1.MachineHealthCheck)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a MachineHealthCheck but got a %T", obj))
-	}
-
+func (webhook *MachineHealthCheck) Default(_ context.Context, m *clusterv1.MachineHealthCheck) error {
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
@@ -85,31 +77,17 @@ func (webhook *MachineHealthCheck) Default(_ context.Context, obj runtime.Object
 }
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *MachineHealthCheck) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	m, ok := obj.(*clusterv1.MachineHealthCheck)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineHealthCheck but got a %T", obj))
-	}
-
+func (webhook *MachineHealthCheck) ValidateCreate(_ context.Context, m *clusterv1.MachineHealthCheck) (admission.Warnings, error) {
 	return nil, webhook.validate(nil, m)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *MachineHealthCheck) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	oldM, ok := oldObj.(*clusterv1.MachineHealthCheck)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineHealthCheck but got a %T", oldObj))
-	}
-	newM, ok := newObj.(*clusterv1.MachineHealthCheck)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineHealthCheck but got a %T", newObj))
-	}
-
+func (webhook *MachineHealthCheck) ValidateUpdate(_ context.Context, oldM, newM *clusterv1.MachineHealthCheck) (admission.Warnings, error) {
 	return nil, webhook.validate(oldM, newM)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *MachineHealthCheck) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *MachineHealthCheck) ValidateDelete(_ context.Context, _ *clusterv1.MachineHealthCheck) (admission.Warnings, error) {
 	return nil, nil
 }
 

@@ -27,7 +27,6 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -35,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -57,8 +55,7 @@ func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		webhook.decoder = admission.NewDecoder(mgr.GetScheme())
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&clusterv1.Cluster{}).
+	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.Cluster{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
@@ -80,18 +77,13 @@ type Cluster struct {
 	decoder admission.Decoder
 }
 
-var _ webhook.CustomDefaulter = &Cluster{}
-var _ webhook.CustomValidator = &Cluster{}
+var _ admission.Defaulter[*clusterv1.Cluster] = &Cluster{}
+var _ admission.Validator[*clusterv1.Cluster] = &Cluster{}
 
 // Default satisfies the defaulting webhook interface.
-func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
+func (webhook *Cluster) Default(ctx context.Context, cluster *clusterv1.Cluster) error {
 	// We gather all defaulting errors and return them together.
 	var allErrs field.ErrorList
-
-	cluster, ok := obj.(*clusterv1.Cluster)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", obj))
-	}
 
 	// Additional defaulting if the Cluster uses a managed topology.
 	if cluster.Spec.Topology.IsDefined() {
@@ -144,29 +136,17 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 }
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Cluster) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	cluster, ok := obj.(*clusterv1.Cluster)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", obj))
-	}
+func (webhook *Cluster) ValidateCreate(ctx context.Context, cluster *clusterv1.Cluster) (admission.Warnings, error) {
 	return webhook.validate(ctx, nil, cluster)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Cluster) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	newCluster, ok := newObj.(*clusterv1.Cluster)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", newObj))
-	}
-	oldCluster, ok := oldObj.(*clusterv1.Cluster)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", oldObj))
-	}
+func (webhook *Cluster) ValidateUpdate(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster) (admission.Warnings, error) {
 	return webhook.validate(ctx, oldCluster, newCluster)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Cluster) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *Cluster) ValidateDelete(_ context.Context, _ *clusterv1.Cluster) (admission.Warnings, error) {
 	return nil, nil
 }
 

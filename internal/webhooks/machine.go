@@ -18,15 +18,12 @@ package webhooks
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -38,8 +35,7 @@ import (
 const defaultNodeDeletionTimeoutSeconds = int32(10)
 
 func (webhook *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&clusterv1.Machine{}).
+	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.Machine{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
@@ -51,16 +47,11 @@ func (webhook *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // Machine implements a validation and defaulting webhook for Machine.
 type Machine struct{}
 
-var _ webhook.CustomValidator = &Machine{}
-var _ webhook.CustomDefaulter = &Machine{}
+var _ admission.Validator[*clusterv1.Machine] = &Machine{}
+var _ admission.Defaulter[*clusterv1.Machine] = &Machine{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *Machine) Default(_ context.Context, obj runtime.Object) error {
-	m, ok := obj.(*clusterv1.Machine)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a Machine but got a %T", obj))
-	}
-
+func (webhook *Machine) Default(_ context.Context, m *clusterv1.Machine) error {
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
@@ -79,32 +70,17 @@ func (webhook *Machine) Default(_ context.Context, obj runtime.Object) error {
 }
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Machine) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	m, ok := obj.(*clusterv1.Machine)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Machine but got a %T", obj))
-	}
-
+func (webhook *Machine) ValidateCreate(_ context.Context, m *clusterv1.Machine) (admission.Warnings, error) {
 	return nil, webhook.validate(nil, m)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Machine) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	oldM, ok := oldObj.(*clusterv1.Machine)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Machine but got a %T", oldObj))
-	}
-
-	newM, ok := newObj.(*clusterv1.Machine)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Machine but got a %T", newObj))
-	}
-
+func (webhook *Machine) ValidateUpdate(_ context.Context, oldM, newM *clusterv1.Machine) (admission.Warnings, error) {
 	return nil, webhook.validate(oldM, newM)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Machine) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *Machine) ValidateDelete(_ context.Context, _ *clusterv1.Machine) (admission.Warnings, error) {
 	return nil, nil
 }
 

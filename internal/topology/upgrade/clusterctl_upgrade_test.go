@@ -1119,14 +1119,14 @@ func setupT1CRDAndWebHooks(g *WithT, ns *corev1.Namespace) (client.Client, *test
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Install the defaulter webhook for v1beta1 and test it works
-	t1TemplateDefaulter := admission.WithCustomDefaulter(t1Scheme, &testt1v1beta1.TestResourceTemplate{}, &testt1webhook.TestResourceTemplate{}, admission.DefaulterRemoveUnknownOrOmitableFields)
+	t1TemplateDefaulter := admission.WithDefaulter(t1Scheme, &testt1webhook.TestResourceTemplate{}, admission.DefaulterRemoveUnknownOrOmitableFields)
 	t1TemplateWebhookConfig, err := newMutatingWebhookConfigurationForCustomDefaulter(ns, testt1v1beta1.GroupVersion.WithResource("testresourcetemplates"), t1TemplateDefaulter)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = env.Create(ctx, t1TemplateWebhookConfig)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	t1Defaulter := admission.WithCustomDefaulter(t1Scheme, &testt1v1beta1.TestResource{}, &testt1webhook.TestResource{}, admission.DefaulterRemoveUnknownOrOmitableFields)
+	t1Defaulter := admission.WithDefaulter(t1Scheme, &testt1webhook.TestResource{}, admission.DefaulterRemoveUnknownOrOmitableFields)
 	t1webhookConfig, err := newMutatingWebhookConfigurationForCustomDefaulter(ns, testt1v1beta1.GroupVersion.WithResource("testresources"), t1Defaulter)
 	g.Expect(err).ToNot(HaveOccurred())
 
@@ -1206,14 +1206,14 @@ func setupT2CRDAndWebHooks(g *WithT, ns *corev1.Namespace, t1CheckObj *testt1v1b
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Install the defaulter webhook for v1beta2
-	t2TemplateDefaulter := admission.WithCustomDefaulter(t2Scheme, &testt2v1beta2.TestResourceTemplate{}, &testt2webhook.TestResourceTemplate{})
+	t2TemplateDefaulter := admission.WithDefaulter(t2Scheme, &testt2webhook.TestResourceTemplate{})
 	t2TemplateWebhookConfig, err := newMutatingWebhookConfigurationForCustomDefaulter(ns, testt2v1beta2.GroupVersion.WithResource("testresourcetemplates"), t2TemplateDefaulter)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = env.Create(ctx, t2TemplateWebhookConfig)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	t2Defaulter := admission.WithCustomDefaulter(t2Scheme, &testt2v1beta2.TestResource{}, &testt2webhook.TestResource{})
+	t2Defaulter := admission.WithDefaulter(t2Scheme, &testt2webhook.TestResource{})
 	t2webhookConfig, err := newMutatingWebhookConfigurationForCustomDefaulter(ns, testt2v1beta2.GroupVersion.WithResource("testresources"), t2Defaulter)
 	g.Expect(err).ToNot(HaveOccurred())
 

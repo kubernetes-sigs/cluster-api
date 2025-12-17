@@ -26,7 +26,6 @@ import (
 type DockerMachinePool struct{}
 
 func (c *DockerMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.DockerMachinePool{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.DockerMachinePool{}).
 		Complete()
 }

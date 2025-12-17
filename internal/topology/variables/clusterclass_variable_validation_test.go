@@ -1947,7 +1947,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"integer\": Expected integer greater or equal to 1, got 0",
+				invalid("Invalid value: 0: Expected integer greater or equal to 1, got 0",
 					"spec.variables[cpu].schema.openAPIV3Schema.default"),
 			},
 		},
@@ -1995,7 +1995,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"integer\": failed rule: self >= 1",
+				invalid("Invalid value: 0: failed rule: self >= 1",
 					"spec.variables[cpu].schema.openAPIV3Schema.properties[nestedField].default"),
 			},
 		},
@@ -2019,7 +2019,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"integer\": failed rule: self > oldSelf",
+				invalid("Invalid value: 0: failed rule: self > oldSelf",
 					"spec.variables[cpu].schema.openAPIV3Schema.default"),
 			},
 		},
@@ -2078,7 +2078,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"integer\": failed rule: self >= 1",
+				invalid("Invalid value: 0: failed rule: self >= 1",
 					"spec.variables[cpu].schema.openAPIV3Schema.example"),
 			},
 		},
@@ -2126,7 +2126,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"integer\": failed rule: self >= 1",
+				invalid("Invalid value: 0: failed rule: self >= 1",
 					"spec.variables[cpu].schema.openAPIV3Schema.properties[nestedField].example"),
 			},
 		},
@@ -2167,7 +2167,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"integer\": failed rule: self >= 1",
+				invalid("Invalid value: 0: failed rule: self >= 1",
 					"spec.variables[cpu].schema.openAPIV3Schema.enum[0]"),
 			},
 		},
@@ -2217,7 +2217,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"integer\": failed rule: self >= 1",
+				invalid("Invalid value: 0: failed rule: self >= 1",
 					"spec.variables[cpu].schema.openAPIV3Schema.properties[nestedField].enum[1]"),
 			},
 		},

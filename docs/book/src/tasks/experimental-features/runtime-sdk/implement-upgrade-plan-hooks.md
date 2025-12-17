@@ -13,11 +13,11 @@ Please note Runtime SDK is an advanced feature. If implemented incorrectly, a fa
 The proposal for [Chained and efficient upgrades](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md)
 introduced support for upgrading by more than one minor when working with Clusters using managed topologies.
 
-According to the proposal, there are two ways to provide to Cluster API the information required to compute the upgrade plan:
+According to the proposal, there are two ways to provide Cluster API the information required to compute the upgrade plan:
 - By setting the list of versions in the `spec.kubernetesVersions` field in the `ClusterClass` object.
-- By calling the runtime hook defined in the `spec.upgrade` in the `ClusterClass` object.
+- By calling the runtime hook defined in the `spec.upgrade` field in the `ClusterClass` object.
 
-This document defines the hook for the second option and provides recommendation on how to implement it.
+This document defines the hook for the second option and provides recommendations on how to implement it.
 
 <!-- TOC -->
 * [Implementing Upgrade Plan Runtime Extensions](#implementing-upgrade-plan-runtime-extensions)
@@ -34,7 +34,7 @@ implementation of Runtime Extensions for upgrade plan hooks as well.
 
 In summary, Runtime Extensions are components that should be designed, written and deployed with great caution given
 that they can affect the proper functioning of the Cluster API runtime. A poorly implemented Runtime Extension could
-potentially block upgrade transitions from happening.
+potentially block upgrades.
 
 Following recommendations are especially relevant:
 
@@ -53,8 +53,8 @@ file and then open it from the [Swagger UI](https://editor.swagger.io/).
 
 The GenerateUpgradePlan hook is called every time Cluster API is required to compute the upgrade plan.
 
-Notably, during an upgrade, the upgrade plan is recomputed several times, ideally one each time the upgrade plan completes
-a step, but the number of calls might be higher depending on e.g. by the duration of the upgrade.
+Notably, during an upgrade, the upgrade plan is recomputed several times, ideally once each time the upgrade plan completes
+a step, but the number of calls might be higher depending on e.g. the duration of the upgrade.
 
 Example Request:
 
@@ -140,7 +140,7 @@ consistent with `controlPlaneUpgrades` and also compliant with the [Kubernetes v
   - version: v1.32.3
   ```
 
-Note: in this case the system will take into consideration the provided `workersUpgrades`, and validated it is
+Note: in this case the system will take into consideration the provided `workersUpgrades`, and validate it is
 consistent with `controlPlaneUpgrades` and also compliant with the [Kubernetes version skew policy](https://kubernetes.io/releases/version-skew-policy/).
 
 In all the cases above, the `GenerateUpgradePlanResponse` content must comply the following validation rules:
@@ -167,5 +167,5 @@ In all the cases above, the `GenerateUpgradePlanResponse` content must comply th
     - in case of versions with the same major/minor/patch version but different build number, also the order
       of those versions must be the same for control plane and worker upgrade plan.
     - the last version in the plan must be equal to `toKubernetesVersion`
-    - the upgrade plane must have all the intermediate version which workers must go through to avoid breaking rules
+    - the upgrade plan must have all the intermediate version which workers must go through to avoid breaking rules
       defining the max version skew between control plane and workers.

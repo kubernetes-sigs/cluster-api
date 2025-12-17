@@ -170,7 +170,7 @@ workersUpgrades:
   - version: v1.33.0
 ```
 
-Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contains the intermediate steps to reach the target version,
+Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contain the intermediate steps to reach the target version,
 which is also included in the list.
 
 Example Response:
@@ -222,7 +222,7 @@ workersUpgrades:
   - version: v1.33.0
 ```
 
-Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contains the intermediate steps to reach the target version,
+Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contain the intermediate steps to reach the target version,
 which is also included in the list.
 
 Example Response:
@@ -240,7 +240,7 @@ retryAfterSeconds: 10
 This hook is called after the control plane has been upgraded to the version specified in `spec.topology.version`
 or to an intermediate version in the upgrade plan and:
 - if workers upgrade can be skipped for this version and this is an intermediate version of an upgrade plan, 
-  immediately before calling the `BeforeControlPlaneUpgrade` hook for the next version in the upgrade plane.
+  immediately before calling the `BeforeControlPlaneUpgrade` hook for the next version in the upgrade plan.
 - if workers upgrade must be performed for this version,
   immediately before calling the `BeforeWorkersUpgrade` hook for the same version.
 - if the cluster does not have workers and this is the last version of an upgrade plan,
@@ -281,7 +281,7 @@ workersUpgrades:
   - version: v1.33.0
 ```
 
-Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contains the intermediate steps to reach the target version,
+Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contain the intermediate steps to reach the target version,
 which is also included in the list.
 
 Example Response:
@@ -330,7 +330,7 @@ workersUpgrades:
   - version: v1.33.0
 ```
 
-Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contains the intermediate steps to reach the target version,
+Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contain the intermediate steps to reach the target version,
 which is also included in the list.
 
 Example Response:
@@ -349,7 +349,7 @@ This hook is called after all the workers have been upgraded to the version spec
 or to an intermediate version in the upgrade plan, and:
 - if the upgrade plan is completed and the entire cluster is at `spec.topology.version`, immediately before calling the `AfterClusterUpgrade` hook.
 - if the upgrade plan is not complete and the entire cluster is now at one of the intermediate versions, immediately before 
-  calling `BeforeControlPlaneUpgrade` hook for the next intermediate step; in this case, the hook will ensure the control 
+  calling `BeforeControlPlaneUpgrade` hook for the next intermediate step; in this case, the hook will ensure the control plane
   can't to move to the next version in the upgrade plan until `AfterWorkersUpgrade` is completed.
 
 Example Request:
@@ -378,7 +378,7 @@ workersUpgrades:
   - version: v1.33.0
 ```
 
-Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contains the intermediate steps to reach the target version,
+Note: The `controlPlaneUpgrades` and the `workersUpgrades` fields contain the intermediate steps to reach the target version,
 which is also included in the list.
 
 Example Response:

@@ -1600,7 +1600,7 @@ func TestClusterValidation(t *testing.T) {
 					builder.ControlPlane("fooNamespace", "cp1").Build()).
 				Build(),
 			expectErr:    true,
-			expectErrStr: "must be a valid label value must be no more than 63 characters",
+			expectErrStr: "must be a valid label value must be no more than 63 bytes",
 		},
 		{
 			name: "error when name starts with NonAlphanumeric character",

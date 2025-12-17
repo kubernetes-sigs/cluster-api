@@ -6,7 +6,7 @@ temporary location for features which will be moved to their permanent locations
 Currently Cluster API has the following experimental features:
 * `ClusterTopology` (env var: `CLUSTER_TOPOLOGY`): [ClusterClass](./cluster-class/index.md)
 * `InPlaceUpdates` (env var: `EXP_IN_PLACE_UPDATES`):
-  * Allows users to execute changes on existing machines without deleting the machines and creating a new one.
+  * Allows users to execute changes on existing machines without deleting the Machine and creating a new one.
   * See the [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/20240807-in-place-updates.md) for more details.
 * `KubeadmBootstrapFormatIgnition` (env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`): [Ignition](./ignition.md)
 * `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](./machine-pools.md)

@@ -191,7 +191,7 @@ TRIAGE_PARTY_VERSION ?= v1.6.0
 CONVERSION_VERIFIER_BIN := conversion-verifier
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN))
 
-OPENAPI_GEN_VER := 4e65d59 # main branch as of 12.18.2025
+OPENAPI_GEN_VER := 589584f1c912f4367fe8954f649a59a98b912da5 # in sync with go.mod k8s.io/kube-openapi as of 17.12.2025.
 OPENAPI_GEN_BIN := openapi-gen
 # We are intentionally using the binary without version suffix, to avoid the version
 # in generated files.

@@ -11,9 +11,9 @@ Please note Runtime SDK is an advanced feature. If implemented incorrectly, a fa
 ## Introduction
 
 The proposal for [in-place updates in Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/20240807-in-place-updates.md)
-introduced extensions allowing users to execute changes on existing machines without deleting the machines and creating a new one.
+introduced extensions allowing users to execute changes on existing machines without deleting the Machine and creating a new one.
 
-Notably, the Cluster API user experience remain the same as of today no matter of the in-place update feature is enabled 
+Notably, the Cluster API user experience remains the same as of today no matter of the in-place update feature is enabled 
 or not e.g. in order to trigger a MachineDeployment rollout, you have to rotate a template, etc.
 
 Users should care ONLY about the desired state (as of today).
@@ -28,13 +28,13 @@ Cluster API will be also responsible to determine which Machine/MachineSet shoul
 options like MaxSurge/MaxUnavailable. With this regard:
 
 - Machines updating in-place are considered not available, because in-place updates are always considered as potentially disruptive.
-  - For control plane machines, if maxSurge is one, a new machine must be created first, then as soon as there is 
+  - For control plane machines, if maxSurge is 1, a new machine must be created first, then as soon as there is 
     “buffer” for in-place, in-place update can proceed.
     - KCP will not use in-place in case it will detect that it can impact health of the control plane.
-  - For workers machines, if maxUnavailable is zero, a new machine must be created first, then as soon as there
+  - For workers machines, if maxUnavailable is 0, a new machine must be created first, then as soon as there
     is “buffer” for in-place, in-place update can proceed.
     - When in-place is possible, the system should try to in-place update as many machines as possible.
-      In practice, this means that maxSurge might be not fully used (it is used only for scale up by one if maxUnavailable=0).
+      In practice, this means that maxSurge might not be fully used (it is used only for scale up by one if maxUnavailable=0).
   - No in-place updates are performed for workers machines when using rollout strategy `OnDelete`.
 
 <aside class="note warning">
@@ -60,11 +60,11 @@ Also, please note that the current implementation of the [in-place updates propo
 ## Guidelines
 
 All guidelines defined in [Implementing Runtime Extensions](implement-extensions.md#guidelines) apply to the
-implementation of Runtime Extensions for upgrade plan hooks as well.
+implementation of Runtime Extensions for in-place update hooks as well.
 
 In summary, Runtime Extensions are components that should be designed, written and deployed with great caution given
 that they can affect the proper functioning of the Cluster API runtime. A poorly implemented Runtime Extension could
-potentially block upgrade transitions from happening.
+potentially block updates.
 
 Following recommendations are especially relevant:
 
@@ -77,7 +77,7 @@ Following recommendations are especially relevant:
 
 ## Definitions
 
-For additional details about the OpenAPI spec of the upgrade plan hooks, please download the [`runtime-sdk-openapi.yaml`]({{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"runtime-sdk-openapi.yaml" version:"1.11.x"}})
+For additional details about the OpenAPI spec of the upgrade plan hooks, please download the [`runtime-sdk-openapi.yaml`]({{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"runtime-sdk-openapi.yaml" version:"1.12.x"}})
 file and then open it from the [Swagger UI](https://editor.swagger.io/).
 
 ### CanUpdateMachine
@@ -218,7 +218,7 @@ boostrapConfigTemplatePatch:
 
 Note:
 - Extensions should return per-object patches to be applied on current objects to indicate which changes they can handle in-place.
-- Only fields in Machine/InfraMachine/BootstrapConfig spec have to be covered by patches
+- Only fields in MachineSet/InfraMachineTemplate/BootstrapConfigTemplate spec.template.spec have to be covered by patches
 - Patches must be in JSONPatch or JSONMergePatch format
 
 ### UpdateMachine
@@ -240,17 +240,17 @@ desired:
       namespace: test-ns
     spec:
       ...
-  infrastructureMachineTemplate:
+  infrastructureMachine:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-    kind: VSphereMachineTemplate
+    kind: VSphereMachine
     metadata:
       name: test-cluster
       namespace: test-ns
     spec:
       ...
-  boostrapConfigTemplate:
+  boostrapConfig:
     apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-    kind: KubeadmConfigTemplate
+    kind: KubeadmConfig
     metadata:
       name: test-cluster
       namespace: test-ns
@@ -266,7 +266,7 @@ Example Response:
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
-kind: UpdateMachineSetResponse
+kind: UpdateMachineResponse
 status: Success # or Failure
 message: "error message if status == Failure"
 retryAfterSeconds: 10

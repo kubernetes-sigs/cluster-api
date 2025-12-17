@@ -166,9 +166,10 @@ sequenceDiagram
     Machine Controller->>RX: UpdateMachine(desired state)
     RX-->>Machine Controller: Status: Done
     
+    Machine Controller->>M1: Remove annotation "update-in-progress"
     Machine Controller->>IM1: Remove annotation "update-in-progress"
     Machine Controller->>KC1: Remove annotation "update-in-progress"
-    Machine Controller->>M1: Remove annotation "update-in-progress"<br/>Remove "UpdateMachine" from "pending-hooks"
+    Machine Controller->>M1: Remove "UpdateMachine" from "pending-hooks"
 ```
 
 Workflow #3: The KCP controller waits for in-place update to complete before proceeding with further operations.
@@ -199,7 +200,7 @@ To enable correct in-place updates of BootstrapConfigs and InfraMachines, CAPI v
 
 ### A "two field managers" approach
 
-The refactoring uses **two separate field managers** to enable different responsibilities:
+The refactoring uses **two separate field managers** to enable different responsibilities for BootstrapConfigs/InfraMachines:
 
 1. **Metadata manager** (`capi-kubeadmcontrolplane-metadata` / `capi-machineset-metadata`):
    - Continuously syncs labels and annotations
@@ -249,7 +250,7 @@ When triggering in-place updates:
 1. Apply BootstrapConfig/InfraMachine with:
    - Updated spec (owned by the spec manager)
    - `update-in-progress` annotation (owned by spec manager)
-   - For InfraMachine: `cloned-from` annotations (owned by the spec manager)
+   - For InfraMachine and MachineSet Machine BootstrapConfig: `cloned-from` annotations (owned by the spec manager)
 
 2. Result after the in-place update trigger:
    - labels and annotations are owned by the metadata manager

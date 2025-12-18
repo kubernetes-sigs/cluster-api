@@ -18,7 +18,6 @@ package clustercache
 
 import (
 	"context"
-	"crypto/rsa"
 	"fmt"
 	"os"
 	"strings"
@@ -142,16 +141,6 @@ type ClusterCache interface {
 	// GetRESTConfig returns a REST config for the given cluster.
 	// If there is no connection to the workload cluster ErrClusterNotConnected will be returned.
 	GetRESTConfig(ctx context.Context, cluster client.ObjectKey) (*rest.Config, error)
-
-	// GetClientCertificatePrivateKey returns a private key that is generated once for a cluster
-	// and can then be used to generate client certificates. This is e.g. used in KCP to generate a client
-	// cert to communicate with etcd.
-	// This private key is stored and cached in the ClusterCache because it's expensive to generate a new
-	// private key in every single Reconcile.
-	//
-	// Deprecated: This method is deprecated and will be removed in a future release as caching a rsa.PrivateKey
-	// is outside the scope of the ClusterCache.
-	GetClientCertificatePrivateKey(ctx context.Context, cluster client.ObjectKey) (*rsa.PrivateKey, error)
 
 	// Watch watches a workload cluster for events.
 	// Each unique watch (by input.Name) is only added once after a Connect (otherwise we return early).
@@ -417,14 +406,6 @@ func (cc *clusterCache) GetRESTConfig(ctx context.Context, cluster client.Object
 		return nil, errors.Wrapf(ErrClusterNotConnected, "error getting REST config")
 	}
 	return accessor.GetRESTConfig(ctx)
-}
-
-func (cc *clusterCache) GetClientCertificatePrivateKey(ctx context.Context, cluster client.ObjectKey) (*rsa.PrivateKey, error) {
-	accessor := cc.getClusterAccessor(cluster)
-	if accessor == nil {
-		return nil, errors.New("error getting client certificate private key: private key was not generated yet")
-	}
-	return accessor.GetClientCertificatePrivateKey(ctx), nil
 }
 
 func (cc *clusterCache) Watch(ctx context.Context, cluster client.ObjectKey, watcher Watcher) error {
@@ -698,12 +679,6 @@ func shouldSendEvent(now, lastProbeSuccessTime, lastEventSentTime time.Time, did
 // This method should only be used for tests and is not part of the public ClusterCache interface.
 func (cc *clusterCache) SetConnectionCreationRetryInterval(interval time.Duration) {
 	cc.clusterAccessorConfig.ConnectionCreationRetryInterval = interval
-}
-
-// DisablePrivateKeyGeneration can be used to disable the creation of cluster cert private key on clusteraccessor.
-// This method should only be used for tests and is not part of the public ClusterCache interface.
-func (cc *clusterCache) DisablePrivateKeyGeneration() {
-	cc.clusterAccessorConfig.DisableClientCertificatePrivateKey = true
 }
 
 // Shutdown can be used to shut down the ClusterCache in unit tests.

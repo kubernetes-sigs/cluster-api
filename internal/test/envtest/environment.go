@@ -38,6 +38,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -617,7 +618,7 @@ func (e *Environment) DeleteAndWait(ctx context.Context, obj client.Object, opts
 // PatchAndWait creates or updates the given object using server-side apply and waits for the cache to be updated accordingly.
 //
 // NOTE: Waiting for the cache to be updated helps in preventing test flakes due to the cache sync delays.
-func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, opts ...client.PatchOption) error {
+func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, opts ...client.ApplyOption) error {
 	objGVK, err := apiutil.GVKForObject(obj, e.Scheme())
 	if err != nil {
 		return errors.Wrapf(err, "failed to get GVK to set GVK on object")
@@ -636,8 +637,24 @@ func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, opts 
 	// Store old resource version, empty string if not found.
 	oldResourceVersion := objCopy.GetResourceVersion()
 
-	if err := e.Patch(ctx, obj, client.Apply, opts...); err != nil {
+	// Convert to Unstructured because Apply only works with ApplyConfigurations and Unstructured.
+	objUnstructured := &unstructured.Unstructured{}
+	switch obj.(type) {
+	case *unstructured.Unstructured:
+		objUnstructured = obj.DeepCopyObject().(*unstructured.Unstructured)
+	default:
+		if err := e.Scheme().Convert(obj, objUnstructured, nil); err != nil {
+			return errors.Wrap(err, "failed to convert object to Unstructured")
+		}
+	}
+
+	if err := e.Apply(ctx, client.ApplyConfigurationFromUnstructured(objUnstructured), opts...); err != nil {
 		return err
+	}
+
+	// Write back the modified object so callers can access the patched object.
+	if err := e.Scheme().Convert(objUnstructured, obj, ctx); err != nil {
+		return errors.Wrapf(err, "failed to write object")
 	}
 
 	// Makes sure the cache is updated with the new object

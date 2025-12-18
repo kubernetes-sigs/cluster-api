@@ -191,7 +191,7 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			wantErr: "MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: " +
-				"spec.machines: Invalid value: \"array\": entries in machines must be unique",
+				"spec.machines: Invalid value: entries in machines must be unique",
 		},
 		{
 			name: "Return error if pod selectors are not unique",
@@ -233,7 +233,7 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			wantErr: "MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: " +
-				"spec.pods: Invalid value: \"array\": entries in pods must be unique",
+				"spec.pods: Invalid value: entries in pods must be unique",
 		},
 	}
 

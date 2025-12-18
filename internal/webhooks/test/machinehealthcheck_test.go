@@ -84,7 +84,7 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 				},
 			},
 			wantErr: "MachineHealthCheck.cluster.x-k8s.io \"mhc\" is invalid: " +
-				"spec.checks.unhealthyMachineConditions[0].type: Invalid value: \"string\": type must not be one of: Ready, Available, HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated",
+				"spec.checks.unhealthyMachineConditions[0].type: Invalid value: \"Ready\": type must not be one of: Ready, Available, HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated",
 		},
 		{
 			name: "Return error if UnhealthyMachineCondition type is 'Available'",
@@ -112,7 +112,7 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 				},
 			},
 			wantErr: "MachineHealthCheck.cluster.x-k8s.io \"mhc\" is invalid: " +
-				"spec.checks.unhealthyMachineConditions[0].type: Invalid value: \"string\": type must not be one of: Ready, Available, HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated",
+				"spec.checks.unhealthyMachineConditions[0].type: Invalid value: \"Available\": type must not be one of: Ready, Available, HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated",
 		},
 		{
 			name: "Return error if UnhealthyMachineCondition type is 'HealthCheckSucceeded'",
@@ -140,7 +140,7 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 				},
 			},
 			wantErr: "MachineHealthCheck.cluster.x-k8s.io \"mhc\" is invalid: " +
-				"spec.checks.unhealthyMachineConditions[0].type: Invalid value: \"string\": type must not be one of: Ready, Available, HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated",
+				"spec.checks.unhealthyMachineConditions[0].type: Invalid value: \"HealthCheckSucceeded\": type must not be one of: Ready, Available, HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated",
 		},
 		{
 			name: "Return error if UnhealthyMachineCondition type is 'OwnerRemediated'",
@@ -168,7 +168,7 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 				},
 			},
 			wantErr: "MachineHealthCheck.cluster.x-k8s.io \"mhc\" is invalid: " +
-				"spec.checks.unhealthyMachineConditions[0].type: Invalid value: \"string\": type must not be one of: Ready, Available, HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated",
+				"spec.checks.unhealthyMachineConditions[0].type: Invalid value: \"OwnerRemediated\": type must not be one of: Ready, Available, HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated",
 		},
 		{
 			name: "Return error if UnhealthyMachineCondition type is 'ExternallyRemediated'",
@@ -196,7 +196,7 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 				},
 			},
 			wantErr: "MachineHealthCheck.cluster.x-k8s.io \"mhc\" is invalid: " +
-				"spec.checks.unhealthyMachineConditions[0].type: Invalid value: \"string\": type must not be one of: Ready, Available, HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated",
+				"spec.checks.unhealthyMachineConditions[0].type: Invalid value: \"ExternallyRemediated\": type must not be one of: Ready, Available, HealthCheckSucceeded, OwnerRemediated, ExternallyRemediated",
 		},
 		{
 			name: "Return no error if UnhealthyMachineCondition type is allowed custom type",

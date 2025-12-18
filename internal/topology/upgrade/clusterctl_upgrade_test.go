@@ -129,10 +129,10 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	g.Eventually(func() error {
 		cluster1Refs, err = getClusterTopologyReferences(cluster1, "v1beta1",
 			checkOmittableFromPatchesField(omittableFieldsMustNotBeSet), // The defaulting webhook drops the omittable field when using v1beta1.
-			checkPtrTypeToType(),                                        // "" should never show up in the yaml ("" is not a valid value).
-			checkTypeToPtrType(),                                        // zero or false should never show up due to omitempty (mutating webhook is dropping omitempty values).
-			checkDurationToPtrInt32(zeroSecondsMustBeSet),               // metav1.Duration is marshalled as 0s.
-			checkTypeToOmitZeroType(zeroMustBeSet),                      // zero value should show up (no omitzero).
+			checkPtrTypeToType(),                          // "" should never show up in the yaml ("" is not a valid value).
+			checkTypeToPtrType(),                          // zero or false should never show up due to omitempty (mutating webhook is dropping omitempty values).
+			checkDurationToPtrInt32(zeroSecondsMustBeSet), // metav1.Duration is marshalled as 0s.
+			checkTypeToOmitZeroType(zeroMustBeSet),        // zero value should show up (no omitzero).
 		)
 		if err != nil {
 			return err
@@ -187,10 +187,10 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	g.Eventually(func() error {
 		cluster1RefsNew, err = getClusterTopologyReferences(cluster1, "v1beta2",
 			checkOmittableFromPatchesField(omittableFieldsMustBeSet), // The defaulting webhook does not drop the omittable field anymore when using v1beta2.
-			checkPtrTypeToType(),                                     // "" should never show up in the yaml due to omitempty (we set to "" in conversion, but omitempty drops it from yaml).
-			checkTypeToPtrType(),                                     // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
-			checkDurationToPtrInt32(zeroSecondsMustNotBeSet),         // 0 should never show up (we drop 0 on conversion, we assume implicitly set)
-			checkTypeToOmitZeroType(zeroMustNotBeSet),                // zero value must not show up (omitzero through conversion).
+			checkPtrTypeToType(),                             // "" should never show up in the yaml due to omitempty (we set to "" in conversion, but omitempty drops it from yaml).
+			checkTypeToPtrType(),                             // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
+			checkDurationToPtrInt32(zeroSecondsMustNotBeSet), // 0 should never show up (we drop 0 on conversion, we assume implicitly set)
+			checkTypeToOmitZeroType(zeroMustNotBeSet),        // zero value must not show up (omitzero through conversion).
 		)
 		if err != nil {
 			return err
@@ -209,10 +209,10 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	g.Eventually(func() error {
 		cluster2Refs, err = getClusterTopologyReferences(cluster2, "v1beta2",
 			checkOmittableFromPatchesField(omittableFieldsMustNotBeSet), // The conversion webhook drops the omittable field when using v1beta1.
-			checkPtrTypeToType(),                                        // "" should never show up in the yaml ("" is not a valid value).
-			checkTypeToPtrType(),                                        // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
-			checkDurationToPtrInt32(zeroSecondsMustNotBeSet),            // 0 should never show up (we drop 0 on conversion, we assume implicitly set)
-			checkTypeToOmitZeroType(zeroMustNotBeSet),                   // zero value must not show up (omitzero through conversion, also not a valid value).
+			checkPtrTypeToType(),                             // "" should never show up in the yaml ("" is not a valid value).
+			checkTypeToPtrType(),                             // zero or false should never show up (we drop zero or false on conversion, we assume implicitly set)
+			checkDurationToPtrInt32(zeroSecondsMustNotBeSet), // 0 should never show up (we drop 0 on conversion, we assume implicitly set)
+			checkTypeToOmitZeroType(zeroMustNotBeSet),        // zero value must not show up (omitzero through conversion, also not a valid value).
 		)
 		if err != nil {
 			return err
@@ -236,10 +236,10 @@ func TestAPIAndWebhookChanges(t *testing.T) {
 	g.Eventually(func() error {
 		cluster2RefsNew, err = getClusterTopologyReferences(cluster2, "v1beta2",
 			checkOmittableFromPatchesField(omittableFieldsMustBeSet), // The defaulting webhook do not drop anymore the omittable field when using v1beta2.
-			checkPtrTypeToType(),                                     // "" should never show up in the yaml due to omitempty (also not a valid value).
-			checkTypeToPtrType(),                                     // zero or false should never show up (it will show up if someone explicitly set zero or false)
-			checkDurationToPtrInt32(zeroSecondsMustNotBeSet),         // 0 should never show up (it will show up if someone explicitly sets 0)
-			checkTypeToOmitZeroType(zeroMustNotBeSet),                // zero value must not show up (omitzero, also not a valid value).
+			checkPtrTypeToType(),                             // "" should never show up in the yaml due to omitempty (also not a valid value).
+			checkTypeToPtrType(),                             // zero or false should never show up (it will show up if someone explicitly set zero or false)
+			checkDurationToPtrInt32(zeroSecondsMustNotBeSet), // 0 should never show up (it will show up if someone explicitly sets 0)
+			checkTypeToOmitZeroType(zeroMustNotBeSet),        // zero value must not show up (omitzero, also not a valid value).
 		)
 		if err != nil {
 			return err

@@ -306,6 +306,10 @@ linters:
           - importas
         text: 'imported as ".*" but must be ".*" according to config'
         path: util/deprecated/v1beta1/.*\.go$
+      # Excludes for controller-runtime deprecations that we should migrate away from sooner or later
+      - linters:
+          - staticcheck
+        text: 'SA1019: (env|mgr).GetEventRecorderFor is deprecated'
         # Exclude some packages or code to require comments, for example test code, or fake clients.
       - linters:
           - revive

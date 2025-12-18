@@ -2709,18 +2709,6 @@ func TestMachineSetReconciler_createMachines(t *testing.T) {
 				infraTmpl,
 			).WithInterceptorFuncs(tt.interceptorFuncs(&i)).Build()
 
-			// TODO(controller-runtime-0.23): This workaround is needed because controller-runtime v0.22 does not set resourceVersion correctly with SSA (fixed with v0.23).
-			fakeClient = interceptor.NewClient(fakeClient, interceptor.Funcs{
-				Apply: func(ctx context.Context, c client.WithWatch, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
-					clientObject, ok := obj.(client.Object)
-					if !ok {
-						return errors.Errorf("error during object creation: unexpected ApplyConfiguration")
-					}
-					clientObject.SetResourceVersion("1")
-					return c.Apply(ctx, obj, opts...)
-				},
-			})
-
 			r := &Reconciler{
 				Client:   fakeClient,
 				recorder: record.NewFakeRecorder(32),

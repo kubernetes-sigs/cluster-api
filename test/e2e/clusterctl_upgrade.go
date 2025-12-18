@@ -28,7 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	coordinationv1 "k8s.io/api/coordination/v1"
@@ -55,7 +54,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/version"
 )
 
 // ClusterctlUpgradeSpecInput is the input for ClusterctlUpgradeSpec.
@@ -748,29 +746,15 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				}
 			}
 
-			// Note: It is a known issue on Kubernetes < v1.29 that SSA sometimes fail:
-			// https://github.com/kubernetes/kubernetes/issues/117356
-			tries := 1
-			initKubernetesVersionParsed, err := semver.ParseTolerant(initKubernetesVersion)
-			Expect(err).ToNot(HaveOccurred())
-			if version.Compare(initKubernetesVersionParsed, semver.MustParse("1.29.0"), version.WithoutPreReleases()) < 0 {
-				tries = 10
-			}
-			for range tries {
-				Byf("[%d] Verify client-side SSA still works", i)
-				clusterUpdate := &unstructured.Unstructured{}
-				clusterUpdate.SetGroupVersionKind(clusterv1beta1.GroupVersion.WithKind("Cluster"))
-				clusterUpdate.SetNamespace(workloadCluster.Namespace)
-				clusterUpdate.SetName(workloadCluster.Name)
-				clusterUpdate.SetLabels(map[string]string{
-					fmt.Sprintf("test-label-upgrade-%d", i): "test-label-value",
-				})
-				err = managementClusterProxy.GetClient().Patch(ctx, clusterUpdate, client.Apply, client.FieldOwner("e2e-test-client"))
-				if err == nil {
-					break
-				}
-			}
-			Expect(err).ToNot(HaveOccurred())
+			Byf("[%d] Verify client-side SSA still works", i)
+			clusterUpdate := &unstructured.Unstructured{}
+			clusterUpdate.SetGroupVersionKind(clusterv1beta1.GroupVersion.WithKind("Cluster"))
+			clusterUpdate.SetNamespace(workloadCluster.Namespace)
+			clusterUpdate.SetName(workloadCluster.Name)
+			clusterUpdate.SetLabels(map[string]string{
+				fmt.Sprintf("test-label-upgrade-%d", i): "test-label-value",
+			})
+			Expect(managementClusterProxy.GetClient().Patch(ctx, clusterUpdate, client.Apply, client.FieldOwner("e2e-test-client"))).To(Succeed())
 
 			Byf("[%d] THE UPGRADED MANAGEMENT CLUSTER WORKS!", i)
 		}

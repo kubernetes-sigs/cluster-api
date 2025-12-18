@@ -2,7 +2,7 @@
 
 clusterctl_cmd = "./bin/clusterctl"
 kubectl_cmd = "kubectl"
-kubernetes_version = "v1.34.0"
+kubernetes_version = "v1.35.0"
 
 load("ext://uibutton", "cmd_button", "location", "text_input")
 

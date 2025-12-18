@@ -46,7 +46,7 @@ func TestReconcile(t *testing.T) {
 
 	// Using synctest with Go 1.24 requires setting the GOEXPERIMENT env var to synctest.
 	// In Intellij this can be done via Settings > Language & Frameworks > Go > Build Tags > Experiments
-	synctest.Run(func() {
+	synctest.Test(t, func(t *testing.T) {
 		g := NewWithT(t)
 
 		var reconcileCounter int
@@ -146,7 +146,7 @@ func TestReconcileMetrics(t *testing.T) {
 
 	// Using synctest with Go 1.24 requires setting the GOEXPERIMENT env var to synctest.
 	// In Intellij this can be done via Settings > Language & Frameworks > Go > Build Tags > Experiments
-	synctest.Run(func() {
+	synctest.Test(t, func(t *testing.T) {
 		g := NewWithT(t)
 
 		r := reconcilerWrapper{

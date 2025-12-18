@@ -23,17 +23,13 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.24.11
-GO_DIRECTIVE_VERSION ?= 1.24.0
+GO_VERSION ?= 1.25.5
+GO_DIRECTIVE_VERSION ?= 1.25.0
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
 # Ensure correct toolchain is used
 GOTOOLCHAIN = go$(GO_VERSION)
 export GOTOOLCHAIN
-
-# Required with Go 1.24 to enable usage of synctest in unit tests
-# Can be removed after we bumped to Go 1.25.
-export GOEXPERIMENT=synctest
 
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
@@ -195,7 +191,7 @@ TRIAGE_PARTY_VERSION ?= v1.6.0
 CONVERSION_VERIFIER_BIN := conversion-verifier
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN))
 
-OPENAPI_GEN_VER := 2c72e55 # main branch as of 03.01.2025
+OPENAPI_GEN_VER := 4e65d59 # main branch as of 12.18.2025
 OPENAPI_GEN_BIN := openapi-gen
 # We are intentionally using the binary without version suffix, to avoid the version
 # in generated files.

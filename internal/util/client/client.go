@@ -20,13 +20,13 @@ package client
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/resourceversion"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -88,7 +88,7 @@ func checkIfObjectUpToDate(ctx context.Context, c client.Client, desiredObj desi
 		return false, err
 	}
 
-	cmp, err := compareResourceVersion(desiredObj.Object.GetResourceVersion(), desiredObj.MinimumResourceVersion)
+	cmp, err := resourceversion.CompareResourceVersion(desiredObj.Object.GetResourceVersion(), desiredObj.MinimumResourceVersion)
 	if err != nil {
 		// Unexpected error occurred: invalid resourceVersion (not retryable).
 		return false, errors.Wrapf(err, "%s: cannot compare with invalid resourceVersion: current: %s, expected to be >= %s",
@@ -226,70 +226,4 @@ func waitFor[T client.Object](ctx context.Context, c client.Client, action strin
 	}
 
 	return nil
-}
-
-type invalidResourceVersion struct {
-	rv string
-}
-
-func (i invalidResourceVersion) Error() string {
-	return fmt.Sprintf("resource version is not well formed: %s", i.rv)
-}
-
-// compareResourceVersion runs a comparison between two ResourceVersions. This
-// only has semantic meaning when the comparison is done on two objects of the
-// same resource. The return values are:
-//
-//	-1: If RV a < RV b
-//	 0: If RV a == RV b
-//	+1: If RV a > RV b
-//
-// The function will return an error if the resource version is not a properly
-// formatted positive integer, but has no restriction on length. A properly
-// formatted integer will not contain leading zeros or non integer characters.
-// Zero is also considered an invalid value as it is used as a special value in
-// list/watch events and will never be a live resource version.
-// TODO(controller-runtime-0.23): This code has been copied from
-// https://github.com/kubernetes/kubernetes/blob/v1.35.0-alpha.2/staging/src/k8s.io/apimachinery/pkg/util/resourceversion/resourceversion.go
-// and will be removed once we bump to CR v0.23 / k8s.io/apimachinery v1.35.0.
-func compareResourceVersion(a, b string) (int, error) {
-	if !isWellFormed(a) {
-		return 0, invalidResourceVersion{rv: a}
-	}
-	if !isWellFormed(b) {
-		return 0, invalidResourceVersion{rv: b}
-	}
-	// both are well-formed integer strings with no leading zeros
-	aLen := len(a)
-	bLen := len(b)
-	switch {
-	case aLen < bLen:
-		// shorter is less
-		return -1, nil
-	case aLen > bLen:
-		// longer is greater
-		return 1, nil
-	default:
-		// equal-length compares lexically
-		return strings.Compare(a, b), nil
-	}
-}
-
-func isWellFormed(s string) bool {
-	if len(s) == 0 { //nolint:gocritic // not going to modify code copied from upstream
-		return false
-	}
-	if s[0] == '0' {
-		return false
-	}
-	for i := range s {
-		if !isDigit(s[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-func isDigit(b byte) bool {
-	return b >= '0' && b <= '9'
 }

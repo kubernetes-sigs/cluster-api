@@ -67,6 +67,7 @@ const (
 	// instead of the default queue implementation.
 	//
 	// alpha: v1.10
+	// beta: v1.13
 	PriorityQueue featuregate.Feature = "PriorityQueue"
 
 	// ReconcilerRateLimiting is a feature gate that controls if reconcilers are rate-limited.
@@ -96,7 +97,7 @@ var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	MachinePool:               {Default: true, PreRelease: featuregate.Beta},
 	MachineSetPreflightChecks: {Default: true, PreRelease: featuregate.Beta},
 	MachineWaitForVolumeDetachConsiderVolumeAttachments: {Default: true, PreRelease: featuregate.Beta},
-	PriorityQueue:                  {Default: false, PreRelease: featuregate.Alpha},
+	PriorityQueue:                  {Default: true, PreRelease: featuregate.Beta},
 	ReconcilerRateLimiting:         {Default: false, PreRelease: featuregate.Alpha},
 	ClusterTopology:                {Default: false, PreRelease: featuregate.Alpha},
 	KubeadmBootstrapFormatIgnition: {Default: false, PreRelease: featuregate.Alpha},

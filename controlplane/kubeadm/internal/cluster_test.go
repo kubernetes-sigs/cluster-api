@@ -339,6 +339,8 @@ func (f *fakeClient) Get(_ context.Context, key client.ObjectKey, obj client.Obj
 	switch l := item.(type) {
 	case *corev1.Pod:
 		l.DeepCopyInto(obj.(*corev1.Pod))
+	case *corev1.Node:
+		l.DeepCopyInto(obj.(*corev1.Node))
 	case *rbacv1.RoleBinding:
 		l.DeepCopyInto(obj.(*rbacv1.RoleBinding))
 	case *rbacv1.Role:

@@ -205,9 +205,9 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.6=>current)", Flake
 */
 
 // Note: This test should be changed during "prepare main branch", it should test n-3 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>current) [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-3 latest stable release
-	version := "1.9"
+	version := "1.10"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -227,8 +227,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 			InitWithProvidersContract:       "v1beta1",
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
-			InitWithKubernetesVersion:   "v1.32.0",
-			WorkloadKubernetesVersion:   "v1.32.0",
+			InitWithKubernetesVersion:   "v1.33.0",
+			WorkloadKubernetesVersion:   "v1.33.0",
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
 			UseKindForManagementCluster: true,
@@ -237,9 +237,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-2 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>current) [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.11=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-2 latest stable release
-	version := "1.10"
+	version := "1.11"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -268,8 +268,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>cu
 			},
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
-			InitWithKubernetesVersion:   "v1.33.0",
-			WorkloadKubernetesVersion:   "v1.33.0",
+			InitWithKubernetesVersion:   "v1.34.0",
+			WorkloadKubernetesVersion:   "v1.34.0",
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
 			UseKindForManagementCluster: true,
@@ -278,9 +278,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>cu
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-1 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.11=>current) [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>current) [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-1 latest stable release
-	version := "1.11"
+	version := "1.12"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -303,8 +303,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.11=>cu
 			},
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
-			InitWithKubernetesVersion:   "v1.34.0",
-			WorkloadKubernetesVersion:   "v1.34.0",
+			InitWithKubernetesVersion:   "v1.35.0",
+			WorkloadKubernetesVersion:   "v1.35.0",
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
 			UseKindForManagementCluster: false, // Using false for one test case to ensure this code path of the test keeps working.
@@ -313,9 +313,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.11=>cu
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-1 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.11=>current) on K8S latest ci mgmt cluster [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>current) on K8S latest ci mgmt cluster [ClusterClass]", Label("ClusterClass"), func() {
 	// Get n-1 latest stable release
-	version := "1.11"
+	version := "1.12"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
@@ -342,7 +342,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.11=>cu
 			// Note: WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
 			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
 			InitWithKubernetesVersion:   initKubernetesVersion,
-			WorkloadKubernetesVersion:   "v1.34.0",
+			WorkloadKubernetesVersion:   "v1.35.0",
 			MgmtFlavor:                  "topology",
 			WorkloadFlavor:              "topology",
 			UseKindForManagementCluster: true,

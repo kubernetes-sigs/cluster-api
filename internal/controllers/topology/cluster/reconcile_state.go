@@ -524,11 +524,12 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 		return nil
 	}
 
-	changes := patchHelper.Changes()
-	if len(changes) == 0 {
+	diff := patchHelper.Diff()
+	patchData := patchHelper.PatchData()
+	if diff == "" && patchData == "" {
 		log.Info("Patching Cluster")
 	} else {
-		log.Info("Patching Cluster", "diff", string(changes))
+		log.Info("Patching Cluster", "diff", diff, "patch", patchData)
 	}
 	modifiedResourceVersion, err := patchHelper.Patch(ctx)
 	if err != nil {
@@ -808,11 +809,12 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 		return nil
 	}
 
-	changes := patchHelper.Changes()
-	if len(changes) == 0 {
+	diff := patchHelper.Diff()
+	patchData := patchHelper.PatchData()
+	if diff == "" && patchData == "" {
 		log.Info("Patching MachineDeployment")
 	} else {
-		log.Info("Patching MachineDeployment", "diff", string(changes))
+		log.Info("Patching MachineDeployment", "diff", diff, "patch", patchData)
 	}
 	modifiedResourceVersion, err := patchHelper.Patch(ctx)
 	if err != nil {
@@ -1072,11 +1074,12 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, mpTo
 		return nil
 	}
 
-	changes := patchHelper.Changes()
-	if len(changes) == 0 {
+	diff := patchHelper.Diff()
+	patchData := patchHelper.PatchData()
+	if diff == "" && patchData == "" {
 		log.Info("Patching MachinePool")
 	} else {
-		log.Info("Patching MachinePool", "diff", string(changes))
+		log.Info("Patching MachinePool", "diff", diff, "patch", patchData)
 	}
 	modifiedResourceVersion, err := patchHelper.Patch(ctx)
 	if err != nil {
@@ -1222,11 +1225,12 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 		return false, nil
 	}
 
-	changes := patchHelper.Changes()
-	if len(changes) == 0 {
+	diff := patchHelper.Diff()
+	patchData := patchHelper.PatchData()
+	if diff == "" && patchData == "" {
 		log.Info(fmt.Sprintf("Patching %s", in.desired.GetKind()))
 	} else {
-		log.Info(fmt.Sprintf("Patching %s", in.desired.GetKind()), "diff", string(changes))
+		log.Info(fmt.Sprintf("Patching %s", in.desired.GetKind()), "diff", diff, "patch", patchData)
 	}
 	if _, err := patchHelper.Patch(ctx); err != nil {
 		return false, errors.Wrapf(err, "failed to patch %s %s", in.current.GetKind(), klog.KObj(in.current))
@@ -1317,11 +1321,12 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	// If there are no changes in the spec, and thus only changes in metadata, instead of doing a full template
 	// rotation we patch the object in place. This avoids recreating machines.
 	if !patchHelper.HasSpecChanges() {
-		changes := patchHelper.Changes()
-		if len(changes) == 0 {
+		diff := patchHelper.Diff()
+		patchData := patchHelper.PatchData()
+		if diff == "" && patchData == "" {
 			log.Info(fmt.Sprintf("Patching %s", in.desired.GetKind()))
 		} else {
-			log.Info(fmt.Sprintf("Patching %s", in.desired.GetKind()), "diff", string(changes))
+			log.Info(fmt.Sprintf("Patching %s", in.desired.GetKind()), "diff", diff, "patch", patchData)
 		}
 		if _, err := patchHelper.Patch(ctx); err != nil {
 			return false, errors.Wrapf(err, "failed to patch %s %s", in.desired.GetKind(), klog.KObj(in.desired))
@@ -1337,11 +1342,12 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	newName := names.SimpleNameGenerator.GenerateName(in.templateNamePrefix)
 	in.desired.SetName(newName)
 
-	changes := patchHelper.Changes()
-	if len(changes) == 0 {
+	diff := patchHelper.Diff()
+	patchData := patchHelper.PatchData()
+	if diff == "" && patchData == "" {
 		log.Info(fmt.Sprintf("Rotating %s, new name %s", in.current.GetKind(), newName))
 	} else {
-		log.Info(fmt.Sprintf("Rotating %s, new name %s", in.current.GetKind(), newName), "diff", string(changes))
+		log.Info(fmt.Sprintf("Rotating %s, new name %s", in.current.GetKind(), newName), "diff", diff, "patch", patchData)
 	}
 	log.Info(fmt.Sprintf("Creating %s", in.current.GetKind()))
 	helper, err := structuredmerge.NewServerSidePatchHelper(ctx, nil, in.desired, r.Client, r.ssaCache)

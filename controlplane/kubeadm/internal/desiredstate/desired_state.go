@@ -49,6 +49,12 @@ var (
 	// the spec.clusterIP field selector that is only implemented in kube-apiserver >= 1.31.0).
 	minKubernetesVersionControlPlaneKubeletLocalMode = semver.MustParse("1.31.0")
 
+	// maxKubernetesVersionControlPlaneKubeletLocalMode is the max version for which
+	// we will enable the ControlPlaneKubeletLocalMode kubeadm feature gate.
+	// Starting with Kubernetes 1.36, this feature graduated to GA and the feature gate
+	// is no longer needed (and will be removed in future K8s versions).
+	maxKubernetesVersionControlPlaneKubeletLocalMode = semver.MustParse("1.36.0")
+
 	// ControlPlaneKubeletLocalMode is a feature gate of kubeadm that ensures
 	// kubelets only communicate with the local apiserver.
 	ControlPlaneKubeletLocalMode = "ControlPlaneKubeletLocalMode"
@@ -298,7 +304,13 @@ func ComputeDesiredInfraMachine(ctx context.Context, c client.Client, kcp *contr
 
 // DefaultFeatureGates defaults the feature gates field.
 func DefaultFeatureGates(kubeadmConfigSpec *bootstrapv1.KubeadmConfigSpec, kubernetesVersion semver.Version) {
+	// Only set ControlPlaneKubeletLocalMode for Kubernetes versions 1.31 <= version < 1.36
+	// For K8s < 1.31: feature gate doesn't exist
+	// For K8s >= 1.36: feature graduated to GA and gate is no longer needed
 	if version.Compare(kubernetesVersion, minKubernetesVersionControlPlaneKubeletLocalMode, version.WithoutPreReleases()) < 0 {
+		return
+	}
+	if version.Compare(kubernetesVersion, maxKubernetesVersionControlPlaneKubeletLocalMode, version.WithoutPreReleases()) >= 0 {
 		return
 	}
 

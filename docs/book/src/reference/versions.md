@@ -450,6 +450,11 @@ for the Management clusters.
 
 ### Kubernetes version specific notes
 
+**1.36**:
+
+* Kubeadm Bootstrap provider:
+  * The `ControlPlaneKubeletLocalMode` feature gate graduated to GA and is enabled by default. CAPI will no longer set this feature gate explicitly for Kubernetes 1.36+. For Kubernetes versions 1.31-1.35, CAPI continues to set it automatically to ensure kubelet continues working during control plane upgrades.
+
 **1.31**:
 
 * All providers:

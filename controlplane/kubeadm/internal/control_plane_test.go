@@ -549,6 +549,14 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 			name: "taint is missing if defined at machine level, but not present on the node",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Spec: clusterv1.MachineSpec{
+					Taints: []clusterv1.MachineTaint{
+						{
+							Key:    labelNodeRoleControlPlane,
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					},
+				},
 			},
 			kubeadmConfig: &bootstrapv1.KubeadmConfig{},
 			node:          &corev1.Node{},
@@ -594,7 +602,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 							Taints: &[]corev1.Taint{
 								{
 									Key:    labelNodeRoleControlPlane,
-									Effect: corev1.TaintEffectNoExecute,
+									Effect: corev1.TaintEffectNoSchedule,
 								},
 							},
 						},
@@ -617,7 +625,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 							Taints: &[]corev1.Taint{
 								{
 									Key:    labelNodeRoleControlPlane,
-									Effect: corev1.TaintEffectNoExecute,
+									Effect: corev1.TaintEffectNoSchedule,
 								},
 							},
 						},
@@ -645,7 +653,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "taint is not missing if kubeadm join taints includes the default taint, but not present on the node",
+			name: "taint is not missing if kubeadm join taints does not include the default taint",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
 			},

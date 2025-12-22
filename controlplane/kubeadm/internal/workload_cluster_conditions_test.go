@@ -1247,7 +1247,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			g.Expect(*conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition)).To(conditions.MatchCondition(tt.expectedKCPCondition, conditions.IgnoreLastTransitionTime(true)))
 
 			for _, m := range tt.machines {
-				if tt.expectedKCPV1Beta1Condition != nil {
+				if tt.expectedMachineV1Beta1Conditions != nil {
 					g.Expect(tt.expectedMachineV1Beta1Conditions).To(HaveKey(m.Name))
 					g.Expect(m.GetV1Beta1Conditions()).To(v1beta1conditions.MatchConditions(tt.expectedMachineV1Beta1Conditions[m.Name]))
 				}

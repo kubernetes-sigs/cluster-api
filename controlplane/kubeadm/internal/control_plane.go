@@ -505,7 +505,7 @@ func (c *ControlPlane) DefaultTaintIsMissing(machine *clusterv1.Machine, node *c
 		// is to leave the taint there indefinitely or to remove it at some point.
 		// However, this func assumes that once the default taint is added it should remain because this is what makes most sense in KCP.
 		for _, t := range machine.Spec.Taints {
-			if t.Key == labelNodeRoleControlPlane && t.Effect == corev1.TaintEffectNoExecute {
+			if t.Key == labelNodeRoleControlPlane && t.Effect == corev1.TaintEffectNoSchedule {
 				return true
 			}
 		}
@@ -514,12 +514,12 @@ func (c *ControlPlane) DefaultTaintIsMissing(machine *clusterv1.Machine, node *c
 		// Note: kubeadm adds the default taint on node creation; KCP cannot determine if the user intent is to leave
 		// the taint there indefinitely or to remove it at some point.
 		// However, this func assumes that once the default taint is added it should remain because this is what makes most sense in KCP.
-		if c, ok := c.KubeadmConfigs[machine.Name]; ok {
+		if kubeadmConfig, ok := c.KubeadmConfigs[machine.Name]; ok {
 			var kubeadmTaints *[]corev1.Taint
-			if c.Spec.JoinConfiguration.IsDefined() {
-				kubeadmTaints = c.Spec.JoinConfiguration.NodeRegistration.Taints
+			if isKubeadmConfigForJoin(kubeadmConfig) {
+				kubeadmTaints = kubeadmConfig.Spec.JoinConfiguration.NodeRegistration.Taints
 			} else {
-				kubeadmTaints = c.Spec.InitConfiguration.NodeRegistration.Taints
+				kubeadmTaints = kubeadmConfig.Spec.InitConfiguration.NodeRegistration.Taints
 			}
 
 			// If node registration taints are nil, the node should have the default kubeadm taint (kubeadm adds it by default when nothing else is specified).
@@ -529,7 +529,7 @@ func (c *ControlPlane) DefaultTaintIsMissing(machine *clusterv1.Machine, node *c
 
 			// If the default taint is in the list of taints at node registration level, the node should have the default kubeadm taint.
 			for _, t := range *kubeadmTaints {
-				if t.Key == labelNodeRoleControlPlane && t.Effect == corev1.TaintEffectNoExecute {
+				if t.Key == labelNodeRoleControlPlane && t.Effect == corev1.TaintEffectNoSchedule {
 					return true
 				}
 			}

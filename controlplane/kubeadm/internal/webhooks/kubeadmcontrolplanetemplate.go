@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/defaulting"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
+	"sigs.k8s.io/cluster-api/internal/util/taints"
 )
 
 func (webhook *KubeadmControlPlaneTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -118,6 +119,7 @@ func validateKubeadmControlPlaneTemplateResourceSpec(s controlplanev1.KubeadmCon
 
 	allErrs = append(allErrs, validateRolloutAndCertValidityFields(s.Rollout, s.KubeadmConfigSpec.ClusterConfiguration, nil, pathPrefix)...)
 	allErrs = append(allErrs, validateNaming(s.MachineNaming, pathPrefix.Child("machineNaming"))...)
+	allErrs = append(allErrs, taints.ValidateMachineTaints(s.MachineTemplate.Spec.Taints, pathPrefix.Child("machineTemplate", "spec", "taints"))...)
 
 	// Validate the metadata of the MachineTemplate
 	allErrs = append(allErrs, s.MachineTemplate.ObjectMeta.Validate(pathPrefix.Child("machineTemplate", "metadata"))...)

@@ -38,6 +38,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
+	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -310,6 +311,8 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 			),
 		)
 	}
+
+	allErrs = append(allErrs, taints.ValidateMachineTaints(s.MachineTemplate.Spec.Taints, pathPrefix.Child("machineTemplate", "spec", "taints"))...)
 
 	// Validate the metadata of the MachineTemplate
 	allErrs = append(allErrs, s.MachineTemplate.ObjectMeta.Validate(pathPrefix.Child("machineTemplate", "metadata"))...)

@@ -38,6 +38,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
+	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -207,7 +208,7 @@ func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
 		}
 	}
 
-	allErrs = append(allErrs, validateMachineTaints(newMS.Spec.Template.Spec.Taints, specPath.Child("template", "spec", "taints"))...)
+	allErrs = append(allErrs, taints.ValidateMachineTaints(newMS.Spec.Template.Spec.Taints, specPath.Child("template", "spec", "taints"))...)
 	allErrs = append(allErrs, validateMachineTaintsForWorkers(newMS.Spec.Template.Spec.Taints, nil, specPath.Child("template", "spec", "taints"))...)
 
 	allErrs = append(allErrs, validateMSMachineNaming(newMS.Spec.MachineNaming, specPath.Child("machineNaming"))...)

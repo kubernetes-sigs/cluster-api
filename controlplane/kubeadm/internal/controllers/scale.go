@@ -71,7 +71,7 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 	log := ctrl.LoggerFrom(ctx)
 
 	// Run preflight checks to ensure that the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
-	if result := r.preflightChecks(ctx, controlPlane); !result.IsZero() {
+	if result := r.preflightChecks(ctx, controlPlane, true); !result.IsZero() {
 		return result, nil
 	}
 
@@ -110,7 +110,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 
 	// Run preflight checks ensuring the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
 	// Given that we're scaling down, we can exclude the machineToDelete from the preflight checks.
-	if result := r.preflightChecks(ctx, controlPlane, machineToDelete); !result.IsZero() {
+	if result := r.preflightChecks(ctx, controlPlane, false, machineToDelete); !result.IsZero() {
 		return result, nil
 	}
 
@@ -159,7 +159,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 // If the control plane is not passing preflight checks, it requeue.
 //
 // NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneAndMachinesConditions before this.
-func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) ctrl.Result {
+func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, controlPlane *internal.ControlPlane, isScaleUp bool, excludeFor ...*clusterv1.Machine) ctrl.Result {
 	if r.overridePreflightChecksFunc != nil {
 		return r.overridePreflightChecksFunc(ctx, controlPlane, excludeFor...)
 	}
@@ -196,6 +196,15 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 			r.controller.DeferNextReconcileForObject(controlPlane.KCP, time.Now().Add(5*time.Second))
 			return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}
 		}
+	}
+
+	// If certificates are missing, can't join a new machine
+	if isScaleUp && !conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition) {
+		controlPlane.PreflightCheckResults.CertificateMissing = true
+		log.Info("Certificates are missing or unknown, can't join a new machine")
+		// Slow down reconcile frequency, user intervention is required to fix the problem.
+		r.controller.DeferNextReconcileForObject(controlPlane.KCP, time.Now().Add(5*time.Second))
+		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}
 	}
 
 	// If there are deleting machines, wait for the operation to complete.

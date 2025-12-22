@@ -37,9 +37,9 @@ func (r *KubeadmControlPlaneReconciler) tryInPlaceUpdate(
 	}
 
 	// Run preflight checks to ensure that the control plane is stable before proceeding with in-place update operation.
-	if resultForAllMachines := r.preflightChecks(ctx, controlPlane); !resultForAllMachines.IsZero() {
+	if resultForAllMachines := r.preflightChecks(ctx, controlPlane, false); !resultForAllMachines.IsZero() {
 		// If the control plane is not stable, check if the issues are only for machineToInPlaceUpdate.
-		if result := r.preflightChecks(ctx, controlPlane, machineToInPlaceUpdate); result.IsZero() {
+		if result := r.preflightChecks(ctx, controlPlane, false, machineToInPlaceUpdate); result.IsZero() {
 			// The issues are only for machineToInPlaceUpdate, fallback to scale down.
 			// Note: The consequence of this is that a Machine with issues is scaled down and not in-place updated.
 			return true, ctrl.Result{}, nil

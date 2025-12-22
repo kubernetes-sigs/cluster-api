@@ -34,7 +34,7 @@ func TestClusterResourcesetDefault(t *testing.T) {
 		MatchLabels: map[string]string{"foo": "bar"},
 	}
 	webhook := ClusterResourceSet{}
-	t.Run("for ClusterResourceSet", util.CustomDefaultValidateTest(ctx, defaultingValidationCRS, &webhook))
+	t.Run("for ClusterResourceSet", util.CustomDefaultValidateTest[*addonsv1.ClusterResourceSet](ctx, defaultingValidationCRS, &webhook))
 	g.Expect(webhook.Default(ctx, clusterResourceSet)).To(Succeed())
 
 	g.Expect(clusterResourceSet.Spec.Strategy).To(Equal(string(addonsv1.ClusterResourceSetStrategyApplyOnce)))

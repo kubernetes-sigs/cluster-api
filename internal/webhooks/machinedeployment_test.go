@@ -68,7 +68,7 @@ func TestMachineDeploymentDefault(t *testing.T) {
 			Operation: admissionv1.Create,
 		},
 	})
-	t.Run("for MachineDeployment", util.CustomDefaultValidateTest(reqCtx, md, webhook))
+	t.Run("for MachineDeployment", util.CustomDefaultValidateTest[*clusterv1.MachineDeployment](reqCtx, md, webhook))
 
 	g.Expect(webhook.Default(reqCtx, md)).To(Succeed())
 
@@ -181,7 +181,7 @@ func TestMachineDeploymentReferenceDefault(t *testing.T) {
 		},
 	})
 
-	t.Run("for MachineDeployment", util.CustomDefaultValidateTest(reqCtx, md, webhook))
+	t.Run("for MachineDeployment", util.CustomDefaultValidateTest[*clusterv1.MachineDeployment](reqCtx, md, webhook))
 
 	g.Expect(webhook.Default(reqCtx, md)).To(Succeed())
 }

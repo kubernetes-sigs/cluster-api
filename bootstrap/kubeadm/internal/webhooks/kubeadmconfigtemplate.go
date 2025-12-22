@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -32,8 +31,7 @@ import (
 )
 
 func (webhook *KubeadmConfigTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&bootstrapv1.KubeadmConfigTemplate{}).
+	return ctrl.NewWebhookManagedBy(mgr, &bootstrapv1.KubeadmConfigTemplate{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
@@ -45,13 +43,11 @@ func (webhook *KubeadmConfigTemplate) SetupWebhookWithManager(mgr ctrl.Manager) 
 // KubeadmConfigTemplate implements a validation and defaulting webhook for KubeadmConfigTemplate.
 type KubeadmConfigTemplate struct{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *KubeadmConfigTemplate) Default(ctx context.Context, obj runtime.Object) error {
-	c, ok := obj.(*bootstrapv1.KubeadmConfigTemplate)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmConfigTemplate but got a %T", obj))
-	}
+var _ admission.Defaulter[*bootstrapv1.KubeadmConfigTemplate] = &KubeadmConfigTemplate{}
+var _ admission.Validator[*bootstrapv1.KubeadmConfigTemplate] = &KubeadmConfigTemplate{}
 
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
+func (webhook *KubeadmConfigTemplate) Default(ctx context.Context, c *bootstrapv1.KubeadmConfigTemplate) error {
 	req, err := admission.RequestFromContext(ctx)
 	if err != nil {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected an admission.Request inside context: %v", err))
@@ -67,27 +63,17 @@ func (webhook *KubeadmConfigTemplate) Default(ctx context.Context, obj runtime.O
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *KubeadmConfigTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	c, ok := obj.(*bootstrapv1.KubeadmConfigTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmConfigTemplate but got a %T", obj))
-	}
-
+func (webhook *KubeadmConfigTemplate) ValidateCreate(_ context.Context, c *bootstrapv1.KubeadmConfigTemplate) (admission.Warnings, error) {
 	return nil, webhook.validate(&c.Spec, c.Name)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *KubeadmConfigTemplate) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
-	newC, ok := newObj.(*bootstrapv1.KubeadmConfigTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmConfigTemplate but got a %T", newObj))
-	}
-
+func (webhook *KubeadmConfigTemplate) ValidateUpdate(_ context.Context, _, newC *bootstrapv1.KubeadmConfigTemplate) (admission.Warnings, error) {
 	return nil, webhook.validate(&newC.Spec, newC.Name)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *KubeadmConfigTemplate) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *KubeadmConfigTemplate) ValidateDelete(_ context.Context, _ *bootstrapv1.KubeadmConfigTemplate) (admission.Warnings, error) {
 	return nil, nil
 }
 

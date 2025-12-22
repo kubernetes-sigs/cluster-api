@@ -58,7 +58,7 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 	}
 	webhook := &MachineHealthCheck{}
 
-	t.Run("for MachineHealthCheck", util.CustomDefaultValidateTest(ctx, mhc, webhook))
+	t.Run("for MachineHealthCheck", util.CustomDefaultValidateTest[*clusterv1.MachineHealthCheck](ctx, mhc, webhook))
 	g.Expect(webhook.Default(ctx, mhc)).To(Succeed())
 
 	g.Expect(mhc.Labels[clusterv1.ClusterNameLabel]).To(Equal(mhc.Spec.ClusterName))

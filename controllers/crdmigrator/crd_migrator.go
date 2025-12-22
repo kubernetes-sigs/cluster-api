@@ -411,7 +411,7 @@ func (r *CRDMigrator) reconcileStorageVersionMigration(ctx context.Context, crd 
 		log.V(4).Info("Migrating to new storage version", gvk.Kind, klog.KObj(u))
 		var err error
 		if migrationConfig.UseStatusForStorageVersionMigration {
-			err = r.Client.Status().Patch(ctx, u, client.Apply, client.FieldOwner("crdmigrator"))
+			err = r.Client.Status().Apply(ctx, client.ApplyConfigurationFromUnstructured(u), client.FieldOwner("crdmigrator"))
 		} else {
 			err = r.Client.Apply(ctx, client.ApplyConfigurationFromUnstructured(u), client.FieldOwner("crdmigrator"))
 		}

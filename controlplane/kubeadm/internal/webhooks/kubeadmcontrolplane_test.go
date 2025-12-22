@@ -67,7 +67,7 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 		Name:     "foo",
 	}
 	webhook := &KubeadmControlPlane{}
-	t.Run("for KubeadmControlPlane", util.CustomDefaultValidateTest(ctx, updateDefaultingValidationKCP, webhook))
+	t.Run("for KubeadmControlPlane", util.CustomDefaultValidateTest[*controlplanev1.KubeadmControlPlane](ctx, updateDefaultingValidationKCP, webhook))
 	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
 
 	g.Expect(kcp.Spec.Version).To(Equal("v1.18.3"))

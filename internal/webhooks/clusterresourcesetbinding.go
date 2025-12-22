@@ -18,21 +18,17 @@ package webhooks
 
 import (
 	"context"
-	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 )
 
 func (webhook *ClusterResourceSetBinding) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&addonsv1.ClusterResourceSetBinding{}).
+	return ctrl.NewWebhookManagedBy(mgr, &addonsv1.ClusterResourceSetBinding{}).
 		WithValidator(webhook).
 		Complete()
 }
@@ -42,32 +38,20 @@ func (webhook *ClusterResourceSetBinding) SetupWebhookWithManager(mgr ctrl.Manag
 // ClusterResourceSetBinding implements a validation webhook for ClusterResourceSetBinding.
 type ClusterResourceSetBinding struct{}
 
-var _ webhook.CustomValidator = &ClusterResourceSetBinding{}
+var _ admission.Validator[*addonsv1.ClusterResourceSetBinding] = &ClusterResourceSetBinding{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ClusterResourceSetBinding) ValidateCreate(_ context.Context, newObj runtime.Object) (admission.Warnings, error) {
-	newBinding, ok := newObj.(*addonsv1.ClusterResourceSetBinding)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterResourceSetBinding but got a %T", newObj))
-	}
+func (webhook *ClusterResourceSetBinding) ValidateCreate(_ context.Context, newBinding *addonsv1.ClusterResourceSetBinding) (admission.Warnings, error) {
 	return nil, webhook.validate(nil, newBinding)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ClusterResourceSetBinding) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	oldBinding, ok := oldObj.(*addonsv1.ClusterResourceSetBinding)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterResourceSetBinding but got a %T", oldObj))
-	}
-	newBinding, ok := newObj.(*addonsv1.ClusterResourceSetBinding)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterResourceSetBinding but got a %T", newObj))
-	}
+func (webhook *ClusterResourceSetBinding) ValidateUpdate(_ context.Context, oldBinding, newBinding *addonsv1.ClusterResourceSetBinding) (admission.Warnings, error) {
 	return nil, webhook.validate(oldBinding, newBinding)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ClusterResourceSetBinding) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *ClusterResourceSetBinding) ValidateDelete(_ context.Context, _ *addonsv1.ClusterResourceSetBinding) (admission.Warnings, error) {
 	return nil, nil
 }
 

@@ -27,13 +27,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -47,8 +45,7 @@ func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) erro
 		webhook.decoder = admission.NewDecoder(mgr.GetScheme())
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&clusterv1.MachineDeployment{}).
+	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.MachineDeployment{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
@@ -62,16 +59,11 @@ type MachineDeployment struct {
 	decoder admission.Decoder
 }
 
-var _ webhook.CustomDefaulter = &MachineDeployment{}
-var _ webhook.CustomValidator = &MachineDeployment{}
+var _ admission.Defaulter[*clusterv1.MachineDeployment] = &MachineDeployment{}
+var _ admission.Validator[*clusterv1.MachineDeployment] = &MachineDeployment{}
 
 // Default implements webhook.CustomDefaulter.
-func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Object) error {
-	m, ok := obj.(*clusterv1.MachineDeployment)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a MachineDeployment but got a %T", obj))
-	}
-
+func (webhook *MachineDeployment) Default(ctx context.Context, m *clusterv1.MachineDeployment) error {
 	req, err := admission.RequestFromContext(ctx)
 	if err != nil {
 		return err
@@ -142,32 +134,17 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 }
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *MachineDeployment) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	m, ok := obj.(*clusterv1.MachineDeployment)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineDeployment but got a %T", obj))
-	}
-
+func (webhook *MachineDeployment) ValidateCreate(_ context.Context, m *clusterv1.MachineDeployment) (admission.Warnings, error) {
 	return nil, webhook.validate(nil, m)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *MachineDeployment) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	oldMD, ok := oldObj.(*clusterv1.MachineDeployment)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineDeployment but got a %T", oldObj))
-	}
-
-	newMD, ok := newObj.(*clusterv1.MachineDeployment)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineDeployment but got a %T", newObj))
-	}
-
+func (webhook *MachineDeployment) ValidateUpdate(_ context.Context, oldMD, newMD *clusterv1.MachineDeployment) (admission.Warnings, error) {
 	return nil, webhook.validate(oldMD, newMD)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *MachineDeployment) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *MachineDeployment) ValidateDelete(_ context.Context, _ *clusterv1.MachineDeployment) (admission.Warnings, error) {
 	return nil, nil
 }
 

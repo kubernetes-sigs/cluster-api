@@ -44,8 +44,6 @@ func TestReconcile(t *testing.T) {
 	// the test would fail because of the cleanup go routine in the cache.
 	reconcileCache := cache.New[reconcileCacheEntry](cache.DefaultTTL)
 
-	// Using synctest with Go 1.24 requires setting the GOEXPERIMENT env var to synctest.
-	// In Intellij this can be done via Settings > Language & Frameworks > Go > Build Tags > Experiments
 	synctest.Test(t, func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -144,8 +142,6 @@ func TestReconcileMetrics(t *testing.T) {
 	// the test would fail because of the cleanup go routine in the cache.
 	reconcileCache := cache.New[reconcileCacheEntry](cache.DefaultTTL)
 
-	// Using synctest with Go 1.24 requires setting the GOEXPERIMENT env var to synctest.
-	// In Intellij this can be done via Settings > Language & Frameworks > Go > Build Tags > Experiments
 	synctest.Test(t, func(t *testing.T) {
 		g := NewWithT(t)
 

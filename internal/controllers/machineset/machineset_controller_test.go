@@ -1389,6 +1389,9 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 				"dropped-annotation":   "dropped-value",
 				"modified-annotation":  "modified-value",
 			},
+			// Setting finalizer like the MachineSet controller would do, this avoids race conditions with
+			// the Machine controller that influence field ownership.
+			Finalizers: []string{clusterv1.MachineFinalizer},
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
@@ -1494,12 +1497,6 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			Operation:  metav1.ManagedFieldsOperationApply,
 			APIVersion: clusterv1.GroupVersion.String(),
 			FieldsV1:   fmt.Sprintf("{\"f:metadata\":{\"f:annotations\":{\"f:dropped-annotation\":{},\"f:modified-annotation\":{},\"f:preserved-annotation\":{}},\"f:finalizers\":{\"v:\\\"machine.cluster.x-k8s.io\\\"\":{}},\"f:labels\":{\"f:cluster.x-k8s.io/set-name\":{},\"f:dropped-label\":{},\"f:modified-label\":{},\"f:preserved-label\":{}},\"f:ownerReferences\":{\"k:{\\\"uid\\\":\\\"%s\\\"}\":{}}},\"f:spec\":{\"f:bootstrap\":{\"f:configRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}},\"f:clusterName\":{},\"f:infrastructureRef\":{\"f:apiGroup\":{},\"f:kind\":{},\"f:name\":{}}}}", ms.UID),
-		}, {
-			// manager owns the finalizer.
-			Manager:    "manager",
-			Operation:  metav1.ManagedFieldsOperationUpdate,
-			APIVersion: clusterv1.GroupVersion.String(),
-			FieldsV1:   "{\"f:metadata\":{\"f:finalizers\":{\".\":{},\"v:\\\"machine.cluster.x-k8s.io\\\"\":{}}}}",
 		}, {
 			// manager owns status.
 			Manager:    "manager",
@@ -2708,18 +2705,6 @@ func TestMachineSetReconciler_createMachines(t *testing.T) {
 				bootstrapTmpl,
 				infraTmpl,
 			).WithInterceptorFuncs(tt.interceptorFuncs(&i)).Build()
-
-			// TODO(controller-runtime-0.23): This workaround is needed because controller-runtime v0.22 does not set resourceVersion correctly with SSA (fixed with v0.23).
-			fakeClient = interceptor.NewClient(fakeClient, interceptor.Funcs{
-				Apply: func(ctx context.Context, c client.WithWatch, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
-					clientObject, ok := obj.(client.Object)
-					if !ok {
-						return errors.Errorf("error during object creation: unexpected ApplyConfiguration")
-					}
-					clientObject.SetResourceVersion("1")
-					return c.Apply(ctx, obj, opts...)
-				},
-			})
 
 			r := &Reconciler{
 				Client:   fakeClient,

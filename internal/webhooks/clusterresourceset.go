@@ -18,15 +18,12 @@ package webhooks
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
@@ -36,8 +33,7 @@ import (
 type ClusterResourceSet struct{}
 
 func (webhook *ClusterResourceSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&addonsv1.ClusterResourceSet{}).
+	return ctrl.NewWebhookManagedBy(mgr, &addonsv1.ClusterResourceSet{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
@@ -46,15 +42,11 @@ func (webhook *ClusterResourceSet) SetupWebhookWithManager(mgr ctrl.Manager) err
 // +kubebuilder:webhook:verbs=create;update,path=/validate-addons-cluster-x-k8s-io-v1beta2-clusterresourceset,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=addons.cluster.x-k8s.io,resources=clusterresourcesets,versions=v1beta2,name=validation.clusterresourceset.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-addons-cluster-x-k8s-io-v1beta2-clusterresourceset,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=addons.cluster.x-k8s.io,resources=clusterresourcesets,versions=v1beta2,name=default.clusterresourceset.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomDefaulter = &ClusterResourceSet{}
-var _ webhook.CustomValidator = &ClusterResourceSet{}
+var _ admission.Defaulter[*addonsv1.ClusterResourceSet] = &ClusterResourceSet{}
+var _ admission.Validator[*addonsv1.ClusterResourceSet] = &ClusterResourceSet{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *ClusterResourceSet) Default(_ context.Context, obj runtime.Object) error {
-	crs, ok := obj.(*addonsv1.ClusterResourceSet)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterResourceSet but got a %T", obj))
-	}
+func (webhook *ClusterResourceSet) Default(_ context.Context, crs *addonsv1.ClusterResourceSet) error {
 	// ClusterResourceSet Strategy defaults to ApplyOnce.
 	if crs.Spec.Strategy == "" {
 		crs.Spec.Strategy = string(addonsv1.ClusterResourceSetStrategyApplyOnce)
@@ -63,29 +55,17 @@ func (webhook *ClusterResourceSet) Default(_ context.Context, obj runtime.Object
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ClusterResourceSet) ValidateCreate(_ context.Context, newObj runtime.Object) (admission.Warnings, error) {
-	newCRS, ok := newObj.(*addonsv1.ClusterResourceSet)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterResourceSet but got a %T", newObj))
-	}
+func (webhook *ClusterResourceSet) ValidateCreate(_ context.Context, newCRS *addonsv1.ClusterResourceSet) (admission.Warnings, error) {
 	return nil, webhook.validate(nil, newCRS)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ClusterResourceSet) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	oldCRS, ok := oldObj.(*addonsv1.ClusterResourceSet)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterResourceSet but got a %T", oldObj))
-	}
-	newCRS, ok := newObj.(*addonsv1.ClusterResourceSet)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterResourceSet but got a %T", newObj))
-	}
+func (webhook *ClusterResourceSet) ValidateUpdate(_ context.Context, oldCRS, newCRS *addonsv1.ClusterResourceSet) (admission.Warnings, error) {
 	return nil, webhook.validate(oldCRS, newCRS)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ClusterResourceSet) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *ClusterResourceSet) ValidateDelete(_ context.Context, _ *addonsv1.ClusterResourceSet) (admission.Warnings, error) {
 	return nil, nil
 }
 

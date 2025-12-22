@@ -22,18 +22,15 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func (webhook *MachineDrainRule) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&clusterv1.MachineDrainRule{}).
+	return ctrl.NewWebhookManagedBy(mgr, &clusterv1.MachineDrainRule{}).
 		WithValidator(webhook).
 		Complete()
 }
@@ -43,30 +40,20 @@ func (webhook *MachineDrainRule) SetupWebhookWithManager(mgr ctrl.Manager) error
 // MachineDrainRule implements a validation webhook for MachineDrainRule.
 type MachineDrainRule struct{}
 
-var _ webhook.CustomValidator = &MachineDrainRule{}
+var _ admission.Validator[*clusterv1.MachineDrainRule] = &MachineDrainRule{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *MachineDrainRule) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	mdr, ok := obj.(*clusterv1.MachineDrainRule)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineDrainRule but got a %T", obj))
-	}
-
+func (webhook *MachineDrainRule) ValidateCreate(_ context.Context, mdr *clusterv1.MachineDrainRule) (admission.Warnings, error) {
 	return nil, webhook.validate(mdr)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *MachineDrainRule) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
-	newMDR, ok := newObj.(*clusterv1.MachineDrainRule)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineDrainRule but got a %T", newObj))
-	}
-
+func (webhook *MachineDrainRule) ValidateUpdate(_ context.Context, _, newMDR *clusterv1.MachineDrainRule) (admission.Warnings, error) {
 	return nil, webhook.validate(newMDR)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *MachineDrainRule) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *MachineDrainRule) ValidateDelete(_ context.Context, _ *clusterv1.MachineDrainRule) (admission.Warnings, error) {
 	return nil, nil
 }
 

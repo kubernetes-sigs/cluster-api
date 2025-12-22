@@ -289,7 +289,7 @@ func validateRootSchema(ctx context.Context, oldClusterClassVariables, clusterCl
 	//   * The Kubernetes CEL library assumes this behavior and it's baked into cel.NewValidator (they use n to validate)
 	// * If the DefaultCompatibilityVersion is an earlier version than "n-1", it means we could roll back even more than 1 version.
 	opts := &validationOptions{
-		celEnvironmentSet: environment.MustBaseEnvSet(envSetVersion, true),
+		celEnvironmentSet: environment.MustBaseEnvSet(envSetVersion),
 	}
 	if oldAPIExtensionsSchema != nil {
 		opts.preexistingExpressions = findPreexistingExpressions(oldAPIExtensionsSchema)

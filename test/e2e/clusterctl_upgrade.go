@@ -754,7 +754,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			clusterUpdate.SetLabels(map[string]string{
 				fmt.Sprintf("test-label-upgrade-%d", i): "test-label-value",
 			})
-			Expect(managementClusterProxy.GetClient().Patch(ctx, clusterUpdate, client.Apply, client.FieldOwner("e2e-test-client"))).To(Succeed())
+			Expect(managementClusterProxy.GetClient().Apply(ctx, client.ApplyConfigurationFromUnstructured(clusterUpdate), client.FieldOwner("e2e-test-client"))).To(Succeed())
 
 			Byf("[%d] THE UPGRADED MANAGEMENT CLUSTER WORKS!", i)
 		}

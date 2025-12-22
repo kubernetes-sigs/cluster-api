@@ -84,6 +84,8 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		clusterv1.Convert_Duration_To_Pointer_int32(src.Spec.RemediationStrategy.RetryPeriod, ok, restored.Spec.Remediation.RetryPeriodSeconds, &dst.Spec.Remediation.RetryPeriodSeconds)
 	}
 
+	dst.Spec.MachineTemplate.Spec.Taints = restored.Spec.MachineTemplate.Spec.Taints
+
 	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
 	src.Spec.KubeadmConfigSpec.ConvertTo(&dst.Spec.KubeadmConfigSpec)
 	return nil
@@ -139,6 +141,8 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	if src.Spec.Template.Spec.RemediationStrategy != nil {
 		clusterv1.Convert_Duration_To_Pointer_int32(src.Spec.Template.Spec.RemediationStrategy.RetryPeriod, ok, restored.Spec.Template.Spec.Remediation.RetryPeriodSeconds, &dst.Spec.Template.Spec.Remediation.RetryPeriodSeconds)
 	}
+
+	dst.Spec.Template.Spec.MachineTemplate.Spec.Taints = restored.Spec.Template.Spec.MachineTemplate.Spec.Taints
 
 	// Override restored data with timeouts values already existing in v1beta1 but in other structs.
 	src.Spec.Template.Spec.KubeadmConfigSpec.ConvertTo(&dst.Spec.Template.Spec.KubeadmConfigSpec)

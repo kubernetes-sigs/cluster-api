@@ -713,6 +713,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 		name                             string
 		kcp                              *controlplanev1.KubeadmControlPlane
 		machines                         []*clusterv1.Machine
+		kubeadmConfigs                   map[string]*bootstrapv1.KubeadmConfig
 		injectClient                     client.Client // This test is injecting a fake client because it is required to create nodes with a controlled Status or to fail with a specific error.
 		expectedKCPV1Beta1Condition      *clusterv1.Condition
 		expectedKCPCondition             metav1.Condition
@@ -923,6 +924,140 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			},
 		},
 		{
+			name: "A provisioned machine with a node without the control plane label should report all the conditions as false in v1beta1, unknown in v1beta2",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withProviderID("n1"), withNodeRef("n1")),
+			},
+			injectClient: &fakeClient{
+				list: &corev1.NodeList{},
+				get: map[string]interface{}{
+					"/n1": &corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:   "n1",
+							Labels: map[string]string{},
+						},
+					},
+				},
+			},
+			expectedKCPV1Beta1Condition: v1beta1conditions.FalseCondition(controlplanev1.ControlPlaneComponentsHealthyV1Beta1Condition, controlplanev1.ControlPlaneComponentsUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Following Machines are reporting control plane errors: %s", "m1"),
+			expectedMachineV1Beta1Conditions: map[string]clusterv1.Conditions{
+				"m1": {
+					*v1beta1conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "Missing Node"),
+					*v1beta1conditions.FalseCondition(controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "Missing Node"),
+					*v1beta1conditions.FalseCondition(controlplanev1.MachineEtcdPodHealthyV1Beta1Condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "Missing Node"),
+					*v1beta1conditions.FalseCondition(controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "Missing Node"),
+				},
+			},
+			expectedKCPCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
+				Status: metav1.ConditionUnknown,
+				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownReason,
+				Message: "* Machine m1:\n" +
+					"  * Control plane components: Node n1 does not have the node-role.kubernetes.io/control-plane label",
+			},
+			expectedMachineConditions: map[string][]metav1.Condition{
+				"m1": {
+					{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason, Message: "Node n1 does not have the node-role.kubernetes.io/control-plane label"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason, Message: "Node n1 does not have the node-role.kubernetes.io/control-plane label"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason, Message: "Node n1 does not have the node-role.kubernetes.io/control-plane label"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason, Message: "Node n1 does not have the node-role.kubernetes.io/control-plane label"},
+				},
+			},
+		},
+		{
+			name: "A provisioned machine with a node without the control plane label and taint should report all the conditions as false in v1beta1, unknown in v1beta2",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withProviderID("n1"), withNodeRef("n1")),
+			},
+			kubeadmConfigs: map[string]*bootstrapv1.KubeadmConfig{
+				"m1": {}, // A default kubeadm config requires the control plane taint
+			},
+			injectClient: &fakeClient{
+				list: &corev1.NodeList{},
+				get: map[string]interface{}{
+					"/n1": &corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:   "n1",
+							Labels: map[string]string{},
+						},
+					},
+				},
+			},
+			expectedKCPV1Beta1Condition: v1beta1conditions.FalseCondition(controlplanev1.ControlPlaneComponentsHealthyV1Beta1Condition, controlplanev1.ControlPlaneComponentsUnhealthyV1Beta1Reason, clusterv1.ConditionSeverityError, "Following Machines are reporting control plane errors: %s", "m1"),
+			expectedMachineV1Beta1Conditions: map[string]clusterv1.Conditions{
+				"m1": {
+					*v1beta1conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyV1Beta1Condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "Missing Node"),
+					*v1beta1conditions.FalseCondition(controlplanev1.MachineControllerManagerPodHealthyV1Beta1Condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "Missing Node"),
+					*v1beta1conditions.FalseCondition(controlplanev1.MachineEtcdPodHealthyV1Beta1Condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "Missing Node"),
+					*v1beta1conditions.FalseCondition(controlplanev1.MachineSchedulerPodHealthyV1Beta1Condition, controlplanev1.PodFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "Missing Node"),
+				},
+			},
+			expectedKCPCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
+				Status: metav1.ConditionUnknown,
+				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownReason,
+				Message: "* Machine m1:\n" +
+					"  * Control plane components: Node n1 does not have the node-role.kubernetes.io/control-plane label and the node-role.kubernetes.io/control-plane:NoSchedule taint",
+			},
+			expectedMachineConditions: map[string][]metav1.Condition{
+				"m1": {
+					{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason, Message: "Node n1 does not have the node-role.kubernetes.io/control-plane label and the node-role.kubernetes.io/control-plane:NoSchedule taint"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason, Message: "Node n1 does not have the node-role.kubernetes.io/control-plane label and the node-role.kubernetes.io/control-plane:NoSchedule taint"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason, Message: "Node n1 does not have the node-role.kubernetes.io/control-plane label and the node-role.kubernetes.io/control-plane:NoSchedule taint"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason, Message: "Node n1 does not have the node-role.kubernetes.io/control-plane label and the node-role.kubernetes.io/control-plane:NoSchedule taint"},
+				},
+			},
+		},
+		{
+			name: "Should surface control plane nodes without the default control plane taint",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withProviderID("n1"), withNodeRef("n1")),
+			},
+			kubeadmConfigs: map[string]*bootstrapv1.KubeadmConfig{
+				"m1": {}, // A default kubeadm config requires the control plane taint
+			},
+			injectClient: &fakeClient{
+				list: &corev1.NodeList{
+					Items: []corev1.Node{*fakeNode("n1")},
+				},
+				get: map[string]interface{}{
+					n1APIServerPodKey: fakePod(n1APIServerPodName,
+						withPhase(corev1.PodRunning),
+						withCondition(corev1.PodReady, corev1.ConditionTrue),
+					),
+					n1ControllerManagerPodNKey: fakePod(n1ControllerManagerPodName,
+						withPhase(corev1.PodRunning),
+						withCondition(corev1.PodReady, corev1.ConditionTrue),
+					),
+					n1SchedulerPodKey: fakePod(n1SchedulerPodName,
+						withPhase(corev1.PodRunning),
+						withCondition(corev1.PodReady, corev1.ConditionTrue),
+					),
+					n1EtcdPodKey: fakePod(n1EtcdPodName,
+						withPhase(corev1.PodRunning),
+						withCondition(corev1.PodReady, corev1.ConditionTrue),
+					),
+				},
+			},
+			expectedKCPV1Beta1Condition:      nil,
+			expectedMachineV1Beta1Conditions: nil,
+			expectedKCPCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
+				Status: metav1.ConditionUnknown,
+				Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownReason,
+				Message: "* Machine m1:\n" +
+					"  * Control plane components: Node n1 does not have the node-role.kubernetes.io/control-plane:NoSchedule taint",
+			},
+			expectedMachineConditions: map[string][]metav1.Condition{
+				"m1": {
+					{Type: controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason, Message: "Node n1 does not have the node-role.kubernetes.io/control-plane:NoSchedule taint"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason, Message: "Node n1 does not have the node-role.kubernetes.io/control-plane:NoSchedule taint"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason, Message: "Node n1 does not have the node-role.kubernetes.io/control-plane:NoSchedule taint"},
+					{Type: controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition, Status: metav1.ConditionUnknown, Reason: controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason, Message: "Node n1 does not have the node-role.kubernetes.io/control-plane:NoSchedule taint"},
+				},
+			},
+		},
+		{
 			name: "Should surface control plane components errors",
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withNodeRef("n1")),
@@ -1100,8 +1235,9 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				Client: tt.injectClient,
 			}
 			controlPane := &ControlPlane{
-				KCP:      tt.kcp,
-				Machines: collections.FromMachines(tt.machines...),
+				KCP:            tt.kcp,
+				Machines:       collections.FromMachines(tt.machines...),
+				KubeadmConfigs: tt.kubeadmConfigs,
 			}
 			w.UpdateStaticPodConditions(ctx, controlPane)
 
@@ -1111,8 +1247,10 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			g.Expect(*conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition)).To(conditions.MatchCondition(tt.expectedKCPCondition, conditions.IgnoreLastTransitionTime(true)))
 
 			for _, m := range tt.machines {
-				g.Expect(tt.expectedMachineV1Beta1Conditions).To(HaveKey(m.Name))
-				g.Expect(m.GetV1Beta1Conditions()).To(v1beta1conditions.MatchConditions(tt.expectedMachineV1Beta1Conditions[m.Name]))
+				if tt.expectedMachineV1Beta1Conditions != nil {
+					g.Expect(tt.expectedMachineV1Beta1Conditions).To(HaveKey(m.Name))
+					g.Expect(m.GetV1Beta1Conditions()).To(v1beta1conditions.MatchConditions(tt.expectedMachineV1Beta1Conditions[m.Name]))
+				}
 				g.Expect(m.GetConditions()).To(conditions.MatchConditions(tt.expectedMachineConditions[m.Name], conditions.IgnoreLastTransitionTime(true)))
 			}
 		})

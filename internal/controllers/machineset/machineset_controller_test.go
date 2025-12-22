@@ -2542,7 +2542,7 @@ func TestMachineSetReconciler_createMachines_preflightChecks(t *testing.T) {
 		},
 	}
 
-	fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, builder.GenericControlPlaneCRD, machineSet).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, builder.GenericControlPlaneCRD, machineSet).WithStatusSubresource(&clusterv1.MachineSet{}).WithScheme(fakeScheme).Build()
 	r := &Reconciler{
 		Client:          fakeClient,
 		PreflightChecks: sets.Set[clusterv1.MachineSetPreflightCheck]{}.Insert(clusterv1.MachineSetPreflightCheckAll),

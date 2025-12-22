@@ -35,6 +35,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -487,6 +488,70 @@ func TestAPI_corev1_Watch(t *testing.T) {
 
 	// Each event should be the same and in the same order.
 	g.Expect(receivedEvents).To(Equal(expectedEvents))
+}
+
+func TestAPI_unstructured_CRUD(t *testing.T) {
+	convertor := runtime.DefaultUnstructuredConverter
+
+	t.Parallel()
+	g := NewWithT(t)
+
+	wcmux, c := setupWorkloadClusterListener(g, CustomPorts{
+		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
+		MinPort:   DefaultMinPort + 500,
+		MaxPort:   DefaultMinPort + 599,
+		DebugPort: DefaultDebugPort + 5,
+	})
+
+	// create
+
+	n := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
+	}
+
+	m, err := convertor.ToUnstructured(n)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	un := &unstructured.Unstructured{
+		Object: m,
+	}
+	un.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Node"))
+
+	err = c.Create(ctx, un)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// list
+
+	ul := &unstructured.UnstructuredList{}
+	ul.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("NodeList"))
+
+	err = c.List(ctx, ul)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(ul.Items).To(HaveLen(1))
+	g.Expect(ul.Items[0].GetName()).To(Equal("foo"))
+
+	// get
+	un = &unstructured.Unstructured{}
+	un.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Node"))
+	un.SetName("foo")
+
+	err = c.Get(ctx, client.ObjectKey{Name: "foo"}, n)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// patch
+
+	un2 := un.DeepCopy()
+	un2.SetAnnotations(map[string]string{"foo": "bar"})
+	err = c.Patch(ctx, un2, client.MergeFrom(un))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// delete
+
+	err = c.Delete(ctx, n)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	err = wcmux.Shutdown(ctx)
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func setupWorkloadClusterListener(g Gomega, ports CustomPorts) (*WorkloadClustersMux, client.WithWatch) {

@@ -262,9 +262,9 @@ func TestClusterReconciler(t *testing.T) {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).ToNot(HaveOccurred())
 			conditions.Set(cluster, metav1.Condition{
-				Type:   clusterv1.ClusterInfrastructureReadyCondition,
+				Type:   "CustomType",
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.ClusterInfrastructureReadyReason,
+				Reason: "CustomReason",
 			})
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
@@ -276,7 +276,7 @@ func TestClusterReconciler(t *testing.T) {
 			if err := env.Get(ctx, key, instance); err != nil {
 				return false
 			}
-			return conditions.IsTrue(cluster, clusterv1.ClusterInfrastructureReadyCondition)
+			return conditions.IsTrue(cluster, "CustomType")
 		}, timeout).Should(BeTrue())
 	})
 

@@ -124,7 +124,7 @@ var (
 			},
 			{
 				Name:         "services",
-				SingularName: "",
+				SingularName: "service",
 				Namespaced:   true,
 				Kind:         "Service",
 				Verbs: []string{
@@ -161,6 +161,26 @@ var (
 				},
 				StorageVersionHash: "",
 			},
+			{
+				Name:         "serviceaccounts",
+				SingularName: "serviceaccount",
+				Namespaced:   true,
+				Kind:         "ServiceAccount",
+				Verbs: []string{
+					"create",
+					"delete",
+					"deletecollection",
+					"get",
+					"list",
+					"patch",
+					"update",
+					"watch",
+				},
+				ShortNames: []string{
+					"sa",
+				},
+				StorageVersionHash: "",
+			},
 		},
 	}
 
@@ -191,6 +211,45 @@ var (
 				},
 				PreferredVersion: metav1.GroupVersionForDiscovery{
 					GroupVersion: "apps/v1",
+					Version:      "v1",
+				},
+			},
+			{
+				Name: "storage.k8s.io",
+				Versions: []metav1.GroupVersionForDiscovery{
+					{
+						GroupVersion: "storage.k8s.io/v1",
+						Version:      "v1",
+					},
+				},
+				PreferredVersion: metav1.GroupVersionForDiscovery{
+					GroupVersion: "storage.k8s.io/v1",
+					Version:      "v1",
+				},
+			},
+			{
+				Name: "apiextensions.k8s.io",
+				Versions: []metav1.GroupVersionForDiscovery{
+					{
+						GroupVersion: "apiextensions.k8s.io/v1",
+						Version:      "v1",
+					},
+				},
+				PreferredVersion: metav1.GroupVersionForDiscovery{
+					GroupVersion: "apiextensions.k8s.io/v1",
+					Version:      "v1",
+				},
+			},
+			{
+				Name: "policy",
+				Versions: []metav1.GroupVersionForDiscovery{
+					{
+						GroupVersion: "policy/v1",
+						Version:      "v1",
+					},
+				},
+				PreferredVersion: metav1.GroupVersionForDiscovery{
+					GroupVersion: "policy/v1",
 					Version:      "v1",
 				},
 			},
@@ -342,6 +401,81 @@ var (
 					"watch",
 				},
 				ShortNames:         []string{},
+				StorageVersionHash: "",
+			},
+			{
+				Name:         "csidrivers",
+				SingularName: "csidriver",
+				Namespaced:   false,
+				Kind:         "CSIDriver",
+				Verbs: []string{
+					"create",
+					"delete",
+					"deletecollection",
+					"get",
+					"list",
+					"patch",
+					"update",
+					"watch",
+				},
+				ShortNames:         []string{},
+				StorageVersionHash: "",
+			},
+		},
+	}
+
+	// apiextensionsV1ResourceList is the value returned by /apis/apiextensions.k8s.io/v1 discovery call.
+	// Note: This must contain all APIs required by CAPI.
+	apiextensionsV1ResourceList = &metav1.APIResourceList{
+		GroupVersion: "apiextensions.k8s.io/v1",
+		APIResources: []metav1.APIResource{
+			{
+				Name:         "customresourcedefinitions",
+				SingularName: "customresourcedefinition",
+				Namespaced:   false,
+				Kind:         "CustomResourceDefinition",
+				Verbs: []string{
+					"create",
+					"delete",
+					"deletecollection",
+					"get",
+					"list",
+					"patch",
+					"update",
+					"watch",
+				},
+				ShortNames: []string{
+					"crd",
+					"crds",
+				},
+				StorageVersionHash: "",
+			},
+		},
+	}
+
+	// policyV1ResourceList is the value returned by /apis/policy/v1 discovery call.
+	// Note: This must contain all APIs required by CAPI.
+	policyV1ResourceList = &metav1.APIResourceList{
+		GroupVersion: "policy/v1",
+		APIResources: []metav1.APIResource{
+			{
+				Name:         "poddisruptionbudgets",
+				SingularName: "poddisruptionbudget",
+				Namespaced:   true,
+				Kind:         "PodDisruptionBudget",
+				Verbs: []string{
+					"create",
+					"delete",
+					"deletecollection",
+					"get",
+					"list",
+					"patch",
+					"update",
+					"watch",
+				},
+				ShortNames: []string{
+					"pdb",
+				},
 				StorageVersionHash: "",
 			},
 		},

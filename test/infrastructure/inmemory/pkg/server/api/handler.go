@@ -86,36 +86,36 @@ func NewAPIServerHandler(manager inmemoryruntime.Manager, log logr.Logger, resol
 	ws.Route(ws.GET("/apis/{group}/{version}").To(apiServer.apisDiscovery))
 
 	// CRUD endpoints (global objects)
-	ws.Route(ws.POST("/api/v1/{resource}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Create))
+	ws.Route(ws.POST("/api/v1/{resource}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Create))
 	ws.Route(ws.GET("/api/v1/{resource}").If(isList).To(apiServer.apiV1List))
 	ws.Route(ws.GET("/api/v1/{resource}").If(isWatch).To(apiServer.apiV1Watch))
 	ws.Route(ws.GET("/api/v1/{resource}/{name}").To(apiServer.apiV1Get))
-	ws.Route(ws.PUT("/api/v1/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Update))
+	ws.Route(ws.PUT("/api/v1/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Update))
 	ws.Route(ws.PATCH("/api/v1/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
 	ws.Route(ws.DELETE("/api/v1/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Delete))
 
-	ws.Route(ws.POST("/apis/{group}/{version}/{resource}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Create))
+	ws.Route(ws.POST("/apis/{group}/{version}/{resource}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Create))
 	ws.Route(ws.GET("/apis/{group}/{version}/{resource}").If(isList).To(apiServer.apiV1List))
 	ws.Route(ws.GET("/apis/{group}/{version}/{resource}").If(isWatch).To(apiServer.apiV1Watch))
 	ws.Route(ws.GET("/apis/{group}/{version}/{resource}/{name}").To(apiServer.apiV1Get))
-	ws.Route(ws.PUT("/apis/{group}/{version}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Update))
+	ws.Route(ws.PUT("/apis/{group}/{version}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Update))
 	ws.Route(ws.PATCH("/apis/{group}/{version}/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
 	ws.Route(ws.DELETE("/apis/{group}/{version}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Delete))
 
 	// CRUD endpoints (namespaced objects)
-	ws.Route(ws.POST("/api/v1/namespaces/{namespace}/{resource}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Create))
+	ws.Route(ws.POST("/api/v1/namespaces/{namespace}/{resource}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Create))
 	ws.Route(ws.GET("/api/v1/namespaces/{namespace}/{resource}").If(isList).To(apiServer.apiV1List))
 	ws.Route(ws.GET("/api/v1/namespaces/{namespace}/{resource}").If(isWatch).To(apiServer.apiV1Watch))
 	ws.Route(ws.GET("/api/v1/namespaces/{namespace}/{resource}/{name}").To(apiServer.apiV1Get))
-	ws.Route(ws.PUT("/api/v1/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Update))
+	ws.Route(ws.PUT("/api/v1/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Update))
 	ws.Route(ws.PATCH("/api/v1/namespaces/{namespace}/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
 	ws.Route(ws.DELETE("/api/v1/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Delete))
 
-	ws.Route(ws.POST("/apis/{group}/{version}/namespaces/{namespace}/{resource}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Create))
+	ws.Route(ws.POST("/apis/{group}/{version}/namespaces/{namespace}/{resource}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Create))
 	ws.Route(ws.GET("/apis/{group}/{version}/namespaces/{namespace}/{resource}").If(isList).To(apiServer.apiV1List))
 	ws.Route(ws.GET("/apis/{group}/{version}/namespaces/{namespace}/{resource}").If(isWatch).To(apiServer.apiV1Watch))
 	ws.Route(ws.GET("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").To(apiServer.apiV1Get))
-	ws.Route(ws.PUT("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Update))
+	ws.Route(ws.PUT("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Update))
 	ws.Route(ws.PATCH("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
 	ws.Route(ws.DELETE("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Delete))
 
@@ -225,6 +225,20 @@ func (h *apiServerHandler) apisDiscovery(req *restful.Request, resp *restful.Res
 		}
 		if req.PathParameter("group") == "storage.k8s.io" && req.PathParameter("version") == "v1" {
 			if err := resp.WriteEntity(storageV1ResourceList); err != nil {
+				_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+				return
+			}
+			return
+		}
+		if req.PathParameter("group") == "apiextensions.k8s.io" && req.PathParameter("version") == "v1" {
+			if err := resp.WriteEntity(apiextensionsV1ResourceList); err != nil {
+				_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+				return
+			}
+			return
+		}
+		if req.PathParameter("group") == "policy" && req.PathParameter("version") == "v1" {
+			if err := resp.WriteEntity(policyV1ResourceList); err != nil {
 				_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
 				return
 			}
@@ -688,6 +702,12 @@ func getAPIResourceList(req *restful.Request) *metav1.APIResourceList {
 		}
 		if req.PathParameter("group") == "storage.k8s.io" && req.PathParameter("version") == "v1" {
 			return storageV1ResourceList
+		}
+		if req.PathParameter("group") == "apiextensions.k8s.io" && req.PathParameter("version") == "v1" {
+			return apiextensionsV1ResourceList
+		}
+		if req.PathParameter("group") == "policy" && req.PathParameter("version") == "v1" {
+			return policyV1ResourceList
 		}
 		return nil
 	}

@@ -58,7 +58,7 @@ The goal of this task is to keep our tests running in CI stable.
 **Note**: To be very clear, this is not meant to be an on-call role for Cluster API tests.
 
 1. Add yourself to the [Cluster API alert mailing list](https://github.com/kubernetes/k8s.io/blob/151899b2de933e58a4dfd1bfc2c133ce5a8bbe22/groups/sig-cluster-lifecycle/groups.yaml#L20-L35)
-    <br\>**Note**: An alternative to the alert mailing list is manually monitoring the [testgrid dashboards](https://testgrid.k8s.io/cluster-api-core)
+    <br>**Note**: An alternative to the alert mailing list is manually monitoring the [testgrid dashboards](https://testgrid.k8s.io/cluster-api-core)
     (also dashboards of previous releases). Using the alert mailing list has proven to be a lot less effort though.
 2. Subscribe to `CI Activity` notifications for the Cluster API repo.
 3. Check the existing **failing-test** and **flaking-test** issue templates under `.github/ISSUE_TEMPLATE/` folder of the repo, used to create an issue for failing or flaking tests respectively. Please make sure they are up-to-date and if not, send a PR to update or improve them.

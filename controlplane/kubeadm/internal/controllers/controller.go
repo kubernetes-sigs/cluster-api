@@ -615,7 +615,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 				Reason:  controlplanev1.KubeadmControlPlaneCertificatesInternalErrorReason,
 				Message: "Please check controller logs for errors",
 			})
-			return errors.Wrap(err, "error in look up or create cluster certificates")
+			return errors.Wrap(err, "error in look up cluster certificates")
 		}
 
 		missingCertificates := []string{}
@@ -629,6 +629,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 			if len(missingCertificates) == 1 {
 				msg = fmt.Sprintf("Cluster certificate for %s is not available, please check cluster certificate secrets", missingCertificates[0])
 			}
+
+			// Note: we should not introduce new reasons for deprecated v1beta1 conditions, so using CertificatesGenerationFailedV1Beta1Reason + message.
 			v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.CertificatesAvailableV1Beta1Condition, controlplanev1.CertificatesGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", msg)
 
 			conditions.Set(controlPlane.KCP, metav1.Condition{

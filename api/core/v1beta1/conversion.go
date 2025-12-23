@@ -74,8 +74,13 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions = restored.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions
+	dst.Spec.Topology.ControlPlane.Taints = restored.Spec.Topology.ControlPlane.Taints
 	for i, md := range restored.Spec.Topology.Workers.MachineDeployments {
 		dst.Spec.Topology.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = md.HealthCheck.Checks.UnhealthyMachineConditions
+		dst.Spec.Topology.Workers.MachineDeployments[i].Taints = md.Taints
+	}
+	for i, mp := range restored.Spec.Topology.Workers.MachinePools {
+		dst.Spec.Topology.Workers.MachinePools[i].Taints = mp.Taints
 	}
 
 	// Recover intent for bool values converted to *bool.
@@ -151,8 +156,13 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions = restored.Spec.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions
+	dst.Spec.ControlPlane.Taints = restored.Spec.ControlPlane.Taints
 	for i, md := range restored.Spec.Workers.MachineDeployments {
 		dst.Spec.Workers.MachineDeployments[i].HealthCheck.Checks.UnhealthyMachineConditions = md.HealthCheck.Checks.UnhealthyMachineConditions
+		dst.Spec.Workers.MachineDeployments[i].Taints = md.Taints
+	}
+	for i, mp := range restored.Spec.Workers.MachinePools {
+		dst.Spec.Workers.MachinePools[i].Taints = mp.Taints
 	}
 
 	// Recover intent for bool values converted to *bool.

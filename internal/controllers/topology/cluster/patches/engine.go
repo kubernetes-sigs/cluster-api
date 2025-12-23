@@ -556,6 +556,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 		// requiring a client here to retrieve the contract version of the ControlPlane object.
 		contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta1").Path(),
 		contract.ControlPlane().MachineTemplate().ReadinessGates("v1beta2").Path(),
+		contract.ControlPlane().MachineTemplate().Taints().Path(),
 		contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Path(),
 		contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(),
 		contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path(),

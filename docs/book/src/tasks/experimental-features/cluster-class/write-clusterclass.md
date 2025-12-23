@@ -1,5 +1,5 @@
 
-# Writing a ClusterClass
+# Writing a ClusterClass <!-- omit in toc -->
 
 A ClusterClass becomes more useful and valuable when it can be used to create many Cluster of a similar 
 shape. The goal of this document is to explain how ClusterClasses can be written in a way that they are 
@@ -7,21 +7,25 @@ flexible enough to be used in as many Clusters as possible by supporting variant
 
 **Table of Contents**
 
-* [Basic ClusterClass](#basic-clusterclass)
-* [ClusterClass with MachineHealthChecks](#clusterclass-with-machinehealthchecks)
-* [ClusterClass with patches](#clusterclass-with-patches)
-* [ClusterClass with custom naming strategies](#clusterclass-with-custom-naming-strategies)
-    * [Defining a custom naming strategy for ControlPlane objects](#defining-a-custom-naming-strategy-for-controlplane-objects)
-    * [Defining a custom naming strategy for MachineDeployment objects](#defining-a-custom-naming-strategy-for-machinedeployment-objects)
-    * [Defining a custom naming strategy for MachinePool objects](#defining-a-custom-naming-strategy-for-machinepool-objects)
-* [Advanced features of ClusterClass with patches](#advanced-features-of-clusterclass-with-patches)
-    * [MachineDeployment variable overrides](#machinedeployment-and-machinepool-variable-overrides)
-    * [Builtin variables](#builtin-variables)
-    * [Complex variable types](#complex-variable-types)
-    * [Using variable values in JSON patches](#using-variable-values-in-json-patches)
-    * [Optional patches](#optional-patches)
-    * [Version-aware patches](#version-aware-patches)
-* [JSON patches tips &amp; tricks](#json-patches-tips--tricks)
+- [Basic ClusterClass](#basic-clusterclass)
+- [ClusterClass with MachinePools](#clusterclass-with-machinepools)
+- [ClusterClass with MachineHealthChecks](#clusterclass-with-machinehealthchecks)
+- [ClusterClass with patches](#clusterclass-with-patches)
+- [ClusterClass with custom naming strategies](#clusterclass-with-custom-naming-strategies)
+  - [Defining a custom naming strategy for ControlPlane objects](#defining-a-custom-naming-strategy-for-controlplane-objects)
+  - [Defining a custom naming strategy for MachineDeployment objects](#defining-a-custom-naming-strategy-for-machinedeployment-objects)
+  - [Defining a custom naming strategy for MachinePool objects](#defining-a-custom-naming-strategy-for-machinepool-objects)
+  - [Defining a custom namespace for ClusterClass object](#defining-a-custom-namespace-for-clusterclass-object)
+    - [Securing cross-namespace reference to the ClusterClass](#securing-cross-namespace-reference-to-the-clusterclass)
+- [Advanced features of ClusterClass with patches](#advanced-features-of-clusterclass-with-patches)
+  - [MachineDeployment and MachinePool variable overrides](#machinedeployment-and-machinepool-variable-overrides)
+  - [Builtin variables](#builtin-variables)
+  - [Complex variable types](#complex-variable-types)
+  - [Using variable values in JSON patches](#using-variable-values-in-json-patches)
+  - [Optional patches](#optional-patches)
+  - [Version-aware patches](#version-aware-patches)
+  - [tpl and include functions](#tpl-and-include-functions)
+- [JSON patches tips \& tricks](#json-patches-tips--tricks)
 
 ## Basic ClusterClass
 
@@ -971,6 +975,87 @@ to keep in mind that there could be different Kubernetes versions in a Cluster a
 A simple approach to solve this problem is to define a map of version-aware variables, with the key of each item
 being the Kubernetes version. Patch could then use the proper builtin variables as a lookup entry to fetch 
 the corresponding values for the Kubernetes version in use by each object.
+
+### tpl and include functions
+
+The `tpl` function allows to evaluate strings as templates inside a template. This is useful to pass a template string as a variable.
+
+First argument is the template string, second argument is the context.
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  ...
+  variables:
+  - name: customImage
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        description: Custom Image is the container registry to pull images from.
+        default: kindest/node:{{ .builtin.machineDeployment.version }}
+        example: kindest/node:{{ .builtin.machineDeployment.version }}
+  ...
+  patches:
+  - name: customImage
+    description: "Sets the container image that is used for running dockerMachines."
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: DockerMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/customImage
+        valueFrom:
+          template: |
+            {{ tpl .customImage . }}
+```
+
+For complex use-cases, you can use the `include` with template definitions:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  ...
+  variables:
+  - name: customImage
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        description: Custom Image is the container registry to pull images from.
+        default: kindest/node:{{ include "default-version". }}
+        example: kindest/node:{{ include "default-version". }}
+  ...
+  patches:
+  - name: customImage
+    description: "Sets the container image that is used for running dockerMachines."
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: DockerMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/customImage
+        valueFrom:
+          template: |
+            {{- define "default-version" }}{{ .builtin.machineDeployment.version }}{{- end -}}
+            {{ tpl .customImage . }}
+```
 
 ## JSON patches tips & tricks
 

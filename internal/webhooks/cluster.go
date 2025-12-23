@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
+	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -296,6 +297,8 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	allErrs = append(allErrs, validateTopologyMetadata(newCluster.Spec.Topology, fldPath)...)
 
 	allErrs = append(allErrs, validateTopologyRollout(newCluster.Spec.Topology, fldPath)...)
+
+	allErrs = append(allErrs, validateTopologyTaints(newCluster.Spec.Topology, fldPath)...)
 
 	// upgrade concurrency should be a numeric value.
 	if concurrency, ok := newCluster.Annotations[clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation]; ok {
@@ -655,6 +658,24 @@ func validateTopologyRollout(topology clusterv1.Topology, fldPath *field.Path) f
 	for _, md := range topology.Workers.MachineDeployments {
 		fldPath := fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("rollout")
 		allErrs = append(allErrs, validateRolloutStrategy(fldPath.Child("strategy"), md.Rollout.Strategy.RollingUpdate.MaxUnavailable, md.Rollout.Strategy.RollingUpdate.MaxSurge)...)
+	}
+
+	return allErrs
+}
+
+func validateTopologyTaints(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, taints.ValidateMachineTaints(topology.ControlPlane.Taints, fldPath.Child("controlPlane", "taints"))...)
+
+	for _, md := range topology.Workers.MachineDeployments {
+		fldPath := fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("taints")
+		allErrs = append(allErrs, taints.ValidateMachineTaints(md.Taints, fldPath)...)
+	}
+
+	for _, mp := range topology.Workers.MachinePools {
+		fldPath := fldPath.Child("workers", "machinePools").Key(mp.Name).Child("taints")
+		allErrs = append(allErrs, taints.ValidateMachineTaints(mp.Taints, fldPath)...)
 	}
 
 	return allErrs

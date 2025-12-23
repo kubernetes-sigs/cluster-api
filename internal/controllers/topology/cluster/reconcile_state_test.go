@@ -2761,16 +2761,30 @@ func TestReconcileMachinePools(t *testing.T) {
 	mp9WithInstanceSpecificTemplateMetadata := newFakeMachinePoolTopologyState("mp-9m", infrastructureMachinePool9m, bootstrapConfig9m)
 	mp9WithInstanceSpecificTemplateMetadata.Object.Spec.Template.Labels = map[string]string{"foo": "bar"}
 
+	// mp10: Test metadata-only changes (labels/annotations) should NOT trigger rotation
+	infrastructureMachinePool10 := builder.TestInfrastructureMachinePool(metav1.NamespaceDefault, "infrastructure-machinepool-10").Build()
+	bootstrapConfig10 := builder.TestBootstrapConfig(metav1.NamespaceDefault, "bootstrap-config-10").Build()
+	mp10 := newFakeMachinePoolTopologyState("mp-10", infrastructureMachinePool10, bootstrapConfig10)
+	infrastructureMachinePool10WithMetadataChanges := infrastructureMachinePool10.DeepCopy()
+	infrastructureMachinePool10WithMetadataChanges.SetLabels(map[string]string{"new-label": "new-value"})
+	infrastructureMachinePool10WithMetadataChanges.SetAnnotations(map[string]string{"new-annotation": "new-value"})
+	bootstrapConfig10WithMetadataChanges := bootstrapConfig10.DeepCopy()
+	bootstrapConfig10WithMetadataChanges.SetLabels(map[string]string{"new-label": "new-value"})
+	bootstrapConfig10WithMetadataChanges.SetAnnotations(map[string]string{"new-annotation": "new-value"})
+	mp10WithMetadataOnlyChanges := newFakeMachinePoolTopologyState("mp-10", infrastructureMachinePool10WithMetadataChanges, bootstrapConfig10WithMetadataChanges)
+
 	tests := []struct {
-		name                                      string
-		current                                   []*scope.MachinePoolState
-		currentOnlyAPIServer                      []*scope.MachinePoolState
-		desired                                   []*scope.MachinePoolState
-		upgradeTracker                            *scope.UpgradeTracker
-		want                                      []*scope.MachinePoolState
-		wantInfrastructureMachinePoolObjectUpdate map[string]bool
-		wantBootstrapObjectUpdate                 map[string]bool
-		wantErr                                   bool
+		name                                        string
+		current                                     []*scope.MachinePoolState
+		currentOnlyAPIServer                        []*scope.MachinePoolState
+		desired                                     []*scope.MachinePoolState
+		upgradeTracker                              *scope.UpgradeTracker
+		want                                        []*scope.MachinePoolState
+		wantInfrastructureMachinePoolObjectUpdate   map[string]bool
+		wantBootstrapObjectUpdate                   map[string]bool
+		wantInfrastructureMachinePoolObjectRotation map[string]bool
+		wantBootstrapObjectRotation                 map[string]bool
+		wantErr                                     bool
 	}{
 		{
 			name:    "Should create desired MachinePool if the current does not exists yet",
@@ -2807,7 +2821,8 @@ func TestReconcileMachinePools(t *testing.T) {
 			current: []*scope.MachinePoolState{mp2},
 			desired: []*scope.MachinePoolState{mp2WithChangedInfrastructureMachinePool},
 			want:    []*scope.MachinePoolState{mp2WithChangedInfrastructureMachinePool},
-			wantInfrastructureMachinePoolObjectUpdate: map[string]bool{"mp-2": true},
+			wantInfrastructureMachinePoolObjectUpdate:   map[string]bool{"mp-2": true},
+			wantInfrastructureMachinePoolObjectRotation: map[string]bool{"mp-2": true},
 			wantErr: false,
 		},
 		{
@@ -2816,16 +2831,18 @@ func TestReconcileMachinePools(t *testing.T) {
 			desired:        []*scope.MachinePoolState{mp2WithChangedInfrastructureMachinePool},
 			upgradeTracker: upgradeTrackerWithmp2PendingUpgrade,
 			want:           []*scope.MachinePoolState{mp2},
-			wantInfrastructureMachinePoolObjectUpdate: map[string]bool{"mp-2": false},
+			wantInfrastructureMachinePoolObjectUpdate:   map[string]bool{"mp-2": false},
+			wantInfrastructureMachinePoolObjectRotation: map[string]bool{"mp-2": false},
 			wantErr: false,
 		},
 		{
-			name:                      "Should update BootstrapConfig",
-			current:                   []*scope.MachinePoolState{mp3},
-			desired:                   []*scope.MachinePoolState{mp3WithChangedbootstrapConfig},
-			want:                      []*scope.MachinePoolState{mp3WithChangedbootstrapConfig},
-			wantBootstrapObjectUpdate: map[string]bool{"mp-3": true},
-			wantErr:                   false,
+			name:                        "Should update BootstrapConfig",
+			current:                     []*scope.MachinePoolState{mp3},
+			desired:                     []*scope.MachinePoolState{mp3WithChangedbootstrapConfig},
+			want:                        []*scope.MachinePoolState{mp3WithChangedbootstrapConfig},
+			wantBootstrapObjectUpdate:   map[string]bool{"mp-3": true},
+			wantBootstrapObjectRotation: map[string]bool{"mp-3": true},
+			wantErr:                     false,
 		},
 		{
 			name:    "Should fail update MachinePool because of changed BootstrapConfig kind",
@@ -2838,9 +2855,11 @@ func TestReconcileMachinePools(t *testing.T) {
 			current: []*scope.MachinePoolState{mp4},
 			desired: []*scope.MachinePoolState{mp4WithChangedObjects},
 			want:    []*scope.MachinePoolState{mp4WithChangedObjects},
-			wantInfrastructureMachinePoolObjectUpdate: map[string]bool{"mp-4": true},
-			wantBootstrapObjectUpdate:                 map[string]bool{"mp-4": true},
-			wantErr:                                   false,
+			wantInfrastructureMachinePoolObjectUpdate:   map[string]bool{"mp-4": true},
+			wantBootstrapObjectUpdate:                   map[string]bool{"mp-4": true},
+			wantInfrastructureMachinePoolObjectRotation: map[string]bool{"mp-4": true},
+			wantBootstrapObjectRotation:                 map[string]bool{"mp-4": true},
+			wantErr:                                     false,
 		},
 		{
 			name:    "Should fail update MachinePool because of changed InfrastructureMachinePool kind",
@@ -2866,9 +2885,11 @@ func TestReconcileMachinePools(t *testing.T) {
 			current: []*scope.MachinePoolState{mp8Update, mp8Delete},
 			desired: []*scope.MachinePoolState{mp8Create, mp8UpdateWithChangedObjects},
 			want:    []*scope.MachinePoolState{mp8Create, mp8UpdateWithChangedObjects},
-			wantInfrastructureMachinePoolObjectUpdate: map[string]bool{"mp-8-update": true},
-			wantBootstrapObjectUpdate:                 map[string]bool{"mp-8-update": true},
-			wantErr:                                   false,
+			wantInfrastructureMachinePoolObjectUpdate:   map[string]bool{"mp-8-update": true},
+			wantBootstrapObjectUpdate:                   map[string]bool{"mp-8-update": true},
+			wantInfrastructureMachinePoolObjectRotation: map[string]bool{"mp-8-update": true},
+			wantBootstrapObjectRotation:                 map[string]bool{"mp-8-update": true},
+			wantErr:                                     false,
 		},
 		{
 			name:    "Enforce template metadata",
@@ -2876,6 +2897,17 @@ func TestReconcileMachinePools(t *testing.T) {
 			desired: []*scope.MachinePoolState{mp9},
 			want:    []*scope.MachinePoolState{mp9},
 			wantErr: false,
+		},
+		{
+			name:    "Should update but not rotate InfrastructureMachinePool and BootstrapConfig on metadata-only changes",
+			current: []*scope.MachinePoolState{mp10},
+			desired: []*scope.MachinePoolState{mp10WithMetadataOnlyChanges},
+			want:    []*scope.MachinePoolState{mp10WithMetadataOnlyChanges},
+			wantInfrastructureMachinePoolObjectUpdate:   map[string]bool{"mp-10": true},
+			wantBootstrapObjectUpdate:                   map[string]bool{"mp-10": true},
+			wantInfrastructureMachinePoolObjectRotation: map[string]bool{"mp-10": false},
+			wantBootstrapObjectRotation:                 map[string]bool{"mp-10": false},
+			wantErr:                                     false,
 		},
 	}
 	for _, tt := range tests {
@@ -2980,6 +3012,15 @@ func TestReconcileMachinePools(t *testing.T) {
 						}
 					}
 
+					// Check BootstrapObject rotation if there was a previous MachinePool/BootstrapObject.
+					if currentMachinePoolState != nil && currentMachinePoolState.BootstrapObject != nil {
+						if tt.wantBootstrapObjectRotation[gotMachinePool.Name] {
+							g.Expect(currentMachinePoolState.BootstrapObject.GetName()).ToNot(Equal(gotBootstrapObject.GetName()))
+						} else {
+							g.Expect(currentMachinePoolState.BootstrapObject.GetName()).To(Equal(gotBootstrapObject.GetName()))
+						}
+					}
+
 					// Compare InfrastructureMachinePoolObject.
 					gotInfrastructureMachinePoolObjectRef := gotMachinePool.Spec.Template.Spec.InfrastructureRef
 					gotInfrastructureMachinePoolObject, err := external.GetObjectFromContractVersionedRef(ctx, env.GetAPIReader(), gotInfrastructureMachinePoolObjectRef, gotMachinePool.Namespace)
@@ -2993,6 +3034,15 @@ func TestReconcileMachinePools(t *testing.T) {
 							g.Expect(currentMachinePoolState.InfrastructureMachinePoolObject.GetResourceVersion()).ToNot(Equal(gotInfrastructureMachinePoolObject.GetResourceVersion()))
 						} else {
 							g.Expect(currentMachinePoolState.InfrastructureMachinePoolObject.GetResourceVersion()).To(Equal(gotInfrastructureMachinePoolObject.GetResourceVersion()))
+						}
+					}
+
+					// Check InfrastructureMachinePoolObject rotation if there was a previous MachinePool/InfrastructureMachinePoolObject.
+					if currentMachinePoolState != nil && currentMachinePoolState.InfrastructureMachinePoolObject != nil {
+						if tt.wantInfrastructureMachinePoolObjectRotation[gotMachinePool.Name] {
+							g.Expect(currentMachinePoolState.InfrastructureMachinePoolObject.GetName()).ToNot(Equal(gotInfrastructureMachinePoolObject.GetName()))
+						} else {
+							g.Expect(currentMachinePoolState.InfrastructureMachinePoolObject.GetName()).To(Equal(gotInfrastructureMachinePoolObject.GetName()))
 						}
 					}
 				}

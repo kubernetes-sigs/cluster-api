@@ -141,6 +141,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds
 		}
 		dst.Spec.Topology.ControlPlane.ReadinessGates = restored.Spec.Topology.ControlPlane.ReadinessGates
+		dst.Spec.Topology.ControlPlane.Taints = restored.Spec.Topology.ControlPlane.Taints
 
 		for i := range restored.Spec.Topology.Workers.MachineDeployments {
 			dst.Spec.Topology.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Topology.Workers.MachineDeployments[i].FailureDomain
@@ -153,6 +154,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds = restored.Spec.Topology.Workers.MachineDeployments[i].MinReadySeconds
 			dst.Spec.Topology.Workers.MachineDeployments[i].Rollout.Strategy = restored.Spec.Topology.Workers.MachineDeployments[i].Rollout.Strategy
 			dst.Spec.Topology.Workers.MachineDeployments[i].HealthCheck = restored.Spec.Topology.Workers.MachineDeployments[i].HealthCheck
+			dst.Spec.Topology.Workers.MachineDeployments[i].Taints = restored.Spec.Topology.Workers.MachineDeployments[i].Taints
 		}
 
 		dst.Spec.Topology.Workers.MachinePools = restored.Spec.Topology.Workers.MachinePools
@@ -247,6 +249,7 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.ControlPlane.Deletion.NodeDrainTimeoutSeconds = restored.Spec.ControlPlane.Deletion.NodeDrainTimeoutSeconds
 	dst.Spec.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds
 	dst.Spec.ControlPlane.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.ControlPlane.Deletion.NodeDeletionTimeoutSeconds
+	dst.Spec.ControlPlane.Taints = restored.Spec.ControlPlane.Taints
 	dst.Spec.Workers.MachinePools = restored.Spec.Workers.MachinePools
 	dst.Spec.KubernetesVersions = restored.Spec.KubernetesVersions
 
@@ -261,6 +264,7 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Workers.MachineDeployments[i].Deletion.NodeDeletionTimeoutSeconds = restored.Spec.Workers.MachineDeployments[i].Deletion.NodeDeletionTimeoutSeconds
 		dst.Spec.Workers.MachineDeployments[i].MinReadySeconds = restored.Spec.Workers.MachineDeployments[i].MinReadySeconds
 		dst.Spec.Workers.MachineDeployments[i].Rollout.Strategy = restored.Spec.Workers.MachineDeployments[i].Rollout.Strategy
+		dst.Spec.Workers.MachineDeployments[i].Taints = restored.Spec.Workers.MachineDeployments[i].Taints
 	}
 	dst.Status = restored.Status
 	dst.Spec.Upgrade.External.GenerateUpgradePlanExtension = restored.Spec.Upgrade.External.GenerateUpgradePlanExtension

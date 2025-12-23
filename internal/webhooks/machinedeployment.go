@@ -37,6 +37,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
+	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -231,7 +232,7 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 
 	allErrs = append(allErrs, validateMDMachineNaming(newMD.Spec.MachineNaming, specPath.Child("machineNaming"))...)
 
-	allErrs = append(allErrs, validateMachineTaints(newMD.Spec.Template.Spec.Taints, specPath.Child("template", "spec", "taints"))...)
+	allErrs = append(allErrs, taints.ValidateMachineTaints(newMD.Spec.Template.Spec.Taints, specPath.Child("template", "spec", "taints"))...)
 	allErrs = append(allErrs, validateMachineTaintsForWorkers(newMD.Spec.Template.Spec.Taints, nil, specPath.Child("template", "spec", "taints"))...)
 
 	// Validate the metadata of the template.

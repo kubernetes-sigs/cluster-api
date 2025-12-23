@@ -871,6 +871,7 @@ func autoConvert_v1beta2_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *v1b
 	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.Naming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -895,6 +896,7 @@ func autoConvert_v1beta2_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(i
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.Variables requires manual conversion: does not exist in peer-type
 	return nil
@@ -1001,6 +1003,7 @@ func autoConvert_v1beta2_MachineDeploymentClass_To_v1alpha4_MachineDeploymentCla
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	// WARNING: in.Naming requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type
@@ -1166,6 +1169,7 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1alpha4_MachineDeployment
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinReadySeconds requires manual conversion: does not exist in peer-type
 	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	// WARNING: in.Rollout requires manual conversion: does not exist in peer-type

@@ -70,7 +70,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(BeTrue())
 
-		g.Expect(ControlPlane().Initialized("v1beta1").Path()).To(Equal(Path{"status", "ready"}))
+		g.Expect(ControlPlane().Initialized("v1beta1").Path()).To(Equal(Path{"status", "initialized"}))
 
 		objV1beta1 := &unstructured.Unstructured{Object: map[string]interface{}{}}
 		err = ControlPlane().Initialized("v1beta1").Set(objV1beta1, true)

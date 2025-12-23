@@ -35,7 +35,7 @@ func (webhook *MachineDrainRule) SetupWebhookWithManager(mgr ctrl.Manager) error
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1beta2-machinedrainrule,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinedrainrules,versions=v1beta2,name=validation.machinedrainrule.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1beta2-machinedrainrule,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinedrainrules,versions=v1beta2,name=validation.machinedrainrule.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
 
 // MachineDrainRule implements a validation webhook for MachineDrainRule.
 type MachineDrainRule struct{}

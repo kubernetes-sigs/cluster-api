@@ -39,8 +39,8 @@ func (webhook *ClusterResourceSet) SetupWebhookWithManager(mgr ctrl.Manager) err
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-addons-cluster-x-k8s-io-v1beta2-clusterresourceset,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=addons.cluster.x-k8s.io,resources=clusterresourcesets,versions=v1beta2,name=validation.clusterresourceset.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-addons-cluster-x-k8s-io-v1beta2-clusterresourceset,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=addons.cluster.x-k8s.io,resources=clusterresourcesets,versions=v1beta2,name=default.clusterresourceset.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-addons-cluster-x-k8s-io-v1beta2-clusterresourceset,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=addons.cluster.x-k8s.io,resources=clusterresourcesets,versions=v1beta2,name=validation.clusterresourceset.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-addons-cluster-x-k8s-io-v1beta2-clusterresourceset,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=addons.cluster.x-k8s.io,resources=clusterresourcesets,versions=v1beta2,name=default.clusterresourceset.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
 
 var _ admission.Defaulter[*addonsv1.ClusterResourceSet] = &ClusterResourceSet{}
 var _ admission.Validator[*addonsv1.ClusterResourceSet] = &ClusterResourceSet{}

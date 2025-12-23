@@ -261,6 +261,33 @@ images:
     tag: v1.5.3
 ```
 
+Additionally, you can override the image name itself. This is useful when images
+have been mirrored with different names:
+
+```yaml
+images:
+  all:
+    repository: myorg.io/local-repo
+  cluster-api:
+    name: mirrored-cluster-api-controller
+```
+
+This would transform `registry.k8s.io/cluster-api/cluster-api-controller:v1.10.6` into
+`myorg.io/local-repo/mirrored-cluster-api-controller:v1.10.6`.
+
+Or you can specify all three fields to completely override the image:
+
+```yaml
+images:
+  cluster-api:
+    repository: myorg.io/local-repo
+    name: mirrored-cluster-api-controller
+    tag: v1.10.6
+```
+
+This would transform `registry.k8s.io/cluster-api/cluster-api-controller:v1.8.0` into
+`myorg.io/local-repo/mirrored-cluster-api-controller:v1.10.6`, replacing both the image location and version.
+
 ## Debugging/Logging
 
 To have more verbose logs you can use the `-v` flag when running the `clusterctl` and set the level of the logging verbose with a positive integer number, ie. `-v 3`.

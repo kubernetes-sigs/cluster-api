@@ -196,6 +196,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-kcp-only.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-autoscaler.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-taints.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-ignition.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-in-memory.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start.yaml"

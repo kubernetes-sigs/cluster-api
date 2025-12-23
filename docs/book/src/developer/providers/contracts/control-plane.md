@@ -608,10 +608,10 @@ preserves compatibility with the deprecated v1beta1 contract; compatibility will
 
 With regards to initialization completed:
 
-Cluster API will continue to temporarily support ControlPlane resource using `status.initialize` and the `status.ready` field to
+Cluster API will continue to temporarily support ControlPlane resource using the `status.initialized` field to
 report initialization completed.
 
-After compatibility with the deprecated v1beta1 contract will be removed, `status.initialize` and `status.ready` fields in
+After compatibility with the deprecated v1beta1 contract will be removed, the `status.initialized` field in
 the ControlPlane resource will be ignored.
 
 </aside>

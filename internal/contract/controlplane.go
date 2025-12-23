@@ -102,7 +102,7 @@ func (c *ControlPlaneContract) StatusVersion() *String {
 func (c *ControlPlaneContract) Initialized(contractVersion string) *Bool {
 	if contractVersion == "v1beta1" {
 		return &Bool{
-			path: []string{"status", "ready"},
+			path: []string{"status", "initialized"},
 		}
 	}
 

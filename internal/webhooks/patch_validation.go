@@ -23,7 +23,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -32,6 +31,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/topology/templates"
 )
 
 // validatePatches returns errors if the Patches in the ClusterClass violate any validation rules.
@@ -146,7 +146,9 @@ func validateEnabledIf(enabledIf string, path *field.Path) field.ErrorList {
 
 	if enabledIf != "" {
 		// Error if template can not be parsed.
-		_, err := template.New("enabledIf").Funcs(sprig.HermeticTxtFuncMap()).Parse(enabledIf)
+		tpl := template.New("enabledIf")
+		tpl.Funcs(templates.TemplateFunctions(tpl))
+		_, err := tpl.Parse(enabledIf)
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
@@ -410,8 +412,10 @@ func validateJSONPatchValues(jsonPatch clusterv1.JSONPatch, variableSet map[stri
 	}
 
 	if jsonPatch.ValueFrom != nil && jsonPatch.ValueFrom.Template != "" {
+		tpl := template.New("valueFrom.template")
+		tpl.Funcs(templates.TemplateFunctions(tpl))
 		// Error if template can not be parsed.
-		_, err := template.New("valueFrom.template").Funcs(sprig.HermeticTxtFuncMap()).Parse(jsonPatch.ValueFrom.Template)
+		_, err := tpl.Parse(jsonPatch.ValueFrom.Template)
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(

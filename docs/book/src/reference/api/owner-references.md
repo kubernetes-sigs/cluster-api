@@ -1,7 +1,7 @@
 # Owner References
 
 Cluster API uses [Kubernetes owner references](https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/) to track relationships between objects. These references are used
-for Kubernetes garbage collection, which is also used for Cluster deletion in CAPI. They are also used places where 
+for Kubernetes garbage collection, which is also used for Cluster deletion in CAPI. They are also used in places where 
 the ownership hierarchy is important, for example when using `clusterctl move`.
 
 CAPI uses owner references in an opinionated way. The following guidelines should be considered:

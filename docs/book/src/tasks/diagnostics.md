@@ -4,7 +4,7 @@
 
 With CAPI v1.6 we introduced new flags to allow serving metrics, the pprof endpoint and an endpoint to dynamically change log levels securely in production.
 
-This feature is enabled per default via:
+This feature is enabled by default via:
 ```yaml
           args:
             - "--diagnostics-address=${CAPI_DIAGNOSTICS_ADDRESS:=:8443}"

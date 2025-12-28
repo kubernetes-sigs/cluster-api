@@ -75,7 +75,7 @@ Cluster API follows upstream Kubernetes semantic versioning. With the v1 release
 
 - A (*patch*) release SHOULD only include backwards compatible set of bugfixes.
 
-see [Cluster API release support](https://cluster-api.sigs.k8s.io/reference/versions.html#cluster-api-release-support)) for
+see [Cluster API release support](https://cluster-api.sigs.k8s.io/reference/versions.html#cluster-api-release-support) for
 more details about supported releases and for considerations that might apply if you are importing Cluster API go modules as a dependency.
 
 #### Backporting a patch

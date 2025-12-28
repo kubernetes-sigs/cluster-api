@@ -805,7 +805,7 @@ when those values are used in patch or when the generated templates are created 
  [6135](https://github.com/kubernetes-sigs/cluster-api/issues/6135)).
 
 As a consequence we recommend avoiding this practice while we are considering alternatives to make
-it explicit for the ClusterClass authors to opt-in in this feature, thus accepting the implied risks.
+it explicit for the ClusterClass authors to opt in this feature, thus accepting the implied risks.
 
 ### Using variable values in JSON patches
 

@@ -17,7 +17,7 @@ Among those rules:
 - InfraMachine SHOULD report [terminal failures](../../providers/contracts/infra-machine.md#inframachine-terminal-failures)
 
 Similarly, in order to support different machine bootstrappers, The Machine resource references
-a BootstrapConfig object, e.g. KubeadmBoostrapConfig etc.
+a BootstrapConfig object, e.g. KubeadmBootstrapConfig etc.
 
 The [BootstrapConfig resource contract](../../providers/contracts/bootstrap-config.md) defines a set of rules a provider is expected to comply with in order to allow
 the expected interactions with the Machine controller.

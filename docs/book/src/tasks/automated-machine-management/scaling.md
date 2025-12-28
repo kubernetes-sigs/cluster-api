@@ -6,6 +6,8 @@ Machines can be owned by scalable resources i.e. MachineSet and MachineDeploymen
 
 You can scale MachineSets and MachineDeployments in or out by expressing intent via `.spec.replicas` or updating the scale subresource e.g `kubectl scale machinedeployment foo --replicas=5`.
 
+If you need to prioritize which Machines get deleted during scale down, add the `cluster.x-k8s.io/delete-machine` label to the Machine. KCP or a MachineSet will delete labeled control plane or worker Machines first, and this label has top priority over all delete policies.
+
 When you delete a Machine directly or by scaling down, the same process takes place in the same order:
 - The Node backed by that Machine will try to be drained indefinitely and will wait for any volume to be detached from the Node unless you specify a `.spec.nodeDrainTimeout`.
   - CAPI uses default [kubectl draining implementation](https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/) with `-–ignore-daemonsets=true`. If you needed to ensure DaemonSets eviction you'd need to do so manually by also adding proper taints to avoid rescheduling.

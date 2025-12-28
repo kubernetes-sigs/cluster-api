@@ -14,7 +14,7 @@ The lifecycle hooks allow hooking into the Cluster lifecycle. The following diag
 
 ![Lifecycle Hooks overview](../../../images/runtime-sdk-lifecycle-hooks.png)
 
-Please see the corresponding [CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220414-runtime-hooks.md) as well as the proposal for [Chained and efficient upgrades](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md)
+Please see the corresponding [CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220414-runtime-hooks.md) as well as the proposal for [Chained and efficient upgrades](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md)
 for additional background information.
 
 <!-- TOC -->

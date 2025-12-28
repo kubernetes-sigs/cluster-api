@@ -10,7 +10,7 @@ Please note Runtime SDK is an advanced feature. If implemented incorrectly, a fa
 
 ## Introduction
 
-The proposal for [in-place updates in Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/20240807-in-place-updates.md)
+The proposal for [in-place updates in Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md)
 introduced extensions allowing users to execute changes on existing machines without deleting the Machine and creating a new one.
 
 Notably, the Cluster API user experience remains the same as of today no matter of the in-place update feature is enabled 
@@ -43,7 +43,7 @@ options like MaxSurge/MaxUnavailable. With this regard:
 
 Cluster API will call the in-place extensions only if the `InPlaceUpdates` feature flag is enabled.
 
-Also, please note that the current implementation of the [in-place updates proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/20240807-in-place-updates.md) only allows registering one extension for the `CanUpdateMachine`, `CanUpdateMachineSet` and `UpdateMachine` hooks.
+Also, please note that the current implementation of the [in-place updates proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md) only allows registering one extension for the `CanUpdateMachine`, `CanUpdateMachineSet` and `UpdateMachine` hooks.
 
 </aside>
 

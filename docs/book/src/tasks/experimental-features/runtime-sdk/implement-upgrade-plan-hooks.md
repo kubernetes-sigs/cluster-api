@@ -10,7 +10,7 @@ Please note Runtime SDK is an advanced feature. If implemented incorrectly, a fa
 
 ## Introduction
 
-The proposal for [Chained and efficient upgrades](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md)
+The proposal for [Chained and efficient upgrades](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20250513-chained-and-efficient-upgrades-for-clusters-with-managed-topologies.md)
 introduced support for upgrading by more than one minor when working with Clusters using managed topologies.
 
 According to the proposal, there are two ways to provide Cluster API the information required to compute the upgrade plan:

@@ -16,7 +16,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/valyala/fastjson v1.6.7
 	golang.org/x/oauth2 v0.34.0
-	google.golang.org/api v0.257.0
+	google.golang.org/api v0.258.0
 	k8s.io/api v0.35.0
 	k8s.io/apiextensions-apiserver v0.35.0
 	k8s.io/apimachinery v0.35.0
@@ -26,7 +26,7 @@ require (
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/controller-runtime v0.22.1-0.20251219095433-f28fd58a1e31
+	sigs.k8s.io/controller-runtime v0.22.4
 	sigs.k8s.io/controller-tools v0.20.0
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20211028165026-57688c578b5d
 	sigs.k8s.io/kustomize/api v0.17.3
@@ -162,9 +162,9 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/genproto v0.0.0-20250922171735-9219d122eba9 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251111163417-95abcf5c77ba // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251124214823-79d6a2a48846 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251213004720-97cd9d5aeac2 // indirect
 	google.golang.org/grpc v1.77.0 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

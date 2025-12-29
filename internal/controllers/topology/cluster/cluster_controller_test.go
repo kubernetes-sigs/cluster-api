@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -1801,7 +1800,7 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 	// return a func that allows to check if expected transformations are applied to the Cluster parameter which is
 	// included in the payload for lifecycle hooks calls.
 	return func(req runtimehooksv1.RequestObject) error {
-		var cluster clusterv1beta1.Cluster
+		var cluster clusterv1.Cluster
 		switch req := req.(type) {
 		case *runtimehooksv1.BeforeClusterCreateRequest:
 			cluster = req.Cluster
@@ -1826,15 +1825,9 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 			return errors.New("conversion annotation should have been cleaned up")
 		}
 
-		// check the Cluster parameter included in the payload lifecycle hooks calls has been properly converted from v1beta2 to v1beta1.
-		// Note: to perform this check we convert the parameter back to v1beta2 and compare with the original cluster +/- expected transformations.
-		v1beta2Cluster := &clusterv1.Cluster{}
-		if err := cluster.ConvertTo(v1beta2Cluster); err != nil {
-			return err
-		}
+		// Check the Cluster parameter has been cleaned up as expected.
 
 		originalClusterCopy := originalCluster.DeepCopy()
-		originalClusterCopy.TypeMeta = metav1.TypeMeta{}
 		originalClusterCopy.SetManagedFields(nil)
 		if originalClusterCopy.Annotations != nil {
 			annotations := maps.Clone(cluster.Annotations)
@@ -1846,8 +1839,8 @@ func validateClusterParameter(originalCluster *clusterv1.Cluster) func(req runti
 		// drop conditions, it is not possible to round trip without the data annotation.
 		originalClusterCopy.Status.Conditions = nil
 
-		if !apiequality.Semantic.DeepEqual(originalClusterCopy, v1beta2Cluster) {
-			return errors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, v1beta2Cluster))
+		if !apiequality.Semantic.DeepEqual(originalClusterCopy, &cluster) {
+			return errors.Errorf("call to extension is not passing the expected cluster object: %s", cmp.Diff(originalClusterCopy, &cluster))
 		}
 		return nil
 	}

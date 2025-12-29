@@ -1033,7 +1033,6 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 				reader: test.NewFakeReader().
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				// two provider repositories, with current v1alpha3 contract and new versions for v1alpha4 contract
 				repository: map[string]repository.Repository{
 					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
@@ -1070,7 +1069,6 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 				reader: test.NewFakeReader().
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				// two provider repositories, with current v1alpha3 contract and new versions for v1alpha4 contract
 				repository: map[string]repository.Repository{
 					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
@@ -1107,7 +1105,6 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 				reader: test.NewFakeReader().
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				// two provider repositories, with current v1alpha3 contract and new versions for v1alpha4 contract
 				repository: map[string]repository.Repository{
 					"cluster-api": repository.NewMemoryRepository().
 						WithDefaultVersion("v2.0.0").
@@ -1191,7 +1188,6 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 				reader: test.NewFakeReader().
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				// two provider repositories, with current v1alpha3 contract and new versions for v1alpha4 contract
 				repository: map[string]repository.Repository{
 					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
@@ -1237,7 +1233,6 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 				reader: test.NewFakeReader().
 					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
 					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
-				// two provider repositories, with current v1alpha3 contract and new versions for v1alpha4 contract
 				repository: map[string]repository.Repository{
 					"cluster-api": repository.NewMemoryRepository().
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").

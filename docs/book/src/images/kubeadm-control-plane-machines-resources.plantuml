@@ -4,32 +4,32 @@ skinparam nodesep 80
 skinparam ranksep 80
 skinparam object {
     backgroundColor<< infrastructure.cluster.x-k8s.io >> #D9EAD3
-    backgroundColor<< controlplane.cluster.x-k8s.io/v1alpha3 >> #EBF6F7
-    backgroundColor<< bootstrap.cluster.x-k8s.io/v1alpha3 >> #FEF4F4
+    backgroundColor<< controlplane.cluster.x-k8s.io/v1beta2 >> #EBF6F7
+    backgroundColor<< bootstrap.cluster.x-k8s.io/v1beta2 >> #FEF4F4
 }
 
-' cluster.x-k8s.io/v1alpha3
-object Cluster << cluster.x-k8s.io/v1alpha3 >> {
+' cluster.x-k8s.io/v1beta2
+object Cluster << cluster.x-k8s.io/v1beta2 >> {
     <font color="Green">spec.infrastructureRef</font>
     spec.controlPlaneRef
 }
-object MachineHealthCheck << cluster.x-k8s.io/v1alpha3 >> {
+object MachineHealthCheck << cluster.x-k8s.io/v1beta2 >> {
     spec.clusterName
     spec.selector
 }
-object Machine << cluster.x-k8s.io/v1alpha3 >> {
+object Machine << cluster.x-k8s.io/v1beta2 >> {
     <font color="Green">spec.infrastructureRef</font>
     spec.bootstrap.configRef
 }
 
-' controlplane.cluster.x-k8s.io/v1alpha3
-object KubeadmControlPlane << controlplane.cluster.x-k8s.io/v1alpha3 >> {
+' controlplane.cluster.x-k8s.io/v1beta2
+object KubeadmControlPlane << controlplane.cluster.x-k8s.io/v1beta2 >> {
     <font color="Green">spec.infrastructureTemplate</font>
     <font color="Red">spec.KubeadmConfigSpec</font>
 }
 
-' bootstrap.cluster.x-k8s.io/v1alpha3
-object BarBootstrapConfig << bootstrap.cluster.x-k8s.io/v1alpha3 >> 
+' bootstrap.cluster.x-k8s.io/v1beta2
+object BarBootstrapConfig << bootstrap.cluster.x-k8s.io/v1beta2 >>
 
 ' Infrastructure provider CRD
 object FooCluster << infrastructure.cluster.x-k8s.io >>

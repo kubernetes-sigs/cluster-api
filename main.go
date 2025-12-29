@@ -72,10 +72,6 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
-	addonsv1alpha3 "sigs.k8s.io/cluster-api/internal/api/addons/v1alpha3"
-	addonsv1alpha4 "sigs.k8s.io/cluster-api/internal/api/addons/v1alpha4"
-	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha3"
-	clusterv1alpha4 "sigs.k8s.io/cluster-api/internal/api/core/v1alpha4"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
@@ -139,13 +135,9 @@ func init() {
 	_ = apiextensionsv1.AddToScheme(scheme)
 	_ = storagev1.AddToScheme(scheme)
 
-	_ = clusterv1alpha3.AddToScheme(scheme)
-	_ = clusterv1alpha4.AddToScheme(scheme)
 	_ = clusterv1beta1.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 
-	_ = addonsv1alpha3.AddToScheme(scheme)
-	_ = addonsv1alpha4.AddToScheme(scheme)
 	_ = addonsv1beta1.AddToScheme(scheme)
 	_ = addonsv1.AddToScheme(scheme)
 
@@ -765,8 +757,6 @@ func setupWebhooks(ctx context.Context, mgr ctrl.Manager, clusterCacheReader web
 	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
 		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
 	}
-	clusterv1alpha3.SetAPIVersionGetter(apiVersionGetter)
-	clusterv1alpha4.SetAPIVersionGetter(apiVersionGetter)
 	clusterv1beta1.SetAPIVersionGetter(apiVersionGetter)
 
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook

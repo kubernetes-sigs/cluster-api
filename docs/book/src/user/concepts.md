@@ -37,7 +37,7 @@ The [control plane](https://kubernetes.io/docs/concepts/overview/components/) is
 
 * __External__  or __Managed__ control planes are offered and controlled by some system other than Cluster API, such as GKE, AKS, EKS, or IKS.
 
-The default provider uses kubeadm to bootstrap the control plane. As of v1alpha3, it exposes the configuration via the `KubeadmControlPlane` object. The controller, `capi-kubeadm-control-plane-controller-manager`, can then create Machine and BootstrapConfig objects based on the requested replicas in the `KubeadmControlPlane` object.
+For example, the kubeadm provider uses kubeadm to bootstrap the control plane and it exposes the configuration via the `KubeadmControlPlane` object. The controller, `capi-kubeadm-control-plane-controller-manager`, can then create Machine and BootstrapConfig objects based on the requested replicas in the `KubeadmControlPlane` object.
 
 ## Custom Resource Definitions (CRDs)
 

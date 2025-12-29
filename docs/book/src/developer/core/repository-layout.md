@@ -84,7 +84,7 @@ Some of the subfolders are:
 
 * [~/config/webhook](https://github.com/kubernetes-sigs/cluster-api/tree/main/config/webhook) - Manifest for webhooks generated from the markers defined in the web hook implementations present in [api](#api) folder.
 
-Note: Additional `config` containing manifests can be found in the packages for [KubeadmControlPlane](#controlplane), [KubeadmBoostrap](#bootstrap) and [Cluster API Provider Docker](#cluster-api-provider-docker).
+Note: Additional `config` containing manifests can be found in the packages for [KubeadmControlPlane](#controlplane), [KubeadmBootstrap](#bootstrap) and [Cluster API Provider Docker](#cluster-api-provider-docker).
 
 ### Controllers
 
@@ -154,4 +154,4 @@ This directory contains the implementation of some of the Cluster API webhooks. 
 
 This folder exposes the custom webhooks present in [~internal/webhooks](#webhooks) to the users of CAPI.
 
-Note: Additional webhook implementations can be found in the API packages for [KubeadmControlPlane](#controlplane), [KubeadmBoostrap](#bootstrap) and [Cluster API Provider Docker](#cluster-api-provider-docker).
+Note: Additional webhook implementations can be found in the API packages for [KubeadmControlPlane](#controlplane), [KubeadmBootstrap](#bootstrap) and [Cluster API Provider Docker](#cluster-api-provider-docker).

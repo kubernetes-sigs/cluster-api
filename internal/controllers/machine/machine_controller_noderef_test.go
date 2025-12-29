@@ -17,7 +17,6 @@ limitations under the License.
 package machine
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -32,17 +31,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
-	capicontrollerutil "sigs.k8s.io/cluster-api/internal/util/controller"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -336,37 +330,6 @@ func TestReconcileNode(t *testing.T) {
 }
 
 func TestGetNode(t *testing.T) {
-	g := NewWithT(t)
-
-	ns, err := env.CreateNamespace(ctx, "test-get-node")
-	g.Expect(err).ToNot(HaveOccurred())
-
-	// Set up cluster to test against.
-	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-get-node-",
-			Namespace:    ns.Name,
-		},
-		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
-				APIGroup: builder.ControlPlaneGroupVersion.Group,
-				Kind:     builder.GenericControlPlaneKind,
-				Name:     "cp1",
-			},
-		},
-	}
-
-	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
-	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
-	patch := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
-	g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
-
-	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
-	defer func(do ...client.Object) {
-		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
-	}(ns, testCluster)
-
 	testCases := []struct {
 		name            string
 		node            *corev1.Node
@@ -374,7 +337,7 @@ func TestGetNode(t *testing.T) {
 		error           error
 	}{
 		{
-			name: "full providerID matches",
+			name: "providerID matches",
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-get-node-node-1",
@@ -386,31 +349,7 @@ func TestGetNode(t *testing.T) {
 			providerIDInput: "aws://us-east-1/test-get-node-1",
 		},
 		{
-			name: "aws prefix: cloudProvider and ID matches",
-			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-get-node-node-2",
-				},
-				Spec: corev1.NodeSpec{
-					ProviderID: "aws://us-west-2/test-get-node-2",
-				},
-			},
-			providerIDInput: "aws://us-west-2/test-get-node-2",
-		},
-		{
-			name: "gce prefix, cloudProvider and ID matches",
-			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-get-node-gce-node-2",
-				},
-				Spec: corev1.NodeSpec{
-					ProviderID: "gce://us-central1/test-get-node-2",
-				},
-			},
-			providerIDInput: "gce://us-central1/test-get-node-2",
-		},
-		{
-			name: "Node is not found",
+			name: "Node is not found, providerID does not match",
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-get-node-not-found",
@@ -424,64 +363,13 @@ func TestGetNode(t *testing.T) {
 		},
 	}
 
-	nodesToCleanup := make([]client.Object, 0, len(testCases))
-	for _, tc := range testCases {
-		g.Expect(env.Create(ctx, tc.node)).To(Succeed())
-		nodesToCleanup = append(nodesToCleanup, tc.node)
-	}
-	defer func(do ...client.Object) {
-		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
-	}(nodesToCleanup...)
-
-	clusterCache, err := clustercache.SetupWithManager(ctx, env.Manager, clustercache.Options{
-		SecretClient: env.GetClient(),
-		Cache: clustercache.CacheOptions{
-			Indexes: []clustercache.CacheOptionsIndex{clustercache.NodeProviderIDIndex},
-		},
-		Client: clustercache.ClientOptions{
-			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
-			Cache: clustercache.ClientCacheOptions{
-				DisableFor: []client.Object{
-					// Don't cache ConfigMaps & Secrets.
-					&corev1.ConfigMap{},
-					&corev1.Secret{},
-				},
-			},
-		},
-	}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)})
-	if err != nil {
-		panic(fmt.Sprintf("Failed to create ClusterCache: %v", err))
-	}
-	defer clusterCache.(interface{ Shutdown() }).Shutdown()
-
-	r := &Reconciler{
-		ClusterCache: clusterCache,
-		Client:       env,
-	}
-
-	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "node")
-	w, err := capicontrollerutil.NewControllerManagedBy(env.Manager, predicateLog).For(&corev1.Node{}).Build(r)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	// Retry because the ClusterCache might not have immediately created the clusterAccessor.
-	g.Eventually(func(g Gomega) {
-		g.Expect(clusterCache.Watch(ctx, util.ObjectKey(testCluster), clustercache.NewWatcher(clustercache.WatcherOptions{
-			Name:    "TestGetNode",
-			Watcher: w,
-			Kind:    &corev1.Node{},
-			EventHandler: handler.EnqueueRequestsFromMapFunc(func(context.Context, client.Object) []reconcile.Request {
-				return nil
-			}),
-		}))).To(Succeed())
-	}, 1*time.Minute, 5*time.Second).Should(Succeed())
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(testCluster))
-			g.Expect(err).ToNot(HaveOccurred())
 
-			node, err := r.getNode(ctx, remoteClient, tc.providerIDInput)
+			remoteClient := fake.NewClientBuilder().WithObjects(tc.node).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
+
+			node, err := (&Reconciler{}).getNode(ctx, remoteClient, tc.providerIDInput)
 			if tc.error != nil {
 				g.Expect(err).To(Equal(tc.error))
 				return

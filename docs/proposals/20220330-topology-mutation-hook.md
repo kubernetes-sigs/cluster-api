@@ -207,6 +207,9 @@ to avoid duplication.
 
 We want to be able to use `clusterctl alpha topology plan` to validate External Patch Extensions. To make this possible we will extend the command so users can point to locally running External Patch Extensions without having to deploy a full management cluster.
 
+NOTE: `clusterctl alpha topology plan` was dropped due to limitations / lack of interest from the community (see. [#10138](https://github.com/kubernetes-sigs/cluster-api/issues/10138)). 
+Local testing with Kind or unit tests can be used as a more effective and developer friendly alternatives.
+
 ### Security Model
 
 For the general Runtime Extension security model please refer to the [developer guide in the Runtime SDK proposal](https://github.com/kubernetes-sigs/cluster-api/blob/75b39db545ae439f4f6203b5e07496d3b0a6aa75/docs/proposals/20220221-runtime-SDK.md#security-model).
@@ -287,6 +290,7 @@ See [upgrade strategy](#upgrade-strategy).
 * [x] 2022-03-21: Opened corresponding [issue](https://github.com/kubernetes-sigs/cluster-api/issues/6319)
 * [x] 2022-03-23: Presented proposal at a [community meeting]
 * [x] 2022-03-30: Opened proposal PR
+* [x] 2025-02-12: Document removal of clusterctl alpha topology plan
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI/edit#heading=h.pxsq37pzkbdq

@@ -54,6 +54,7 @@ type configCertManager struct {
 // avoid circular dependencies between pkg/client/config and pkg/internal/test.
 type imageMeta struct {
 	Repository string `json:"repository,omitempty"`
+	Name       string `json:"name,omitempty"`
 	Tag        string `json:"tag,omitempty"`
 }
 
@@ -119,9 +120,10 @@ func (f *FakeReader) WithCertManager(url, version, timeout string) *FakeReader {
 	return f
 }
 
-func (f *FakeReader) WithImageMeta(component, repository, tag string) *FakeReader {
+func (f *FakeReader) WithImageMeta(component, repository, name, tag string) *FakeReader {
 	f.imageMetas[component] = imageMeta{
 		Repository: repository,
+		Name:       name,
 		Tag:        tag,
 	}
 

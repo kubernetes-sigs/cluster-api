@@ -8,7 +8,7 @@ spec:
   conversion:
     strategy: Webhook
     webhook:
-      conversionReviewVersions: ["v1", "v1beta1"]
+      conversionReviewVersions: ["v1"]
       clientConfig:
         service:
           namespace: system

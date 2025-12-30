@@ -33,42 +33,6 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: "{go://sigs.k8s.io/cluster-api@v0.3}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v0.3}/core-components.yaml"
-    type: "url"
-    contract: v1alpha3
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v0.3/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v0.4}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v0.4}/core-components.yaml"
-    type: "url"
-    contract: v1alpha4
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v0.4/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.5}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/core-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.5/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.6}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.6}/core-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-      - sourcePath: "../data/shared/v1.6/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/core-components.yaml"
     type: "url"
@@ -104,42 +68,6 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: "{go://sigs.k8s.io/cluster-api@v0.3}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v0.3}/bootstrap-components.yaml"
-    type: "url"
-    contract: v1alpha3
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v0.3/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v0.4}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v0.4}/bootstrap-components.yaml"
-    type: "url"
-    contract: v1alpha4
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v0.4/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.5}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/bootstrap-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.5/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.6}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.6}/bootstrap-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.6/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/bootstrap-components.yaml"
     type: "url"
@@ -175,42 +103,6 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: "{go://sigs.k8s.io/cluster-api@v0.3}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v0.3}/control-plane-components.yaml"
-    type: "url"
-    contract: v1alpha3
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v0.3/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v0.4}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v0.4}/control-plane-components.yaml"
-    type: "url"
-    contract: v1alpha4
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v0.4/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.5}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/control-plane-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.5/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.6}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.6}/control-plane-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.6/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/control-plane-components.yaml"
     type: "url"
@@ -246,50 +138,6 @@ providers:
 - name: docker
   type: InfrastructureProvider
   versions:
-  - name: "{go://sigs.k8s.io/cluster-api@v0.3}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v0.3}/infrastructure-components-development.yaml"
-    type: "url"
-    contract: v1alpha3
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v0.3/metadata.yaml"
-    - sourcePath: "../data/infrastructure-docker/v0.3/cluster-template.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v0.4}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v0.4}/infrastructure-components-development.yaml"
-    type: "url"
-    contract: v1alpha4
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v0.4/metadata.yaml"
-    - sourcePath: "../data/infrastructure-docker/v0.4/cluster-template.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.5}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/infrastructure-components-development.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.5/metadata.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.5/cluster-template.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.5/cluster-template-topology.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.5/clusterclass-quick-start.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.6}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.6}/infrastructure-components-development.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.6/metadata.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.6/cluster-template.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.6/cluster-template-topology.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.6/clusterclass-quick-start.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/infrastructure-components-development.yaml"
     type: "url"

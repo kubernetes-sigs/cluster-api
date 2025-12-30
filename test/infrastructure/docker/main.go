@@ -57,8 +57,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
-	infrav1alpha3 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
-	infrav1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
 	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/controllers"
@@ -106,8 +104,6 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
-	_ = infrav1alpha3.AddToScheme(scheme)
-	_ = infrav1alpha4.AddToScheme(scheme)
 	_ = infrav1beta1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)

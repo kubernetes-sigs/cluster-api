@@ -229,7 +229,6 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		initClusterctlBinaryURL = clusterctlBinaryURLReplacer.Replace(clusterctlBinaryURLTemplate)
 
 		// NOTE: by default we are considering all the providers, no matter of the contract.
-		// However, given that we want to test both v1alpha3 --> v1beta1, v1alpha4 --> v1beta1, v1beta1 --> v1beta2,
 		// InitWithProvidersContract can be used to select versions with a specific contract.
 		initContract = "*"
 		if input.InitWithProvidersContract != "" {
@@ -618,11 +617,11 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 			Byf("[%d] THE MANAGEMENT CLUSTER WAS SUCCESSFULLY UPGRADED!", i)
 
-			// We have to get the core CAPI storage version again as the upgrade might have stopped serving v1alpha3/v1alpha4.
+			// We have to get the core CAPI storage version again as the upgrade might have stopped serving an old apiVersion.
 			coreCAPIStorageVersion = getCoreCAPIStorageVersion(ctx, managementClusterProxy.GetClient())
 
 			// Note: Currently we only support upgrades that (still) serve the v1beta1 core CAPI apiVersion after upgrade.
-			// This seems a reasonable simplification as we don't want to test upgrades to v1alpha3 / v1alpha4.
+			// This seems a reasonable simplification as we don't want to test upgrades to older apiVersions.
 			// This will also work with CAPI versions that have v1beta2 as storage version as long as v1beta1 is still served.
 			// Note: We can't simply use unstructured here because we would have to refactor a lot of code below.
 			// Note: We can migrate to only use v1beta2 once we only support upgrades from CAPI versions that already have v1beta2.
@@ -1067,12 +1066,8 @@ func calculateExpectedMachinePoolNodeCount(ctx context.Context, c client.Client,
 	}
 
 	machinePoolList := &unstructured.UnstructuredList{}
-	machinePoolGroup := clusterv1.GroupVersion.Group
-	if coreCAPIStorageVersion == "v1alpha3" {
-		machinePoolGroup = "exp.cluster.x-k8s.io"
-	}
 	machinePoolList.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   machinePoolGroup,
+		Group:   clusterv1.GroupVersion.Group,
 		Version: coreCAPIStorageVersion,
 		Kind:    "MachinePoolList",
 	})

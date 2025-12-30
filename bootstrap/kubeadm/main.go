@@ -55,8 +55,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/feature"
-	bootstrapv1alpha3 "sigs.k8s.io/cluster-api/internal/api/bootstrap/kubeadm/v1alpha3"
-	bootstrapv1alpha4 "sigs.k8s.io/cluster-api/internal/api/bootstrap/kubeadm/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
@@ -100,8 +98,6 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
-	_ = bootstrapv1alpha3.AddToScheme(scheme)
-	_ = bootstrapv1alpha4.AddToScheme(scheme)
 	_ = bootstrapv1beta1.AddToScheme(scheme)
 	_ = bootstrapv1.AddToScheme(scheme)
 }

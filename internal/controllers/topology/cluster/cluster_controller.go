@@ -43,7 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/api/core/v1beta2/index"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -454,14 +453,8 @@ func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.S
 			}
 		}
 
-		// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
-		v1beta1Cluster := &clusterv1beta1.Cluster{}
-		if err := v1beta1Cluster.ConvertFrom(s.Current.Cluster.DeepCopy()); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
-		}
-
 		hookRequest := &runtimehooksv1.BeforeClusterCreateRequest{
-			Cluster: *cleanupCluster(v1beta1Cluster),
+			Cluster: *cleanupCluster(s.Current.Cluster),
 		}
 		hookResponse := &runtimehooksv1.BeforeClusterCreateResponse{}
 		if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterCreate, s.Current.Cluster, hookRequest, hookResponse); err != nil {
@@ -574,14 +567,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.
 				}
 			}
 
-			v1beta1Cluster := &clusterv1beta1.Cluster{}
-			// DeepCopy cluster because ConvertFrom has side effects like adding the conversion annotation.
-			if err := v1beta1Cluster.ConvertFrom(cluster.DeepCopy()); err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "error converting Cluster to v1beta1 Cluster")
-			}
-
 			hookRequest := &runtimehooksv1.BeforeClusterDeleteRequest{
-				Cluster: *cleanupCluster(v1beta1Cluster),
+				Cluster: *cleanupCluster(cluster),
 			}
 			hookResponse := &runtimehooksv1.BeforeClusterDeleteResponse{}
 			if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterDelete, cluster, hookRequest, hookResponse); err != nil {
@@ -606,7 +593,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.
 	return ctrl.Result{}, nil
 }
 
-func cleanupCluster(cluster *clusterv1beta1.Cluster) *clusterv1beta1.Cluster {
+func cleanupCluster(cluster *clusterv1.Cluster) *clusterv1.Cluster {
+	cluster = cluster.DeepCopy()
+
 	// Optimize size of Cluster by not sending status, the managedFields and some specific annotations.
 	cluster.SetManagedFields(nil)
 
@@ -618,6 +607,6 @@ func cleanupCluster(cluster *clusterv1beta1.Cluster) *clusterv1beta1.Cluster {
 		delete(annotations, conversion.DataAnnotation)
 		cluster.Annotations = annotations
 	}
-	cluster.Status = clusterv1beta1.ClusterStatus{}
+	cluster.Status = clusterv1.ClusterStatus{}
 	return cluster
 }

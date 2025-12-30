@@ -34,7 +34,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
@@ -1665,23 +1664,9 @@ func getOwnerReferenceFrom(obj, owner client.Object) *metav1.OwnerReference {
 	return nil
 }
 
-func cleanupV1Beta1Cluster(cluster *clusterv1beta1.Cluster) *clusterv1beta1.Cluster {
-	// Optimize size of Cluster by not sending status, the managedFields and some specific annotations.
-	cluster.SetManagedFields(nil)
-
-	// The conversion that we run before calling cleanupCluster does not clone annotations
-	// So we have to do it here to not modify the original Cluster.
-	if cluster.Annotations != nil {
-		annotations := maps.Clone(cluster.Annotations)
-		delete(annotations, corev1.LastAppliedConfigAnnotation)
-		delete(annotations, conversion.DataAnnotation)
-		cluster.Annotations = annotations
-	}
-	cluster.Status = clusterv1beta1.ClusterStatus{}
-	return cluster
-}
-
 func cleanupCluster(cluster *clusterv1.Cluster) *clusterv1.Cluster {
+	cluster = cluster.DeepCopy()
+
 	// Optimize size of Cluster by not sending status, the managedFields and some specific annotations.
 	cluster.SetManagedFields(nil)
 

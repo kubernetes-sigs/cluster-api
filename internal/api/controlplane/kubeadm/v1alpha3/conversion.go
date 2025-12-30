@@ -98,6 +98,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.MachineTemplate.Spec.ReadinessGates = restored.Spec.MachineTemplate.Spec.ReadinessGates
 		dst.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds = restored.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds
 		dst.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = restored.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
+		dst.Spec.MachineTemplate.Spec.Taints = restored.Spec.MachineTemplate.Spec.Taints
 		dst.Spec.Rollout = restored.Spec.Rollout
 
 		dst.Spec.Remediation = restored.Spec.Remediation

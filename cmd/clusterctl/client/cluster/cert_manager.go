@@ -43,12 +43,6 @@ const (
 	waitCertManagerInterval = 1 * time.Second
 
 	certManagerNamespace = "cert-manager"
-
-	// This is maintained only for supporting upgrades from cluster created with clusterctl v1alpha3.
-	//
-	// Deprecated: Use clusterctlv1.CertManagerVersionAnnotation instead.
-	// TODO: Remove once upgrades from v1alpha3 are no longer supported.
-	certManagerVersionAnnotation = "certmanager.clusterctl.cluster.x-k8s.io/version"
 )
 
 var (
@@ -358,13 +352,9 @@ func (cm *certManagerClient) shouldUpgrade(desiredVersion string, objs, installO
 		// if there is no version annotation, this means the obj is cert-manager v0.11.0 (installed with older version of clusterctl)
 		objVersion, ok := obj.GetAnnotations()[clusterctlv1.CertManagerVersionAnnotation]
 		if !ok {
-			// try the old annotation name
-			objVersion, ok = obj.GetAnnotations()[certManagerVersionAnnotation]
-			if !ok {
-				currentVersion = "v0.11.0"
-				needUpgrade = true
-				break
-			}
+			currentVersion = "v0.11.0"
+			needUpgrade = true
+			break
 		}
 
 		objSemVersion, err := semver.ParseTolerant(objVersion)

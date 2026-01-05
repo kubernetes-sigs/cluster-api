@@ -1669,7 +1669,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			res, err := r.reconcileMachines(ctx, scope, &unstructured.Unstructured{Object: infraConfig})
 			r.reconcilePhase(&machinePool)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(res.RequeueAfter).To(BeNumerically(">=", 0))
+			g.Expect(res.RequeueAfter).To(BeNumerically(">", 0))
 
 			machineList := &clusterv1.MachineList{}
 			labels := map[string]string{

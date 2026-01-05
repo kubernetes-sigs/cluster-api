@@ -339,11 +339,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachinePoolSpec)(nil), (*MachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachinePoolSpec_To_v1beta1_MachinePoolSpec(a.(*v1beta2.MachinePoolSpec), b.(*MachinePoolSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*MachinePoolVariables)(nil), (*v1beta2.MachinePoolVariables)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachinePoolVariables_To_v1beta2_MachinePoolVariables(a.(*MachinePoolVariables), b.(*v1beta2.MachinePoolVariables), scope)
 	}); err != nil {
@@ -871,6 +866,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.MachinePoolClass)(nil), (*MachinePoolClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_MachinePoolClass_To_v1beta1_MachinePoolClass(a.(*v1beta2.MachinePoolClass), b.(*MachinePoolClass), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.MachinePoolSpec)(nil), (*MachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_MachinePoolSpec_To_v1beta1_MachinePoolSpec(a.(*v1beta2.MachinePoolSpec), b.(*MachinePoolSpec), scope)
 	}); err != nil {
 		return err
 	}

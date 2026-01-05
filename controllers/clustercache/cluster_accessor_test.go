@@ -135,8 +135,6 @@ func TestConnect(t *testing.T) {
 	defer cacheSyncCtxCancel()
 	g.Expect(accessor.lockedState.connection.cache.WaitForCacheSync(cacheSyncCtx)).To(BeTrue())
 
-	g.Expect(accessor.lockedState.clientCertificatePrivateKey).ToNot(BeNil())
-
 	g.Expect(accessor.lockedState.healthChecking.lastProbeTime.IsZero()).To(BeFalse())
 	g.Expect(accessor.lockedState.healthChecking.lastProbeSuccessTime.IsZero()).To(BeFalse())
 	g.Expect(accessor.lockedState.healthChecking.consecutiveFailures).To(Equal(0))
@@ -222,9 +220,6 @@ func TestDisconnect(t *testing.T) {
 	// Disconnect again (no-op)
 	accessor.Disconnect(ctx)
 	g.Expect(accessor.Connected(ctx)).To(BeFalse())
-
-	// Verify health checking state was preserved
-	g.Expect(accessor.lockedState.clientCertificatePrivateKey).ToNot(BeNil())
 
 	g.Expect(accessor.lockedState.healthChecking.lastProbeTime.IsZero()).To(BeFalse())
 	g.Expect(accessor.lockedState.healthChecking.lastProbeSuccessTime.IsZero()).To(BeFalse())

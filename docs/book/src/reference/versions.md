@@ -159,13 +159,8 @@ Cluster API maintainers might decide to support API versions longer than what is
 |-------------|-------------|----------------------------------------------------------------------------------|
 | v1beta2     | Supported   | at least 9 months or 3 minor releases after a newer API version will be released |
 | v1beta1     | Deprecated  | Deprecated since CAPI v1.11; in v1.14, Aug 26 v1beta1 will stop to be served     |
-| v1alpha4    | Not served  | EOL since 2023-12-05 - v1.6.0 release date; removal planned for v1.13, Apr 26    |
-| v1alpha3    | Not served  | EOL since 2023-07-25 - v1.5.0 release date; removal planned for v1.13, Apr 26    |
 
 See [11920](https://github.com/kubernetes-sigs/cluster-api/issues/11920) for details about the v1beta1 removal plan.
-See [11919](https://github.com/kubernetes-sigs/cluster-api/issues/11919) for details about the v1alpha3/v1alpha4 removal plan.
-Note: Cluster API stopped to serve v1alpha3 API types from the v1.5 release and v1alpha4 types starting from the v1.6 release.
-Those types still exist in Cluster API while we work to a fix (or a workaround) for [10051](https://github.com/kubernetes-sigs/cluster-api/issues/10051).
 
 <aside class="note warning">
 
@@ -226,8 +221,6 @@ providers of an older contract version) e.g.
 |------------------|-----------------------------------|-------------|-------------------------------------------------------------------------------------------------------------------------------|
 | v1beta2          | v1beta1 (temporarily)             | Supported   | After a newer API contract will be released                                                                                   |
 | v1beta1          |                                   | Deprecated  | Deprecated since CAPI v1.11; in v1.14, Aug 26 v1beta2 will drop compatibility with v1beta1 and v1beta1 will be considered EOL |
-| v1alpha4         |                                   | EOL         | EOL since 2023-12-05 - v1.6.0 release date                                                                                    |
-| v1alpha3         |                                   | EOL         | EOL since 2023-07-25 - v1.5.0 release date                                                                                    |
 
 See [11920](https://github.com/kubernetes-sigs/cluster-api/issues/11920) for details about the v1beta1 removal plan.
 
@@ -449,6 +442,11 @@ The Kubernetes version of the "self-hosted" cluster is limited to the Kubernetes
 for the Management clusters.
 
 ### Kubernetes version specific notes
+
+**1.36**:
+
+* Kubeadm Bootstrap provider:
+  * The `ControlPlaneKubeletLocalMode` feature gate graduated to GA and has been removed in Kubernetes v1.36. CAPI will no longer set this feature gate explicitly for Kubernetes 1.36+. For Kubernetes versions 1.31-1.35, CAPI continues to set it automatically to ensure kubelet continues working during control plane upgrades.
 
 **1.31**:
 

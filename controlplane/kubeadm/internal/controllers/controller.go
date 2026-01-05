@@ -72,7 +72,7 @@ const (
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io;controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
@@ -587,19 +587,60 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 // enforces all the expected owner ref on them.
 func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context.Context, controlPlane *internal.ControlPlane) error {
 	// Generate Cluster Certificates if needed
+	// Note: KubeadmControlPlaneInitialized is used as a signal that certificates has been already used by a
+	// control plane machine; after this moment, if certificates are missing this is considered an issue
+	// and KCP should stop generating new certificates (certificate authorities re-generation is not supported).
 	clusterConfiguration := controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.DeepCopy()
 	certificates := secret.NewCertificatesForInitialControlPlane(clusterConfiguration)
 	controllerRef := metav1.NewControllerRef(controlPlane.KCP, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
-	if err := certificates.LookupOrGenerateCached(ctx, r.SecretCachingClient, r.Client, util.ObjectKey(controlPlane.Cluster), *controllerRef); err != nil {
-		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.CertificatesAvailableV1Beta1Condition, controlplanev1.CertificatesGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+	if !conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneInitializedCondition) {
+		if err := certificates.LookupOrGenerateCached(ctx, r.SecretCachingClient, r.Client, util.ObjectKey(controlPlane.Cluster), *controllerRef); err != nil {
+			v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.CertificatesAvailableV1Beta1Condition, controlplanev1.CertificatesGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 
-		conditions.Set(controlPlane.KCP, metav1.Condition{
-			Type:    controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
-			Status:  metav1.ConditionUnknown,
-			Reason:  controlplanev1.KubeadmControlPlaneCertificatesInternalErrorReason,
-			Message: "Please check controller logs for errors",
-		})
-		return errors.Wrap(err, "error in look up or create cluster certificates")
+			conditions.Set(controlPlane.KCP, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  controlplanev1.KubeadmControlPlaneCertificatesInternalErrorReason,
+				Message: "Please check controller logs for errors",
+			})
+			return errors.Wrap(err, "error in look up or create cluster certificates")
+		}
+	} else {
+		if err := certificates.LookupCached(ctx, r.SecretCachingClient, r.Client, util.ObjectKey(controlPlane.Cluster)); err != nil {
+			v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.CertificatesAvailableV1Beta1Condition, controlplanev1.CertificatesGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+
+			conditions.Set(controlPlane.KCP, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  controlplanev1.KubeadmControlPlaneCertificatesInternalErrorReason,
+				Message: "Please check controller logs for errors",
+			})
+			return errors.Wrap(err, "error in look up cluster certificates")
+		}
+
+		missingCertificates := []string{}
+		for _, c := range certificates {
+			if c.Secret == nil {
+				missingCertificates = append(missingCertificates, string(c.Purpose))
+			}
+		}
+		if len(missingCertificates) > 0 {
+			msg := fmt.Sprintf("Cluster certificates for %s are not available, please check cluster certificate secrets", strings.Join(missingCertificates, ", "))
+			if len(missingCertificates) == 1 {
+				msg = fmt.Sprintf("Cluster certificate for %s is not available, please check cluster certificate secrets", missingCertificates[0])
+			}
+
+			// Note: we should not introduce new reasons for deprecated v1beta1 conditions, so using CertificatesGenerationFailedV1Beta1Reason + message.
+			v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.CertificatesAvailableV1Beta1Condition, controlplanev1.CertificatesGenerationFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", msg)
+
+			conditions.Set(controlPlane.KCP, metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneCertificatesAvailableCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneCertificatesNotAvailableReason,
+				Message: msg,
+			})
+			return nil
+		}
 	}
 
 	if err := r.ensureCertificatesOwnerRef(ctx, certificates, *controllerRef); err != nil {

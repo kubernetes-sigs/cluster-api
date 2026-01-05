@@ -5,6 +5,9 @@ temporary location for features which will be moved to their permanent locations
 
 Currently Cluster API has the following experimental features:
 * `ClusterTopology` (env var: `CLUSTER_TOPOLOGY`): [ClusterClass](./cluster-class/index.md)
+* `InPlaceUpdates` (env var: `EXP_IN_PLACE_UPDATES`):
+  * Allows users to execute changes on existing machines without deleting the Machine and creating a new one.
+  * See the [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240807-in-place-updates.md) for more details.
 * `KubeadmBootstrapFormatIgnition` (env var: `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION`): [Ignition](./ignition.md)
 * `MachinePool` (env var: `EXP_MACHINE_POOL`): [MachinePools](./machine-pools.md)
 * `MachineSetPreflightChecks` (env var: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`): [MachineSetPreflightChecks](./machineset-preflight-checks.md)
@@ -96,8 +99,6 @@ Following controller manager deployments have to be edited in order to enable/di
   * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd). Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
     might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure)
     regarding this.
-
-  * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
 * [ClusterClass](./cluster-class/index.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
   * [KCP](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#kcp).

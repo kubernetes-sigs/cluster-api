@@ -862,6 +862,10 @@ func getPreflightMessages(cluster *clusterv1.Cluster, preflightChecks internal.P
 		additionalMessages = append(additionalMessages, "* waiting for a control plane Machine to complete deletion")
 	}
 
+	if preflightChecks.CertificateMissing {
+		additionalMessages = append(additionalMessages, "* cluster certificates are missing or unknown")
+	}
+
 	if preflightChecks.ControlPlaneComponentsNotHealthy {
 		additionalMessages = append(additionalMessages, "* waiting for control plane components to become healthy")
 	}

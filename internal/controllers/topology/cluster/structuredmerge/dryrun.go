@@ -19,12 +19,15 @@ package structuredmerge
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -47,7 +50,7 @@ type dryRunSSAPatchInput struct {
 }
 
 // dryRunSSAPatch uses server side apply dry run to determine if the operation is going to change the actual object.
-func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, bool, []byte, error) {
+func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, bool, string, string, error) {
 	// Compute a request identifier.
 	// The identifier is unique for a specific request to ensure we don't have to re-run the request
 	// once we found out that it would not produce a diff.
@@ -56,13 +59,13 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// This ensures that we re-run the request as soon as either original or modified changes.
 	requestIdentifier, err := ssa.ComputeRequestIdentifier(dryRunCtx.client.Scheme(), dryRunCtx.originalUnstructured.GetResourceVersion(), dryRunCtx.modifiedUnstructured)
 	if err != nil {
-		return false, false, nil, err
+		return false, false, "", "", err
 	}
 
 	// Check if we already ran this request before by checking if the cache already contains this identifier.
 	// Note: We only add an identifier to the cache if the result of the dry run was no diff.
 	if exists := dryRunCtx.ssaCache.Has(requestIdentifier, dryRunCtx.originalUnstructured.GetKind()); exists {
-		return false, false, nil, nil
+		return false, false, "", "", nil
 	}
 
 	// For dry run we use the same options as for the intent but with adding metadata.managedFields
@@ -74,17 +77,17 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 
 	// Add TopologyDryRunAnnotation to notify validation webhooks to skip immutability checks.
 	if err := unstructured.SetNestedField(dryRunCtx.originalUnstructured.Object, "", "metadata", "annotations", clusterv1.TopologyDryRunAnnotation); err != nil {
-		return false, false, nil, errors.Wrap(err, "failed to add topology dry-run annotation to original object")
+		return false, false, "", "", errors.Wrap(err, "failed to add topology dry-run annotation to original object")
 	}
 	if err := unstructured.SetNestedField(dryRunCtx.modifiedUnstructured.Object, "", "metadata", "annotations", clusterv1.TopologyDryRunAnnotation); err != nil {
-		return false, false, nil, errors.Wrap(err, "failed to add topology dry-run annotation to modified object")
+		return false, false, "", "", errors.Wrap(err, "failed to add topology dry-run annotation to modified object")
 	}
 
 	// Do a server-side apply dry-run with modifiedUnstructured to get the updated object.
 	err = dryRunCtx.client.Apply(ctx, client.ApplyConfigurationFromUnstructured(dryRunCtx.modifiedUnstructured), client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
 	if err != nil {
 		// This catches errors like metadata.uid changes.
-		return false, false, nil, errors.Wrap(err, "server side apply dry-run failed for modified object")
+		return false, false, "", "", errors.Wrap(err, "server side apply dry-run failed for modified object")
 	}
 
 	// Do a server-side apply dry-run with originalUnstructured to ensure the latest defaulting is applied.
@@ -109,7 +112,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	dryRunCtx.originalUnstructured.SetManagedFields(nil)
 	err = dryRunCtx.client.Apply(ctx, client.ApplyConfigurationFromUnstructured(dryRunCtx.originalUnstructured), client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
 	if err != nil {
-		return false, false, nil, errors.Wrap(err, "server side apply dry-run failed for original object")
+		return false, false, "", "", errors.Wrap(err, "server side apply dry-run failed for original object")
 	}
 	// Restore managed fields.
 	dryRunCtx.originalUnstructured.SetManagedFields(originalUnstructuredManagedFieldsBeforeSSA)
@@ -124,7 +127,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// Please note that if other managers made changes to fields that we care about and thus ownership changed,
 	// this would affect our managed fields as well and we would still detect it by diffing our managed fields.
 	if err := cleanupManagedFieldsAndAnnotation(dryRunCtx.modifiedUnstructured); err != nil {
-		return false, false, nil, errors.Wrap(err, "failed to filter topology dry-run annotation on modified object")
+		return false, false, "", "", errors.Wrap(err, "failed to filter topology dry-run annotation on modified object")
 	}
 
 	// Also run the function for the originalUnstructured to remove the managedField
@@ -135,7 +138,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// Please note that if other managers made changes to fields that we care about and thus ownership changed,
 	// this would affect our managed fields as well and we would still detect it by diffing our managed fields.
 	if err := cleanupManagedFieldsAndAnnotation(dryRunCtx.originalUnstructured); err != nil {
-		return false, false, nil, errors.Wrap(err, "failed to filter topology dry-run annotation on original object")
+		return false, false, "", "", errors.Wrap(err, "failed to filter topology dry-run annotation on original object")
 	}
 
 	// Drop the other fields which are not part of our intent.
@@ -145,28 +148,28 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// Compare the output of dry run to the original object.
 	originalJSON, err := json.Marshal(dryRunCtx.originalUnstructured)
 	if err != nil {
-		return false, false, nil, err
+		return false, false, "", "", err
 	}
 	modifiedJSON, err := json.Marshal(dryRunCtx.modifiedUnstructured)
 	if err != nil {
-		return false, false, nil, err
+		return false, false, "", "", err
 	}
 
 	rawDiff, err := jsonpatch.CreateMergePatch(originalJSON, modifiedJSON)
 	if err != nil {
-		return false, false, nil, err
+		return false, false, "", "", err
 	}
 
 	// Determine if there are changes to the spec and object.
 	diff := &unstructured.Unstructured{}
 	if err := json.Unmarshal(rawDiff, &diff.Object); err != nil {
-		return false, false, nil, err
+		return false, false, "", "", err
 	}
 
 	hasChanges := len(diff.Object) > 0
 	_, hasSpecChanges := diff.Object["spec"]
 
-	var changes []byte
+	var patchString, diffString string
 	if hasChanges {
 		// Cleanup diff by dropping .metadata.managedFields.
 		ssa.FilterIntent(&ssa.FilterIntentInput{
@@ -177,10 +180,30 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 
 		// changes should be empty (not "{}") if diff.Object is empty
 		if len(diff.Object) != 0 {
-			changes, err = json.Marshal(diff.Object)
+			patchBytes, err := json.Marshal(diff.Object)
 			if err != nil {
-				return false, false, nil, errors.Wrapf(err, "failed to marshal diff")
+				return false, false, "", "", errors.Wrapf(err, "failed to marshal diff")
 			}
+			patchString = string(patchBytes)
+
+			originalJSONWithChanges, err := jsonpatch.MergePatch(originalJSON, patchBytes)
+			if err != nil {
+				return false, false, "", "", errors.Wrapf(err, "failed to apply diff to original object")
+			}
+
+			originalYAML, err := yaml.JSONToYAML(originalJSON)
+			if err != nil {
+				return false, false, "", "", errors.Wrapf(err, "failed to convert original object to yaml")
+			}
+
+			originalYAMLWithChanges, err := yaml.JSONToYAML(originalJSONWithChanges)
+			if err != nil {
+				return false, false, "", "", errors.Wrapf(err, "failed to convert original object with diff to yaml")
+			}
+
+			diffString = cmp.Diff(string(originalYAML), string(originalYAMLWithChanges))
+			diffString = strings.ReplaceAll(diffString, "\u00A0", " ") // No-Break Space (NBSP)
+			diffString = strings.ReplaceAll(diffString, "\t", "  ")
 		}
 	}
 
@@ -189,7 +212,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 		dryRunCtx.ssaCache.Add(requestIdentifier)
 	}
 
-	return hasChanges, hasSpecChanges, changes, nil
+	return hasChanges, hasSpecChanges, patchString, diffString, nil
 }
 
 // cleanupManagedFieldsAndAnnotation adjusts the obj to remove the topology.cluster.x-k8s.io/dry-run

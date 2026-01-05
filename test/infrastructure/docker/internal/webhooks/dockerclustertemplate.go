@@ -21,10 +21,8 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api/feature"
@@ -36,8 +34,7 @@ import (
 type DockerClusterTemplate struct{}
 
 func (webhook *DockerClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.DockerClusterTemplate{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.DockerClusterTemplate{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
@@ -45,24 +42,20 @@ func (webhook *DockerClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) 
 
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-dockerclustertemplate,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=dockerclustertemplates,versions=v1beta2,name=default.dockerclustertemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomDefaulter = &DockerClusterTemplate{}
+var _ admission.Defaulter[*infrav1.DockerClusterTemplate] = &DockerClusterTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *DockerClusterTemplate) Default(_ context.Context, obj runtime.Object) error {
-	clusterTemplate, ok := obj.(*infrav1.DockerClusterTemplate)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a DockerClusterTemplate but got a %T", obj))
-	}
+func (webhook *DockerClusterTemplate) Default(_ context.Context, clusterTemplate *infrav1.DockerClusterTemplate) error {
 	defaultDockerClusterSpec(&clusterTemplate.Spec.Template.Spec)
 	return nil
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-dockerclustertemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=dockerclustertemplates,versions=v1beta2,name=validation.dockerclustertemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomValidator = &DockerClusterTemplate{}
+var _ admission.Validator[*infrav1.DockerClusterTemplate] = &DockerClusterTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DockerClusterTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (webhook *DockerClusterTemplate) ValidateCreate(_ context.Context, clusterTemplate *infrav1.DockerClusterTemplate) (admission.Warnings, error) {
 	// NOTE: DockerClusterTemplate is behind ClusterTopology feature gate flag; the web hook
 	// must prevent creating new objects in case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
@@ -70,11 +63,6 @@ func (webhook *DockerClusterTemplate) ValidateCreate(_ context.Context, obj runt
 			field.NewPath("spec"),
 			"can be set only if the ClusterTopology feature flag is enabled",
 		)
-	}
-
-	clusterTemplate, ok := obj.(*infrav1.DockerClusterTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerClusterTemplate but got a %T", obj))
 	}
 
 	allErrs := validateDockerClusterSpec(clusterTemplate.Spec.Template.Spec)
@@ -89,16 +77,8 @@ func (webhook *DockerClusterTemplate) ValidateCreate(_ context.Context, obj runt
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DockerClusterTemplate) ValidateUpdate(ctx context.Context, oldRaw, newRaw runtime.Object) (admission.Warnings, error) {
+func (webhook *DockerClusterTemplate) ValidateUpdate(ctx context.Context, oldTemplate, newTemplate *infrav1.DockerClusterTemplate) (admission.Warnings, error) {
 	var allErrs field.ErrorList
-	oldTemplate, ok := oldRaw.(*infrav1.DockerClusterTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerClusterTemplate but got a %T", oldRaw))
-	}
-	newTemplate, ok := newRaw.(*infrav1.DockerClusterTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerClusterTemplate but got a %T", newRaw))
-	}
 
 	if err := webhook.Default(ctx, oldTemplate); err != nil {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new DockerClusterTemplate: failed to default old object: %v", err))
@@ -124,6 +104,6 @@ func (webhook *DockerClusterTemplate) ValidateUpdate(ctx context.Context, oldRaw
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DockerClusterTemplate) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *DockerClusterTemplate) ValidateDelete(_ context.Context, _ *infrav1.DockerClusterTemplate) (admission.Warnings, error) {
 	return nil, nil
 }

@@ -68,8 +68,6 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
-	controlplanev1alpha3 "sigs.k8s.io/cluster-api/internal/api/controlplane/kubeadm/v1alpha3"
-	controlplanev1alpha4 "sigs.k8s.io/cluster-api/internal/api/controlplane/kubeadm/v1alpha4"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
@@ -120,8 +118,6 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
-	_ = controlplanev1alpha3.AddToScheme(scheme)
-	_ = controlplanev1alpha4.AddToScheme(scheme)
 	_ = controlplanev1beta1.AddToScheme(scheme)
 	_ = controlplanev1.AddToScheme(scheme)
 	_ = bootstrapv1.AddToScheme(scheme)
@@ -495,7 +491,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		EtcdLogger:                  etcdLogger,
 		RemoteConditionsGracePeriod: remoteConditionsGracePeriod,
 		RuntimeClient:               runtimeClient,
-	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{
+		MaxConcurrentReconciles: kubeadmControlPlaneConcurrency,
+		ReconciliationTimeout:   3 * time.Minute, // increase reconciliation timeout because the KubeadmControlPlaneReconciler tries to connect with all the etcd member, and times out if those operations might sum up.
+	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 		os.Exit(1)
 	}
@@ -506,8 +505,6 @@ func setupWebhooks(ctx context.Context, mgr ctrl.Manager) {
 	apiVersionGetter := func(gk schema.GroupKind) (string, error) {
 		return contract.GetAPIVersion(ctx, mgr.GetClient(), gk)
 	}
-	controlplanev1alpha3.SetAPIVersionGetter(apiVersionGetter)
-	controlplanev1alpha4.SetAPIVersionGetter(apiVersionGetter)
 	controlplanev1beta1.SetAPIVersionGetter(apiVersionGetter)
 
 	if err := (&kcpwebhooks.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {

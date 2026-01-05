@@ -28,7 +28,9 @@ import (
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,8 +57,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
-	infrav1alpha3 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
-	infrav1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
 	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/controllers"
@@ -104,8 +104,6 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
-	_ = infrav1alpha3.AddToScheme(scheme)
-	_ = infrav1alpha4.AddToScheme(scheme)
 	_ = infrav1beta1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
@@ -115,6 +113,9 @@ func init() {
 	_ = corev1.AddToScheme(inmemoryScheme)
 	_ = appsv1.AddToScheme(inmemoryScheme)
 	_ = rbacv1.AddToScheme(inmemoryScheme)
+	_ = storagev1.AddToScheme(inmemoryScheme)
+	_ = apiextensionsv1.AddToScheme(inmemoryScheme)
+	_ = policyv1.AddToScheme(inmemoryScheme)
 }
 
 // InitFlags initializes the flags.
@@ -427,6 +428,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: concurrency,
+		ReconciliationTimeout:   5 * time.Minute, // increase reconciliation timeout because the DockerMachineReconciler performs long operations like kubeadm init/join, image copy, etc.
 	}); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "DockerMachine")
 		os.Exit(1)
@@ -470,6 +472,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		APIServerMux:     apiServerMux,
 	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: concurrency,
+		ReconciliationTimeout:   5 * time.Minute, // increase reconciliation timeout because the Docker backend performs long operations like kubeadm init/join, image copy, etc.
 	}); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "DevMachine")
 		os.Exit(1)

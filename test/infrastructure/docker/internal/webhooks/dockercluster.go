@@ -18,16 +18,13 @@ package webhooks
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"sort"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
@@ -37,8 +34,7 @@ import (
 type DockerCluster struct{}
 
 func (webhook *DockerCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.DockerCluster{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.DockerCluster{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
@@ -46,28 +42,20 @@ func (webhook *DockerCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-dockercluster,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=dockerclusters,versions=v1beta2,name=default.dockercluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomDefaulter = &DockerCluster{}
+var _ admission.Defaulter[*infrav1.DockerCluster] = &DockerCluster{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *DockerCluster) Default(_ context.Context, obj runtime.Object) error {
-	cluster, ok := obj.(*infrav1.DockerCluster)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a DockerCluster but got a %T", obj))
-	}
+func (webhook *DockerCluster) Default(_ context.Context, cluster *infrav1.DockerCluster) error {
 	defaultDockerClusterSpec(&cluster.Spec)
 	return nil
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-dockercluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=dockerclusters,versions=v1beta2,name=validation.dockercluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomValidator = &DockerCluster{}
+var _ admission.Validator[*infrav1.DockerCluster] = &DockerCluster{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DockerCluster) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	cluster, ok := obj.(*infrav1.DockerCluster)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerCluster but got a %T", obj))
-	}
+func (webhook *DockerCluster) ValidateCreate(_ context.Context, cluster *infrav1.DockerCluster) (admission.Warnings, error) {
 	if allErrs := validateDockerClusterSpec(cluster.Spec); len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DockerCluster").GroupKind(), cluster.Name, allErrs)
 	}
@@ -75,11 +63,7 @@ func (webhook *DockerCluster) ValidateCreate(_ context.Context, obj runtime.Obje
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DockerCluster) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
-	cluster, ok := newObj.(*infrav1.DockerCluster)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerCluster but got a %T", newObj))
-	}
+func (webhook *DockerCluster) ValidateUpdate(_ context.Context, _, cluster *infrav1.DockerCluster) (admission.Warnings, error) {
 	if allErrs := validateDockerClusterSpec(cluster.Spec); len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DockerCluster").GroupKind(), cluster.Name, allErrs)
 	}
@@ -87,7 +71,7 @@ func (webhook *DockerCluster) ValidateUpdate(_ context.Context, _, newObj runtim
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DockerCluster) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *DockerCluster) ValidateDelete(_ context.Context, _ *infrav1.DockerCluster) (admission.Warnings, error) {
 	return nil, nil
 }
 

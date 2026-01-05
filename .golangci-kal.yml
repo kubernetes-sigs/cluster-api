@@ -1,6 +1,6 @@
 version: "2"
 run:
-  go: "1.24"
+  go: "1.25"
   allow-parallel-runners: true
 linters:
   default: none
@@ -75,8 +75,6 @@ linters:
     paths:
       - zz_generated.*\.go$
       - vendored_openapi\.go$
-      # We don't want to invest time to fix new linter findings in old API types.
-      - internal/api/.*
       - ".*_test.go"  # Exclude test files.
     rules:
     ## KAL should only run on API folders.

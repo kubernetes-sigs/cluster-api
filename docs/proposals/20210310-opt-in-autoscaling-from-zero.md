@@ -234,7 +234,7 @@ type NodeInfo struct {
 When used as a manifest, it would look like this:
 
 ```
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate
 metadata:
   name: workload-md-0

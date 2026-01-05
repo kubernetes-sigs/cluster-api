@@ -28,7 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	coordinationv1 "k8s.io/api/coordination/v1"
@@ -55,7 +54,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/version"
 )
 
 // ClusterctlUpgradeSpecInput is the input for ClusterctlUpgradeSpec.
@@ -231,7 +229,6 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		initClusterctlBinaryURL = clusterctlBinaryURLReplacer.Replace(clusterctlBinaryURLTemplate)
 
 		// NOTE: by default we are considering all the providers, no matter of the contract.
-		// However, given that we want to test both v1alpha3 --> v1beta1, v1alpha4 --> v1beta1, v1beta1 --> v1beta2,
 		// InitWithProvidersContract can be used to select versions with a specific contract.
 		initContract = "*"
 		if input.InitWithProvidersContract != "" {
@@ -620,11 +617,11 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 			Byf("[%d] THE MANAGEMENT CLUSTER WAS SUCCESSFULLY UPGRADED!", i)
 
-			// We have to get the core CAPI storage version again as the upgrade might have stopped serving v1alpha3/v1alpha4.
+			// We have to get the core CAPI storage version again as the upgrade might have stopped serving an old apiVersion.
 			coreCAPIStorageVersion = getCoreCAPIStorageVersion(ctx, managementClusterProxy.GetClient())
 
 			// Note: Currently we only support upgrades that (still) serve the v1beta1 core CAPI apiVersion after upgrade.
-			// This seems a reasonable simplification as we don't want to test upgrades to v1alpha3 / v1alpha4.
+			// This seems a reasonable simplification as we don't want to test upgrades to older apiVersions.
 			// This will also work with CAPI versions that have v1beta2 as storage version as long as v1beta1 is still served.
 			// Note: We can't simply use unstructured here because we would have to refactor a lot of code below.
 			// Note: We can migrate to only use v1beta2 once we only support upgrades from CAPI versions that already have v1beta2.
@@ -748,29 +745,15 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				}
 			}
 
-			// Note: It is a known issue on Kubernetes < v1.29 that SSA sometimes fail:
-			// https://github.com/kubernetes/kubernetes/issues/117356
-			tries := 1
-			initKubernetesVersionParsed, err := semver.ParseTolerant(initKubernetesVersion)
-			Expect(err).ToNot(HaveOccurred())
-			if version.Compare(initKubernetesVersionParsed, semver.MustParse("1.29.0"), version.WithoutPreReleases()) < 0 {
-				tries = 10
-			}
-			for range tries {
-				Byf("[%d] Verify client-side SSA still works", i)
-				clusterUpdate := &unstructured.Unstructured{}
-				clusterUpdate.SetGroupVersionKind(clusterv1beta1.GroupVersion.WithKind("Cluster"))
-				clusterUpdate.SetNamespace(workloadCluster.Namespace)
-				clusterUpdate.SetName(workloadCluster.Name)
-				clusterUpdate.SetLabels(map[string]string{
-					fmt.Sprintf("test-label-upgrade-%d", i): "test-label-value",
-				})
-				err = managementClusterProxy.GetClient().Patch(ctx, clusterUpdate, client.Apply, client.FieldOwner("e2e-test-client"))
-				if err == nil {
-					break
-				}
-			}
-			Expect(err).ToNot(HaveOccurred())
+			Byf("[%d] Verify client-side SSA still works", i)
+			clusterUpdate := &unstructured.Unstructured{}
+			clusterUpdate.SetGroupVersionKind(clusterv1beta1.GroupVersion.WithKind("Cluster"))
+			clusterUpdate.SetNamespace(workloadCluster.Namespace)
+			clusterUpdate.SetName(workloadCluster.Name)
+			clusterUpdate.SetLabels(map[string]string{
+				fmt.Sprintf("test-label-upgrade-%d", i): "test-label-value",
+			})
+			Expect(managementClusterProxy.GetClient().Apply(ctx, client.ApplyConfigurationFromUnstructured(clusterUpdate), client.FieldOwner("e2e-test-client"))).To(Succeed())
 
 			Byf("[%d] THE UPGRADED MANAGEMENT CLUSTER WORKS!", i)
 		}
@@ -1083,12 +1066,8 @@ func calculateExpectedMachinePoolNodeCount(ctx context.Context, c client.Client,
 	}
 
 	machinePoolList := &unstructured.UnstructuredList{}
-	machinePoolGroup := clusterv1.GroupVersion.Group
-	if coreCAPIStorageVersion == "v1alpha3" {
-		machinePoolGroup = "exp.cluster.x-k8s.io"
-	}
 	machinePoolList.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   machinePoolGroup,
+		Group:   clusterv1.GroupVersion.Group,
 		Version: coreCAPIStorageVersion,
 		Kind:    "MachinePoolList",
 	})

@@ -8,7 +8,7 @@ workflow that offers easy deployments and rapid iterative builds.
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install/): v19.03 or newer (on MacOS e.g. via [Lima](https://github.com/lima-vm/lima))
-2. [kind](https://kind.sigs.k8s.io): v0.30.0 or newer
+2. [kind](https://kind.sigs.k8s.io): v0.31.0 or newer
 3. [Tilt](https://docs.tilt.dev/install.html): v0.30.8 or newer
 4. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
 5. [envsubst](https://github.com/drone/envsubst): provided via `make envsubst`
@@ -176,6 +176,8 @@ NB: the default is dynamic and will be "podman" if the string "Podman Engine" is
 for more details.
 
 **enable_core_provider** (bool, default=true): By default, the `core` provider is enabled. This allows to disable it.
+
+**preload_images** (bool, default=true): By default, images are preloaded into the kind cluster. This works on most platforms but can fail on Apple Silicon or Docker v29+. Set this to false to skip preloading and let the kubelet pull images on demand.
 
 **template_dirs** (Map{String: Array[]String}, default={"docker": [
 "./test/infrastructure/docker/templates"]}): A map of providers to directories containing cluster templates. An example of the field is given below. See [Deploying a workload cluster](#deploying-a-workload-cluster) for how this is used.
@@ -427,7 +429,7 @@ Custom values for variable substitutions can be set using `kustomize_substitutio
 ```yaml
 kustomize_substitutions:
   NAMESPACE: "default"
-  KUBERNETES_VERSION: "v1.34.0"
+  KUBERNETES_VERSION: "v1.35.0"
   CONTROL_PLANE_MACHINE_COUNT: "1"
   WORKER_MACHINE_COUNT: "3"
 # Note: kustomize substitutions expects the values to be strings. This can be achieved by wrapping the values in quotation marks.

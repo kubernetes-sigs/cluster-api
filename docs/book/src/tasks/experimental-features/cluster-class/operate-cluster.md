@@ -82,7 +82,7 @@ The `0` in the path refers to the position of the target MachineDeployment in th
 
 To change this value with a patch:
 ```bash
-kubectl  patch cluster capi-quickstart --type json --patch '[{"op": "replace", "path": "/spec/topology/workers/machineDeployments/0/replicas",  "value": 1}]'
+kubectl patch cluster capi-quickstart --type json --patch '[{"op": "replace", "path": "/spec/topology/workers/machineDeployments/0/replicas",  "value": 1}]'
 ```
 
 This patch will make the following changes on the Cluster yaml:
@@ -123,7 +123,7 @@ machinedeployment.cluster.x-k8s.io/capi-quickstart-md-0-XXXX   capi-quickstart  
 
 A new MachineDeployment can be added to the Cluster by adding a new MachineDeployment spec under `/spec/topology/workers/machineDeployments/`. To do so we can patch our Cluster with:
 ```bash 
-kubectl  patch cluster capi-quickstart --type json --patch '[{"op": "add", "path": "/spec/topology/workers/machineDeployments/-",  "value": {"name": "second-deployment", "replicas": 1, "class": "default-worker"} }]'
+kubectl patch cluster capi-quickstart --type json --patch '[{"op": "add", "path": "/spec/topology/workers/machineDeployments/-",  "value": {"name": "second-deployment", "replicas": 1, "class": "default-worker"} }]'
 ```
 This patch will make the below changes on the Cluster yaml:
 ```diff
@@ -157,7 +157,7 @@ When using a managed topology scaling of ControlPlane Machines, where the Cluste
 This is done by changing the ControlPlane replicas field at `/spec/topology/controlPlane/replica` in the Cluster object. The command is:
 
 ```bash 
-kubectl  patch cluster capi-quickstart --type json --patch '[{"op": "replace", "path": "/spec/topology/controlPlane/replicas",  "value": 1}]'
+kubectl patch cluster capi-quickstart --type json --patch '[{"op": "replace", "path": "/spec/topology/controlPlane/replicas",  "value": 1}]'
 ```
 
 This patch will make the below changes on the Cluster yaml:
@@ -191,7 +191,7 @@ Which will return something like:
 
 In order to run a different version of etcd in new ControlPlane machines - the part of the spec this variable sets - change the value using the below patch:
 ```bash 
-kubectl  patch cluster capi-quickstart --type json --patch '[{"op": "replace", "path": "/spec/topology/variables/1/value",  "value": "3.5.0"}]'
+kubectl patch cluster capi-quickstart --type json --patch '[{"op": "replace", "path": "/spec/topology/variables/1/value",  "value": "3.5.0"}]'
 ```
 
 Running the patch makes the following change to the Cluster yaml:

@@ -25,6 +25,50 @@ Three different hooks are called as part of Topology Mutation - two in the Clust
 Please see the corresponding [CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220330-topology-mutation-hook.md)
 for additional background information.
 
+<!-- TOC -->
+* [Implementing Topology Mutation Hook Runtime Extensions](#implementing-topology-mutation-hook-runtime-extensions)
+  * [Introduction](#introduction)
+  * [Guidelines](#guidelines)
+  * [Definitions](#definitions)
+  * [Inline vs. external patches](#inline-vs-external-patches)
+  * [External variable definitions](#external-variable-definitions)
+    * [External variable discovery in the ClusterClass](#external-variable-discovery-in-the-clusterclass)
+    * [Variable definition conflicts](#variable-definition-conflicts)
+    * [Setting values for variables in the Cluster](#setting-values-for-variables-in-the-cluster)
+  * [Using one or multiple external patch extensions](#using-one-or-multiple-external-patch-extensions)
+  * [Guidelines](#guidelines-1)
+    * [Patch extension guidelines](#patch-extension-guidelines)
+    * [Variable discovery guidelines](#variable-discovery-guidelines)
+  * [Definitions](#definitions-1)
+    * [GeneratePatches](#generatepatches)
+    * [ValidateTopology](#validatetopology)
+    * [DiscoverVariables](#discovervariables)
+  * [Dealing with Cluster API upgrades with apiVersion bumps](#dealing-with-cluster-api-upgrades-with-apiversion-bumps)
+<!-- TOC -->
+
+## Guidelines
+
+All guidelines defined in [Implementing Runtime Extensions](implement-extensions.md#guidelines) apply to the
+implementation of Runtime Extensions for topology mutation hooks as well.
+
+In summary, Runtime Extensions are components that should be designed, written and deployed with great caution given
+that they can affect the proper functioning of the Cluster API runtime. A poorly implemented Runtime Extension could
+potentially block topology reconcile from happening.
+
+Following recommendations are especially relevant:
+
+* [Idempotence](implement-extensions.md#idempotence)
+* [Avoid side effects](implement-extensions.md#side-effects)
+* [Deterministic result](implement-extensions.md#deterministic-result)
+* [Error messages](implement-extensions.md#error-messages)
+* [Error management](implement-extensions.md#error-management)
+* [Avoid dependencies](implement-extensions.md#avoid-dependencies)
+
+## Definitions
+
+For additional details about the OpenAPI spec of the topology mutation hooks, please download the [`runtime-sdk-openapi.yaml`]({{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"runtime-sdk-openapi.yaml" version:"1.12.x"}})
+file and then open it from the [Swagger UI](https://editor.swagger.io/).
+
 ## Inline vs. external patches
 
 Inline patches have the following advantages:
@@ -157,6 +201,15 @@ Some considerations:
 * [Conway's law](https://en.wikipedia.org/wiki/Conway%27s_law) might make it not feasible in large organizations 
   to use a single extension. In those cases it's important that boundaries between extensions are clearly defined.
 
+<aside class="note warning">
+
+<h1>Caution</h1>
+
+Please note that the Cluster API test framework is not validating scenarios with using multiple external patch extensions, 
+so user choosing this option should take care of performing additional validation before deploying this in production.
+
+</aside>
+
 ## Guidelines
 
 For general Runtime Extension developer guidelines please refer to the guidelines in [Implementing Runtime Extensions](implement-extensions.md#guidelines).
@@ -199,7 +252,7 @@ so ClusterClass authors can evaluate impacts of changes before performing an upg
 A GeneratePatches call generates patches for the entire Cluster topology. Accordingly the request contains all
 templates, the global variables and the template-specific variables. The response contains generated patches.
 
-#### Example request:
+Example request:
 
 * Generating patches for a Cluster topology is done via a single call to allow External Patch Extensions a
   holistic view of the entire Cluster topology. Additionally this allows us to reduce the number of round-trips.
@@ -233,7 +286,7 @@ items:
     ...
 ```
 
-#### Example Response:
+Example Response:
 
 * The response contains patches instead of full objects to reduce the payload.
 * Templates in the request and patches in the response will be correlated via UIDs.
@@ -250,8 +303,6 @@ items:
   patch: <JSON-patch>
 ```
 
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
 We are considering to introduce a library to facilitate development of External Patch Extensions. It would provide capabilities like:
 * Accessing builtin variables
 * Extracting certain templates from a GeneratePatches request (e.g. all bootstrap templates)
@@ -265,7 +316,7 @@ A ValidateTopology call validates the topology after all patches have been appli
 templates of the Cluster topology, the global variables and the template-specific variables. The response
 contains the result of the validation.
 
-#### Example Request:
+Example Request:
 
 * The request is the same as the GeneratePatches request except it doesn't have `uid` fields. We don't
   need them as we don't have to correlate patches in the response.
@@ -296,7 +347,7 @@ items:
     ...
 ```
 
-#### Example Response:
+Example Response:
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
@@ -305,21 +356,11 @@ status: Success # or Failure
 message: "error message if status == Failure"
 ```
 
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-
-<script>
-// openSwaggerUI calculates the absolute URL of the RuntimeSDK YAML file and opens Swagger UI.
-function openSwaggerUI() {
-  var schemaURL = new URL("runtime-sdk-openapi.yaml", document.baseURI).href
-  window.open("https://editor.swagger.io/?url=" + schemaURL)
-}
-</script>
-
 ### DiscoverVariables
 
 A DiscoverVariables call returns definitions for one or more variables.
 
-#### Example Request:
+Example Request:
 
 * The request is a simple call to the Runtime hook.
 
@@ -329,7 +370,7 @@ kind: DiscoverVariablesRequest
 settings: <Runtime Extension settings>
 ```
 
-#### Example Response:
+Example Response:
 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
@@ -378,17 +419,6 @@ variables:
             description: "warn sets the level for the warn PodSecurityConfiguration mode. One of privileged, baseline, restricted."
 ...
 ```
-
-For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
-TODO: Add openAPI definition to the SwaggerUI
-<script>
-// openSwaggerUI calculates the absolute URL of the RuntimeSDK YAML file and opens Swagger UI.
-function openSwaggerUI() {
-  var schemaURL = new URL("runtime-sdk-openapi.yaml", document.baseURI).href
-  window.open("https://editor.swagger.io/?url=" + schemaURL)
-}
-</script>
-
 
 ## Dealing with Cluster API upgrades with apiVersion bumps
 

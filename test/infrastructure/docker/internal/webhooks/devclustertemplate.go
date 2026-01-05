@@ -21,10 +21,8 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api/feature"
@@ -36,8 +34,7 @@ import (
 type DevClusterTemplate struct{}
 
 func (webhook *DevClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.DevClusterTemplate{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.DevClusterTemplate{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
@@ -45,24 +42,20 @@ func (webhook *DevClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) err
 
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-devclustertemplate,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=devclustertemplates,versions=v1beta2,name=default.devclustertemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomDefaulter = &DevClusterTemplate{}
+var _ admission.Defaulter[*infrav1.DevClusterTemplate] = &DevClusterTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *DevClusterTemplate) Default(_ context.Context, obj runtime.Object) error {
-	clusterTemplate, ok := obj.(*infrav1.DevClusterTemplate)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a DevClusterTemplate but got a %T", obj))
-	}
+func (webhook *DevClusterTemplate) Default(_ context.Context, clusterTemplate *infrav1.DevClusterTemplate) error {
 	defaultDevClusterSpec(&clusterTemplate.Spec.Template.Spec)
 	return nil
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-devclustertemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=devclustertemplates,versions=v1beta2,name=validation.devclustertemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomValidator = &DevClusterTemplate{}
+var _ admission.Validator[*infrav1.DevClusterTemplate] = &DevClusterTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DevClusterTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (webhook *DevClusterTemplate) ValidateCreate(_ context.Context, clusterTemplate *infrav1.DevClusterTemplate) (admission.Warnings, error) {
 	// NOTE: DevClusterTemplate is behind ClusterTopology feature gate flag; the web hook
 	// must prevent creating new objects in case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
@@ -70,11 +63,6 @@ func (webhook *DevClusterTemplate) ValidateCreate(_ context.Context, obj runtime
 			field.NewPath("spec"),
 			"can be set only if the ClusterTopology feature flag is enabled",
 		)
-	}
-
-	clusterTemplate, ok := obj.(*infrav1.DevClusterTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DevClusterTemplate but got a %T", obj))
 	}
 
 	allErrs := validateDevClusterSpec(clusterTemplate.Spec.Template.Spec)
@@ -89,16 +77,8 @@ func (webhook *DevClusterTemplate) ValidateCreate(_ context.Context, obj runtime
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DevClusterTemplate) ValidateUpdate(ctx context.Context, oldRaw, newRaw runtime.Object) (admission.Warnings, error) {
+func (webhook *DevClusterTemplate) ValidateUpdate(ctx context.Context, oldTemplate, newTemplate *infrav1.DevClusterTemplate) (admission.Warnings, error) {
 	var allErrs field.ErrorList
-	oldTemplate, ok := oldRaw.(*infrav1.DevClusterTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DevClusterTemplate but got a %T", oldRaw))
-	}
-	newTemplate, ok := newRaw.(*infrav1.DevClusterTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DevClusterTemplate but got a %T", newRaw))
-	}
 
 	if err := webhook.Default(ctx, oldTemplate); err != nil {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new DevClusterTemplate: failed to default old object: %v", err))
@@ -124,6 +104,6 @@ func (webhook *DevClusterTemplate) ValidateUpdate(ctx context.Context, oldRaw, n
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DevClusterTemplate) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *DevClusterTemplate) ValidateDelete(_ context.Context, _ *infrav1.DevClusterTemplate) (admission.Warnings, error) {
 	return nil, nil
 }

@@ -50,7 +50,7 @@ func TestMachinePoolDefault(t *testing.T) {
 	}
 	webhook := &MachinePool{}
 	ctx = admission.NewContextWithRequest(ctx, admission.Request{})
-	t.Run("for MachinePool", util.CustomDefaultValidateTest(ctx, mp, webhook))
+	t.Run("for MachinePool", util.CustomDefaultValidateTest[*clusterv1.MachinePool](ctx, mp, webhook))
 	g.Expect(webhook.Default(ctx, mp)).To(Succeed())
 
 	g.Expect(mp.Labels[clusterv1.ClusterNameLabel]).To(Equal(mp.Spec.ClusterName))

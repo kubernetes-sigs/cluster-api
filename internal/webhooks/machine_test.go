@@ -44,7 +44,7 @@ func TestMachineDefault(t *testing.T) {
 
 	webhook := &Machine{}
 
-	t.Run("for Machine", util.CustomDefaultValidateTest(ctx, m, webhook))
+	t.Run("for Machine", util.CustomDefaultValidateTest[*clusterv1.Machine](ctx, m, webhook))
 	g.Expect(webhook.Default(ctx, m)).To(Succeed())
 
 	g.Expect(m.Labels[clusterv1.ClusterNameLabel]).To(Equal(m.Spec.ClusterName))

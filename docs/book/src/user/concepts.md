@@ -37,7 +37,7 @@ The [control plane](https://kubernetes.io/docs/concepts/overview/components/) is
 
 * __External__  or __Managed__ control planes are offered and controlled by some system other than Cluster API, such as GKE, AKS, EKS, or IKS.
 
-The default provider uses kubeadm to bootstrap the control plane. As of v1alpha3, it exposes the configuration via the `KubeadmControlPlane` object. The controller, `capi-kubeadm-control-plane-controller-manager`, can then create Machine and BootstrapConfig objects based on the requested replicas in the `KubeadmControlPlane` object.
+For example, the kubeadm provider uses kubeadm to bootstrap the control plane and it exposes the configuration via the `KubeadmControlPlane` object. The controller, `capi-kubeadm-control-plane-controller-manager`, can then create Machine and BootstrapConfig objects based on the requested replicas in the `KubeadmControlPlane` object.
 
 ## Custom Resource Definitions (CRDs)
 
@@ -49,11 +49,23 @@ A "Machine" is the declarative spec for an infrastructure component hosting a Ku
 
 Common fields such as Kubernetes version are modeled as fields on the Machine's spec. Any information that is provider-specific is part of the `InfrastructureRef` and is not portable between different providers.
 
-#### Machine Immutability (In-place Update vs. Replace)
+#### Machine Immutability (In-place update vs. Replace)
 
 From the perspective of Cluster API, all Machines are immutable: once they are created, they are never updated (except for labels, annotations and status), only deleted.
 
 For this reason, MachineDeployments are preferable. MachineDeployments handle changes to machines by replacing them, in the same way core Deployments handle changes to Pod specifications.
+
+Over time several improvement have been applied to Cluster API in oder to perform machine rollout only when necessary and
+for minimizing risks and impact of this operation on users workloads.
+
+Starting from Cluster API v1.12, users can intentionally trade off some of the benefits that they get of Machine immutability by 
+using Cluster API extensions points to add the capability to perform in-place updates under well-defined circumstances.
+
+Notably, the Cluster API user experience will remain the same no matter of the in-place update feature is enabled
+or not, because ultimately users should care ONLY about the desired state.
+
+Cluster API is responsible to choose the best strategy to achieve desired state, and with the introduction of
+update extensions, Cluster API is expanding the set of tools that can be used to achieve the desired state.
 
 ### MachineDeployment
 

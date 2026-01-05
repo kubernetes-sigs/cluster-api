@@ -107,8 +107,8 @@ func (u *providerUpgrader) Plan(ctx context.Context) ([]UpgradePlan, error) {
 	}
 
 	// The core provider is driving all the plan logic for entire management cluster, because all the providers
-	// are expected to support the same contract version or compatible onew.
-	// e.g if the core provider supports v1alpha4, all the providers in the same management cluster should support v1alpha4 as well;
+	// are expected to support the same contract version or compatible one.
+	// E.g. if the core provider supports v1alpha4, all the providers in the same management cluster should support v1alpha4 as well;
 	// all the providers in the management cluster can upgrade to the latest release supporting v1alpha4, or if available,
 	// all the providers can upgrade to the latest release supporting v1alpha5 (not supported in current clusterctl release,
 	// but upgrade plan should report these options)

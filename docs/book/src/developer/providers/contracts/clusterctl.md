@@ -205,6 +205,20 @@ releaseSeries:
   contract: v1alpha2
 ```
 
+<aside  class="note warning">
+
+<h1>Important</h1>
+
+The contract version for a specific release series must match the contract version that is declared in the CRD for different provider's objects.
+
+More specifically, you can consider the contract version in `metadata.yaml` as a “preview” of the contract version supported by the provider, 
+but this value is used only during `clusterctl init` or `clusterctl upgrade`, not at runtime.
+
+At runtime, the system will use the contract version that is defined in the provider's CRD that are installed in the cluster.
+See contract rules for different providers for more details.
+
+</aside>
+
 #### Validation Rules
 
 Starting from clusterctl v1.11, the metadata YAML file is subject to strict validation to ensure consistency and prevent configuration errors. The following validation rules are enforced:
@@ -219,20 +233,6 @@ Starting from clusterctl v1.11, the metadata YAML file is subject to strict vali
    * This ensures providers properly document their version compatibility
 
 These validation rules help catch configuration issues early and provide clear error messages to assist in troubleshooting.
-
-<aside class="note">
-
-<h1> Note on user experience</h1>
-
-For clusterctl versions pre-v1alpha4, if provider implementers only update the clusterctl's built-in metadata and don't provide a `metadata.yaml` in a new release, users are forced to update `clusterctl`
-to the latest released version in order to properly install the provider.
-
-As a related example, see the details in [issue 3418].
-
-To address the above explained issue, the embedded metadata within clusterctl has been removed (as of v1alpha4) to prevent the reliance on using the latest version of clusterctl in order to pull newer provider releases.
-
-For more information see the details in [issue 3515].
-</aside>
 
 ### Components YAML
 
@@ -295,8 +295,7 @@ recommended to prefix the variable name with the provider name e.g. `${AWS_CREDE
 <h1>Warning</h1>
 
 `clusterctl` currently supports variables with leading/trailing spaces such
-as: `${ VAR }`, `${ VAR}`,`${VAR }`. However, these formats will be deprecated
-in the near future. e.g. v1alpha4.
+as: `${ VAR }`, `${ VAR}`,`${VAR }`.
 
 Formats such as `${VAR$FOO}` are not supported.
 </aside>
@@ -564,7 +563,7 @@ If moving some of excluded object is required, the provider authors should creat
 exact move sequence to be executed by the user.
 
 Additionally, provider authors should be aware that `clusterctl move` assumes all the provider's Controllers respect the
-`Cluster.Spec.Paused` field introduced in the v1alpha3 Cluster API specification. If a provider needs to perform extra work in response to a
+`Cluster.spec.paused` field. If a provider needs to perform extra work in response to a
 cluster being paused, `clusterctl move` can be blocked from creating any resources on the destination
 management cluster by annotating any resource to be moved with `clusterctl.cluster.x-k8s.io/block-move`.
 

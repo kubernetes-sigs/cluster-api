@@ -111,7 +111,7 @@ The Secrets must be created _before_ creating the workload cluster.
 Once the Secrets are in place on the management cluster, the rest of the process leverages standard `kubeadm` configuration. Configure your ClusterConfiguration for the workload cluster as follows:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfig
 metadata:
   name: CLUSTER_NAME-controlplane-0

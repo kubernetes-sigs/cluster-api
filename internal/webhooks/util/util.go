@@ -23,27 +23,27 @@ import (
 
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // CustomDefaulterValidator interface is for objects that define both custom defaulting
 // and custom validating webhooks.
-type CustomDefaulterValidator interface {
-	webhook.CustomDefaulter
-	webhook.CustomValidator
+type CustomDefaulterValidator[T runtime.Object] interface {
+	admission.Defaulter[T]
+	admission.Validator[T]
 }
 
 // CustomDefaultValidateTest returns a new testing function to be used in tests to
 // make sure custom defaulting webhooks also pass validation tests on create,
 // update and delete.
-func CustomDefaultValidateTest(ctx context.Context, obj runtime.Object, webhook CustomDefaulterValidator) func(*testing.T) {
+func CustomDefaultValidateTest[T runtime.Object](ctx context.Context, obj runtime.Object, webhook CustomDefaulterValidator[T]) func(*testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
 
-		createCopy := obj.DeepCopyObject()
-		updateCopy := obj.DeepCopyObject()
-		deleteCopy := obj.DeepCopyObject()
-		defaultingUpdateCopy := updateCopy.DeepCopyObject()
+		createCopy := obj.DeepCopyObject().(T)
+		updateCopy := obj.DeepCopyObject().(T)
+		deleteCopy := obj.DeepCopyObject().(T)
+		defaultingUpdateCopy := updateCopy.DeepCopyObject().(T)
 
 		t.Run("validate-on-create", func(t *testing.T) {
 			g := gomega.NewWithT(t)

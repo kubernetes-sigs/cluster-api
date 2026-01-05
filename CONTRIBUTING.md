@@ -75,7 +75,7 @@ Cluster API follows upstream Kubernetes semantic versioning. With the v1 release
 
 - A (*patch*) release SHOULD only include backwards compatible set of bugfixes.
 
-see [Cluster API release support](https://cluster-api.sigs.k8s.io/reference/versions.html#cluster-api-release-support)) for
+see [Cluster API release support](https://cluster-api.sigs.k8s.io/reference/versions.html#cluster-api-release-support) for
 more details about supported releases and for considerations that might apply if you are importing Cluster API go modules as a dependency.
 
 #### Backporting a patch
@@ -141,13 +141,7 @@ avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewCom
 
 ## Documentation changes
 
-The documentation is published in form of a book at:
-
-- [Current stable release](https://cluster-api.sigs.k8s.io)
-- [Tip of the main branch](https://main.cluster-api.sigs.k8s.io/)
-- [v1alpha4 release branch](https://release-0-4.cluster-api.sigs.k8s.io/)
-- [v1alpha3 release branch](https://release-0-3.cluster-api.sigs.k8s.io/)
-- [v1alpha2 release branch](https://release-0-2.cluster-api.sigs.k8s.io/)
+The documentation is published in form of a book at: https://cluster-api.sigs.k8s.io
 
 The source for the book is [this folder](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src)
 containing markdown files and we use [mdBook][] to build it into a static

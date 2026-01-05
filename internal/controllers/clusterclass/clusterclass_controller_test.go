@@ -1099,14 +1099,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				},
 			},
 			wantErrMessage: "failed to discover variables for ClusterClass class1: [" +
-				"patch1.variables[cpu].schema.openAPIV3Schema.properties[nestedField].default: Invalid value: \"integer\": failed rule: self >= 1, " +
+				"patch1.variables[cpu].schema.openAPIV3Schema.properties[nestedField].default: Invalid value: 0: failed rule: self >= 1, " +
 				"patch1.variables[anotherCPU].schema.openAPIV3Schema.x-kubernetes-validations[0].messageExpression: Invalid value: " +
 				"{\"Rule\":\"self \\u003e= 1\",\"Message\":\"\",\"MessageExpression\":\"'Expected integer greater or equal to 1, got ' + this does not compile\"," +
 				"\"Reason\":null,\"FieldPath\":\"\",\"OptionalOldSelf\":null}: " +
 				"messageExpression compilation failed: ERROR: <input>:1:55: Syntax error: mismatched input 'does' expecting <EOF>\n " +
 				"| 'Expected integer greater or equal to 1, got ' + this does not compile\n " +
 				"| ......................................................^]",
-			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: [patch1.variables[cpu].schema.openAPIV3Schema.properties[nestedField].default: Invalid value: \"integer\": failed rule: self >= 1, " +
+			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: [patch1.variables[cpu].schema.openAPIV3Schema.properties[nestedField].default: Invalid value: 0: failed rule: self >= 1, " +
 				"patch1.variables[anotherCPU].schema.openAPIV3Schema.x-kubernetes-validations[0].messageExpression: Invalid value: " +
 				"{\"Rule\":\"self \\u003e= 1\",\"Message\":\"\",\"MessageExpression\":\"'Expected integer greater or equal to 1, got ' + this does not compile\"," +
 				"\"Reason\":null,\"FieldPath\":\"\",\"OptionalOldSelf\":null}: " +

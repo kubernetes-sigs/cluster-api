@@ -23,14 +23,12 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
@@ -39,8 +37,7 @@ import (
 
 // SetupWebhookWithManager sets up IPAddress webhooks.
 func (webhook *IPAddress) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&ipamv1.IPAddress{}).
+	return ctrl.NewWebhookManagedBy(mgr, &ipamv1.IPAddress{}).
 		WithValidator(webhook).
 		Complete()
 }
@@ -53,28 +50,15 @@ type IPAddress struct {
 	Client client.Reader
 }
 
-var _ webhook.CustomValidator = &IPAddress{}
+var _ admission.Validator[*ipamv1.IPAddress] = &IPAddress{}
 
 // ValidateCreate implements webhook.CustomValidator.
-func (webhook *IPAddress) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	ip, ok := obj.(*ipamv1.IPAddress)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an IPAddress but got a %T", obj))
-	}
+func (webhook *IPAddress) ValidateCreate(ctx context.Context, ip *ipamv1.IPAddress) (admission.Warnings, error) {
 	return nil, webhook.validate(ctx, ip)
 }
 
 // ValidateUpdate implements webhook.CustomValidator.
-func (webhook *IPAddress) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	oldIP, ok := oldObj.(*ipamv1.IPAddress)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an IPAddress but got a %T", oldObj))
-	}
-	newIP, ok := newObj.(*ipamv1.IPAddress)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an IPAddress but got a %T", newObj))
-	}
-
+func (webhook *IPAddress) ValidateUpdate(_ context.Context, oldIP, newIP *ipamv1.IPAddress) (admission.Warnings, error) {
 	equal, diff, err := compare.Diff(oldIP.Spec, newIP.Spec)
 	if err != nil {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new IPAddress spec: %v", err))
@@ -87,7 +71,7 @@ func (webhook *IPAddress) ValidateUpdate(_ context.Context, oldObj, newObj runti
 }
 
 // ValidateDelete implements webhook.CustomValidator.
-func (webhook *IPAddress) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *IPAddress) ValidateDelete(_ context.Context, _ *ipamv1.IPAddress) (admission.Warnings, error) {
 	return nil, nil
 }
 

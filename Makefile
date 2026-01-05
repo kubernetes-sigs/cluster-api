@@ -23,17 +23,13 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.24.10
-GO_DIRECTIVE_VERSION ?= 1.24.0
+GO_VERSION ?= 1.25.5
+GO_DIRECTIVE_VERSION ?= 1.25.0
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
 # Ensure correct toolchain is used
 GOTOOLCHAIN = go$(GO_VERSION)
 export GOTOOLCHAIN
-
-# Required with Go 1.24 to enable usage of synctest in unit tests
-# Can be removed after we bumped to Go 1.25.
-export GOEXPERIMENT=synctest
 
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
@@ -48,7 +44,7 @@ export GO111MODULE=on
 #
 # Kubebuilder.
 #
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.34.0
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.35.0
 export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?= 60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?= 60s
 
@@ -115,7 +111,7 @@ SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-CONTROLLER_GEN_VER := v0.19.0
+CONTROLLER_GEN_VER := v0.20.0
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
@@ -125,7 +121,7 @@ GOTESTSUM_BIN := gotestsum
 GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/$(GOTESTSUM_BIN)-$(GOTESTSUM_VER))
 GOTESTSUM_PKG := gotest.tools/gotestsum
 
-CONVERSION_GEN_VER := v0.34.0
+CONVERSION_GEN_VER := v0.35.0
 CONVERSION_GEN_BIN := conversion-gen
 # We are intentionally using the binary without version suffix, to avoid the version
 # in generated files.
@@ -176,6 +172,11 @@ GOVULNCHECK_VER := v1.1.4
 GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN)-$(GOVULNCHECK_VER))
 GOVULNCHECK_PKG := golang.org/x/vuln/cmd/govulncheck
 
+CRANE_BIN := crane
+CRANE_VER := v0.20.7
+CRANE := $(abspath $(TOOLS_BIN_DIR)/$(CRANE_BIN)-$(CRANE_VER))
+CRANE_PKG := github.com/google/go-containerregistry/cmd/crane
+
 IMPORT_BOSS_BIN := import-boss
 IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
@@ -190,7 +191,7 @@ TRIAGE_PARTY_VERSION ?= v1.6.0
 CONVERSION_VERIFIER_BIN := conversion-verifier
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN))
 
-OPENAPI_GEN_VER := 2c72e55 # main branch as of 03.01.2025
+OPENAPI_GEN_VER := 589584f1c912f4367fe8954f649a59a98b912da5 # in sync with go.mod k8s.io/kube-openapi as of 17.12.2025.
 OPENAPI_GEN_BIN := openapi-gen
 # We are intentionally using the binary without version suffix, to avoid the version
 # in generated files.
@@ -289,10 +290,8 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./api/core/... \
 		paths=./api/ipam/... \
 		paths=./api/runtime/... \
-		paths=./internal/api/core/... \
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
-		paths=./internal/api/addons/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \
@@ -344,7 +343,6 @@ generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.
 		paths=./bootstrap/kubeadm \
 		paths=./bootstrap/kubeadm/internal/controllers/... \
 		paths=./bootstrap/kubeadm/internal/webhooks/... \
-		paths=./internal/api/bootstrap/kubeadm/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./bootstrap/kubeadm/config/crd/bases \
@@ -360,7 +358,6 @@ generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifest
 		paths=./controlplane/kubeadm \
 		paths=./controlplane/kubeadm/internal/controllers/... \
 		paths=./controlplane/kubeadm/internal/webhooks/... \
-		paths=./internal/api/controlplane/kubeadm/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./controlplane/kubeadm/config/crd/bases \
@@ -395,7 +392,7 @@ generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
 
 .PHONY: generate-go-deepcopy-core
 generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/addons,./api/core,./api/ipam,./api/runtime,./internal/api/addons,./internal/api/core,./api/runtime/hooks"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/addons,./api/core,./api/ipam,./api/runtime,./api/runtime/hooks"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/addons/... \
@@ -405,8 +402,6 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 		paths=./api/runtime/hooks/... \
 		paths=./cmd/clusterctl/... \
 		paths=./controllers/crdmigrator/test/... \
-		paths=./internal/api/addons/... \
-		paths=./internal/api/core/... \
 		paths=./internal/runtime/test/... \
 		paths=./internal/topology/upgrade/test/... \
 		paths=./util/test/builder/... \
@@ -418,16 +413,14 @@ generate-go-deepcopy-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate deepcopy g
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/bootstrap/kubeadm/... \
-		paths=./bootstrap/kubeadm/types/... \
-		paths=./internal/api/bootstrap/kubeadm/...
+		paths=./bootstrap/kubeadm/types/...
 
 .PHONY: generate-go-deepcopy-kubeadm-control-plane
 generate-go-deepcopy-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate deepcopy go code for kubeadm control plane
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api/controlplane/kubeadm"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-		paths=./api/controlplane/kubeadm/... \
-		paths=./internal/api/controlplane/kubeadm/...
+		paths=./api/controlplane/kubeadm/...
 
 .PHONY: generate-go-deepcopy-docker-infrastructure
 generate-go-deepcopy-docker-infrastructure: $(CONTROLLER_GEN) generate-go-deepcopy-in-memory-infrastructure ## Generate deepcopy go code for docker infrastructure provider
@@ -459,23 +452,19 @@ generate-go-conversions-core: ## Run all generate-go-conversions-core-* targets
 
 .PHONY: generate-go-conversions-core-api
 generate-go-conversions-core-api: $(CONVERSION_GEN) ## Generate conversions go code for core api
-	$(MAKE) clean-generated-conversions SRC_DIRS="./api/core/v1beta1,./internal/api/core/v1alpha3,./internal/api/core/v1alpha4,./internal/topology/upgrade/test/t2/v1beta1"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/core/v1beta1,./internal/topology/upgrade/test/t2/v1beta1"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./internal/api/core/v1alpha3 \
-		./internal/api/core/v1alpha4 \
 		./api/core/v1beta1 \
 		./internal/topology/upgrade/test/t2/v1beta1
 
 .PHONY: generate-go-conversions-addons-api
 generate-go-conversions-addons-api: $(CONVERSION_GEN) ## Generate conversions go code for addons api
-	$(MAKE) clean-generated-conversions SRC_DIRS="./api/addons/v1beta1,./internal/api/addons/v1alpha3,./internal/api/addons/v1alpha4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/addons/v1beta1"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./internal/api/addons/v1alpha3 \
-		./internal/api/addons/v1alpha4 \
 		./api/addons/v1beta1
 
 .PHONY: generate-go-conversions-core-ipam
@@ -503,12 +492,10 @@ generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions 
 
 .PHONY: generate-go-conversions-kubeadm-bootstrap
 generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm bootstrap
-	$(MAKE) clean-generated-conversions SRC_DIRS="./api/bootstrap/kubeadm/v1beta1,./internal/api/bootstrap/kubeadm"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/bootstrap/kubeadm/v1beta1"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./internal/api/bootstrap/kubeadm/v1alpha3 \
-		./internal/api/bootstrap/kubeadm/v1alpha4 \
 		./api/bootstrap/kubeadm/v1beta1
 	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/types/upstreamv1beta3,./bootstrap/kubeadm/types/upstreamv1beta4"
 	$(CONVERSION_GEN) \
@@ -519,12 +506,10 @@ generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate convers
 
 .PHONY: generate-go-conversions-kubeadm-control-plane
 generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm control plane
-	$(MAKE) clean-generated-conversions SRC_DIRS="./api/controlplane/kubeadm/v1beta1,./internal/api/controlplane/kubeadm"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./api/controlplane/kubeadm/v1beta1"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./internal/api/controlplane/kubeadm/v1alpha3 \
-		./internal/api/controlplane/kubeadm/v1alpha4 \
 		./api/controlplane/kubeadm/v1beta1
 
 .PHONY: generate-go-conversions-docker-infrastructure
@@ -532,8 +517,6 @@ generate-go-conversions-docker-infrastructure: $(CONVERSION_GEN) ## Generate con
 	cd $(CAPD_DIR); $(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=../../../hack/boilerplate/boilerplate.generatego.txt \
-		./api/v1alpha3 \
-		./api/v1alpha4 \
 		./api/v1beta1
 
 .PHONY: generate-go-conversions-test-extension
@@ -566,32 +549,9 @@ generate-doctoc:
 	TRACE=$(TRACE) ./hack/generate-doctoc.sh
 
 .PHONY: generate-e2e-templates
-generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.3 v0.4 v1.5 v1.6 v1.9 v1.10 v1.11 main) ## Generate cluster templates for all versions
+generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.10 v1.11 v1.12 main) ## Generate cluster templates for all versions
 
 DOCKER_TEMPLATES := test/e2e/data/infrastructure-docker
-
-.PHONY: generate-e2e-templates-v0.3
-generate-e2e-templates-v0.3: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v0.3/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v0.3/cluster-template.yaml
-
-.PHONY: generate-e2e-templates-v0.4
-generate-e2e-templates-v0.4: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v0.4/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v0.4/cluster-template.yaml
-
-.PHONY: generate-e2e-templates-v1.5
-generate-e2e-templates-v1.5: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.5/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.5/cluster-template.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.5/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.5/cluster-template-topology.yaml
-
-.PHONY: generate-e2e-templates-v1.6
-generate-e2e-templates-v1.6: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.6/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.6/cluster-template.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.6/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.6/cluster-template-topology.yaml
-
-.PHONY: generate-e2e-templates-v1.9
-generate-e2e-templates-v1.9: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.9/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.9/cluster-template.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.9/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.9/cluster-template-topology.yaml
 
 .PHONY: generate-e2e-templates-v1.10
 generate-e2e-templates-v1.10: $(KUSTOMIZE)
@@ -602,6 +562,11 @@ generate-e2e-templates-v1.10: $(KUSTOMIZE)
 generate-e2e-templates-v1.11: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.11/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.11/cluster-template.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.11/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.11/cluster-template-topology.yaml
+
+.PHONY: generate-e2e-templates-v1.12
+generate-e2e-templates-v1.12: $(KUSTOMIZE)
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.12/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.12/cluster-template.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.12/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.12/cluster-template-topology.yaml
 
 .PHONY: generate-e2e-templates-main
 generate-e2e-templates-main: $(KUSTOMIZE)
@@ -727,8 +692,7 @@ verify-gen: generate  ## Verify go generated files are up to date
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
 	$(CONVERSION_VERIFIER) \
 		./api/... \
-		./internal/api/... \
-		./test/infrastructure/docker/api/... \
+		./test/infrastructure/docker/api/...
 
 .PHONY: verify-doctoc
 verify-doctoc: generate-doctoc
@@ -1446,6 +1410,9 @@ $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
 .PHONY: $(GOVULNCHECK_BIN)
 $(GOVULNCHECK_BIN): $(GOVULNCHECK) ## Build a local copy of govulncheck.
 
+.PHONY: $(CRANE_BIN)
+$(CRANE_BIN): $(CRANE) ## Build a local copy of crane.
+
 .PHONY: $(IMPORT_BOSS_BIN)
 $(IMPORT_BOSS_BIN): $(IMPORT_BOSS)
 
@@ -1506,6 +1473,9 @@ $(GOLANGCI_LINT_KAL): $(GOLANGCI_LINT) # Build golangci-lint-kal from custom con
 
 $(GOVULNCHECK): # Build govulncheck.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)
+
+$(CRANE): # Build crane.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CRANE_PKG) $(CRANE_BIN) $(CRANE_VER)
 
 $(IMPORT_BOSS): # Build import-boss
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(IMPORT_BOSS_PKG) $(IMPORT_BOSS_BIN) $(IMPORT_BOSS_VER)

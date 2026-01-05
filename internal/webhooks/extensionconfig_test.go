@@ -119,7 +119,7 @@ func TestExtensionConfigDefault(t *testing.T) {
 	}
 
 	extensionConfigWebhook := &ExtensionConfig{}
-	t.Run("for Extension", util.CustomDefaultValidateTest(ctx, extensionConfig, extensionConfigWebhook))
+	t.Run("for Extension", util.CustomDefaultValidateTest[*runtimev1.ExtensionConfig](ctx, extensionConfig, extensionConfigWebhook))
 
 	g.Expect(extensionConfigWebhook.Default(ctx, extensionConfig)).To(Succeed())
 	g.Expect(extensionConfig.Spec.NamespaceSelector).To(BeComparableTo(&metav1.LabelSelector{}))

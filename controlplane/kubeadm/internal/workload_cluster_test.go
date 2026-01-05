@@ -989,6 +989,36 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "it should not add ControlPlaneKubeletLocalMode feature gate for 1.36.0 (GA)",
+			clusterConfigurationData: utilyaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta4
+				kind: ClusterConfiguration`),
+			kubernetesVersion: semver.MustParse("1.36.0"),
+			newClusterConfiguration: bootstrapv1.ClusterConfiguration{
+				FeatureGates: nil,
+			},
+			wantClusterConfiguration: bootstrapv1.ClusterConfiguration{
+				FeatureGates: nil,
+			},
+		},
+		{
+			name: "it should not add ControlPlaneKubeletLocalMode feature gate for 1.36.0 even with other feature gates",
+			clusterConfigurationData: utilyaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta4
+				kind: ClusterConfiguration`),
+			kubernetesVersion: semver.MustParse("1.36.0"),
+			newClusterConfiguration: bootstrapv1.ClusterConfiguration{
+				FeatureGates: map[string]bool{
+					"EtcdLearnerMode": true,
+				},
+			},
+			wantClusterConfiguration: bootstrapv1.ClusterConfiguration{
+				FeatureGates: map[string]bool{
+					"EtcdLearnerMode": true,
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

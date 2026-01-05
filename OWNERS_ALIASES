@@ -29,6 +29,7 @@ aliases:
 
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
+  - karthik-k-n
   - richardcase
   - sivchari
 
@@ -76,6 +77,7 @@ aliases:
 
   cluster-api-machinepool-maintainers:
   cluster-api-machinepool-reviewers:
+  - AndiDog
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for test

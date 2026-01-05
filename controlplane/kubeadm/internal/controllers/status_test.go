@@ -523,6 +523,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				),
 				PreflightCheckResults: internal.PreflightCheckResults{
 					HasDeletingMachine:               true,
+					CertificateMissing:               true,
 					ControlPlaneComponentsNotHealthy: true,
 					EtcdClusterNotHealthy:            true,
 					TopologyVersionMismatch:          true,
@@ -535,6 +536,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Message: "Scaling up from 3 to 5 replicas is blocked because:\n" +
 					"* waiting for a version upgrade to v1.32.0 to be propagated\n" +
 					"* waiting for a control plane Machine to complete deletion\n" +
+					"* cluster certificates are missing or unknown\n" +
 					"* waiting for control plane components to become healthy\n" +
 					"* waiting for etcd cluster to become healthy",
 			},

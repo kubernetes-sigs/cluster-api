@@ -34,6 +34,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -418,7 +419,7 @@ func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPa
 }
 
 func verifyMetrics(data []byte, pod *corev1.Pod) error {
-	var parser expfmt.TextParser
+	parser := expfmt.NewTextParser(model.UTF8Validation)
 	mf, err := parser.TextToMetricFamilies(bytes.NewReader(data))
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse data to metrics families")

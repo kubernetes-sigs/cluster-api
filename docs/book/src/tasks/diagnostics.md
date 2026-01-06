@@ -22,8 +22,8 @@ To continue serving metrics via http the following configuration can be used:
 
 The same can be achieved via clusterctl:
 ```bash
-export CAPI_DIAGNOSTICS_ADDRESS: "localhost:8080"
-export CAPI_INSECURE_DIAGNOSTICS: "true"
+export CAPI_DIAGNOSTICS_ADDRESS="localhost:8080"
+export CAPI_INSECURE_DIAGNOSTICS="true"
 clusterctl init ...
 ```
 

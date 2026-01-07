@@ -96,6 +96,10 @@ func TestCache(t *testing.T) {
 			))
 		})
 	}
+
+	g.Expect(c.Len()).To(Equal(1))
+	c.DeleteAll()
+	g.Expect(c.Len()).To(Equal(0))
 }
 
 func TestShouldRequeueDrain(t *testing.T) {

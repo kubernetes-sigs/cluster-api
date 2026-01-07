@@ -57,6 +57,9 @@ type Cache[E Entry] interface {
 
 	// Len returns the number of entries in the cache.
 	Len() int
+
+	// DeleteAll deletes all entries from the cache.
+	DeleteAll()
 }
 
 // New creates a new cache.
@@ -106,6 +109,11 @@ func (r *cache[E]) Has(key string) (E, bool) {
 
 func (r *cache[E]) Len() int {
 	return len(r.ListKeys())
+}
+
+func (r *cache[E]) DeleteAll() {
+	// Note: We are intentionally using Replace instead of List + Delete because the latter would be racy.
+	_ = r.Store.Replace(nil, "")
 }
 
 // HookEntry is an Entry for the hook Cache.

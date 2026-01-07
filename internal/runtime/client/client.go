@@ -20,6 +20,7 @@ package client
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -45,6 +46,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
@@ -72,15 +74,28 @@ type Options struct {
 }
 
 // New returns a new Client.
-func New(options Options) runtimeclient.Client {
+func New(options Options) (runtimeclient.Client, *certwatcher.CertWatcher, error) {
+	httpClientCache := cache.New[httpClientEntry](24 * time.Hour)
+
+	var certWatcher *certwatcher.CertWatcher
+	if options.CertFile != "" && options.KeyFile != "" {
+		var err error
+		certWatcher, err = certwatcher.New(options.CertFile, options.KeyFile)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "failed to create RuntimeSDK client: failed to create cert-watcher")
+		}
+		certWatcher.RegisterCallback(func(_ tls.Certificate) {
+			httpClientCache.DeleteAll()
+		})
+	}
 	return &client{
 		certFile:         options.CertFile,
 		keyFile:          options.KeyFile,
 		catalog:          options.Catalog,
 		registry:         options.Registry,
 		client:           options.Client,
-		httpClientsCache: cache.New[httpClientEntry](24 * time.Hour),
-	}
+		httpClientsCache: httpClientCache,
+	}, certWatcher, nil
 }
 
 var _ runtimeclient.Client = &client{}

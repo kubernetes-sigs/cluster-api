@@ -47,6 +47,10 @@ func TestCache(t *testing.T) {
 	entryFromCache, ok := c.Has(entry.Key())
 	g.Expect(ok).To(BeTrue())
 	g.Expect(entryFromCache).To(Equal(entry))
+
+	g.Expect(c.Len()).To(Equal(1))
+	c.DeleteAll()
+	g.Expect(c.Len()).To(Equal(0))
 }
 
 func TestShouldRequeueDrain(t *testing.T) {

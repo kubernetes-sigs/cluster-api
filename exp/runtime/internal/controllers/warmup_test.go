@@ -72,13 +72,15 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			}(ns.Name, name, server.URL)
 		}
 
+		runtimeClient, _, err := internalruntimeclient.New(internalruntimeclient.Options{
+			Catalog:  cat,
+			Registry: registry,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
 		r := &warmupRunnable{
-			Client:    env.GetClient(),
-			APIReader: env.GetAPIReader(),
-			RuntimeClient: internalruntimeclient.New(internalruntimeclient.Options{
-				Catalog:  cat,
-				Registry: registry,
-			}),
+			Client:        env.GetClient(),
+			APIReader:     env.GetAPIReader(),
+			RuntimeClient: runtimeClient,
 		}
 
 		if err := r.Start(ctx); err != nil {
@@ -137,13 +139,15 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			g.Expect(env.CreateAndWait(ctx, extensionConfig)).To(Succeed())
 		}
 
+		runtimeClient, _, err := internalruntimeclient.New(internalruntimeclient.Options{
+			Catalog:  cat,
+			Registry: registry,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
 		r := &warmupRunnable{
-			Client:    env.GetClient(),
-			APIReader: env.GetAPIReader(),
-			RuntimeClient: internalruntimeclient.New(internalruntimeclient.Options{
-				Catalog:  cat,
-				Registry: registry,
-			}),
+			Client:         env.GetClient(),
+			APIReader:      env.GetAPIReader(),
+			RuntimeClient:  runtimeClient,
 			warmupInterval: 500 * time.Millisecond,
 			warmupTimeout:  5 * time.Second,
 		}

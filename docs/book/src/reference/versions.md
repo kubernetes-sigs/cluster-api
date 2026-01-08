@@ -250,15 +250,28 @@ Each Cluster API minor release supports (when it's initially created):
 * Four Kubernetes minor releases for the management cluster (N - N-3)
 * Six Kubernetes minor releases for the workload cluster (N - N-5)
 
-When a new Kubernetes minor release is available, the Cluster API team will try to support it in an upcoming Cluster API
-patch release, thus extending the support matrix for the latest supported Cluster API minor release to:
-* Five Kubernetes minor releases for the management cluster (N - N-4)
-* Seven Kubernetes minor releases for the workload cluster (N - N-6)
+When a new Kubernetes minor release is available, the Cluster API team will try to support it in upcoming Cluster API
+patch releases, thus:
+* extending the support matrix for the latest supported Cluster API minor release to:
+  * Five Kubernetes minor releases for the management cluster (N - N-4)
+  * Seven Kubernetes minor releases for the workload cluster (N - N-6)
+* extending the support matrix for the Cluster API minor release before that to: (this will be only done for Kubernetes >= v1.36)
+  * Six Kubernetes minor releases for the management cluster (N - N-5)
+  * Eight Kubernetes minor releases for the workload cluster (N - N-7)
 
-For example, Cluster API v1.7.0 would support the following Kubernetes versions:
-* v1.26.x to v1.29.x for the management cluster
-* v1.24.x to v1.29.x for the workload cluster
-* When Kubernetes 1.30 is released, it will be supported in v1.7.x (but not in v1.6.x)
+Please note that we will *try* to support the new Kubernetes release, there is no guarantee 
+that we will be able to backport the required changes as they might be breaking.
+
+Example:
+* When Cluster API v1.7.0 is released it will support:
+  * v1.26.x to v1.29.x for the management cluster
+  * v1.24.x to v1.29.x for the workload cluster
+* When Kubernetes 1.30 is released: v1.7.x will support:
+  * v1.26.x to v1.30.x for the management cluster
+  * v1.24.x to v1.30.x for the workload cluster
+* When Kubernetes 1.31 is released: v1.7.x will support:
+  * v1.26.x to v1.31.x for the management cluster
+  * v1.24.x to v1.31.x for the workload cluster
 
 <aside class="note warning">
 

@@ -12,7 +12,8 @@ additional-css = ["theme/css/custom.css"]
 
 [output.html.redirect]
 "/tasks/upgrade.html" = "/tasks/upgrading-cluster-api-versions.html"
-"/agenda.html" = "/agenda/2025.html"
+"/agenda.html" = "/agenda/2026.html"
+"/agenda/2026.html" = "https://docs.google.com/document/d/1fKOcbdlRNlpsVViv2cyKNv3HUHxpf-C4EIZVStsfTT0"
 "/agenda/2025.html" = "https://docs.google.com/document/d/1GgFbaYs-H6J5HSQ6a7n4aKpk0nDLE2hgG2NSOM9YIRw"
 "/agenda/2024.html" = "https://docs.google.com/document/d/187cPvF7_4kCzyM8y4f2nSkUcvSUZwle0XmPlBRALZ1A"
 "/agenda/2023.html" = "https://docs.google.com/document/d/1Ov_rbxOV_O4HeAuwTev1lSwkiLJoBc_HDS1NyI93AcY"

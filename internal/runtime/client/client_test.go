@@ -945,8 +945,10 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 		Client:   fakeClient,
 	})
 	g.Expect(err).ToNot(HaveOccurred())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	go func() {
-		_ = certWatcher.Start(t.Context())
+		_ = certWatcher.Start(ctx)
 	}()
 
 	obj := &clusterv1.Cluster{
@@ -977,7 +979,7 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 	// Rotate client ca on server-side.
 	srv.Close()
 	srv = createServer()
-	l, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", listenerAddr.String()) // Ensure the server uses the same port as before.
+	l, err := (&net.ListenConfig{}).Listen(ctx, "tcp", listenerAddr.String()) // Ensure the server uses the same port as before.
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(srv.Listener.Close()).To(Succeed())
 	srv.Listener = l
@@ -999,7 +1001,7 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 	// Rotate client ca on server-side.
 	srv.Close()
 	srv = createServer()
-	l, err = (&net.ListenConfig{}).Listen(t.Context(), "tcp", listenerAddr.String()) // Ensure the server uses the same port as before.
+	l, err = (&net.ListenConfig{}).Listen(ctx, "tcp", listenerAddr.String()) // Ensure the server uses the same port as before.
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(srv.Listener.Close()).To(Succeed())
 	srv.Listener = l

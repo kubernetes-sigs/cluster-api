@@ -78,13 +78,15 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			})
 		}
 
+		runtimeClient, _, err := internalruntimeclient.New(internalruntimeclient.Options{
+			Catalog:  cat,
+			Registry: registry,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
 		r := &warmupRunnable{
-			Client:    env.GetClient(),
-			APIReader: env.GetAPIReader(),
-			RuntimeClient: internalruntimeclient.New(internalruntimeclient.Options{
-				Catalog:  cat,
-				Registry: registry,
-			}),
+			Client:        env.GetClient(),
+			APIReader:     env.GetAPIReader(),
+			RuntimeClient: runtimeClient,
 		}
 
 		g.Expect(r.Start(ctx)).To(Succeed())
@@ -128,24 +130,28 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			})
 		}
 
+		runtimeClient, _, err := internalruntimeclient.New(internalruntimeclient.Options{
+			Catalog:  cat,
+			Registry: registry,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
 		r := &warmupRunnable{
-			Client:    env.GetClient(),
-			APIReader: env.GetAPIReader(),
-			RuntimeClient: internalruntimeclient.New(internalruntimeclient.Options{
-				Catalog:  cat,
-				Registry: registry,
-			}),
+			Client:        env.GetClient(),
+			APIReader:     env.GetAPIReader(),
+			RuntimeClient: runtimeClient,
 		}
 
+		runtimeClientReadOnly, _, err := internalruntimeclient.New(internalruntimeclient.Options{
+			Catalog:  cat,
+			Registry: registryReadOnly,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
 		rReadOnly := &warmupRunnable{
 			ReadOnly:      true,
 			warmupTimeout: 3 * time.Second, // Use a short timeout so the test doesn't take too long
 			Client:        env.GetClient(),
 			APIReader:     env.GetAPIReader(),
-			RuntimeClient: internalruntimeclient.New(internalruntimeclient.Options{
-				Catalog:  cat,
-				Registry: registryReadOnly,
-			}),
+			RuntimeClient: runtimeClientReadOnly,
 		}
 
 		// Initially warmup should fail if ExtensionConfigs have not been reconciled yet.
@@ -203,13 +209,15 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			g.Expect(env.CreateAndWait(ctx, extensionConfig)).To(Succeed())
 		}
 
+		runtimeClient, _, err := internalruntimeclient.New(internalruntimeclient.Options{
+			Catalog:  cat,
+			Registry: registry,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
 		r := &warmupRunnable{
-			Client:    env.GetClient(),
-			APIReader: env.GetAPIReader(),
-			RuntimeClient: internalruntimeclient.New(internalruntimeclient.Options{
-				Catalog:  cat,
-				Registry: registry,
-			}),
+			Client:         env.GetClient(),
+			APIReader:      env.GetAPIReader(),
+			RuntimeClient:  runtimeClient,
 			warmupInterval: 500 * time.Millisecond,
 			warmupTimeout:  5 * time.Second,
 		}

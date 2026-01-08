@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -29,6 +30,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
@@ -797,11 +799,12 @@ func TestClient_CallExtension(t *testing.T) {
 				WithObjects(ns).
 				Build()
 
-			c := New(Options{
+			c, _, err := New(Options{
 				Catalog:  cat,
 				Registry: registry(tt.registeredExtensionConfigs),
 				Client:   fakeClient,
 			})
+			g.Expect(err).ToNot(HaveOccurred())
 
 			obj := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -810,7 +813,7 @@ func TestClient_CallExtension(t *testing.T) {
 				},
 			}
 			// Call once without caching.
-			err := c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response)
+			err = c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -895,14 +898,17 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 	g.Expect(os.WriteFile(clientKeyFile, testcerts.ClientKey, 0600)).To(Succeed())
 
 	var serverCallCount int
-	srv := createSecureTestServer(testServerConfig{
-		start: true,
-		responses: map[string]testServerResponse{
-			"/*": response(runtimehooksv1.ResponseStatusSuccess),
-		},
-	}, func() {
-		serverCallCount++
-	})
+	createServer := func() *httptest.Server {
+		return createSecureTestServer(testServerConfig{
+			start: true,
+			responses: map[string]testServerResponse{
+				"/*": response(runtimehooksv1.ResponseStatusSuccess),
+			},
+		}, func() {
+			serverCallCount++
+		})
+	}
+	srv := createServer()
 
 	// Setup the runtime extension server so it requires client authentication with certificates signed by a given CA.
 	certpool := x509.NewCertPool()
@@ -911,7 +917,7 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 	srv.TLS.ClientCAs = certpool
 
 	srv.StartTLS()
-	defer srv.Close()
+	listenerAddr := srv.Listener.Addr()
 
 	// Set the URL to the real address of the test server.
 	validExtensionHandlerWithFailPolicy.Spec.ClientConfig.URL = fmt.Sprintf("https://%s/", srv.Listener.Addr().String())
@@ -923,7 +929,7 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 		WithObjects(ns).
 		Build()
 
-	c := New(Options{
+	c, certWatcher, err := New(Options{
 		// Add client authentication credentials to the client
 		CertFile: clientCertFile,
 		KeyFile:  clientKeyFile,
@@ -931,6 +937,10 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 		Registry: registry([]runtimev1.ExtensionConfig{validExtensionHandlerWithFailPolicy}),
 		Client:   fakeClient,
 	})
+	g.Expect(err).ToNot(HaveOccurred())
+	go func() {
+		_ = certWatcher.Start(t.Context())
+	}()
 
 	obj := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -938,10 +948,80 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 			Namespace: "foo",
 		},
 	}
-	// Call once without caching.
-	err := c.CallExtension(context.Background(), fakev1alpha1.FakeHook, obj, "valid-extension", &fakev1alpha1.FakeRequest{}, &fakev1alpha1.FakeResponse{})
+
+	err = c.CallExtension(context.Background(), fakev1alpha1.FakeHook, obj, "valid-extension", &fakev1alpha1.FakeRequest{}, &fakev1alpha1.FakeResponse{})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(serverCallCount).To(Equal(1))
+
+	// Test case 1: Rotate client cert/key on client-side and then client ca on server-side.
+
+	// Rotate client cert/key on client-side.
+	g.Expect(os.WriteFile(clientCertFile, testClientCert, 0600)).To(Succeed())
+	g.Expect(os.WriteFile(clientKeyFile, testClientKey, 0600)).To(Succeed())
+
+	// Validate that the client rotated the client cert/key.
+	// The server still uses the old client ca so it should reject the client cert.
+	g.Eventually(func(g Gomega) {
+		err = c.CallExtension(context.Background(), fakev1alpha1.FakeHook, obj, "valid-extension", &fakev1alpha1.FakeRequest{}, &fakev1alpha1.FakeResponse{})
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("test.runtime.cluster.x-k8s.io/v1alpha1/fakehook/valid-extension?timeout=1s\": remote error: tls: unknown certificate authority"))
+	}, 10*time.Second).Should(Succeed())
+
+	// Rotate client ca on server-side.
+	srv.Close()
+	srv = createServer()
+	l, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", listenerAddr.String()) // Ensure the server uses the same port as before.
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(srv.Listener.Close()).To(Succeed())
+	srv.Listener = l
+	certpool = x509.NewCertPool()
+	certpool.AppendCertsFromPEM(testCACert)
+	srv.TLS.ClientAuth = tls.RequireAndVerifyClientCert
+	srv.TLS.ClientCAs = certpool
+	srv.StartTLS()
+
+	// Validate that the server rotated the client ca.
+	// The server now uses the new client ca so it should accept the client cert.
+	g.Eventually(func(g Gomega) {
+		err = c.CallExtension(context.Background(), fakev1alpha1.FakeHook, obj, "valid-extension", &fakev1alpha1.FakeRequest{}, &fakev1alpha1.FakeResponse{})
+		g.Expect(err).ToNot(HaveOccurred())
+	}, 10*time.Second).Should(Succeed())
+
+	// Test case 2: Rotate client ca on server-side and then client cert/key on client-side.
+
+	// Rotate client ca on server-side.
+	srv.Close()
+	srv = createServer()
+	l, err = (&net.ListenConfig{}).Listen(t.Context(), "tcp", listenerAddr.String()) // Ensure the server uses the same port as before.
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(srv.Listener.Close()).To(Succeed())
+	srv.Listener = l
+	certpool = x509.NewCertPool()
+	certpool.AppendCertsFromPEM(testcerts.CACert)
+	srv.TLS.ClientAuth = tls.RequireAndVerifyClientCert
+	srv.TLS.ClientCAs = certpool
+	srv.StartTLS()
+
+	// Validate that the server rotated the client ca.
+	// The server now uses the new client ca so it should reject the client cert.
+	g.Eventually(func(g Gomega) {
+		err = c.CallExtension(context.Background(), fakev1alpha1.FakeHook, obj, "valid-extension", &fakev1alpha1.FakeRequest{}, &fakev1alpha1.FakeResponse{})
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("test.runtime.cluster.x-k8s.io/v1alpha1/fakehook/valid-extension?timeout=1s\": remote error: tls: unknown certificate authority"))
+	}, 10*time.Second).Should(Succeed())
+
+	// Rotate client cert/key on client-side.
+	g.Expect(os.WriteFile(clientCertFile, testcerts.ClientCert, 0600)).To(Succeed())
+	g.Expect(os.WriteFile(clientKeyFile, testcerts.ClientKey, 0600)).To(Succeed())
+
+	// Validate that the client rotated the client cert/key.
+	// The client now uses the new client cert so the server should accept it.
+	g.Eventually(func(g Gomega) {
+		err = c.CallExtension(context.Background(), fakev1alpha1.FakeHook, obj, "valid-extension", &fakev1alpha1.FakeRequest{}, &fakev1alpha1.FakeResponse{})
+		g.Expect(err).ToNot(HaveOccurred())
+	}, 10*time.Second).Should(Succeed())
+
+	srv.Close()
 }
 
 func TestClient_GetHttpClient(t *testing.T) {
@@ -986,7 +1066,8 @@ func TestClient_GetHttpClient(t *testing.T) {
 		},
 	}
 
-	c := New(Options{})
+	c, _, err := New(Options{})
+	g.Expect(err).ToNot(HaveOccurred())
 
 	internalClient := c.(*client)
 	g.Expect(internalClient.httpClientsCache.Len()).To(Equal(0))
@@ -1250,11 +1331,12 @@ func TestClient_GetAllExtensions(t *testing.T) {
 				WithScheme(scheme).
 				WithObjects(ns, nsDifferent).
 				Build()
-			c := New(Options{
+			c, _, err := New(Options{
 				Catalog:  cat,
 				Registry: registry(tt.registeredExtensionConfigs),
 				Client:   fakeClient,
 			})
+			g.Expect(err).ToNot(HaveOccurred())
 
 			gotExtensions, err := c.GetAllExtensions(context.Background(), tt.hook, tt.cluster)
 			if tt.wantErr {
@@ -1449,11 +1531,12 @@ func TestClient_CallAllExtensions(t *testing.T) {
 				WithScheme(scheme).
 				WithObjects(ns).
 				Build()
-			c := New(Options{
+			c, _, err := New(Options{
 				Catalog:  cat,
 				Registry: registry(tt.registeredExtensionConfigs),
 				Client:   fakeClient,
 			})
+			g.Expect(err).ToNot(HaveOccurred())
 
 			obj := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1461,7 +1544,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 					Namespace: "foo",
 				},
 			}
-			err := c.CallAllExtensions(context.Background(), tt.args.hook, obj, tt.args.request, tt.args.response)
+			err = c.CallAllExtensions(context.Background(), tt.args.hook, obj, tt.args.request, tt.args.response)
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -1789,3 +1872,79 @@ func TestExtensionNameFromHandlerName(t *testing.T) {
 		})
 	}
 }
+
+// The following certs were generated using openssl by the https://github.com/kubernetes/kubernetes/blob/481c2d8e03508dba2c28aeb4bba48ce48904183b/staging/src/k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts/gencerts.sh
+// script and are used as certificates for the Runtime SDK unit tests.
+
+var testCACert = []byte(`-----BEGIN CERTIFICATE-----
+MIIDSzCCAjOgAwIBAgIUbnfp0PkokQadBOyXy4Os7NwQ90owDQYJKoZIhvcNAQEL
+BQAwNDEyMDAGA1UEAwwpZ2VuZXJpY193ZWJob29rX2FkbWlzc2lvbl9wbHVnaW5f
+dGVzdHNfY2EwIBcNMjYwMTA4MDgzNTE3WhgPMjI5OTEwMjQwODM1MTdaMDQxMjAw
+BgNVBAMMKWdlbmVyaWNfd2ViaG9va19hZG1pc3Npb25fcGx1Z2luX3Rlc3RzX2Nh
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkhzooe6GxCl8Isq6AEPo
+3cqohJkukNcPHv4L0NThfClkguR8xvZxTIi4KlBYCeYTlR89pZ93Zi6pQwmIadOx
+JsArM4bv+1rSn9e1jJhqZeq98mcpP5JbwjzWfn8Zc8tRLhkuvmvtgAfaay52czfL
+RzHfW7gTEIgBGhmloSIPJEyRcx1e62RYKpVZ0STkOIXiLJXG/31i6Rkr2jYO9gkK
+xoqN9NRh+e1QHSDa5bRNMZNoY5hXA4y4RL5jNFT+y7OhlBUZPC9Vf+7Wlbf7yKyJ
+Wi07owCEL+1kGLb2wbXKz0gIJvPNZVZbaubNM4rRmDvDnwYW0BCvk291fnvV6Csp
+ZQIDAQABo1MwUTAdBgNVHQ4EFgQUatgdaU6aZqIfwyH+wVJov6z38kYwHwYDVR0j
+BBgwFoAUatgdaU6aZqIfwyH+wVJov6z38kYwDwYDVR0TAQH/BAUwAwEB/zANBgkq
+hkiG9w0BAQsFAAOCAQEAWicoW4ewb63lk+aEfFyUIZ2al8tPOqTm4UbHOUebV9hc
+OQWX8bYVgUMPGim/xWp8cxDWTVLWK7fVW10C3it33/N04tr5ZbZyg6OF/ZnGVSaL
+VIsZJ7VL/oNtuHuwYGmqLRfLodEo3JZ+f2P0+vSHndNrZA9lRj2/JRTxnV+cmJQC
+z3zBHITNox004o3FNvieMYRYWR8DEEyDSxymC3FJE3/ICGxGsdGPdwrxe9qzzvmq
+Sa4jzY5JwNyPgBKqS7QU1BJfD1kHHKVAvxy+dfmCjB6FqdwVWr9/7sm6sKY52+3/
+iHAv6fww8ADsxGM7dj89x41gWjHWSagqNdVsVSJK4A==
+-----END CERTIFICATE-----`)
+
+var testClientKey = []byte(`-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC1FB39kw4XWCGA
+4yRcCpyLD0sFJADwzoCfkxxU1jjIRQTQ5BioeMWFLpqGA02ds0w4YhxvZ3pIPIyJ
+oVNPbtvgZDrNQdYEpxNPiva5Mq6/C09uhyHcGGOaL+TxjU211MHtyF5hZ3J6Um6j
+v5Lc+Ztw9E5JoH/K9RB1ZhvasGRFOLF3J5ENy9LH9sfvyct/ILii3rgeWYR9gU64
+BB8+h1oUA35eAnuM1oq6GJweg+GsntIXL7my2sruxQQgE6bpXfMP9IQ1G6QXZYbW
+BmZzQJCkOQzcEV6ZM2+uJ+SyhwpaOLR7kxakI17lAJT5aqnpGopPKAyRFeX2dDez
+qAm57z6RAgMBAAECggEAAhIVPLYph1akksTQ1d+bhiiPhvhwLVDDM5qa9z+4MwFn
+tRwinwyQf6h2hQ6fx4GfycDvdSOrCDfvCHozNG7pWJcffVjhzGL9C3VkmF4OFapY
+scQdp5a8ztbPiKaWa1Gf7RWT5LZqM/ViMAEBD4H9hyINYiCnIshAya2Npyd0t2jn
+XtvJfRVHU6j1xLKb9Mi67IqiOvgu68eqCC6Iu6pORSq2dBogUnVCDqigvS8/74ao
+5IuvoFan1jd3Imr7HWEDiQ9yMmjo4n8DVXmJb4gNZ9QVDGk+r1VXNVZFubp16xuP
+rbpbl2jRlOBfcq3ZAZ557/dc/nPkX1wUQBhKSsawlQKBgQDlV4Iv29AH/zQmxOyB
+YZI96ExDhvVK7yRgepidNH/rphS3iRpjTnOVB+8rgRva4dWdpr5BWAPVKlh7T5h/
+yBivIOtIwIbLOombnUJyLYWjIsQL8+MeDqNizSurQs0VckBfMePaW/gzgOLptWtU
+tGmM1Ki9CP6gMmxRln1Mlruk1QKBgQDKIHI4cm0QHw7xybFetGw4TxADmciiqtQ2
+gyP42PfEsUpel+dosJ/CV5p1bs92JQVaoM88vMhEsRsV4LIyMcQHIdrxb0AO8/Ow
+hx8FW4Levmh95/Apg3c93bfa0DFoxTDa+2OTeBvM9SsxlOmMq4uYIOyUOjd/3Y2u
+xbtx0htAzQKBgQCDBaBxuRG7T9g6gexf6h9DUPAo7/Q5EDBnEgMYZMLkHKjfReuW
+al5r+PFxmDwSq0x/2Z/98suVv7B3Gj0UW3uGqbbhhGQ9vL6a8ZfhZRJg5d68uWO6
+a0B6lJ5rJCnII9KU0ArNWBePTQXV4PhllwBqHaAdBwN4//WUEvaYh9DB1QKBgQCa
+Eb9e3YHarwHyNb54pOh0x3c6d2di7voRj0bFMYUzLby1e+6Nc0xjk+kNqGiE8tUw
+7rDo6DFzgthVhc/uyNZWZW0Bab6XZ0aSgXyY1ddcuCDoD/qVejtTMgUpylZPOTfz
+Q3n0d7IhOaQyCAM6Eay3SilrFzEkyxlrZhdqPDA/5QKBgDFeL019De6talEsJeHv
+WM++CHGGbOI32dvxxDVv3PxcU/r61enMcbhkwUd0qJgwQn42hweK0ckHdGVdeAvr
+gevHKRvAYepUlR4PzhEJQe0QeWr/q0TANoxnMCxHofSyovL9HIa4yrMjtFHZTHcb
+zJwtsqamfHeVw25siB81kRmQ
+-----END PRIVATE KEY-----`)
+
+var testClientCert = []byte(`-----BEGIN CERTIFICATE-----
+MIIDojCCAoqgAwIBAgIUZ5EwWWnN25m+D89JdWzUYS1mhm8wDQYJKoZIhvcNAQEL
+BQAwNDEyMDAGA1UEAwwpZ2VuZXJpY193ZWJob29rX2FkbWlzc2lvbl9wbHVnaW5f
+dGVzdHNfY2EwIBcNMjYwMTA4MDgzNTE4WhgPMjI5OTEwMjQwODM1MThaMDgxNjA0
+BgNVBAMMLWdlbmVyaWNfd2ViaG9va19hZG1pc3Npb25fcGx1Z2luX3Rlc3RzX2Ns
+aWVudDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALUUHf2TDhdYIYDj
+JFwKnIsPSwUkAPDOgJ+THFTWOMhFBNDkGKh4xYUumoYDTZ2zTDhiHG9nekg8jImh
+U09u2+BkOs1B1gSnE0+K9rkyrr8LT26HIdwYY5ov5PGNTbXUwe3IXmFncnpSbqO/
+ktz5m3D0Tkmgf8r1EHVmG9qwZEU4sXcnkQ3L0sf2x+/Jy38guKLeuB5ZhH2BTrgE
+Hz6HWhQDfl4Ce4zWiroYnB6D4aye0hcvubLayu7FBCATpuld8w/0hDUbpBdlhtYG
+ZnNAkKQ5DNwRXpkzb64n5LKHClo4tHuTFqQjXuUAlPlqqekaik8oDJEV5fZ0N7Oo
+CbnvPpECAwEAAaOBpTCBojAJBgNVHRMEAjAAMAsGA1UdDwQEAwIF4DAdBgNVHSUE
+FjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwKQYDVR0RBCIwIIcEfwAAAYIYd2ViaG9v
+ay10ZXN0LmRlZmF1bHQuc3ZjMB0GA1UdDgQWBBQ5VoPKkOz4BYxMkse1cEkFcq0n
+jDAfBgNVHSMEGDAWgBRq2B1pTppmoh/DIf7BUmi/rPfyRjANBgkqhkiG9w0BAQsF
+AAOCAQEAII227bpDLQpfOvPNA3dNKJodqjHY+iyMRaifRU3syLR3ez3+eqb66dtq
+r89VhkRhBjki5aLrnP9baS48A47s/14/rVtKshzCy5PXjce8DuXEBLJH6yMTXogb
+JTkc96AzktJHMqef2WjMGyIDMpyaAf8ebYZPWXBIEMcAqH05svbH6RPQUPfLbD1v
+7KMKMpRtJ4bMw7gk3rPouApJ0Af/wvCu5gnLG3yZ0Pmni/ZJySrI0f4xt6wEq4F1
+iUgf+qDPz62c/QeC9HlNb15pn7YRRcOYry864zQb/ZFtqPj276KIkrGqbhft05D+
+MW5osM41axoAD70MpoMXdSRcAR7fUg==
+-----END CERTIFICATE-----`)

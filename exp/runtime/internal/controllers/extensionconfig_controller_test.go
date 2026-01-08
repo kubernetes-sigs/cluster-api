@@ -60,10 +60,11 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 	g.Expect(fakev1alpha1.AddToCatalog(cat)).To(Succeed())
 
 	registry := runtimeregistry.New()
-	runtimeClient := internalruntimeclient.New(internalruntimeclient.Options{
+	runtimeClient, _, err := internalruntimeclient.New(internalruntimeclient.Options{
 		Catalog:  cat,
 		Registry: registry,
 	})
+	g.Expect(err).ToNot(HaveOccurred())
 
 	g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 
@@ -240,10 +241,11 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		defer srv1.Close()
 
-		runtimeClient := internalruntimeclient.New(internalruntimeclient.Options{
+		runtimeClient, _, err := internalruntimeclient.New(internalruntimeclient.Options{
 			Catalog:  cat,
 			Registry: registry,
 		})
+		g.Expect(err).ToNot(HaveOccurred())
 
 		extensionConfig := fakeExtensionConfigForURL(ns.Name, extensionName, srv1.URL)
 		extensionConfig.Spec.ClientConfig.CABundle = testcerts.CACert
@@ -280,10 +282,11 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		// srv1 := fakeSecureExtensionServer(discoveryHandler("first"))
 		// defer srv1.Close()
 
-		runtimeClient := internalruntimeclient.New(internalruntimeclient.Options{
+		runtimeClient, _, err := internalruntimeclient.New(internalruntimeclient.Options{
 			Catalog:  cat,
 			Registry: registry,
 		})
+		g.Expect(err).ToNot(HaveOccurred())
 
 		extensionConfig := fakeExtensionConfigForURL(ns.Name, extensionName, "https://localhost:31239")
 		extensionConfig.Spec.ClientConfig.CABundle = testcerts.CACert

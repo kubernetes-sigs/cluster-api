@@ -437,7 +437,7 @@ func GetUpgradePlanFromExtension(runtimeClient runtimeclient.Client, getUpgradeP
 
 		// Prepare the request.
 		req := &runtimehooksv1.GenerateUpgradePlanRequest{
-			Cluster:                           *cleanupCluster(cluster.DeepCopy()),
+			Cluster:                           *cleanupCluster(cluster),
 			FromControlPlaneKubernetesVersion: currentControlPlaneVersion,
 			FromWorkersKubernetesVersion:      currentMinWorkersVersion,
 			ToKubernetesVersion:               desiredVersion,

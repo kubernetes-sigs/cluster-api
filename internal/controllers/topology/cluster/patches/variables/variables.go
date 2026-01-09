@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -69,7 +68,7 @@ func Global(clusterTopology clusterv1.Topology, cluster *clusterv1.Cluster, patc
 		},
 	}
 	if cluster.Labels != nil || cluster.Annotations != nil {
-		builtin.Cluster.Metadata = &clusterv1beta1.ObjectMeta{
+		builtin.Cluster.Metadata = &runtimehooksv1.ObjectMeta{
 			Labels:      cluster.Labels,
 			Annotations: cleanupAnnotations(cluster.Annotations),
 		}
@@ -134,7 +133,7 @@ func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructu
 		builtin.ControlPlane.Replicas = replicas
 	}
 	if cp.GetLabels() != nil || cp.GetAnnotations() != nil {
-		builtin.ControlPlane.Metadata = &clusterv1beta1.ObjectMeta{
+		builtin.ControlPlane.Metadata = &runtimehooksv1.ObjectMeta{
 			Annotations: cleanupAnnotations(cp.GetAnnotations()),
 			Labels:      cp.GetLabels(),
 		}
@@ -188,7 +187,7 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 		builtin.MachineDeployment.Replicas = ptr.To[int64](int64(*md.Spec.Replicas))
 	}
 	if md.Labels != nil || md.Annotations != nil {
-		builtin.MachineDeployment.Metadata = &clusterv1beta1.ObjectMeta{
+		builtin.MachineDeployment.Metadata = &runtimehooksv1.ObjectMeta{
 			Annotations: cleanupAnnotations(md.Annotations),
 			Labels:      md.Labels,
 		}
@@ -242,7 +241,7 @@ func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *clusterv1.Machin
 		builtin.MachinePool.Replicas = ptr.To[int64](int64(*mp.Spec.Replicas))
 	}
 	if mp.Labels != nil || mp.Annotations != nil {
-		builtin.MachinePool.Metadata = &clusterv1beta1.ObjectMeta{
+		builtin.MachinePool.Metadata = &runtimehooksv1.ObjectMeta{
 			Annotations: cleanupAnnotations(mp.Annotations),
 			Labels:      mp.Labels,
 		}

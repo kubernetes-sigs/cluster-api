@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
@@ -274,7 +274,7 @@ func (m *ExtensionHandlers) DoBeforeClusterDelete(ctx context.Context, request *
 	// TODO: consider if to cleanup the ConfigMap after gating Cluster deletion.
 }
 
-func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, cluster *clusterv1beta1.Cluster, hook runtimecatalog.Hook, attributes []string, settings map[string]string, response runtimehooksv1.ResponseObject) error {
+func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, cluster *clusterv1.Cluster, hook runtimecatalog.Hook, attributes []string, settings map[string]string, response runtimehooksv1.ResponseObject) error {
 	hookName := computeHookName(hook, attributes)
 	configMap := &corev1.ConfigMap{}
 	if _, ok := settings[extensionConfigNameKey]; !ok {
@@ -343,7 +343,7 @@ func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, clust
 	return nil
 }
 
-func (m *ExtensionHandlers) recordCallInConfigMap(ctx context.Context, cluster *clusterv1beta1.Cluster, hook runtimecatalog.Hook, attributes []string, settings map[string]string, response runtimehooksv1.ResponseObject) error {
+func (m *ExtensionHandlers) recordCallInConfigMap(ctx context.Context, cluster *clusterv1.Cluster, hook runtimecatalog.Hook, attributes []string, settings map[string]string, response runtimehooksv1.ResponseObject) error {
 	hookName := computeHookName(hook, attributes)
 	configMap := &corev1.ConfigMap{}
 	if _, ok := settings[extensionConfigNameKey]; !ok {

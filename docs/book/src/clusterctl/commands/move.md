@@ -1,7 +1,7 @@
 # clusterctl move
 
-The `clusterctl move` command allows to move the Cluster API objects defining workload clusters, like e.g. Cluster, Machines,
-MachineDeployments, etc. from one management cluster to another management cluster.
+The `clusterctl move` command allows one to move Cluster API objects defining workload clusters, e.g. Cluster, Machines,
+MachineDeployments, from one management cluster to another management cluster.
 
 <aside class="note warning">
 
@@ -21,8 +21,8 @@ You can use:
 clusterctl move --to-kubeconfig="path-to-target-kubeconfig.yaml"
 ```
 
-To move the Cluster API objects existing in the current namespace of the source management cluster; in case if you want
-to move the Cluster API objects defined in another namespace, you can use the `--namespace` flag.
+to move Cluster API objects existing in the current namespace of the source management cluster. In case you want
+to move Cluster API objects defined in another namespace, you can add the `--namespace` flag.
 
 The discovery mechanism for determining the objects to be moved is in the [provider contract](../../developer/providers/contracts/clusterctl.md#move)
 
@@ -103,4 +103,4 @@ This can now be achieved with the following procedure:
 
 ## Dry run
 
-With `--dry-run` option you can dry-run the move action by only printing logs without taking any actual actions. Use log level verbosity `-v` to see different levels of information.
+With the `--dry-run` option you can dry-run the move action by only printing logs without taking any actual actions. Use log level verbosity `-v` to see different levels of information.

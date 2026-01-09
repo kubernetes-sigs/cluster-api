@@ -8,7 +8,7 @@ management cluster.
 
 ## Defining the management cluster
 
-The `clusterctl init` command accepts in input a list of providers to install.
+The `clusterctl init` command accepts a list of providers to install.
 
 <aside class="note">
 
@@ -38,10 +38,10 @@ For example, to get a fully operational management cluster with the `aws` infras
 <h1> Warning </h1>
 
 The `cluster-api` core provider, the `kubeadm` bootstrap provider, and the `kubeadm` control-plane provider are automatically installed only if:
-- The user doesn't explicitly require to install a core/bootstrap/control-plane provider using the `--core` flag, the `--bootstrap` flag or the `--control-plane` flags;
-- There is not an instance of a CoreProvider already installed in the cluster;
+- The user doesn't explicitly install a core/bootstrap/control-plane provider using the `--core` flag, the `--bootstrap` flag or the `--control-plane` flags;
+- There is no CoreProvider instance already installed in the cluster;
 
-Please note that the second rule allows to execute `clusterctl init` more times: the first call actually initializes
+Please note that the second rule allows to executing `clusterctl init` multiple times. The first call actually initializes
 the management cluster, while the subsequent calls can be used to add more providers.
 
 </aside>
@@ -112,7 +112,7 @@ same target namespace.
 
 ## Provider repositories
 
-To access provider specific information, such as the components YAML to be used for installing a provider,
+To access provider specific information, such as the YAML components to be used for installing a provider,
 `clusterctl init` accesses the **provider repositories**, that are well-known places where the release assets for
 a provider are published.
 
@@ -130,7 +130,7 @@ See [clusterctl configuration](../configuration.md) for more info about provider
 
 <h1> Is it possible to override files read from a provider repository? </h1>
 
-If, for any reasons, the user wants to replace the assets available on a provider repository with a locally available asset,
+If, for any reason, the user wants to replace the assets available on a provider repository with a locally available asset,
 the user is required to save the file under `$XDG_CONFIG_HOME/cluster-api/overrides/<provider-label>/<version>/<file-name.yaml>`.
 
 ```bash
@@ -168,7 +168,7 @@ When installing a provider, the `clusterctl init` command executes a set of step
 the lifecycle management of the provider's components.
 
 * All the provider's components are labeled, so they can be easily identified in
-subsequent moments of the provider's lifecycle, e.g. upgrades.
+subsequent stages of the provider's lifecycle, e.g. upgrades.
 
  ```bash
  labels:
@@ -202,7 +202,7 @@ available options to customize this operation.
 <h1>Warning</h1>
 
 Please note that, if clusterctl installs cert-manager, it will take care of its lifecycle, eventually upgrading it
-during clusterctl upgrade. Instead, if cert-manager is provided by the users, the user is responsible for
+during clusterctl upgrade. Instead, if cert-manager is provided by the user, the user is responsible for
 upgrading this component when required.
 
 </aside>

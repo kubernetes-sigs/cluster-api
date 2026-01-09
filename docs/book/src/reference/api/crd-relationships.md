@@ -19,3 +19,7 @@ The direction of the arrows indicates the direction of "management" or "referenc
 ## Worker machines relationships
 
 ![]( ../../images/worker-machines-resources.png)
+
+## ClusterClass relationships
+
+![]( ../../images/clusterclass-crd-relationships.svg)

@@ -277,6 +277,49 @@ func Test_cache_client(t *testing.T) {
 		})
 	})
 
+	t.Run("Get bookmark resourceVersion", func(t *testing.T) {
+		c := NewCache(scheme).(*cache)
+		c.AddResourceGroup("foo")
+
+		t.Run("fails if resourceGroup is empty", func(t *testing.T) {
+			g := NewWithT(t)
+
+			_, err := c.GetBookmarkResourceVersion("")
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
+		})
+
+		t.Run("fails if resourceGroup doesn't exist", func(t *testing.T) {
+			g := NewWithT(t)
+
+			_, err := c.GetBookmarkResourceVersion("bar")
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
+		})
+
+		t.Run("get when no objects exists", func(t *testing.T) {
+			g := NewWithT(t)
+
+			v, err := c.GetBookmarkResourceVersion("foo")
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// Check all the computed fields are as expected.
+			g.Expect(v).To(Equal("0"), "resourceVersion must be set")
+		})
+
+		t.Run("get when objects exists", func(t *testing.T) {
+			g := NewWithT(t)
+
+			createMachine(t, c, "foo", "bar")
+
+			v, err := c.GetBookmarkResourceVersion("foo")
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// Check all the computed fields are as expected.
+			g.Expect(v).To(Equal("1"), "resourceVersion must be set")
+		})
+	})
+
 	t.Run("list objects", func(t *testing.T) {
 		c := NewCache(scheme).(*cache)
 		c.AddResourceGroup("foo")

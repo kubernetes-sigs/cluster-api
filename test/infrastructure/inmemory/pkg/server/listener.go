@@ -28,8 +28,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	"sigs.k8s.io/cluster-api/util/certs"
 )
@@ -118,29 +116,4 @@ func (s *WorkloadClusterListener) RESTConfig() (*rest.Config, error) {
 	}
 
 	return restConfig, nil
-}
-
-// GetClient returns a client for a WorkloadClusterListener.
-func (s *WorkloadClusterListener) GetClient() (client.WithWatch, error) {
-	restConfig, err := s.RESTConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	httpClient, err := rest.HTTPClientFor(restConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	mapper, err := apiutil.NewDynamicRESTMapper(restConfig, httpClient)
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := client.NewWithWatch(restConfig, client.Options{Scheme: s.scheme, Mapper: mapper})
-	if err != nil {
-		return nil, err
-	}
-
-	return c, nil
 }

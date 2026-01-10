@@ -48,6 +48,8 @@ type Cache interface {
 	Update(resourceGroup string, obj client.Object) error
 	Patch(resourceGroup string, obj client.Object, patch client.Patch) error
 
+	GetBookmarkResourceVersion(resourceGroup string) (string, error)
+
 	GetInformer(ctx context.Context, obj client.Object) (Informer, error)
 	GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind) (Informer, error)
 }

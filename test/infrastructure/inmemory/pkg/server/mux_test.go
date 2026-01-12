@@ -25,6 +25,7 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"math/big"
+	"sync"
 	"testing"
 	"time"
 
@@ -34,14 +35,19 @@ import (
 	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/cloud/api/v1alpha1"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
@@ -52,6 +58,9 @@ import (
 var (
 	ctx    = context.Background()
 	scheme = runtime.NewScheme()
+
+	m            sync.Mutex
+	portSelector = int32(0)
 )
 
 func init() {
@@ -62,6 +71,18 @@ func init() {
 	ctrl.SetLogger(klog.Background())
 }
 
+func getCustomPorts() CustomPorts {
+	m.Lock()
+	defer m.Unlock()
+	portSelector++
+	return CustomPorts{
+		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
+		MinPort:   DefaultMinPort + 100*portSelector,
+		MaxPort:   DefaultMinPort + 100*portSelector + 99,
+		DebugPort: DefaultDebugPort + portSelector,
+	}
+}
+
 func TestMux(t *testing.T) {
 	t.Parallel()
 	g := NewWithT(t)
@@ -70,13 +91,9 @@ func TestMux(t *testing.T) {
 
 	wcl := "workload-cluster"
 	host := "127.0.0.1"
-	wcmux, err := NewWorkloadClustersMux(manager, host, CustomPorts{
-		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
-		MinPort:   DefaultMinPort,
-		MaxPort:   DefaultMinPort + 99,
-		DebugPort: DefaultDebugPort,
-	})
+	wcmux, err := NewWorkloadClustersMux(manager, host, getCustomPorts())
 	g.Expect(err).ToNot(HaveOccurred())
+	defer func() { _ = wcmux.Shutdown(ctx) }()
 
 	listener, err := wcmux.InitWorkloadClusterListener(wcl)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -119,28 +136,24 @@ func TestMux(t *testing.T) {
 
 	err = wcmux.DeleteWorkloadClusterListener(wcl)
 	g.Expect(err).ToNot(HaveOccurred())
-
-	err = wcmux.Shutdown(ctx)
-	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func TestAPI_corev1_CRUD(t *testing.T) {
 	t.Parallel()
 	g := NewWithT(t)
 
-	wcmux, c := setupWorkloadClusterListener(g, CustomPorts{
-		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
-		MinPort:   DefaultMinPort + 100,
-		MaxPort:   DefaultMinPort + 199,
-		DebugPort: DefaultDebugPort + 1,
-	})
+	wcmux, restConfig := setupWorkloadClusterListener(g, getCustomPorts())
+	defer func() { _ = wcmux.Shutdown(ctx) }()
+
+	c, err := getDirectClient(restConfig)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	// create
 
 	n := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 	}
-	err := c.Create(ctx, n)
+	err = c.Create(ctx, n)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// list
@@ -203,21 +216,17 @@ func TestAPI_corev1_CRUD(t *testing.T) {
 
 	err = c.Delete(ctx, n)
 	g.Expect(err).ToNot(HaveOccurred())
-
-	err = wcmux.Shutdown(ctx)
-	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func TestAPI_rbacv1_CRUD(t *testing.T) {
 	t.Parallel()
 	g := NewWithT(t)
 
-	wcmux, c := setupWorkloadClusterListener(g, CustomPorts{
-		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
-		MinPort:   DefaultMinPort + 200,
-		MaxPort:   DefaultMinPort + 299,
-		DebugPort: DefaultDebugPort + 2,
-	})
+	wcmux, restConfig := setupWorkloadClusterListener(g, getCustomPorts())
+	defer func() { _ = wcmux.Shutdown(ctx) }()
+
+	c, err := getDirectClient(restConfig)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	// create
 
@@ -225,7 +234,7 @@ func TestAPI_rbacv1_CRUD(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 	}
 
-	err := c.Create(ctx, cr)
+	err = c.Create(ctx, cr)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// list
@@ -252,9 +261,6 @@ func TestAPI_rbacv1_CRUD(t *testing.T) {
 
 	err = c.Delete(ctx, cr)
 	g.Expect(err).ToNot(HaveOccurred())
-
-	err = wcmux.Shutdown(ctx)
-	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func TestAPI_PortForward(t *testing.T) {
@@ -264,13 +270,9 @@ func TestAPI_PortForward(t *testing.T) {
 
 	// TODO: deduplicate this setup code with the test above
 	host := "127.0.0.1"
-	wcmux, err := NewWorkloadClustersMux(manager, host, CustomPorts{
-		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
-		MinPort:   DefaultMinPort + 300,
-		MaxPort:   DefaultMinPort + 399,
-		DebugPort: DefaultDebugPort + 3,
-	})
+	wcmux, err := NewWorkloadClustersMux(manager, host, getCustomPorts())
 	g.Expect(err).ToNot(HaveOccurred())
+	defer func() { _ = wcmux.Shutdown(ctx) }()
 
 	// InfraCluster controller >> when "creating the load balancer"
 	wcl1 := "workload-cluster1-controlPlaneEndpoint"
@@ -393,23 +395,26 @@ func TestAPI_PortForward(t *testing.T) {
 }
 
 func TestAPI_corev1_Watch(t *testing.T) {
+	t.Parallel()
 	g := NewWithT(t)
 
-	_, c := setupWorkloadClusterListener(g, CustomPorts{
-		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
-		MinPort:   DefaultMinPort + 400,
-		MaxPort:   DefaultMinPort + 499,
-		DebugPort: DefaultDebugPort + 4,
-	})
+	wcmux, restConfig := setupWorkloadClusterListener(g, getCustomPorts())
+	defer func() { _ = wcmux.Shutdown(ctx) }()
 
-	ctx := context.Background()
-
-	nodeWatcher, err := c.Watch(ctx, &corev1.NodeList{})
+	c, err := getDirectClient(restConfig)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	podWatcher, err := c.Watch(ctx, &corev1.PodList{})
+	ctxWatch, cancelWatch := context.WithCancel(context.TODO())
+	defer cancelWatch()
+
+	nodeWatcher, err := c.Watch(ctxWatch, &corev1.NodeList{})
 	g.Expect(err).ToNot(HaveOccurred())
 
+	podWatcher, err := c.Watch(ctxWatch, &corev1.PodList{})
+	g.Expect(err).ToNot(HaveOccurred())
+
+	nodeBookmarkEvent := false
+	podBookmarkEvent := false
 	expectedEvents := []string{"ADDED/foo", "MODIFIED/foo", "DELETED/foo", "ADDED/bar", "MODIFIED/bar", "DELETED/bar"}
 	receivedEvents := []string{}
 	done := make(chan bool)
@@ -417,12 +422,20 @@ func TestAPI_corev1_Watch(t *testing.T) {
 		for {
 			select {
 			case event := <-nodeWatcher.ResultChan():
+				if event.Type == watch.Bookmark {
+					nodeBookmarkEvent = true
+					continue
+				}
 				o, ok := event.Object.(client.Object)
 				if !ok {
 					return
 				}
 				receivedEvents = append(receivedEvents, fmt.Sprintf("%s/%s", event.Type, o.GetName()))
 			case event := <-podWatcher.ResultChan():
+				if event.Type == watch.Bookmark {
+					podBookmarkEvent = true
+					continue
+				}
 				o, ok := event.Object.(client.Object)
 				if !ok {
 					return
@@ -430,6 +443,7 @@ func TestAPI_corev1_Watch(t *testing.T) {
 				receivedEvents = append(receivedEvents, fmt.Sprintf("%s/%s", event.Type, o.GetName()))
 			case <-done:
 				nodeWatcher.Stop()
+				podWatcher.Stop()
 			}
 		}
 	}()
@@ -486,8 +500,96 @@ func TestAPI_corev1_Watch(t *testing.T) {
 	// Send a done signal to close the test goroutine.
 	done <- true
 
+	// Stop watches
+	cancelWatch()
+
 	// Each event should be the same and in the same order.
+	g.Expect(nodeBookmarkEvent).To(BeTrue())
+	g.Expect(podBookmarkEvent).To(BeTrue())
 	g.Expect(receivedEvents).To(Equal(expectedEvents))
+}
+
+func TestAPI_corev1_Watch_With_Cache(t *testing.T) {
+	t.Parallel()
+	g := NewWithT(t)
+
+	wcmux, restConfig := setupWorkloadClusterListener(g, getCustomPorts())
+	defer func() { _ = wcmux.Shutdown(ctx) }()
+
+	c, cancelCache, err := getCachingClient(restConfig)
+	g.Expect(err).ToNot(HaveOccurred())
+	defer cancelCache()
+
+	clientCtx, cancelClient := context.WithTimeout(context.TODO(), 15*time.Second)
+	defer cancelClient()
+
+	// Test Cache on Service resources.
+
+	service1 := &corev1.Service{}
+	service1.SetNamespace("default")
+	service1.SetName("foo")
+
+	// Reading from an empty cache does not create issues
+	g.Eventually(func() error {
+		if err := c.Get(clientCtx, client.ObjectKeyFromObject(service1), service1); !apierrors.IsNotFound(err) {
+			return err
+		}
+		return nil
+	}, 1*time.Second, 50*time.Millisecond).ShouldNot(HaveOccurred(), "cache not started")
+
+	// create Service
+	err = c.Create(clientCtx, service1)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// get Service
+	s := &corev1.Service{}
+	g.Eventually(func() error {
+		return c.Get(clientCtx, client.ObjectKeyFromObject(service1), s)
+	}, 1*time.Second, 50*time.Millisecond).ShouldNot(HaveOccurred(), "object does not show up in cache")
+
+	// patch Service
+	serviceWithAnnotations := s.DeepCopy()
+	serviceWithAnnotations.SetAnnotations(map[string]string{"foo": "bar"})
+	err = c.Patch(clientCtx, serviceWithAnnotations, client.MergeFrom(s))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// delete Service
+	err = c.Delete(clientCtx, s)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Test Cache on Pod resources.
+
+	pod1 := &corev1.Pod{}
+	pod1.SetNamespace("default")
+	pod1.SetName("foo")
+
+	// Reading from an empty cache does not create issues
+	g.Eventually(func() error {
+		if err := c.Get(clientCtx, client.ObjectKeyFromObject(pod1), pod1); !apierrors.IsNotFound(err) {
+			return err
+		}
+		return nil
+	}, 1*time.Second, 50*time.Millisecond).ShouldNot(HaveOccurred(), "cache not started")
+
+	// create Pod
+	err = c.Create(clientCtx, pod1)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// get Pod
+	n := &corev1.Pod{}
+	g.Eventually(func() error {
+		return c.Get(clientCtx, client.ObjectKeyFromObject(pod1), n)
+	}, 1*time.Second, 50*time.Millisecond).ShouldNot(HaveOccurred(), "object does not show up in cache")
+
+	// patch Pod
+	podWithAnnotations := n.DeepCopy()
+	podWithAnnotations.SetAnnotations(map[string]string{"foo": "bar"})
+	err = c.Patch(clientCtx, podWithAnnotations, client.MergeFrom(n))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// delete Pod
+	err = c.Delete(clientCtx, n)
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func TestAPI_unstructured_CRUD(t *testing.T) {
@@ -496,12 +598,11 @@ func TestAPI_unstructured_CRUD(t *testing.T) {
 	t.Parallel()
 	g := NewWithT(t)
 
-	wcmux, c := setupWorkloadClusterListener(g, CustomPorts{
-		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
-		MinPort:   DefaultMinPort + 500,
-		MaxPort:   DefaultMinPort + 599,
-		DebugPort: DefaultDebugPort + 5,
-	})
+	wcmux, restConfig := setupWorkloadClusterListener(g, getCustomPorts())
+	defer func() { _ = wcmux.Shutdown(ctx) }()
+
+	c, err := getDirectClient(restConfig)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	// create
 
@@ -549,12 +650,9 @@ func TestAPI_unstructured_CRUD(t *testing.T) {
 
 	err = c.Delete(ctx, n)
 	g.Expect(err).ToNot(HaveOccurred())
-
-	err = wcmux.Shutdown(ctx)
-	g.Expect(err).ToNot(HaveOccurred())
 }
 
-func setupWorkloadClusterListener(g Gomega, ports CustomPorts) (*WorkloadClustersMux, client.WithWatch) {
+func setupWorkloadClusterListener(g Gomega, ports CustomPorts) (*WorkloadClustersMux, *rest.Config) {
 	manager := inmemoryruntime.NewManager(scheme)
 
 	host := "127.0.0.1"
@@ -591,10 +689,64 @@ func setupWorkloadClusterListener(g Gomega, ports CustomPorts) (*WorkloadCluster
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Test API using a controller runtime client to call it.
-	c, err := listener.GetClient()
+	c, err := listener.RESTConfig()
 	g.Expect(err).ToNot(HaveOccurred())
 
 	return wcmux, c
+}
+
+func getDirectClient(restConfig *rest.Config) (client.WithWatch, error) {
+	httpClient, err := rest.HTTPClientFor(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	mapper, err := apiutil.NewDynamicRESTMapper(restConfig, httpClient)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := client.NewWithWatch(restConfig, client.Options{Scheme: scheme, Mapper: mapper})
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+func getCachingClient(restConfig *rest.Config) (client.WithWatch, context.CancelFunc, error) {
+	httpClient, err := rest.HTTPClientFor(restConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	mapper, err := apiutil.NewDynamicRESTMapper(restConfig, httpClient)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ca, err := cache.New(restConfig, cache.Options{})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cacheCtx, cancelCache := context.WithCancel(ctx)
+	go func() {
+		_ = ca.Start(cacheCtx)
+	}()
+
+	c, err := client.NewWithWatch(restConfig, client.Options{
+		Scheme: scheme,
+		Cache: &client.CacheOptions{
+			Reader: ca,
+		},
+		Mapper: mapper,
+	})
+	if err != nil {
+		return nil, cancelCache, err
+	}
+
+	return c, cancelCache, nil
 }
 
 // newCertificateAuthority creates new certificate and private key for the certificate authority.

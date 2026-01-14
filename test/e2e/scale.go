@@ -523,6 +523,11 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: input.ExtensionConfigName}})
 				}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
 			}
+			Byf("Deleting namespace used for hosting the %q test spec", specName)
+			framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
+				Deleter: input.BootstrapClusterProxy.GetClient(),
+				Name:    namespace.Name,
+			})
 		}
 		cancelWatches()
 	})

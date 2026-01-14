@@ -116,7 +116,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 	result, err := r.initializeControlPlane(ctx, controlPlane)
-	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
+	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// initial setup
@@ -142,7 +142,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 		machinesUpToDateResults[m.Name] = internal.UpToDateResult{EligibleForInPlaceUpdate: false}
 	}
 	result, err = r.updateControlPlane(ctx, controlPlane, needingUpgrade, machinesUpToDateResults)
-	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
+	g.Expect(result.IsZero()).To(BeTrue())
 	g.Expect(err).ToNot(HaveOccurred())
 	bothMachines := &clusterv1.MachineList{}
 	g.Eventually(func(g Gomega) {
@@ -193,7 +193,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	// run upgrade the second time, expect we scale down
 	result, err = r.updateControlPlane(ctx, controlPlane, machinesRequireUpgrade, machinesUpToDateResults)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
+	g.Expect(result.IsZero()).To(BeTrue())
 	finalMachine := &clusterv1.MachineList{}
 	g.Eventually(func(g Gomega) {
 		g.Expect(env.List(ctx, finalMachine, client.InNamespace(cluster.Namespace))).To(Succeed())
@@ -287,7 +287,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 		machinesUpToDateResults[m.Name] = internal.UpToDateResult{EligibleForInPlaceUpdate: false}
 	}
 	result, err = r.updateControlPlane(ctx, controlPlane, needingUpgrade, machinesUpToDateResults)
-	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
+	g.Expect(result.IsZero()).To(BeTrue())
 	g.Expect(err).ToNot(HaveOccurred())
 	remainingMachines := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(ctx, remainingMachines, client.InNamespace(cluster.Namespace))).To(Succeed())

@@ -50,11 +50,15 @@ spec:
               bar:
                 type: string
               conditions:
-                description: Conditions provide observations of the operational state
-                  of a Cluster API resource.
+                description: |-
+                  Conditions provide observations of the operational state of a Cluster API resource.
+
+                  Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 items:
-                  description: Condition defines an observation of a Cluster API resource
-                    operational state.
+                  description: |-
+                    Condition defines an observation of a Cluster API resource operational state.
+
+                    Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                   properties:
                     lastTransitionTime:
                       description: |-

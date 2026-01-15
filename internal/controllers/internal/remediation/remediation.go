@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package collections contains helpers for remediation related to machine health checks.
 package remediation
 
 import (

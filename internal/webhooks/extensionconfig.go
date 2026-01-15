@@ -44,8 +44,8 @@ func (webhook *ExtensionConfig) SetupWebhookWithManager(mgr ctrl.Manager) error 
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-runtime-cluster-x-k8s-io-v1beta2-extensionconfig,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=runtime.cluster.x-k8s.io,resources=extensionconfigs,versions=v1beta2,name=validation.extensionconfig.runtime.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-runtime-cluster-x-k8s-io-v1beta2-extensionconfig,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=runtime.cluster.x-k8s.io,resources=extensionconfigs,versions=v1beta2,name=default.extensionconfig.runtime.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-runtime-cluster-x-k8s-io-v1beta2-extensionconfig,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=runtime.cluster.x-k8s.io,resources=extensionconfigs,versions=v1beta2,name=validation.extensionconfig.runtime.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-runtime-cluster-x-k8s-io-v1beta2-extensionconfig,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=runtime.cluster.x-k8s.io,resources=extensionconfigs,versions=v1beta2,name=default.extensionconfig.runtime.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
 
 var _ admission.Validator[*runtimev1.ExtensionConfig] = &ExtensionConfig{}
 var _ admission.Defaulter[*runtimev1.ExtensionConfig] = &ExtensionConfig{}

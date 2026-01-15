@@ -47,6 +47,7 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -460,13 +461,25 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	var runtimeClient runtimeclient.Client
 	if feature.Gates.Enabled(feature.InPlaceUpdates) {
 		// This is the creation of the runtimeClient for the controllers, embedding a shared catalog and registry instance.
-		runtimeClient = internalruntimeclient.New(internalruntimeclient.Options{
+		var certWatcher *certwatcher.CertWatcher
+		runtimeClient, certWatcher, err = internalruntimeclient.New(internalruntimeclient.Options{
 			CertFile: runtimeExtensionCertFile,
 			KeyFile:  runtimeExtensionKeyFile,
 			Catalog:  catalog,
 			Registry: runtimeregistry.New(),
 			Client:   mgr.GetClient(),
 		})
+		if err != nil {
+			setupLog.Error(err, "Unable to create RuntimeSDK client")
+			os.Exit(1)
+		}
+		if certWatcher != nil {
+			// Note: certWatcher is managed by the manager to ensure that a certWatcher failure leads to a binary restart.
+			if err := mgr.Add(certWatcher); err != nil {
+				setupLog.Error(err, "Unable to add RuntimeSDK client cert-watcher to the manager")
+				os.Exit(1)
+			}
+		}
 
 		if err = (&controllers.ExtensionConfigReconciler{
 			Client:           mgr.GetClient(),

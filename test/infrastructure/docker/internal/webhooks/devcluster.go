@@ -40,7 +40,7 @@ func (webhook *DevCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-devcluster,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=devclusters,versions=v1beta2,name=default.devcluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-devcluster,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=devclusters,versions=v1beta2,name=default.devcluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
 
 var _ admission.Defaulter[*infrav1.DevCluster] = &DevCluster{}
 
@@ -50,7 +50,7 @@ func (webhook *DevCluster) Default(_ context.Context, cluster *infrav1.DevCluste
 	return nil
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-devcluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=devclusters,versions=v1beta2,name=validation.devcluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-devcluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=devclusters,versions=v1beta2,name=validation.devcluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
 
 var _ admission.Validator[*infrav1.DevCluster] = &DevCluster{}
 

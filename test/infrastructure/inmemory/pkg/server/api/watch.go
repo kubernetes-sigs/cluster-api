@@ -25,6 +25,7 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -169,6 +170,20 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 		initialEvents = append(initialEvents, Event{Type: eventType, Object: &obj})
 	}
 
+	// Add the bookmark event.
+	bookmarkResourceVersion, err := c.GetBookmarkResourceVersion(resourceGroup)
+	if err != nil {
+		return err
+	}
+
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion(gvk.GroupVersion().String())
+	obj.SetKind(gvk.Kind)
+	obj.SetResourceVersion(bookmarkResourceVersion)
+	obj.SetAnnotations(map[string]string{"k8s.io/initial-events-end": "true"})
+
+	initialEvents = append(initialEvents, Event{Type: watch.Bookmark, Object: obj})
+
 	return watcher.Run(ctx, queryTimeout, initialEvents, list.GetResourceVersion(), resp)
 }
 
@@ -184,6 +199,7 @@ func (m *WatchEventDispatcher) Run(ctx context.Context, timeout string, initialE
 		return errors.New("can't start Watch: can't get restful.Response")
 	}
 	w.Header().Set("Transfer-Encoding", "chunked")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	// Write all initial events.

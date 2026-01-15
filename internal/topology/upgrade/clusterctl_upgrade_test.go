@@ -1368,7 +1368,7 @@ func addOrReplaceConversionWebhookHandler(ctx context.Context, c client.Client, 
 				URL:      ptr.To(fmt.Sprintf("https://%s%s", net.JoinHostPort(webhookHost, strconv.Itoa(webhookServer.Options.Port)), webhookPath)),
 				CABundle: caBundle,
 			},
-			ConversionReviewVersions: []string{"v1", "v1beta1"},
+			ConversionReviewVersions: []string{"v1"},
 		},
 	}
 	return c.Patch(ctx, crdNew, client.MergeFrom(crd))

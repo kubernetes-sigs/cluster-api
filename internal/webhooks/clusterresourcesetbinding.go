@@ -33,7 +33,7 @@ func (webhook *ClusterResourceSetBinding) SetupWebhookWithManager(mgr ctrl.Manag
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-addons-cluster-x-k8s-io-v1beta2-clusterresourcesetbinding,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=addons.cluster.x-k8s.io,resources=clusterresourcesetbindings,versions=v1beta2,name=validation.clusterresourcesetbinding.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-addons-cluster-x-k8s-io-v1beta2-clusterresourcesetbinding,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=addons.cluster.x-k8s.io,resources=clusterresourcesetbindings,versions=v1beta2,name=validation.clusterresourcesetbinding.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1
 
 // ClusterResourceSetBinding implements a validation webhook for ClusterResourceSetBinding.
 type ClusterResourceSetBinding struct{}

@@ -79,6 +79,22 @@ func (c *cache) Get(resourceGroup string, objKey client.ObjectKey, obj client.Ob
 	return nil
 }
 
+func (c *cache) GetBookmarkResourceVersion(resourceGroup string) (string, error) {
+	if resourceGroup == "" {
+		return "", apierrors.NewBadRequest("resourceGroup must not be empty")
+	}
+
+	tracker := c.resourceGroupTracker(resourceGroup)
+	if tracker == nil {
+		return "", apierrors.NewBadRequest(fmt.Sprintf("resourceGroup %s does not exist", resourceGroup))
+	}
+
+	tracker.lock.RLock()
+	defer tracker.lock.RUnlock()
+
+	return fmt.Sprintf("%d", tracker.lastResourceVersion), nil
+}
+
 func (c *cache) List(resourceGroup string, list client.ObjectList, opts ...client.ListOption) error {
 	if resourceGroup == "" {
 		return apierrors.NewBadRequest("resourceGroup must not be empty")

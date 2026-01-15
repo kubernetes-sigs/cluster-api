@@ -331,12 +331,12 @@ func validateJSONPatches(jsonPatches []clusterv1.JSONPatch, variables []clusterv
 				))
 		}
 
-		if !strings.HasPrefix(jsonPatch.Path, "/spec/") {
+		if !strings.HasPrefix(jsonPatch.Path, "/spec") {
 			allErrs = append(allErrs,
 				field.Invalid(
 					path.Index(i).Child("path"),
 					prettyPrint(jsonPatch),
-					"jsonPatch path must start with \"/spec/\"",
+					"jsonPatch path must start with \"/spec\"",
 				))
 		}
 

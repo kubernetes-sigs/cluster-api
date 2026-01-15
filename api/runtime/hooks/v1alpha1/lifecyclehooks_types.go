@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
@@ -33,7 +33,7 @@ type BeforeClusterCreateRequest struct {
 
 	// cluster is the cluster object the lifecycle hook corresponds to.
 	// +required
-	Cluster clusterv1beta1.Cluster `json:"cluster"`
+	Cluster clusterv1.Cluster `json:"cluster"`
 }
 
 var _ RetryResponseObject = &BeforeClusterCreateResponse{}
@@ -60,7 +60,7 @@ type AfterControlPlaneInitializedRequest struct {
 
 	// cluster is the cluster object the lifecycle hook corresponds to.
 	// +required
-	Cluster clusterv1beta1.Cluster `json:"cluster"`
+	Cluster clusterv1.Cluster `json:"cluster"`
 }
 
 var _ ResponseObject = &AfterControlPlaneInitializedResponse{}
@@ -88,7 +88,7 @@ type BeforeClusterUpgradeRequest struct {
 
 	// cluster is the cluster object the lifecycle hook corresponds to.
 	// +required
-	Cluster clusterv1beta1.Cluster `json:"cluster"`
+	Cluster clusterv1.Cluster `json:"cluster"`
 
 	// fromKubernetesVersion is the current Kubernetes version of the cluster.
 	// +required
@@ -140,7 +140,7 @@ type BeforeControlPlaneUpgradeRequest struct {
 
 	// cluster is the cluster object the lifecycle hook corresponds to.
 	// +required
-	Cluster clusterv1beta1.Cluster `json:"cluster"`
+	Cluster clusterv1.Cluster `json:"cluster"`
 
 	// fromKubernetesVersion is the current Kubernetes version of the control plane for the next upgrade step.
 	// +required
@@ -184,7 +184,7 @@ type AfterControlPlaneUpgradeRequest struct {
 
 	// cluster is the cluster object the lifecycle hook corresponds to.
 	// +required
-	Cluster clusterv1beta1.Cluster `json:"cluster"`
+	Cluster clusterv1.Cluster `json:"cluster"`
 
 	// kubernetesVersion is the Kubernetes version of the control plane after an upgrade step.
 	// +required
@@ -224,7 +224,7 @@ type BeforeWorkersUpgradeRequest struct {
 
 	// cluster is the cluster object the lifecycle hook corresponds to.
 	// +required
-	Cluster clusterv1beta1.Cluster `json:"cluster"`
+	Cluster clusterv1.Cluster `json:"cluster"`
 
 	// fromKubernetesVersion is the current Kubernetes version of the workers for the next upgrade step.
 	// +required
@@ -268,7 +268,7 @@ type AfterWorkersUpgradeRequest struct {
 
 	// cluster is the cluster object the lifecycle hook corresponds to.
 	// +required
-	Cluster clusterv1beta1.Cluster `json:"cluster"`
+	Cluster clusterv1.Cluster `json:"cluster"`
 
 	// kubernetesVersion is the Kubernetes version of the workers after an upgrade step.
 	// +required
@@ -308,7 +308,7 @@ type AfterClusterUpgradeRequest struct {
 
 	// cluster is the cluster object the lifecycle hook corresponds to.
 	// +required
-	Cluster clusterv1beta1.Cluster `json:"cluster"`
+	Cluster clusterv1.Cluster `json:"cluster"`
 
 	// kubernetesVersion is the Kubernetes version after upgrade.
 	// +required
@@ -340,7 +340,7 @@ type BeforeClusterDeleteRequest struct {
 
 	// cluster is the cluster object the lifecycle hook corresponds to.
 	// +required
-	Cluster clusterv1beta1.Cluster `json:"cluster"`
+	Cluster clusterv1.Cluster `json:"cluster"`
 }
 
 var _ RetryResponseObject = &BeforeClusterDeleteResponse{}

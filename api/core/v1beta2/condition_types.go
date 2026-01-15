@@ -22,6 +22,9 @@ import (
 )
 
 // ConditionSeverity expresses the severity of a Condition Type failing.
+//
+// Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+//
 // +kubebuilder:validation:MaxLength=32
 type ConditionSeverity string
 
@@ -40,11 +43,16 @@ const (
 )
 
 // ConditionType is a valid value for Condition.Type.
+//
+// Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+//
 // +kubebuilder:validation:MinLength=1
 // +kubebuilder:validation:MaxLength=256
 type ConditionType string
 
 // Condition defines an observation of a Cluster API resource operational state.
+//
+// Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 type Condition struct {
 	// type of condition in CamelCase or in foo.example.com/CamelCase.
 	// Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
@@ -85,4 +93,6 @@ type Condition struct {
 }
 
 // Conditions provide observations of the operational state of a Cluster API resource.
+//
+// Deprecated: This type is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 type Conditions []Condition

@@ -242,10 +242,13 @@ linters:
         text: 'SA1019: .* is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
         # Specific exclude rules for deprecated types that are still part of the codebase. These
         # should be removed as the referenced deprecated types are removed from the project.
-        # v1Beta1 deprecated fields
+        # v1Beta1 deprecated fields/types
       - linters:
           - staticcheck
         text: 'SA1019: .*\.Deprecated\.V1Beta1.* is deprecated'
+      - linters:
+          - staticcheck
+        text: 'SA1019: clusterv1\.(Condition|Conditions|ConditionSeverity|ConditionType) is deprecated'
       # TODO: var-naming: avoid meaningless package names by revive
       #   * test/infrastructure/docker/internal/docker/types/
       #   * bootstrap/kubeadm/types/

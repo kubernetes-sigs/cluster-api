@@ -28,6 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -111,6 +112,18 @@ func (r *DevClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
+		// Note: If ownerRef was not set, there is nothing to delete. Remove finalizer so deletion can succeed.
+		if !devCluster.DeletionTimestamp.IsZero() {
+			if controllerutil.ContainsFinalizer(devCluster, infrav1.ClusterFinalizer) {
+				devClusterWithoutFinalizer := devCluster.DeepCopy()
+				controllerutil.RemoveFinalizer(devClusterWithoutFinalizer, infrav1.ClusterFinalizer)
+				if err := r.Client.Patch(ctx, devClusterWithoutFinalizer, client.MergeFrom(devCluster)); err != nil {
+					return ctrl.Result{}, errors.Wrapf(err, "failed to patch DevCluster %s", klog.KObj(devCluster))
+				}
+			}
+			return ctrl.Result{}, nil
+		}
+
 		log.Info("Waiting for Cluster Controller to set OwnerRef on DevCluster")
 		return ctrl.Result{}, nil
 	}

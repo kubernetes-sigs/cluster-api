@@ -22,8 +22,11 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
@@ -132,4 +135,180 @@ func newDockerMachine(dockerMachineName, machineName string) *infrav1.DockerMach
 		Spec:   infrav1.DockerMachineSpec{},
 		Status: infrav1.DockerMachineStatus{},
 	}
+}
+
+func TestDockerClusterReconciler_ReconcileOrphanedDeletion(t *testing.T) {
+	g := NewWithT(t)
+
+	// Create a DockerCluster without owner reference and with deletion timestamp
+	now := metav1.Now()
+	dockerCluster := &infrav1.DockerCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "orphaned-docker-cluster",
+			Namespace:         "default",
+			DeletionTimestamp: &now,
+			Finalizers:        []string{infrav1.ClusterFinalizer},
+		},
+		Spec: infrav1.DockerClusterSpec{},
+	}
+
+	// Create a fake client with the DockerCluster
+	c := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(dockerCluster).Build()
+
+	// Create the reconciler
+	r := &DockerClusterReconciler{
+		Client: c,
+	}
+
+	// Reconcile the DockerCluster
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: client.ObjectKey{
+			Name:      dockerCluster.Name,
+			Namespace: dockerCluster.Namespace,
+		},
+	})
+
+	// Verify no error occurred
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{}))
+
+	// Verify the finalizer was removed
+	updatedDockerCluster := &infrav1.DockerCluster{}
+	err = c.Get(context.Background(), client.ObjectKey{
+		Name:      dockerCluster.Name,
+		Namespace: dockerCluster.Namespace,
+	}, updatedDockerCluster)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(controllerutil.ContainsFinalizer(updatedDockerCluster, infrav1.ClusterFinalizer)).To(BeFalse())
+}
+
+func TestDockerClusterReconciler_ReconcileOrphanedWithoutDeletion(t *testing.T) {
+	g := NewWithT(t)
+
+	// Create a DockerCluster without owner reference and WITHOUT deletion timestamp
+	dockerCluster := &infrav1.DockerCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "orphaned-docker-cluster-no-deletion",
+			Namespace:  "default",
+			Finalizers: []string{infrav1.ClusterFinalizer},
+		},
+		Spec: infrav1.DockerClusterSpec{},
+	}
+
+	// Create a fake client with the DockerCluster
+	c := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(dockerCluster).Build()
+
+	// Create the reconciler
+	r := &DockerClusterReconciler{
+		Client: c,
+	}
+
+	// Reconcile the DockerCluster
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: client.ObjectKey{
+			Name:      dockerCluster.Name,
+			Namespace: dockerCluster.Namespace,
+		},
+	})
+
+	// Verify no error occurred
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{}))
+
+	// Verify the finalizer was NOT removed (since it's not being deleted)
+	updatedDockerCluster := &infrav1.DockerCluster{}
+	err = c.Get(context.Background(), client.ObjectKey{
+		Name:      dockerCluster.Name,
+		Namespace: dockerCluster.Namespace,
+	}, updatedDockerCluster)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(controllerutil.ContainsFinalizer(updatedDockerCluster, infrav1.ClusterFinalizer)).To(BeTrue())
+}
+
+func TestDevClusterReconciler_ReconcileOrphanedDeletion(t *testing.T) {
+	g := NewWithT(t)
+
+	// Create a DevCluster without owner reference and with deletion timestamp
+	now := metav1.Now()
+	devCluster := &infrav1.DevCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "orphaned-dev-cluster",
+			Namespace:         "default",
+			DeletionTimestamp: &now,
+			Finalizers:        []string{infrav1.ClusterFinalizer},
+		},
+		Spec: infrav1.DevClusterSpec{},
+	}
+
+	// Create a fake client with the DevCluster
+	c := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(devCluster).Build()
+
+	// Create the reconciler
+	r := &DevClusterReconciler{
+		Client: c,
+	}
+
+	// Reconcile the DevCluster
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: client.ObjectKey{
+			Name:      devCluster.Name,
+			Namespace: devCluster.Namespace,
+		},
+	})
+
+	// Verify no error occurred
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{}))
+
+	// Verify the finalizer was removed
+	updatedDevCluster := &infrav1.DevCluster{}
+	err = c.Get(context.Background(), client.ObjectKey{
+		Name:      devCluster.Name,
+		Namespace: devCluster.Namespace,
+	}, updatedDevCluster)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(controllerutil.ContainsFinalizer(updatedDevCluster, infrav1.ClusterFinalizer)).To(BeFalse())
+}
+
+func TestDevClusterReconciler_ReconcileOrphanedWithoutDeletion(t *testing.T) {
+	g := NewWithT(t)
+
+	// Create a DevCluster without owner reference and WITHOUT deletion timestamp
+	devCluster := &infrav1.DevCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "orphaned-dev-cluster-no-deletion",
+			Namespace:  "default",
+			Finalizers: []string{infrav1.ClusterFinalizer},
+		},
+		Spec: infrav1.DevClusterSpec{},
+	}
+
+	// Create a fake client with the DevCluster
+	c := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(devCluster).Build()
+
+	// Create the reconciler
+	r := &DevClusterReconciler{
+		Client: c,
+	}
+
+	// Reconcile the DevCluster
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: client.ObjectKey{
+			Name:      devCluster.Name,
+			Namespace: devCluster.Namespace,
+		},
+	})
+
+	// Verify no error occurred
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result).To(Equal(ctrl.Result{}))
+
+	// Verify the finalizer was NOT removed (since it's not being deleted)
+	updatedDevCluster := &infrav1.DevCluster{}
+	err = c.Get(context.Background(), client.ObjectKey{
+		Name:      devCluster.Name,
+		Namespace: devCluster.Namespace,
+	}, updatedDevCluster)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(controllerutil.ContainsFinalizer(updatedDevCluster, infrav1.ClusterFinalizer)).To(BeTrue())
 }

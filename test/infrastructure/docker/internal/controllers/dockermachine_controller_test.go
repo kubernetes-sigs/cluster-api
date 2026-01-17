@@ -152,8 +152,12 @@ func TestDockerClusterReconciler_ReconcileOrphanedDeletion(t *testing.T) {
 		Spec: infrav1.DockerClusterSpec{},
 	}
 
-	// Create a fake client with the DockerCluster
-	c := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(dockerCluster).Build()
+	// Create a fake client with the DockerCluster - using status subresource
+	c := fake.NewClientBuilder().
+		WithScheme(scheme.Scheme).
+		WithObjects(dockerCluster).
+		WithStatusSubresource(dockerCluster).
+		Build()
 
 	// Create the reconciler
 	r := &DockerClusterReconciler{
@@ -195,8 +199,12 @@ func TestDockerClusterReconciler_ReconcileOrphanedWithoutDeletion(t *testing.T) 
 		Spec: infrav1.DockerClusterSpec{},
 	}
 
-	// Create a fake client with the DockerCluster
-	c := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(dockerCluster).Build()
+	// Create a fake client with the DockerCluster - using status subresource
+	c := fake.NewClientBuilder().
+		WithScheme(scheme.Scheme).
+		WithObjects(dockerCluster).
+		WithStatusSubresource(dockerCluster).
+		Build()
 
 	// Create the reconciler
 	r := &DockerClusterReconciler{
@@ -240,8 +248,12 @@ func TestDevClusterReconciler_ReconcileOrphanedDeletion(t *testing.T) {
 		Spec: infrav1.DevClusterSpec{},
 	}
 
-	// Create a fake client with the DevCluster
-	c := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(devCluster).Build()
+	// Create a fake client with the DevCluster - using status subresource
+	c := fake.NewClientBuilder().
+		WithScheme(scheme.Scheme).
+		WithObjects(devCluster).
+		WithStatusSubresource(devCluster).
+		Build()
 
 	// Create the reconciler
 	r := &DevClusterReconciler{
@@ -283,8 +295,12 @@ func TestDevClusterReconciler_ReconcileOrphanedWithoutDeletion(t *testing.T) {
 		Spec: infrav1.DevClusterSpec{},
 	}
 
-	// Create a fake client with the DevCluster
-	c := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(devCluster).Build()
+	// Create a fake client with the DevCluster - using status subresource
+	c := fake.NewClientBuilder().
+		WithScheme(scheme.Scheme).
+		WithObjects(devCluster).
+		WithStatusSubresource(devCluster).
+		Build()
 
 	// Create the reconciler
 	r := &DevClusterReconciler{

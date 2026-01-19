@@ -72,6 +72,8 @@ const (
 // +kubebuilder:printcolumn:name="Paused",type="string",JSONPath=`.status.conditions[?(@.type=="Paused")].status`,description="Reconciliation paused",priority=10
 // +kubebuilder:printcolumn:name="Variables Ready",type="string",JSONPath=`.status.conditions[?(@.type=="VariablesReady")].status`,description="Variables ready"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterClass"
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ClusterClass is a template which can be used to create managed topologies.
 // NOTE: This CRD can only be used if the ClusterTopology feature gate is enabled.

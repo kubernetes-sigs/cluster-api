@@ -358,3 +358,40 @@ func (metadata *ObjectMeta) Validate(parent *field.Path) field.ErrorList {
 	)...)
 	return allErrs
 }
+
+// Architecture represents the CPU architecture of a node.
+// This type is defined centrally here so that all infrastructure providers
+// can use consistent architecture values when implementing the status.nodeInfo
+// field on Infrastructure Machine Templates as defined in the
+// Opt-in Autoscaling from Zero proposal.
+// See: docs/proposals/20210310-opt-in-autoscaling-from-zero.md
+// +kubebuilder:validation:Enum=amd64;arm64;s390x;ppc64le
+type Architecture string
+
+// Define the Architecture constants.
+const (
+	ArchitectureAmd64   Architecture = "amd64"
+	ArchitectureArm64   Architecture = "arm64"
+	ArchitectureS390x   Architecture = "s390x"
+	ArchitecturePpc64le Architecture = "ppc64le"
+)
+
+// NodeInfo contains information about a node's architecture and operating system.
+// This type is defined centrally here so that all infrastructure providers
+// can use consistent types when implementing the status.nodeInfo field on
+// Infrastructure Machine Templates as defined in the
+// Opt-in Autoscaling from Zero proposal.
+// See: docs/proposals/20210310-opt-in-autoscaling-from-zero.md
+// +kubebuilder:validation:MinProperties=1
+type NodeInfo struct {
+	// architecture is the CPU architecture of the node.
+	// +optional
+	Architecture Architecture `json:"architecture,omitempty"`
+
+	// operatingSystem is a string representing the operating system of the node.
+	// This may be a string like 'linux' or 'windows'.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	OperatingSystem string `json:"operatingSystem,omitempty"`
+}

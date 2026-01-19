@@ -167,6 +167,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineTemplateSpec":                                      schema_cluster_api_api_core_v1beta2_MachineTemplateSpec(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.MachineV1Beta1DeprecatedStatus":                           schema_cluster_api_api_core_v1beta2_MachineV1Beta1DeprecatedStatus(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.NetworkRanges":                                            schema_cluster_api_api_core_v1beta2_NetworkRanges(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.NodeInfo":                                                 schema_cluster_api_api_core_v1beta2_NodeInfo(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.ObjectMeta":                                               schema_cluster_api_api_core_v1beta2_ObjectMeta(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchDefinition":                                          schema_cluster_api_api_core_v1beta2_PatchDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.PatchSelector":                                            schema_cluster_api_api_core_v1beta2_PatchSelector(ref),
@@ -6449,6 +6450,33 @@ func schema_cluster_api_api_core_v1beta2_NetworkRanges(ref common.ReferenceCallb
 					},
 				},
 				Required: []string{"cidrBlocks"},
+			},
+		},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_NodeInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NodeInfo contains information about a node's architecture and operating system. This type is defined centrally here so that all infrastructure providers can use consistent types when implementing the status.nodeInfo field on Infrastructure Machine Templates as defined in the Opt-in Autoscaling from Zero proposal. See: docs/proposals/20210310-opt-in-autoscaling-from-zero.md",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"architecture": {
+						SchemaProps: spec.SchemaProps{
+							Description: "architecture is the CPU architecture of the node.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"operatingSystem": {
+						SchemaProps: spec.SchemaProps{
+							Description: "operatingSystem is a string representing the operating system of the node. This may be a string like 'linux' or 'windows'.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
 			},
 		},
 	}

@@ -1418,9 +1418,10 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
-		machine  *clusterv1.Machine
-		expected bool
+		name         string
+		machine      *clusterv1.Machine
+		infraMachine *unstructured.Unstructured
+		expected     bool
 	}{
 		{
 			name: "Exclude node draining annotation exists",
@@ -1438,7 +1439,83 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
+			infraMachine: &unstructured.Unstructured{},
+			expected:     false,
+		},
+		{
+			name: "Machine without exclude draining annotaion should drain",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
+			infraMachine: &unstructured.Unstructured{},
+			expected:     true,
+		},
+		{
+			name: "Machine without infra machine should not drain",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
 			expected: false,
+		},
+		{
+			name: "Machine with infra machine in deletion should not drain",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
+			infraMachine: toUnstructured(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}}),
+			expected:     false,
+		},
+		{
+			name: "Machine in the pre-terminate hook phase should not drain",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					Deletion: &clusterv1.MachineDeletionStatus{
+						WaitForPreTerminateHookStartTime: metav1.Time{Time: time.Now()},
+					},
+				},
+			},
+			infraMachine: &unstructured.Unstructured{},
+			expected:     false,
 		},
 		{
 			name: "KCP machine with the pre terminate hook should drain",
@@ -1463,7 +1540,8 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			expected: true,
+			infraMachine: &unstructured.Unstructured{},
+			expected:     true,
 		},
 		{
 			name: "KCP machine without the pre terminate hook should stop draining",
@@ -1487,7 +1565,8 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			expected: false,
+			infraMachine: &unstructured.Unstructured{},
+			expected:     false,
 		},
 		{
 			name: "Node draining timeout is over",
@@ -1512,7 +1591,8 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					},
 				},
 			},
-			expected: false,
+			infraMachine: &unstructured.Unstructured{},
+			expected:     false,
 		},
 		{
 			name: "Node draining timeout is not yet over",
@@ -1536,7 +1616,8 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					},
 				},
 			},
-			expected: true,
+			infraMachine: &unstructured.Unstructured{},
+			expected:     true,
 		},
 		{
 			name: "NodeDrainTimeoutSeconds option is set to its default value 0",
@@ -1557,7 +1638,8 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					},
 				},
 			},
-			expected: true,
+			infraMachine: &unstructured.Unstructured{},
+			expected:     true,
 		},
 	}
 	for _, tt := range tests {
@@ -1572,7 +1654,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Client: c,
 			}
 
-			got := r.isNodeDrainAllowed(tt.machine)
+			got := r.isNodeDrainAllowed(tt.machine, tt.infraMachine)
 			g.Expect(got).To(Equal(tt.expected))
 		})
 	}
@@ -1996,9 +2078,10 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
-		machine  *clusterv1.Machine
-		expected bool
+		name         string
+		machine      *clusterv1.Machine
+		infraMachine *unstructured.Unstructured
+		expected     bool
 	}{
 		{
 			name: "Exclude wait node volume detaching annotation exists",
@@ -2016,7 +2099,83 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
+			infraMachine: &unstructured.Unstructured{},
+			expected:     false,
+		},
+		{
+			name: "Machine without volume detaching annotaion should detach",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
+			infraMachine: &unstructured.Unstructured{},
+			expected:     true,
+		},
+		{
+			name: "Machine in the pre-terminate hook phase should not detach",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					Deletion: &clusterv1.MachineDeletionStatus{
+						WaitForPreTerminateHookStartTime: metav1.Time{Time: time.Now()},
+					},
+				},
+			},
+			infraMachine: &unstructured.Unstructured{},
+			expected:     false,
+		},
+		{
+			name: "Machine without infra machine should not detach",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
 			expected: false,
+		},
+		{
+			name: "Machine with infra machine in deletion should not detach",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
+			infraMachine: toUnstructured(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}}),
+			expected:     false,
 		},
 		{
 			name: "KCP machine with the pre terminate hook should wait",
@@ -2041,7 +2200,8 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			expected: true,
+			infraMachine: &unstructured.Unstructured{},
+			expected:     true,
 		},
 		{
 			name: "KCP machine without the pre terminate hook should stop waiting",
@@ -2065,7 +2225,8 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{},
 			},
-			expected: false,
+			infraMachine: &unstructured.Unstructured{},
+			expected:     false,
 		},
 		{
 			name: "Volume detach timeout is over",
@@ -2090,7 +2251,8 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					},
 				},
 			},
-			expected: false,
+			infraMachine: &unstructured.Unstructured{},
+			expected:     false,
 		},
 		{
 			name: "Volume detach timeout is not yet over",
@@ -2114,7 +2276,8 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					},
 				},
 			},
-			expected: true,
+			infraMachine: &unstructured.Unstructured{},
+			expected:     true,
 		},
 		{
 			name: "Volume detach timeout option is set to it's default value 0",
@@ -2135,7 +2298,8 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					},
 				},
 			},
-			expected: true,
+			infraMachine: &unstructured.Unstructured{},
+			expected:     true,
 		},
 	}
 	for _, tt := range tests {
@@ -2150,7 +2314,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Client: c,
 			}
 
-			got := r.isNodeVolumeDetachingAllowed(tt.machine)
+			got := r.isNodeVolumeDetachingAllowed(tt.machine, tt.infraMachine)
 			g.Expect(got).To(Equal(tt.expected))
 		})
 	}
@@ -3739,4 +3903,13 @@ func podByNodeName(o client.Object) []string {
 	}
 
 	return []string{pod.Spec.NodeName}
+}
+
+func toUnstructured(obj client.Object) *unstructured.Unstructured {
+	unstructuredObj := &unstructured.Unstructured{}
+	unstructuredObj.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
+	unstructuredObj.SetName(obj.GetName())
+	unstructuredObj.SetNamespace(obj.GetNamespace())
+	unstructuredObj.SetDeletionTimestamp(obj.GetDeletionTimestamp())
+	return unstructuredObj
 }

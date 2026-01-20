@@ -597,6 +597,12 @@ func spokeMachineStatus(in *MachineStatus, c randfill.Continue) {
 		if reflect.DeepEqual(in.Deletion.WaitForNodeVolumeDetachStartTime, &metav1.Time{}) {
 			in.Deletion.WaitForNodeVolumeDetachStartTime = nil
 		}
+		if reflect.DeepEqual(in.Deletion.WaitForPreDrainHookStartTime, &metav1.Time{}) {
+			in.Deletion.WaitForPreDrainHookStartTime = nil
+		}
+		if reflect.DeepEqual(in.Deletion.WaitForPreTerminateHookStartTime, &metav1.Time{}) {
+			in.Deletion.WaitForPreTerminateHookStartTime = nil
+		}
 	}
 }
 

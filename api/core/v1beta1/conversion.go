@@ -2437,6 +2437,12 @@ func Convert_v1beta1_MachineDeletionStatus_To_v1beta2_MachineDeletionStatus(in *
 	if in.WaitForNodeVolumeDetachStartTime != nil && !reflect.DeepEqual(in.WaitForNodeVolumeDetachStartTime, &metav1.Time{}) {
 		out.WaitForNodeVolumeDetachStartTime = *in.WaitForNodeVolumeDetachStartTime
 	}
+	if in.WaitForPreDrainHookStartTime != nil && !reflect.DeepEqual(in.WaitForPreDrainHookStartTime, &metav1.Time{}) {
+		out.WaitForPreDrainHookStartTime = *in.WaitForPreDrainHookStartTime
+	}
+	if in.WaitForPreTerminateHookStartTime != nil && !reflect.DeepEqual(in.WaitForPreTerminateHookStartTime, &metav1.Time{}) {
+		out.WaitForPreTerminateHookStartTime = *in.WaitForPreTerminateHookStartTime
+	}
 	return nil
 }
 
@@ -2446,6 +2452,12 @@ func Convert_v1beta2_MachineDeletionStatus_To_v1beta1_MachineDeletionStatus(in *
 	}
 	if !reflect.DeepEqual(in.WaitForNodeVolumeDetachStartTime, metav1.Time{}) {
 		out.WaitForNodeVolumeDetachStartTime = ptr.To(in.WaitForNodeVolumeDetachStartTime)
+	}
+	if !reflect.DeepEqual(in.WaitForPreDrainHookStartTime, metav1.Time{}) {
+		out.WaitForPreDrainHookStartTime = ptr.To(in.WaitForPreDrainHookStartTime)
+	}
+	if !reflect.DeepEqual(in.WaitForPreTerminateHookStartTime, metav1.Time{}) {
+		out.WaitForPreTerminateHookStartTime = ptr.To(in.WaitForPreTerminateHookStartTime)
 	}
 	return nil
 }

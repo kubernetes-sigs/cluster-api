@@ -614,6 +614,18 @@ type MachineDeletionStatus struct {
 	// Only present when the Machine has a deletionTimestamp and waiting for volume detachments had been started.
 	// +optional
 	WaitForNodeVolumeDetachStartTime *metav1.Time `json:"waitForNodeVolumeDetachStartTime,omitempty"`
+
+	// waitForPreDrainHookStartTime is the time when waiting for pre-drain hooks started
+	// and is used to determine if the pre-drain hooks are taking too long.
+	// Only present when the Machine has a deletionTimestamp and waiting for pre-drain hooks had been started.
+	// +optional
+	WaitForPreDrainHookStartTime *metav1.Time `json:"waitForPreDrainHookStartTime,omitempty"`
+
+	// waitForPreTerminateHookStartTime is the time when waiting for pre-terminate hooks started
+	// and is used to determine if the pre-terminate hooks are taking too long.
+	// Only present when the Machine has a deletionTimestamp and waiting for pre-terminate hooks had been started.
+	// +optional
+	WaitForPreTerminateHookStartTime *metav1.Time `json:"waitForPreTerminateHookStartTime,omitempty"`
 }
 
 // SetTypedPhase sets the Phase field to the string representation of MachinePhase.

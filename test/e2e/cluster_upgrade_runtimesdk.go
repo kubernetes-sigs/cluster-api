@@ -104,7 +104,7 @@ type ClusterUpgradeWithRuntimeSDKSpecInput struct {
 
 	// Allows injecting a function to be run after the cluster is upgraded.
 	// If not specified, this is a no-op.
-	PostUpgrade func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
+	PostUpgrade func(spec string, managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
 
 	// ExtensionConfigName is the name of the ExtensionConfig. Defaults to "k8s-upgrade-with-runtimesdk".
 	// This value is provided to clusterctl as "EXTENSION_CONFIG_NAME" variable and can be used to template the
@@ -432,7 +432,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 
 		if input.PostUpgrade != nil {
 			log.Logf("Calling PostMachinesProvisioned for cluster %s", klog.KRef(namespace.Name, clusterResources.Cluster.Name))
-			input.PostUpgrade(input.BootstrapClusterProxy, namespace.Name, clusterResources.Cluster.Name)
+			input.PostUpgrade(specName, input.BootstrapClusterProxy, namespace.Name, clusterResources.Cluster.Name)
 		}
 
 		Byf("Verify Cluster Available condition is true")

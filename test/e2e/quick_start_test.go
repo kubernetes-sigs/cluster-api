@@ -37,7 +37,7 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+			PostMachinesProvisioned: func(spec string, proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
 				By("Checking that owner references are resilient")
 				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
@@ -69,7 +69,11 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
 				By("Checking that resourceVersions are stable")
-				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+				resourceVersionWait := framework.ValidateResourceVersionStableWaitIntervals{
+					WaitToBecomeStable: e2eConfig.GetIntervals(spec, "wait-resource-versions-become-stable"),
+					WaitToRemainStable: e2eConfig.GetIntervals(spec, "wait-resource-versions-remain-stable"),
+				}
+				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName), resourceVersionWait)
 			},
 		}
 	})
@@ -84,7 +88,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 			Flavor:                ptr.To("topology"),
-			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+			PostMachinesProvisioned: func(spec string, proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
 				By("Checking that owner references are resilient")
 				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
@@ -116,7 +120,11 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
 				By("Checking that resourceVersions are stable")
-				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+				resourceVersionWait := framework.ValidateResourceVersionStableWaitIntervals{
+					WaitToBecomeStable: e2eConfig.GetIntervals(spec, "wait-resource-versions-become-stable"),
+					WaitToRemainStable: e2eConfig.GetIntervals(spec, "wait-resource-versions-remain-stable"),
+				}
+				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName), resourceVersionWait)
 			},
 		}
 	})
@@ -137,11 +145,15 @@ var _ = Describe("When following the Cluster API quick-start with v1beta1 Cluste
 			// the actual service.
 			ExtensionServiceNamespace: "test-extension-system",
 			ExtensionServiceName:      "test-extension-webhook-service",
-			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+			PostMachinesProvisioned: func(spec string, proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
 				By("Checking that resourceVersions are stable")
-				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+				resourceVersionWait := framework.ValidateResourceVersionStableWaitIntervals{
+					WaitToBecomeStable: e2eConfig.GetIntervals(spec, "wait-resource-versions-become-stable"),
+					WaitToRemainStable: e2eConfig.GetIntervals(spec, "wait-resource-versions-remain-stable"),
+				}
+				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName), resourceVersionWait)
 			},
 		}
 	})
@@ -183,7 +195,7 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 			Flavor:                ptr.To("topology-dualstack-ipv4-primary"),
-			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+			PostMachinesProvisioned: func(_ string, proxy framework.ClusterProxy, namespace, clusterName string) {
 				By("Running kubetest dualstack tests")
 				// Start running the dualstack test suite from kubetest.
 				Expect(kubetest.Run(
@@ -209,7 +221,7 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 			Flavor:                ptr.To("topology-dualstack-ipv6-primary"),
-			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+			PostMachinesProvisioned: func(_ string, proxy framework.ClusterProxy, namespace, clusterName string) {
 				By("Running kubetest dualstack tests")
 				// Start running the dualstack test suite from kubetest.
 				Expect(kubetest.Run(

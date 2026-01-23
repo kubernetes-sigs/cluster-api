@@ -69,7 +69,15 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
 				By("Checking that resourceVersions are stable")
-				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+				spec := "quick-start"
+				resourceVersionInput := framework.ValidateResourceVersionStableInput{
+					ClusterProxy:             proxy,
+					Namespace:                namespace,
+					OwnerGraphFilterFunction: clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+					WaitToBecomeStable:       e2eConfig.GetIntervals(spec, "wait-resource-versions-become-stable"),
+					WaitToRemainStable:       e2eConfig.GetIntervals(spec, "wait-resource-versions-remain-stable"),
+				}
+				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 			},
 		}
 	})
@@ -116,7 +124,15 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
 				By("Checking that resourceVersions are stable")
-				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+				spec := "quick-start"
+				resourceVersionInput := framework.ValidateResourceVersionStableInput{
+					ClusterProxy:             proxy,
+					Namespace:                namespace,
+					OwnerGraphFilterFunction: clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+					WaitToBecomeStable:       e2eConfig.GetIntervals(spec, "wait-resource-versions-become-stable"),
+					WaitToRemainStable:       e2eConfig.GetIntervals(spec, "wait-resource-versions-remain-stable"),
+				}
+				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 			},
 		}
 	})
@@ -141,7 +157,15 @@ var _ = Describe("When following the Cluster API quick-start with v1beta1 Cluste
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
 				By("Checking that resourceVersions are stable")
-				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+				spec := "quick-start"
+				resourceVersionInput := framework.ValidateResourceVersionStableInput{
+					ClusterProxy:             proxy,
+					Namespace:                namespace,
+					OwnerGraphFilterFunction: clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+					WaitToBecomeStable:       e2eConfig.GetIntervals(spec, "wait-resource-versions-become-stable"),
+					WaitToRemainStable:       e2eConfig.GetIntervals(spec, "wait-resource-versions-remain-stable"),
+				}
+				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 			},
 		}
 	})

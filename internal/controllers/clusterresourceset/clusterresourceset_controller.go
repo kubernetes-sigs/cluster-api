@@ -151,6 +151,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Always attempt to patch the object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully.
 		patchOpts := []patch.Option{
+			patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+				addonsv1.ResourcesAppliedV1Beta1Condition,
+			}},
 			patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.PausedCondition,
 				addonsv1.ClusterResourceSetResourcesAppliedCondition,

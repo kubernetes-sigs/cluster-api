@@ -536,7 +536,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			},
 		},
 		{
-			name:     "infra machine ready and with optional failure domain, it should reconcile and data should surface on the machine",
+			name:     "infra machine ready and with optional failure domain (deprecated), it should reconcile and data should surface on the machine",
 			contract: "v1beta1",
 			machine:  defaultMachine.DeepCopy(),
 			infraMachine: map[string]interface{}{
@@ -561,6 +561,35 @@ func TestReconcileInfrastructure(t *testing.T) {
 				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
 				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
 				g.Expect(m.Spec.FailureDomain).To(Equal("foo"))
+				g.Expect(m.Status.Addresses).To(BeNil())
+			},
+		},
+		{
+			name:     "infra machine ready and with optional failure domain, it should reconcile and data should surface on the machine",
+			contract: "v1beta1",
+			machine:  defaultMachine.DeepCopy(),
+			infraMachine: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
+				"status": map[string]interface{}{
+					"ready":         true,
+					"failureDomain": "foo",
+				},
+			},
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
+				g.Expect(m.Status.FailureDomain).To(Equal("foo"))
 				g.Expect(m.Status.Addresses).To(BeNil())
 			},
 		},
@@ -629,6 +658,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 							"address": "10.0.0.2",
 						},
 					},
+					"failureDomain": "bar",
 				},
 			},
 			infraMachineGetError: nil,
@@ -639,6 +669,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				g.Expect(m.Spec.ProviderID).To(Equal("test://id-1"))
 				g.Expect(m.Spec.FailureDomain).To(Equal("foo"))
 				g.Expect(m.Status.Addresses).To(HaveLen(2))
+				g.Expect(m.Status.FailureDomain).To(Equal("bar"))
 			},
 		},
 		{

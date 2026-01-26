@@ -238,28 +238,13 @@ In case you are developing an infrastructure provider which has a notion of fail
 placed in, the InfraMachine resource MUST comply to the value that exists in the `spec.failureDomain` field of the Machine
 (in other words, the InfraMachine MUST be placed in the failure domain specified at Machine level).
 
-Please note, that for allowing a transparent transition from when there was no failure domain support in Cluster API
-and InfraMachine was authoritative WRT to failure domain placement (before CAPI v0.3.0),
-Cluster API still supports a _deprecated_ reverse process for failure domain management.
-
-In the _deprecated_ reverse process, the failure domain where the machine should be placed is defined in the InfraMachine's 
-`spec.failureDomain` field; the value of this field is then surfaced on the corresponding field at Machine level.
-
-<aside class="note warning">
-
-<h1>Heads up! this will change with the v1beta2 contract</h1>
-
-Machine's controller will stop supporting the _deprecated_ reverse process; the InfraMachine's `spec.failureDomain`,
-if still present, will be ignored.
-
-However, InfraMachine will be allowed to surface the failure domain where the machine is actually placed in by 
-implementing a new, optional `status.failureDomain`; this info, if present, will then surface at Machine level in a 
-new corresponding field (also in status).
+Also, InfraMachine providers are allowed to surface the failure domain where the machine is actually placed by
+implementing the `status.failureDomain` field; this info, if present, will then surface at Machine level in a 
+corresponding field (also in status).
 
 ```go
 type FooMachineStatus struct {
     // failureDomain is the unique identifier of the failure domain where this Machine has been placed in.
-    // For this Foo infrastructure provider, the name is equivalent to the name of one of the available regions.
     // +optional
     // +kubebuilder:validation:MinLength=1
     // +kubebuilder:validation:MaxLength=256
@@ -269,6 +254,22 @@ type FooMachineStatus struct {
     // Other fields SHOULD be added based on the needs of your provider.
 }
 ```
+
+<aside class="note warning">
+
+<h1>Compatibility with the deprecated v1beta1 contract</h1>
+
+In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
+preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
+
+With regard to failure domain:
+
+Cluster API will continue to temporarily support InfraMachine resource using `spec.failureDomain` to
+set the failure domain. Note that this field has been preserved only for allowing transparent transition from when there 
+was no failure domain support in Cluster API and InfraMachine was authoritative WRT to failure domain placement (before CAPI v0.3.0).
+
+After compatibility with the deprecated v1beta1 contract will be removed, `spec.failureDomain` field in
+the InfraMachine resource will be ignored.
 
 </aside>
 
@@ -322,7 +323,7 @@ type FooMachineInitializationStatus struct {
 ```
 
 Once `status.initialization.provisioned` is set the Machine "core" controller will bubble up this info in Machine's
-`status.initialization.infrastructureProvisioned`; also InfraMachine's `spec.providerID` and `status.addresses` will 
+`status.initialization.infrastructureProvisioned`; also InfraMachine's `spec.providerID`, `status.failureDomain` and `status.addresses` will 
 be surfaced on Machine's corresponding fields at the same time.
 
 <aside class="note warning">
@@ -332,7 +333,7 @@ be surfaced on Machine's corresponding fields at the same time.
 In order to ease the transition for providers, the v1beta2 version of the Cluster API contract _temporarily_
 preserves compatibility with the deprecated v1beta1 contract; compatibility will be removed tentatively in August 2026.
 
-With regards to initialization completed:
+With regard to initialization completed:
 
 Cluster API will continue to temporarily support InfraMachine resource using `status.ready` field to
 report initialization completed.
@@ -614,7 +615,7 @@ is implemented in InfraMachine controllers:
 1. Set `spec.providerID` to the provider-specific identifier for the provider's machine instance
 1. Set `status.infrastructure.provisioned` to `true`
 1. Set `status.addresses` to the provider-specific set of instance addresses (optional)
-1. Set `spec.failureDomain` to the provider-specific failure domain the instance is running in (optional)
+1. Set `status.failureDomain` to the provider-specific failure domain the instance is running in (optional)
 1. Patch the resource to persist changes
 
 ### Deleted resource

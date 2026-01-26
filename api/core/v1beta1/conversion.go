@@ -413,6 +413,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 		// won't be able to write the Phase field. But that's okay as the only client writing the Phase
 		// field should be the Machine controller.
 		dst.Status.Phase = restored.Status.Phase
+		dst.Status.FailureDomain = restored.Status.FailureDomain
 	}
 
 	return nil

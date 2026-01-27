@@ -3224,6 +3224,7 @@ func autoConvert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(in *v1beta2.Mach
 	out.NodeInfo = (*corev1.NodeSystemInfo)(unsafe.Pointer(in.NodeInfo))
 	// WARNING: in.LastUpdated requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	out.Addresses = *(*MachineAddresses)(unsafe.Pointer(&in.Addresses))
+	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	out.Phase = in.Phase
 	// WARNING: in.CertificatesExpiryDate requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	out.ObservedGeneration = in.ObservedGeneration

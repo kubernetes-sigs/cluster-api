@@ -589,6 +589,12 @@ type MachineStatus struct {
 	// +optional
 	Addresses MachineAddresses `json:"addresses,omitempty"`
 
+	// failureDomain is the failure domain where the Machine has been scheduled.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	FailureDomain string `json:"failureDomain,omitempty"`
+
 	// phase represents the current phase of machine actuation.
 	// +optional
 	// +kubebuilder:validation:Enum=Pending;Provisioning;Provisioned;Running;Updating;Deleting;Deleted;Failed;Unknown
@@ -783,6 +789,7 @@ type Bootstrap struct {
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".spec.clusterName",description="Cluster"
 // +kubebuilder:printcolumn:name="Node Name",type="string",JSONPath=".status.nodeRef.name",description="Node name associated with this machine"
 // +kubebuilder:printcolumn:name="Provider ID",type="string",JSONPath=".spec.providerID",description="Provider ID",priority=10
+// +kubebuilder:printcolumn:name="Failure domain",type="string",JSONPath=".status.failureDomain",description="The failure domain where the Machine has been scheduled"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.conditions[?(@.type=="Ready")].status`,description="Machine pass all readiness checks"
 // +kubebuilder:printcolumn:name="Available",type="string",JSONPath=`.status.conditions[?(@.type=="Available")].status`,description="Machine is Ready for at least MinReadySeconds"
 // +kubebuilder:printcolumn:name="Up-to-date",type="string",JSONPath=`.status.conditions[?(@.type=="UpToDate")].status`,description=" Machine spec matches the spec of the Machine's owner resource, e.g. MachineDeployment"

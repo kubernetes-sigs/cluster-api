@@ -349,15 +349,26 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		m.Status.Addresses = *addresses
 	}
 
-	// Get and set failureDomain from the InfrastructureMachine.
+	// Get deprecatedFailureDomain from the InfrastructureMachine.
+	deprecatedFailureDomain, err := contract.InfrastructureMachine().DeprecatedFailureDomain().Get(s.infraMachine)
+	switch {
+	case errors.Is(err, contract.ErrFieldNotFound): // no-op
+	case err != nil:
+		return ctrl.Result{}, errors.Wrapf(err, "failed to read spec.failureDomain from %s %s",
+			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
+	default:
+		m.Spec.FailureDomain = ptr.Deref(deprecatedFailureDomain, "")
+	}
+
+	// Get failureDomain from the InfrastructureMachine.
 	failureDomain, err := contract.InfrastructureMachine().FailureDomain().Get(s.infraMachine)
 	switch {
 	case errors.Is(err, contract.ErrFieldNotFound): // no-op
 	case err != nil:
-		return ctrl.Result{}, errors.Wrapf(err, "failed to read failureDomain from %s %s",
+		return ctrl.Result{}, errors.Wrapf(err, "failed to read status.failureDomain from %s %s",
 			s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 	default:
-		m.Spec.FailureDomain = ptr.Deref(failureDomain, "")
+		m.Status.FailureDomain = ptr.Deref(failureDomain, "")
 	}
 
 	// When we hit this point providerID is set, and either:

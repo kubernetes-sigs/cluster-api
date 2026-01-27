@@ -663,6 +663,10 @@ spec:
       name: Provider ID
       priority: 10
       type: string
+    - description: The failure domain where the Machine has been scheduled
+      jsonPath: .status.failureDomain
+      name: Failure domain
+      type: string
     - description: Machine pass all readiness checks
       jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
@@ -1256,6 +1260,12 @@ spec:
                         type: string
                     type: object
                 type: object
+              failureDomain:
+                description: failureDomain is the failure domain where the Machine
+                  has been scheduled.
+                maxLength: 256
+                minLength: 1
+                type: string
               initialization:
                 description: |-
                   initialization provides observations of the Machine initialization process.

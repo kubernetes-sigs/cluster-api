@@ -92,10 +92,17 @@ func (m *InfrastructureMachineContract) ProviderID() *String {
 	}
 }
 
-// FailureDomain provides access to the spec.failureDomain field in an InfrastructureMachine object. Note that this field is optional.
-func (m *InfrastructureMachineContract) FailureDomain() *String {
+// DeprecatedFailureDomain provides access to the spec.failureDomain field in an InfrastructureMachine object. Note that this field is optional.
+func (m *InfrastructureMachineContract) DeprecatedFailureDomain() *String {
 	return &String{
 		path: []string{"spec", "failureDomain"},
+	}
+}
+
+// FailureDomain provides access to the status.failureDomain field in an InfrastructureMachine object. Note that this field is optional.
+func (m *InfrastructureMachineContract) FailureDomain() *String {
+	return &String{
+		path: []string{"status", "failureDomain"},
 	}
 }
 

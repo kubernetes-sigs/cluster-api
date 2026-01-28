@@ -111,6 +111,14 @@ func TestGenerate(t *testing.T) {
 									Template: `[{"contentFrom":{"secret":{"key":"control-plane-azure.json","name":"{{ .builtin.controlPlane.machineTemplate.infrastructureRef.name }}-azure-json"}}}]`,
 								},
 							},
+							// tpl function is available.
+							{
+								Op:   "replace",
+								Path: "/spec/tplFunction",
+								ValueFrom: &clusterv1.JSONPatchValue{
+									Template: `{{ tpl .variableABC . }}`,
+								},
+							},
 						},
 					},
 				},
@@ -132,6 +140,10 @@ func TestGenerate(t *testing.T) {
 					{
 						Name:  "variableC",
 						Value: apiextensionsv1.JSON{Raw: []byte(`"C"`)},
+					},
+					{
+						Name:  "variableABC",
+						Value: apiextensionsv1.JSON{Raw: []byte(`"{{ .variableA }}-{{ .variableB }}-{{ .variableC }}"`)},
 					},
 				},
 				Items: []runtimehooksv1.GeneratePatchesRequestItem{
@@ -183,7 +195,9 @@ func TestGenerate(t *testing.T) {
       "name":"controlPlaneInfrastructureMachineTemplate1-azure-json"
     }
   }
-}]}]`),
+}]},
+{"op":"replace","path":"/spec/tplFunction","value":"A-B-C-template"}
+]`),
 						PatchType: runtimehooksv1.JSONPatchType,
 					},
 				},
@@ -417,8 +431,8 @@ func TestGenerate(t *testing.T) {
 
 			got, err := NewGenerator(tt.patch).Generate(context.Background(), &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, tt.req)
 
-			g.Expect(got).To(BeComparableTo(tt.want))
 			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }

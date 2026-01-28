@@ -145,6 +145,10 @@ func (f fakeClient) RolloutResume(ctx context.Context, options RolloutResumeOpti
 	return f.internalClient.RolloutResume(ctx, options)
 }
 
+func (f fakeClient) Convert(ctx context.Context, options ConvertOptions) (ConvertResult, error) {
+	return f.internalClient.Convert(ctx, options)
+}
+
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
 // you can use WithCluster and WithRepository to prepare for the test case.
 func newFakeClient(ctx context.Context, configClient config.Client) *fakeClient {

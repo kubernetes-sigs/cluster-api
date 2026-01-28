@@ -1090,6 +1090,21 @@ func TestGetUpgradePlanFromClusterClassVersions(t *testing.T) {
 			wantWorkersUpgradePlan:      nil,
 			wantErr:                     false,
 		},
+		{
+			name: "version with not sortable build tags",
+			clusterClassVersions: []string{
+				"v1.31.0+a", "v1.31.0+b", "v1.31.0+c", // this is the same minor of currentControlPlaneVersion, everything should be ignored.
+				"v1.31.1+a",
+				"v1.32.0+a", "v1.32.0+b", "v1.32.0+c",
+				"v1.33.0+b",
+				"v1.33.1+a", "v1.33.1+b", "v1.33.1+c", // desiredVersion ends with +b, +c should be ignored.
+			},
+			desiredVersion:              "v1.33.1+b",
+			currentControlPlaneVersion:  "v1.31.0+b",
+			wantControlPlaneUpgradePlan: []string{"v1.32.0+c", "v1.33.1+b"},
+			wantWorkersUpgradePlan:      nil,
+			wantErr:                     false,
+		},
 
 		// Kubernetes versions in CC is set when clusters already exists
 
